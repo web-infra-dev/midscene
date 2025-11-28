@@ -18,22 +18,33 @@ export function generateToolsFromActionSpace(
   actionSpace: GenericAction[],
   getAgent: () => Promise<any>,
 ): ToolDefinition[] {
-  return actionSpace.map((action) => ({
-    name: action.name,
-    description: action.description || `Execute ${action.name} action`,
-    schema: action.paramSchema ? { param: action.paramSchema } : {},
-    handler: async (args: any) => {
-      const agent = await getAgent();
+  return actionSpace.map((action) => {
+    // Extract the shape from Zod schema if it exists
+    // For z.object({ locate: ... }), we want to get the shape (the fields inside)
+    let schema: any = {};
+    if (action.paramSchema) {
+      // If it's a ZodObject, extract its shape
+      if (action.paramSchema._def?.typeName === 'ZodObject') {
+        schema = action.paramSchema.shape;
+      } else {
+        // Otherwise use it as-is
+        schema = action.paramSchema;
+      }
+    }
 
-      // Extract actual parameters from the 'param' wrapper
-      // MCP wraps parameters in { param: {...} }, so we need to unwrap it
-      const actionParams = args.param || args;
+    return {
+      name: action.name,
+      description: action.description || `Execute ${action.name} action`,
+      schema,
+      handler: async (args: any) => {
+        const agent = await getAgent();
 
-      // Call the action through agent's action method
-      await agent.aiAction(`Use the action "${action.name}"`, {
-        planType: action.name,
-        ...actionParams,
-      });
+        // Call the action through agent's action method
+        // args already contains the unwrapped parameters (e.g., { locate: {...} })
+        await agent.aiAction(`Use the action "${action.name}"`, {
+          planType: action.name,
+          ...args,
+        });
 
       // Return screenshot after action
       const screenshot = await agent.page.screenshotBase64();
@@ -55,7 +66,8 @@ export function generateToolsFromActionSpace(
       };
     },
     autoDestroy: true,
-  }));
+  };
+  });
 }
 
 /**

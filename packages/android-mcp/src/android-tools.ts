@@ -11,26 +11,6 @@ const debug = getDebug('mcp:android-tools');
  * Extends BaseMidsceneTools to provide Android ADB device connection tools
  */
 export class AndroidMidsceneTools extends BaseMidsceneTools {
-  protected getDefaultActionSpace() {
-    // Provide default Android action space when device is not connected
-    return [
-      { name: 'Tap', description: 'Tap the element' },
-      { name: 'DoubleClick', description: 'Double click the element' },
-      { name: 'Input', description: 'Input text into the input field' },
-      { name: 'Scroll', description: 'Scroll the page or an element' },
-      { name: 'DragAndDrop', description: 'Drag and drop the element' },
-      { name: 'KeyboardPress', description: 'Press a key or key combination' },
-      { name: 'AndroidLongPress', description: 'Trigger a long press on the screen at specified coordinates on Android devices' },
-      { name: 'AndroidPull', description: 'Trigger pull down to refresh or pull up actions' },
-      { name: 'ClearInput', description: 'Clear the input field' },
-      { name: 'RunAdbShell', description: 'Execute ADB shell command on Android device' },
-      { name: 'Launch', description: 'Launch an Android app or URL' },
-      { name: 'AndroidBackButton', description: 'Trigger the system "back" operation on Android devices' },
-      { name: 'AndroidHomeButton', description: 'Trigger the system "home" operation on Android devices' },
-      { name: 'AndroidRecentAppsButton', description: 'Trigger the system "recent apps" operation on Android devices' },
-    ];
-  }
-
   protected createTemporaryDevice() {
     // Import AndroidDevice class
     const { AndroidDevice } = require('@midscene/android');
