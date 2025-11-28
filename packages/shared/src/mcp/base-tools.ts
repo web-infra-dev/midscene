@@ -34,7 +34,19 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
   }
 
   /**
+   * Optional: create a temporary device instance to read actionSpace
+   * This allows getting real actionSpace without connecting to device
+   */
+  protected createTemporaryDevice?(): any {
+    return undefined;
+  }
+
+  /**
    * Initialize all tools by querying actionSpace
+   * Uses three-layer fallback strategy:
+   * 1. Try to get actionSpace from connected agent
+   * 2. Create temporary device instance to read actionSpace
+   * 3. Use hardcoded default actionSpace
    */
   public async initTools(): Promise<void> {
     this.toolDefinitions = [];
@@ -44,16 +56,33 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
     const platformTools = this.preparePlatformTools();
     this.toolDefinitions.push(...platformTools);
 
-    // 2. Try to get agent and its action space
+    // 2. Try to get agent and its action space (three-layer fallback)
     let actionSpace: any[];
     try {
+      // Layer 1: Try to use connected agent
       const agent = await this.ensureAgent();
       actionSpace = await agent.getActionSpace();
-      debug('Action space:', actionSpace.map((a: any) => a.name).join(', '));
+      debug('Action space from connected agent:', actionSpace.map((a: any) => a.name).join(', '));
     } catch (error) {
-      // If agent initialization fails, use default action space
-      debug('Using default action space due to initialization failure');
-      actionSpace = this.getDefaultActionSpace();
+      debug('Failed to get action space from agent, trying temporary device');
+
+      try {
+        // Layer 2: Create temporary device instance to read actionSpace
+        if (this.createTemporaryDevice) {
+          const tempDevice = this.createTemporaryDevice();
+          actionSpace = tempDevice.actionSpace();
+          debug('Action space from temporary device:', actionSpace.map((a: any) => a.name).join(', '));
+
+          // Destroy temporary instance using optional chaining
+          await tempDevice.destroy?.();
+        } else {
+          throw new Error('createTemporaryDevice not implemented');
+        }
+      } catch (fallbackError) {
+        // Layer 3: Use hardcoded default actionSpace
+        debug('Using default action space due to all failures');
+        actionSpace = this.getDefaultActionSpace();
+      }
     }
 
     // 3. Generate tools from action space (core innovation)

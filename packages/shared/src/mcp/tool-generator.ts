@@ -25,10 +25,14 @@ export function generateToolsFromActionSpace(
     handler: async (args: any) => {
       const agent = await getAgent();
 
+      // Extract actual parameters from the 'param' wrapper
+      // MCP wraps parameters in { param: {...} }, so we need to unwrap it
+      const actionParams = args.param || args;
+
       // Call the action through agent's action method
       await agent.aiAction(`Use the action "${action.name}"`, {
         planType: action.name,
-        ...args,
+        ...actionParams,
       });
 
       // Return screenshot after action

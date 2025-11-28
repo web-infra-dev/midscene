@@ -88,6 +88,12 @@ export async function agentFromAdbDevice(
   if (!deviceId) {
     const devices = await getConnectedDevices();
 
+    if (devices.length === 0) {
+      throw new Error(
+        'No Android devices found. Please connect an Android device and ensure ADB is properly configured. Run `adb devices` to verify device connection.',
+      );
+    }
+
     deviceId = devices[0].udid;
 
     debugAgent(
