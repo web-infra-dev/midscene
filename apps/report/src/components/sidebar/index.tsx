@@ -200,6 +200,112 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return total > 0 ? total : '-';
   };
 
+  // Calculate dynamic column widths based on content
+  const dynamicWidths = useMemo(() => {
+    if (!groupedDump) {
+      return {
+        time: 80,
+        intent: 70,
+        model: 100,
+        prompt: 90,
+        cached: 100,
+        completion: 110,
+      };
+    }
+
+    let maxTimeLength = 0;
+    let maxIntentLength = 0;
+    let maxModelLength = 0;
+    let maxPromptLength = 0;
+    let maxCachedLength = 0;
+    let maxCompletionLength = 0;
+
+    groupedDump.executions.forEach((execution) => {
+      execution.tasks.forEach((task) => {
+        // Time cost length (e.g., "1.23s", "123ms")
+        if (typeof task.timing?.cost === 'number') {
+          const timeStr =
+            task.timing.cost < 1000
+              ? `${task.timing.cost}ms`
+              : `${(task.timing.cost / 1000).toFixed(2)}s`;
+          maxTimeLength = Math.max(maxTimeLength, timeStr.length);
+        }
+
+        // Intent length
+        const intent = task.usage?.intent || '';
+        maxIntentLength = Math.max(maxIntentLength, String(intent).length);
+
+        // Model name length
+        const modelName = task.usage?.model_name || '';
+        maxModelLength = Math.max(maxModelLength, modelName.length);
+
+        // Token numbers length
+        const promptTokens = String(
+          (task.usage?.prompt_tokens || 0) +
+            ((task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+              ?.prompt_tokens || 0),
+        );
+        const cachedTokens = String(
+          (task.usage?.cached_input || 0) +
+            ((task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+              ?.cached_input || 0),
+        );
+        const completionTokens = String(
+          (task.usage?.completion_tokens || 0) +
+            ((task as ExecutionTaskWithSearchAreaUsage).searchAreaUsage
+              ?.completion_tokens || 0),
+        );
+
+        maxPromptLength = Math.max(maxPromptLength, promptTokens.length);
+        maxCachedLength = Math.max(maxCachedLength, cachedTokens.length);
+        maxCompletionLength = Math.max(
+          maxCompletionLength,
+          completionTokens.length,
+        );
+      });
+    });
+
+    // Calculate widths: monospace char width ~7-8px + padding
+    // Use 9px per char to account for padding and ensure no overflow
+    const charWidth = 9;
+    const minWidths = {
+      time: 60,
+      intent: 60,
+      model: 80,
+      prompt: 70,
+      cached: 80,
+      completion: 90,
+    };
+    const maxWidth = 200;
+
+    return {
+      time: Math.min(
+        maxWidth,
+        Math.max(minWidths.time, maxTimeLength * charWidth + 20),
+      ),
+      intent: Math.min(
+        maxWidth,
+        Math.max(minWidths.intent, maxIntentLength * charWidth + 20),
+      ),
+      model: Math.min(
+        maxWidth,
+        Math.max(minWidths.model, maxModelLength * charWidth + 20),
+      ),
+      prompt: Math.min(
+        maxWidth,
+        Math.max(minWidths.prompt, maxPromptLength * charWidth + 20),
+      ),
+      cached: Math.min(
+        maxWidth,
+        Math.max(minWidths.cached, maxCachedLength * charWidth + 20),
+      ),
+      completion: Math.min(
+        maxWidth,
+        Math.max(minWidths.completion, maxCompletionLength * charWidth + 20),
+      ),
+    };
+  }, [groupedDump]);
+
   // Define columns
   const columns = useMemo<ColumnsType<TableRowData>>(() => {
     const columnCount = proModeEnabled ? (hasCachedInput ? 7 : 6) : 2;
@@ -250,7 +356,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         key: 'time',
         className: 'column-time',
         align: 'right',
-        width: proModeEnabled ? 80 : 90,
+        width: dynamicWidths.time,
         render: (_: any, record: TableRowData) => {
           if (record.isGroupHeader) {
             return {
@@ -276,7 +382,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           key: 'intent',
           className: 'column-intent',
           align: 'right',
-          width: 70,
+          width: dynamicWidths.intent,
           ellipsis: {
             showTitle: true,
           },
@@ -298,7 +404,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           key: 'model',
           className: 'column-model',
           align: 'right',
-          width: '32%',
+          width: dynamicWidths.model,
           ellipsis: {
             showTitle: true,
           },
@@ -329,7 +435,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           key: 'prompt',
           className: 'column-prompt',
           align: 'right',
-          width: 60,
+          width: dynamicWidths.prompt,
           render: (_: any, record: TableRowData) => {
             if (record.isGroupHeader) {
               return { props: { colSpan: 0 } };
@@ -353,7 +459,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                 key: 'cached-input',
                 className: 'column-cached-input',
                 align: 'right' as const,
-                width: 90,
+                width: dynamicWidths.cached,
                 render: (_: any, record: TableRowData) => {
                   if (record.isGroupHeader) {
                     return { props: { colSpan: 0 } };
@@ -379,7 +485,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           key: 'completion',
           className: 'column-completion',
           align: 'right',
-          width: 100,
+          width: dynamicWidths.completion,
           render: (_: any, record: TableRowData) => {
             if (record.isGroupHeader) {
               return { props: { colSpan: 0 } };
@@ -401,7 +507,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     }
 
     return baseColumns.filter(Boolean) as ColumnsType<TableRowData>;
-  }, [hasCachedInput, proModeEnabled]);
+  }, [hasCachedInput, proModeEnabled, dynamicWidths]);
 
   // Calculate total tokens by model
   const tokensByModel = useMemo(() => {

@@ -1002,6 +1002,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             placement="bottomLeft"
             trigger={['click']}
             disabled={!runButtonEnabled}
+            overlayClassName="more-apis-dropdown"
           >
             <Button
               className={`more-apis-button ${!defaultMainButtons.includes(selectedType) ? 'selected-from-dropdown' : ''}`}

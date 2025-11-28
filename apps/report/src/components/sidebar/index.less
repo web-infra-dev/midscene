@@ -82,6 +82,9 @@
       font-weight: 500;
       color: #808080;
       text-align: left;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
+        'Fira Mono', 'Roboto Mono', monospace;
+      white-space: nowrap;
     }
 
     .token-value {
@@ -89,8 +92,12 @@
       color: #595959;
       font-weight: normal;
       line-height: 1.2;
-      min-width: 55px;
+      min-width: 70px;
       text-align: right;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
+        'Fira Mono', 'Roboto Mono', monospace;
+      white-space: nowrap;
+      display: inline-block;
     }
   }
 
@@ -251,9 +258,17 @@
         height: 44px;
         background: transparent;
         text-align: right;
+        white-space: nowrap;
 
         &:first-child {
           text-align: left;
+        }
+
+        // Ensure number columns have minimum width
+        &:nth-child(2),
+        &:nth-child(3),
+        &:nth-child(4) {
+          min-width: 80px;
         }
       }
     }
@@ -303,9 +318,13 @@
     .column-intent,
     .column-model,
     .column-prompt,
+    .column-cached-input,
     .column-completion {
       color: #595959;
       font-size: 14px;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
+        'Fira Mono', 'Roboto Mono', monospace;
+      white-space: nowrap;
     }
   }
 
@@ -483,6 +502,7 @@
       .column-intent,
       .column-model,
       .column-prompt,
+      .column-cached-input,
       .column-completion {
         color: #f8fafd;
       }

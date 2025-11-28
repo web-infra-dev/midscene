@@ -432,6 +432,33 @@
   }
 }
 
+// Dropdown menu styling with scroll support
+.more-apis-dropdown {
+  .ant-dropdown-menu {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+  }
+}
+
 // Dark mode styles
 [data-theme='dark'] {
   .prompt-input-wrapper {
@@ -630,6 +657,23 @@
 
     .send-button-text {
       color: #2b83ff;
+    }
+  }
+
+  // Dark mode dropdown scroll
+  .more-apis-dropdown {
+    .ant-dropdown-menu {
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      }
     }
   }
 }
