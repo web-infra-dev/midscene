@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { WebMCPServer } from './server.js';
 
-// CLI entry: create and launch web MCP server
-const server = new WebMCPServer();
-server.launch().catch(console.error);
+// This package is an alias for @midscene/mcp
+// Delegate to the main MCP package which uses the unified launchMCPServer helper
+// with full HTTP transport support and CLI argument parsing
+
+require('@midscene/mcp');
