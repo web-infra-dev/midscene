@@ -1277,24 +1277,10 @@ export class Agent<
 
   _unstableLogContent() {
     const { groupName, groupDescription, executions } = this.dump;
-    const newExecutions = Array.isArray(executions)
-      ? executions.map((execution: any) => {
-          const { tasks, ...restExecution } = execution;
-          let newTasks = tasks;
-          if (Array.isArray(tasks)) {
-            newTasks = tasks.map((task: any) => {
-              // only remove uiContext and log from task
-              const { uiContext, log, ...restTask } = task;
-              return restTask;
-            });
-          }
-          return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
-        })
-      : [];
     return {
       groupName,
       groupDescription,
-      executions: newExecutions,
+      executions: executions || [],
     };
   }
 
