@@ -4,14 +4,87 @@ import type { z } from 'zod';
 // Avoid circular dependency: don't import from @midscene/core
 // Instead, use generic types that will be provided by implementation
 
-export interface ToolDefinition {
+/**
+ * Content item types for tool results (MCP compatible)
+ */
+export type ToolResultContent =
+  | { type: 'text'; text: string }
+  | { type: 'image'; data: string; mimeType: string }
+  | { type: 'audio'; data: string; mimeType: string }
+  | {
+      type: 'resource';
+      resource:
+        | { text: string; uri: string; mimeType?: string }
+        | { uri: string; blob: string; mimeType?: string };
+    };
+
+/**
+ * Result type for tool execution (MCP compatible)
+ */
+export interface ToolResult {
+  [x: string]: unknown;
+  content: ToolResultContent[];
+  isError?: boolean;
+  _meta?: Record<string, unknown>;
+}
+
+/**
+ * Tool handler function type
+ * Takes parsed arguments and returns a tool result
+ */
+export type ToolHandler<T = Record<string, unknown>> = (
+  args: T,
+) => Promise<ToolResult>;
+
+/**
+ * Tool schema type using Zod
+ */
+export type ToolSchema = Record<string, z.ZodTypeAny>;
+
+/**
+ * Tool definition for MCP server
+ */
+export interface ToolDefinition<T = Record<string, unknown>> {
   name: string;
   description: string;
-  schema: any;
-  handler: (...args: any[]) => Promise<any>;
+  schema: ToolSchema;
+  handler: ToolHandler<T>;
   autoDestroy?: boolean;
 }
 
+/**
+ * Action space item definition
+ */
+export interface ActionSpaceItem {
+  name: string;
+  description?: string;
+  args?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
+ * Base agent interface
+ * Represents a platform-specific agent (Android, iOS, Web)
+ */
+export interface BaseAgent {
+  getActionSpace(): Promise<ActionSpaceItem[]>;
+  destroy?(): Promise<void>;
+  page?: {
+    screenshotBase64(): Promise<string>;
+  };
+}
+
+/**
+ * Base device interface for temporary device instances
+ */
+export interface BaseDevice {
+  actionSpace(): ActionSpaceItem[];
+  destroy?(): Promise<void>;
+}
+
+/**
+ * Interface for platform-specific MCP tools manager
+ */
 export interface IMidsceneTools {
   attachToServer(server: McpServer): void;
   initTools(): Promise<void>;

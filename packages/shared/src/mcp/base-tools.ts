@@ -4,19 +4,25 @@ import {
   generateCommonTools,
   generateToolsFromActionSpace,
 } from './tool-generator';
-import type { IMidsceneTools, ToolDefinition } from './types';
+import type {
+  ActionSpaceItem,
+  BaseAgent,
+  BaseDevice,
+  IMidsceneTools,
+  ToolDefinition,
+} from './types';
 
 const debug = getDebug('mcp:base-tools');
 
 export abstract class BaseMidsceneTools implements IMidsceneTools {
   protected mcpServer?: McpServer;
-  protected agent?: any;
+  protected agent?: BaseAgent;
   protected toolDefinitions: ToolDefinition[] = [];
 
   /**
    * Must be implemented by subclasses to create platform-specific agent
    */
-  protected abstract ensureAgent(initParam?: string): Promise<any>;
+  protected abstract ensureAgent(initParam?: string): Promise<BaseAgent>;
 
   /**
    * Optional: prepare platform-specific tools (e.g., device connection)
@@ -29,7 +35,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
    * Must be implemented by subclasses to create a temporary device instance
    * This allows getting real actionSpace without connecting to device
    */
-  protected abstract createTemporaryDevice(): any;
+  protected abstract createTemporaryDevice(): BaseDevice;
 
   /**
    * Initialize all tools by querying actionSpace
@@ -46,14 +52,14 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
     this.toolDefinitions.push(...platformTools);
 
     // 2. Try to get agent and its action space (two-layer fallback)
-    let actionSpace: any[];
+    let actionSpace: ActionSpaceItem[];
     try {
       // Layer 1: Try to use connected agent
       const agent = await this.ensureAgent();
       actionSpace = await agent.getActionSpace();
       debug(
         'Action space from connected agent:',
-        actionSpace.map((a: any) => a.name).join(', '),
+        actionSpace.map((a) => a.name).join(', '),
       );
     } catch (error) {
       // Layer 2: Create temporary device instance to read actionSpace
@@ -62,7 +68,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       actionSpace = tempDevice.actionSpace();
       debug(
         'Action space from temporary device:',
-        actionSpace.map((a: any) => a.name).join(', '),
+        actionSpace.map((a) => a.name).join(', '),
       );
 
       // Destroy temporary instance using optional chaining
@@ -132,7 +138,9 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       } finally {
         if (!process.env.MIDSCENE_MCP_DISABLE_AGENT_AUTO_DESTROY) {
           try {
-            await this.agent?.destroy();
+            if (this.agent?.destroy) {
+              await this.agent.destroy();
+            }
           } catch (e) {
             debug('Failed to destroy agent during cleanup:', e);
           }
@@ -146,6 +154,8 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
    * Cleanup method
    */
   public async closeBrowser(): Promise<void> {
-    await this.agent?.destroy();
+    if (this.agent?.destroy) {
+      await this.agent.destroy();
+    }
   }
 }
