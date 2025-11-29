@@ -63,7 +63,13 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       );
     } catch (error) {
       // Layer 2: Create temporary device instance to read actionSpace
-      debug('Failed to get action space from agent, using temporary device');
+      // This is expected behavior for bridge mode without URL or unconnected devices
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('requires a URL') || errorMessage.includes('web_connect')) {
+        debug('Bridge mode detected - agent will be initialized on first web_connect call');
+      } else {
+        debug('Agent not available yet, using temporary device for action space');
+      }
       const tempDevice = this.createTemporaryDevice();
       actionSpace = tempDevice.actionSpace();
       debug(

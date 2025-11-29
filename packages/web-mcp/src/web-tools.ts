@@ -60,9 +60,8 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     if (this.agent) return this.agent;
 
     // Choose bridge or puppeteer mode
-    // In bridge mode, we need a URL to connect to
-    // If no URL provided, agent creation will be deferred until first tool use
     if (!this.puppeteerMode) {
+      // Bridge mode requires a URL to connect to browser
       if (!openNewTabWithUrl) {
         throw new Error(
           'Bridge mode requires a URL. Use web_connect tool to connect to a page first.',
@@ -72,6 +71,7 @@ export class WebMidsceneTools extends BaseMidsceneTools {
         openNewTabWithUrl,
       )) as unknown as BaseAgent;
     } else {
+      // Puppeteer mode can auto-start with default page
       this.agent = (await this.initPuppeteerAgent(
         openNewTabWithUrl,
       )) as unknown as BaseAgent;

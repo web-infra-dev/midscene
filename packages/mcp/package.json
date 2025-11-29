@@ -21,7 +21,6 @@
     "dev": "npm run build:watch",
     "build:watch": "rslib build --watch",
     "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js",
-    "test": "vitest run",
     "inspect": "node scripts/inspect.mjs"
   },
   "dependencies": {
@@ -37,8 +36,7 @@
     "@modelcontextprotocol/sdk": "1.10.2",
     "@rslib/core": "^0.11.2",
     "@types/node": "^18.0.0",
-    "typescript": "^5.8.3",
-    "vitest": "3.0.5"
+    "typescript": "^5.8.3"
   },
   "license": "MIT"
 }
