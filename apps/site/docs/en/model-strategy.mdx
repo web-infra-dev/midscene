@@ -16,7 +16,7 @@ If you want to try Midscene right away, pick a model and follow its configuratio
 
 This guide focuses on how we choose models in Midscene. If you need configuration instructions, head to [Model configuration](./model-config).
 
-## Background: UI automation approaches
+## Background - UI automation approaches
 
 Driving UI automation with AI hinges on two challenges: planning a reasonable set of actions and precisely locating the elements that require interaction. In practice, action planning can usually be refined with better natural language and is rarely the blocker. Element localization, however, relies heavily on the model’s reasoning quality and often becomes the biggest hurdle when projects start.
 
@@ -25,11 +25,12 @@ To solve element localization, UI automation frameworks traditionally follow one
 * **DOM + annotated screenshots**: Extract the DOM tree beforehand, annotate screenshots with DOM metadata, and ask the model to “pick” the right nodes.
 * **Pure vision**: Perform all analysis on screenshots alone by using the visual grounding capabilities of the model. The model only receives the image—no DOM, no annotations.
 
-## Midscene uses pure vision for element localization
+## Pure vision for element localization
 
 Earlier Midscene releases supported both approaches so developers could compare them. After dozens of versions and hundreds of projects, the pure-vision route now clearly wins:
 
 - **Stable results**: Top-tier vision models (Doubao Seed 1.6, Qwen3-VL, etc.) are stable enough for most production workloads.
+- **UI workflow planning**: Vision models generally have strong abilities to plan UI operations, often handling complex task flows successfully.
 - **Works everywhere**: Automation no longer depends on how the UI is rendered. Android, iOS, desktop apps, or a browser `<canvas>`—if you can capture a screenshot, Midscene can interact with it.
 - **Developer-friendly**: Removing selectors and DOM fuss makes the model “handshake” easier. Even teammates unfamiliar with rendering tech can become productive quickly.
 - **Far fewer tokens**: Dropping DOM extraction cuts token usage by ~80%, reducing cost and speeding up local runs.
@@ -37,7 +38,7 @@ Earlier Midscene releases supported both approaches so developers could compare 
 
 Given these advantages, **Midscene 1.0 and later only support the pure-vision approach**—the DOM-extraction compatibility mode has been removed.
 
-## Vision models Midscene recommends
+## Recommended vision models
 
 Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen VL, Gemini-3-Pro, and UI-TARS.
 
