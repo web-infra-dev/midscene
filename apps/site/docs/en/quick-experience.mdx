@@ -1,5 +1,5 @@
+import SetupEnv from './common/setup-env.mdx';
 import StartExperience from './common/start-experience.mdx';
-import PrepareKeyForFurtherUse from './common/prepare-key-for-further-use.mdx';
 
 # Quick experience by Chrome extension
 
@@ -12,30 +12,18 @@ Midscene.js provides a Chrome extension. By using it, you can quickly experience
   controls
 />
 
-## Preparation
 
-<PrepareKeyForFurtherUse />
-
-## Install and config
+## Install Chrome extension
 
 Install Midscene extension from chrome web store: [Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-Start the extension (may be folded by Chrome extension icon), setup the config by pasting the config in the K=V format:
+Start the extension (may be folded by Chrome extension icon), you should see the sidebar named "Midscene" in the right side of the browser.
 
-```bash
-MIDSCENE_MODEL_BASE_URL="replace with your model service URL"
-MIDSCENE_MODEL_API_KEY="replace with your API Key"
-MIDSCENE_MODEL_NAME="replace with your model name"
-MIDSCENE_MODEL_FAMILY="replace with your model family"
-```
 
-For more configuration details, please refer to [Model strategy](./model-strategy).
+<SetupEnv />
+
 
 <StartExperience />
-
-- [Bridge Mode by Chrome Extension](./bridge-mode)
-- [Integrate with Puppeteer](./integrate-with-puppeteer)
-- [Integrate with Playwright](./integrate-with-playwright)
 
 ## FAQ
 
