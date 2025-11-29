@@ -122,18 +122,6 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-<a id="playwrightagent"></a>
-
-### 如何限制页面在当前 tab 打开
-
-如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
-
-```typescript
-const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: true,
-});
-```
-
 ## 在 Playwright 的测试用例中集成 Midscene
 
 这里我们假设你已经拥有一个集成了 Playwright 的测试项目。
@@ -260,7 +248,19 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
-## 示例：连接远程 Playwright 浏览器并接入 Midscene Agent
+## Advanced
+
+### 如何限制页面在当前 tab 打开
+
+如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
+
+```typescript
+const mid = new PlaywrightAgent(page, {
+  forceSameTabNavigation: true,
+});
+```
+
+### 连接远程 Playwright 浏览器并接入 Midscene Agent
 
 :::info 示例项目
 你可以在这里找到远程 Playwright 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
@@ -273,13 +273,13 @@ npx playwright test ./e2e/ebay-search.spec.ts
 2. 使用 Playwright 连接到远程浏览器
 3. 创建 Midscene 代理进行 AI 驱动的自动化
 
-### 前置依赖
+#### 前置依赖
 
 <PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
 
 <GetCdpUrl />
 
-### 基础示例
+#### 基础示例
 
 ```typescript
 import { chromium } from 'playwright';
@@ -307,7 +307,7 @@ await agent.destroy();
 await browser.close();
 ```
 
-## 扩展自定义交互动作
+### 扩展自定义交互动作
 
 使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
 
@@ -345,5 +345,5 @@ await agent.aiAct('点击红色按钮五次');
 
 ## 更多
 
-- 更多 Agent 上的 API 接口请参考 [API 参考](./api#interaction-methods)。
-- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
+- Playwright 的 API 文档请参考 [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent)。
