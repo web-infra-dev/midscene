@@ -267,12 +267,7 @@ const mid = new PlaywrightAgent(page, {
 You can find an example project of remote Playwright integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
 :::
 
-Use this flow when you want to reuse an existing browser that already runs in your own infrastructure (for example, a persistent cloud worker, a vendor-provided browser grid, or an on-premises desktop). Connecting Midscene to that remote Playwright instance lets you keep browsers close to the target environment, reduce startup costs, and centralize resource management while still using the same AI automation APIs.
-
-In practice you manually:
-1. Obtain a CDP WebSocket URL from the remote browser service
-2. Use Playwright to connect to the remote browser
-3. Create a Midscene agent for AI-driven automation
+Connect to a remote Playwright browser when you already run browsers in your own infra or vendor grid. This keeps the browser close to the target environment, avoids repeated launches, and still lets Midscene drive it with the same AI APIs.
 
 #### Prerequisites
 
@@ -280,26 +275,24 @@ In practice you manually:
 
 <GetCdpUrl />
 
-#### Basic Example
+#### Code example
 
 ```typescript
 import { chromium } from 'playwright';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 
-// Assuming you already have a CDP WebSocket URL
+// CDP WebSocket URL from your remote browser service
 const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
 
-// Connect to remote browser
+// Connect and pick a page
 const browser = await chromium.connectOverCDP(cdpWsUrl);
-
-// Get context and page
 const context = browser.contexts()[0];
 const page = context.pages()[0] || await context.newPage();
 
-// Create Midscene agent
+// Create Midscene agent (usage matches any Playwright agent)
 const agent = new PlaywrightAgent(page);
 
-// Use AI methods
+// Use AI methods as usual
 await agent.aiAction('navigate to https://example.com');
 await agent.aiAction('click the login button');
 const result = await agent.aiQuery('get page title: {title: string}');
@@ -308,6 +301,8 @@ const result = await agent.aiQuery('get page title: {title: string}');
 await agent.destroy();
 await browser.close();
 ```
+
+Once connected, keep using `PlaywrightAgent` the same way you would with a locally launched browser.
 
 ### Provide custom actions
 
