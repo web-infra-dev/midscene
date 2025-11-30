@@ -24,6 +24,7 @@ export default defineConfig({
       },
       '@silvia-odwyer/photon',
       '@silvia-odwyer/photon-node',
+      '@modelcontextprotocol/sdk',
     ],
   },
   lib: [

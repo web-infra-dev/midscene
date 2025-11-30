@@ -47,7 +47,6 @@ export function generateToolsFromActionSpace(
               ) => Promise<void>;
             }
           ).aiAction(`Use the action "${action.name}"`, {
-            planType: action.name,
             ...args,
           });
         }
@@ -143,6 +142,7 @@ export function generateCommonTools(
 
         return {
           content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
+          isError: false,
         };
       },
       autoDestroy: true,

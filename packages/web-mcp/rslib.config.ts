@@ -24,8 +24,6 @@ export default defineConfig({
       },
       '@silvia-odwyer/photon',
       '@silvia-odwyer/photon-node',
-      // External workspace dependencies
-      /^@midscene\/.*/,
       '@modelcontextprotocol/sdk',
     ],
   },

@@ -1,6 +1,7 @@
 import { BaseMCPServer } from '@midscene/shared/mcp';
-import { version } from '../package.json';
 import { AndroidMidsceneTools } from './android-tools.js';
+
+declare const __VERSION__: string;
 
 /**
  * Android MCP Server
@@ -10,7 +11,7 @@ export class AndroidMCPServer extends BaseMCPServer {
   constructor() {
     super({
       name: '@midscene/android-mcp',
-      version,
+      version: __VERSION__,
       description: 'Midscene MCP Server for Android automation',
     });
   }

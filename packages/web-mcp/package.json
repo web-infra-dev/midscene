@@ -25,7 +25,6 @@
     "inspect": "node scripts/inspect.mjs"
   },
   "devDependencies": {
-    "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",

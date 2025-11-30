@@ -1,6 +1,7 @@
 import { BaseMCPServer } from '@midscene/shared/mcp';
-import { version } from '../package.json';
 import { IOSMidsceneTools } from './ios-tools.js';
+
+declare const __VERSION__: string;
 
 /**
  * iOS MCP Server
@@ -10,7 +11,7 @@ export class IOSMCPServer extends BaseMCPServer {
   constructor() {
     super({
       name: '@midscene/ios-mcp',
-      version,
+      version: __VERSION__,
       description: 'Midscene MCP Server for iOS automation',
     });
   }
