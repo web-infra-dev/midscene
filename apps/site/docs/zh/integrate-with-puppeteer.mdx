@@ -95,7 +95,21 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-## 示例：连接远程 Puppeteer 浏览器并接入 Midscene Agent
+<a id="puppeteeragent"></a>
+
+## Advanced
+
+### 限制弹窗在当前页面
+
+如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
+
+```typescript
+const mid = new PuppeteerAgent(page, {
+  forceSameTabNavigation: true,
+});
+```
+
+### 连接远程 Puppeteer 浏览器并接入 Midscene Agent
 
 :::info 示例项目
 你可以在这里找到远程 Puppeteer 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo)
@@ -108,13 +122,13 @@ npx tsx demo.ts
 2. 使用 Puppeteer 连接到远程浏览器
 3. 创建 Midscene 代理进行 AI 驱动的自动化
 
-### 前置依赖
+#### 前置依赖
 
 <PackageManagerTabs command="install puppeteer @midscene/web --save-dev" />
 
 <GetCdpUrl />
 
-### 基础示例
+#### 基础示例
 
 ```typescript
 import puppeteer from 'puppeteer';
@@ -143,20 +157,6 @@ const result = await agent.aiQuery('获取页面标题: {title: string}');
 // 清理
 await agent.destroy();
 await browser.disconnect();
-```
-
-<a id="puppeteeragent"></a>
-
-## PuppeteerAgent 构造函数的更多选项
-
-### 限制弹窗在当前页面
-
-如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
-
-```typescript
-const mid = new PuppeteerAgent(page, {
-  forceSameTabNavigation: true,
-});
 ```
 
 ### 提供自定义动作
@@ -197,5 +197,5 @@ await agent.aiAct('点击红色按钮五次');
 
 ## 更多
 
-* 更多 Agent 上的 API 接口请参考 [API 参考](./api#interaction-methods)。
-* 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
+- Puppeteer 的 API 文档请参考 [Puppeteer Agent API](http://localhost:3000/web-api-reference.html#puppeteer-agent)。

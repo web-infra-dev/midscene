@@ -95,7 +95,21 @@ For the complete catalog of agent methods, see the [API reference](./api#interac
 
 After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
 
-## Example: Connect Midscene Agent to a Remote Puppeteer Browser
+<a id="puppeteeragent"></a>
+
+## Advanced
+
+### To limit the popup to the current page
+
+If you want to limit the popup to the current page (like clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
+
+```typescript
+const mid = new PuppeteerAgent(page, {
+  forceSameTabNavigation: true,
+});
+```
+
+### Connect Midscene Agent to a Remote Puppeteer Browser
 
 :::info Example Project
 You can find an example project of remote Puppeteer integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo)
@@ -108,13 +122,13 @@ In practice you manually:
 2. Use Puppeteer to connect to the remote browser
 3. Create a Midscene agent for AI-driven automation
 
-### Prerequisites
+#### Prerequisites
 
 <PackageManagerTabs command="install puppeteer @midscene/web --save-dev" />
 
 <GetCdpUrl />
 
-### Basic Example
+#### Basic Example
 
 ```typescript
 import puppeteer from 'puppeteer';
@@ -143,20 +157,6 @@ const result = await agent.aiQuery('get page title: {title: string}');
 // Cleanup
 await agent.destroy();
 await browser.disconnect();
-```
-
-<a id="puppeteeragent"></a>
-
-## More options in PuppeteerAgent constructor
-
-### To limit the popup to the current page
-
-If you want to limit the popup to the current page (like clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
-
-```typescript
-const mid = new PuppeteerAgent(page, {
-  forceSameTabNavigation: true,
-});
 ```
 
 ### Provide custom actions
@@ -197,5 +197,5 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 ## More
 
-* For every Agent method, check the [API Reference](./api#interaction-methods).
-* For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+- For every Agent method, check the [API Reference](./api#interaction-methods).
+- For the Puppeteer API reference, see [Puppeteer Agent API](http://localhost:3000/web-api-reference.html#puppeteer-agent).
