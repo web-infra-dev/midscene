@@ -57,19 +57,49 @@ tasks:
 
 ### `agent` 部分
 
-如需使用 `aiActionContext` 参数，可以通过 `agent` 部分来设置：
+`agent` 部分用于配置 AI 代理的行为和测试报告相关选项。所有字段都是可选的。
 
 ```yaml
 # AI agent 配置
 agent:
+  # 测试标识符，用于报告和缓存识别，可选
+  testId: <string>
+
+  # 报告组名称，可选
+  groupName: <string>
+
+  # 报告组描述，可选
+  groupDescription: <string>
+
+  # 是否生成测试报告，可选，默认 true
+  generateReport: <boolean>
+
+  # 是否自动打印报告消息，可选，默认 true
+  autoPrintReportMsg: <boolean>
+
+  # 自定义报告文件名，可选
+  reportFileName: <string>
+
+  # AI 最大重规划循环次数，可选，默认 20（UI-TARS 模型为 40）
+  replanningCycleLimit: <number>
+
   # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
   aiActionContext: <string>
+
+  # 缓存配置，可选
+  cache:
+    # 缓存策略，可选，可选值：'read-only' | 'read-write' | 'write-only'
+    strategy: <string>
+    # 缓存 ID，必填
+    id: <string>
 ```
 
-:::tip aiActionContext 配置说明
+:::tip Agent 配置说明
 
-- **适用环境**：Web、iOS 和 Android 环境都可以通过 `agent` 部分来设置 `aiActionContext`
-- **作用**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
+- **适用环境**：Web、iOS 和 Android 环境都支持 `agent` 配置
+- **testId 优先级**：CLI 参数 > YAML agent.testId > 文件名
+- **aiActionContext**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
+- **缓存配置**：详细用法请参考 [缓存功能文档](./caching.mdx)
 
 :::
 
@@ -78,7 +108,17 @@ agent:
 ```yaml
 # agent 配置，适用于所有环境
 agent:
+  testId: "checkout-test"
+  groupName: "E2E 测试套件"
+  groupDescription: "完整的购物流程测试"
+  generateReport: true
+  autoPrintReportMsg: false
+  reportFileName: "checkout-report"
+  replanningCycleLimit: 30
   aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
+  cache:
+    id: "checkout-cache"
+    strategy: "read-write"
 
 # iOS 环境配置
 ios:
