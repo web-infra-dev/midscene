@@ -1,3 +1,4 @@
+import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import {
@@ -20,7 +21,11 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
   protected toolDefinitions: ToolDefinition[] = [];
 
   /**
-   * Must be implemented by subclasses to create platform-specific agent
+   * Ensure agent is initialized and ready for use.
+   * Must be implemented by subclasses to create platform-specific agent.
+   * @param initParam Optional initialization parameter (platform-specific, e.g., URL, device ID)
+   * @returns Promise resolving to initialized agent instance
+   * @throws Error if agent initialization fails
    */
   protected abstract ensureAgent(initParam?: string): Promise<BaseAgent>;
 
@@ -152,11 +157,9 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
       } finally {
         if (!process.env.MIDSCENE_MCP_DISABLE_AGENT_AUTO_DESTROY) {
           try {
-            if (this.agent?.destroy) {
-              await this.agent.destroy();
-            }
-          } catch (e) {
-            debug('Failed to destroy agent during cleanup:', e);
+            await this.agent?.destroy?.();
+          } catch (error) {
+            debug('Failed to destroy agent during cleanup:', error);
           }
           this.agent = undefined;
         }
@@ -165,11 +168,23 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
   }
 
   /**
-   * Cleanup method
+   * Cleanup method - destroy agent and release resources
    */
   public async closeBrowser(): Promise<void> {
-    if (this.agent?.destroy) {
-      await this.agent.destroy();
-    }
+    await this.agent?.destroy?.();
+  }
+
+  /**
+   * Helper: Convert base64 screenshot to image content array
+   */
+  protected buildScreenshotContent(screenshot: string) {
+    const { mimeType, body } = parseBase64(screenshot);
+    return [
+      {
+        type: 'image' as const,
+        data: body,
+        mimeType,
+      },
+    ];
   }
 }

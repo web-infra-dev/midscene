@@ -72,6 +72,14 @@ export interface BaseAgent {
   page?: {
     screenshotBase64(): Promise<string>;
   };
+  aiAction?: (
+    description: string,
+    params: Record<string, unknown>,
+  ) => Promise<void>;
+  aiWaitFor?: (
+    assertion: string,
+    options: Record<string, unknown>,
+  ) => Promise<void>;
 }
 
 /**

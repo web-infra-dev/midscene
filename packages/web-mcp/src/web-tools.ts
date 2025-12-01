@@ -17,11 +17,7 @@ export class WebMidsceneTools extends BaseMidsceneTools {
   );
 
   protected createTemporaryDevice() {
-    // Import PuppeteerWebPage class using dynamic ESM import
-    // This is intentionally synchronous despite the async nature of createTemporaryDevice
-    // because we need the class constructor immediately for tool initialization
-    // The alternative would be to make all tool initialization async, which is a larger refactor
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Synchronous require needed for tool initialization
     const { PuppeteerWebPage } = require('@midscene/web');
 
     // Create minimal mock page object that satisfies the interface
@@ -48,11 +44,9 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     // Re-init if URL provided
     if (this.agent && openNewTabWithUrl) {
       try {
-        if (this.agent.destroy) {
-          await this.agent.destroy();
-        }
-      } catch (e) {
-        console.debug('Failed to destroy agent during re-init:', e);
+        await this.agent?.destroy?.();
+      } catch (error) {
+        console.debug('Failed to destroy agent during re-init:', error);
       }
       this.agent = undefined;
     }
@@ -67,7 +61,7 @@ export class WebMidsceneTools extends BaseMidsceneTools {
           'Bridge mode requires a URL. Use web_connect tool to connect to a page first.',
         );
       }
-      this.agent = (await this.initAgentByBridgeMode(
+      this.agent = (await this.initBridgeModeAgent(
         openNewTabWithUrl,
       )) as unknown as BaseAgent;
     } else {
@@ -80,7 +74,7 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     return this.agent;
   }
 
-  private async initAgentByBridgeMode(
+  private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
     const agent = new AgentOverChromeBridge({ closeConflictServer: true });
@@ -133,20 +127,13 @@ export class WebMidsceneTools extends BaseMidsceneTools {
             };
           }
 
-          const { parseBase64 } = await import('@midscene/shared/img');
-          const { mimeType, body } = parseBase64(screenshot);
-
           return {
             content: [
               {
                 type: 'text',
                 text: `Connected to: ${url}`,
               },
-              {
-                type: 'image',
-                data: body,
-                mimeType,
-              },
+              ...this.buildScreenshotContent(screenshot),
             ],
           };
         },

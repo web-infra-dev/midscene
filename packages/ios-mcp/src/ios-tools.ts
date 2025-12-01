@@ -1,10 +1,13 @@
 import { z } from '@midscene/core';
 import { type IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
-import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 
 const debug = getDebug('mcp:ios-tools');
+
+// Default timeout for app loading verification
+const defaultAppLoadingTimeoutMs = 10000;
+const defaultAppLoadingCheckIntervalMs = 2000;
 
 /**
  * iOS-specific tools manager
@@ -12,7 +15,7 @@ const debug = getDebug('mcp:ios-tools');
  */
 export class IOSMidsceneTools extends BaseMidsceneTools {
   protected createTemporaryDevice() {
-    // Import IOSDevice class
+    // Use require to avoid circular dependency with @midscene/ios
     const { IOSDevice } = require('@midscene/ios');
     // Create minimal temporary instance without connecting to WebDriverAgent
     // The constructor only initializes WDA backend, doesn't establish connection
@@ -57,14 +60,13 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
             await agent.aiWaitFor(
               'the app has finished loading and is ready to use',
               {
-                timeoutMs: 10000,
-                checkIntervalMs: 2000,
+                timeoutMs: defaultAppLoadingTimeoutMs,
+                checkIntervalMs: defaultAppLoadingCheckIntervalMs,
               },
             );
           }
 
           const screenshot = await agent.page.screenshotBase64();
-          const { mimeType, body } = parseBase64(screenshot);
 
           return {
             content: [
@@ -72,11 +74,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
                 type: 'text',
                 text: `Connected to iOS device${uri ? ` and launched: ${uri} (app ready)` : ''}`,
               },
-              {
-                type: 'image',
-                data: body,
-                mimeType,
-              },
+              ...this.buildScreenshotContent(screenshot),
             ],
             isError: false,
           };
