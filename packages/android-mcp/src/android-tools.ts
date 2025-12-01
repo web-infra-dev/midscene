@@ -1,10 +1,13 @@
 import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
 import { z } from '@midscene/core';
-import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 
 const debug = getDebug('mcp:android-tools');
+
+// Default timeout for app loading verification
+const defaultAppLoadingTimeoutMs = 10000;
+const defaultAppLoadingCheckIntervalMs = 2000;
 
 /**
  * Android-specific tools manager
@@ -12,7 +15,7 @@ const debug = getDebug('mcp:android-tools');
  */
 export class AndroidMidsceneTools extends BaseMidsceneTools {
   protected createTemporaryDevice() {
-    // Import AndroidDevice class
+    // Use require to avoid circular dependency with @midscene/android
     const { AndroidDevice } = require('@midscene/android');
     // Create minimal temporary instance without connecting to device
     // The constructor doesn't establish ADB connection
@@ -25,8 +28,8 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
       // destroy it to create a new one with the new device
       try {
         await this.agent.destroy();
-      } catch (e) {
-        // Ignore cleanup errors
+      } catch (error) {
+        debug('Failed to destroy agent during cleanup:', error);
       }
       this.agent = undefined;
     }
@@ -78,14 +81,13 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
             await agent.aiWaitFor(
               'the app has finished loading and is ready to use',
               {
-                timeoutMs: 10000,
-                checkIntervalMs: 2000,
+                timeoutMs: defaultAppLoadingTimeoutMs,
+                checkIntervalMs: defaultAppLoadingCheckIntervalMs,
               },
             );
           }
 
           const screenshot = await agent.page.screenshotBase64();
-          const { mimeType, body } = parseBase64(screenshot);
 
           return {
             content: [
@@ -93,11 +95,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
                 type: 'text',
                 text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}${uri ? ` and launched: ${uri} (app ready)` : ''}`,
               },
-              {
-                type: 'image',
-                data: body,
-                mimeType,
-              },
+              ...this.buildScreenshotContent(screenshot),
             ],
             isError: false,
           };

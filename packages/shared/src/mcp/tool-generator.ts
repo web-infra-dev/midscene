@@ -36,17 +36,10 @@ export function generateToolsFromActionSpace(
       handler: async (args: Record<string, unknown>) => {
         const agent = await getAgent();
 
-        // Call the action through agent's action method
+        // Call the action through agent's aiAction method
         // args already contains the unwrapped parameters (e.g., { locate: {...} })
-        if ('aiAction' in agent && typeof agent.aiAction === 'function') {
-          await (
-            agent as BaseAgent & {
-              aiAction: (
-                desc: string,
-                params: Record<string, unknown>,
-              ) => Promise<void>;
-            }
-          ).aiAction(`Use the action "${action.name}"`, {
+        if (agent.aiAction) {
+          await agent.aiAction(`Use the action "${action.name}"`, {
             ...args,
           });
         }
@@ -129,15 +122,8 @@ export function generateCommonTools(
           checkIntervalMs?: number;
         };
 
-        if ('aiWaitFor' in agent && typeof agent.aiWaitFor === 'function') {
-          await (
-            agent as BaseAgent & {
-              aiWaitFor: (
-                assertion: string,
-                options: Record<string, unknown>,
-              ) => Promise<void>;
-            }
-          ).aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
+        if (agent.aiWaitFor) {
+          await agent.aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
         }
 
         return {
