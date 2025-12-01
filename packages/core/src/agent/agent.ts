@@ -841,7 +841,11 @@ export class Agent<
     }
 
     // If cache matched but yamlWorkflow is empty, log warning and fall through to normal execution
-    if (matchedCache && !matchedCache.cacheContent?.yamlWorkflow) {
+    if (
+      matchedCache &&
+      this.taskCache?.isCacheResultUsed &&
+      !matchedCache.cacheContent?.yamlWorkflow
+    ) {
       debug(
         'cache matched but yamlWorkflow is empty, will execute normally instead',
       );
