@@ -1,13 +1,15 @@
 import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  type BaseAgent,
+  BaseMidsceneTools,
+  type ToolDefinition,
+  defaultAppLoadingCheckIntervalMs,
+  defaultAppLoadingTimeoutMs,
+} from '@midscene/shared/mcp';
 
 const debug = getDebug('mcp:android-tools');
-
-// Default timeout for app loading verification
-const defaultAppLoadingTimeoutMs = 10000;
-const defaultAppLoadingCheckIntervalMs = 2000;
 
 /**
  * Android-specific tools manager
@@ -19,7 +21,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
     const { AndroidDevice } = require('@midscene/android');
     // Create minimal temporary instance without connecting to device
     // The constructor doesn't establish ADB connection
-    return new AndroidDevice('temp-for-actionspace', {});
+    return new AndroidDevice('temp-for-action-space', {});
   }
 
   protected async ensureAgent(deviceId?: string): Promise<AndroidAgent> {
@@ -27,7 +29,7 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
       // If a specific deviceId is requested and we have an agent,
       // destroy it to create a new one with the new device
       try {
-        await this.agent.destroy();
+        await this.agent.destroy?.();
       } catch (error) {
         debug('Failed to destroy agent during cleanup:', error);
       }
@@ -35,12 +37,13 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
     }
 
     if (this.agent) {
-      return this.agent;
+      return this.agent as unknown as AndroidAgent;
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
-    this.agent = await agentFromAdbDevice(deviceId);
-    return this.agent;
+    const agent = await agentFromAdbDevice(deviceId);
+    this.agent = agent as unknown as BaseAgent;
+    return agent;
   }
 
   /**

@@ -1,13 +1,14 @@
 import { z } from '@midscene/core';
 import { type IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  BaseMidsceneTools,
+  type ToolDefinition,
+  defaultAppLoadingCheckIntervalMs,
+  defaultAppLoadingTimeoutMs,
+} from '@midscene/shared/mcp';
 
 const debug = getDebug('mcp:ios-tools');
-
-// Default timeout for app loading verification
-const defaultAppLoadingTimeoutMs = 10000;
-const defaultAppLoadingCheckIntervalMs = 2000;
 
 /**
  * iOS-specific tools manager
