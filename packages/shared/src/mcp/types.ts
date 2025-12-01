@@ -5,6 +5,12 @@ import type { z } from 'zod';
 // Instead, use generic types that will be provided by implementation
 
 /**
+ * Default timeout constants for app loading verification
+ */
+export const defaultAppLoadingTimeoutMs = 10000;
+export const defaultAppLoadingCheckIntervalMs = 2000;
+
+/**
  * Content item types for tool results (MCP compatible)
  */
 export type ToolResultContent =
