@@ -132,6 +132,7 @@ export interface MidsceneYamlFlowItemAIAction {
   aiAct?: string;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
+  _deepThink?: boolean;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {

@@ -257,6 +257,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         assert(prompt, 'missing prompt for ai (aiAct)');
         await agent.aiAct(prompt, {
           cacheable: actionTask.cacheable,
+          _deepThink: actionTask._deepThink,
         });
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
