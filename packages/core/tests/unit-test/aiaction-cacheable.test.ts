@@ -264,4 +264,223 @@ describe('aiAction cacheable option propagation', () => {
     expect(locateTask?.param).toBeDefined();
     expect(locateTask?.param.cacheable).toBe(true);
   });
+
+  it('should fall through to normal execution when cache yamlWorkflow is undefined', async () => {
+    // Mock matchPlanCache to return a cache entry with undefined yamlWorkflow
+    const matchPlanCacheSpy = vi
+      .spyOn(taskCache, 'matchPlanCache')
+      .mockReturnValue({
+        cacheContent: {
+          type: 'plan',
+          prompt: 'test prompt',
+          yamlWorkflow: undefined as any,
+        },
+        updateFn: vi.fn(),
+      });
+
+    // Mock the action method to track if it gets called (normal execution path)
+    const actionSpy = vi
+      .spyOn(taskExecutor, 'action')
+      .mockResolvedValue({} as any);
+
+    // Create a minimal Agent instance for testing with proper model config
+    const { Agent } = await import('@/agent');
+    const agent = new Agent(mockInterface, mockService, {
+      taskCache,
+      modelConfig: {
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      },
+    });
+
+    // Mock the modelConfigManager to return valid config
+    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+      getModelConfig: () => ({
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      }),
+      throwErrorIfNonVLModel: vi.fn(),
+    });
+
+    // Spy on runYaml to ensure it's NOT called with undefined
+    const runYamlSpy = vi.spyOn(agent, 'runYaml');
+
+    // Call aiAct
+    await agent.aiAct('test prompt');
+
+    // Verify cache was queried
+    expect(matchPlanCacheSpy).toHaveBeenCalledWith('test prompt');
+
+    // Verify runYaml was NOT called (because yamlWorkflow is undefined)
+    expect(runYamlSpy).not.toHaveBeenCalled();
+
+    // Verify normal execution path was taken (action method called)
+    expect(actionSpy).toHaveBeenCalled();
+  });
+
+  it('should fall through to normal execution when cache yamlWorkflow is empty string', async () => {
+    // Mock matchPlanCache to return a cache entry with empty string yamlWorkflow
+    const matchPlanCacheSpy = vi
+      .spyOn(taskCache, 'matchPlanCache')
+      .mockReturnValue({
+        cacheContent: {
+          type: 'plan',
+          prompt: 'test prompt',
+          yamlWorkflow: '',
+        },
+        updateFn: vi.fn(),
+      });
+
+    // Mock the action method to track if it gets called (normal execution path)
+    const actionSpy = vi
+      .spyOn(taskExecutor, 'action')
+      .mockResolvedValue({} as any);
+
+    // Create a minimal Agent instance for testing with proper model config
+    const { Agent } = await import('@/agent');
+    const agent = new Agent(mockInterface, mockService, {
+      taskCache,
+      modelConfig: {
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      },
+    });
+
+    // Mock the modelConfigManager to return valid config
+    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+      getModelConfig: () => ({
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      }),
+    });
+
+    // Spy on runYaml to ensure it's NOT called with empty string
+    const runYamlSpy = vi.spyOn(agent, 'runYaml');
+
+    // Call aiAct
+    await agent.aiAct('test prompt');
+
+    // Verify cache was queried
+    expect(matchPlanCacheSpy).toHaveBeenCalledWith('test prompt');
+
+    // Verify runYaml was NOT called (because yamlWorkflow is empty)
+    expect(runYamlSpy).not.toHaveBeenCalled();
+
+    // Verify normal execution path was taken (action method called)
+    expect(actionSpy).toHaveBeenCalled();
+  });
+
+  it('should fall through to normal execution when cache yamlWorkflow is whitespace-only', async () => {
+    // Mock matchPlanCache to return a cache entry with whitespace-only yamlWorkflow
+    const matchPlanCacheSpy = vi
+      .spyOn(taskCache, 'matchPlanCache')
+      .mockReturnValue({
+        cacheContent: {
+          type: 'plan',
+          prompt: 'test prompt',
+          yamlWorkflow: '   \n\t  ',
+        },
+        updateFn: vi.fn(),
+      });
+
+    // Mock the action method to track if it gets called (normal execution path)
+    const actionSpy = vi
+      .spyOn(taskExecutor, 'action')
+      .mockResolvedValue({} as any);
+
+    // Create a minimal Agent instance for testing with proper model config
+    const { Agent } = await import('@/agent');
+    const agent = new Agent(mockInterface, mockService, {
+      taskCache,
+      modelConfig: {
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      },
+    });
+
+    // Mock the modelConfigManager to return valid config
+    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+      getModelConfig: () => ({
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      }),
+    });
+
+    // Spy on runYaml to ensure it's NOT called with whitespace
+    const runYamlSpy = vi.spyOn(agent, 'runYaml');
+
+    // Call aiAct
+    await agent.aiAct('test prompt');
+
+    // Verify cache was queried
+    expect(matchPlanCacheSpy).toHaveBeenCalledWith('test prompt');
+
+    // Verify runYaml was NOT called (because yamlWorkflow is only whitespace)
+    expect(runYamlSpy).not.toHaveBeenCalled();
+
+    // Verify normal execution path was taken (action method called)
+    expect(actionSpy).toHaveBeenCalled();
+  });
+
+  it('should use cache when yamlWorkflow has valid content', async () => {
+    const validYaml = 'actions:\n  - type: Click\n    thought: test';
+
+    // Mock matchPlanCache to return a cache entry with valid yamlWorkflow
+    const matchPlanCacheSpy = vi
+      .spyOn(taskCache, 'matchPlanCache')
+      .mockReturnValue({
+        cacheContent: {
+          type: 'plan',
+          prompt: 'test prompt',
+          yamlWorkflow: validYaml,
+        },
+        updateFn: vi.fn(),
+      });
+
+    // Mock the action method - it should NOT be called when using cache
+    const actionSpy = vi
+      .spyOn(taskExecutor, 'action')
+      .mockResolvedValue({} as any);
+
+    // Create a minimal Agent instance for testing with proper model config
+    const { Agent } = await import('@/agent');
+    const agent = new Agent(mockInterface, mockService, {
+      taskCache,
+      modelConfig: {
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      },
+    });
+
+    // Mock the modelConfigManager to return valid config
+    vi.spyOn(agent as any, 'modelConfigManager', 'get').mockReturnValue({
+      getModelConfig: () => ({
+        baseUrl: 'https://test.com',
+        apiKey: 'test-key',
+        model: 'test-model',
+      }),
+    });
+
+    // Mock runYaml to avoid actual execution
+    const runYamlSpy = vi.spyOn(agent, 'runYaml').mockResolvedValue({} as any);
+
+    // Call aiAct
+    await agent.aiAct('test prompt');
+
+    // Verify cache was queried
+    expect(matchPlanCacheSpy).toHaveBeenCalledWith('test prompt');
+
+    // Verify runYaml WAS called with the valid yaml (cache path taken)
+    expect(runYamlSpy).toHaveBeenCalledWith(validYaml);
+
+    // Verify normal execution path was NOT taken
+    expect(actionSpy).not.toHaveBeenCalled();
+  });
 });
