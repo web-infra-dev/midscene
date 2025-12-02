@@ -44,11 +44,18 @@ export async function uiTarsPlanning(
     conversationHistory: ConversationHistory;
     context: UIContext;
     modelConfig: IModelConfig;
+    actionContext?: string;
   },
 ): Promise<PlanningAIResponse> {
-  const { conversationHistory, context, modelConfig } = options;
+  const { conversationHistory, context, modelConfig, actionContext } = options;
   const { uiTarsModelVersion } = modelConfig;
-  const systemPrompt = getUiTarsPlanningPrompt() + userInstruction;
+
+  let instruction = userInstruction;
+  if (actionContext) {
+    instruction = `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n<user_instruction>${userInstruction}</user_instruction>`;
+  }
+
+  const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
   const imagePayload = await resizeImageForUiTars(
     context.screenshotBase64,
