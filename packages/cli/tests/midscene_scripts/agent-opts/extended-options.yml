@@ -1,0 +1,27 @@
+# Integration test for extended agent options
+# This YAML file tests all the new fields added to MidsceneYamlScriptAgentOpt
+
+web:
+  serve: ../../server_root
+  url: index.html
+
+agent:
+  testId: "extended-opts-test"
+  groupName: "Extended Options Test Suite"
+  groupDescription: "Testing new agent configuration fields including testId, groupName, groupDescription, generateReport, autoPrintReportMsg, reportFileName, and replanningCycleLimit"
+  generateReport: true
+  autoPrintReportMsg: false
+  reportFileName: "extended-opts-report"
+  replanningCycleLimit: 25
+  aiActionContext: "Test environment with extended agent options"
+  cache:
+    id: "extended-opts-cache"
+    strategy: "read-write"
+
+tasks:
+  - name: "Test basic interaction with extended options"
+    flow:
+      - aiAction: "click the title element"
+      - aiAssert: "the page title is visible"
+      - aiQuery: "what is the text content of the page title?"
+        name: "titleText"

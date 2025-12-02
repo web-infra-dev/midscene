@@ -61,9 +61,40 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
+/**
+ * Agent configuration options that can be specified in YAML scripts.
+ *
+ * This type includes serializable fields from AgentOpt, excluding non-serializable
+ * fields like functions and complex objects. All fields are optional.
+ *
+ * @remarks
+ * - testId priority: CLI parameter > YAML agent.testId > filename
+ * - These settings apply to all platforms (Web, Android, iOS, Generic Interface)
+ * - modelConfig is configured through environment variables, not in YAML
+ *
+ * @example
+ * ```yaml
+ * agent:
+ *   testId: "checkout-test"
+ *   groupName: "E2E Test Suite"
+ *   generateReport: true
+ *   replanningCycleLimit: 30
+ *   cache:
+ *     id: "checkout-cache"
+ *     strategy: "read-write"
+ * ```
+ */
 export type MidsceneYamlScriptAgentOpt = Pick<
   AgentOpt,
-  'aiActionContext' | 'cache'
+  | 'testId'
+  | 'groupName'
+  | 'groupDescription'
+  | 'generateReport'
+  | 'autoPrintReportMsg'
+  | 'reportFileName'
+  | 'replanningCycleLimit'
+  | 'aiActionContext'
+  | 'cache'
 >;
 
 export interface MidsceneYamlScriptConfig {

@@ -58,19 +58,49 @@ tasks:
 
 ### The `agent` part
 
-If you need to use the `aiActionContext` parameter, you can set it through the `agent` section:
+The `agent` section configures AI agent behavior and test report options. All fields are optional.
 
 ```yaml
 # AI agent configuration
 agent:
-  # Background knowledge to send to the AI model when calling aiAct, optional.
+  # Test identifier, used for reporting and cache identification, optional
+  testId: <string>
+
+  # Report group name, optional
+  groupName: <string>
+
+  # Report group description, optional
+  groupDescription: <string>
+
+  # Whether to generate test reports, optional, defaults to true
+  generateReport: <boolean>
+
+  # Whether to automatically print report messages, optional, defaults to true
+  autoPrintReportMsg: <boolean>
+
+  # Custom report file name, optional
+  reportFileName: <string>
+
+  # Maximum AI replanning cycle limit, optional, defaults to 20 (40 for UI-TARS model)
+  replanningCycleLimit: <number>
+
+  # Background knowledge to send to the AI model when calling aiAct, optional
   aiActionContext: <string>
+
+  # Cache configuration, optional
+  cache:
+    # Cache strategy, optional, values: 'read-only' | 'read-write' | 'write-only'
+    strategy: <string>
+    # Cache ID, required
+    id: <string>
 ```
 
-:::tip aiActionContext configuration
+:::tip Agent Configuration Notes
 
-- **Applicable environments**: Web, iOS, and Android environments can all use the `agent` section to set `aiActionContext`
-- **Purpose**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
+- **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
+- **testId priority**: CLI parameter > YAML agent.testId > filename
+- **aiActionContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
+- **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
 
@@ -79,7 +109,17 @@ agent:
 ```yaml
 # agent configuration, applies to all environments
 agent:
+  testId: "checkout-test"
+  groupName: "E2E Test Suite"
+  groupDescription: "Complete checkout flow testing"
+  generateReport: true
+  autoPrintReportMsg: false
+  reportFileName: "checkout-report"
+  replanningCycleLimit: 30
   aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
+  cache:
+    id: "checkout-cache"
+    strategy: "read-write"
 
 # iOS environment configuration
 ios:
