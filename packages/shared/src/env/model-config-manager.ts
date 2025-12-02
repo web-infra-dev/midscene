@@ -7,7 +7,6 @@ import type {
   TIntent,
   TModelConfig,
 } from './types';
-import { MIDSCENE_MODEL_TIMEOUT } from './types';
 
 export class ModelConfigManager {
   private modelConfigMap: Record<TIntent, IModelConfig> | undefined = undefined;
@@ -47,14 +46,6 @@ export class ModelConfigManager {
       configMap = this.globalConfigManager?.getAllEnvConfig() || {};
     }
 
-    // Resolve timeout priority (modelTimeout always takes precedence if provided):
-    // - If modelConfig provided (isolated mode): modelTimeout > modelConfig.MIDSCENE_MODEL_TIMEOUT > undefined
-    // - If no modelConfig: modelTimeout > MIDSCENE_MODEL_TIMEOUT env var > undefined
-    const timeoutFromConfigMap = configMap[MIDSCENE_MODEL_TIMEOUT];
-    const resolvedTimeout =
-      this.modelTimeout ??
-      (timeoutFromConfigMap ? Number(timeoutFromConfigMap) : undefined);
-
     const defaultConfig = decideModelConfigFromIntentConfig(
       'default',
       configMap,
@@ -75,21 +66,30 @@ export class ModelConfigManager {
       configMap,
     );
 
+    // Each intent uses its own timeout from parsed config (MIDSCENE_MODEL_TIMEOUT,
+    // MIDSCENE_INSIGHT_MODEL_TIMEOUT, MIDSCENE_PLANNING_MODEL_TIMEOUT).
+    // If AgentOpt.modelTimeout is provided, it overrides all intent timeouts for backwards compatibility.
     this.modelConfigMap = {
       default: {
         ...defaultConfig,
         createOpenAIClient: this.createOpenAIClientFn,
-        timeout: resolvedTimeout,
+        ...(this.modelTimeout !== undefined
+          ? { timeout: this.modelTimeout }
+          : {}),
       },
       insight: {
         ...(insightConfig || defaultConfig),
         createOpenAIClient: this.createOpenAIClientFn,
-        timeout: resolvedTimeout,
+        ...(this.modelTimeout !== undefined
+          ? { timeout: this.modelTimeout }
+          : {}),
       },
       planning: {
         ...(planningConfig || defaultConfig),
         createOpenAIClient: this.createOpenAIClientFn,
-        timeout: resolvedTimeout,
+        ...(this.modelTimeout !== undefined
+          ? { timeout: this.modelTimeout }
+          : {}),
       },
     };
 
