@@ -82,7 +82,7 @@ export default defineConfig({
               link: '/bridge-mode',
             },
             {
-              text: 'API reference (Web)',
+              text: 'API reference (web browser)',
               link: '/web-api-reference',
             },
           ],
@@ -113,7 +113,7 @@ export default defineConfig({
             },
             {
               text: 'Getting started',
-              link: '/ios/getting-started',
+              link: '/ios-getting-started',
             },
             {
               text: 'API reference (iOS)',
@@ -233,7 +233,7 @@ export default defineConfig({
               link: '/zh/bridge-mode',
             },
             {
-              text: 'API 参考（Web）',
+              text: 'API 参考（Web 浏览器）',
               link: '/zh/web-api-reference',
             },
           ],

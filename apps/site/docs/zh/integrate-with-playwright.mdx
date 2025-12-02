@@ -122,18 +122,6 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-<a id="playwrightagent"></a>
-
-### 如何限制页面在当前 tab 打开
-
-如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
-
-```typescript
-const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: true,
-});
-```
-
 ## 在 Playwright 的测试用例中集成 Midscene
 
 这里我们假设你已经拥有一个集成了 Playwright 的测试项目。
@@ -260,54 +248,63 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
-## 示例：连接远程 Playwright 浏览器并接入 Midscene Agent
+## Advanced
+
+### 关于在新标签页打开
+
+每个 Agent 实例都与对应的页面唯一绑定，为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
+
+如果你想恢复在新标签页打开的行为，你可以设置 `forceSameTabNavigation` 选项为 `false`，但相应的，你需要为新标签页创建一个 Agent 实例。
+
+```typescript
+const mid = new PlaywrightAgent(page, {
+  forceSameTabNavigation: false,
+});
+```
+
+### 连接远程 Playwright 浏览器并接入 Midscene Agent
 
 :::info 示例项目
 你可以在这里找到远程 Playwright 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
 :::
 
-当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器服务或本地内网桌面）时，可通过此流程将 Midscene 与远程 Playwright 实例打通。这样可以让浏览器贴近目标环境、降低启动开销，并集中管理浏览器资源，同时保持一致的 AI 自动化能力。
+当你已经在自有基础设施或供应商服务里运行浏览器时，可通过连接远程 Playwright 服务复用这些浏览器，让实例更贴近目标环境、避免重复启动，同时保持相同的 Midscene AI 自动化能力。
 
-实践中你需要手动：
-1. 从远程浏览器服务获取 CDP WebSocket URL
-2. 使用 Playwright 连接到远程浏览器
-3. 创建 Midscene 代理进行 AI 驱动的自动化
-
-### 前置依赖
+#### 前置依赖
 
 <PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
 
 <GetCdpUrl />
 
-### 基础示例
+#### 代码示例
 
 ```typescript
 import { chromium } from 'playwright';
 import { PlaywrightAgent } from '@midscene/web/playwright';
 
-// 假设你已经有了一个 CDP WebSocket URL
+// 来自远程浏览器服务的 CDP WebSocket URL
 const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
 
-// 连接到远程浏览器
+// 连接并选取页面
 const browser = await chromium.connectOverCDP(cdpWsUrl);
-
-// 获取上下文和页面
 const context = browser.contexts()[0];
 const page = context.pages()[0] || await context.newPage();
 
-// 创建 Midscene 代理
+// 创建 Midscene 代理（用法与本地 Playwright agent 一致）
 const agent = new PlaywrightAgent(page);
 
-// 使用 AI 方法
+// 像平常一样调用 AI 方法
 await agent.aiAction('跳转到 https://example.com');
-await agent.aiAction('在邮箱输入框中输入 "user@example.com"');
+await agent.aiAction('点击登录按钮');
 
 // 清理
 await agent.destroy();
 await browser.close();
 ```
 
-## 扩展自定义交互动作
+连接完成后，后续的 `PlaywrightAgent` 使用方式与本地启动的浏览器保持一致。
+
+### 扩展自定义交互动作
 
 使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
 
@@ -345,5 +342,6 @@ await agent.aiAct('点击红色按钮五次');
 
 ## 更多
 
-- 更多 Agent 上的 API 接口请参考 [API 参考](./api#interaction-methods)。
-- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
+- Playwright 的 API 文档请参考 [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent)。
+- 样例项目：直接集成 Playwright（<https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo>）；Playwright 测试集成（<https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo>）；远程 Playwright 集成（<https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo>）

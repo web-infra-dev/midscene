@@ -18,15 +18,17 @@ check the demo project of bridge mode: [https://github.com/web-infra-dev/midscen
 
 > In bridge mode, the AI models configs should be set in the Node.js side instead of the browser side.
 
-## Step 1. Install Midscene extension from Chrome web store
+## Get started
+
+### Step 1. Install Midscene extension from Chrome web store
 
 Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-## Step 2. Install dependencies
+### Step 2. Install dependencies
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
 
-## Step 3. Write scripts
+### Step 3. Write scripts
 
 Write and save the following code as `./demo-new-tab.ts`.
 
@@ -52,7 +54,7 @@ Promise.resolve(
 );
 ```
 
-## Step 4. Start the Chrome extension
+### Step 4. Start the Chrome extension
 
 Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connection".
 
@@ -60,7 +62,7 @@ Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connect
   <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
 </p>
 
-## Step 5. Run the script
+### Step 5. Run the script
 
 Run your scripts
 
@@ -73,118 +75,6 @@ After executing the script, you should see the status of the Chrome extension sw
 :::tip
 ⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
 :::
-
-<a id="agentoverchromebridge"></a>
-
-## Constructor
-
-```typescript
-import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
-
-const agent = new AgentOverChromeBridge();
-```
-
-You should use the `AgentOverChromeBridge` constructor. It extends the [general agent constructor](./api.mdx) and accepts the following parameters:
-
-* `closeNewTabsAfterDisconnect?: boolean`: If true, the newly created tab will be closed when the bridge is destroyed. Default is false.
-* `allowRemoteAccess?: boolean`: If true, allows remote machines to connect to the Bridge Server (listens on `0.0.0.0`). Default is false, only allowing local connections (listens on `127.0.0.1`).
-* `host?: string`: Custom address for the Bridge Server to listen on. If specified, this overrides the `allowRemoteAccess` setting.
-* `port?: number`: Custom port for the Bridge Server. Default is 3766.
-
-## Methods
-
-Besides the [general agent interface](./api.mdx), `AgentOverChromeBridge` also provides additional interfaces to control desktop Chrome.
-
-:::info
-You should always call `connectCurrentTab` or `connectNewTabWithUrl` before doing further actions.
-
-Each of the agent instance can only connect to one tab instance, and it cannot be reconnected after destroy.
-:::
-### `connectCurrentTab()`
-
-Connect to the currently active tab.
-
-* Type
-
-```typescript
-function connectCurrentTab(options?: { 
-  forceSameTabNavigation?: boolean 
-}): Promise<void>;
-```
-
-* Parameters:
-  * `options?: object` - Optional configuration object
-    * `forceSameTabNavigation?: boolean` - If true (default), restricts pages from opening new tabs, forcing new pages to open in the current tab to prevent AI operation failures due to manual tab switching. This configuration usually doesn't need to be changed
-
-* Returns:
-  * Returns a Promise that resolves to void when connected successfully; throws an error if connection fails
-
-* Example:
-
-```typescript
-try {
-  await agent.connectCurrentTab();
-  console.log('Successfully connected to current tab');
-} catch (err) {
-  console.error('Connection failed:', err.message);
-}
-```
-
-### `connectNewTabWithUrl()`
-
-Create a new tab and connect to it immediately.
-
-* Type
-
-```typescript
-function connectNewTabWithUrl(
-  url: string,
-  options?: { 
-    forceSameTabNavigation?: boolean 
-  }
-): Promise<void>;
-```
-
-* Parameters:
-  * `url: string` - URL to open in the new tab
-  * `options?: object` - Optional configuration object (same parameters as connectCurrentTab)
-
-* Returns:
-  * Returns a Promise that resolves to void when connected successfully; throws an error if connection fails
-
-* Example:
-
-```typescript
-// Open Bing and wait for connection
-await agent.connectNewTabWithUrl(
-  "https://www.bing.com",
-  { forceSameTabNavigation: false }
-);
-```
-
-### `destroy()`
-
-Destroy the connection and release resources.
-
-* Type
-
-```typescript
-function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
-```
-
-* Parameters:
-  * `closeNewTabsAfterDisconnect?: boolean` - If true, the newly created tab will be closed when the bridge is destroyed. Default is false. The will override the `closeNewTabsAfterDisconnect` parameter in the constructor.
-
-* Returns:
-  * Returns a Promise that resolves to void when destruction completes
-
-* Example:
-
-```typescript
-// Destroy connection after completing operations
-await agent.ai('Perform final operation...');
-await agent.destroy();
-```
 
 ## Use bridge mode in YAML script
 
@@ -262,12 +152,15 @@ When remote access is enabled, the Bridge Server will be exposed on the network.
 
 :::
 
-
 ## FAQ
 
 * Where should I config the model parameters (like `MIDSCENE_MODEL_API_KEY`), in the browser or in the terminal?
 
 When using bridge mode, you should config the model parameters in the terminal. For more configuration details, please refer to [Model strategy](./model-strategy).
 
+## More
 
-
+- For every Agent method, check the [API reference](./api#interaction-methods).
+- For the full Chrome Bridge API surface, see [API reference (Web)](./web-api-reference#chrome-bridge-agent).
+- Demo project
+  - Bridge mode demo: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
