@@ -10,6 +10,7 @@ import {
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
@@ -114,5 +115,58 @@ describe('ModelConfigManager', () => {
 
     const config = manager.getModelConfig('default');
     expect(config.createOpenAIClient).toBe(createClient);
+  });
+
+  describe('modelTimeout', () => {
+    it('applies modelTimeout to all intent configs', () => {
+      const manager = new ModelConfigManager(baseMap, undefined, 30000);
+
+      expect(manager.getModelConfig('default').timeout).toBe(30000);
+      expect(manager.getModelConfig('insight').timeout).toBe(30000);
+      expect(manager.getModelConfig('planning').timeout).toBe(30000);
+    });
+
+    it('modelTimeout takes priority over modelConfig.MIDSCENE_MODEL_TIMEOUT', () => {
+      const configWithTimeout = {
+        ...baseMap,
+        [MIDSCENE_MODEL_TIMEOUT]: '60000',
+      };
+      const manager = new ModelConfigManager(
+        configWithTimeout,
+        undefined,
+        30000,
+      );
+
+      expect(manager.getModelConfig('default').timeout).toBe(30000);
+    });
+
+    it('uses modelConfig.MIDSCENE_MODEL_TIMEOUT when modelTimeout is not provided', () => {
+      const configWithTimeout = {
+        ...baseMap,
+        [MIDSCENE_MODEL_TIMEOUT]: '45000',
+      };
+      const manager = new ModelConfigManager(configWithTimeout);
+
+      expect(manager.getModelConfig('default').timeout).toBe(45000);
+    });
+
+    it('reads timeout from environment variable when no modelConfig provided', () => {
+      vi.stubEnv(MIDSCENE_MODEL_NAME, 'env-model');
+      vi.stubEnv(MIDSCENE_MODEL_API_KEY, 'env-key');
+      vi.stubEnv(MIDSCENE_MODEL_BASE_URL, 'https://env.example.com');
+      vi.stubEnv(MIDSCENE_MODEL_FAMILY, 'qwen3-vl');
+      vi.stubEnv(MIDSCENE_MODEL_TIMEOUT, '120000');
+
+      const manager = new ModelConfigManager();
+      manager.registerGlobalConfigManager(new GlobalConfigManager());
+
+      expect(manager.getModelConfig('default').timeout).toBe(120000);
+    });
+
+    it('returns undefined timeout when not configured', () => {
+      const manager = new ModelConfigManager(baseMap);
+
+      expect(manager.getModelConfig('default').timeout).toBeUndefined();
+    });
   });
 });

@@ -7,10 +7,7 @@ import type {
   TIntent,
   TModelConfig,
 } from './types';
-import {
-  MIDSCENE_MODEL_TIMEOUT,
-  VL_MODE_RAW_VALID_VALUES as VL_MODES,
-} from './types';
+import { MIDSCENE_MODEL_TIMEOUT } from './types';
 
 export class ModelConfigManager {
   private modelConfigMap: Record<TIntent, IModelConfig> | undefined = undefined;
@@ -50,7 +47,9 @@ export class ModelConfigManager {
       configMap = this.globalConfigManager?.getAllEnvConfig() || {};
     }
 
-    // Resolve timeout: AgentOpt.modelTimeout > configMap > env variable > undefined
+    // Resolve timeout priority:
+    // - With modelConfig (isolated mode): modelTimeout > modelConfig.MIDSCENE_MODEL_TIMEOUT > undefined
+    // - Without modelConfig: modelTimeout > MIDSCENE_MODEL_TIMEOUT env var > undefined
     const timeoutFromConfigMap = configMap[MIDSCENE_MODEL_TIMEOUT];
     const resolvedTimeout =
       this.modelTimeout ??
