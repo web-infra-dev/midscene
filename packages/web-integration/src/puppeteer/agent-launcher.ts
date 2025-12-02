@@ -15,6 +15,19 @@ export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout =
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
 
+/**
+ * Chrome arguments that may reduce browser security.
+ * These should only be used in controlled testing environments.
+ *
+ * Security implications:
+ * - `--no-sandbox`: Disables Chrome's sandbox security model
+ * - `--disable-setuid-sandbox`: Disables setuid sandbox on Linux
+ * - `--disable-web-security`: Allows cross-origin requests without CORS
+ * - `--ignore-certificate-errors`: Ignores SSL/TLS certificate errors
+ * - `--disable-features=IsolateOrigins`: Disables origin isolation
+ * - `--disable-site-isolation-trials`: Disables site isolation
+ * - `--allow-running-insecure-content`: Allows mixed HTTP/HTTPS content
+ */
 const DANGEROUS_ARGS = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
@@ -23,16 +36,31 @@ const DANGEROUS_ARGS = [
   '--disable-features=IsolateOrigins',
   '--disable-site-isolation-trials',
   '--allow-running-insecure-content',
-];
+] as const;
 
-function validateChromeArgs(args: string[], allowDangerous = false): void {
+/**
+ * Validates Chrome launch arguments for security concerns.
+ * Emits a warning if dangerous arguments are detected.
+ *
+ * Note: This function does not prevent the use of dangerous arguments,
+ * it only warns the user about potential security risks.
+ *
+ * @param args - Chrome launch arguments to validate
+ *
+ * @example
+ * ```typescript
+ * // Will show warning for --no-sandbox
+ * validateChromeArgs(['--no-sandbox', '--headless']);
+ * ```
+ */
+function validateChromeArgs(args: string[]): void {
   const dangerousArgs = args.filter((arg) =>
     DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
   );
 
-  if (dangerousArgs.length > 0 && !allowDangerous) {
+  if (dangerousArgs.length > 0) {
     console.warn(
-      `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce security. If you understand the risks, set MIDSCENE_ALLOW_DANGEROUS_CHROME_ARGS=true environment variable to disable this warning.`,
+      `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
     );
   }
 }
@@ -110,6 +138,7 @@ export async function launchPuppeteerPage(
   }
   // do not use 'no-sandbox' on windows https://www.perplexity.ai/search/how-to-solve-this-with-nodejs-dMHpdCypRa..JA8TkQzbeQ
   const isWindows = process.platform === 'win32';
+
   const baseArgs = [
     ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
     '--disable-features=HttpsFirstBalancedModeAutoEnable',
@@ -124,9 +153,7 @@ export async function launchPuppeteerPage(
   // Merge custom Chrome arguments
   let args = baseArgs;
   if (target.chromeArgs && target.chromeArgs.length > 0) {
-    const allowDangerous =
-      process.env.MIDSCENE_ALLOW_DANGEROUS_CHROME_ARGS === 'true';
-    validateChromeArgs(target.chromeArgs, allowDangerous);
+    validateChromeArgs(target.chromeArgs);
 
     // Custom args come after base args, allowing them to override defaults
     args = [...baseArgs, ...target.chromeArgs];
@@ -172,8 +199,6 @@ export async function launchPuppeteerPage(
     });
   }
   const page = await browserInstance.newPage();
-  // await page.setUserAgent(ua);
-  // await page.setViewport(viewportConfig);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
