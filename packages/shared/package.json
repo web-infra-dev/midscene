@@ -84,7 +84,7 @@
     "uuid": "11.1.0"
   },
   "devDependencies": {
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.2",
     "@types/debug": "4.1.12",
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",

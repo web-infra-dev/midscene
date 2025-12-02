@@ -14,6 +14,7 @@ import {
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
 } from '../puppeteer/base-page';
+import { getWebpackRequire } from '../utils';
 
 const debug = getDebug('playwright:agent');
 
@@ -22,10 +23,10 @@ const debug = getDebug('playwright:agent');
  */
 function getPlaywrightVersion(): string | null {
   try {
-    // Try to require playwright package.json
-    const playwrightPkg = require('playwright/package.json');
+    const playwrightPkg = getWebpackRequire()('playwright/package.json');
     return playwrightPkg.version || null;
-  } catch {
+  } catch (error) {
+    console.error('[midscene:error] Failed to get Playwright version', error);
     return null;
   }
 }
