@@ -113,7 +113,7 @@ export default defineConfig({
             },
             {
               text: 'Getting started',
-              link: '/ios/getting-started',
+              link: '/ios-getting-started',
             },
             {
               text: 'API reference (iOS)',
