@@ -824,17 +824,23 @@ export class Agent<
       isVlmUiTars || cacheable === false
         ? undefined
         : this.taskCache?.matchPlanCache(taskPrompt);
-    if (matchedCache && this.taskCache?.isCacheResultUsed) {
+    if (
+      matchedCache &&
+      this.taskCache?.isCacheResultUsed &&
+      matchedCache.cacheContent?.yamlWorkflow?.trim()
+    ) {
       // log into report file
       await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
-        matchedCache.cacheContent?.yamlWorkflow,
+        matchedCache.cacheContent.yamlWorkflow,
       );
 
       debug('matched cache, will call .runYaml to run the action');
-      const yaml = matchedCache.cacheContent?.yamlWorkflow;
+      const yaml = matchedCache.cacheContent.yamlWorkflow;
       return this.runYaml(yaml);
     }
+
+    // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
     const { output } = await this.taskExecutor.action(
       taskPrompt,
