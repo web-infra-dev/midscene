@@ -3,6 +3,7 @@ import { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import semver from 'semver';
+import { getWebpackRequire } from '../utils';
 import {
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
@@ -16,10 +17,10 @@ const debug = getDebug('puppeteer:agent');
  */
 function getPuppeteerVersion(): string | null {
   try {
-    // Try to require puppeteer package.json
-    const puppeteerPkg = require('puppeteer/package.json');
+    const puppeteerPkg = getWebpackRequire()('puppeteer/package.json');
     return puppeteerPkg.version || null;
-  } catch {
+  } catch (error) {
+    console.error('[midscene:error] Failed to get Puppeteer version', error);
     return null;
   }
 }
