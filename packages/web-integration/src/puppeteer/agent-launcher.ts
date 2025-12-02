@@ -15,6 +15,28 @@ export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout =
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
 
+const DANGEROUS_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-web-security',
+  '--ignore-certificate-errors',
+  '--disable-features=IsolateOrigins',
+  '--disable-site-isolation-trials',
+  '--allow-running-insecure-content',
+];
+
+function validateChromeArgs(args: string[], allowDangerous = false): void {
+  const dangerousArgs = args.filter((arg) =>
+    DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
+  );
+
+  if (dangerousArgs.length > 0 && !allowDangerous) {
+    console.warn(
+      `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce security. If you understand the risks, set MIDSCENE_ALLOW_DANGEROUS_CHROME_ARGS=true environment variable to disable this warning.`,
+    );
+  }
+}
+
 interface FreeFn {
   name: string;
   fn: () => void;
@@ -88,7 +110,7 @@ export async function launchPuppeteerPage(
   }
   // do not use 'no-sandbox' on windows https://www.perplexity.ai/search/how-to-solve-this-with-nodejs-dMHpdCypRa..JA8TkQzbeQ
   const isWindows = process.platform === 'win32';
-  const args = [
+  const baseArgs = [
     ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
     '--disable-features=HttpsFirstBalancedModeAutoEnable',
     '--disable-features=PasswordLeakDetection',
@@ -98,6 +120,23 @@ export async function launchPuppeteerPage(
       ? '--start-maximized'
       : `--window-size=${width},${height + 200}`, // add 200px for the address bar
   ];
+
+  // Merge custom Chrome arguments
+  let args = baseArgs;
+  if (target.chromeArgs && target.chromeArgs.length > 0) {
+    const allowDangerous =
+      process.env.MIDSCENE_ALLOW_DANGEROUS_CHROME_ARGS === 'true';
+    validateChromeArgs(target.chromeArgs, allowDangerous);
+
+    // Custom args come after base args, allowing them to override defaults
+    args = [...baseArgs, ...target.chromeArgs];
+    launcherDebug(
+      'Merging custom Chrome arguments',
+      target.chromeArgs,
+      'Final args',
+      args,
+    );
+  }
 
   launcherDebug(
     'launching browser with viewport, headed',

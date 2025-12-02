@@ -98,6 +98,9 @@ export interface MidsceneYamlScriptWebEnv
   cookie?: string;
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
+  // Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode)
+  chromeArgs?: string[];
+
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
   closeNewTabsAfterDisconnect?: boolean;
