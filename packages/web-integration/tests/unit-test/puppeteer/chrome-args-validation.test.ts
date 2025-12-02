@@ -1,5 +1,38 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+// Constants and helper function for testing
+const DANGEROUS_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-web-security',
+  '--ignore-certificate-errors',
+  '--disable-features=IsolateOrigins',
+  '--disable-site-isolation-trials',
+  '--allow-running-insecure-content',
+] as const;
+
+const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
+  // Filter out arguments that are already in baseArgs
+  const newArgs = args.filter(
+    (arg) =>
+      !baseArgs.some((baseArg) => {
+        const argFlag = arg.split('=')[0];
+        const baseFlag = baseArg.split('=')[0];
+        return argFlag === baseFlag;
+      }),
+  );
+
+  const dangerousArgs = newArgs.filter((arg) =>
+    DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
+  );
+
+  if (dangerousArgs.length > 0) {
+    console.warn(
+      `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
+    );
+  }
+};
+
 // We need to test the validateChromeArgs function indirectly through launchPuppeteerPage
 // since it's not exported. We'll verify the warnings by spying on console.warn
 describe('Chrome Arguments Validation', () => {
@@ -16,39 +49,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('should warn when dangerous arguments are used', () => {
-    // Create a mock validateChromeArgs function for testing
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      // Filter out arguments that are already in baseArgs
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     // Test: should warn for single dangerous argument
     validateChromeArgs(['--no-sandbox'], []);
     expect(consoleWarnSpy).toHaveBeenCalledTimes(1);
@@ -70,37 +70,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('should not warn for safe arguments', () => {
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     // Safe arguments should not trigger warning
     validateChromeArgs(
       [
@@ -116,37 +85,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('should not warn for arguments already in baseArgs', () => {
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     // Should not warn for --no-sandbox when it's already in baseArgs (non-Windows default)
     validateChromeArgs(
       ['--no-sandbox', '--headless'],
@@ -173,37 +111,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('should handle mixed safe and dangerous arguments', () => {
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     // Mixed arguments should only warn about dangerous ones
     validateChromeArgs(
       [
@@ -225,37 +132,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('should handle empty arguments array', () => {
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     // Empty array should not trigger warning
     validateChromeArgs([], []);
 
@@ -263,37 +139,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('should detect dangerous arguments with prefixes', () => {
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     // Should detect dangerous arguments with additional parameters
     validateChromeArgs(['--disable-features=IsolateOrigins,SiteIsolation'], []);
 
@@ -304,37 +149,6 @@ describe('Chrome Arguments Validation', () => {
   });
 
   test('warning message should be informative', () => {
-    const DANGEROUS_ARGS = [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-web-security',
-      '--ignore-certificate-errors',
-      '--disable-features=IsolateOrigins',
-      '--disable-site-isolation-trials',
-      '--allow-running-insecure-content',
-    ] as const;
-
-    const validateChromeArgs = (args: string[], baseArgs: string[]): void => {
-      const newArgs = args.filter(
-        (arg) =>
-          !baseArgs.some((baseArg) => {
-            const argFlag = arg.split('=')[0];
-            const baseFlag = baseArg.split('=')[0];
-            return argFlag === baseFlag;
-          }),
-      );
-
-      const dangerousArgs = newArgs.filter((arg) =>
-        DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
-      );
-
-      if (dangerousArgs.length > 0) {
-        console.warn(
-          `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
-        );
-      }
-    };
-
     validateChromeArgs(['--no-sandbox'], []);
 
     expect(consoleWarnSpy).toHaveBeenCalledWith(
