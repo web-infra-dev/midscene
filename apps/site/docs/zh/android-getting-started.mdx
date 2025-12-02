@@ -5,28 +5,30 @@ import { PackageManagerTabs } from '@theme';
 
 # Android 快速开始
 
-本指南将带你完成使用 Midscene 自动化 Android 设备所需的一切：如何连接真机、配置模型凭证、体验零代码 Playground、集成 JavaScript SDK，并查阅高级 API 与常见问题。
+本指南将带你完成使用 Midscene 自动化 Android 设备所需的一切：通过 adb 连接真机、配置模型凭证、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+
+:::info 示例项目
+使用 JavaScript 控制 Android 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+
+集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
+:::
+
+<SetupEnv />
 
 ## 准备工作
 
-继续之前，请确保开发电脑能够通过 adb 与设备通信，并准备好 Midscene 所需的 AI 模型凭证。
+在编写脚本前，先确认 adb 能够连接设备且设备信任当前电脑。
 
-### 通过 adb 连接 Android 设备
+### 安装 adb 并设置 `ANDROID_HOME`
 
-#### 安装 adb
-
-`adb` 是一个允许你与 Android 设备通信的命令行工具，有两种安装方式：
-
-- 方式一：安装 [Android Studio](https://developer.android.com/studio)
-- 方式二：安装 [Android 命令行工具](https://developer.android.com/studio#command-line-tools-only)
-
-确认 adb 安装成功：
+- 通过 [Android Studio](https://developer.android.com/studio) 或 [命令行工具](https://developer.android.com/studio#command-line-tools-only) 安装 adb
+- 验证安装是否成功：
 
 ```bash
 adb --version
 ```
 
-当出现如下输出时，即表示安装成功：
+出现类似输出表示安装成功：
 
 ```log
 Android Debug Bridge version 1.0.41
@@ -35,25 +37,21 @@ Installed as /usr/local/bin//adb
 Running on Darwin 24.3.0 (arm64)
 ```
 
-#### 设置 `ANDROID_HOME` 环境变量
-
-参考 [Android environment variables](https://developer.android.com/tools/variables) 设置 `ANDROID_HOME` 环境变量。
-
-验证设置是否生效：
+- 按 [Android environment variables](https://developer.android.com/tools/variables) 设置 `ANDROID_HOME`，并验证：
 
 ```bash
 echo $ANDROID_HOME
 ```
 
-当命令有任何输出时，说明 `ANDROID_HOME` 已配置成功：
+有输出即代表配置成功：
 
 ```log
 /Users/your_username/Library/Android/sdk
 ```
 
-#### 启用 USB 调试并验证设备
+### 启用 USB 调试并验证设备
 
-在系统设置的开发者选项中，打开 Android 设备的“USB 调试”，如果存在“USB 调试（安全设置）”也请一起开启，然后使用数据线连接手机。
+在系统设置的开发者选项中开启 **USB 调试**（若有 **USB 调试（安全设置）** 也请一并开启），然后用数据线连接手机。
 
 <p align="center">
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
@@ -65,22 +63,16 @@ echo $ANDROID_HOME
 adb devices -l
 ```
 
-当看到如下输出时，代表连接成功：
+出现类似输出代表连接成功：
 
 ```log
 List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
-### 模型配置（API Keys）
+## 试用 Playground（零代码）
 
-准备任意视觉语言（VL）模型的 API Key，可在 [模型策略](./model-strategy) 查看支持的模型。
-
-<SetupEnv />
-
-## 试用 Playground
-
-Playground 是验证连接、观察 AI 驱动步骤的最快方式，无需编写代码。它与 `@midscene/android` 共享相同的核心，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
+Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/android` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
 
 ![](/android-playground.png)
 
@@ -96,21 +88,15 @@ npx --yes @midscene/android-playground
 
 <StartExperience />
 
-## 集成 JavaScript SDK
+## 集成 Midscene Agent
 
-当 Playground 运行正常后，就可以升级到可复用的脚本。SDK 提供相同的能力，并额外支持 CI、测试以及自定义流程。
+当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
-:::info 示例项目
-使用 JavaScript 控制 Android 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
-
-集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
-:::
-
-### 安装依赖
+### 第 1 步：安装依赖
 
 <PackageManagerTabs command="install @midscene/android --save-dev" />
 
-### 编写首个脚本
+### 第 2 步：编写脚本
 
 下面的示例会在设备上打开浏览器、搜索 eBay，并断言结果列表。
 
@@ -148,17 +134,17 @@ Promise.resolve(
 );
 ```
 
-### 运行示例
+### 第 3 步：运行示例
 
 ```bash
 npx tsx demo.ts
 ```
 
-### 查看 HTML 报告
+### 第 4 步：查看报告
 
 脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
 
-## 扩展 Midscene 与常见问题
+## 进阶
 
 当你需要自定义设备行为、把 Midscene 接入独立框架，或排查 adb 问题时，可参考本节内容。更多构造函数参数可前往 [API 参考（Android）](./android-api-reference)。
 
@@ -197,3 +183,11 @@ await agent.aiAct('click the red button five times');
 ```
 
 关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](./integrate-with-any-interface#define-a-custom-action)。
+
+## 更多
+
+- 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
+- Android 专属参数与接口：[Android Agent API](./android-api-reference)
+- 示例项目
+  - Android JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+  - Android + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)

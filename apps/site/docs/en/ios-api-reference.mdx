@@ -1,98 +1,127 @@
-# API reference(iOS)
+# API reference (iOS)
 
-Use this section when you need to customize iOS device behavior, wire Midscene into workflows that rely on WebDriverAgent, or troubleshoot WDA requests. For the shared constructor options (reporting, hooks, caching, etc.) see the platform-agnostic [API reference](./api.mdx) and [Prompting tips](./prompting-tips) if you need help crafting instructions.
+Use this doc when you need to customize iOS device behavior, wire Midscene into WebDriverAgent-driven workflows, or troubleshoot WDA requests. For shared constructor options (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api) and [Prompting tips](./prompting-tips).
 
-## Import and basic usage
+## IOSDevice {#iosdevice}
 
-To work with iOS devices, import the iOS SDK package:
+Create a WebDriverAgent-backed instance that an IOSAgent can drive.
 
-```typescript
-import {
-  IOSAgent,
-  IOSDevice,
-  agentFromWebDriverAgent,
-} from '@midscene/ios';
+### Import
+
+```ts
+import { IOSDevice } from '@midscene/ios';
 ```
 
-Basic usage:
+### Constructor
 
-```typescript
+```ts
 const device = new IOSDevice({
-  wdaPort: 8100,
-  wdaHost: 'localhost',
+  // device options...
 });
+```
 
+### Device options
+
+- `wdaPort?: number` &mdash; WebDriverAgent port. Default `8100`.
+- `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
+- `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
+- `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
+
+### Usage notes
+
+:::info
+- Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
+- Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
+- For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+:::
+
+### Examples
+
+#### Quick start
+
+```ts
+import { IOSAgent, IOSDevice } from '@midscene/ios';
+
+const device = new IOSDevice({ wdaHost: 'localhost', wdaPort: 8100 });
 await device.connect();
 
 const agent = new IOSAgent(device, {
-  aiActionContext:
-    'If any permission dialog appears, accept it. Close login popups.',
+  aiActionContext: 'If any permission dialog appears, accept it.',
 });
 
-await device.launch('https://ebay.com'); // Open a web page
-await agent.aiAct('Search for "Headphones" and list a price');
+await agent.launch('https://ebay.com');
+await agent.aiAct('Search for "Headphones"');
 const items = await agent.aiQuery(
   '{itemTitle: string, price: Number}[], list headphone products',
 );
 console.log(items);
-
-await device.destroy();
 ```
 
-## Constructors
-
-<a id="iosdevice"></a>
-
-### IOSDevice constructor {#iosdevice-constructor}
+#### Custom host and port
 
 ```ts
-new IOSDevice(opts?: IOSDeviceOpt)
+const device = new IOSDevice({
+  wdaHost: '192.168.1.100',
+  wdaPort: 8300,
+});
+await device.connect();
 ```
 
-- `opts?: IOSDeviceOpt` &mdash; Optional parameters for configuring the device.
-  - `wdaPort?: number` &mdash; WebDriverAgent port. Default `8100`.
-  - `wdaHost?: string` &mdash; WebDriverAgent host. Default `'localhost'`.
-  - `autoDismissKeyboard?: boolean` &mdash; Hide the keyboard after text input. Default `true`.
-  - `customActions?: DeviceAction<any>[]` &mdash; Additional device actions exposed to the agent.
+## IOSAgent {#iosagent}
 
-<a id="iosagent"></a>
+Wire Midscene's AI planner to an IOSDevice for UI automation over WebDriverAgent.
 
-### IOSAgent constructor {#iosagent-constructor}
+### Import
 
 ```ts
-new IOSAgent(device: IOSDevice, options?: PageAgentOpt)
+import { IOSAgent } from '@midscene/ios';
 ```
 
-- `device: IOSDevice` &mdash; Handles screenshots, taps, keyboard input, and other device-level controls.
-- `options?: PageAgentOpt` &mdash; Matches the common agent options documented in [API constructors](./api#constructors). Use this to configure reporting, caching, prompting context, custom hooks, and model overrides.
-- Convenience helper: [`agentFromWebDriverAgent`](#agentfromwebdriveragent) connects to WebDriverAgent and returns a ready-to-use agent if you prefer a single call.
+### Constructor
 
-## iOS agent methods
+```ts
+const agent = new IOSAgent(device, {
+  // common agent options...
+});
+```
 
-### `agent.launch()`
+### iOS-specific options
+
+- `customActions?: DeviceAction<any>[]` &mdash; Extend planning with actions defined via `defineAction`.
+- All other fields match [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+### Usage notes
+
+:::info
+- Use one agent per device connection.
+- iOS-only helpers such as `launch` and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part).
+- For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+:::
+
+### iOS-specific methods
+
+#### `agent.launch()`
 
 Launch a web URL, native application bundle, or custom scheme.
 
-```typescript
+```ts
 function launch(uri: string): Promise<void>;
 ```
 
 - `uri: string` &mdash; Destination to open (web URL, bundle identifier, URL scheme, tel/mailto, etc.).
 
-```typescript
-const agent = await agentFromWebDriverAgent();
-
+```ts
 await agent.launch('https://www.apple.com');
 await agent.launch('com.apple.Preferences');
 await agent.launch('myapp://profile/user/123');
 await agent.launch('tel:+1234567890');
 ```
 
-### `agent.runWdaRequest()`
+#### `agent.runWdaRequest()`
 
 Execute raw WebDriverAgent REST calls when you need low-level control.
 
-```typescript
+```ts
 function runWdaRequest(
   method: string,
   endpoint: string,
@@ -104,62 +133,31 @@ function runWdaRequest(
 - `endpoint: string` &mdash; WebDriverAgent endpoint path.
 - `data?: Record<string, any>` &mdash; Optional JSON body.
 
-```typescript
-const agent = await agentFromWebDriverAgent();
-
+```ts
 const screen = await agent.runWdaRequest('GET', '/wda/screen');
-await agent.runWdaRequest('POST', '/session/test/wda/pressButton', {
-  name: 'home',
-});
-const info = await agent.runWdaRequest('GET', '/wda/device/info');
-console.log(screen, info);
+await agent.runWdaRequest('POST', '/session/test/wda/pressButton', { name: 'home' });
 ```
 
-:::info YAML usage
-iOS-only helpers such as `launch` and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part) for syntax.
-:::
+#### Navigation helpers
 
-### `agent.home()`
+- `agent.home(): Promise<void>` &mdash; Return to the Home screen.
+- `agent.appSwitcher(): Promise<void>` &mdash; Reveal the multitasking view.
 
-Return to the Home screen.
+### Helper utilities
 
-```typescript
-function home(): Promise<void>;
-```
+#### `agentFromWebDriverAgent()` {#agentfromwebdriveragent}
 
-```typescript
-const agent = await agentFromWebDriverAgent();
-await agent.home();
-```
+Connect to WebDriverAgent and return a ready-to-use IOSAgent.
 
-### `agent.appSwitcher()`
-
-Reveal the multitasking view.
-
-```typescript
-function appSwitcher(): Promise<void>;
-```
-
-```typescript
-const agent = await agentFromWebDriverAgent();
-await agent.appSwitcher();
-```
-
-## iOS helper utilities
-
-### `agentFromWebDriverAgent()` {#agentfromwebdriveragent}
-
-Create an IOSAgent by connecting to WebDriverAgent. This wraps device creation plus connection logic.
-
-```typescript
+```ts
 function agentFromWebDriverAgent(
   opts?: PageAgentOpt & IOSDeviceOpt,
 ): Promise<IOSAgent>;
 ```
 
-- `opts?: PageAgentOpt & IOSDeviceOpt` &mdash; Combine common agent options with [`IOSDevice` constructor](#iosdevice-constructor) settings.
+- `opts?: PageAgentOpt & IOSDeviceOpt` &mdash; Combine common agent options with [`IOSDevice`](#iosdevice) settings.
 
-```typescript
+```ts
 import { agentFromWebDriverAgent } from '@midscene/ios';
 
 const agent = await agentFromWebDriverAgent({
@@ -169,11 +167,11 @@ const agent = await agentFromWebDriverAgent({
 });
 ```
 
-## Extending custom interaction actions
+### Extending custom interaction actions
 
 Extend the Agent's action space by supplying `customActions` with handlers created via `defineAction`. These actions appear after the built-in ones and can be called during planning.
 
-```typescript
+```ts
 import { getMidsceneLocationSchema, z } from '@midscene/core';
 import { defineAction } from '@midscene/core/device';
 import { agentFromWebDriverAgent } from '@midscene/ios';
@@ -183,11 +181,7 @@ const ContinuousClick = defineAction({
   description: 'Click the same target repeatedly',
   paramSchema: z.object({
     locate: getMidsceneLocationSchema(),
-    count: z
-      .number()
-      .int()
-      .positive()
-      .describe('How many times to click'),
+    count: z.number().int().positive().describe('How many times to click'),
   }),
   async call({ locate, count }) {
     console.log('click target center', locate.center);
@@ -202,4 +196,7 @@ const agent = await agentFromWebDriverAgent({
 await agent.aiAct('Click the red button five times');
 ```
 
-For more details about custom actions, refer to [Integrate with any interface](./integrate-with-any-interface).
+### See also
+
+- [iOS getting started](./ios-getting-started) for setup and scripting steps.
+- [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for custom actions and schemas.
