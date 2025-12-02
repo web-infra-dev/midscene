@@ -827,7 +827,7 @@ export class Agent<
     if (
       matchedCache &&
       this.taskCache?.isCacheResultUsed &&
-      matchedCache.cacheContent?.yamlWorkflow
+      matchedCache.cacheContent?.yamlWorkflow?.trim()
     ) {
       // log into report file
       await this.taskExecutor.loadYamlFlowAsPlanning(
@@ -840,16 +840,7 @@ export class Agent<
       return this.runYaml(yaml);
     }
 
-    // If cache matched but yamlWorkflow is empty, log warning and fall through to normal execution
-    if (
-      matchedCache &&
-      this.taskCache?.isCacheResultUsed &&
-      !matchedCache.cacheContent?.yamlWorkflow
-    ) {
-      debug(
-        'cache matched but yamlWorkflow is empty, will execute normally instead',
-      );
-    }
+    // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
     const { output } = await this.taskExecutor.action(
       taskPrompt,
