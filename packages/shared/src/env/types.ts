@@ -25,6 +25,7 @@ export const MIDSCENE_MODEL_HTTP_PROXY = 'MIDSCENE_MODEL_HTTP_PROXY';
 export const MIDSCENE_MODEL_API_KEY = 'MIDSCENE_MODEL_API_KEY';
 export const MIDSCENE_MODEL_BASE_URL = 'MIDSCENE_MODEL_BASE_URL';
 export const MIDSCENE_MODEL_MAX_TOKENS = 'MIDSCENE_MODEL_MAX_TOKENS';
+export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -134,6 +135,7 @@ export const BOOLEAN_ENV_KEYS = [
 export const NUMBER_ENV_KEYS = [
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
+  MIDSCENE_MODEL_TIMEOUT,
 ] as const;
 
 export const STRING_ENV_KEYS = [
@@ -387,6 +389,11 @@ export interface IModelConfig {
   openaiBaseURL?: string;
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
+  /**
+   * Timeout for API calls in milliseconds.
+   * If not set, uses OpenAI SDK default (10 minutes).
+   */
+  timeout?: number;
   /**
    * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
    * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'

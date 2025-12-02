@@ -638,6 +638,12 @@ export interface AgentOpt {
   replanningCycleLimit?: number;
 
   /**
+   * Timeout for AI model API calls in milliseconds.
+   * If not set, uses MIDSCENE_MODEL_TIMEOUT env var or OpenAI SDK default (10 minutes).
+   */
+  modelTimeout?: number;
+
+  /**
    * Custom OpenAI client factory function
    *
    * If provided, this function will be called to create OpenAI client instances

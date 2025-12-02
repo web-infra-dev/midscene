@@ -7,7 +7,10 @@ import type {
   TIntent,
   TModelConfig,
 } from './types';
-import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
+import {
+  MIDSCENE_MODEL_TIMEOUT,
+  VL_MODE_RAW_VALID_VALUES as VL_MODES,
+} from './types';
 
 export class ModelConfigManager {
   private modelConfigMap: Record<TIntent, IModelConfig> | undefined = undefined;
@@ -22,13 +25,16 @@ export class ModelConfigManager {
 
   private modelConfig?: TModelConfig;
   private createOpenAIClientFn?: CreateOpenAIClientFn;
+  private modelTimeout?: number;
 
   constructor(
     modelConfig?: TModelConfig,
     createOpenAIClientFn?: CreateOpenAIClientFn,
+    modelTimeout?: number,
   ) {
     this.modelConfig = modelConfig;
     this.createOpenAIClientFn = createOpenAIClientFn;
+    this.modelTimeout = modelTimeout;
   }
 
   private initialize() {
@@ -43,6 +49,12 @@ export class ModelConfigManager {
     } else {
       configMap = this.globalConfigManager?.getAllEnvConfig() || {};
     }
+
+    // Resolve timeout: AgentOpt.modelTimeout > configMap > env variable > undefined
+    const timeoutFromConfigMap = configMap[MIDSCENE_MODEL_TIMEOUT];
+    const resolvedTimeout =
+      this.modelTimeout ??
+      (timeoutFromConfigMap ? Number(timeoutFromConfigMap) : undefined);
 
     const defaultConfig = decideModelConfigFromIntentConfig(
       'default',
@@ -68,14 +80,17 @@ export class ModelConfigManager {
       default: {
         ...defaultConfig,
         createOpenAIClient: this.createOpenAIClientFn,
+        timeout: resolvedTimeout,
       },
       insight: {
         ...(insightConfig || defaultConfig),
         createOpenAIClient: this.createOpenAIClientFn,
+        timeout: resolvedTimeout,
       },
       planning: {
         ...(planningConfig || defaultConfig),
         createOpenAIClient: this.createOpenAIClientFn,
+        timeout: resolvedTimeout,
       },
     };
 
