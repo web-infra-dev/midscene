@@ -715,3 +715,43 @@ export function forceClosePopup(
     }
   });
 }
+
+/**
+ * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
+ * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
+ *
+ * Reference: https://developer.chrome.com/blog/a-customizable-select
+ *
+ * Adds a style tag with CSS rules to make all select elements use base-select appearance.
+ */
+export function forceChromeSelectRendering(
+  page: PuppeteerPage | PlaywrightPage,
+): void {
+  // Force Chrome to render select elements using base-select appearance
+  // Reference: https://developer.chrome.com/blog/a-customizable-select
+  // Note: Although addStyleTag is an async method, we cannot await it here
+  // because this function is called in the constructor. However, this should
+  // not be a problem since we won't immediately interact with select elements
+  // after the agent is created.
+  (page as PuppeteerPage & PlaywrightPage)
+    .addStyleTag({
+      content: `
+/* Add by Midscene because of forceChromeSelectRendering is enabled*/
+select {
+  &, &::picker(select) {
+    appearance: base-select !important;
+  }
+}`,
+    })
+    .then(() => {
+      console.log(
+        'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',
+      );
+    })
+    .catch((err) => {
+      console.log(
+        'Midscene - Failed to add base-select appearance style:',
+        err,
+      );
+    });
+}

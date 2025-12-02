@@ -1161,6 +1161,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
+      '@types/semver':
+        specifier: 7.7.0
+        version: 7.7.0
       devtools-protocol:
         specifier: 0.0.1380148
         version: 0.0.1380148

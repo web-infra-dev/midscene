@@ -22,6 +22,15 @@ export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+  /**
+   * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
+   * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
+   *
+   * Reference: https://developer.chrome.com/blog/a-customizable-select
+   *
+   * When enabled, adds a style tag with `select { appearance: base-select !important; }` to the page.
+   */
+  forceChromeSelectRendering?: boolean;
   beforeInvokeAction?: () => Promise<void>;
   afterInvokeAction?: () => Promise<void>;
   customActions?: DeviceAction<any>[];

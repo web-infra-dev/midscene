@@ -125,6 +125,7 @@
     "@types/http-server": "^0.12.4",
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
+    "@types/semver": "7.7.0",
     "devtools-protocol": "0.0.1380148",
     "js-yaml": "4.1.0",
     "langsmith": "0.3.74",
