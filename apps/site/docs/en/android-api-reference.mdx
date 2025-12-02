@@ -35,9 +35,11 @@ const device = new AndroidDevice(deviceId, {
 ### Usage notes
 
 :::info
+
 - Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
 - Supports remote adb via `remoteAdbHost/remoteAdbPort`; set `androidAdbPath` if adb is not on PATH.
 - Use `screenshotResizeScale` to cut latency on high-DPI devices.
+
 :::
 
 ### Examples
@@ -97,9 +99,11 @@ const agent = new AndroidAgent(device, {
 ### Usage notes
 
 :::info
+
 - Use one agent per device connection.
 - Android-only helpers such as `launch` and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part).
 - For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+
 :::
 
 ### Android-specific methods

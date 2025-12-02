@@ -8,9 +8,11 @@ import { PackageManagerTabs } from '@theme';
 [Puppeteer](https://pptr.dev/) 是一个 Node.js 库，它通过 DevTools 协议或 WebDriver BiDi 提供控制 Chrome 或 Firefox 的高级 API。Puppeteer 默认在无界面模式（headless）下运行，但可以配置为在可见的浏览器模式（headed）中运行。
 
 :::info 样例项目
+
 你可以在这里看到向 Puppeteer 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
 
 这里还有一个 Puppeteer 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo)
+
 :::
 
 <SetupEnv />
@@ -114,7 +116,9 @@ const mid = new PuppeteerAgent(page, {
 ### 连接远程 Puppeteer 浏览器并接入 Midscene Agent
 
 :::info 示例项目
+
 你可以在这里找到远程 Puppeteer 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo)
+
 :::
 
 当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器网格或本地内网桌面）时，可以通过此流程把 Midscene 接到远程 Puppeteer 实例上。这样做能让浏览器靠近目标环境、降低重复启动成本，并统一管理浏览器资源，同时保持一致的 AI 自动化能力。
@@ -122,7 +126,7 @@ const mid = new PuppeteerAgent(page, {
 实践中你需要手动：
 1. 从远程浏览器服务获取 CDP WebSocket URL
 2. 使用 Puppeteer 连接到远程浏览器
-3. 创建 Midscene 代理进行 AI 驱动的自动化
+3. 创建 Midscene Agent 进行 AI 驱动的自动化
 
 #### 前置依赖
 
@@ -148,7 +152,7 @@ const browser = await puppeteer.connect({
 const pages = await browser.pages();
 const page = pages[0] || await browser.newPage();
 
-// 创建 Midscene 代理
+// 创建 Midscene Agent
 const agent = new PuppeteerAgent(page);
 
 // 使用 AI 方法

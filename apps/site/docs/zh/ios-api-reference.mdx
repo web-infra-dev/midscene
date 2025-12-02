@@ -30,9 +30,11 @@ const device = new IOSDevice({
 ### 使用说明
 
 :::info
+
 - 确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
 :::
 
 ### 示例
@@ -93,9 +95,11 @@ const agent = new IOSAgent(device, {
 ### 使用说明
 
 :::info
+
 - 一个设备连接对应一个 Agent。
 - `launch`、`runWdaRequest` 等 iOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [iOS 平台特定动作](./automate-with-scripts-in-yaml#the-ios-part)。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
 :::
 
 ### iOS 特有方法

@@ -16,7 +16,9 @@ import { PackageManagerTabs } from '@theme';
 ## 直接集成 Midscene Agent
 
 :::info 样例项目
+
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+
 :::
 
 ### 第一步：安装依赖
@@ -127,7 +129,9 @@ npx tsx demo.ts
 这里我们假设你已经拥有一个集成了 Playwright 的测试项目。
 
 :::info 样例项目
+
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
+
 :::
 
 ### 第一步：新增依赖，更新配置文件
@@ -265,7 +269,9 @@ const mid = new PlaywrightAgent(page, {
 ### 连接远程 Playwright 浏览器并接入 Midscene Agent
 
 :::info 示例项目
+
 你可以在这里找到远程 Playwright 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+
 :::
 
 当你已经在自有基础设施或供应商服务里运行浏览器时，可通过连接远程 Playwright 服务复用这些浏览器，让实例更贴近目标环境、避免重复启动，同时保持相同的 Midscene AI 自动化能力。
@@ -290,7 +296,7 @@ const browser = await chromium.connectOverCDP(cdpWsUrl);
 const context = browser.contexts()[0];
 const page = context.pages()[0] || await context.newPage();
 
-// 创建 Midscene 代理（用法与本地 Playwright agent 一致）
+// 创建 Midscene Agent（用法与本地 Playwright agent 一致）
 const agent = new PlaywrightAgent(page);
 
 // 像平常一样调用 AI 方法
@@ -344,4 +350,4 @@ await agent.aiAct('点击红色按钮五次');
 
 - 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
 - Playwright 的 API 文档请参考 [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent)。
-- 样例项目：直接集成 Playwright（<https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo>）；Playwright 测试集成（<https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo>）；远程 Playwright 集成（<https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo>）
+- 样例项目：[直接集成 Playwright](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)，[Playwright 测试集成](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)，[远程 Playwright 集成](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)

@@ -634,6 +634,7 @@ await agent.aiAssert('The price of "Sauce Labs Onesie" is 7.99');
 ```
 
 :::tip
+
 Assertions are critical in test scripts. To reduce the risk of errors due to AI hallucination (e.g., missing an error), you can also combine `.aiQuery` with standard JavaScript assertions instead of using `.aiAssert`.
 
 For example, you might replace the above code with:
@@ -735,7 +736,9 @@ await agent.aiWaitFor('The shopping cart icon shows a quantity of 2', {
 ```
 
 :::tip
+
 Given the time consumption of AI services, `.aiWaitFor` might not be the most efficient method. Sometimes, using a simple sleep function may be a better alternative.
+
 :::
 
 ### `agent.runYaml()`
@@ -774,7 +777,9 @@ console.log(result);
 ```
 
 :::tip
+
 For more information about YAML scripts, please refer to [Automate with Scripts in YAML](./automate-with-scripts-in-yaml).
+
 :::
 
 ### `agent.setAIActionContext()`
@@ -894,7 +899,9 @@ await agent.unfreezePageContext();
 ```
 
 :::tip
+
 In the report, operations using frozen context will display a 🧊 icon in the Insight tab.
+
 :::
 
 ### `agent.unfreezePageContext()`
@@ -1280,5 +1287,8 @@ describe('Android settings automation', () => {
 ```
 
 :::tip
+
 The merged report is saved under the `midscene_run/report` directory. Open the generated HTML file in your browser to review the workflows.
+
 :::
+
