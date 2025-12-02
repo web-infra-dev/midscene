@@ -3,7 +3,11 @@ import { createServer } from 'node:net';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { select } from '@inquirer/prompts';
-import { AndroidAgent, AndroidDevice } from '@midscene/android';
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
 import { PlaygroundServer } from '@midscene/playground';
 import {
   PLAYGROUND_SERVER_PORT,
@@ -44,31 +48,14 @@ async function findAvailablePort(startPort: number): Promise<number> {
 // Function to get available devices
 async function getAdbDevices() {
   try {
-    // Start ADB server
-    await promiseExec('adb start-server');
-
-    // Get device list
-    const { stdout } = await promiseExec('adb devices');
-    const lines = stdout.trim().split('\n').slice(1); // Skip header
-
-    const devices = lines
-      .map((line) => {
-        const parts = line.trim().split('\t');
-        if (parts.length >= 2) {
-          return {
-            id: parts[0],
-            status: parts[1],
-            name: parts[0], // We'll use ID as name for now
-          };
-        }
-        return null;
-      })
-      .filter(
-        (device): device is { id: string; status: string; name: string } =>
-          device !== null && device.status === 'device',
-      ); // Only online devices
-
-    return devices;
+    const devices = await getConnectedDevices();
+    return devices
+      .filter((device) => device.state === 'device')
+      .map((device) => ({
+        id: device.udid,
+        status: device.state,
+        name: device.udid,
+      }));
   } catch (error) {
     console.error('Error getting ADB devices:', error);
     return [];
