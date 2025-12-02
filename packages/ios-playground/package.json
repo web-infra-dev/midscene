@@ -20,7 +20,7 @@
     "@midscene/ios": "workspace:*"
   },
   "devDependencies": {
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.2",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3"
   },
