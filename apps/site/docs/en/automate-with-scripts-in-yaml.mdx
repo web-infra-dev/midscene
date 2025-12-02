@@ -188,6 +188,15 @@ web:
 
   # Whether to ignore HTTPS certificate errors, optional, defaults to false.
   acceptInsecureCerts: <boolean>
+
+  # Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode), optional.
+  # Use this to customize Chrome browser behavior, such as disabling third-party cookie blocking.
+  # ⚠️ Security Warning: Some arguments (e.g., --no-sandbox, --disable-web-security) may reduce browser security.
+  # Use only in controlled testing environments.
+  chromeArgs:
+    - '--disable-features=ThirdPartyCookiePhaseout'
+    - '--disable-features=SameSiteByDefaultCookies'
+    - '--window-size=1920,1080'
 ```
 
 ### The `android` part

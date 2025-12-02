@@ -129,6 +129,27 @@ export interface MidsceneYamlScriptWebEnv
   cookie?: string;
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
+  /**
+   * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
+   *
+   * Allows passing custom command-line arguments to Chrome/Chromium when launching the browser.
+   * This is useful for testing scenarios that require specific browser configurations.
+   *
+   * ⚠️ Security Warning: Some arguments (e.g., --no-sandbox, --disable-web-security) may
+   * reduce browser security. Use only in controlled testing environments.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   chromeArgs:
+   *     - '--disable-features=ThirdPartyCookiePhaseout'
+   *     - '--disable-features=SameSiteByDefaultCookies'
+   *     - '--window-size=1920,1080'
+   * ```
+   */
+  chromeArgs?: string[];
+
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
   closeNewTabsAfterDisconnect?: boolean;

@@ -187,6 +187,15 @@ web:
 
   # 是否忽略 HTTPS 证书错误，可选，默认 false
   acceptInsecureCerts: <boolean>
+
+  # 自定义 Chrome 启动参数（仅 Puppeteer 模式，不支持桥接模式），可选
+  # 用于自定义 Chrome 浏览器行为，例如禁用第三方 Cookie 阻止
+  # ⚠️ 安全警告：某些参数（如 --no-sandbox、--disable-web-security）可能降低浏览器安全性
+  # 仅在受控的测试环境中使用
+  chromeArgs:
+    - '--disable-features=ThirdPartyCookiePhaseout'
+    - '--disable-features=SameSiteByDefaultCookies'
+    - '--window-size=1920,1080'
 ```
 
 
