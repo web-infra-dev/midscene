@@ -197,6 +197,7 @@ export async function puppeteerAgentForTarget(
       | 'reportFileName'
       | 'replanningCycleLimit'
       | 'cache'
+      | 'aiActionContext'
     >
   >,
   browser?: Browser,
