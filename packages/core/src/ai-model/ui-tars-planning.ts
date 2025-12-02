@@ -50,11 +50,10 @@ export async function uiTarsPlanning(
   const { conversationHistory, context, modelConfig, actionContext } = options;
   const { uiTarsModelVersion } = modelConfig;
 
-  let instruction = '';
+  let instruction = userInstruction;
   if (actionContext) {
-    instruction += `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n`;
+    instruction = `<high_priority_knowledge>${actionContext}</high_priority_knowledge>\n<user_instruction>${userInstruction}</user_instruction>`;
   }
-  instruction += `<user_instruction>${userInstruction}</user_instruction>`;
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
