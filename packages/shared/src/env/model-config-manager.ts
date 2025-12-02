@@ -47,9 +47,9 @@ export class ModelConfigManager {
       configMap = this.globalConfigManager?.getAllEnvConfig() || {};
     }
 
-    // Resolve timeout priority:
-    // - With modelConfig (isolated mode): modelTimeout > modelConfig.MIDSCENE_MODEL_TIMEOUT > undefined
-    // - Without modelConfig: modelTimeout > MIDSCENE_MODEL_TIMEOUT env var > undefined
+    // Resolve timeout priority (modelTimeout always takes precedence if provided):
+    // - If modelConfig provided (isolated mode): modelTimeout > modelConfig.MIDSCENE_MODEL_TIMEOUT > undefined
+    // - If no modelConfig: modelTimeout > MIDSCENE_MODEL_TIMEOUT env var > undefined
     const timeoutFromConfigMap = configMap[MIDSCENE_MODEL_TIMEOUT];
     const resolvedTimeout =
       this.modelTimeout ??
