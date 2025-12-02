@@ -7,9 +7,11 @@ import SetupEnv from './common/setup-env.mdx';
 import { PackageManagerTabs } from '@theme';
 
 :::info 样例项目
+
 使用 javascript SDK 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
 
 与 Vitest 集成和测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
+
 :::
 
 
@@ -115,7 +117,7 @@ import {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 Promise.resolve(
   (async () => {
-    // 方法一：直接创建设备和代理
+    // 方法一：直接创建设备和 Agent
     const page = new IOSDevice({
       wdaPort: 8100,
       wdaHost: 'localhost',
@@ -232,7 +234,7 @@ function launch(uri: string): Promise<void>;
 ```typescript
 import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
 
-// 方法一：手动创建设备和代理
+// 方法一：手动创建设备和 Agent
 const page = new IOSDevice();
 const agent = new IOSAgent(page);
 await page.connect();

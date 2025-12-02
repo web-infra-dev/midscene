@@ -32,8 +32,10 @@ const agent = new PuppeteerAgent(page, {
 ### 使用说明
 
 :::info
+
 - 每个页面一个 Agent：默认情况下（`forceSameTabNavigation: true`）Midscene 会拦截新标签并在当前页打开，便于调试；若想保留新标签行为可设为 `false`，并为每个标签创建新的 Agent。
 - 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
+
 :::
 
 ### 示例
@@ -114,8 +116,10 @@ const agent = new PlaywrightAgent(page, {
 ### 使用说明
 
 :::info
+
 - 每个页面一个 Agent：默认 `forceSameTabNavigation` 为 `true`，Midscene 会拦截新标签确保稳定性；如需新标签请设为 `false` 并为每个标签创建新的 Agent。
 - 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
+
 :::
 
 ### 示例
@@ -201,7 +205,9 @@ const agent = new AgentOverChromeBridge({
 ### 使用说明
 
 :::info
+
 请先调用 `connectCurrentTab` 或 `connectNewTabWithUrl` 再执行其他操作。每个 `AgentOverChromeBridge` 只能连接一个标签页；`destroy` 之后需要重新创建实例。
+
 :::
 
 ### 方法

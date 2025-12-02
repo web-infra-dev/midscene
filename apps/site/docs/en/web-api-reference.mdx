@@ -32,8 +32,10 @@ In addition to the base agent options, Puppeteer exposes:
 ### Usage notes
 
 :::info
+
 - One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want new tabs, and create a new agent per tab.
 - For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
+
 :::
 
 ### Examples
@@ -114,8 +116,10 @@ const agent = new PlaywrightAgent(page, {
 ### Usage notes
 
 :::info
+
 - One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow new tabs and create a separate agent for each.
 - For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
+
 :::
 
 ### Examples
@@ -201,7 +205,9 @@ See [Bridge Mode by Chrome extension](./bridge-mode#constructor) for full instal
 ### Usage notes
 
 :::info
+
 Call `connectCurrentTab` or `connectNewTabWithUrl` before issuing other actions. Each `AgentOverChromeBridge` instance can only attach to one tab; create a new instance after `destroy`.
+
 :::
 
 ### Bridge methods

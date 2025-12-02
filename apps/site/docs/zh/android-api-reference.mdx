@@ -35,8 +35,10 @@ const device = new AndroidDevice(deviceId, {
 ### 使用说明
 
 :::info
+
 - 使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
 - 通过 `remoteAdbHost/remoteAdbPort` 支持远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
+
 :::
 
 ### 示例
@@ -96,9 +98,11 @@ const agent = new AndroidAgent(device, {
 ### 使用说明
 
 :::info
+
 - 一个设备连接对应一个 Agent。
 - `launch`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
 :::
 
 ### Android 特有方法

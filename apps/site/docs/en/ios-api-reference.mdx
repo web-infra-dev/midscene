@@ -30,9 +30,11 @@ const device = new IOSDevice({
 ### Usage notes
 
 :::info
+
 - Ensure Developer Mode is enabled and WDA can reach the device; use `iproxy` when forwarding ports from a real device.
 - Use `wdaHost`/`wdaPort` to target remote devices or custom WDA deployments.
 - For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+
 :::
 
 ### Examples
@@ -93,9 +95,11 @@ const agent = new IOSAgent(device, {
 ### Usage notes
 
 :::info
+
 - Use one agent per device connection.
 - iOS-only helpers such as `launch` and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part).
 - For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+
 :::
 
 ### iOS-specific methods

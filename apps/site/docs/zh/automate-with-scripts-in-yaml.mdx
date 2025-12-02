@@ -40,7 +40,7 @@ tasks:
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，可选的 `agent` 部分配置 AI 代理行为，以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，可选的 `agent` 部分配置 AI Agent 行为，以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
 web:
@@ -301,7 +301,9 @@ ios:
 ```
 
 :::tip 查看完整的 iOS 配置项
+
 YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS 集成文档中的 IOSDevice 构造函数](./integrate-with-ios#iosdevice-的构造函数)。
+
 :::
 
 #### iOS 平台特定动作
