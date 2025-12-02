@@ -18,15 +18,17 @@ Midscene Chrome 插件的桥接模式允许你使用本地脚本来控制桌面�
 
 > 桥接模式下，AI 模型配置需要写在 Node.js 侧（终端环境变量），而不是浏览器侧。
 
-## 第一步：在 Chrome 应用商店安装 Midscene 插件
+## 快速开始
+
+### 第一步：在 Chrome 应用商店安装 Midscene 插件
 
 安装 [Midscene Chrome 插件](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)。
 
-## 第二步：安装依赖
+### 第二步：安装依赖
 
 <PackageManagerTabs command="install @midscene/web tsx --save-dev" />
 
-## 第三步：编写脚本
+### 第三步：编写脚本
 
 将以下代码保存为 `./demo-new-tab.ts`。
 
@@ -52,7 +54,7 @@ Promise.resolve(
 );
 ```
 
-## 第四步：启动 Chrome 插件
+### 第四步：启动 Chrome 插件
 
 启动 Chrome 插件并切换到 “Bridge Mode” Tab，点击 “Allow connection”。
 
@@ -60,7 +62,7 @@ Promise.resolve(
   <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
 </p>
 
-## 第五步：运行脚本
+### 第五步：运行脚本
 
 运行脚本：
 
@@ -73,89 +75,6 @@ tsx demo-new-tab.ts
 :::tip
 先运行脚本还是先点击 “Allow connection” 均可。
 :::
-
-<a id="agentoverchromebridge"></a>
-
-## 构造器
-
-```typescript
-import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
-
-const agent = new AgentOverChromeBridge();
-```
-
-`AgentOverChromeBridge` 继承了[通用 Agent 构造器](./api.mdx)，并支持以下参数：
-
-* `closeNewTabsAfterDisconnect?: boolean`：为 `true` 时在销毁时自动关闭所有新建标签页，默认 `false`。
-* `allowRemoteAccess?: boolean`：为 `true` 时允许远程机器连接（监听 `0.0.0.0`），默认 `false` 仅接受本机连接（监听 `127.0.0.1`）。
-* `host?: string`：自定义 Bridge Server 的监听地址。设置该值会覆盖 `allowRemoteAccess` 的行为。
-* `port?: number`：自定义 Bridge Server 的端口，默认 `3766`。
-
-## 方法
-
-除 [通用 Agent 接口](./api.mdx) 外，`AgentOverChromeBridge` 还提供了额外方法来控制桌面 Chrome。
-
-:::info
-调用任何操作前请先执行 `connectCurrentTab` 或 `connectNewTabWithUrl`。
-
-每个 Agent 实例只能连接一个标签页，`destroy` 之后如需继续使用需重新创建实例。
-:::
-
-### `connectCurrentTab()`
-
-连接当前激活的标签页。
-
-```typescript
-function connectCurrentTab(options?: {
-  forceSameTabNavigation?: boolean;
-}): Promise<void>;
-```
-
-- `options.forceSameTabNavigation`：默认为 `true`，强制在当前标签页中导航，避免新标签导致 AI 操作失败。
-
-```typescript
-try {
-  await agent.connectCurrentTab();
-  console.log('成功连接当前标签页');
-} catch (err) {
-  console.error('连接失败:', err.message);
-}
-```
-
-### `connectNewTabWithUrl()`
-
-创建新标签页并立即连接。
-
-```typescript
-function connectNewTabWithUrl(
-  url: string,
-  options?: { forceSameTabNavigation?: boolean }
-): Promise<void>;
-```
-
-- `url`：新标签页要打开的地址。
-- `options`：与 `connectCurrentTab` 相同。
-
-```typescript
-await agent.connectNewTabWithUrl('https://www.bing.com', {
-  forceSameTabNavigation: false,
-});
-```
-
-### `destroy()`
-
-销毁连接并释放资源。
-
-```typescript
-function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
-```
-
-- `closeNewTabsAfterDisconnect`：可选，若传入会覆盖构造器中的同名配置。
-
-```typescript
-await agent.ai('Perform final operation...');
-await agent.destroy();
-```
 
 ## 在 YAML 自动化脚本中使用桥接模式
 
@@ -230,3 +149,10 @@ const agent = new AgentOverChromeBridge({
 - **模型配置（如 `MIDSCENE_MODEL_API_KEY`）应该配置在浏览器还是终端？**
 
   使用桥接模式时，请在终端（Node.js 环境）中配置模型参数。更多配置信息请参考[模型策略](./model-strategy)文档。
+
+## 更多
+
+- 更多 Agent 的 API 请参考 [API 参考](./api#interaction-methods)。
+- 完整的 Chrome 桥接 API 可参阅 [API 参考（Web）](./web-api-reference#chrome-bridge-agent)。
+- 样例项目
+  - 桥接模式示例：[https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)

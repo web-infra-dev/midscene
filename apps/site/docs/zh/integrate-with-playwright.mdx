@@ -250,13 +250,15 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 ## Advanced
 
-### 如何限制页面在当前 tab 打开
+### 关于在新标签页打开
 
-如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
+每个 Agent 实例都与对应的页面唯一绑定，为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
+
+如果你想恢复在新标签页打开的行为，你可以设置 `forceSameTabNavigation` 选项为 `false`，但相应的，你需要为新标签页创建一个 Agent 实例。
 
 ```typescript
 const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: true,
+  forceSameTabNavigation: false,
 });
 ```
 
@@ -342,3 +344,4 @@ await agent.aiAct('点击红色按钮五次');
 
 - 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
 - Playwright 的 API 文档请参考 [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent)。
+- 样例项目：直接集成 Playwright（<https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo>）；Playwright 测试集成（<https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo>）；远程 Playwright 集成（<https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo>）

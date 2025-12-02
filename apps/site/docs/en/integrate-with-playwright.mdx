@@ -251,13 +251,15 @@ After the command executes successfully, it will output: `Midscene - report file
 
 ## Advanced
 
-### How to force navigation in the current tab
+### About opening in a new tab
 
-If you want to force the page to open in the current tab (for example, clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
+Each Agent instance is bound to a single page. To make debugging easier, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+
+If you want to restore opening in a new tab, set `forceSameTabNavigation` to `false`—but you’ll need to create a new Agent instance for each new tab.
 
 ```typescript
 const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: true,
+  forceSameTabNavigation: false,
 });
 ```
 
@@ -344,3 +346,7 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 - For all the methods on the Agent, please refer to [API Reference](./api#interaction-methods).
 - For the Playwright API reference, see [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent).
+- Demo projects
+  - Direct integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+  - Playwright test integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
+  - Remote Playwright integration: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)

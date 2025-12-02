@@ -99,13 +99,15 @@ After the above command executes successfully, the console will output: `Midscen
 
 ## Advanced
 
-### To limit the popup to the current page
+### About opening in a new tab
 
-If you want to limit the popup to the current page (like clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
+Each Agent instance is bound to a single page. For easier debugging, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+
+If you want to allow new tabs again, set `forceSameTabNavigation` to `false`—but you must create a new Agent instance for each new tab.
 
 ```typescript
 const mid = new PuppeteerAgent(page, {
-  forceSameTabNavigation: true,
+  forceSameTabNavigation: false,
 });
 ```
 
@@ -199,3 +201,6 @@ Check [Integrate with any interface](./integrate-with-any-interface#define-a-cus
 
 - For every Agent method, check the [API Reference](./api#interaction-methods).
 - For the Puppeteer API reference, see [Puppeteer Agent API](http://localhost:3000/web-api-reference.html#puppeteer-agent).
+- Demo projects
+  - Puppeteer demo: [https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
+  - Puppeteer + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo)

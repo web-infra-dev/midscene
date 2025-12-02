@@ -62,7 +62,7 @@ Midscene requires strong UI localization (visual grounding). Models like gpt-5 p
 
 ## Advanced: combining multiple models
 
-The default model strategy covers most projects at kick-off. As prompts grow more complex and you need stronger generalization, the defaults can struggle. Consider this GitHub sign-up prompt:
+The default model strategy covers most projects at kick-off. As prompts grow more complex and you need stronger generalization, the default models’ planning ability may fall short. Consider this GitHub sign-up prompt:
 
 ```text
 Fill out the GitHub sign-up form. Ensure no fields are missing and pick “United States” as the region.
@@ -121,6 +121,10 @@ See [Model configuration](./model-config) for setup details.
 ### Can each Agent instance use its own model?
 
 Yes. You can configure per-agent models via the `modelConfig` parameter. See the [API reference](./api) for details.
+
+### Want to send browser DOM info to the model?
+
+By default, Midscene does not send browser DOM data to models. If you need to include it for UI understanding (for example, to pass details not visible in a screenshot), set `domIncluded` to `true` in the options for interfaces like `aiAsk` or `aiQuery`. See the [API reference](./api) for details.
 
 ### Backward compatibility
 
