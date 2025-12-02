@@ -42,19 +42,34 @@ const DANGEROUS_ARGS = [
  * Validates Chrome launch arguments for security concerns.
  * Emits a warning if dangerous arguments are detected.
  *
- * Note: This function does not prevent the use of dangerous arguments,
- * it only warns the user about potential security risks.
+ * This function filters out arguments that are already present in baseArgs
+ * to avoid warning about platform-specific defaults (e.g., --no-sandbox on non-Windows).
  *
  * @param args - Chrome launch arguments to validate
+ * @param baseArgs - Base Chrome arguments already configured
  *
  * @example
  * ```typescript
- * // Will show warning for --no-sandbox
- * validateChromeArgs(['--no-sandbox', '--headless']);
+ * // Will show warning for --disable-web-security
+ * validateChromeArgs(['--disable-web-security', '--headless'], ['--no-sandbox']);
+ *
+ * // Will NOT show warning for --no-sandbox (already in baseArgs)
+ * validateChromeArgs(['--no-sandbox'], ['--no-sandbox', '--headless']);
  * ```
  */
-function validateChromeArgs(args: string[]): void {
-  const dangerousArgs = args.filter((arg) =>
+function validateChromeArgs(args: string[], baseArgs: string[]): void {
+  // Filter out arguments that are already in baseArgs
+  const newArgs = args.filter(
+    (arg) =>
+      !baseArgs.some((baseArg) => {
+        // Check if arg starts with the same flag as baseArg (before '=' if present)
+        const argFlag = arg.split('=')[0];
+        const baseFlag = baseArg.split('=')[0];
+        return argFlag === baseFlag;
+      }),
+  );
+
+  const dangerousArgs = newArgs.filter((arg) =>
     DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
   );
 
@@ -153,7 +168,7 @@ export async function launchPuppeteerPage(
   // Merge custom Chrome arguments
   let args = baseArgs;
   if (target.chromeArgs && target.chromeArgs.length > 0) {
-    validateChromeArgs(target.chromeArgs);
+    validateChromeArgs(target.chromeArgs, baseArgs);
 
     // Custom args come after base args, allowing them to override defaults
     args = [...baseArgs, ...target.chromeArgs];
