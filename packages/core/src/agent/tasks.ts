@@ -363,8 +363,10 @@ export class TaskExecutor {
         errorCountInOnePlanningLoop++;
         this.conversationHistory.pendingFeedbackMessage = `Error executing running tasks: ${error?.message || String(error)}`;
         debug(
-          'error when executing running tasks, but continue to run:',
+          'error when executing running tasks, but continue to run if it is not too many errors:',
           error instanceof Error ? error.message : String(error),
+          'current error count in one planning loop:',
+          errorCountInOnePlanningLoop,
         );
       }
 

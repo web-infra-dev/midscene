@@ -247,27 +247,48 @@ export async function systemPromptToTaskPlanning({
   const logFieldDefinition =
     thinkingStrategy === 'off'
       ? ''
-      : '"log": string, // Log your thoughts and what the next one action (ONLY ONE!) you can do according to the screenshot and the instruction. The log should contain the following information: "The user wants to do ... . According to the instruction and the previous logs, next step is to .... Now i am going to compose an action \'{ action-type }\' to do this". If no action should be done, log the reason. Use the same language as the user\'s instruction.\n  ';
+      : '"log": string, // a brief preamble to the user explaining what you’re about to do';
 
-  const exampleLogField =
+  const logFieldInstruction =
     thinkingStrategy === 'off'
       ? ''
-      : "\"log\": \"The user wants to do click 'Confirm' button, and click 'Yes' in popup. The current progress is ..., we still need to ... .  Now i am going to compose an action '...' to click 'Yes' in popup.\",\n  ";
+      : `
+## About the \`log\` field (preamble message)
+
+The \`log\` field is a brief preamble message to the user explaining what you’re about to do. It should follow these principles and examples:
+
+- **Use the same language as the user's instruction**
+- **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
+- **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what’s been done so far and create a sense of momentum and clarity for the user to understand your next actions.
+- **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
+
+**Examples:**
+- "Click the login button"
+- "Scroll to find the 'Yes' button in popup"
+- "Previous actions failed to find the 'Yes' button, i will try again"
+- "Go back to find the login button"
+`;
 
   return `
-Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action to accomplish the instruction.
+Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action according to current situation to accomplish the instruction.
 
 Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
-Restriction:
-- Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
+## Rules
+
+- Don't give extra actions or plans beyond the instruction. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
-Supporting actions:
+## Supporting actions
 ${actionList}
+
+${logFieldInstruction}
+
+## Return format
 
 Return in JSON format:
 {
@@ -278,23 +299,6 @@ Return in JSON format:
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
-}
-
-For example, when the instruction is "click 'Confirm' button, and click 'Yes' in popup" and the previous log shows "The 'Confirm' button has been clicked", by viewing the screenshot and previous logs, you should consider: We have already clicked the 'Confirm' button, so next we should find and click 'Yes' in popup.
-
-this and output the JSON:
-
-{
-  ${exampleLogField}"action": {
-    "type": "Tap",
-    "param": {
-      "locate": {
-        ${vlMode ? `"bbox": [100, 100, 200, 200],` : ''}
-        "prompt": "The 'Yes' button in popup"
-      }
-    }
-  },
-  "more_actions_needed_by_instruction": false,
 }
 `;
 }

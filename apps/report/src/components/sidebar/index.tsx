@@ -336,13 +336,17 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           }
 
           const task = record.task!;
+          const taskName =
+            task.type === 'Planning' && task.output?.log
+              ? `${typeStr(task)} - ${task.output?.log}`
+              : typeStr(task);
           return (
             <div
               className="title"
               style={{ display: 'flex', alignItems: 'center' }}
             >
               <span className="status-icon">{getStatusIcon(task)}</span>
-              <span>{typeStr(task)}</span>
+              <span>{taskName}</span>
               {getTitleIcon(task)}
               {getCacheTag(task)}
               {getDeepThinkTag(task)}
