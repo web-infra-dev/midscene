@@ -119,34 +119,8 @@ describe('ModelConfigManager', () => {
     expect(config.createOpenAIClient).toBe(createClient);
   });
 
-  describe('modelTimeout', () => {
-    it('applies modelTimeout to all intent configs', () => {
-      const manager = new ModelConfigManager(baseMap, undefined, 30000);
-
-      expect(manager.getModelConfig('default').timeout).toBe(30000);
-      expect(manager.getModelConfig('insight').timeout).toBe(30000);
-      expect(manager.getModelConfig('planning').timeout).toBe(30000);
-    });
-
-    it('modelTimeout takes priority over per-intent timeout configs', () => {
-      const configWithTimeout = {
-        ...baseMap,
-        [MIDSCENE_MODEL_TIMEOUT]: '60000',
-        [MIDSCENE_INSIGHT_MODEL_TIMEOUT]: '90000',
-        [MIDSCENE_PLANNING_MODEL_TIMEOUT]: '120000',
-      };
-      const manager = new ModelConfigManager(
-        configWithTimeout,
-        undefined,
-        30000,
-      );
-
-      expect(manager.getModelConfig('default').timeout).toBe(30000);
-      expect(manager.getModelConfig('insight').timeout).toBe(30000);
-      expect(manager.getModelConfig('planning').timeout).toBe(30000);
-    });
-
-    it('uses per-intent timeout configs when modelTimeout is not provided', () => {
+  describe('per-intent timeout configuration', () => {
+    it('uses per-intent timeout configs from modelConfig', () => {
       const configWithTimeout = {
         ...baseMap,
         [MIDSCENE_MODEL_TIMEOUT]: '45000',

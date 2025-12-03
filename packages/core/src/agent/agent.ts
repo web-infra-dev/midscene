@@ -303,16 +303,11 @@ export class Agent<
         `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
-    // Create ModelConfigManager if modelConfig or modelTimeout is provided
+    // Create ModelConfigManager if modelConfig or createOpenAIClient is provided
     // Otherwise, use the global config manager
-    const hasCustomConfig =
-      opts?.modelConfig || opts?.createOpenAIClient || opts?.modelTimeout;
+    const hasCustomConfig = opts?.modelConfig || opts?.createOpenAIClient;
     this.modelConfigManager = hasCustomConfig
-      ? new ModelConfigManager(
-          opts?.modelConfig,
-          opts?.createOpenAIClient,
-          opts?.modelTimeout,
-        )
+      ? new ModelConfigManager(opts?.modelConfig, opts?.createOpenAIClient)
       : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;

@@ -21,16 +21,13 @@ export class ModelConfigManager {
 
   private modelConfig?: TModelConfig;
   private createOpenAIClientFn?: CreateOpenAIClientFn;
-  private modelTimeout?: number;
 
   constructor(
     modelConfig?: TModelConfig,
     createOpenAIClientFn?: CreateOpenAIClientFn,
-    modelTimeout?: number,
   ) {
     this.modelConfig = modelConfig;
     this.createOpenAIClientFn = createOpenAIClientFn;
-    this.modelTimeout = modelTimeout;
   }
 
   private initialize() {
@@ -68,28 +65,18 @@ export class ModelConfigManager {
 
     // Each intent uses its own timeout from parsed config (MIDSCENE_MODEL_TIMEOUT,
     // MIDSCENE_INSIGHT_MODEL_TIMEOUT, MIDSCENE_PLANNING_MODEL_TIMEOUT).
-    // If AgentOpt.modelTimeout is provided, it overrides all intent timeouts for backwards compatibility.
     this.modelConfigMap = {
       default: {
         ...defaultConfig,
         createOpenAIClient: this.createOpenAIClientFn,
-        ...(this.modelTimeout !== undefined
-          ? { timeout: this.modelTimeout }
-          : {}),
       },
       insight: {
         ...(insightConfig || defaultConfig),
         createOpenAIClient: this.createOpenAIClientFn,
-        ...(this.modelTimeout !== undefined
-          ? { timeout: this.modelTimeout }
-          : {}),
       },
       planning: {
         ...(planningConfig || defaultConfig),
         createOpenAIClient: this.createOpenAIClientFn,
-        ...(this.modelTimeout !== undefined
-          ? { timeout: this.modelTimeout }
-          : {}),
       },
     };
 
