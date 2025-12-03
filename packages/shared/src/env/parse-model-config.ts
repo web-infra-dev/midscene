@@ -211,6 +211,9 @@ export const parseOpenaiSdkConfig = ({
     modelName: modelName!,
     modelDescription,
     intent: '-' as any,
+    timeout: provider[keys.timeout]
+      ? Number(provider[keys.timeout])
+      : undefined,
   };
 };
 

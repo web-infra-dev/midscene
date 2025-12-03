@@ -155,6 +155,7 @@ import 'dotenv/config';
 
 | Name | Description |
 |------|-------------|
+| `MIDSCENE_MODEL_TIMEOUT` | Timeout for AI API calls in milliseconds (default intent). Defaults to OpenAI SDK default (10 minutes) |
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
@@ -173,9 +174,24 @@ Set the following if the Insight intent needs a different model:
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
+| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; timeout for Insight intent AI API calls in milliseconds |
 | `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
+
+### Configure a dedicated Planning model (optional)
+
+Set the following if the Planning intent needs a different model:
+
+| Name | Description |
+|------|-------------|
+| `MIDSCENE_PLANNING_MODEL_API_KEY` | API key |
+| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API endpoint URL (omit the trailing `/chat/completion`) |
+| `MIDSCENE_PLANNING_MODEL_NAME` | Model name |
+| `MIDSCENE_PLANNING_MODEL_TIMEOUT` | Optional; timeout for Planning intent AI API calls in milliseconds |
+| `MIDSCENE_PLANNING_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
+| `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 
 ### Debug logging switches (optional)
 
@@ -217,6 +233,17 @@ The following environment variables are deprecated but still compatible. We reco
 ## Configure settings via JavaScript
 
 You can configure models for each agent in JavaScript. See the [API reference](./api) for details.
+
+```typescript
+const agent = new Agent(page, {
+  // Configure via modelConfig
+  modelConfig: {
+    MIDSCENE_MODEL_TIMEOUT: '60000', // 60 seconds
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    // ... other configurations
+  }
+});
+```
 
 <TroubleshootingLLMConnectivity />
 

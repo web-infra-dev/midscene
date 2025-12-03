@@ -47,6 +47,7 @@ async function createChatClient({
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
     createOpenAIClient,
+    timeout,
   } = modelConfig;
 
   let proxyAgent = undefined;
@@ -64,6 +65,7 @@ async function createChatClient({
     apiKey: openaiApiKey,
     ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
     ...openaiExtraConfig,
+    ...(typeof timeout === 'number' ? { timeout } : {}),
     dangerouslyAllowBrowser: true,
   };
 
