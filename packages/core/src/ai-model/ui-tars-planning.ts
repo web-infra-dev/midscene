@@ -16,6 +16,8 @@ import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
 type ActionType =
   | 'click'
+  | 'left_double'
+  | 'right_single'
   | 'drag'
   | 'type'
   | 'hotkey'
@@ -107,6 +109,7 @@ export async function uiTarsPlanning(
   );
 
   const transformActions: PlanningAction[] = [];
+  const unhandledActions: Array<{ type: string; thought: string }> = [];
   let shouldContinue = true;
   parsed.forEach((action) => {
     const actionType = (action.action_type || '').toLowerCase();
@@ -125,6 +128,40 @@ export async function uiTarsPlanning(
             ),
           },
         },
+      });
+    } else if (actionType === 'left_double') {
+      assert(action.action_inputs.start_box, 'start_box is required');
+      const point = getPoint(action.action_inputs.start_box, size);
+      transformActions.push({
+        type: 'DoubleClick',
+        param: {
+          locate: {
+            prompt: action.thought || '',
+            bbox: pointToBbox(
+              { x: point[0], y: point[1] },
+              size.width,
+              size.height,
+            ),
+          },
+        },
+        thought: action.thought || '',
+      });
+    } else if (actionType === 'right_single') {
+      assert(action.action_inputs.start_box, 'start_box is required');
+      const point = getPoint(action.action_inputs.start_box, size);
+      transformActions.push({
+        type: 'RightClick',
+        param: {
+          locate: {
+            prompt: action.thought || '',
+            bbox: pointToBbox(
+              { x: point[0], y: point[1] },
+              size.width,
+              size.height,
+            ),
+          },
+        },
+        thought: action.thought || '',
       });
     } else if (actionType === 'drag') {
       assert(action.action_inputs.start_box, 'start_box is required');
@@ -200,14 +237,54 @@ export async function uiTarsPlanning(
         },
         thought: action.thought || '',
       });
+    } else if (actionType) {
+      // Track unhandled action types
+      unhandledActions.push({
+        type: actionType,
+        thought: action.thought || '',
+      });
+      debug('Unhandled action type:', actionType, 'thought:', action.thought);
     }
   });
 
   if (transformActions.length === 0) {
-    throw new Error(`No actions found, response: ${res.content}`, {
+    const errorDetails: string[] = [];
+
+    // Check if parsing failed
+    if (parsed.length === 0) {
+      errorDetails.push('Action parser returned no actions');
+
+      // Check if response has Thought but no Action
+      if (
+        res.content.includes('Thought:') &&
+        !res.content.includes('Action:')
+      ) {
+        errorDetails.push(
+          'Response contains "Thought:" but missing "Action:" line',
+        );
+      } else {
+        errorDetails.push('Response may be malformed or empty');
+      }
+    }
+
+    // Check if we have unhandled action types
+    if (unhandledActions.length > 0) {
+      const types = unhandledActions.map((a) => a.type).join(', ');
+      errorDetails.push(`Unhandled action types: ${types}`);
+    }
+
+    const errorMessage = [
+      'No actions found in UI-TARS response.',
+      ...errorDetails,
+      `\nRaw response: ${res.content}`,
+    ].join('\n');
+
+    throw new Error(errorMessage, {
       cause: {
         prediction: res.content,
         parsed,
+        unhandledActions,
+        convertedText,
       },
     });
   }
@@ -298,6 +375,20 @@ interface WaitAction extends BaseAction {
   };
 }
 
+interface LeftDoubleAction extends BaseAction {
+  action_type: 'left_double';
+  action_inputs: {
+    start_box: string; // JSON string of [x, y] coordinates
+  };
+}
+
+interface RightSingleAction extends BaseAction {
+  action_type: 'right_single';
+  action_inputs: {
+    start_box: string; // JSON string of [x, y] coordinates
+  };
+}
+
 interface TypeAction extends BaseAction {
   action_type: 'type';
   action_inputs: {
@@ -326,6 +417,8 @@ interface FinishedAction extends BaseAction {
 
 export type Action =
   | ClickAction
+  | LeftDoubleAction
+  | RightSingleAction
   | DragAction
   | TypeAction
   | HotkeyAction
