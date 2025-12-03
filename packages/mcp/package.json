@@ -1,7 +1,7 @@
 {
   "name": "@midscene/mcp",
   "version": "1.0.0",
-  "description": "Midscene MCP Server for Web automation (alias for @midscene/web-mcp)",
+  "description": "Deprecated - Use @midscene/web-bridge-mcp, @midscene/android-mcp, or @midscene/ios-mcp",
   "bin": "dist/index.js",
   "files": ["dist"],
   "main": "./dist/server.js",
@@ -23,9 +23,7 @@
     "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js",
     "inspect": "node scripts/inspect.mjs"
   },
-  "dependencies": {
-    "@midscene/web-mcp": "workspace:*"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
