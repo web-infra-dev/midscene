@@ -1,4 +1,3 @@
-import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import { bboxDescription } from './common';
@@ -254,14 +253,17 @@ export const locatorSchema: ResponseFormatJSONSchema = {
   },
 };
 
-export const findElementPrompt = new PromptTemplate({
-  template: `
+export const findElementPrompt = ({
+  pageDescription,
+  targetElementDescription,
+}: {
+  pageDescription: string;
+  targetElementDescription: string;
+}) => `
 Here is the item user want to find:
 =====================================
-{targetElementDescription}
+${targetElementDescription}
 =====================================
 
-{pageDescription}
-  `,
-  inputVariables: ['pageDescription', 'targetElementDescription'],
-});
+${pageDescription}
+  `;
