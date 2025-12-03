@@ -173,8 +173,6 @@ export async function plan(
     });
   });
 
-  assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
-
   if (
     actions.length === 0 &&
     returnValue.more_actions_needed_by_instruction &&

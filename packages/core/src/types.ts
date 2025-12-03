@@ -259,6 +259,7 @@ export interface PlanningAIResponse
   rawResponse?: string;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
+  error?: string;
 }
 
 export interface PlanningActionParamSleep {

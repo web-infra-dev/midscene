@@ -287,8 +287,15 @@ export class TaskExecutor {
               rawResponse,
             };
             executorContext.task.usage = usage;
+            executorContext.task.output = {
+              actions: actions || [],
+              more_actions_needed_by_instruction,
+              log,
+              yamlFlow: planResult.yamlFlow,
+            };
+            executorContext.uiContext = uiContext;
 
-            const finalActions = actions || [];
+            const finalActions = [...(actions || [])];
 
             if (sleep) {
               const timeNow = Date.now();
@@ -298,25 +305,20 @@ export class TaskExecutor {
               }
             }
 
-            if (finalActions.length === 0) {
+            if ((actions || []).length === 0) {
               assert(
-                !more_actions_needed_by_instruction || sleep,
-                error ? `Failed to plan: ${error}` : 'No plan found',
+                sleep,
+                error
+                  ? `Failed to continue: ${error}\n${log || ''}`
+                  : 'No plan found',
               );
             }
 
             return {
-              output: {
-                actions: finalActions,
-                more_actions_needed_by_instruction,
-                log,
-                yamlFlow: planResult.yamlFlow,
-              },
               cache: {
                 hit: false,
               },
-              uiContext,
-            };
+            } as any;
           },
         },
         {

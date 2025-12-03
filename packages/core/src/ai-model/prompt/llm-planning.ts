@@ -270,7 +270,8 @@ Please tell what the next one action is (or null if no action should be done) to
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
-- If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
+- If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
+- When the next step is to assert something, this is a very important step, you should think about it carefully and give a solid result. Write your result in the "log" field like this: "Assert: <condition>. I think <...>, so the result is <true / false>". You don't need to give the next one action when you are asserting something. If the assertion result is false, think this an fatal error and set the reason into the "error" field. If the assertion result is true, you can continue to the next step.
 
 ## Supporting actions
 ${actionList}

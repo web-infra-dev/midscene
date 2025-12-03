@@ -405,16 +405,10 @@ export const defineActionClearInput = (
 
 // Assert
 export const actionAssertParamSchema = z.object({
-  thought: z
-    .string()
-    .describe('The thinking process of analyzing the assertion'),
-  result: z
-    .boolean()
-    .describe('Whether the assertion is truthy, return true or false'),
+  condition: z.string().describe('The condition of the assertion'),
 });
 export type ActionAssertParam = {
-  thought: string;
-  result: boolean;
+  condition: string;
 };
 
 export const defineActionAssert = (
@@ -423,27 +417,10 @@ export const defineActionAssert = (
   return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
     name: 'Assert',
     description:
-      'If the user explicitly requires making an assertion (like "there should be a button with text "Yes" in the popup"), think about it, provide the reasoning and result here.',
+      'If the user explicitly requires making an assertion (like "there should be a button with text "Yes" in the popup"), this tool will think about it, and then provide a solid result',
     interfaceAlias: 'aiAssert',
     paramSchema: actionAssertParamSchema,
     call,
-  });
-};
-
-/**
- * Creates an Assert action with default implementation.
- * This action can be used across all interfaces without modification.
- * If pass=true, the assertion succeeds silently.
- * If pass=false, the assertion fails and throws an error with the thought as the error message.
- */
-export const createAssertAction = (): DeviceAction<ActionAssertParam> => {
-  const debug = getDebug('core:planning-assert');
-  return defineActionAssert(async (param: ActionAssertParam) => {
-    debug('assertion', param.thought, param.result);
-    if (!param.result) {
-      throw new Error(`Assertion failed: ${param.thought}`);
-    }
-    // If pass is true, do nothing (assertion succeeds)
   });
 };
 
