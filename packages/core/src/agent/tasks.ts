@@ -18,7 +18,6 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
-  ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -195,7 +194,6 @@ export class TaskExecutor {
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
     includeBboxInPlanning: boolean,
-    thinkingStrategy: ThinkingStrategy,
     backgroundKnowledge?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -271,7 +269,6 @@ export class TaskExecutor {
               modelConfig: modelConfigForPlanning,
               conversationHistory: this.conversationHistory,
               includeBbox: includeBboxInPlanning,
-              thinkingStrategy,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
 

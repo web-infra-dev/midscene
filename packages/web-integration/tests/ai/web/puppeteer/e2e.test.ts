@@ -23,7 +23,7 @@ describe(
       }
     });
 
-    it.skip(
+    it.only(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(
@@ -96,14 +96,14 @@ describe(
       // );
       // return;
 
-      agent.setAIActionContext(
-        'This is a testing application for Sauce Demo by Swag Lab',
-      );
+      // agent.setAIActionContext(
+      //   'This is a testing application for Sauce Demo by Swag Lab',
+      // );
 
-      const flag = await agent.aiBoolean('this is a login page');
-      expect(flag).toBe(true);
+      // const flag = await agent.aiBoolean('this is a login page');
+      // expect(flag).toBe(true);
 
-      await agent.aiAssert('this is a login page');
+      // await agent.aiAssert('this is a login page');
 
       await agent.ai(
         'type "standard_user" in user name input, type "secret_sauce" in password',

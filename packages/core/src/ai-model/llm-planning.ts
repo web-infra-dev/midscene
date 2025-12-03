@@ -3,7 +3,6 @@ import type {
   InterfaceType,
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
-  ThinkingStrategy,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -33,7 +32,6 @@ export async function plan(
     modelConfig: IModelConfig;
     conversationHistory: ConversationHistory;
     includeBbox: boolean;
-    thinkingStrategy: ThinkingStrategy;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -45,7 +43,6 @@ export async function plan(
     actionSpace: opts.actionSpace,
     vlMode,
     includeBbox: opts.includeBbox,
-    thinkingStrategy: opts.thinkingStrategy,
   });
 
   let imagePayload = screenshotBase64;
@@ -175,7 +172,7 @@ export async function plan(
       }
     });
   });
-  // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
+
   assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
 
   if (

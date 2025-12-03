@@ -1,4 +1,4 @@
-import type { DeviceAction, ThinkingStrategy } from '@/types';
+import type { DeviceAction } from '@/types';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
@@ -221,12 +221,10 @@ export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
   includeBbox,
-  thinkingStrategy,
 }: {
   actionSpace: DeviceAction<any>[];
   vlMode: TVlModeTypes | undefined;
   includeBbox: boolean;
-  thinkingStrategy: ThinkingStrategy;
 }) {
   // Validate parameters: if includeBbox is true, vlMode must be defined
   if (includeBbox && !vlMode) {
@@ -243,16 +241,7 @@ export async function systemPromptToTaskPlanning({
   });
   const actionList = actionDescriptionList.join('\n');
 
-  // Conditionally include log field based on thinkingStrategy
-  const logFieldDefinition =
-    thinkingStrategy === 'off'
-      ? ''
-      : '"log": string, // a brief preamble to the user explaining what you’re about to do';
-
-  const logFieldInstruction =
-    thinkingStrategy === 'off'
-      ? ''
-      : `
+  const logFieldInstruction = `
 ## About the \`log\` field (preamble message)
 
 The \`log\` field is a brief preamble message to the user explaining what you’re about to do. It should follow these principles and examples:
@@ -292,7 +281,8 @@ ${logFieldInstruction}
 
 Return in JSON format:
 {
-  ${logFieldDefinition}${commonOutputFields}
+  "log": string, // a brief preamble to the user explaining what you’re about to do
+  ${commonOutputFields}
   "action": 
     {
       // one of the supporting actions
