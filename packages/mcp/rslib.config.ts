@@ -11,9 +11,6 @@ export default defineConfig({
       server: './src/server.ts',
     },
   },
-  output: {
-    externals: ['@midscene/web-mcp'],
-  },
   lib: [
     {
       format: 'cjs',

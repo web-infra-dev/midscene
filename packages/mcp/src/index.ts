@@ -1,7 +1,20 @@
 #!/usr/bin/env node
+import { parseArgs } from 'node:util';
+import { type CLIArgs, CLI_ARGS_CONFIG } from '@midscene/shared/mcp';
+import { DeprecatedMCPServer } from './server.js';
 
-// This package is an alias for @midscene/web-mcp
-// Delegate to the web-mcp package which contains the actual implementation
-// with full HTTP transport support and CLI argument parsing
+const { values } = parseArgs({ options: CLI_ARGS_CONFIG });
+const args = values as CLIArgs;
 
-require('@midscene/web-mcp');
+const server = new DeprecatedMCPServer();
+
+if (args.mode === 'http') {
+  server
+    .launchHttp({
+      port: Number.parseInt(args.port || '3000', 10),
+      host: args.host || 'localhost',
+    })
+    .catch(console.error);
+} else {
+  server.launch().catch(console.error);
+}
