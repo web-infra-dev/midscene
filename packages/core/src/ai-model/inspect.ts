@@ -433,10 +433,7 @@ export async function AiExtractElementInfo<
     vlMode,
   });
 
-  const extractDataPromptText = extractDataQueryPrompt(
-    description,
-    dataQuery,
-  );
+  const extractDataPromptText = extractDataQueryPrompt(description, dataQuery);
 
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
