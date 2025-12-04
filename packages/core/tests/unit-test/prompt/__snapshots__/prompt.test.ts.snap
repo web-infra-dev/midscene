@@ -333,6 +333,8 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:
@@ -379,7 +381,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.",
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. The current progress is ..., we still need to ... .  Now i am going to compose an action '...' to click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -403,6 +405,8 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:
@@ -449,7 +453,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.",
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. The current progress is ..., we still need to ... .  Now i am going to compose an action '...' to click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -473,6 +477,8 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:
@@ -519,7 +525,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.",
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. The current progress is ..., we still need to ... .  Now i am going to compose an action '...' to click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -543,6 +549,8 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:
@@ -589,7 +597,7 @@ For example, when the instruction is "click 'Confirm' button, and click 'Yes' in
 this and output the JSON:
 
 {
-  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. According to the instruction and the previous logs, next step is to tap the 'Yes' button in the popup. Now i am going to compose an action 'Tap' to click 'Yes' in popup.",
+  "log": "The user wants to do click 'Confirm' button, and click 'Yes' in popup. The current progress is ..., we still need to ... .  Now i am going to compose an action '...' to click 'Yes' in popup.",
   "action": {
     "type": "Tap",
     "param": {
@@ -613,6 +621,8 @@ Please tell what the next one action is (or null if no action should be done) to
 Restriction:
 - Don't give extra actions or plans beyond the instruction. ONLY plan for what the instruction requires. For example, don't try to submit the form if the instruction is only to fill something.
 - Give just the next ONE action you should do
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If the user mentions something to assert and the condition is not met, you should think this is an error and set the "error" field to the error message.
 
 Supporting actions:
