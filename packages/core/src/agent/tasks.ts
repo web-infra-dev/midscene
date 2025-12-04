@@ -18,7 +18,6 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
-  ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -195,7 +194,6 @@ export class TaskExecutor {
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
     includeBboxInPlanning: boolean,
-    thinkingStrategy: ThinkingStrategy,
     backgroundKnowledge?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
@@ -271,7 +269,6 @@ export class TaskExecutor {
               modelConfig: modelConfigForPlanning,
               conversationHistory: this.conversationHistory,
               includeBbox: includeBboxInPlanning,
-              thinkingStrategy,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
 
@@ -290,8 +287,15 @@ export class TaskExecutor {
               rawResponse,
             };
             executorContext.task.usage = usage;
+            executorContext.task.output = {
+              actions: actions || [],
+              more_actions_needed_by_instruction,
+              log,
+              yamlFlow: planResult.yamlFlow,
+            };
+            executorContext.uiContext = uiContext;
 
-            const finalActions = actions || [];
+            const finalActions = [...(actions || [])];
 
             if (sleep) {
               const timeNow = Date.now();
@@ -301,25 +305,20 @@ export class TaskExecutor {
               }
             }
 
-            if (finalActions.length === 0) {
+            if ((actions || []).length === 0) {
               assert(
-                !more_actions_needed_by_instruction || sleep,
-                error ? `Failed to plan: ${error}` : 'No plan found',
+                sleep,
+                error
+                  ? `Failed to continue: ${error}\n${log || ''}`
+                  : 'No plan found',
               );
             }
 
             return {
-              output: {
-                actions: finalActions,
-                more_actions_needed_by_instruction,
-                log,
-                yamlFlow: planResult.yamlFlow,
-              },
               cache: {
                 hit: false,
               },
-              uiContext,
-            };
+            } as any;
           },
         },
         {
@@ -363,8 +362,10 @@ export class TaskExecutor {
         errorCountInOnePlanningLoop++;
         this.conversationHistory.pendingFeedbackMessage = `Error executing running tasks: ${error?.message || String(error)}`;
         debug(
-          'error when executing running tasks, but continue to run:',
+          'error when executing running tasks, but continue to run if it is not too many errors:',
           error instanceof Error ? error.message : String(error),
+          'current error count in one planning loop:',
+          errorCountInOnePlanningLoop,
         );
       }
 

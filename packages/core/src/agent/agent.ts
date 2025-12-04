@@ -26,7 +26,6 @@ import {
   type ServiceExtractOption,
   type ServiceExtractParam,
   type TUserPrompt,
-  type ThinkingLevel,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -850,7 +849,6 @@ export class Agent<
       modelConfigForPlanning,
       defaultIntentModelConfig,
       includeBboxInPlanning,
-      thinkingLevelToUse === 'off' ? 'off' : 'cot',
       this.opts.aiActionContext,
       cacheable,
       replanningCycleLimit,
