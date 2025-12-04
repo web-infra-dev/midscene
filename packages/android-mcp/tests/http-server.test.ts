@@ -21,45 +21,63 @@ describe('AndroidMCPServer HTTP mode', () => {
     }) as any);
 
     try {
-      // Start server in background
+      // Start server in background and handle potential errors
       const serverPromise = server.launchHttp({
         port: testPort,
         host: testHost,
       });
 
-      // Give server time to start
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Simply verify the server is listening by trying to connect
-      const response = await fetch(`http://${testHost}:${testPort}/mcp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'initialize',
-          params: {
-            protocolVersion: '2024-11-05',
-            capabilities: {},
-            clientInfo: {
-              name: 'test-client',
-              version: '1.0.0',
-            },
-          },
-          id: 1,
-        }),
+      // Catch any errors from server startup without blocking
+      serverPromise.catch((error) => {
+        console.error('Server startup error:', error);
       });
 
-      // Server should respond (even if initialization fails without device)
-      expect(response.status).toBeGreaterThanOrEqual(200);
-      expect(response.status).toBeLessThan(600);
+      // Wait for server to start with retries (up to 5 seconds)
+      let connected = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        try {
+          const response = await fetch(`http://${testHost}:${testPort}/mcp`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'initialize',
+              params: {
+                protocolVersion: '2024-11-05',
+                capabilities: {},
+                clientInfo: {
+                  name: 'test-client',
+                  version: '1.0.0',
+                },
+              },
+              id: 1,
+            }),
+          });
 
-      console.log('✓ Android MCP server started and responding');
+          // Server should respond (even if initialization fails without device)
+          expect(response.status).toBeGreaterThanOrEqual(200);
+          expect(response.status).toBeLessThan(600);
+          connected = true;
+          console.log(
+            `✓ Android MCP server started and responding (attempt ${i + 1})`,
+          );
+          break;
+        } catch (error) {
+          if (i === 9) {
+            throw error; // Throw on last attempt
+          }
+          // Otherwise continue retrying
+        }
+      }
+
+      expect(connected).toBe(true);
     } finally {
       exitSpy.mockRestore();
     }
-  }, 10000);
+  }, 15000); // Increase timeout for CI
 
   it('should reject invalid port numbers', async () => {
     const invalidServer = new AndroidMCPServer();
