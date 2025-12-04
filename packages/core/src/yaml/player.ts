@@ -253,12 +253,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
       ) {
         const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
-        const prompt = actionTask.aiAct || actionTask.aiAction || actionTask.ai;
+        const { aiAct, aiAction, ai, ...actionOptions } = actionTask;
+        const prompt = aiAct || aiAction || ai;
         assert(prompt, 'missing prompt for ai (aiAct)');
-        await agent.aiAct(prompt, {
-          cacheable: actionTask.cacheable,
-          _deepThink: actionTask._deepThink,
-        });
+        await agent.aiAct(prompt, actionOptions);
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;
@@ -280,50 +278,39 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         }
       } else if ('aiQuery' in (flowItem as MidsceneYamlFlowItemAIQuery)) {
         const queryTask = flowItem as MidsceneYamlFlowItemAIQuery;
-        const prompt = queryTask.aiQuery;
-        const options = {
-          domIncluded: queryTask.domIncluded,
-          screenshotIncluded: queryTask.screenshotIncluded,
-        };
+        const { aiQuery, name, ...options } = queryTask;
+        const prompt = aiQuery;
         assert(prompt, 'missing prompt for aiQuery');
         const queryResult = await agent.aiQuery(prompt, options);
-        this.setResult(queryTask.name, queryResult);
+        this.setResult(name, queryResult);
       } else if ('aiNumber' in (flowItem as MidsceneYamlFlowItemAINumber)) {
         const numberTask = flowItem as MidsceneYamlFlowItemAINumber;
-        const prompt = numberTask.aiNumber;
-        const options = {
-          domIncluded: numberTask.domIncluded,
-          screenshotIncluded: numberTask.screenshotIncluded,
-        };
+        const { aiNumber, name, ...options } = numberTask;
+        const prompt = aiNumber;
         assert(prompt, 'missing prompt for aiNumber');
         const numberResult = await agent.aiNumber(prompt, options);
-        this.setResult(numberTask.name, numberResult);
+        this.setResult(name, numberResult);
       } else if ('aiString' in (flowItem as MidsceneYamlFlowItemAIString)) {
         const stringTask = flowItem as MidsceneYamlFlowItemAIString;
-        const prompt = stringTask.aiString;
-        const options = {
-          domIncluded: stringTask.domIncluded,
-          screenshotIncluded: stringTask.screenshotIncluded,
-        };
+        const { aiString, name, ...options } = stringTask;
+        const prompt = aiString;
         assert(prompt, 'missing prompt for aiString');
         const stringResult = await agent.aiString(prompt, options);
-        this.setResult(stringTask.name, stringResult);
+        this.setResult(name, stringResult);
       } else if ('aiBoolean' in (flowItem as MidsceneYamlFlowItemAIBoolean)) {
         const booleanTask = flowItem as MidsceneYamlFlowItemAIBoolean;
-        const prompt = booleanTask.aiBoolean;
-        const options = {
-          domIncluded: booleanTask.domIncluded,
-          screenshotIncluded: booleanTask.screenshotIncluded,
-        };
+        const { aiBoolean, name, ...options } = booleanTask;
+        const prompt = aiBoolean;
         assert(prompt, 'missing prompt for aiBoolean');
         const booleanResult = await agent.aiBoolean(prompt, options);
-        this.setResult(booleanTask.name, booleanResult);
+        this.setResult(name, booleanResult);
       } else if ('aiAsk' in (flowItem as MidsceneYamlFlowItemAIAsk)) {
         const askTask = flowItem as MidsceneYamlFlowItemAIAsk;
-        const prompt = askTask.aiAsk;
+        const { aiAsk, name, ...options } = askTask;
+        const prompt = aiAsk;
         assert(prompt, 'missing prompt for aiAsk');
-        const askResult = await agent.aiAsk(prompt);
-        this.setResult(askTask.name, askResult);
+        const askResult = await agent.aiAsk(prompt, options);
+        this.setResult(name, askResult);
       } else if ('aiLocate' in (flowItem as MidsceneYamlFlowItemAILocate)) {
         const locateTask = flowItem as MidsceneYamlFlowItemAILocate;
         const prompt = locateTask.aiLocate;
@@ -332,10 +319,16 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         this.setResult(locateTask.name, locateResult);
       } else if ('aiWaitFor' in (flowItem as MidsceneYamlFlowItemAIWaitFor)) {
         const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
-        const prompt = waitForTask.aiWaitFor;
+        const { aiWaitFor, timeout, ...restWaitForOpts } = waitForTask;
+        const prompt = aiWaitFor;
         assert(prompt, 'missing prompt for aiWaitFor');
-        const timeout = waitForTask.timeout;
-        await agent.aiWaitFor(prompt, { timeoutMs: timeout });
+        const waitForOptions = {
+          ...restWaitForOpts,
+          ...(timeout !== undefined
+            ? { timeout, timeoutMs: timeout }
+            : {}),
+        };
+        await agent.aiWaitFor(prompt, waitForOptions);
       } else if ('sleep' in (flowItem as MidsceneYamlFlowItemSleep)) {
         const sleepTask = flowItem as MidsceneYamlFlowItemSleep;
         const ms = sleepTask.sleep;
