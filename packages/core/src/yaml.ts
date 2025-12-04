@@ -14,6 +14,7 @@ export interface LocateOption {
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  [key: string]: unknown;
 }
 
 export interface ReferenceImage {
@@ -133,12 +134,14 @@ export interface MidsceneYamlFlowItemAIAction {
   aiActionProgressTips?: string[];
   cacheable?: boolean;
   _deepThink?: boolean;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {
   aiAssert: string;
   errorMessage?: string;
   name?: string;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIQuery extends ServiceExtractOption {
@@ -174,6 +177,7 @@ export interface MidsceneYamlFlowItemAILocate extends LocateOption {
 export interface MidsceneYamlFlowItemAIWaitFor {
   aiWaitFor: string;
   timeout?: number;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {

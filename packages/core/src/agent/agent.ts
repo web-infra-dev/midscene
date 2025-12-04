@@ -93,6 +93,12 @@ const defaultServiceExtractOption: ServiceExtractOption = {
   screenshotIncluded: true,
 };
 
+type AiActOpt = {
+  cacheable?: boolean;
+  _deepThink?: boolean;
+  [key: string]: unknown;
+};
+
 type CacheStrategy = NonNullable<CacheConfig['strategy']>;
 
 const CACHE_STRATEGIES: readonly CacheStrategy[] = [
@@ -789,10 +795,7 @@ export class Agent<
 
   async aiAct(
     taskPrompt: string,
-    opt?: {
-      cacheable?: boolean;
-      _deepThink?: boolean;
-    },
+    opt?: AiActOpt,
   ) {
     const modelConfigForPlanning =
       this.modelConfigManager.getModelConfig('planning');
@@ -876,9 +879,7 @@ export class Agent<
    */
   async aiAction(
     taskPrompt: string,
-    opt?: {
-      cacheable?: boolean;
-    },
+    opt?: AiActOpt,
   ) {
     return this.aiAct(taskPrompt, opt);
   }
