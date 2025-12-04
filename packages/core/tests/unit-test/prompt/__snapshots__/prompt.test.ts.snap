@@ -392,7 +392,12 @@ Return in JSON format:
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
-      // one of the supporting actions
+      "type": string, // the type of the action
+      "param"?: { // The parameter of the action, if any
+        "locate": { // for example, if the action is "Tap", the "locate" field is required
+          "prompt": string,
+        },
+      }, 
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
@@ -468,7 +473,12 @@ Return in JSON format:
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
-      // one of the supporting actions
+      "type": string, // the type of the action
+      "param"?: { // The parameter of the action, if any
+        "locate": { // for example, if the action is "Tap", the "locate" field is required
+          "prompt": string,
+        },
+      }, 
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
@@ -544,7 +554,12 @@ Return in JSON format:
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
-      // one of the supporting actions
+      "type": string, // the type of the action
+      "param"?: { // The parameter of the action, if any
+        "locate": { // for example, if the action is "Tap", the "locate" field is required
+          "prompt": string,
+        },
+      }, 
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
@@ -620,7 +635,12 @@ Return in JSON format:
   "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.
   "action": 
     {
-      // one of the supporting actions
+      "type": string, // the type of the action
+      "param"?: { // The parameter of the action, if any
+        "locate": { // for example, if the action is "Tap", the "locate" field is required
+          "prompt": string,
+        },
+      }, 
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.

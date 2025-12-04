@@ -349,9 +349,11 @@ export class TaskExecutor {
           this.conversationHistory.pendingFeedbackMessage,
         );
       }
+      let errorFlag = false;
       try {
         await session.appendAndRun(executables.tasks);
       } catch (error: any) {
+        errorFlag = true;
         errorCountInOnePlanningLoop++;
         this.conversationHistory.pendingFeedbackMessage = `Error executing running tasks: ${error?.message || String(error)}`;
         debug(
@@ -368,7 +370,13 @@ export class TaskExecutor {
 
       // Check if task is complete
       if (!planResult?.more_actions_needed_by_instruction) {
-        break;
+        if (errorFlag) {
+          debug(
+            'more_actions_needed_by_instruction is false, but there are errors in one planning loop, continue to run',
+          );
+        } else {
+          break;
+        }
       }
 
       // Increment replan count for next iteration
