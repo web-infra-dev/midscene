@@ -253,9 +253,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       );
       const simpleAIKey = (
         Object.keys(aiTaskHandlerMap) as AISimpleTaskKey[]
-      ).find((key) =>
-        Object.prototype.hasOwnProperty.call(flowItem, key),
-      );
+      ).find((key) => Object.prototype.hasOwnProperty.call(flowItem, key));
       if (
         'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
@@ -286,8 +284,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           throw new Error(message);
         }
       } else if (simpleAIKey) {
-        const { [simpleAIKey]: prompt, name, ...options } =
-          flowItem as Record<string, any>;
+        const {
+          [simpleAIKey]: prompt,
+          name,
+          ...options
+        } = flowItem as Record<string, any>;
         assert(prompt, `missing prompt for ${simpleAIKey}`);
         const agentMethod = (agent as any)[aiTaskHandlerMap[simpleAIKey]];
         assert(
@@ -303,9 +304,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         assert(prompt, 'missing prompt for aiWaitFor');
         const waitForOptions = {
           ...restWaitForOpts,
-          ...(timeout !== undefined
-            ? { timeout, timeoutMs: timeout }
-            : {}),
+          ...(timeout !== undefined ? { timeout, timeoutMs: timeout } : {}),
         };
         await agent.aiWaitFor(prompt, waitForOptions);
       } else if ('sleep' in (flowItem as MidsceneYamlFlowItemSleep)) {
