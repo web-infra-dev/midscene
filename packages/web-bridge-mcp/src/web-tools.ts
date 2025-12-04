@@ -8,27 +8,13 @@ import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 
 export class WebMidsceneTools extends BaseMidsceneTools {
   protected createTemporaryDevice() {
-    // Synchronous require needed for tool initialization
-    const { PuppeteerWebPage } = require('@midscene/web');
-
-    // Create minimal mock page object that satisfies the interface
-    // actionSpace() method doesn't actually use these methods, just needs the structure
-    const mockPage = {
-      url: () => 'about:blank',
-      mouse: {
-        click: async () => {},
-        wheel: async () => {},
-        move: async () => {},
-      },
-      keyboard: {
-        type: async () => {},
-        press: async () => {},
-      },
-    };
-
-    // Create temporary PuppeteerWebPage instance to read actionSpace
-    // The instance doesn't connect to real browser, just returns action definitions
-    return new PuppeteerWebPage(mockPage as any, {});
+    // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
+    // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
+    const { StaticPage } = require('@midscene/web/static');
+    return new StaticPage({
+      screenshotBase64: '',
+      size: { width: 1920, height: 1080 },
+    });
   }
 
   protected async ensureAgent(openNewTabWithUrl?: string): Promise<BaseAgent> {

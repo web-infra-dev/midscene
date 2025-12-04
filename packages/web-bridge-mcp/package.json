@@ -5,14 +5,14 @@
   "bin": "dist/index.js",
   "files": ["dist"],
   "main": "./dist/server.js",
-  "types": "./dist/src/server.d.ts",
+  "types": "./dist/server.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/src/server.d.ts",
+      "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
     },
     "./server": {
-      "types": "./dist/src/server.d.ts",
+      "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
     }
   },
