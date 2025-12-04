@@ -400,9 +400,14 @@ export class TaskBuilder {
         // from xpath
         let rectFromXpath: Rect | undefined;
         if (param.xpath && this.interface.rectMatchesCacheFeature) {
-          rectFromXpath = await this.interface.rectMatchesCacheFeature({
-            xpaths: [param.xpath],
-          });
+          try {
+            rectFromXpath = await this.interface.rectMatchesCacheFeature({
+              xpaths: [param.xpath],
+            });
+          } catch (error) {
+            // xpath locate failed, allow fallback to cache or AI locate
+            rectFromXpath = undefined;
+          }
         }
         const elementFromXpath = rectFromXpath
           ? generateElementByPosition(

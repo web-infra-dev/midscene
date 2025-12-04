@@ -303,8 +303,11 @@ export class Agent<
         `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
-    this.modelConfigManager = opts?.modelConfig
-      ? new ModelConfigManager(opts.modelConfig, opts?.createOpenAIClient)
+    // Create ModelConfigManager if modelConfig or createOpenAIClient is provided
+    // Otherwise, use the global config manager
+    const hasCustomConfig = opts?.modelConfig || opts?.createOpenAIClient;
+    this.modelConfigManager = hasCustomConfig
+      ? new ModelConfigManager(opts?.modelConfig, opts?.createOpenAIClient)
       : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
@@ -824,17 +827,23 @@ export class Agent<
       isVlmUiTars || cacheable === false
         ? undefined
         : this.taskCache?.matchPlanCache(taskPrompt);
-    if (matchedCache && this.taskCache?.isCacheResultUsed) {
+    if (
+      matchedCache &&
+      this.taskCache?.isCacheResultUsed &&
+      matchedCache.cacheContent?.yamlWorkflow?.trim()
+    ) {
       // log into report file
       await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
-        matchedCache.cacheContent?.yamlWorkflow,
+        matchedCache.cacheContent.yamlWorkflow,
       );
 
       debug('matched cache, will call .runYaml to run the action');
-      const yaml = matchedCache.cacheContent?.yamlWorkflow;
+      const yaml = matchedCache.cacheContent.yamlWorkflow;
       return this.runYaml(yaml);
     }
+
+    // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
     const { output } = await this.taskExecutor.action(
       taskPrompt,

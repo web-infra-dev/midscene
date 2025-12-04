@@ -1,36 +1,26 @@
-# API reference(Android)
+# API reference (Android)
 
-Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For the shared constructor options (reporting, hooks, caching, etc.) see the platform-agnostic [API reference](./api.mdx) plus [Prompting tips](./prompting-tips) if you need help crafting instructions.
+Use this doc when you need to customize Midscene's Android automation or review Android-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api) and [Prompting tips](./prompting-tips).
 
-## Import and basic usage
+## AndroidDevice {#androiddevice}
 
-To work with Android devices, import the Android SDK package:
+Create a connection to an adb-managed device that an AndroidAgent can drive.
 
-```typescript
-import {
-  AndroidAgent,
-  AndroidDevice,
-  getConnectedDevices,
-} from '@midscene/android';
+### Import
+
+```ts
+import { AndroidDevice, getConnectedDevices } from '@midscene/android';
 ```
 
-Basic usage:
+### Constructor
 
-```typescript
-const devices = await getConnectedDevices();
-const device = new AndroidDevice(devices[0].udid);
-await device.connect();
-
-const agent = new AndroidAgent(device, {
-  actionContext: 'If a permissions dialog appears, accept it.',
+```ts
+const device = new AndroidDevice(deviceId, {
+  // device options...
 });
 ```
 
-## AndroidDevice constructor {#androiddevice-constructor}
-
-```ts
-new AndroidDevice(deviceId: string, opts?: AndroidDeviceOpt)
-```
+### Device options
 
 - `deviceId: string` &mdash; Value returned by `adb devices` or `getConnectedDevices()`.
 - `autoDismissKeyboard?: boolean` &mdash; Automatically hide the keyboard after input. Default `true`.
@@ -42,86 +32,120 @@ new AndroidDevice(deviceId: string, opts?: AndroidDeviceOpt)
 - `screenshotResizeScale?: number` &mdash; Downscale screenshots before sending them to the model. Defaults to `1 / devicePixelRatio`.
 - `alwaysRefreshScreenInfo?: boolean` &mdash; Re-query rotation and screen size every step. Default `false`.
 
-## AndroidAgent constructor {#androidagent}
+### Usage notes
+
+:::info
+
+- Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
+- Supports remote adb via `remoteAdbHost/remoteAdbPort`; set `androidAdbPath` if adb is not on PATH.
+- Use `screenshotResizeScale` to cut latency on high-DPI devices.
+
+:::
+
+### Examples
+
+#### Quick start
 
 ```ts
-new AndroidAgent(device: AndroidDevice, options?: PageAgentOpt)
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const [first] = await getConnectedDevices();
+const device = new AndroidDevice(first.udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  aiActionContext: 'If a permissions dialog appears, accept it.',
+});
+
+await agent.launch('https://www.ebay.com');
+await agent.aiAct('search "Headphones" and wait for results');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], find item in list and corresponding price',
+);
+console.log(items);
 ```
 
-- `device: AndroidDevice` (required) handles screenshots, taps, text input, back/home key events, etc. Configure device behavior via the constructor above and `getConnectedDevices()`.
-- `options?: PageAgentOpt` matches the common agent options documented in [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `actionContext`/`aiActionContext`, `modelConfig`, `cacheId`, `customActions`, `createOpenAIClient`, `onTaskStartTip`, and more.
-- Helper factory: `agentFromAdbDevice(deviceId?, opts?)` connects to an adb device and returns a ready-to-use agent if you prefer a single call.
-- Utilities: `getConnectedDevices()` enumerates adb devices; YAML workflows inherit the same fields described in [Automate with scripts in YAML](./automate-with-scripts-in-yaml).
+#### Launch native packages
 
-## Android agent methods
+```ts
+await agent.launch('com.android.settings/.Settings');
+await agent.back();
+await agent.home();
+```
 
-### `agent.launch()`
+## AndroidAgent {#androidagent}
+
+Wire Midscene's AI planner to an AndroidDevice for UI automation.
+
+### Import
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+```
+
+### Constructor
+
+```ts
+const agent = new AndroidAgent(device, {
+  // common agent options...
+});
+```
+
+### Android-specific options
+
+- `customActions?: DeviceAction[]` &mdash; Extend planning with actions defined via `defineAction`.
+- All other fields match [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
+
+### Usage notes
+
+:::info
+
+- Use one agent per device connection.
+- Android-only helpers such as `launch` and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part).
+- For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
+
+:::
+
+### Android-specific methods
+
+#### `agent.launch()`
 
 Launch a web URL or native Android activity/package.
 
-```typescript
+```ts
 function launch(uri: string): Promise<void>;
 ```
 
 - `uri: string` &mdash; Either a webpage URL or a package/`package/.Activity` string such as `com.android.settings/.Settings`.
 
-```typescript
-const agent = new AndroidAgent(device);
-await agent.launch('https://www.ebay.com');
-await agent.launch('com.android.settings');
-await agent.launch('com.android.settings/.Settings');
-```
-
-### `agent.runAdbShell()`
+#### `agent.runAdbShell()`
 
 Run a raw `adb shell` command through the connected device.
 
-```typescript
+```ts
 function runAdbShell(command: string): Promise<string>;
 ```
 
 - `command: string` &mdash; Command passed verbatim to `adb shell`.
 
-```typescript
+```ts
 const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
 ```
 
-:::info YAML usage
-Android-only helpers such as `launch` and `runAdbShell` are also exposed in YAML scripts. See [Android platform-specific actions](./automate-with-scripts-in-yaml#the-android-part) for syntax.
-:::
+#### Navigation helpers
 
-### `agent.back()`
+- `agent.back(): Promise<void>` &mdash; Trigger the Android system Back action.
+- `agent.home(): Promise<void>` &mdash; Return to the launcher.
+- `agent.recentApps(): Promise<void>` &mdash; Open the Recents/Overview screen.
 
-Trigger the Android system Back action.
+### Helper utilities
 
-```typescript
-function back(): Promise<void>;
-```
-
-### `agent.home()`
-
-Return to the launcher.
-
-```typescript
-function home(): Promise<void>;
-```
-
-### `agent.recentApps()`
-
-Open the Recents/Overview screen.
-
-```typescript
-function recentApps(): Promise<void>;
-```
-
-## Android helper utilities
-
-### `agentFromAdbDevice()`
+#### `agentFromAdbDevice()`
 
 Create an `AndroidAgent` from any connected adb device.
 
-```typescript
+```ts
 function agentFromAdbDevice(
   deviceId?: string,
   opts?: PageAgentOpt & AndroidDeviceOpt,
@@ -129,16 +153,20 @@ function agentFromAdbDevice(
 ```
 
 - `deviceId?: string` &mdash; Connect to a specific device; omitted means “first available”.
-- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice constructor](#androiddevice-constructor) settings.
+- `opts?: PageAgentOpt & AndroidDeviceOpt` &mdash; Combine agent options with [AndroidDevice](#androiddevice) settings.
 
-### `getConnectedDevices()`
+#### `getConnectedDevices()`
 
 Enumerate adb devices Midscene can drive.
 
-```typescript
+```ts
 function getConnectedDevices(): Promise<Array<{
   udid: string;
   state: string;
   port?: number;
 }>>;
 ```
+
+### See also
+
+- [Android getting started](./android-getting-started) for setup and scripting steps.

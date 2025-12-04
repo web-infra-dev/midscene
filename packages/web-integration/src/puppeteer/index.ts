@@ -2,10 +2,28 @@ import type { WebPageAgentOpt } from '@/web-element';
 import { Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
-import { forceClosePopup } from './base-page';
+import semver from 'semver';
+import { getWebpackRequire } from '../utils';
+import {
+  forceChromeSelectRendering as applyChromeSelectRendering,
+  forceClosePopup,
+} from './base-page';
 import { PuppeteerWebPage } from './page';
 
 const debug = getDebug('puppeteer:agent');
+
+/**
+ * Get Puppeteer version from package.json
+ */
+function getPuppeteerVersion(): string | null {
+  try {
+    const puppeteerPkg = getWebpackRequire()('puppeteer/package.json');
+    return puppeteerPkg.version || null;
+  } catch (error) {
+    console.error('[midscene:error] Failed to get Puppeteer version', error);
+    return null;
+  }
+}
 
 export { PuppeteerWebPage } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
@@ -15,10 +33,21 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     const webPage = new PuppeteerWebPage(page, opts);
     super(webPage, opts);
 
-    const { forceSameTabNavigation = true } = opts ?? {};
+    const { forceSameTabNavigation = true, forceChromeSelectRendering } =
+      opts ?? {};
 
     if (forceSameTabNavigation) {
       forceClosePopup(page, debug);
+    }
+
+    if (forceChromeSelectRendering) {
+      const puppeteerVersion = getPuppeteerVersion();
+      if (puppeteerVersion && !semver.gte(puppeteerVersion, '24.6.0')) {
+        throw new Error(
+          `[midscene:error] forceChromeSelectRendering requires Puppeteer > 24.6.0, but current version is ${puppeteerVersion}. This feature may not work correctly.`,
+        );
+      }
+      applyChromeSelectRendering(page);
     }
   }
 }

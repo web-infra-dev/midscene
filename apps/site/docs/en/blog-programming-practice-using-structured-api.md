@@ -161,6 +161,7 @@ Use your AI IDE to index the following documents:
 - https://midscenejs.com/api.md
 
 :::tip
+
 How to add the Midscene documents to the AI IDE?
 
 Refer to [this article](./llm-txt.mdx#usage).

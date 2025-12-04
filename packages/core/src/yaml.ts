@@ -62,9 +62,40 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
+/**
+ * Agent configuration options that can be specified in YAML scripts.
+ *
+ * This type includes serializable fields from AgentOpt, excluding non-serializable
+ * fields like functions and complex objects. All fields are optional.
+ *
+ * @remarks
+ * - testId priority: CLI parameter > YAML agent.testId > filename
+ * - These settings apply to all platforms (Web, Android, iOS, Generic Interface)
+ * - modelConfig is configured through environment variables, not in YAML
+ *
+ * @example
+ * ```yaml
+ * agent:
+ *   testId: "checkout-test"
+ *   groupName: "E2E Test Suite"
+ *   generateReport: true
+ *   replanningCycleLimit: 30
+ *   cache:
+ *     id: "checkout-cache"
+ *     strategy: "read-write"
+ * ```
+ */
 export type MidsceneYamlScriptAgentOpt = Pick<
   AgentOpt,
-  'aiActionContext' | 'cache'
+  | 'testId'
+  | 'groupName'
+  | 'groupDescription'
+  | 'generateReport'
+  | 'autoPrintReportMsg'
+  | 'reportFileName'
+  | 'replanningCycleLimit'
+  | 'aiActionContext'
+  | 'cache'
 >;
 
 export interface MidsceneYamlScriptConfig {
@@ -98,6 +129,27 @@ export interface MidsceneYamlScriptWebEnv
   };
   cookie?: string;
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
+
+  /**
+   * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
+   *
+   * Allows passing custom command-line arguments to Chrome/Chromium when launching the browser.
+   * This is useful for testing scenarios that require specific browser configurations.
+   *
+   * ⚠️ Security Warning: Some arguments (e.g., --no-sandbox, --disable-web-security) may
+   * reduce browser security. Use only in controlled testing environments.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   chromeArgs:
+   *     - '--disable-features=ThirdPartyCookiePhaseout'
+   *     - '--disable-features=SameSiteByDefaultCookies'
+   *     - '--window-size=1920,1080'
+   * ```
+   */
+  chromeArgs?: string[];
 
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';

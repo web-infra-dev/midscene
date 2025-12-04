@@ -157,6 +157,7 @@ import 'dotenv/config';
 
 | 名称 | 描述 |
 |------|-------------|
+| `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用超时时间（毫秒，默认意图），默认使用 OpenAI SDK 默认值（10 分钟）|
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
@@ -175,9 +176,24 @@ import 'dotenv/config';
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的 AI 接口调用超时时间（毫秒）|
 | `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
+
+### 为 Planning 意图单独配置模型（可选）
+
+如果你想为 Planning 意图单独配置模型，需额外配置以下字段：
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
+| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
+| `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的 AI 接口调用超时时间（毫秒）|
+| `MIDSCENE_PLANNING_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
+| `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
 
 ### 调试日志开关（可选）
 
@@ -221,6 +237,17 @@ import 'dotenv/config';
 ## 使用 Javascript 配置参数
 
 你也可以使用 Javascript 来为每个 Agent 配置模型参数，详见 [API 参考](./api)
+
+```typescript
+const agent = new Agent(page, {
+  // 通过 modelConfig 配置
+  modelConfig: {
+    MIDSCENE_MODEL_TIMEOUT: '60000', // 60 秒
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    // ... 其他配置
+  }
+});
+```
 
 <TroubleshootingLLMConnectivity />
 

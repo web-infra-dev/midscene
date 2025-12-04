@@ -158,9 +158,11 @@ Midscene 提供了一些即时操作方法，如 `aiTap` `aiInput` `aiScroll` `a
 - https://midscenejs.com/api.md
 
 :::tip
+
 如何将 Midscene 文档添加到 AI IDE？
 
 请参考 [这篇文章](./llm-txt.mdx#usage)。
+
 :::
 
 接着使用以下提示词：

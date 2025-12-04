@@ -85,7 +85,7 @@
     "socks-proxy-agent": "8.0.4"
   },
   "devDependencies": {
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.2",
     "@types/node": "^18.0.0",
     "@types/node-fetch": "2.6.11",
     "@types/js-yaml": "4.0.9",

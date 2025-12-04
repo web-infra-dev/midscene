@@ -3,30 +3,34 @@ import SetupEnv from './common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
 
-# Android getting started
+# Android Getting Started
 
-This guide walks you through everything required to automate an Android device with Midscene: how to connect a real phone, configure model credentials, try the no-code Playground, integrate the JavaScript SDK, and look up advanced APIs plus FAQ.
+This guide walks you through everything required to automate an Android device with Midscene: connect a real phone over adb, configure model credentials, try the no-code Playground, and run your first JavaScript script.
 
-## Preparation
+:::info Demo Projects
 
-Make sure your development machine can talk to the device over adb and that Midscene knows which AI model credentials to use before moving on.
+Control Android devices with JavaScript: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
 
-### Connect your Android device (adb)
+Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
 
-#### Install adb
+:::
 
-`adb` is a command-line tool that allows you to communicate with an Android device. There are two ways to install `adb`:
+<SetupEnv />
 
-- way 1: use [Android Studio](https://developer.android.com/studio) to install
-- way 2: use [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) to install
+## Prepare your Android device
 
-Verify adb is installed successfully:
+Before scripting, confirm adb can talk to your device and the device trusts your machine.
+
+### Install adb and set `ANDROID_HOME`
+
+- Install via [Android Studio](https://developer.android.com/studio) or the [command-line tools](https://developer.android.com/studio#command-line-tools-only)
+- Verify installation:
 
 ```bash
 adb --version
 ```
 
-When you see the following output, adb is installed successfully:
+Example output indicates success:
 
 ```log
 Android Debug Bridge version 1.0.41
@@ -35,25 +39,21 @@ Installed as /usr/local/bin//adb
 Running on Darwin 24.3.0 (arm64)
 ```
 
-#### Set environment variable `ANDROID_HOME`
-
-Reference [Android environment variables](https://developer.android.com/tools/variables), set the environment variable `ANDROID_HOME`.
-
-Verify the `ANDROID_HOME` variable is set successfully:
+- Set `ANDROID_HOME` as documented in [Android environment variables](https://developer.android.com/tools/variables), then confirm:
 
 ```bash
 echo $ANDROID_HOME
 ```
 
-When the command has any output, the `ANDROID_HOME` variable is set successfully:
+Any non-empty output means it is configured:
 
 ```log
 /Users/your_username/Library/Android/sdk
 ```
 
-#### Enable USB debugging and verify the device
+### Enable USB debugging and verify the device
 
-In the developer options of the system settings, enable the 'USB debugging' of the Android device, if the 'USB debugging (secure settings)' exists, also enable it, then connect the Android device with a USB cable.
+In the system settings developer options, enable **USB debugging** (and **USB debugging (Security settings)** if present), then connect the device via USB.
 
 <p align="center">
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
@@ -65,20 +65,14 @@ Verify the connection:
 adb devices -l
 ```
 
-When you see the following output, the connection is successful:
+Example success output:
 
 ```log
 List of devices attached
 s4ey59	device usb:34603008X product:cezanne model:M2006J device:cezan transport_id:3
 ```
 
-### Model configuration (API keys)
-
-Prepare an API key from a visual-language (VL) model. You can check the supported models in [Model strategy](./model-strategy).
-
-<SetupEnv />
-
-## Try Playground
+## Try Playground (no code)
 
 Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/android`, so anything that works here will behave the same once scripted.
 
@@ -96,24 +90,17 @@ npx --yes @midscene/android-playground
 
 <StartExperience />
 
-## Integrate with the JavaScript SDK
+## Integration with Midscene Agent
 
-Once Playground works, you can graduate to a repeatable script. The SDK offers the same abilities with extra hooks for CI, testing, and custom flows.
+Once Playground works, move to a repeatable script with the JavaScript SDK.
 
-:::info Demo Projects
-Control Android devices with JavaScript: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
-
-Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
-:::
-
-
-### Install dependencies
+### Step 1. Install dependencies
 
 <PackageManagerTabs command="install @midscene/android --save-dev" />
 
-### Author your first script
+### Step 2. Write scripts
 
-The example below opens the browser on the device, searches eBay, and asserts the result list.
+Save the following code as `./demo.ts`. It opens the browser on the device, searches eBay, and asserts the result list.
 
 ```typescript title="./demo.ts"
 import {
@@ -149,21 +136,21 @@ Promise.resolve(
 );
 ```
 
-### Run the demo
+### Step 3. Run
 
 ```bash
 npx tsx demo.ts
 ```
 
-### Inspect the HTML report
+### Step 4: View the report
 
 Successful runs print `Midscene - report file updated: /path/to/report/some_id.html`. Open the generated HTML file in a browser to replay every interaction, query, and assertion.
 
-## Extending Midscene and FAQ
+## Advanced
 
 Use this section when you need to customize device behavior, wire Midscene into your framework, or troubleshoot adb issues. For detailed constructor parameters, jump to the [API reference(Android)](./android-api-reference).
 
-### Extending Midscene on Android
+### Extend Midscene on Android
 
 Use `defineAction()` for custom gestures and pass them through `customActions`. Midscene will append them to the planner so AI can call your domain-specific action names.
 
@@ -198,6 +185,14 @@ await agent.aiAct('click the red button five times');
 ```
 
 See [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for a deeper explanation of custom actions and action schemas.
+
+## More
+
+- For every Agent method, check the [API reference (Common)](./api#interaction-methods).
+- For the Android API reference, see [Android Agent API](./android-api-reference).
+- Demo projects
+  - Android JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+  - Android + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
 
 ### Complete example (Vitest + AndroidAgent)
 
@@ -292,7 +287,9 @@ describe('Android Settings Test', () => {
 ```
 
 :::tip
+
 Merged reports are stored inside `midscene_run/report` by default. Override the directory with `MIDSCENE_RUN_DIR` when running in CI.
+
 :::
 
 ## FAQ
