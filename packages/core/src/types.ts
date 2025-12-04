@@ -224,6 +224,7 @@ export type OnTaskStartTip = (tip: string) => Promise<void> | void;
 export interface AgentWaitForOpt {
   checkIntervalMs?: number;
   timeoutMs?: number;
+  [key: string]: unknown;
 }
 
 export interface AgentAssertOpt {

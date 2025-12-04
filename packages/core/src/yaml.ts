@@ -14,6 +14,7 @@ export interface LocateOption {
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  [key: string]: unknown;
 }
 
 export interface ReferenceImage {
@@ -184,47 +185,21 @@ export interface MidsceneYamlFlowItemAIAction {
   aiAct?: string;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
+  _deepThink?: boolean;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {
   aiAssert: string;
   errorMessage?: string;
   name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIQuery extends ServiceExtractOption {
-  aiQuery: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAINumber extends ServiceExtractOption {
-  aiNumber: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIString extends ServiceExtractOption {
-  aiString: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIAsk extends ServiceExtractOption {
-  aiAsk: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIBoolean extends ServiceExtractOption {
-  aiBoolean: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAILocate extends LocateOption {
-  aiLocate: string;
-  name?: string;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor {
   aiWaitFor: string;
   timeout?: number;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {
@@ -245,12 +220,6 @@ export interface MidsceneYamlFlowItemLogScreenshot {
 export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
-  | MidsceneYamlFlowItemAIQuery
-  | MidsceneYamlFlowItemAINumber
-  | MidsceneYamlFlowItemAIString
-  | MidsceneYamlFlowItemAIAsk
-  | MidsceneYamlFlowItemAIBoolean
-  | MidsceneYamlFlowItemAILocate
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep

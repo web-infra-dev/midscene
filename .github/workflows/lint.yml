@@ -50,4 +50,3 @@ jobs:
 
     - name: Biome lint
       run: npx biome check . --diagnostic-level=warn --no-errors-on-unmatched
-
