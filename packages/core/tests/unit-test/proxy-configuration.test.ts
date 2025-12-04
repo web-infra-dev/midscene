@@ -3,24 +3,55 @@ import type { IModelConfig } from '@midscene/shared/env';
 /**
  * Proxy Configuration Tests
  *
- * These tests verify that HTTP and SOCKS proxy configurations work correctly
- * with the OpenAI SDK through Midscene's proxy configuration.
- *
- * Key behaviors tested:
- * - HTTP proxy configuration using undici ProxyAgent
- * - SOCKS proxy configuration using fetch-socks socksDispatcher
- * - Proxy authentication support (credentials in URL)
- * - HTTP proxy takes priority when both HTTP and SOCKS are configured
- * - Invalid SOCKS URLs are rejected with clear error messages
- *
- * Note: Tests verify proxy configuration by expecting connection failures
- * to non-existent proxy servers, which proves the proxy is being used.
+ * These tests verify that HTTP and SOCKS proxy configurations are correctly
+ * applied when creating OpenAI clients. Uses mocking to verify that the correct
+ * proxy implementations are instantiated with proper parameters.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock undici and fetch-socks before importing service-caller
+const mockProxyAgent = vi.fn();
+const mockSocksDispatcher = vi.fn();
+
+vi.mock('undici', () => ({
+  ProxyAgent: mockProxyAgent,
+}));
+
+vi.mock('fetch-socks', () => ({
+  socksDispatcher: mockSocksDispatcher,
+}));
+
+// Mock OpenAI to avoid actual API calls
+vi.mock('openai', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: 'test response' } }],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+              total_tokens: 30,
+            },
+          }),
+        },
+      },
+    })),
+  };
+});
 
 describe('Proxy Configuration', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('HTTP Proxy', () => {
-    it('should configure HTTP proxy when MIDSCENE_MODEL_HTTP_PROXY is set', async () => {
+    it('should create ProxyAgent with correct HTTP proxy URL', async () => {
       const { callAI } = await import('@/ai-model/service-caller');
 
       const httpProxy = 'http://127.0.0.1:9999';
@@ -36,41 +67,17 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-        expect.fail('Should have thrown connection error');
-      } catch (error: any) {
-        // We expect connection error to the fake proxy
-        expect(error.message).toContain('Connection error');
-        // Connection failed, which proves proxy was used
-      }
-    });
+      await callAI(messages, AIActionType.TEXT, modelConfig);
 
-    it('should use undici ProxyAgent for HTTP proxy in Node.js', async () => {
-      // This test verifies that we're using the correct proxy implementation
-      const httpProxy = 'http://127.0.0.1:8888';
-      const modelConfig: IModelConfig = {
-        modelName: 'gpt-4o',
-        openaiApiKey: 'test-key',
-        httpProxy: httpProxy,
-        modelDescription: 'test',
-        intent: 'default',
-        timeout: 500,
-      };
-
-      const { callAI } = await import('@/ai-model/service-caller');
-      const messages = [{ role: 'user' as const, content: 'test' }];
-
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-        expect.fail('Should have thrown connection error');
-      } catch (error: any) {
-        // Should get connection error (proving proxy was attempted)
-        expect(error.message).toContain('Connection error');
-      }
+      // Verify ProxyAgent was called with correct URI
+      expect(mockProxyAgent).toHaveBeenCalledWith({
+        uri: httpProxy,
+      });
     });
 
     it('should support HTTP proxy with authentication', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
       const httpProxy = 'http://user:pass@127.0.0.1:8888';
       const modelConfig: IModelConfig = {
         modelName: 'gpt-4o',
@@ -81,21 +88,41 @@ describe('Proxy Configuration', () => {
         timeout: 500,
       };
 
-      const { callAI } = await import('@/ai-model/service-caller');
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-        expect.fail('Should have thrown connection error');
-      } catch (error: any) {
-        // Should still try to connect to proxy with credentials
-        expect(error.message).toContain('Connection error');
-      }
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      // Verify ProxyAgent was called with authenticated proxy URL
+      expect(mockProxyAgent).toHaveBeenCalledWith({
+        uri: httpProxy,
+      });
+    });
+
+    it('should support HTTPS proxy URLs', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
+      const httpProxy = 'https://proxy.example.com:8080';
+      const modelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        httpProxy: httpProxy,
+        modelDescription: 'test',
+        intent: 'default',
+        timeout: 500,
+      };
+
+      const messages = [{ role: 'user' as const, content: 'test' }];
+
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      expect(mockProxyAgent).toHaveBeenCalledWith({
+        uri: httpProxy,
+      });
     });
   });
 
   describe('SOCKS Proxy', () => {
-    it('should configure SOCKS5 proxy when MIDSCENE_MODEL_SOCKS_PROXY is set', async () => {
+    it('should create SOCKS5 dispatcher with correct configuration', async () => {
       const { callAI } = await import('@/ai-model/service-caller');
 
       const socksProxy = 'socks5://127.0.0.1:1080';
@@ -106,22 +133,24 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
-        from: 'env',
         timeout: 1000,
       };
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-        expect.fail('Should have thrown connection error');
-      } catch (error: any) {
-        // We expect connection error
-        expect(error.message).toContain('Connection error');
-      }
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      // Verify socksDispatcher was called with correct SOCKS5 config
+      expect(mockSocksDispatcher).toHaveBeenCalledWith({
+        type: 5,
+        host: '127.0.0.1',
+        port: 1080,
+      });
     });
 
     it('should parse SOCKS4 proxy URL correctly', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
       const socksProxy = 'socks4://127.0.0.1:1080';
       const modelConfig: IModelConfig = {
         modelName: 'gpt-4o',
@@ -132,23 +161,21 @@ describe('Proxy Configuration', () => {
         timeout: 500,
       };
 
-      const { callAI } = await import('@/ai-model/service-caller');
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-      } catch (error: any) {
-        // Should attempt SOCKS connection
-        const errorString = JSON.stringify(error);
-        expect(
-          errorString.includes('127.0.0.1:1080') ||
-            error.cause?.message?.includes('127.0.0.1:1080') ||
-            error.message.includes('Connection error'),
-        ).toBeTruthy();
-      }
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      // Verify socksDispatcher was called with type 4 for SOCKS4
+      expect(mockSocksDispatcher).toHaveBeenCalledWith({
+        type: 4,
+        host: '127.0.0.1',
+        port: 1080,
+      });
     });
 
     it('should support SOCKS proxy with authentication', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
       const socksProxy = 'socks5://user:pass@127.0.0.1:1080';
       const modelConfig: IModelConfig = {
         modelName: 'gpt-4o',
@@ -159,18 +186,23 @@ describe('Proxy Configuration', () => {
         timeout: 500,
       };
 
-      const { callAI } = await import('@/ai-model/service-caller');
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-      } catch (error: any) {
-        // Should parse credentials and attempt connection
-        expect(error.message.includes('Connection error')).toBeTruthy();
-      }
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      // Verify socksDispatcher includes authentication
+      expect(mockSocksDispatcher).toHaveBeenCalledWith({
+        type: 5,
+        host: '127.0.0.1',
+        port: 1080,
+        userId: 'user',
+        password: 'pass',
+      });
     });
 
     it('should throw error for invalid SOCKS proxy URL', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
       const socksProxy = 'invalid-url';
       const modelConfig: IModelConfig = {
         modelName: 'gpt-4o',
@@ -181,20 +213,18 @@ describe('Proxy Configuration', () => {
         timeout: 500,
       };
 
-      const { callAI } = await import('@/ai-model/service-caller');
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-        expect.fail('Should have thrown an error');
-      } catch (error: any) {
-        expect(error.message).toContain('Invalid SOCKS proxy URL');
-      }
+      await expect(
+        callAI(messages, AIActionType.TEXT, modelConfig),
+      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
     });
   });
 
   describe('Proxy Priority', () => {
     it('should prioritize HTTP proxy when both are configured', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
       const httpProxy = 'http://127.0.0.1:8888';
       const socksProxy = 'socks5://127.0.0.1:1080';
       const modelConfig: IModelConfig = {
@@ -204,53 +234,41 @@ describe('Proxy Configuration', () => {
         socksProxy: socksProxy,
         modelDescription: 'test',
         intent: 'default',
-        timeout: 500,
+        timeout: 1000,
       };
 
-      const { callAI } = await import('@/ai-model/service-caller');
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-      } catch (error: any) {
-        // Should use HTTP proxy (not SOCKS)
-        // Verify connection error is for HTTP proxy port
-        expect(error.message.includes('Connection error')).toBeTruthy();
-        // If we can get detailed error, verify it's trying to connect to HTTP proxy port
-        if (error.cause?.message) {
-          expect(error.cause.message).not.toContain('1080');
-        }
-      }
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      // HTTP proxy should be used
+      expect(mockProxyAgent).toHaveBeenCalledWith({
+        uri: httpProxy,
+      });
+      // SOCKS proxy should NOT be used
+      expect(mockSocksDispatcher).not.toHaveBeenCalled();
     });
   });
 
   describe('No Proxy Configuration', () => {
     it('should work without proxy configuration', async () => {
-      // This test requires a valid API key to pass
-      // For unit tests, we just verify it doesn't throw proxy-related errors
+      const { callAI } = await import('@/ai-model/service-caller');
+
       const modelConfig: IModelConfig = {
         modelName: 'gpt-4o',
-        openaiApiKey: 'sk-test-invalid-key',
+        openaiApiKey: 'test-key',
         modelDescription: 'test',
         intent: 'default',
         timeout: 5000,
       };
 
-      const { callAI } = await import('@/ai-model/service-caller');
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      try {
-        await callAI(messages, AIActionType.TEXT, modelConfig);
-        // If it succeeds (somehow), that's fine
-      } catch (error: any) {
-        // Should get some kind of error (auth or connection)
-        // As long as it's not a proxy configuration error, we're good
-        expect(error).toBeDefined();
-        // Proxy-related errors would mention specific proxy addresses
-        const errorString = error.toString();
-        expect(errorString).not.toContain('127.0.0.1:9999');
-        expect(errorString).not.toContain('127.0.0.1:1080');
-      }
+      await callAI(messages, AIActionType.TEXT, modelConfig);
+
+      // Neither proxy should be used
+      expect(mockProxyAgent).not.toHaveBeenCalled();
+      expect(mockSocksDispatcher).not.toHaveBeenCalled();
     });
   });
 });
