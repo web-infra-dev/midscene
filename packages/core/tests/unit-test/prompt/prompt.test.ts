@@ -130,11 +130,6 @@ describe('system prompts', () => {
     );
   });
 
-  it('planning - 4o - response format', () => {
-    const schema = planSchema;
-    expect(schema).toMatchSnapshot();
-  });
-
   it('planning - qwen - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
