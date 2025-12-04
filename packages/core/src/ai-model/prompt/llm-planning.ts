@@ -1,6 +1,5 @@
 import type { DeviceAction } from '@/types';
 import type { TVlModeTypes } from '@midscene/shared/env';
-import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
 import { ifMidsceneLocatorField } from '../../common';
 import { bboxDescription } from './common';
@@ -288,13 +287,23 @@ Return in JSON format:
     {
       "type": string, // the type of the action
       "param"?: { // The parameter of the action, if any
-        "locate": { // for example, if the action is "Tap", the "locate" field is required
-          "prompt": string,
-        },
+         // k-v style parameter fields
       }, 
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
+
+For example, this is a valid return value for the "Tap" action:
+{
+  "log": "Click the login button",
+  "action": {
+    "type": "Tap",
+    "param": {
+      "locate": { 
+        "prompt": "The login button"${vlMode ? `, "bbox": [100, 200, 300, 400]` : ''}
+      }
+    }
+  }
 `;
 }
