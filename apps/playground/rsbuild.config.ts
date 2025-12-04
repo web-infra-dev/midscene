@@ -47,6 +47,10 @@ export default defineConfig({
         __dirname,
         '../../packages/shared/src/polyfills/async-hooks.ts',
       ),
+      // These are Node.js-only modules used for proxy support
+      // They're only imported dynamically in Node.js environment
+      undici: false,
+      'fetch-socks': false,
     },
   },
   html: {
