@@ -488,6 +488,23 @@ const Timeline = () => {
   const idTaskMap: Record<string, ExecutionTask> = {};
   const allScreenshots: TimelineItem[] = allTasks
     .reduce<(ExecutionRecorderItem & { id: string })[]>((acc, current) => {
+      // Extract uiContext screenshot FIRST (before recorder processing)
+      const uiContextRecorderItem: (ExecutionRecorderItem & { id: string })[] =
+        [];
+      const screenshotFromContext = current.uiContext?.screenshotBase64;
+      if (screenshotFromContext && current.timing?.start) {
+        const idStr = `id_${idCount++}`;
+        idTaskMap[idStr] = current;
+        uiContextRecorderItem.push({
+          type: 'screenshot',
+          ts: current.timing.start,
+          screenshot: screenshotFromContext,
+          timing: 'before-calling',
+          id: idStr,
+        });
+      }
+
+      // Process recorder items (existing logic)
       const recorders = current.recorder || [];
       recorders.forEach((item) => {
         if (startingTime === -1 || startingTime > item.ts) {
@@ -508,7 +525,9 @@ const Timeline = () => {
           id: idStr,
         };
       });
-      return acc.concat(recorderItemWithId || []);
+
+      // Concatenate uiContext items BEFORE recorder items
+      return acc.concat(uiContextRecorderItem, recorderItemWithId || []);
     }, [])
     .filter((item) => {
       return item.screenshot;
