@@ -1,44 +1,8 @@
-import { AIActionType } from '@/ai-model';
-import { getResponseFormat, safeParseJson } from '@/ai-model/service-caller';
+import { safeParseJson } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('service-caller', () => {
-  describe('getResponseFormat', () => {
-    it('should return undefined for AIActionType.TEXT', () => {
-      const result = getResponseFormat('gpt-4', AIActionType.TEXT);
-      expect(result).toBeUndefined();
-    });
-
-    it('should return json format for AIActionType.EXTRACT_DATA with gpt-4', () => {
-      const result = getResponseFormat('gpt-4', AIActionType.EXTRACT_DATA);
-      expect(result).toEqual({ type: 'json_object' });
-    });
-
-    it('should return json format for AIActionType.DESCRIBE_ELEMENT with gpt-4', () => {
-      const result = getResponseFormat('gpt-4', AIActionType.DESCRIBE_ELEMENT);
-      expect(result).toEqual({ type: 'json_object' });
-    });
-
-    it('should not return json format for AIActionType.TEXT with gpt-4o-2024-05-13', () => {
-      const result = getResponseFormat('gpt-4o-2024-05-13', AIActionType.TEXT);
-      expect(result).toBeUndefined();
-    });
-
-    it('should return json format for other action types with gpt-4o-2024-05-13', () => {
-      const result = getResponseFormat(
-        'gpt-4o-2024-05-13',
-        AIActionType.EXTRACT_DATA,
-      );
-      expect(result).toEqual({ type: 'json_object' });
-    });
-
-    it('should return undefined for non-gpt models', () => {
-      const result = getResponseFormat('claude-3', AIActionType.EXTRACT_DATA);
-      expect(result).toBeUndefined();
-    });
-  });
-
   describe('code block cleaning logic', () => {
     it('should clean markdown code blocks for TEXT action type', () => {
       // Test the cleaning logic directly

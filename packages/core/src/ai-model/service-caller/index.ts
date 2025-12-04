@@ -19,9 +19,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { AIActionType, type AIArgs } from '../../common';
-import { assertSchema } from '../prompt/assertion';
-import { planSchema } from '../prompt/llm-planning';
+import type { AIActionType, AIArgs } from '../../common';
 
 async function createChatClient({
   AIActionTypeValue,
@@ -135,8 +133,6 @@ export async function callAI(
       modelConfig,
     });
 
-  const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
-
   const maxTokens =
     globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
@@ -192,7 +188,6 @@ export async function callAI(
         {
           model: modelName,
           messages,
-          response_format: responseFormat,
           ...commonConfig,
         },
         {
@@ -262,7 +257,6 @@ export async function callAI(
       const result = await completion.create({
         model: modelName,
         messages,
-        response_format: responseFormat,
         ...commonConfig,
       } as any);
       timeCost = Date.now() - startTime;
@@ -314,48 +308,6 @@ export async function callAI(
     throw newError;
   }
 }
-
-export const getResponseFormat = (
-  modelName: string,
-  AIActionTypeValue: AIActionType,
-):
-  | OpenAI.ChatCompletionCreateParams['response_format']
-  | OpenAI.ResponseFormatJSONObject => {
-  let responseFormat:
-    | OpenAI.ChatCompletionCreateParams['response_format']
-    | OpenAI.ResponseFormatJSONObject
-    | undefined;
-
-  if (modelName.includes('gpt-4')) {
-    switch (AIActionTypeValue) {
-      case AIActionType.ASSERT:
-        responseFormat = assertSchema;
-        break;
-      case AIActionType.PLAN:
-        responseFormat = planSchema;
-        break;
-      case AIActionType.EXTRACT_DATA:
-      case AIActionType.DESCRIBE_ELEMENT:
-        responseFormat = { type: AIResponseFormat.JSON };
-        break;
-      case AIActionType.TEXT:
-        // No response format for plain text - return as-is
-        responseFormat = undefined;
-        break;
-    }
-  }
-
-  // gpt-4o-2024-05-13 only supports json_object response format
-  // Skip for plain text to allow string output
-  if (
-    modelName === 'gpt-4o-2024-05-13' &&
-    AIActionTypeValue !== AIActionType.TEXT
-  ) {
-    responseFormat = { type: AIResponseFormat.JSON };
-  }
-
-  return responseFormat;
-};
 
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],

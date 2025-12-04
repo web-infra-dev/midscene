@@ -286,86 +286,15 @@ Return in JSON format:
   ${commonOutputFields}
   "action": 
     {
-      // one of the supporting actions
+      "type": string, // the type of the action
+      "param"?: { // The parameter of the action, if any
+        "locate": { // for example, if the action is "Tap", the "locate" field is required
+          "prompt": string,
+        },
+      }, 
     } | null,
   ,
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
 `;
 }
-
-export const planSchema: ResponseFormatJSONSchema = {
-  type: 'json_schema',
-  json_schema: {
-    name: 'action_items',
-    strict: false,
-    schema: {
-      type: 'object',
-      strict: false,
-      properties: {
-        actions: {
-          type: 'array',
-          items: {
-            type: 'object',
-            strict: false,
-            properties: {
-              thought: {
-                type: 'string',
-                description:
-                  'Reasons for generating this task, and why this task is feasible on this page',
-              },
-              type: {
-                type: 'string',
-                description: 'Type of action',
-              },
-              param: {
-                anyOf: [
-                  { type: 'null' },
-                  {
-                    type: 'object',
-                    additionalProperties: true,
-                  },
-                ],
-                description: 'Parameter of the action',
-              },
-              locate: {
-                type: ['object', 'null'],
-                properties: {
-                  id: { type: 'string' },
-                  prompt: { type: 'string' },
-                },
-                required: ['id', 'prompt'],
-                additionalProperties: false,
-                description: 'Location information for the target element',
-              },
-            },
-            required: ['thought', 'type', 'param', 'locate'],
-            additionalProperties: false,
-          },
-          description: 'List of actions to be performed',
-        },
-        more_actions_needed_by_instruction: {
-          type: 'boolean',
-          description:
-            'If all the actions described in the instruction have been covered by this action and logs, set this field to false.',
-        },
-        log: {
-          type: 'string',
-          description:
-            'Log what these planned actions do. Do not include further actions that have not been planned.',
-        },
-        error: {
-          type: ['string', 'null'],
-          description: 'Error messages about unexpected situations',
-        },
-      },
-      required: [
-        'actions',
-        'more_actions_needed_by_instruction',
-        'log',
-        'error',
-      ],
-      additionalProperties: false,
-    },
-  },
-};

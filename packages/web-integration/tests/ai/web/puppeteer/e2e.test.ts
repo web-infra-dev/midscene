@@ -48,6 +48,32 @@ describe(
       15 * 60 * 1000,
     );
 
+    it.skip(
+      'long task',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.tiktok.com/',
+          {
+            headless: false,
+          },
+        );
+        resetFn = reset;
+        const agent = new PuppeteerAgent(originPage);
+
+        await sleep(10 * 1000);
+
+        await agent.aiAct(
+          // '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
+          // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
+          '点击视频右上角三个点图标',
+          {
+            _deepThink: true,
+          },
+        );
+      },
+      15 * 60 * 1000,
+    );
+
     it('error in beforeInvokeAction', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
