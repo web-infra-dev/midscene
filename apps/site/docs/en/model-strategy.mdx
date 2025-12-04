@@ -94,6 +94,21 @@ Add settings with the `MIDSCENE_INSIGHT_MODEL_` prefix to use a dedicated model 
 
 We recommend `gpt-5.1` or other models with strong VQA capability.
 
+## How do I tune execution results?
+
+If you see success rates below your target, try these steps.
+
+### Review the report to find the issue
+
+Midscene's run report logs detailed task traces. Inspect them to pinpoint failures.
+
+### Check or adjust the model
+
+1. Ensure the `MIDSCENE_MODEL_FAMILY` environment variable is set correctly; otherwise element localization can drift significantly.
+2. Use the latest model version and a larger model size. For example, Qwen2.5-VL outperforms Qwen3-VL, and a 72B build is more accurate than a 30B build.
+3. Try different models.
+4. Consider multi-model combinations to address weak planning or understanding.
+
 ## More
 
 ### Model configuration doc

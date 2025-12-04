@@ -1,41 +1,22 @@
 # Use JavaScript to optimize the AI automation code
 
-Many developers love using `ai` or `aiAct` to accomplish complex tasks, and even describe all logic in a single natural language instruction. Although it may seem 'intelligent', in practice, this approach may not provide a reliable and efficient experience, and results in an endless loop of Prompt tuning.
+Many developers love using `aiAct` or `ai` to accomplish automation tasks, even packing long, complex logic into a single natural-language instruction. It feels “smart,” but in practice you may run into unstable reproducibility and slower performance.
 
-Here is a typical example, developers may write a large logic storm with long descriptions, such as:
+This article shares an approach for writing automation scripts with JavaScript and structured APIs.
 
-```javascript
-// complex tasks
-aiAct(`
-1. click the first user
-2. click the chat bubble on the right side of the user page
-3. if I have already sent a message to him/her, go back to the previous page
-4. if I have not sent a message to him/her, input a greeting text and click send
-`)
-```
+## Write automation scripts with JavaScript and structured APIs
 
-Another common misconception is that the complex workflow can be effectively controlled using `aiAct` methods. These prompts are far from reliable when compared to traditional JavaScript. For example:
+Midscene provides structured API methods like `aiBoolean`, `aiString`, and `aiNumber` to extract state from the UI. Combined with instant action methods like `aiTap`, `aiInput`, `aiScroll`, and `aiHover`, you can break complex logic into steps to make automation more stable.
 
-```javascript
-// not stable !
-aiAct('click all the records one by one. If one record contains the text "completed", skip it')
-```
+### A simple example
 
-## One path to optimize the automation code: use JavaScript and structured API
+Take this prompt as an example:
 
-From v0.16.10, Midscene provides data extraction methods like `aiBoolean` `aiString` `aiNumber`, which can be used to control the workflow. 
-
-Combining them with the instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., you can split complex logic into multiple steps to improve the stability of the automation code.
-
-Let's take the first bad case above, you can convert the `.aiAct` method into a structured API call:
-
-Original prompt:
-
-```
+```txt
 click all the records one by one. If one record contains the text "completed", skip it
 ```
 
-Converted code:
+By composing the structured APIs, you can convert the prompt into more reliable, maintainable code:
 ```javascript
 const recordList = await agent.aiQuery('string[], the record list')
 for (const record of recordList) {
@@ -46,11 +27,11 @@ for (const record of recordList) {
 }
 ```
 
-After modifying the coding style, the whole process can be much more reliable and easier to maintain.
+After changing the coding style, the process becomes more reliable and easier to maintain, and you can use traditional debugging to control the execution flow.
 
-## A more complex example
+### A complex example
 
-Here is another example, this is what it looks like before rewriting: 
+Here is another example, shown before rewriting:
 
 ```javascript
 aiAct(`
@@ -62,7 +43,7 @@ aiAct(`
 `)
 ```
 
-After using the structured APIs, developers can easily inspect the code step by step.
+Using structured APIs, you can lock this flow into code:
 
 ```javascript
 let user = await agent.aiQuery('string[], the unfollowed user names in the list')
@@ -151,41 +132,6 @@ const userList = await agent.aiQuery('string[], the user list')
 
 Midscene provides some instant action methods, like `aiTap`, `aiInput`, `aiScroll`, `aiHover`, etc., They are also commonly used in the automation code. You can check them in the [API](./api.mdx) page.
 
-## Want to write structured code easily?
-
-If you think the javascript code is hard to write, then this is the right time to use the AI IDE.
-
-Use your AI IDE to index the following documents:
-
-- https://midscenejs.com/blog-programming-practice-using-structured-api.md
-- https://midscenejs.com/api.md
-
-:::tip
-
-How to add the Midscene documents to the AI IDE?
-
-Refer to [this article](./llm-txt.mdx#usage).
-
-:::
-
-And use this prompt with the mention of the Midscene documents:
-
-```txt
-According to the tips and APIs mentioned in @Use JavaScript to Optimize the Midscene Al Automation Code and @@Midscene API docs,
-
-please help me convert the following instructions into structured javascript code:
-
-<your prompt>
-```
-
-![](/blog/ai-ide-convert-prompt.png)
-
-After you input the prompt, the AI IDE will convert the prompt into structured javascript code: 
-
-![](/blog/ai-ide-convert-prompt-result.png)
-
-Enjoy it!
-
 ## Which approach is best: `aiAct` or structured code?
 
 There is no standard answer. It depends on the model's ability, the complexity of the actual business.
@@ -196,8 +142,13 @@ Generally, if you encounter the following situations, you should consider abando
 - You have already felt tired and spent too much time repeatedly tuning the `aiAct` prompt
 - You need to debug the script step by step
 
-## What's next?
+## Want to write structured code easily?
 
-To achieve better performance, you can check the [Midscene caching feature](./caching) to cache the planning and xpath results.
+If you think the JavaScript code above is hard to write, now is the time to use an AI IDE.
 
-To learn more about the structured API, you can check the [API reference](./api.mdx).
+Use your AI IDE to index our docs:
+
+- https://midscenejs.com/use-javascript-to-optimize-ai-automation-code.md
+- https://midscenejs.com/api.md
+
+To learn how to add Midscene docs to your AI IDE, see [this article](./llm-txt.mdx#usage).

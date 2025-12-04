@@ -151,6 +151,10 @@ export default defineConfig({
           text: 'Advanced',
           items: [
             {
+              text: 'FAQ',
+              link: '/faq',
+            },
+            {
               text: 'Integrate Midscene with any interface',
               link: '/integrate-with-any-interface',
             },
@@ -160,16 +164,7 @@ export default defineConfig({
             },
             {
               text: 'Use JavaScript to optimize your workflow',
-              link: '/blog-programming-practice-using-structured-api',
-            },
-          ],
-        },
-        {
-          text: 'FAQ',
-          items: [
-            {
-              text: 'FAQ',
-              link: '/faq',
+              link: '/use-javascript-to-optimize-ai-automation-code',
             },
           ],
         },
@@ -302,6 +297,10 @@ export default defineConfig({
           text: '进阶',
           items: [
             {
+              text: '常见问题 FAQ',
+              link: '/zh/faq',
+            },
+            {
               text: '将 Midscene 集成到任意界面',
               link: '/zh/integrate-with-any-interface',
             },
@@ -311,16 +310,7 @@ export default defineConfig({
             },
             {
               text: '使用 JavaScript 优化工作流',
-              link: '/zh/blog-programming-practice-using-structured-api',
-            },
-          ],
-        },
-        {
-          text: '常见问题',
-          items: [
-            {
-              text: '常见问题 FAQ',
-              link: '/zh/faq',
+              link: '/zh/use-javascript-to-optimize-ai-automation-code',
             },
           ],
         },

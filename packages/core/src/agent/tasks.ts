@@ -305,14 +305,7 @@ export class TaskExecutor {
               }
             }
 
-            if ((actions || []).length === 0) {
-              assert(
-                sleep,
-                error
-                  ? `Failed to continue: ${error}\n${log || ''}`
-                  : 'No plan found',
-              );
-            }
+            assert(!error, `Failed to continue: ${error}\n${log || ''}`);
 
             return {
               cache: {
