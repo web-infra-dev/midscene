@@ -144,36 +144,6 @@ export interface MidsceneYamlFlowItemAIAssert {
   [key: string]: unknown;
 }
 
-export interface MidsceneYamlFlowItemAIQuery extends ServiceExtractOption {
-  aiQuery: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAINumber extends ServiceExtractOption {
-  aiNumber: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIString extends ServiceExtractOption {
-  aiString: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIAsk extends ServiceExtractOption {
-  aiAsk: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIBoolean extends ServiceExtractOption {
-  aiBoolean: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAILocate extends LocateOption {
-  aiLocate: string;
-  name?: string;
-}
-
 export interface MidsceneYamlFlowItemAIWaitFor {
   aiWaitFor: string;
   timeout?: number;
@@ -198,12 +168,6 @@ export interface MidsceneYamlFlowItemLogScreenshot {
 export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
-  | MidsceneYamlFlowItemAIQuery
-  | MidsceneYamlFlowItemAINumber
-  | MidsceneYamlFlowItemAIString
-  | MidsceneYamlFlowItemAIAsk
-  | MidsceneYamlFlowItemAIBoolean
-  | MidsceneYamlFlowItemAILocate
   | MidsceneYamlFlowItemAIWaitFor
   | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
