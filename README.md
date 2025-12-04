@@ -131,8 +131,8 @@ Community projects that extend Midscene.js capabilities:
 
 * [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS automation support for Midscene
 * [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python SDK for Midscene automation
-* [midscene-java](https://github.com/Master-Frank/midscene-java) - Java SDK that brings Midscene automation features to JVM projects
-* [midscene-java](https://github.com/alstafeev/midscene-java) - Java SDK for Midscene automation
+* [midscene-java](https://github.com/Master-Frank/midscene-java) by @Master-Frank - Java SDK that brings Midscene automation features to JVM projects
+* [midscene-java](https://github.com/alstafeev/midscene-java) by @alstafeev - Java SDK for Midscene automation
 
 
 ## 📝 Credits
