@@ -4,7 +4,7 @@ import { IOSMCPServer } from '../src/server.js';
 describe('IOSMCPServer HTTP mode', () => {
   let server: IOSMCPServer;
   const testPort = 13581; // Use different port than other MCP servers
-  const testHost = 'localhost';
+  const testHost = '127.0.0.1'; // Use IPv4 explicitly to avoid IPv6 issues in CI
 
   beforeAll(async () => {
     server = new IOSMCPServer();

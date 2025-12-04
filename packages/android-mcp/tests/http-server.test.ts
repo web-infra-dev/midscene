@@ -4,7 +4,7 @@ import { AndroidMCPServer } from '../src/server.js';
 describe('AndroidMCPServer HTTP mode', () => {
   let server: AndroidMCPServer;
   const testPort = 13580; // Use different port than web-bridge-mcp
-  const testHost = 'localhost';
+  const testHost = '127.0.0.1'; // Use IPv4 explicitly to avoid IPv6 issues in CI
 
   beforeAll(async () => {
     server = new AndroidMCPServer();
