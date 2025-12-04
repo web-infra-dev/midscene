@@ -108,6 +108,15 @@
 - Breaking change 说明：中文 Android 模式内容合并到统一 MCP 文档，统一呈现配置与工具差异。
 - 后续行动：无
 
+### 2025-11-17 – 重命名结构化 API 博客文档 slug（去掉 blog 前缀）
+
+- 原路径：`apps/site/docs/en/blog-use-javascript-to-optimize-ai-automation-code.md`、`apps/site/docs/zh/blog-use-javascript-to-optimize-ai-automation-code.md`
+- 原标题：`Use JavaScript to optimize the AI automation code`、`使用 JavaScript 优化 AI 自动化代码`
+- 操作类型：重命名
+- 新位置：`apps/site/docs/en/use-javascript-to-optimize-ai-automation-code.md`、`apps/site/docs/zh/use-javascript-to-optimize-ai-automation-code.md`
+- Breaking change 说明：统一中英文文档 slug，去掉冗余的 `blog-` 前缀，避免路径过长；同步更新 `apps/site/rspress.config.ts` 侧边栏路由及站内引用（中英文介绍页、更新日志页），并更新文内外链到新 slug。
+- 后续行动：无
+
 ### 2025-11-06 – 重命名桥接模式文档
 
 - 原路径：`apps/site/docs/en/bridge-mode-by-chrome-extension.mdx`、`apps/site/docs/zh/bridge-mode-by-chrome-extension.mdx`
