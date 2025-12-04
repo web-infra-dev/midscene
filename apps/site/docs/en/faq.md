@@ -4,7 +4,7 @@
 
 There are some limitations with Midscene. We are still working on them.
 
-1. AI model is not 100% stable. Following the [Prompting Tips](./prompting-tips) will help improve stability.
+1. AI model is not 100% stable. Clearer, more detailed instructions will help improve stability.
 1. Midscene cannot access the native elements of Chrome, like the right-click context menu, alert dialog or file upload dialog.
 1. Do not use Midscene to bypass CAPTCHA. Some LLM services are set to decline requests that involve CAPTCHA-solving (e.g., OpenAI), while the DOM of some CAPTCHA pages is not accessible by regular web scraping methods. Therefore, using Midscene to bypass CAPTCHA is not a reliable method.
 
