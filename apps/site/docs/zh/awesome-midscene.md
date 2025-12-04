@@ -19,8 +19,8 @@
   - 提供与 Python 版本类似的体验，适配 JVM 生态
   - 易于整合到现有的 Java 自动化或测试流程
 - **[midscene-java](https://github.com/alstafeev/midscene-java)** - Java 版本的 Midscene SDK
-  - 提供用於腳本化 Midscene 的 JVM 原生介面
-  - 無縫整合至現有的 Java 測試框架與自動化工作流程
+  - 提供用于脚本化 Midscene 的 JVM 原生接口
+  - 无缝整合至现有的 Java 测试框架与自动化工作流程
 
 ## 如何贡献
 
