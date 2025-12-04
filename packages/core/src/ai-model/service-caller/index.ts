@@ -49,8 +49,17 @@ async function createChatClient({
   let proxyAgent: any = undefined;
   const debugProxy = getDebug('ai:call:proxy');
 
+  // Helper function to sanitize proxy URL for logging (remove credentials)
+  const sanitizeProxyUrl = (url: string): string => {
+    try {
+      return url.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
+    } catch {
+      return url;
+    }
+  };
+
   if (httpProxy) {
-    debugProxy('using http proxy', httpProxy);
+    debugProxy('using http proxy', sanitizeProxyUrl(httpProxy));
     if (ifInBrowser) {
       console.warn(
         'HTTP proxy is configured but not supported in browser environment',
@@ -65,7 +74,7 @@ async function createChatClient({
       });
     }
   } else if (socksProxy) {
-    debugProxy('using socks proxy', socksProxy);
+    debugProxy('using socks proxy', sanitizeProxyUrl(socksProxy));
     if (ifInBrowser) {
       console.warn(
         'SOCKS proxy is configured but not supported in browser environment',
@@ -77,12 +86,27 @@ async function createChatClient({
         const { socksDispatcher } = await import(moduleName);
         // Parse SOCKS proxy URL (e.g., socks5://127.0.0.1:1080)
         const proxyUrl = new URL(socksProxy);
-        const socksType = proxyUrl.protocol.includes('socks4') ? 4 : 5;
+
+        // Validate hostname
+        if (!proxyUrl.hostname) {
+          throw new Error('SOCKS proxy URL must include a valid hostname');
+        }
+
+        // Validate and parse port
+        const port = Number.parseInt(proxyUrl.port, 10);
+        if (!proxyUrl.port || Number.isNaN(port)) {
+          throw new Error('SOCKS proxy URL must include a valid port');
+        }
+
+        // Parse SOCKS version from protocol
+        const protocol = proxyUrl.protocol.replace(':', '');
+        const socksType =
+          protocol === 'socks4' ? 4 : protocol === 'socks5' ? 5 : 5;
 
         proxyAgent = socksDispatcher({
           type: socksType,
           host: proxyUrl.hostname,
-          port: Number.parseInt(proxyUrl.port, 10),
+          port,
           ...(proxyUrl.username
             ? {
                 userId: decodeURIComponent(proxyUrl.username),
@@ -93,12 +117,12 @@ async function createChatClient({
         debugProxy('socks proxy configured successfully', {
           type: socksType,
           host: proxyUrl.hostname,
-          port: proxyUrl.port,
+          port: port,
         });
       } catch (error) {
         console.error('Failed to configure SOCKS proxy:', error);
         throw new Error(
-          `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks5://host:port or socks5://user:pass@host:port`,
+          `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks4://host:port, socks5://host:port, or with authentication: socks5://user:pass@host:port`,
         );
       }
     }

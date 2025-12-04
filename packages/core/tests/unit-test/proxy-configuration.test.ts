@@ -219,6 +219,69 @@ describe('Proxy Configuration', () => {
         callAI(messages, AIActionType.TEXT, modelConfig),
       ).rejects.toThrow(/Invalid SOCKS proxy URL/);
     });
+
+    it('should throw error for SOCKS proxy URL missing port', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
+      const socksProxy = 'socks5://127.0.0.1';
+      const modelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        socksProxy: socksProxy,
+        modelDescription: 'test',
+        intent: 'default',
+        timeout: 500,
+      };
+
+      const messages = [{ role: 'user' as const, content: 'test' }];
+
+      // URL without port throws error
+      await expect(
+        callAI(messages, AIActionType.TEXT, modelConfig),
+      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+    });
+
+    it('should throw error for SOCKS proxy URL with invalid port', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
+      const socksProxy = 'socks5://127.0.0.1:abc';
+      const modelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        socksProxy: socksProxy,
+        modelDescription: 'test',
+        intent: 'default',
+        timeout: 500,
+      };
+
+      const messages = [{ role: 'user' as const, content: 'test' }];
+
+      // URL with invalid port throws error
+      await expect(
+        callAI(messages, AIActionType.TEXT, modelConfig),
+      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+    });
+
+    it('should throw error for SOCKS proxy URL missing hostname', async () => {
+      const { callAI } = await import('@/ai-model/service-caller');
+
+      const socksProxy = 'socks5://:1080';
+      const modelConfig: IModelConfig = {
+        modelName: 'gpt-4o',
+        openaiApiKey: 'test-key',
+        socksProxy: socksProxy,
+        modelDescription: 'test',
+        intent: 'default',
+        timeout: 500,
+      };
+
+      const messages = [{ role: 'user' as const, content: 'test' }];
+
+      // URL without hostname throws error
+      await expect(
+        callAI(messages, AIActionType.TEXT, modelConfig),
+      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+    });
   });
 
   describe('Proxy Priority', () => {
