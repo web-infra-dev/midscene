@@ -1,7 +1,7 @@
-import { describe, expect, test } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { describe, expect, test } from 'vitest';
 
 interface GlobalWithMidscene {
   midscene_element_inspector?: {
@@ -24,10 +24,7 @@ interface GlobalWithMidscene {
 }
 
 describe('IIFE bundle runtime behavior', () => {
-  const bundlePath = path.join(
-    __dirname,
-    '../../dist-inspect/htmlElement.js',
-  );
+  const bundlePath = path.join(__dirname, '../../dist-inspect/htmlElement.js');
 
   function executeBundleInVM(): GlobalWithMidscene {
     const script = fs.readFileSync(bundlePath, 'utf-8');
@@ -103,8 +100,7 @@ describe('IIFE bundle runtime behavior', () => {
       // Check for webpack chunk optimization pattern that caused the bug
       // The bug manifested as __webpack_require__.O() with deferred loading
       const hasChunkOptimization =
-        script.includes('__webpack_require__.O') &&
-        script.includes('deferred');
+        script.includes('__webpack_require__.O') && script.includes('deferred');
 
       expect(
         hasChunkOptimization,
@@ -116,10 +112,13 @@ describe('IIFE bundle runtime behavior', () => {
       const script = fs.readFileSync(bundlePath, 'utf-8');
 
       // Should start with IIFE opening
-      const hasIIFEStart = script.trim().startsWith('(()=>{') || script.trim().startsWith('(function()');
+      const hasIIFEStart =
+        script.trim().startsWith('(()=>{') ||
+        script.trim().startsWith('(function()');
 
       // Should end with IIFE closing
-      const hasIIFEEnd = script.trim().endsWith('})();') || script.trim().endsWith('})()');
+      const hasIIFEEnd =
+        script.trim().endsWith('})();') || script.trim().endsWith('})()');
 
       expect(hasIIFEStart).toBe(true);
       expect(hasIIFEEnd).toBe(true);
