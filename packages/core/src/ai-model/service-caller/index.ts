@@ -50,10 +50,18 @@ async function createChatClient({
   const debugProxy = getDebug('ai:call:proxy');
 
   // Helper function to sanitize proxy URL for logging (remove credentials)
+  // Uses URL API instead of regex to avoid ReDoS vulnerabilities
   const sanitizeProxyUrl = (url: string): string => {
     try {
-      return url.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@');
+      const parsed = new URL(url);
+      if (parsed.username) {
+        // Keep username for debugging, hide password for security
+        parsed.password = '****';
+        return parsed.href;
+      }
+      return url;
     } catch {
+      // If URL parsing fails, return original URL (will be caught later)
       return url;
     }
   };
