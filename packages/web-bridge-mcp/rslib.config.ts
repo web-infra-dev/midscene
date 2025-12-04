@@ -31,10 +31,6 @@ export default defineConfig({
     {
       format: 'cjs',
       syntax: 'es2021',
-      dts: {
-        bundle: false,
-        distPath: 'dist',
-      },
       output: {
         distPath: {
           root: 'dist',
