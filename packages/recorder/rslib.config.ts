@@ -21,6 +21,11 @@ export default defineConfig({
           'recorder-iife': './src/recorder-iife-index.ts',
         },
       },
+      resolve: {
+        alias: {
+          '@midscene/shared/extractor': '../shared/src/extractor/index.ts',
+        },
+      },
     },
   ],
   // externals: ['@midscene/shared'],

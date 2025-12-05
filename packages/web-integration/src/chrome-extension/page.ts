@@ -173,7 +173,12 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
   }
 
-  private async detachDebugger(tabId?: number) {
+  /**
+   * Public method to detach debugger without destroying the page instance.
+   * Useful for error recovery scenarios where we want to remove the debugger banner
+   * without completely destroying the page.
+   */
+  public async detachDebugger(tabId?: number) {
     const tabIdToDetach = tabId || (await this.getTabIdOrConnectToCurrentTab());
     console.log('detaching debugger from tab:', tabIdToDetach);
 

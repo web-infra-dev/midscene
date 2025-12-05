@@ -94,6 +94,54 @@ export function usePlaygroundExecution(
               return;
             }
 
+            // Check if this is a status update (format: "taskType|failed|errorMessage")
+            if (tip.includes('|failed|')) {
+              const parts = tip.split('|');
+
+              // Validate format: must have at least 3 parts and second part must be "failed"
+              if (parts.length < 3 || parts[1] !== 'failed') {
+                console.warn('Invalid status update format:', tip);
+                return;
+              }
+
+              const taskType = parts[0];
+              const _status = parts[1];
+              // Rejoin remaining parts to preserve pipes in error message
+              const errorMessage = parts.slice(2).join('|');
+
+              // Update the corresponding progress item with error status
+              setInfoList((prev) => {
+                const items = [...prev];
+
+                // Find the last progress item for this task type
+                for (let i = items.length - 1; i >= 0; i--) {
+                  if (
+                    items[i].type === 'progress' &&
+                    items[i].id.startsWith(`progress-${thisRunningId}`)
+                  ) {
+                    const content = items[i].content || '';
+                    const itemTaskType = content.split(' - ')[0]?.trim();
+
+                    if (itemTaskType === taskType) {
+                      // Mark this progress item as failed
+                      items[i] = {
+                        ...items[i],
+                        result: {
+                          result: null,
+                          error: errorMessage,
+                        },
+                      };
+                      break;
+                    }
+                  }
+                }
+
+                return items;
+              });
+              return;
+            }
+
+            // Normal progress tip handling
             setInfoList((prev) => {
               const lastItem = prev[prev.length - 1];
               // Prevent duplicate progress tips
