@@ -29,7 +29,9 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
     }
 
     debug('Creating iOS agent with WebDriverAgent');
-    this.agent = await agentFromWebDriverAgent();
+    this.agent = await agentFromWebDriverAgent({
+      autoDismissKeyboard: false,
+    });
     return this.agent;
   }
 
