@@ -96,6 +96,43 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     overrideAIConfig(aiConfig);
   }
 
+  // Helper to extract dump and reportHTML from agent
+  private extractAgentData() {
+    const data = {
+      dump: null as unknown,
+      reportHTML: null as string | null,
+    };
+
+    try {
+      if (this.agent.dumpDataString) {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          data.dump = JSON.parse(dumpString);
+        }
+      }
+
+      if (this.agent.reportHTMLString) {
+        data.reportHTML = this.agent.reportHTMLString() || null;
+      }
+    } catch (error) {
+      console.error('Failed to extract dump/reportHTML from agent:', error);
+    }
+
+    return data;
+  }
+
+  // Helper to detach debugger without destroying the agent
+  private async detachDebuggerSafely() {
+    try {
+      const page = this.agent?.interface as
+        | { detachDebugger?: () => Promise<void> }
+        | undefined;
+      await page?.detachDebugger?.();
+    } catch (error) {
+      console.warn('Failed to detach debugger:', error);
+    }
+  }
+
   async executeAction(
     actionType: string,
     value: FormValue,
@@ -104,14 +141,16 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
     let originalOnTaskStartTip: ((tip: string) => void) | undefined;
+    let originalOnDumpUpdate: ((dump: string) => void) | undefined;
 
     // Setup progress tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
       originalOnTaskStartTip = this.agent.onTaskStartTip;
+      originalOnDumpUpdate = this.agent.onDumpUpdate;
 
-      // Set up a fresh callback
+      // Set up a fresh callback for task start tips
       this.agent.onTaskStartTip = (tip: string) => {
         // Only process if this is still the current request
         if (this.currentRequestId !== options.requestId) {
@@ -130,61 +169,96 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           originalOnTaskStartTip(tip);
         }
       };
+
+      // Set up real-time dump update callback
+      this.agent.onDumpUpdate = (dumpString: string) => {
+        // Only process if this is still the current request
+        if (this.currentRequestId !== options.requestId) {
+          return;
+        }
+
+        try {
+          const dump = JSON.parse(dumpString);
+          // Send task status updates via progress callback using special format
+          if (dump?.executions?.[0]?.tasks) {
+            const tasks = dump.executions[0].tasks;
+            for (const task of tasks) {
+              if (task.status === 'failed' && task.errorMessage) {
+                // Send task failure notification with format: "taskType|failed|errorMessage"
+                const taskType = task.subType || task.type;
+                const statusUpdate = `${taskType}|failed|${task.errorMessage}`;
+                if (this.progressCallback) {
+                  this.progressCallback(statusUpdate);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to parse dump in onDumpUpdate:', error);
+        }
+
+        if (typeof originalOnDumpUpdate === 'function') {
+          originalOnDumpUpdate(dumpString);
+        }
+      };
     }
+
+    let executionError: Error | null = null;
+    let result: unknown = null;
 
     try {
       // Call the base implementation with the original signature
-      const result = await executeAction(
+      result = await executeAction(
         this.agent,
         actionType,
         actionSpace,
         value,
         options,
       );
-
-      // For local execution, we need to package the result with dump and reportHTML
-      // similar to how the server does it
-      const response = {
-        result,
-        dump: null as unknown,
-        reportHTML: null as string | null,
-        error: null as string | null,
-      };
-
-      try {
-        // Get dump and reportHTML from agent like the server does
-        if (this.agent.dumpDataString) {
-          const dumpString = this.agent.dumpDataString();
-          if (dumpString) {
-            response.dump = JSON.parse(dumpString);
-          }
-        }
-
-        if (this.agent.reportHTMLString) {
-          response.reportHTML = this.agent.reportHTMLString() || null;
-        }
-
-        // Write out action dumps
-        if (this.agent.writeOutActionDumps) {
-          this.agent.writeOutActionDumps();
-        }
-      } catch (error: unknown) {
-        console.error('Failed to get dump/reportHTML from agent:', error);
-      }
-
-      this.agent.resetDump();
-
-      return response;
+    } catch (error: unknown) {
+      executionError =
+        error instanceof Error
+          ? error
+          : new Error(`Execution failed: ${error}`);
+      // Detach debugger on error to remove the banner
+      await this.detachDebuggerSafely();
     } finally {
-      // Always clean up progress tracking to prevent memory leaks
+      // Always clean up progress tracking
       if (options.requestId) {
         this.cleanup(options.requestId);
-        // Clear the agent callback to prevent accumulation
         if (this.agent) {
           this.agent.onTaskStartTip = originalOnTaskStartTip;
+          this.agent.onDumpUpdate = originalOnDumpUpdate;
         }
       }
     }
+
+    // Extract dump and reportHTML (works for both success and error cases)
+    const { dump, reportHTML } = this.extractAgentData();
+
+    // Write out action dumps on success
+    if (!executionError && this.agent.writeOutActionDumps) {
+      try {
+        this.agent.writeOutActionDumps();
+      } catch (error) {
+        console.warn('Failed to write action dumps:', error);
+      }
+    }
+
+    // Reset dump
+    try {
+      this.agent.resetDump?.();
+    } catch (error) {
+      console.warn('Failed to reset dump:', error);
+    }
+
+    // Return response in consistent format
+    return {
+      result: executionError ? null : result,
+      dump,
+      reportHTML,
+      error: executionError ? executionError.message : null,
+    };
   }
 
   async getTaskProgress(requestId: string): Promise<{ tip?: string }> {

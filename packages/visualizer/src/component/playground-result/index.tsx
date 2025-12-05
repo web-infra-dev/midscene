@@ -76,7 +76,22 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       />
     );
   } else if (result?.error) {
-    resultDataToShow = <pre>{result?.error}</pre>;
+    // Even when there's an error, show the report if available
+    if (
+      (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server') &&
+      result?.reportHTML
+    ) {
+      resultDataToShow = (
+        <Player
+          key={replayCounter}
+          reportFileContent={result.reportHTML}
+          fitMode={fitMode}
+          autoZoom={autoZoom}
+        />
+      );
+    } else {
+      resultDataToShow = <pre>{result?.error}</pre>;
+    }
   } else if (result?.result !== undefined) {
     resultDataToShow =
       typeof result?.result === 'string' ? (

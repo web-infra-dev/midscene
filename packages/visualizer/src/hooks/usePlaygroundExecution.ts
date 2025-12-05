@@ -94,6 +94,43 @@ export function usePlaygroundExecution(
               return;
             }
 
+            // Check if this is a status update (format: "taskType|failed|errorMessage")
+            if (tip.includes('|failed|')) {
+              const [taskType, _status, errorMessage] = tip.split('|');
+
+              // Update the corresponding progress item with error status
+              setInfoList((prev) => {
+                const items = [...prev];
+
+                // Find the last progress item for this task type
+                for (let i = items.length - 1; i >= 0; i--) {
+                  if (
+                    items[i].type === 'progress' &&
+                    items[i].id.startsWith(`progress-${thisRunningId}`)
+                  ) {
+                    const content = items[i].content || '';
+                    const itemTaskType = content.split(' - ')[0]?.trim();
+
+                    if (itemTaskType === taskType) {
+                      // Mark this progress item as failed
+                      items[i] = {
+                        ...items[i],
+                        result: {
+                          result: null,
+                          error: errorMessage,
+                        },
+                      };
+                      break;
+                    }
+                  }
+                }
+
+                return items;
+              });
+              return;
+            }
+
+            // Normal progress tip handling
             setInfoList((prev) => {
               const lastItem = prev[prev.length - 1];
               // Prevent duplicate progress tips
