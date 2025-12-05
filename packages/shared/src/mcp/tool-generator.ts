@@ -27,20 +27,40 @@ export function generateToolsFromActionSpace(
         // Deep clone and modify the shape to make locate.prompt optional
         schema = Object.fromEntries(
           Object.entries(originalShape).map(([key, value]) => {
+            // Unwrap ZodOptional if present to check the inner type
+            let innerValue = value;
+            let isOptional = false;
+            if (
+              innerValue &&
+              typeof innerValue === 'object' &&
+              '_def' in innerValue &&
+              (innerValue as any)._def?.typeName === 'ZodOptional'
+            ) {
+              innerValue = (innerValue as any)._def.innerType;
+              isOptional = true;
+            }
+
             // Check if this is a locate field (contains prompt field)
             if (
-              value &&
-              typeof value === 'object' &&
-              '_def' in value &&
-              (value as any)._def?.typeName === 'ZodObject' &&
-              'shape' in value
+              innerValue &&
+              typeof innerValue === 'object' &&
+              '_def' in innerValue &&
+              (innerValue as any)._def?.typeName === 'ZodObject' &&
+              'shape' in innerValue
             ) {
-              const fieldShape = (value as any).shape;
+              const fieldShape = (innerValue as any).shape;
               if ('prompt' in fieldShape) {
                 // This is a locate field, make prompt optional
                 const newFieldShape = { ...fieldShape };
                 newFieldShape.prompt = fieldShape.prompt.optional();
-                return [key, z.object(newFieldShape).passthrough()];
+                let newSchema: z.ZodTypeAny = z
+                  .object(newFieldShape)
+                  .passthrough();
+                // Re-wrap in optional if it was optional before
+                if (isOptional) {
+                  newSchema = newSchema.optional();
+                }
+                return [key, newSchema];
               }
             }
             return [key, value];
