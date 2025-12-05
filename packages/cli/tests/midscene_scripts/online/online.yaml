@@ -4,6 +4,9 @@ web:
   url: https://www.saucedemo.com/
   output: ./midscene_output/sauce-demo-items.json
 
+agent:
+  aiActionContext: 'dismiss the cookie consent dialog if it exists'
+
 tasks:
   - name: login
     flow:

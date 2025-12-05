@@ -294,9 +294,11 @@ Return in JSON format:
   "sleep"?: number, // The sleep time after the action, in milliseconds.
 }
 
-For example, this is a valid return value for the "Tap" action:
+For example, if the instruction is to login and the form has already been filled, this is a valid return value:
+
 {
   "log": "Click the login button",
+  "more_actions_needed_by_instruction": false,
   "action": {
     "type": "Tap",
     "param": {
