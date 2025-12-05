@@ -11,6 +11,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private progressCallback?: (tip: string) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
+  private notifiedFailures: Map<string, Set<string>> = new Map(); // Track notified failures per request to prevent duplicates
 
   constructor(agent: PlaygroundAgent) {
     super();
@@ -32,6 +33,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
   private cleanup(requestId: string): void {
     delete this.taskProgressTips[requestId];
+    this.notifiedFailures.delete(requestId);
   }
 
   async parseStructuredParams(
@@ -121,7 +123,12 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return data;
   }
 
-  // Helper to detach debugger without destroying the agent
+  /**
+   * Safely detaches the Chrome debugger without destroying the agent.
+   * This removes the "Debugger attached" banner from the browser window
+   * while keeping the agent instance intact for potential reuse.
+   * Called on errors to improve user experience by cleaning up the UI.
+   */
   private async detachDebuggerSafely() {
     try {
       const page = this.agent?.interface as
@@ -182,13 +189,26 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           // Send task status updates via progress callback using special format
           if (dump?.executions?.[0]?.tasks) {
             const tasks = dump.executions[0].tasks;
+
+            // Initialize tracking set for this request if not exists
+            if (!this.notifiedFailures.has(options.requestId!)) {
+              this.notifiedFailures.set(options.requestId!, new Set());
+            }
+            const notifiedSet = this.notifiedFailures.get(options.requestId!)!;
+
             for (const task of tasks) {
               if (task.status === 'failed' && task.errorMessage) {
                 // Send task failure notification with format: "taskType|failed|errorMessage"
                 const taskType = task.subType || task.type;
-                const statusUpdate = `${taskType}|failed|${task.errorMessage}`;
-                if (this.progressCallback) {
-                  this.progressCallback(statusUpdate);
+                const failureKey = `${taskType}:${task.errorMessage}`;
+
+                // Only send notification if not already sent for this failure
+                if (!notifiedSet.has(failureKey)) {
+                  notifiedSet.add(failureKey);
+                  const statusUpdate = `${taskType}|failed|${task.errorMessage}`;
+                  if (this.progressCallback) {
+                    this.progressCallback(statusUpdate);
+                  }
                 }
               }
             }

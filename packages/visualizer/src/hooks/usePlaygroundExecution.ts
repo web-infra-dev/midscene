@@ -96,7 +96,18 @@ export function usePlaygroundExecution(
 
             // Check if this is a status update (format: "taskType|failed|errorMessage")
             if (tip.includes('|failed|')) {
-              const [taskType, _status, errorMessage] = tip.split('|');
+              const parts = tip.split('|');
+
+              // Validate format: must have at least 3 parts and second part must be "failed"
+              if (parts.length < 3 || parts[1] !== 'failed') {
+                console.warn('Invalid status update format:', tip);
+                return;
+              }
+
+              const taskType = parts[0];
+              const _status = parts[1];
+              // Rejoin remaining parts to preserve pipes in error message
+              const errorMessage = parts.slice(2).join('|');
 
               // Update the corresponding progress item with error status
               setInfoList((prev) => {

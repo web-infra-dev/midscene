@@ -82,12 +82,35 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       result?.reportHTML
     ) {
       resultDataToShow = (
-        <Player
-          key={replayCounter}
-          reportFileContent={result.reportHTML}
-          fitMode={fitMode}
-          autoZoom={autoZoom}
-        />
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            height: '100%',
+            gap: '8px',
+          }}
+        >
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#fff2f0',
+              border: '1px solid #ffccc7',
+              borderRadius: '4px',
+              color: '#cf1322',
+              fontSize: '14px',
+            }}
+          >
+            <strong>Error:</strong> {result.error}
+          </div>
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <Player
+              key={replayCounter}
+              reportFileContent={result.reportHTML}
+              fitMode={fitMode}
+              autoZoom={autoZoom}
+            />
+          </div>
+        </div>
       );
     } else {
       resultDataToShow = <pre>{result?.error}</pre>;
