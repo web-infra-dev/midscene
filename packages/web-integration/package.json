@@ -119,7 +119,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.44.1",
-    "@rslib/core": "^0.18.2",
+    "@rslib/core": "^0.18.3",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",

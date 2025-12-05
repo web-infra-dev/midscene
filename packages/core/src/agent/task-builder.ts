@@ -338,7 +338,7 @@ export class TaskBuilder {
     const { cacheable, modelConfigForDefaultIntent } = context;
 
     let locateParam = detailedLocateParam;
-    console.log(
+    debug(
       'modelConfigForDefaultIntent-locateParam',
       modelConfigForDefaultIntent,
       locateParam,

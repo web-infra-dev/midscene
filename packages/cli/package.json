@@ -29,7 +29,7 @@
     "puppeteer": "24.2.0"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.2",
+    "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",
     "@types/minimist": "1.2.5",
