@@ -13,12 +13,10 @@ import {
 
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser } from '@midscene/shared/utils';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import { SocksProxyAgent } from 'socks-proxy-agent';
 import type { AIActionType, AIArgs } from '../../common';
 
 async function createChatClient({
@@ -48,20 +46,102 @@ async function createChatClient({
     timeout,
   } = modelConfig;
 
-  let proxyAgent = undefined;
+  let proxyAgent: any = undefined;
   const debugProxy = getDebug('ai:call:proxy');
+
+  // Helper function to sanitize proxy URL for logging (remove credentials)
+  // Uses URL API instead of regex to avoid ReDoS vulnerabilities
+  const sanitizeProxyUrl = (url: string): string => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.username) {
+        // Keep username for debugging, hide password for security
+        parsed.password = '****';
+        return parsed.href;
+      }
+      return url;
+    } catch {
+      // If URL parsing fails, return original URL (will be caught later)
+      return url;
+    }
+  };
+
   if (httpProxy) {
-    debugProxy('using http proxy', httpProxy);
-    proxyAgent = new HttpsProxyAgent(httpProxy);
+    debugProxy('using http proxy', sanitizeProxyUrl(httpProxy));
+    if (ifInBrowser) {
+      console.warn(
+        'HTTP proxy is configured but not supported in browser environment',
+      );
+    } else {
+      // Dynamic import with variable to avoid bundler static analysis
+      const moduleName = 'undici';
+      const { ProxyAgent } = await import(moduleName);
+      proxyAgent = new ProxyAgent({
+        uri: httpProxy,
+        // Note: authentication is handled via the URI (e.g., http://user:pass@proxy.com:8080)
+      });
+    }
   } else if (socksProxy) {
-    debugProxy('using socks proxy', socksProxy);
-    proxyAgent = new SocksProxyAgent(socksProxy);
+    debugProxy('using socks proxy', sanitizeProxyUrl(socksProxy));
+    if (ifInBrowser) {
+      console.warn(
+        'SOCKS proxy is configured but not supported in browser environment',
+      );
+    } else {
+      try {
+        // Dynamic import with variable to avoid bundler static analysis
+        const moduleName = 'fetch-socks';
+        const { socksDispatcher } = await import(moduleName);
+        // Parse SOCKS proxy URL (e.g., socks5://127.0.0.1:1080)
+        const proxyUrl = new URL(socksProxy);
+
+        // Validate hostname
+        if (!proxyUrl.hostname) {
+          throw new Error('SOCKS proxy URL must include a valid hostname');
+        }
+
+        // Validate and parse port
+        const port = Number.parseInt(proxyUrl.port, 10);
+        if (!proxyUrl.port || Number.isNaN(port)) {
+          throw new Error('SOCKS proxy URL must include a valid port');
+        }
+
+        // Parse SOCKS version from protocol
+        const protocol = proxyUrl.protocol.replace(':', '');
+        const socksType =
+          protocol === 'socks4' ? 4 : protocol === 'socks5' ? 5 : 5;
+
+        proxyAgent = socksDispatcher({
+          type: socksType,
+          host: proxyUrl.hostname,
+          port,
+          ...(proxyUrl.username
+            ? {
+                userId: decodeURIComponent(proxyUrl.username),
+                password: decodeURIComponent(proxyUrl.password || ''),
+              }
+            : {}),
+        });
+        debugProxy('socks proxy configured successfully', {
+          type: socksType,
+          host: proxyUrl.hostname,
+          port: port,
+        });
+      } catch (error) {
+        console.error('Failed to configure SOCKS proxy:', error);
+        throw new Error(
+          `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks4://host:port, socks5://host:port, or with authentication: socks5://user:pass@host:port`,
+        );
+      }
+    }
   }
 
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
-    ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
+    // Use fetchOptions.dispatcher for fetch-based SDK instead of httpAgent
+    // Note: Type assertion needed due to undici version mismatch between dependencies
+    ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
     ...(typeof timeout === 'number' ? { timeout } : {}),
     dangerouslyAllowBrowser: true,
