@@ -25,12 +25,13 @@
     "inspect": "node scripts/inspect.mjs"
   },
   "devDependencies": {
-    "@midscene/ios": "workspace:*",
     "@midscene/core": "workspace:*",
+    "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@modelcontextprotocol/inspector": "^0.16.3",
     "@modelcontextprotocol/sdk": "1.10.2",
     "@rslib/core": "^0.18.3",
+    "@rspack/core": "1.6.6",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3",
