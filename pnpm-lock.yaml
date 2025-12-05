@@ -568,6 +568,9 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@rspack/core':
+        specifier: 1.6.6
+        version: 1.6.6(@swc/helpers@0.5.17)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -892,6 +895,9 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@rspack/core':
+        specifier: 1.6.6
+        version: 1.6.6(@swc/helpers@0.5.17)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -1231,6 +1237,9 @@ importers:
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@rspack/core':
+        specifier: 1.6.6
+        version: 1.6.6(@swc/helpers@0.5.17)
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118
@@ -3765,10 +3774,6 @@ packages:
     peerDependenciesMeta:
       '@swc/helpers':
         optional: true
-
-  '@rspack/lite-tapable@1.0.1':
-    resolution: {integrity: sha512-VynGOEsVw2s8TAlLf/uESfrgfrq2+rcXB1muPJYBWbsm1Oa6r5qVQhjA5ggM6z/coYPrsVMgovl3Ff7Q7OCp1w==}
-    engines: {node: '>=16.0.0'}
 
   '@rspack/lite-tapable@1.1.0':
     resolution: {integrity: sha512-E2B0JhYFmVAwdDiG14+DW0Di4Ze4Jg10Pc4/lILUrd5DRCaklduz2OvJ5HYQ6G+hd+WTzqQb3QnDNfK4yvAFYw==}
@@ -13841,8 +13846,6 @@ snapshots:
     optionalDependencies:
       '@swc/helpers': 0.5.17
 
-  '@rspack/lite-tapable@1.0.1': {}
-
   '@rspack/lite-tapable@1.1.0': {}
 
   '@rspack/plugin-react-refresh@1.5.1(react-refresh@0.17.0)':
@@ -21486,7 +21489,7 @@ snapshots:
   ts-checker-rspack-plugin@1.1.4(@rspack/core@1.6.6)(typescript@5.8.3):
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@rspack/lite-tapable': 1.0.1
+      '@rspack/lite-tapable': 1.1.0
       chokidar: 3.6.0
       is-glob: 4.0.3
       memfs: 4.17.2

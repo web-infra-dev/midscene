@@ -34,7 +34,7 @@ export default defineConfig({
         new rspack.BannerPlugin({
           banner: '#!/usr/bin/env node',
           raw: true,
-          include: /index\.js$/,
+          test: /^index\.js$/,
         }),
       ],
       optimization: {
