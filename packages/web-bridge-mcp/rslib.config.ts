@@ -1,4 +1,5 @@
 import { defineConfig } from '@rslib/core';
+import { rspack } from '@rspack/core';
 import { version } from './package.json';
 
 export default defineConfig({
@@ -26,6 +27,20 @@ export default defineConfig({
       '@silvia-odwyer/photon-node',
       '@modelcontextprotocol/sdk',
     ],
+  },
+  tools: {
+    rspack: {
+      plugins: [
+        new rspack.BannerPlugin({
+          banner: '#!/usr/bin/env node',
+          raw: true,
+          include: /index\.js$/,
+        }),
+      ],
+      optimization: {
+        minimize: false,
+      },
+    },
   },
   lib: [
     {

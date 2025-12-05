@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { parseArgs } from 'node:util';
 import { type CLIArgs, CLI_ARGS_CONFIG } from '@midscene/shared/mcp';
 import { AndroidMCPServer } from './server.js';
