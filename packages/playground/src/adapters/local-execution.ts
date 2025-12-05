@@ -252,12 +252,17 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       console.warn('Failed to reset dump:', error);
     }
 
-    // Return response in consistent format
+    // If there was an error, throw it after cleanup
+    if (executionError) {
+      throw executionError;
+    }
+
+    // Return response in consistent format for success case
     return {
-      result: executionError ? null : result,
+      result,
       dump,
       reportHTML,
-      error: executionError ? executionError.message : null,
+      error: null,
     };
   }
 
