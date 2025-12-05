@@ -126,6 +126,21 @@ export abstract class BaseMCPServer {
       throw new Error(`Failed to initialize MCP stdio transport: ${message}`);
     }
 
+    // Setup process-level error handlers to prevent crashes
+    process.on('uncaughtException', (error: Error) => {
+      console.error(`[${this.config.name}] Uncaught Exception:`, error);
+      console.error('Stack:', error.stack);
+      // Don't exit - try to recover
+    });
+
+    process.on('unhandledRejection', (reason: any) => {
+      console.error(`[${this.config.name}] Unhandled Rejection:`, reason);
+      if (reason instanceof Error) {
+        console.error('Stack:', reason.stack);
+      }
+      // Don't exit - try to recover
+    });
+
     // Setup cleanup handlers
     process.stdin.on('close', () => this.performCleanup());
 

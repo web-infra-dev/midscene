@@ -22,7 +22,30 @@ export function generateToolsFromActionSpace(
         paramSchema._def?.typeName === 'ZodObject' &&
         'shape' in paramSchema
       ) {
-        schema = (paramSchema as z.ZodObject<z.ZodRawShape>).shape;
+        const originalShape = (paramSchema as z.ZodObject<z.ZodRawShape>).shape;
+
+        // Deep clone and modify the shape to make locate.prompt optional
+        schema = Object.fromEntries(
+          Object.entries(originalShape).map(([key, value]) => {
+            // Check if this is a locate field (contains prompt field)
+            if (
+              value &&
+              typeof value === 'object' &&
+              '_def' in value &&
+              (value as any)._def?.typeName === 'ZodObject' &&
+              'shape' in value
+            ) {
+              const fieldShape = (value as any).shape;
+              if ('prompt' in fieldShape) {
+                // This is a locate field, make prompt optional
+                const newFieldShape = { ...fieldShape };
+                newFieldShape.prompt = fieldShape.prompt.optional();
+                return [key, z.object(newFieldShape).passthrough()];
+              }
+            }
+            return [key, value];
+          }),
+        );
       } else {
         // Otherwise use it as-is
         schema = paramSchema as unknown as Record<string, z.ZodTypeAny>;
@@ -34,44 +57,117 @@ export function generateToolsFromActionSpace(
       description: action.description || `Execute ${action.name} action`,
       schema,
       handler: async (args: Record<string, unknown>) => {
-        const agent = await getAgent();
+        try {
+          const agent = await getAgent();
 
-        // Call the action through agent's aiAction method
-        // args already contains the unwrapped parameters (e.g., { locate: {...} })
-        if (agent.aiAction) {
-          await agent.aiAction(`Use the action "${action.name}"`, {
-            ...args,
-          });
-        }
+          // Call the action through agent's aiAction method
+          // args already contains the unwrapped parameters (e.g., { locate: {...} })
+          if (agent.aiAction) {
+            // Convert args object to natural language description
+            let argsDescription = '';
+            try {
+              argsDescription = Object.entries(args)
+                .map(([key, value]) => {
+                  if (typeof value === 'object' && value !== null) {
+                    try {
+                      return `${key}: ${JSON.stringify(value)}`;
+                    } catch {
+                      return `${key}: [object]`;
+                    }
+                  }
+                  return `${key}: "${value}"`;
+                })
+                .join(', ');
+            } catch (error: unknown) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              // Only log errors to stderr (not stdout which MCP uses)
+              console.error('Error serializing args:', errorMessage);
+              argsDescription = `[args serialization failed: ${errorMessage}]`;
+            }
 
-        // Return screenshot after action
-        const screenshot = await agent.page?.screenshotBase64();
-        if (!screenshot) {
+            const instruction = argsDescription
+              ? `Use the action "${action.name}" with ${argsDescription}`
+              : `Use the action "${action.name}"`;
+
+            try {
+              await agent.aiAction(instruction);
+            } catch (error: unknown) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              console.error(
+                `Error executing action "${action.name}":`,
+                errorMessage,
+              );
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Failed to execute action "${action.name}": ${errorMessage}`,
+                  },
+                ],
+                isError: true,
+              };
+            }
+          }
+
+          // Return screenshot after action
+          try {
+            const screenshot = await agent.page?.screenshotBase64();
+            if (!screenshot) {
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Action "${action.name}" completed.`,
+                  },
+                ],
+              };
+            }
+
+            const { mimeType, body } = parseBase64(screenshot);
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Action "${action.name}" completed.`,
+                },
+                {
+                  type: 'image',
+                  data: body,
+                  mimeType,
+                },
+              ],
+            };
+          } catch (error: unknown) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            console.error('Error capturing screenshot:', errorMessage);
+            // Action completed but screenshot failed - still return success
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: `Action "${action.name}" completed (screenshot unavailable: ${errorMessage})`,
+                },
+              ],
+            };
+          }
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          console.error(`Error in handler for "${action.name}":`, errorMessage);
           return {
             content: [
               {
                 type: 'text',
-                text: `Action "${action.name}" completed.`,
+                text: `Failed to get agent or execute action "${action.name}": ${errorMessage}`,
               },
             ],
+            isError: true,
           };
         }
-
-        const { mimeType, body } = parseBase64(screenshot);
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Action "${action.name}" completed.`,
-            },
-            {
-              type: 'image',
-              data: body,
-              mimeType,
-            },
-          ],
-        };
       },
       autoDestroy: true,
     };
@@ -91,18 +187,33 @@ export function generateCommonTools(
       description: 'Capture screenshot of current page/screen',
       schema: {},
       handler: async () => {
-        const agent = await getAgent();
-        const screenshot = await agent.page?.screenshotBase64();
-        if (!screenshot) {
+        try {
+          const agent = await getAgent();
+          const screenshot = await agent.page?.screenshotBase64();
+          if (!screenshot) {
+            return {
+              content: [{ type: 'text', text: 'Screenshot not available' }],
+              isError: true,
+            };
+          }
+          const { mimeType, body } = parseBase64(screenshot);
           return {
-            content: [{ type: 'text', text: 'Screenshot not available' }],
+            content: [{ type: 'image', data: body, mimeType }],
+          };
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          console.error('Error taking screenshot:', errorMessage);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Failed to capture screenshot: ${errorMessage}`,
+              },
+            ],
             isError: true,
           };
         }
-        const { mimeType, body } = parseBase64(screenshot);
-        return {
-          content: [{ type: 'image', data: body, mimeType }],
-        };
       },
       autoDestroy: true,
     },
@@ -115,21 +226,36 @@ export function generateCommonTools(
         checkIntervalMs: z.number().optional().default(3000),
       },
       handler: async (args) => {
-        const agent = await getAgent();
-        const { assertion, timeoutMs, checkIntervalMs } = args as {
-          assertion: string;
-          timeoutMs?: number;
-          checkIntervalMs?: number;
-        };
+        try {
+          const agent = await getAgent();
+          const { assertion, timeoutMs, checkIntervalMs } = args as {
+            assertion: string;
+            timeoutMs?: number;
+            checkIntervalMs?: number;
+          };
 
-        if (agent.aiWaitFor) {
-          await agent.aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
+          if (agent.aiWaitFor) {
+            await agent.aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
+          }
+
+          return {
+            content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
+            isError: false,
+          };
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          console.error('Error in wait_for:', errorMessage);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Wait condition failed: ${errorMessage}`,
+              },
+            ],
+            isError: true,
+          };
         }
-
-        return {
-          content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
-          isError: false,
-        };
       },
       autoDestroy: true,
     },

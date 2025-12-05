@@ -80,7 +80,7 @@ export interface BaseAgent {
   };
   aiAction?: (
     description: string,
-    params: Record<string, unknown>,
+    params?: Record<string, unknown>,
   ) => Promise<void>;
   aiWaitFor?: (
     assertion: string,
