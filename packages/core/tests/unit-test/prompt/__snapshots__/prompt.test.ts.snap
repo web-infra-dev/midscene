@@ -243,7 +243,7 @@ Please tell what the next one action is (or null if no action should be done) to
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
-- When the next step is to assert something, this is a very important step, you should think about it carefully and give a solid result. Write your result in the "log" field like this: "Assert: <condition>. I think <...>, so the result is <true / false>". You don't need to give the next one action when you are asserting something. If the assertion result is false, think this an fatal error and set the reason into the "error" field. If the assertion result is true, you can continue to the next step.
+- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion in the "log" field like this: "Assert: <condition>. I can see <...>, and I think <...>, so the assertion is <truthy / falsy>". If the assertion is falsy, think this an fatal error and set the reason into the "error" field.
 
 ## Supporting actions
 - Tap, Tap the element
@@ -336,7 +336,7 @@ Please tell what the next one action is (or null if no action should be done) to
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
-- When the next step is to assert something, this is a very important step, you should think about it carefully and give a solid result. Write your result in the "log" field like this: "Assert: <condition>. I think <...>, so the result is <true / false>". You don't need to give the next one action when you are asserting something. If the assertion result is false, think this an fatal error and set the reason into the "error" field. If the assertion result is true, you can continue to the next step.
+- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion in the "log" field like this: "Assert: <condition>. I can see <...>, and I think <...>, so the assertion is <truthy / falsy>". If the assertion is falsy, think this an fatal error and set the reason into the "error" field.
 
 ## Supporting actions
 - Tap, Tap the element
@@ -429,7 +429,7 @@ Please tell what the next one action is (or null if no action should be done) to
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
-- When the next step is to assert something, this is a very important step, you should think about it carefully and give a solid result. Write your result in the "log" field like this: "Assert: <condition>. I think <...>, so the result is <true / false>". You don't need to give the next one action when you are asserting something. If the assertion result is false, think this an fatal error and set the reason into the "error" field. If the assertion result is true, you can continue to the next step.
+- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion in the "log" field like this: "Assert: <condition>. I can see <...>, and I think <...>, so the assertion is <truthy / falsy>". If the assertion is falsy, think this an fatal error and set the reason into the "error" field.
 
 ## Supporting actions
 - Tap, Tap the element
@@ -522,7 +522,7 @@ Please tell what the next one action is (or null if no action should be done) to
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
-- When the next step is to assert something, this is a very important step, you should think about it carefully and give a solid result. Write your result in the "log" field like this: "Assert: <condition>. I think <...>, so the result is <true / false>". You don't need to give the next one action when you are asserting something. If the assertion result is false, think this an fatal error and set the reason into the "error" field. If the assertion result is true, you can continue to the next step.
+- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion in the "log" field like this: "Assert: <condition>. I can see <...>, and I think <...>, so the assertion is <truthy / falsy>". If the assertion is falsy, think this an fatal error and set the reason into the "error" field.
 
 ## Supporting actions
 - Tap, Tap the element
