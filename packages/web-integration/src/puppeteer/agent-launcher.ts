@@ -15,6 +15,14 @@ export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout =
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
 
+export function resolveAiActionContext(
+  target: MidsceneYamlScriptWebEnv,
+  preference?: Partial<Pick<AgentOpt, 'aiActionContext'>>,
+): AgentOpt['aiActionContext'] | undefined {
+  // Prefer the web target override if provided; otherwise fall back to agent-level preference.
+  return target.aiActionContext ?? preference?.aiActionContext;
+}
+
 /**
  * Chrome arguments that may reduce browser security.
  * These should only be used in controlled testing environments.
@@ -286,11 +294,12 @@ export async function puppeteerAgentForTarget(
     preference,
     browser,
   );
+  const aiActionContext = resolveAiActionContext(target, preference);
 
   // prepare Midscene agent
   const agent = new PuppeteerAgent(page, {
     ...preference,
-    aiActionContext: target.aiActionContext,
+    aiActionContext,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation
