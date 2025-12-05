@@ -125,10 +125,10 @@ export class TaskCache {
       return undefined;
     }
     // Find the first unused matching cache
+    const promptStr =
+      typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
     for (let i = 0; i < this.cacheOriginalLength; i++) {
       const item = this.cache.caches[i];
-      const promptStr =
-        typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
       const key = `${type}:${promptStr}:${i}`;
       if (
         item.type === type &&
