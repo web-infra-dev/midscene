@@ -1,6 +1,197 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { z } from 'zod';
-import type { ActionSpaceItem, BaseAgent, ToolDefinition } from './types';
+import type {
+  ActionSpaceItem,
+  BaseAgent,
+  ToolDefinition,
+  ToolResult,
+} from './types';
+
+/**
+ * Extract error message from unknown error type
+ */
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Type guard: check if a Zod type is ZodOptional
+ */
+function isZodOptional(
+  value: z.ZodTypeAny,
+): value is z.ZodOptional<z.ZodTypeAny> {
+  return '_def' in value && value._def?.typeName === 'ZodOptional';
+}
+
+/**
+ * Type guard: check if a Zod type is ZodObject
+ */
+function isZodObject(value: z.ZodTypeAny): value is z.ZodObject<z.ZodRawShape> {
+  return (
+    '_def' in value && value._def?.typeName === 'ZodObject' && 'shape' in value
+  );
+}
+
+/**
+ * Unwrap ZodOptional to get inner type
+ */
+function unwrapOptional(value: z.ZodTypeAny): {
+  innerValue: z.ZodTypeAny;
+  isOptional: boolean;
+} {
+  if (isZodOptional(value)) {
+    return { innerValue: value._def.innerType, isOptional: true };
+  }
+  return { innerValue: value, isOptional: false };
+}
+
+/**
+ * Check if a Zod object schema contains a 'prompt' field (locate field pattern)
+ */
+function isLocateField(value: z.ZodTypeAny): boolean {
+  if (!isZodObject(value)) {
+    return false;
+  }
+  return 'prompt' in value.shape;
+}
+
+/**
+ * Transform a locate field schema to make its 'prompt' field optional
+ */
+function makePromptOptional(
+  value: z.ZodObject<z.ZodRawShape>,
+  wrapInOptional: boolean,
+): z.ZodTypeAny {
+  const newShape = { ...value.shape };
+  newShape.prompt = value.shape.prompt.optional();
+
+  let newSchema: z.ZodTypeAny = z.object(newShape).passthrough();
+  if (wrapInOptional) {
+    newSchema = newSchema.optional();
+  }
+  return newSchema;
+}
+
+/**
+ * Transform schema field to make locate.prompt optional if applicable
+ */
+function transformSchemaField(
+  key: string,
+  value: z.ZodTypeAny,
+): [string, z.ZodTypeAny] {
+  const { innerValue, isOptional } = unwrapOptional(value);
+
+  if (isZodObject(innerValue) && isLocateField(innerValue)) {
+    return [key, makePromptOptional(innerValue, isOptional)];
+  }
+  return [key, value];
+}
+
+/**
+ * Extract and transform schema from action's paramSchema
+ */
+function extractActionSchema(
+  paramSchema: z.ZodTypeAny | undefined,
+): Record<string, z.ZodTypeAny> {
+  if (!paramSchema) {
+    return {};
+  }
+
+  const schema = paramSchema as z.ZodTypeAny;
+  if (!isZodObject(schema)) {
+    return schema as unknown as Record<string, z.ZodTypeAny>;
+  }
+
+  return Object.fromEntries(
+    Object.entries(schema.shape).map(([key, value]) =>
+      transformSchemaField(key, value as z.ZodTypeAny),
+    ),
+  );
+}
+
+/**
+ * Serialize args to human-readable description for AI action
+ */
+function serializeArgsToDescription(args: Record<string, unknown>): string {
+  try {
+    return Object.entries(args)
+      .map(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          try {
+            return `${key}: ${JSON.stringify(value)}`;
+          } catch {
+            // Circular reference or non-serializable object
+            return `${key}: [object]`;
+          }
+        }
+        return `${key}: "${value}"`;
+      })
+      .join(', ');
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
+    console.error('Error serializing args:', errorMessage);
+    return `[args serialization failed: ${errorMessage}]`;
+  }
+}
+
+/**
+ * Build action instruction string from action name and args
+ */
+function buildActionInstruction(
+  actionName: string,
+  args: Record<string, unknown>,
+): string {
+  const argsDescription = serializeArgsToDescription(args);
+  return argsDescription
+    ? `Use the action "${actionName}" with ${argsDescription}`
+    : `Use the action "${actionName}"`;
+}
+
+/**
+ * Capture screenshot and return as tool result
+ */
+async function captureScreenshotResult(
+  agent: BaseAgent,
+  actionName: string,
+): Promise<ToolResult> {
+  try {
+    const screenshot = await agent.page?.screenshotBase64();
+    if (!screenshot) {
+      return {
+        content: [{ type: 'text', text: `Action "${actionName}" completed.` }],
+      };
+    }
+
+    const { mimeType, body } = parseBase64(screenshot);
+    return {
+      content: [
+        { type: 'text', text: `Action "${actionName}" completed.` },
+        { type: 'image', data: body, mimeType },
+      ],
+    };
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
+    console.error('Error capturing screenshot:', errorMessage);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Action "${actionName}" completed (screenshot unavailable: ${errorMessage})`,
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Create error result for tool handler
+ */
+function createErrorResult(message: string): ToolResult {
+  return {
+    content: [{ type: 'text', text: message }],
+    isError: true,
+  };
+}
 
 /**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
@@ -11,66 +202,7 @@ export function generateToolsFromActionSpace(
   getAgent: () => Promise<BaseAgent>,
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
-    // Extract the shape from Zod schema if it exists
-    // For z.object({ locate: ... }), we want to get the shape (the fields inside)
-    let schema: Record<string, z.ZodTypeAny> = {};
-    if (action.paramSchema) {
-      const paramSchema = action.paramSchema as z.ZodTypeAny;
-      // If it's a ZodObject, extract its shape
-      if (
-        '_def' in paramSchema &&
-        paramSchema._def?.typeName === 'ZodObject' &&
-        'shape' in paramSchema
-      ) {
-        const originalShape = (paramSchema as z.ZodObject<z.ZodRawShape>).shape;
-
-        // Deep clone and modify the shape to make locate.prompt optional
-        schema = Object.fromEntries(
-          Object.entries(originalShape).map(([key, value]) => {
-            // Unwrap ZodOptional if present to check the inner type
-            let innerValue = value;
-            let isOptional = false;
-            if (
-              innerValue &&
-              typeof innerValue === 'object' &&
-              '_def' in innerValue &&
-              (innerValue as any)._def?.typeName === 'ZodOptional'
-            ) {
-              innerValue = (innerValue as any)._def.innerType;
-              isOptional = true;
-            }
-
-            // Check if this is a locate field (contains prompt field)
-            if (
-              innerValue &&
-              typeof innerValue === 'object' &&
-              '_def' in innerValue &&
-              (innerValue as any)._def?.typeName === 'ZodObject' &&
-              'shape' in innerValue
-            ) {
-              const fieldShape = (innerValue as any).shape;
-              if ('prompt' in fieldShape) {
-                // This is a locate field, make prompt optional
-                const newFieldShape = { ...fieldShape };
-                newFieldShape.prompt = fieldShape.prompt.optional();
-                let newSchema: z.ZodTypeAny = z
-                  .object(newFieldShape)
-                  .passthrough();
-                // Re-wrap in optional if it was optional before
-                if (isOptional) {
-                  newSchema = newSchema.optional();
-                }
-                return [key, newSchema];
-              }
-            }
-            return [key, value];
-          }),
-        );
-      } else {
-        // Otherwise use it as-is
-        schema = paramSchema as unknown as Record<string, z.ZodTypeAny>;
-      }
-    }
+    const schema = extractActionSchema(action.paramSchema as z.ZodTypeAny);
 
     return {
       name: action.name,
@@ -80,113 +212,29 @@ export function generateToolsFromActionSpace(
         try {
           const agent = await getAgent();
 
-          // Call the action through agent's aiAction method
-          // args already contains the unwrapped parameters (e.g., { locate: {...} })
           if (agent.aiAction) {
-            // Convert args object to natural language description
-            let argsDescription = '';
-            try {
-              argsDescription = Object.entries(args)
-                .map(([key, value]) => {
-                  if (typeof value === 'object' && value !== null) {
-                    try {
-                      return `${key}: ${JSON.stringify(value)}`;
-                    } catch {
-                      return `${key}: [object]`;
-                    }
-                  }
-                  return `${key}: "${value}"`;
-                })
-                .join(', ');
-            } catch (error: unknown) {
-              const errorMessage =
-                error instanceof Error ? error.message : String(error);
-              // Only log errors to stderr (not stdout which MCP uses)
-              console.error('Error serializing args:', errorMessage);
-              argsDescription = `[args serialization failed: ${errorMessage}]`;
-            }
-
-            const instruction = argsDescription
-              ? `Use the action "${action.name}" with ${argsDescription}`
-              : `Use the action "${action.name}"`;
-
+            const instruction = buildActionInstruction(action.name, args);
             try {
               await agent.aiAction(instruction);
             } catch (error: unknown) {
-              const errorMessage =
-                error instanceof Error ? error.message : String(error);
+              const errorMessage = getErrorMessage(error);
               console.error(
                 `Error executing action "${action.name}":`,
                 errorMessage,
               );
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `Failed to execute action "${action.name}": ${errorMessage}`,
-                  },
-                ],
-                isError: true,
-              };
+              return createErrorResult(
+                `Failed to execute action "${action.name}": ${errorMessage}`,
+              );
             }
           }
 
-          // Return screenshot after action
-          try {
-            const screenshot = await agent.page?.screenshotBase64();
-            if (!screenshot) {
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `Action "${action.name}" completed.`,
-                  },
-                ],
-              };
-            }
-
-            const { mimeType, body } = parseBase64(screenshot);
-
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Action "${action.name}" completed.`,
-                },
-                {
-                  type: 'image',
-                  data: body,
-                  mimeType,
-                },
-              ],
-            };
-          } catch (error: unknown) {
-            const errorMessage =
-              error instanceof Error ? error.message : String(error);
-            console.error('Error capturing screenshot:', errorMessage);
-            // Action completed but screenshot failed - still return success
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: `Action "${action.name}" completed (screenshot unavailable: ${errorMessage})`,
-                },
-              ],
-            };
-          }
+          return await captureScreenshotResult(agent, action.name);
         } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          const errorMessage = getErrorMessage(error);
           console.error(`Error in handler for "${action.name}":`, errorMessage);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to get agent or execute action "${action.name}": ${errorMessage}`,
-              },
-            ],
-            isError: true,
-          };
+          return createErrorResult(
+            `Failed to get agent or execute action "${action.name}": ${errorMessage}`,
+          );
         }
       },
       autoDestroy: true,
@@ -206,33 +254,23 @@ export function generateCommonTools(
       name: 'take_screenshot',
       description: 'Capture screenshot of current page/screen',
       schema: {},
-      handler: async () => {
+      handler: async (): Promise<ToolResult> => {
         try {
           const agent = await getAgent();
           const screenshot = await agent.page?.screenshotBase64();
           if (!screenshot) {
-            return {
-              content: [{ type: 'text', text: 'Screenshot not available' }],
-              isError: true,
-            };
+            return createErrorResult('Screenshot not available');
           }
           const { mimeType, body } = parseBase64(screenshot);
           return {
             content: [{ type: 'image', data: body, mimeType }],
           };
         } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          const errorMessage = getErrorMessage(error);
           console.error('Error taking screenshot:', errorMessage);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Failed to capture screenshot: ${errorMessage}`,
-              },
-            ],
-            isError: true,
-          };
+          return createErrorResult(
+            `Failed to capture screenshot: ${errorMessage}`,
+          );
         }
       },
       autoDestroy: true,
@@ -245,7 +283,7 @@ export function generateCommonTools(
         timeoutMs: z.number().optional().default(15000),
         checkIntervalMs: z.number().optional().default(3000),
       },
-      handler: async (args) => {
+      handler: async (args): Promise<ToolResult> => {
         try {
           const agent = await getAgent();
           const { assertion, timeoutMs, checkIntervalMs } = args as {
@@ -260,21 +298,11 @@ export function generateCommonTools(
 
           return {
             content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
-            isError: false,
           };
         } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+          const errorMessage = getErrorMessage(error);
           console.error('Error in wait_for:', errorMessage);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Wait condition failed: ${errorMessage}`,
-              },
-            ],
-            isError: true,
-          };
+          return createErrorResult(`Wait condition failed: ${errorMessage}`);
         }
       },
       autoDestroy: true,

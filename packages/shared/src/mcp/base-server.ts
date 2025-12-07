@@ -133,7 +133,7 @@ export abstract class BaseMCPServer {
       // Don't exit - try to recover
     });
 
-    process.on('unhandledRejection', (reason: any) => {
+    process.on('unhandledRejection', (reason: unknown) => {
       console.error(`[${this.config.name}] Unhandled Rejection:`, reason);
       if (reason instanceof Error) {
         console.error('Stack:', reason.stack);
