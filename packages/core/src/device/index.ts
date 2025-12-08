@@ -293,7 +293,8 @@ export const defineActionDragAndDrop = (
     ActionDragAndDropParam
   >({
     name: 'DragAndDrop',
-    description: 'Drag and drop the element',
+    description:
+      'Drag and drop (hold the mouse or finger down and move the mouse) ',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
     call,

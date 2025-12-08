@@ -27,6 +27,7 @@ const agent = new PuppeteerAgent(page, {
 - `forceSameTabNavigation: boolean` —— 限制始终在当前标签页内导航，默认 `true`。
 - `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
 
 ### 使用说明
@@ -111,6 +112,7 @@ const agent = new PlaywrightAgent(page, {
 - `forceSameTabNavigation: boolean` —— 强制在当前标签页内执行，默认 `true`。
 - `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
 - `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
 
 ### 使用说明

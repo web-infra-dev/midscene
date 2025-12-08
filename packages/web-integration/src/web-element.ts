@@ -22,6 +22,7 @@ export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+  enableTouchEventsInActionSpace?: boolean;
   /**
    * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
    * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
