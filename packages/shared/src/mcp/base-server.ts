@@ -114,6 +114,19 @@ export abstract class BaseMCPServer {
    * Initialize and launch the MCP server with stdio transport
    */
   public async launch(): Promise<void> {
+    // Hijack stdout-based console methods to stderr for stdio mode
+    // This prevents them from breaking MCP JSON-RPC protocol on stdout
+    // Note: console.warn and console.error already output to stderr
+    console.log = (...args: unknown[]) => {
+      console.error('[LOG]', ...args);
+    };
+    console.info = (...args: unknown[]) => {
+      console.error('[INFO]', ...args);
+    };
+    console.debug = (...args: unknown[]) => {
+      console.error('[DEBUG]', ...args);
+    };
+
     await this.initializeToolsManager();
 
     const transport = new StdioServerTransport();
