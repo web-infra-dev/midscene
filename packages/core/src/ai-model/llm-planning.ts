@@ -32,6 +32,7 @@ export async function plan(
     modelConfig: IModelConfig;
     conversationHistory: ConversationHistory;
     includeBbox: boolean;
+    imagesIncludeCount?: number;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -59,13 +60,17 @@ export async function plan(
     imagePayload = paddedResult.imageBase64;
   }
 
+  const actionContext = opts.actionContext
+    ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
+    : '';
+
   const instruction: ChatCompletionMessageParam[] = [
     {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n<user_instruction>${userInstruction}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction}</user_instruction>`,
         },
       ],
     },
@@ -111,7 +116,7 @@ export async function plan(
     };
   }
   conversationHistory.append(latestFeedbackMessage);
-  const historyLog = conversationHistory.snapshot();
+  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },

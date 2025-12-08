@@ -793,7 +793,7 @@ export class Agent<
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
-      _deepThink?: boolean;
+      planningStrategy?: 'fast' | 'standard' | 'max';
     },
   ) {
     const modelConfigForPlanning =
@@ -801,19 +801,24 @@ export class Agent<
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    let thinkingLevelToUse = opt?._deepThink ? 'high' : 'medium';
-    if (this.opts.aiActionContext) {
-      debug('using high thinking level because of aiActionContext');
-      thinkingLevelToUse = 'high';
+    let planningStrategyToUse = opt?.planningStrategy || 'standard';
+    if (this.opts.aiActionContext && planningStrategyToUse === 'fast') {
+      debug('using standard planning strategy because of aiActionContext');
+      planningStrategyToUse = 'standard';
+    }
+
+    if ((this.opts as any)?._deepThink) {
+      debug('using deep think planning strategy');
+      planningStrategyToUse = 'max';
     }
 
     // should include bbox in planning if
     // 1. the planning model is the same as the default intent model
     // and
-    // 2. the thinking level is not high
+    // 2. the planning strategy is fast
     const includeBboxInPlanning =
       modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
-      thinkingLevelToUse !== 'high';
+      planningStrategyToUse === 'fast';
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
@@ -844,6 +849,12 @@ export class Agent<
 
     // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
+    let imagesIncludeCount: number | undefined = 1;
+    if (planningStrategyToUse === 'standard') {
+      imagesIncludeCount = 2;
+    } else if (planningStrategyToUse === 'max') {
+      imagesIncludeCount = undefined; // unlimited images
+    }
     const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfigForPlanning,
@@ -852,6 +863,7 @@ export class Agent<
       this.opts.aiActionContext,
       cacheable,
       replanningCycleLimit,
+      imagesIncludeCount,
     );
 
     // update cache

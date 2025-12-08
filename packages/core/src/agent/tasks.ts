@@ -197,6 +197,7 @@ export class TaskExecutor {
     backgroundKnowledge?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
+    imagesIncludeCount?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -232,6 +233,7 @@ export class TaskExecutor {
           param: {
             userInstruction: userPrompt,
             aiActionContext: backgroundKnowledge,
+            imagesIncludeCount,
           },
           executor: async (param, executorContext) => {
             const startTime = Date.now();
@@ -269,6 +271,7 @@ export class TaskExecutor {
               modelConfig: modelConfigForPlanning,
               conversationHistory: this.conversationHistory,
               includeBbox: includeBboxInPlanning,
+              imagesIncludeCount,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
 
