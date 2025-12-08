@@ -803,8 +803,9 @@ export class Agent<
 
     let planningStrategyToUse = opt?.planningStrategy || 'standard';
     if (this.opts.aiActionContext && planningStrategyToUse === 'fast') {
-      debug('using standard planning strategy because of aiActionContext');
-      planningStrategyToUse = 'standard';
+      console.warn(
+        'using fast planning strategy with aiActionContext is not recommended',
+      );
     }
 
     if ((this.opts as any)?._deepThink) {
