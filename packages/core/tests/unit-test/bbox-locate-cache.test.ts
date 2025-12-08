@@ -12,13 +12,33 @@
  * - 1st execution: both plan and locate cache written
  * - 2nd execution: both plan and locate cache hit
  */
-import { TaskCache } from '@/agent';
+import { type LocateCache, TaskCache } from '@/agent';
 import { TaskBuilder } from '@/agent/task-builder';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
+import type { IModelConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMidsceneLocationSchema, z } from '../../src';
+
+/**
+ * Type for accessing TaskCache internal state in tests
+ * @internal Only for testing purposes
+ */
+interface TaskCacheInternal {
+  cache: {
+    caches: LocateCache[];
+  };
+  cacheOriginalLength: number;
+}
+
+/**
+ * Get internal cache state for testing
+ * @internal Only for testing purposes
+ */
+function getTaskCacheInternal(taskCache: TaskCache): TaskCacheInternal {
+  return taskCache as unknown as TaskCacheInternal;
+}
 
 describe('bbox locate cache fix', () => {
   let taskBuilder: TaskBuilder;
@@ -26,18 +46,20 @@ describe('bbox locate cache fix', () => {
   let mockService: Service;
   let taskCache: TaskCache;
 
-  // Create a minimal valid PNG base64 image
+  // Create a minimal valid PNG base64 image (1x1 transparent pixel)
   const validBase64Image =
     'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-  const mockModelConfig = {
+  // Mock model config with required properties for testing
+  const mockModelConfig: IModelConfig = {
     vlMode: undefined,
-    model: 'test-model',
     modelName: 'test-model',
-  } as any;
+    modelDescription: 'test model for unit tests',
+    intent: 'default',
+  };
 
   beforeEach(() => {
-    // Create mock interface
+    // Create mock interface with typed methods
     mockInterface = {
       interfaceType: 'web',
       screenshotBase64: vi.fn().mockResolvedValue(validBase64Image),
@@ -64,9 +86,9 @@ describe('bbox locate cache fix', () => {
         texts: ['search box'],
       }),
       rectMatchesCacheFeature: vi.fn().mockResolvedValue(undefined),
-    };
+    } as unknown as AbstractInterface;
 
-    // Create mock service
+    // Create mock service with typed methods
     mockService = {
       contextRetrieverFn: vi.fn().mockResolvedValue({
         screenshotBase64: validBase64Image,
@@ -87,7 +109,7 @@ describe('bbox locate cache fix', () => {
         },
         dump: {},
       }),
-    } as any;
+    } as unknown as Service;
 
     // Create task cache
     taskCache = new TaskCache(uuid(), true);
@@ -100,10 +122,17 @@ describe('bbox locate cache fix', () => {
     });
   });
 
-  // Helper function to find cache entry by prompt
-  const findLocateCacheByPrompt = (prompt: string) => {
-    return (taskCache as any).cache.caches.find(
-      (c: any) => c.type === 'locate' && c.prompt === prompt,
+  /**
+   * Helper function to find cache entry by prompt
+   * Uses getTaskCacheInternal to access internal state
+   */
+  const findLocateCacheByPrompt = (
+    cache: TaskCache,
+    prompt: string,
+  ): LocateCache | undefined => {
+    const internal = getTaskCacheInternal(cache);
+    return internal.cache.caches.find(
+      (c) => c.type === 'locate' && c.prompt === prompt,
     );
   };
 
@@ -160,7 +189,10 @@ describe('bbox locate cache fix', () => {
       expect(mockInterface.cacheFeatureForRect).toHaveBeenCalled();
 
       // Verify locate cache was written (check internal cache array directly)
-      const cachedLocate = findLocateCacheByPrompt('search input box');
+      const cachedLocate = findLocateCacheByPrompt(
+        taskCache,
+        'search input box',
+      );
       expect(cachedLocate).toBeDefined();
       expect(cachedLocate?.cache).toBeDefined();
       expect(cachedLocate?.cache?.xpaths).toContain('/html/body/input[1]');
@@ -213,8 +245,9 @@ describe('bbox locate cache fix', () => {
       const cacheId = uuid();
       const prePopulatedTaskCache = new TaskCache(cacheId, true);
 
-      // Add cache entry directly to internal storage
-      (prePopulatedTaskCache as any).cache.caches.push({
+      // Add cache entry directly to internal storage using helper
+      const internal = getTaskCacheInternal(prePopulatedTaskCache);
+      internal.cache.caches.push({
         type: 'locate',
         prompt: 'existing element',
         cache: {
@@ -222,7 +255,7 @@ describe('bbox locate cache fix', () => {
         },
       });
       // Update the original length so matchLocateCache can find it
-      (prePopulatedTaskCache as any).cacheOriginalLength = 1;
+      internal.cacheOriginalLength = 1;
 
       // Create new task builder with pre-populated cache
       const taskBuilderWithCache = new TaskBuilder({
@@ -281,8 +314,9 @@ describe('bbox locate cache fix', () => {
       const cacheId = uuid();
       const testCache = new TaskCache(cacheId, true);
 
-      // First: simulate first execution that writes cache
-      (testCache as any).cache.caches.push({
+      // Simulate first execution that writes cache using helper
+      const internal = getTaskCacheInternal(testCache);
+      internal.cache.caches.push({
         type: 'locate',
         prompt: 'login button',
         cache: {
@@ -290,7 +324,7 @@ describe('bbox locate cache fix', () => {
         },
       });
       // Update cacheOriginalLength to include this cache entry
-      (testCache as any).cacheOriginalLength = 1;
+      internal.cacheOriginalLength = 1;
 
       // Create task builder with this cache
       const taskBuilderWithCache = new TaskBuilder({
@@ -437,7 +471,10 @@ describe('bbox locate cache fix', () => {
       expect(mockInterface.cacheFeatureForRect).not.toHaveBeenCalled();
 
       // Verify cache was NOT written
-      const cachedLocate = findLocateCacheByPrompt('no cache element');
+      const cachedLocate = findLocateCacheByPrompt(
+        taskCache,
+        'no cache element',
+      );
       expect(cachedLocate).toBeUndefined();
     });
 
@@ -487,6 +524,7 @@ describe('bbox locate cache fix', () => {
 
       // Cache should NOT be written when cacheFeatureForRect returns empty
       const cachedLocate = findLocateCacheByPrompt(
+        taskCache,
         'element with no cache features',
       );
       expect(cachedLocate).toBeUndefined();

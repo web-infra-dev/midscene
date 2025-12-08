@@ -31,6 +31,18 @@ import {
 
 const debug = getDebug('agent:task-builder');
 
+/**
+ * Check if a cache object is non-empty
+ */
+function hasNonEmptyCache(cache: unknown): boolean {
+  return (
+    cache !== null &&
+    cache !== undefined &&
+    typeof cache === 'object' &&
+    Object.keys(cache).length > 0
+  );
+}
+
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
   const locatePlan: PlanningAction<PlanningLocateParam> = {
@@ -388,12 +400,12 @@ export class TaskBuilder {
         const elementFromBbox = ifPlanLocateParamIsBbox(param)
           ? matchElementFromPlan(param)
           : undefined;
-        const planHitFlag = !!elementFromBbox;
+        const isPlanHit = !!elementFromBbox;
 
         // from xpath
         let rectFromXpath: Rect | undefined;
         if (
-          !planHitFlag &&
+          !isPlanHit &&
           param.xpath &&
           this.interface.rectMatchesCacheFeature
         ) {
@@ -401,9 +413,8 @@ export class TaskBuilder {
             rectFromXpath = await this.interface.rectMatchesCacheFeature({
               xpaths: [param.xpath],
             });
-          } catch (error) {
+          } catch {
             // xpath locate failed, allow fallback to cache or AI locate
-            rectFromXpath = undefined;
           }
         }
         const elementFromXpath = rectFromXpath
@@ -417,14 +428,14 @@ export class TaskBuilder {
                 : param.prompt?.prompt || '',
             )
           : undefined;
-        const userExpectedPathHitFlag = !!elementFromXpath;
+        const isXpathHit = !!elementFromXpath;
 
         const cachePrompt = param.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
         const elementFromCache =
-          planHitFlag || userExpectedPathHitFlag
+          isPlanHit || isXpathHit
             ? null
             : await matchElementFromCache(
                 {
@@ -435,10 +446,10 @@ export class TaskBuilder {
                 cachePrompt,
                 param.cacheable,
               );
-        const cacheHitFlag = !!elementFromCache;
+        const isCacheHit = !!elementFromCache;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
-        if (!userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag) {
+        if (!isXpathHit && !isCacheHit && !isPlanHit) {
           try {
             locateResult = await this.service.locate(
               param,
@@ -464,9 +475,8 @@ export class TaskBuilder {
           elementFromAiLocate;
 
         // Check if locate cache already exists (for planHitFlag case)
-        const locateCacheAlreadyExists = !!(
-          locateCacheRecord?.cacheContent?.cache &&
-          Object.keys(locateCacheRecord.cacheContent.cache).length > 0
+        const locateCacheAlreadyExists = hasNonEmptyCache(
+          locateCacheRecord?.cacheContent?.cache,
         );
 
         let currentCacheEntry: ElementCacheFeature | undefined;
@@ -479,7 +489,7 @@ export class TaskBuilder {
         if (
           element &&
           this.taskCache &&
-          !cacheHitFlag &&
+          !isCacheHit &&
           !locateCacheAlreadyExists &&
           param?.cacheable !== false
         ) {
@@ -495,7 +505,7 @@ export class TaskBuilder {
                   modelConfig: modelConfigForDefaultIntent,
                 },
               );
-              if (feature && Object.keys(feature).length > 0) {
+              if (hasNonEmptyCache(feature)) {
                 debug(
                   'update cache, prompt: %s, cache: %o',
                   cachePrompt,
@@ -536,21 +546,21 @@ export class TaskBuilder {
 
         let hitBy: ExecutionTaskHitBy | undefined;
 
-        if (planHitFlag) {
+        if (isPlanHit) {
           hitBy = {
             from: 'Plan',
             context: {
               bbox: param.bbox,
             },
           };
-        } else if (userExpectedPathHitFlag) {
+        } else if (isXpathHit) {
           hitBy = {
             from: 'User expected path',
             context: {
               xpath: param.xpath,
             },
           };
-        } else if (cacheHitFlag) {
+        } else if (isCacheHit) {
           hitBy = {
             from: 'Cache',
             context: {
