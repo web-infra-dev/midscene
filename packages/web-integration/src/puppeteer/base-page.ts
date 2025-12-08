@@ -65,11 +65,14 @@ export class Page<
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
-
+  private enableTouchEventsInActionSpace: boolean;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
-    const defaultActions = commonWebActionsForWebPage(this);
+    const defaultActions = commonWebActionsForWebPage(
+      this,
+      this.enableTouchEventsInActionSpace,
+    );
     const customActions = this.customActions || [];
     return [...defaultActions, ...customActions];
   }
@@ -109,6 +112,8 @@ export class Page<
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
     this.customActions = opts?.customActions;
+    this.enableTouchEventsInActionSpace =
+      opts?.enableTouchEventsInActionSpace ?? false;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {

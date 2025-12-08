@@ -130,7 +130,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
-    _deepThink?: boolean;
+    planningStrategy?: 'fast' | 'standard';
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -141,7 +141,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `_deepThink?: boolean` - Experimental flag that increases the model's thinking depth for complex scenarios at the cost of extra time and token usage; behavior may change in future versions.
+    - `planningStrategy?: 'fast' | 'standard'` - Choose the planning mode: `fast` merges planning and locating to run quicker for simple instructions; `standard` (default) separates planning and locating and includes the previous-step screenshot to help the model understand the full interaction flow
 
 - Return Value:
 
