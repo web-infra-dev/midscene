@@ -1,0 +1,112 @@
+import McpIntro from './common/mcp-intro.mdx';
+import McpSharedTools from './common/mcp-shared-tools.mdx';
+import McpReport from './common/mcp-report.mdx';
+
+# Web MCP 服务（桥接模式）
+
+<McpIntro />
+
+## 使用场景
+
+- 控制浏览器执行自动化任务
+- 直接操作当前桌面浏览器，无需额外启动自动化浏览器
+- 让 AI 助手控制浏览器完成复杂操作
+
+## 前提条件
+
+1. **AI 模型服务**：OpenAI API 密钥或其他支持的 AI 模型服务。更多信息参见 [模型策略](./model-strategy)。
+
+2. **Chrome 扩展**：
+   - 安装 Midscene Chrome 扩展（从 [Chrome Web Extension](https://chromewebstore.google.com/detail/midscenejs/gbldofcpkknbggpkmbdaefngejllnief?hl=zh-CN&utm_source=ext_sidebar) 下载）
+   - 在扩展中切换到桥接模式并点击「允许连接」
+
+## 配置
+
+在 MCP 客户端中添加 Midscene Web MCP 服务器：
+
+```json
+{
+  "mcpServers": {
+    "midscene-web": {
+      "command": "npx",
+      "args": ["-y", "@midscene/web-bridge-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```
+
+更多 AI 模型配置参考 [模型策略](./model-strategy)。
+
+## 可用工具
+
+### Web 专属工具
+
+| 工具名称 | 功能描述 |
+|---------|---------|
+| `web_connect` | 打开新标签页并连接到指定 URL |
+| `Navigate` | 在当前标签页导航到指定 URL |
+| `Reload` | 重新加载当前页面 |
+| `GoBack` | 后退到浏览器历史上一页 |
+
+#### web_connect
+
+在浏览器中打开新标签页并连接到指定 URL。
+
+```
+参数：
+- url：要连接的 URL
+```
+
+#### Navigate
+
+在当前标签页导航到指定 URL。
+
+```
+参数：
+- url：要导航到的 URL
+```
+
+#### Reload
+
+重新加载当前页面。
+
+```
+参数：无
+```
+
+#### GoBack
+
+后退到浏览器历史记录中的上一页。
+
+```
+参数：无
+```
+
+<McpSharedTools />
+
+## 优势
+
+- **桥接模式**：直接控制当前浏览器，无需额外登录或下载新的浏览器
+- **内置优化**：内置 Prompt 模板与操作策略，让浏览器自动化更稳定可靠
+
+## 常见问题
+
+### 连接失败
+
+- 确认已安装 Midscene Chrome 扩展
+- 确认桥接模式已启用，并点击了「允许连接」
+- 检查扩展是否有足够权限访问目标页面
+
+### 导航问题
+
+- 如遇导航失败，检查当前浏览器会话是否能访问目标 URL
+- 某些网站可能有安全限制，尝试手动访问确认
+
+<McpReport />

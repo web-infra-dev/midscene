@@ -305,8 +305,12 @@ export default defineConfig({
               link: '/zh/integrate-with-any-interface',
             },
             {
-              text: '暴露 Agent 为 MCP 服务',
-              link: '/zh/mcp',
+              text: 'MCP 服务',
+              items: [
+                { text: 'Web (桥接模式)', link: '/zh/mcp-web' },
+                { text: 'Android', link: '/zh/mcp-android' },
+                { text: 'iOS', link: '/zh/mcp-ios' },
+              ],
             },
             {
               text: '使用 JavaScript 优化工作流',

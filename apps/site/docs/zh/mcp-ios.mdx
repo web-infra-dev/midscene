@@ -1,0 +1,128 @@
+import McpIntro from './common/mcp-intro.mdx';
+import PrepareIOS from './common/prepare-ios.mdx';
+import McpSharedTools from './common/mcp-shared-tools.mdx';
+import McpReport from './common/mcp-report.mdx';
+
+# iOS MCP 服务
+
+<McpIntro />
+
+## 使用场景
+
+- 在 iOS 设备/模拟器上执行自动化测试
+- 操控 iOS 应用完成 UI 交互
+- 让 AI 助手直接控制 iOS 设备
+
+## 前提条件
+
+1. **AI 模型服务**：OpenAI API 密钥或其他支持的 AI 模型服务。更多信息参见 [模型策略](./model-strategy)。
+
+2. **iOS 环境**：
+
+<PrepareIOS />
+
+## 配置
+
+在 MCP 客户端中添加 Midscene iOS MCP 服务器：
+
+```json
+{
+  "mcpServers": {
+    "midscene-ios": {
+      "command": "npx",
+      "args": ["-y", "@midscene/ios-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```
+
+更多 AI 模型配置参考 [模型策略](./model-strategy)。
+
+## 可用工具
+
+### iOS 专属工具
+
+| 工具名称 | 功能描述 |
+|---------|---------|
+| `ios_connect` | 通过 WebDriverAgent 连接 iOS 设备或模拟器 |
+| `Launch` | 启动应用或打开 URL |
+| `IOSHomeButton` | 触发系统主页键 |
+| `IOSAppSwitcher` | 触发应用切换器 |
+| `IOSLongPress` | 长按屏幕指定位置 |
+| `RunWdaRequest` | 执行 WDA API 请求 |
+
+#### ios_connect
+
+连接到 iOS 设备或模拟器。
+
+```
+参数：无
+```
+
+#### Launch
+
+启动 iOS 应用或打开 URL。
+
+```
+参数：
+- param：应用 Bundle ID 或 URL
+```
+
+#### IOSHomeButton
+
+触发系统主页键操作。
+
+```
+参数：无
+```
+
+#### IOSAppSwitcher
+
+触发应用切换器。
+
+```
+参数：无
+```
+
+#### IOSLongPress
+
+在屏幕指定位置长按。
+
+```
+参数：
+- locate：要长按的元素
+- duration：（可选）长按持续时间（毫秒）
+```
+
+#### RunWdaRequest
+
+执行 WebDriverAgent API 请求。
+
+```
+参数：
+- param：要执行的 WDA API 请求
+```
+
+<McpSharedTools />
+
+## 常见问题
+
+### WebDriverAgent 连接问题
+
+- 确保 WebDriverAgent 已正确安装并运行
+- 检查设备是否已信任当前电脑
+- 确认 Xcode 命令行工具已安装
+
+### 模拟器问题
+
+- 确保模拟器已启动
+- 如使用真机，需要正确配置开发者证书
+
+<McpReport />
