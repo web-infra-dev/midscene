@@ -1,3 +1,4 @@
+import { injectReportHtmlFromCore } from '@midscene/shared/mcp';
 import { defineConfig } from '@rslib/core';
 import { rspack } from '@rspack/core';
 import { version } from './package.json';
@@ -28,6 +29,7 @@ export default defineConfig({
       '@modelcontextprotocol/sdk',
     ],
   },
+  plugins: [injectReportHtmlFromCore(__dirname)],
   tools: {
     rspack: {
       plugins: [

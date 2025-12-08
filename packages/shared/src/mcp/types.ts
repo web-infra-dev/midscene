@@ -60,12 +60,13 @@ export interface ToolDefinition<T = Record<string, unknown>> {
 
 /**
  * Action space item definition
+ * Note: Intentionally no index signature to maintain compatibility with DeviceAction
  */
 export interface ActionSpaceItem {
   name: string;
   description?: string;
   args?: Record<string, unknown>;
-  [key: string]: unknown;
+  paramSchema?: z.ZodTypeAny;
 }
 
 /**

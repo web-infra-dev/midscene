@@ -27,6 +27,7 @@
   "devDependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/ios": "workspace:*",
+    "@midscene/report": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@modelcontextprotocol/inspector": "^0.16.3",
     "@modelcontextprotocol/sdk": "1.10.2",

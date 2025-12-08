@@ -556,6 +556,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../../apps/report
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
@@ -883,6 +886,9 @@ importers:
       '@midscene/ios':
         specifier: workspace:*
         version: link:../ios
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../../apps/report
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
