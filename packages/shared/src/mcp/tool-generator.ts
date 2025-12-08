@@ -1,5 +1,6 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { z } from 'zod';
+import { getZodDescription, getZodTypeName } from '../zod-schema-utils';
 import type {
   ActionSpaceItem,
   BaseAgent,
@@ -12,6 +13,56 @@ import type {
  */
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/**
+ * Generate MCP tool description from ActionSpaceItem
+ * Format: "actionName action, description. Parameters: param1 (type) - desc; param2 (type) - desc"
+ */
+function describeActionForMCP(action: ActionSpaceItem): string {
+  const actionDesc = action.description || `Execute ${action.name} action`;
+
+  if (!action.paramSchema) {
+    return `${action.name} action, ${actionDesc}`;
+  }
+
+  const schema = action.paramSchema as {
+    _def?: { typeName?: string };
+    shape?: Record<string, unknown>;
+  };
+  const isZodObjectType = schema._def?.typeName === 'ZodObject';
+
+  if (!isZodObjectType || !schema.shape) {
+    // Simple type schema
+    const typeName = getZodTypeName(schema);
+    const description = getZodDescription(schema as z.ZodTypeAny);
+    const paramDesc = description ? `${typeName} - ${description}` : typeName;
+    return `${action.name} action, ${actionDesc}. Parameter: ${paramDesc}`;
+  }
+
+  // Object schema with multiple fields
+  const paramDescriptions: string[] = [];
+  for (const [key, field] of Object.entries(schema.shape)) {
+    if (field && typeof field === 'object') {
+      const isFieldOptional =
+        typeof (field as { isOptional?: () => boolean }).isOptional ===
+          'function' && (field as { isOptional: () => boolean }).isOptional();
+      const typeName = getZodTypeName(field);
+      const description = getZodDescription(field as z.ZodTypeAny);
+
+      let paramStr = `${key}${isFieldOptional ? '?' : ''} (${typeName})`;
+      if (description) {
+        paramStr += ` - ${description}`;
+      }
+      paramDescriptions.push(paramStr);
+    }
+  }
+
+  if (paramDescriptions.length === 0) {
+    return `${action.name} action, ${actionDesc}`;
+  }
+
+  return `${action.name} action, ${actionDesc}. Parameters: ${paramDescriptions.join('; ')}`;
 }
 
 /**
@@ -206,7 +257,7 @@ export function generateToolsFromActionSpace(
 
     return {
       name: action.name,
-      description: action.description || `Execute ${action.name} action`,
+      description: describeActionForMCP(action),
       schema,
       handler: async (args: Record<string, unknown>) => {
         try {

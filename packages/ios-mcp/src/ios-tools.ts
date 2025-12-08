@@ -36,8 +36,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
     return [
       {
         name: 'ios_connect',
-        description:
-          'Connect to iOS device or simulator via WebDriverAgent',
+        description: 'Connect to iOS device or simulator via WebDriverAgent',
         schema: {},
         handler: async () => {
           const agent = await this.ensureAgent();
