@@ -233,7 +233,11 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     if (context && typeof context === 'object' && 'actionSpace' in context) {
       try {
         const actionSpaceMethod = (
-          context as { actionSpace: () => Promise<DeviceAction<unknown>[]> }
+          context as {
+            actionSpace: () =>
+              | DeviceAction<unknown>[]
+              | Promise<DeviceAction<unknown>[]>;
+          }
         ).actionSpace;
         const result = await actionSpaceMethod();
         return Array.isArray(result) ? result : [];

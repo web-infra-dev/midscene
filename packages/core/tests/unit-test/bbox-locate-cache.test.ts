@@ -64,7 +64,7 @@ describe('bbox locate cache fix', () => {
       interfaceType: 'web',
       screenshotBase64: vi.fn().mockResolvedValue(validBase64Image),
       size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
-      actionSpace: vi.fn().mockResolvedValue([
+      actionSpace: vi.fn().mockReturnValue([
         {
           name: 'Tap',
           paramSchema: z.object({
@@ -119,6 +119,7 @@ describe('bbox locate cache fix', () => {
       interfaceInstance: mockInterface,
       service: mockService,
       taskCache,
+      actionSpace: mockInterface.actionSpace(),
     });
   });
 
@@ -262,6 +263,7 @@ describe('bbox locate cache fix', () => {
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: prePopulatedTaskCache,
+        actionSpace: mockInterface.actionSpace(),
       });
 
       const plansWithBbox = [
@@ -331,6 +333,7 @@ describe('bbox locate cache fix', () => {
         interfaceInstance: mockInterface,
         service: mockService,
         taskCache: testCache,
+        actionSpace: mockInterface.actionSpace(),
       });
 
       // Mock rectMatchesCacheFeature to return a rect (simulating cache hit)

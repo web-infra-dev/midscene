@@ -41,7 +41,7 @@ describe('aiAction cacheable option propagation', () => {
       interfaceType: 'web',
       screenshotBase64: vi.fn().mockResolvedValue(validBase64Image),
       size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
-      actionSpace: vi.fn().mockResolvedValue([
+      actionSpace: vi.fn().mockReturnValue([
         {
           name: 'Click',
           paramSchema: z.object({
@@ -85,6 +85,7 @@ describe('aiAction cacheable option propagation', () => {
     taskExecutor = new TaskExecutor(mockInterface, mockService, {
       taskCache,
       replanningCycleLimit: 3,
+      actionSpace: mockInterface.actionSpace(),
     });
   });
 

@@ -225,7 +225,7 @@ class PlaygroundServer {
       try {
         let actionSpace = [];
 
-        actionSpace = await this.agent.interface.actionSpace();
+        actionSpace = this.agent.interface.actionSpace();
 
         // Process actionSpace to make paramSchema serializable with shape info
         const processedActionSpace = actionSpace.map((action: unknown) => {
@@ -371,7 +371,7 @@ class PlaygroundServer {
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
-        const actionSpace = await this.agent.interface.actionSpace();
+        const actionSpace = this.agent.interface.actionSpace();
 
         // Prepare value object for executeAction
         const value = {

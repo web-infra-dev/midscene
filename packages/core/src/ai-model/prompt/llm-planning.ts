@@ -270,7 +270,7 @@ Please tell what the next one action is (or null if no action should be done) to
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
-- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion in the "log" field like this: "Assert: <condition>. I can see <...>, and I think <...>, so the assertion is <truthy / falsy>". If the assertion is falsy, think this an fatal error and set the reason into the "error" field.
+- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion by calling the "Print_Assert_Result" action.
 
 ## Supporting actions
 ${actionList}

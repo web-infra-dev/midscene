@@ -3,6 +3,7 @@ import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type {
   DetailedLocateParam,
+  DeviceAction,
   ElementCacheFeature,
   ExecutionTaskActionApply,
   ExecutionTaskApply,
@@ -57,6 +58,7 @@ interface TaskBuilderDeps {
   interfaceInstance: AbstractInterface;
   service: Service;
   taskCache?: TaskCache;
+  actionSpace: DeviceAction[];
 }
 
 interface BuildOptions {
@@ -79,10 +81,18 @@ export class TaskBuilder {
 
   private readonly taskCache?: TaskCache;
 
-  constructor({ interfaceInstance, service, taskCache }: TaskBuilderDeps) {
+  private readonly actionSpace: DeviceAction[];
+
+  constructor({
+    interfaceInstance,
+    service,
+    taskCache,
+    actionSpace,
+  }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
+    this.actionSpace = actionSpace;
   }
 
   public async build(
@@ -193,7 +203,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
   ): Promise<void> {
     const planType = plan.type;
-    const actionSpace = await this.interface.actionSpace();
+    const actionSpace = this.actionSpace;
     const action = actionSpace.find((item) => item.name === planType);
     const param = plan.param;
 

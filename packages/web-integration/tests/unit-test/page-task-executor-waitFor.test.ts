@@ -77,6 +77,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
       onTaskStart: vi.fn(),
+      actionSpace: mockPage.actionSpace(),
     });
   });
 
