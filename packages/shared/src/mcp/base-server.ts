@@ -4,7 +4,11 @@ import { setIsMcp } from '@midscene/shared/utils';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { Application, Request, Response } from 'express';
+import express, {
+  type Application,
+  type Request,
+  type Response,
+} from 'express';
 import type { IMidsceneTools } from './types';
 
 export interface BaseMCPServerConfig {
@@ -186,11 +190,10 @@ export abstract class BaseMCPServer {
 
     await this.initializeToolsManager();
 
-    const express = await import('express');
-    const app: Application = express.default();
+    const app: Application = express();
 
     // Add JSON body parser with size limit
-    app.use(express.default.json({ limit: '10mb' }));
+    app.use(express.json({ limit: '10mb' }));
 
     const sessions = new Map<string, SessionData>();
 

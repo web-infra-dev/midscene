@@ -275,37 +275,5 @@ export function generateCommonTools(
       },
       autoDestroy: true,
     },
-    {
-      name: 'wait_for',
-      description: 'Wait until condition becomes true',
-      schema: {
-        assertion: z.string().describe('Condition to wait for'),
-        timeoutMs: z.number().optional().default(15000),
-        checkIntervalMs: z.number().optional().default(3000),
-      },
-      handler: async (args): Promise<ToolResult> => {
-        try {
-          const agent = await getAgent();
-          const { assertion, timeoutMs, checkIntervalMs } = args as {
-            assertion: string;
-            timeoutMs?: number;
-            checkIntervalMs?: number;
-          };
-
-          if (agent.aiWaitFor) {
-            await agent.aiWaitFor(assertion, { timeoutMs, checkIntervalMs });
-          }
-
-          return {
-            content: [{ type: 'text', text: `Condition met: "${assertion}"` }],
-          };
-        } catch (error: unknown) {
-          const errorMessage = getErrorMessage(error);
-          console.error('Error in wait_for:', errorMessage);
-          return createErrorResult(`Wait condition failed: ${errorMessage}`);
-        }
-      },
-      autoDestroy: true,
-    },
   ];
 }
