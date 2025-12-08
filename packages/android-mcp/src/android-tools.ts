@@ -1,12 +1,7 @@
 import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
-import {
-  BaseMidsceneTools,
-  type ToolDefinition,
-  defaultAppLoadingCheckIntervalMs,
-  defaultAppLoadingTimeoutMs,
-} from '@midscene/shared/mcp';
+import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 
 const debug = getDebug('mcp:android-tools');
 
@@ -55,49 +50,22 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
       {
         name: 'android_connect',
         description:
-          'Connect to Android device and optionally launch an app. If deviceId not provided, uses the first available device.',
+          'Connect to Android device via ADB. If deviceId not provided, uses the first available device.',
         schema: {
           deviceId: z
             .string()
             .optional()
             .describe('Android device ID (from adb devices)'),
-          uri: z
-            .string()
-            .optional()
-            .describe(
-              'Optional URI to launch app (e.g., market://details?id=com.example.app)',
-            ),
         },
-        handler: async ({
-          deviceId,
-          uri,
-        }: {
-          deviceId?: string;
-          uri?: string;
-        }) => {
+        handler: async ({ deviceId }: { deviceId?: string }) => {
           const agent = await this.ensureAgent(deviceId);
-
-          // If URI is provided, launch the app
-          if (uri) {
-            await agent.page.launch(uri);
-
-            // Wait for app to finish loading using AI-driven polling
-            await agent.aiWaitFor(
-              'the app has finished loading and is ready to use',
-              {
-                timeoutMs: defaultAppLoadingTimeoutMs,
-                checkIntervalMs: defaultAppLoadingCheckIntervalMs,
-              },
-            );
-          }
-
           const screenshot = await agent.page.screenshotBase64();
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}${uri ? ` and launched: ${uri} (app ready)` : ''}`,
+                text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}`,
               },
               ...this.buildScreenshotContent(screenshot),
             ],

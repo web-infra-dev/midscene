@@ -1,12 +1,6 @@
-import { z } from '@midscene/core';
 import { type IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
-import {
-  BaseMidsceneTools,
-  type ToolDefinition,
-  defaultAppLoadingCheckIntervalMs,
-  defaultAppLoadingTimeoutMs,
-} from '@midscene/shared/mcp';
+import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 
 const debug = getDebug('mcp:ios-tools');
 
@@ -33,7 +27,6 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
       autoDismissKeyboard: false,
     });
     return this.agent;
-    
   }
 
   /**
@@ -44,39 +37,17 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
       {
         name: 'ios_connect',
         description:
-          'Connect to iOS device or simulator via WebDriverAgent and optionally launch an app',
-        schema: {
-          uri: z
-            .string()
-            .optional()
-            .describe(
-              'Optional URI to launch app (e.g., http://example.com for URL, or com.example.app for bundle ID)',
-            ),
-        },
-        handler: async ({ uri }: { uri?: string }) => {
+          'Connect to iOS device or simulator via WebDriverAgent',
+        schema: {},
+        handler: async () => {
           const agent = await this.ensureAgent();
-
-          // If URI is provided, launch the app
-          if (uri) {
-            await agent.page.launch(uri);
-
-            // Wait for app to finish loading using AI-driven polling
-            await agent.aiWaitFor(
-              'the app has finished loading and is ready to use',
-              {
-                timeoutMs: defaultAppLoadingTimeoutMs,
-                checkIntervalMs: defaultAppLoadingCheckIntervalMs,
-              },
-            );
-          }
-
           const screenshot = await agent.page.screenshotBase64();
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Connected to iOS device${uri ? ` and launched: ${uri} (app ready)` : ''}`,
+                text: 'Connected to iOS device',
               },
               ...this.buildScreenshotContent(screenshot),
             ],
