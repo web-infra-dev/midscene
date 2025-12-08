@@ -123,7 +123,9 @@ describe('ConversationHistory', () => {
 
     // Original history remains unchanged
     const snapshotWithoutLimit = history.snapshot();
-    expect(snapshotWithoutLimit[0]).toEqual(userMessageWithImage('first', 'data:image1'));
+    expect(snapshotWithoutLimit[0]).toEqual(
+      userMessageWithImage('first', 'data:image1'),
+    );
     expect(snapshotWithoutLimit[2]).toEqual(messageWithTwoImages);
   });
 });
