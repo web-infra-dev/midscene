@@ -15,9 +15,15 @@ import type {
 
 const debug = getDebug('mcp:base-tools');
 
-export abstract class BaseMidsceneTools implements IMidsceneTools {
+/**
+ * Base class for platform-specific MCP tools
+ * Generic type TAgent allows subclasses to use their specific agent types
+ */
+export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
+  implements IMidsceneTools
+{
   protected mcpServer?: McpServer;
-  protected agent?: BaseAgent;
+  protected agent?: TAgent;
   protected toolDefinitions: ToolDefinition[] = [];
 
   /**
@@ -27,7 +33,7 @@ export abstract class BaseMidsceneTools implements IMidsceneTools {
    * @returns Promise resolving to initialized agent instance
    * @throws Error if agent initialization fails
    */
-  protected abstract ensureAgent(initParam?: string): Promise<BaseAgent>;
+  protected abstract ensureAgent(initParam?: string): Promise<TAgent>;
 
   /**
    * Optional: prepare platform-specific tools (e.g., device connection)

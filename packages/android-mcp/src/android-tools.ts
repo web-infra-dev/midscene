@@ -2,7 +2,6 @@ import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import {
-  type BaseAgent,
   BaseMidsceneTools,
   type ToolDefinition,
   defaultAppLoadingCheckIntervalMs,
@@ -15,7 +14,7 @@ const debug = getDebug('mcp:android-tools');
  * Android-specific tools manager
  * Extends BaseMidsceneTools to provide Android ADB device connection tools
  */
-export class AndroidMidsceneTools extends BaseMidsceneTools {
+export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
   protected createTemporaryDevice() {
     // Use require to avoid circular dependency with @midscene/android
     const { AndroidDevice } = require('@midscene/android');
@@ -37,14 +36,14 @@ export class AndroidMidsceneTools extends BaseMidsceneTools {
     }
 
     if (this.agent) {
-      return this.agent as unknown as AndroidAgent;
+      return this.agent;
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
     });
-    this.agent = agent as unknown as BaseAgent;
+    this.agent = agent;
     return agent;
   }
 

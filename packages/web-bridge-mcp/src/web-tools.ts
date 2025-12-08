@@ -1,12 +1,8 @@
 import { z } from '@midscene/core';
-import {
-  type BaseAgent,
-  BaseMidsceneTools,
-  type ToolDefinition,
-} from '@midscene/shared/mcp';
+import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 
-export class WebMidsceneTools extends BaseMidsceneTools {
+export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
@@ -17,7 +13,9 @@ export class WebMidsceneTools extends BaseMidsceneTools {
     });
   }
 
-  protected async ensureAgent(openNewTabWithUrl?: string): Promise<BaseAgent> {
+  protected async ensureAgent(
+    openNewTabWithUrl?: string,
+  ): Promise<AgentOverChromeBridge> {
     // Re-init if URL provided
     if (this.agent && openNewTabWithUrl) {
       try {
@@ -37,9 +35,7 @@ export class WebMidsceneTools extends BaseMidsceneTools {
       );
     }
 
-    this.agent = (await this.initBridgeModeAgent(
-      openNewTabWithUrl,
-    )) as unknown as BaseAgent;
+    this.agent = await this.initBridgeModeAgent(openNewTabWithUrl);
 
     return this.agent;
   }

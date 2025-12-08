@@ -72,6 +72,7 @@ export interface ActionSpaceItem {
 /**
  * Base agent interface
  * Represents a platform-specific agent (Android, iOS, Web)
+ * Note: Return types use `unknown` for compatibility with platform-specific implementations
  */
 export interface BaseAgent {
   getActionSpace(): Promise<ActionSpaceItem[]>;
@@ -82,11 +83,11 @@ export interface BaseAgent {
   aiAction?: (
     description: string,
     params?: Record<string, unknown>,
-  ) => Promise<void>;
+  ) => Promise<unknown>;
   aiWaitFor?: (
     assertion: string,
     options: Record<string, unknown>,
-  ) => Promise<void>;
+  ) => Promise<unknown>;
 }
 
 /**

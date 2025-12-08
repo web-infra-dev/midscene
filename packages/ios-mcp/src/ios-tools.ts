@@ -14,7 +14,7 @@ const debug = getDebug('mcp:ios-tools');
  * iOS-specific tools manager
  * Extends BaseMidsceneTools to provide iOS WebDriverAgent connection tools
  */
-export class IOSMidsceneTools extends BaseMidsceneTools {
+export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
   protected createTemporaryDevice() {
     // Use require to avoid circular dependency with @midscene/ios
     const { IOSDevice } = require('@midscene/ios');
@@ -33,6 +33,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools {
       autoDismissKeyboard: false,
     });
     return this.agent;
+    
   }
 
   /**
