@@ -5,6 +5,7 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
@@ -18,7 +19,6 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
-  DeviceAction,
 } from '@/types';
 import { ServiceError } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';

@@ -80,7 +80,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       const contextPage = context as {
         actionSpace: () => DeviceAction<unknown>[];
       };
-        return contextPage.actionSpace();
+      return contextPage.actionSpace();
     }
 
     return [];
