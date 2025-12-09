@@ -2,9 +2,46 @@
 
 > 完整更新日志请参考：[Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
 
-## V0.30 - 🎯 缓存管理升级与移动端体验优化
+## V1.0 - Beta 版本发布
 
-### 🎯 更灵活的缓存策略
+### 🚀 纯视觉路线
+
+从 V1.0 开始，Midscene 全面转向视觉理解方案，提供更稳定可靠的 UI 自动化能力
+视觉模型有以下特点：
+- **效果稳定**：业界领先的视觉模型（如 Doubao Seed 1.6、Qwen3-VL 等）表现足够稳定，已经可以满足大多数业务需求
+- **UI 操作规划**：视觉模型通常具备较强的 UI 操作规划能力，能够完成不少复杂的任务流程
+- **适用于任意系统**：自动化框架不再依赖 UI 渲染的技术栈。无论是 Android、iOS、桌面应用，还是浏览器中的 canvas 标签，只要能获取截图，Midscene 即可完成交互操作
+- **易于编写**：抛弃各类 selector 和 DOM 之后，开发者与模型的“磨合”会变得更简单，不熟悉渲染技术的新人也能很快上手
+- **token 量显著下降**：在去除 DOM 提取之后，视觉方案的 token 使用量可以减少 80%，成本更低，且本地运行速度也变得更快
+- **有开源模型解决方案**：开源模型表现渐佳，开发者开始有机会进行私有化部署模型，如 Qwen3-VL 提供的 8B、30B 等版本在不少项目中都有着不错的效果
+
+详情请阅读 [模型策略](./model-strategy)
+
+### 🚀 复杂任务、长任务下的效果优化
+
+在复杂任务、长任务下，Midscene 提供了以下优化：
+- aiAct 新增规划模式 `planningStrategy`：`fast` 合并视觉模型的规划和定位能力，执行更快；`standard`（默认）拆分规划和定位并提供上一步的截图，帮助模型理解整个流程
+- aiAct 支持深度思考能力：帮助模型在复杂场景下保持反思、灵活操作的能力
+- 支持多模型结合：任务级别模型配置，可为 Insight、Planning 额外配置更强的 AI 理解模型（如 GPT-5.1 规划 + Doubao 交互），获得最佳表现
+
+### 🚀 运行时架构优化
+
+* 复用部分上下文信息，减少对设备信息的调用，提升运行时性能
+* 优化 Web 及移动端环境下的 Action Space 组合，向模型提供更好用的工具集
+
+### 🚀 报告优化
+
+* 更专业：右侧可视化展示交互参数，左侧流程展示更简洁，时间线可视化帮助快速定位问题
+* 更好看：深色模式支持，元素高亮标注，模型决策过程一目了然
+
+### 🚀 MCP 架构重构
+
+我们重新设计了 MCP 架构，支持将 iOS / Android / Web 中的 Action Space 暴露为 MCP 服务，向上层 Agent 提供稳定可靠的 UI 操作能力，帮助开发者搭建自己的高阶 Agent。详情请阅读 [MCP 架构](./mcp)
+
+
+## V0.30 - 缓存管理升级与移动端体验优化
+
+### 更灵活的缓存策略
 
 v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存行为:
 
@@ -12,11 +49,11 @@ v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存�
 - **自动清理无用缓存**: Agent 销毁时可自动清理未使用的缓存记录，避免缓存文件越积越多
 - **配置更简洁统一**: CLI 和 Agent 的缓存配置参数已统一，无需记忆不同的配置方式
 
-### 📊 报告管理更便捷
+### 报告管理更便捷
 
 - **支持合并多个报告**: 除了 playwright 场景，现在任意场景均支持将多次自动化执行的报告合并为单个文件，方便集中查看和分享测试结果
 
-### 📱 移动端自动化优化
+### 移动端自动化优化
 
 #### iOS 平台改进
 - **真机支持改进**: 移除了 simctl 检查限制，iOS 真机设备的自动化更流畅
@@ -30,7 +67,7 @@ v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存�
 #### 跨平台一致性
 - **ClearInput 全平台支持**: 解决 AI 无法准确规划各平台清空输入的操作问题
 
-### 🔧 功能增强
+### 功能增强
 
 - **失败分类**: CLI 执行结果现在可以区分「跳过的失败」和「真正的失败」，帮助定位问题原因
 - **aiInput 追加输入**: 新增 `append` 选项，在保留现有内容的基础上追加输入，适用于编辑场景
@@ -39,12 +76,12 @@ v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存�
   - Bridge 模式支持自动连接，减少手动操作
   - 支持 GPT-4o 和非视觉语言模型
 
-### 🛡️ 类型安全改进
+### 类型安全改进
 
 - **Zod 模式验证**: 为 action 参数引入类型检查，在开发阶段发现参数错误，避免运行时问题
 - **数字类型支持**: 修复了 `aiInput` 对 number 类型值的支持，类型处理更健壮
 
-### 🐞 问题修复
+### 问题修复
 
 - 修复了 Playwright 循环依赖导致的潜在问题
 - 修复了 `aiWaitFor` 作为首个语句时无法生成报告的问题
@@ -52,34 +89,34 @@ v0.30 版本改进了缓存系统，让你可以根据实际需求控制缓存�
 - 优化报告展示逻辑，现在可以同时查看错误信息和元素定位信息
 - 修复了 `aiAction` 子任务中 `cacheable` 选项未正确传递的问题
 
-### 📚 社区
+### 社区
 
 - Awesome Midscene 板块新增 [midscene-java](./awesome-midscene.md) 社区项目
 
-## v0.29 - 📱 新增 iOS 平台支持
+## v0.29 - 新增 iOS 平台支持
 
-### 🚀 新增 iOS 平台支持
+### 新增 iOS 平台支持
 v0.29 版本最大的亮点是正式引入了对 iOS 平台的支持！现在，你可以通过 WebDriver 连接并自动化 iOS 设备，将 Midscene 的强大 AI 自动化能力扩展到苹果生态系统，了解详情: [支持 iOS 自动化](./ios-introduction)
 
-### 🚅 适配 Qwen3-VL 模型
+### 适配 Qwen3-VL 模型
 
 我们适配了最新的通义千问 `Qwen3-VL` 模型，开发者可以体验到更快的、更准确的视觉理解能力。详见 [模型策略](./model-strategy)
 
-### 🤖 AI 核心能力增强
+### AI 核心能力增强
 
 - **优化 UI-TARS 模型下的表现**：优化 aiAct 规划，改进对话历史管理，提供了更好的上下文感知能力
 - **优化 AI 断言与动作**：我们更新了 `aiAssert` 的提示词（Prompt）并优化了 `aiAct` 的内部实现，使 AI 驱动的断言和动作执行更加精准可靠
 
-### 📊 报告与调试体验优化
+### 报告与调试体验优化
 - **URL 参数控制回放**：为了改善调试体验，现在可以通过 URL 参数直接控制报告回放的默认行为
 
-### 📚 文档
+### 文档
 - 更新了文档部署的缓存策略，确保用户能够及时访问到最新的文档内容
 
 
-## v0.28 - 📱 扩展界面操作能力，构建你自己的 GUI 自动化 Agent（预览特性）
+## v0.28 - 扩展界面操作能力，构建你自己的 GUI 自动化 Agent（预览特性）
 
-### 🚀 支持与任意界面集成（预览特性）
+### 支持与任意界面集成（预览特性）
 
 v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInterface` 定义的界面控制器类，即可获得一个功能齐全的 Midscene Agent。
 
@@ -89,128 +126,128 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 
 更多请参考 [与任意界面集成（预览特性）](./integrate-with-any-interface.mdx)
 
-### 📱 Android 平台优化
+### Android 平台优化
 - **规划缓存支持**：为 Android 平台添加了规划缓存功能，提升执行效率
 - **输入策略增强**：基于 IME 设置优化了输入清除策略，提升 Android 平台的输入体验
 - **滚动计算改进**：优化了 Android 平台的滚动终点计算算法
 
-### 👆 手势操作扩展
+### 手势操作扩展
 - **双击操作支持**：新增双击动作支持
 - **长按与滑动手势**：新增长按和滑动手势支持
 
-### ⚙️ 核心功能增强
+### 核心功能增强
 - **Agent 配置隔离**：实现了不同 agent 间的模型配置隔离，避免配置冲突
 - **在运行时设置环境变量**：为 Agent 新增 useCache 和 replanningCycleLimit 配置选项，提供更精细的控制
 - **YAML 脚本支持**：支持通过 YAML 脚本运行通用的自定义设备，提升自动化能力
 
-### 🐞 问题修复
+### 问题修复
 - 修复了 Qwen 模型的搜索区域大小问题
 - 优化了 deepThink 参数处理和矩形尺寸计算
 - 解决了 Playwright 双击操作的相关问题
 - 改进了 TEXT 动作类型的处理逻辑
 
-### 📚 文档与社区
+### 文档与社区
 - 新增自定义接口文档，帮助开发者更好地扩展功能
 - 在 README 中添加了 [Awesome Midscene](./awesome-midscene.md) 板块，展示社区项目
 
-## v0.27 - 🧠 核心模块重构，断言与报告功能全面升级
+## v0.27 - 核心模块重构，断言与报告功能全面升级
 
-### ⚠️ 核心模块重构
+### 核心模块重构
 
 在 v0.26 引入 [Rslib](https://github.com/web-infra-dev/rslib) 提升开发体验、降低贡献门槛的基础上，v0.27 更进一步，对核心模块进行了大规模重构。这使得扩展新设备、添加新 AI 操作的成本变得极低，我们诚挚地欢迎社区开发者踊跃贡献！
 
 **由于本次重构涉及面较广，升级后如遇到任何问题，请随时向我们反馈，我们将第一时间跟进处理。**
 
-### 🌐 接口优化
+### 接口优化
 - **`aiAssert` 功能全面增强**
   - 新增 `name` 字段，允许为不同的断言任务命名，方便在 JSON 格式的输出结果中进行识别和解析
   - 新增 `domIncluded` 和 `screenshotIncluded` 选项，可在断言中灵活控制是否向 AI 发送 DOM 快照和页面截图
 
-### 🤖 Chrome 扩展 Playground 升级
+### Chrome 扩展 Playground 升级
 
 - 所有 Agent API 都能在 Playground 上直接调试和运行！交互、提取、验证三大类方法全覆盖，可视化操作和验证，让你的自动化开发效率飙升
 
-### 📊 报告功能优化
+### 报告功能优化
 - **新增标记浮层开关**：报告播放器增加了隐藏标记浮层的开关，方便用户在回放时查看无遮挡的原始页面视图
 
-### 🐞 问题修复
+### 问题修复
 - 修复了 `aiWaitFor` 在偶现错误导致报告未生成问题
 - 降低 Playwright 插件的内存消耗
 
-## v0.26 - 🚀 工具链全面接入 [Rslib](https://github.com/web-infra-dev/rslib)，大幅提高开发体验、降低贡献门槛
+## v0.26 - 工具链全面接入 [Rslib](https://github.com/web-infra-dev/rslib)，大幅提高开发体验、降低贡献门槛
 
-### 🌐 Web 集成优化
+### Web 集成优化
 - 支持冻结页面上下文（[freezePageContext](./api.mdx#agentfreezepagecontext)/[unfreezePageContext](./api.mdx#agentunfreezepagecontext)），使后续所有的操作都复用同一个页面快照，避免多次重复获取页面状态
 - 为 Playwright fixture 补全所有 agent api ，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
 
-### 📱 Android 自动化增强
+### Android 自动化增强
 - 新增隐藏键盘策略（[keyboardDismissStrategy](./integrate-with-android.html#androiddevice-的构造函数)），允许指定自动隐藏键盘的方式
-  
-### 📊 报告功能优化
+
+### 报告功能优化
 - 报告内容引入懒解析，解决大体积报告的崩溃问题
 - 报告播放器新增自动缩放开关，方便查看全局视角的回放
 - 支持 aiAssert / aiQuery 等任务在报告中播放，以完整展示整个页面变动过程
 - 修复断言失败时的侧栏状态未显示为失败图标的问题
 - 修复报告中下拉筛选器不能切换筛选的问题
-  
-### 🚀 构建与工程化
+
+### 构建与工程化
 - 构建工具迁移至 [Rslib](https://github.com/web-infra-dev/rslib) 库开发工具，提升构建效率和开发体验
 - 全仓库开启源码跳转，方便开发者查看源码
 - MCP npm 包产物体积优化，从 56M 减少到 30M，大幅提高加载速度
-  
-### 🐞 问题修复
+
+### 问题修复
 - CLI 在 keepWindow 为 true 时将自动开启 headed 模式
 - 修复 getGlobalConfig 的实现问题，解决环境变量初始化异常问题
 - 确保 base64 编码中的 mime-type 正确
 - 修复 aiAssert 任务返回值类型
 
-## v0.25 - 🚀 支持使用图像作为 AI prompt 输入
+## v0.25 - 支持使用图像作为 AI prompt 输入
 
-### 🎯 核心功能增强
+### 核心功能增强
 - 新增运行环境，支持运行在 Worker 环境
 - 支持使用图像作为 AI prompt 输入，详见 [使用图片作为提示词](./api.mdx#%E4%BD%BF%E7%94%A8%E5%9B%BE%E7%89%87%E4%BD%9C%E4%B8%BA%E6%8F%90%E7%A4%BA%E8%AF%8D)
 - 图像处理升级，采用 Photon & Sharp 进行高效图片裁剪
 
-### 🌐 Web 集成优化
+### Web 集成优化
 - 通过坐标获取 XPath，提高缓存可复现性
 - 缓存文件将 plan 模块提到最前面，增加可读性
 - Chrome Recorder 支持导出所有事件到 markdown 文档
 - agent 支持指定 HTML 报告名称，详见 [reportFileName](./api.mdx)
 
-### 📱 Android 自动化增强
+### Android 自动化增强
 - 长按手势支持
 - 下拉刷新支持
 
-### 🐞 问题修复
+### 问题修复
   - 使用全局配置处理环境变量，避免因多打包导致环境无法覆盖的问题
   - 当错误对象序列化失败时，手动构造错误信息
   - 修复 playwright 报告类型依赖声明顺序问题
   - 修复 MCP 打包问题
 
-### 📚 文档 AI 友好
+### 文档 AI 友好
 - [LLMs.txt](./llm-txt.mdx) 区分中文与英文，方便 AI 理解
 - 每篇文档顶部新增按钮，支持复制为 markdown，方便喂给 AI 使用
 
-### 🤖 其它功能增强
+### 其它功能增强
 - Chrome Recorder 支持 aiScroll 功能
 - 重构 aiAssert 使其与 aiBoolean 实现一致
 
-## v0.24 - 🤖 Android 自动化支持 MCP 调用
+## v0.24 - Android 自动化支持 MCP 调用
 
-### 🚀 Android 自动化支持 MCP 调用
+### Android 自动化支持 MCP 调用
 - Android 自动化已全面支持 MCP 调用，为 Android 开发者提供更完善的自动化工具集。详情请参考：[MCP 服务](./mcp)
 
-### 🌐 优化输入清空机制
+### 优化输入清空机制
 - 针对 Mac 平台的 Puppeteer 增加了双重输入清空机制，保证输入之前清空输入框
 
-### 🔧 开发体验
+### 开发体验
 - 简化本地构建 `htmlElement.js` 的方式，避免循环依赖导致的报告模板构建问题
 - 优化了开发工作流，只需要执行 `npm run dev` 即可进入 Midscene 工程开发
 
 
-## v0.23 - 📊 全新报告样式与 YAML 脚本能力增强
+## v0.23 - 全新报告样式与 YAML 脚本能力增强
 
-### 🎨 报告系统升级
+### 报告系统升级
 
 #### 全新报告样式
 - 重新设计的测试报告界面，提供更清晰、更美观的测试结果展示
@@ -219,7 +256,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 
 ![](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/new%20report.png)
 
-### ⚙️ YAML 脚本能力增强
+### YAML 脚本能力增强
 
 #### 支持多 YAML 文件批量执行
 - 新增配置模式，支持配置 Yaml 文件运行顺序、浏览器复用策略、并行度
@@ -227,28 +264,28 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 
 ![](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Tuji_20250722_161353.338.png)
 
-### 🧪 测试覆盖提升
+### 测试覆盖提升
 
-####  Android 测试增强
+#### Android 测试增强
 
 - 新增 Android 平台相关测试用例，提升代码质量和稳定性
 - 完善测试覆盖率，确保 Android 功能的可靠性
 
-## v0.22 - 🎬 Chrome 扩展录制功能上线
+## v0.22 - Chrome 扩展录制功能上线
 
-### 🌐 Web集成增强
+### Web集成增强
 
-#### 1️⃣ 全新的录制功能
+#### 1⃣ 全新的录制功能
 - Chrome 扩展新增录制功能，可以记录用户在页面上的操作并生成自动化脚本
 - 支持录制点击、输入、滚动等常见操作，大大降低自动化脚本编写门槛
 - 录制的操作可以直接在 Playground 中回放和调试
 
-#### 2️⃣ 存储升级到 IndexedDB
+#### 2⃣ 存储升级到 IndexedDB
 - Chrome 扩展的 Playground 和 Bridge 改为使用 IndexedDB 进行数据存储
 - 相比之前的存储方案，提供更大的存储容量和更好的性能
 - 支持存储更复杂的数据结构，为未来功能扩展奠定基础
 
-#### 3️⃣ 自定义重新规划循环限制
+#### 3⃣ 自定义重新规划循环限制
 - 设置 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量，可以自定义在执行操作(aiAct)时允许的最大重新规划循环次数
 - 默认值为 10，当 AI 需要重新规划超过这个限制时，会抛出错误建议将任务拆分
 - 提供更灵活的任务执行控制，适应不同复杂度的自动化场景
@@ -256,45 +293,45 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10
 ```
 
-### 📱 Android 功能增强
+### Android 功能增强
 
-#### 1️⃣ 截图路径区分
+#### 1⃣ 截图路径区分
 
 - 为每个截图生成唯一的文件路径，避免文件覆盖问题
 - 提升了并发测试场景下的稳定性
 
-## v0.21 - 🎨 Chrome 扩展界面升级
+## v0.21 - Chrome 扩展界面升级
 
-### 🌐 Web集成增强
+### Web集成增强
 
-#### 1️⃣ 全新的 Chrome 扩展界面
+#### 1⃣ 全新的 Chrome 扩展界面
 - 全新的聊天式用户界面设计，提供更好的使用体验
 - 界面布局优化，操作更加直观便捷
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4" controls/>
 
-#### 2️⃣ 超时配置灵活性提升
+#### 2⃣ 超时配置灵活性提升
 - 支持从测试 fixture 中覆盖超时设置，提供更灵活的超时控制
 - 适用场景：不同测试用例需要不同超时时间的场景
 
-#### 3️⃣ 统一 Puppeteer 和 Playwright 配置
+#### 3⃣ 统一 Puppeteer 和 Playwright 配置
 - 为 Playwright 新增 `waitForNavigationTimeout` 和 `waitForNetworkIdleTimeout` 参数
 - 统一了 Puppeteer 和 Playwright 的 timeout 选项配置，提供一致的 API 体验，降低学习成本
 
-#### 4️⃣ 新增数据导出回调机制
+#### 4⃣ 新增数据导出回调机制
 - 新增 `agent.onDumpUpdate` 回调函数，可在数据导出时获得实时通知
 - 重构了任务结束后的处理流程，确保异步操作的正确执行
 - 适用场景：需要监控或处理导出数据的场景
 
-### 📱 Android 交互优化
-#### 1️⃣ 输入体验改进
+### Android 交互优化
+#### 1⃣ 输入体验改进
 - 将点击输入改为滑动操作，提升交互响应性和稳定性
 - 减少因点击不准确导致的操作失败
 
 ## v0.20 - 支持传入 XPath 定位元素
 
-### 🌐 Web集成增强
-#### 1️⃣ 新增 aiAsk 方法
+### Web集成增强
+#### 1⃣ 新增 aiAsk 方法
 - 可直接向 AI 模型提问，获取当前页面的字符串形式答案
 - 适用场景：页面内容问答、信息提取等需要 AI 推理的任务
 - 示例：
@@ -303,7 +340,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10
 await agent.aiAsk('问题描述')
 ```
 
-####   2️⃣ 支持传入 XPath 定位元素
+#### 2⃣ 支持传入 XPath 定位元素
 - 定位优先级：指定的 XPath > 缓存 > AI 大模型定位
 - 适用场景：已知元素 XPath，需要跳过 AI 大模型定位
 - 示例：
@@ -312,14 +349,14 @@ await agent.aiAsk('问题描述')
 await agent.aiTap('提交按钮', { xpath: '//button[@id="submit"]' })
 ```
 
-### 📱 Android 改进
-#### 1️⃣ Playground 任务可取消
+### Android 改进
+#### 1⃣ Playground 任务可取消
 - 支持中断正在执行的自动化任务，提升调试效率
 
-#### 2️⃣ aiLocate API 增强
+#### 2⃣ aiLocate API 增强
 - 返回设备像素比（Device Pixel Ratio），通常用于计算元素真实坐标
 
-### 📈 报告生成优化
+### 报告生成优化
 改进报告生成机制，从批量存储改为单次追加，有效降低内存占用，避免用例数量大时造成的内存溢出
 
 ## v0.19 - 支持获取完整的执行过程数据
@@ -518,7 +555,7 @@ await agent.aiTap("Copy Info"); // 复制联系人信息到剪贴板
 
 了解详情: [MCP](./mcp)
 
-### 支持结构化 API 
+### 支持结构化 API
 
 APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
@@ -573,7 +610,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
 ## v0.11.0 - UI-TARS 模型缓存
 
-### **✨ UI-TARS 模型支持缓存**
+### ** UI-TARS 模型支持缓存**
 
 * 通过文档开启缓存 👉 ： [开启缓存](./caching.mdx)
 
@@ -584,7 +621,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
 ![](/blog/0.11.0.png)
 
-### **✨ 优化 DOM 树提取策略**
+### ** 优化 DOM 树提取策略**
 
 * 优化了 dom 树的信息能力，加速了 GPT 4o 等模型的推理过程
 
@@ -603,7 +640,7 @@ UI-TARS:Pioneering Automated GUI Interaction with Native Agents - Figure 1
 
 UI-TARS:Pioneering Automated GUI Interaction with Native - Figure 4
 
-### **✨**模型优势
+### ****模型优势
 
 UI-TARS 模型在 GUI 任务中有以下优势：
 
@@ -640,7 +677,7 @@ UI-TARS 模型在 GUI 任务中有以下优势：
 
 ## v0.8.0 - Chrome 插件
 
-### **✨ 新增  Chrome 插件，任意页面随时运行 Midscene**
+### ** 新增 Chrome 插件，任意页面随时运行 Midscene**
 
 通过 Chrome 插件，你可以零代码、任意页面随时运行 Midscene，体验它的 Action \ Query \ Assert 等能力。
 
@@ -651,7 +688,7 @@ UI-TARS 模型在 GUI 任务中有以下优势：
 
 ## v0.7.0 - Playground 能力
 
-### **✨ 新增 Playground 能力，随时发起调试**
+### ** 新增 Playground 能力，随时发起调试**
 
 再也不用频繁重跑脚本调试 Prompt 了！
 
@@ -662,7 +699,7 @@ UI-TARS 模型在 GUI 任务中有以下优势：
 
 ## v0.6.0 - 支持字节豆包模型
 
-### **✨ 模型：**支持字节豆包模型
+### ** 模型：**支持字节豆包模型
 
 全新支持调用豆包模型调用，参考下方环境变量即可体验。
 
@@ -690,7 +727,7 @@ MIDSCENE_MODEL_TEXT_ONLY='true'
 
 
 
-### ✨ 模型：支持 GPT-4o 结构化输出、成本继续下降
+### 模型：支持 GPT-4o 结构化输出、成本继续下降
 
 通过使用 gpt-4o-2024-08-06 模型，Midscene 已支持结构化输出（structured-output）特性，确保了稳定性增强、成本下降了 40%+。
 
@@ -698,7 +735,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 
 
-### ✨ 测试报告：支持动画回放
+### 测试报告：支持动画回放
 
 现在你可以在测试报告中查看每个步骤的动画回放，快速调试自己的运行脚本
 
@@ -706,7 +743,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 
 
-### ✨ 提速：合并执行流程， 响应提速 30%
+### 提速：合并执行流程， 响应提速 30%
 
 新版本中，我们将 Plan 和 Locate 操作在 prompt 执行上进行一定程度合并，使得 AI 响应速度提升  30%
 
@@ -720,7 +757,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 
 
-### ✨ 测评报告：不同模型在 Midscene 场景下的表现
+### 测评报告：不同模型在 Midscene 场景下的表现
 
 * GPT 4o 系列模型，接近 100% 正确率
 
@@ -732,7 +769,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 
 
-### **🐞**问题修复
+### ****问题修复
 
 优化了页面信息提取，避免遮挡元素被收集，以此优化成功率、速度、AI 调用成本 🚀
 
@@ -747,7 +784,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 ## v0.5.0 - 支持 GPT-4o 结构化输出
 
-### 新功能 **✨**
+### 新功能 ****
 
 * 支持了 gpt-4o-2024-08-06 模型提供 100% JSON 格式限制，降低了 Midscene 任务规划时的幻觉行为
 
@@ -769,7 +806,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 * 支持了 AI 对于 Input 现有基础之上的增删改行为
 
-### 问题修复 **🐞**
+### 问题修复 ****
 
 * 优化了对于非文本、input、图片元素的识别，提升 AI 任务正确性
 
@@ -792,7 +829,7 @@ puppeteerPage.screenshot = async (options) => {
 
 ## v0.4.0 - 支持使用 Cli
 
-### 新功能 **✨**
+### 新功能 ****
 
 * Midscene 支持 Cli 的使用方式，降低 Midscene 使用门槛
 
@@ -810,7 +847,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 * Playwright AI 任务报告展示整体耗时，并按测试组进行聚合 AI 任务
 
-### 问题修复 **🐞**
+### 问题修复 ****
 
 * 修复 AI 在连续性任务时容易出现幻觉导致任务规划失败
 
@@ -818,11 +855,11 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.3.0 - 支持 AI HTML 报告
 
-### 新功能 **✨**
+### 新功能 ****
 
 * AI 报告 html 化，将测试报告按测试组聚合，方便测试报告分发
 
-### 问题修复 **🐞**
+### 问题修复 ****
 
 * 修复 AI 报告滚动预览问题
 
@@ -830,7 +867,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.2.0 - 通过自然语言控制 puppeteer
 
-### 新功能 **✨**
+### 新功能 ****
 
 * 支持通过自然语言控制 puppeteer 实现页面操作自动化🗣️💻
 
@@ -846,7 +883,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.1.0 - 通过自然语言控制 playwright
 
-### 新功能 **✨**
+### 新功能 ****
 
 * 通过自然语言控制 playwright 实现页面操作自动化 🗣️💻
 
