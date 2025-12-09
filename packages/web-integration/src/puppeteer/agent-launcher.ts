@@ -72,7 +72,7 @@ export async function launchPuppeteerPage(
   };
 
   const headed = preference?.headed || preference?.keepWindow;
-  const windowSizeArg = `--window-size=${width},${height + (headed ? 200 : 0)}`; // add 200px for the address bar in headed mode
+  const windowSizeArg = `--window-size=${width},${height + (headed ? 100 : 0)}`; // add 100px for the address bar in headed mode
   const defaultViewportConfig = headed ? null : viewportConfig;
 
   // launch the browser
