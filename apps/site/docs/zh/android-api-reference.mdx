@@ -34,12 +34,8 @@ const device = new AndroidDevice(deviceId, {
 
 ### 使用说明
 
-:::info
-
-- 使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
-- 通过 `remoteAdbHost/remoteAdbPort` 支持远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
-
-:::
+- 可以使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
+- 可以使用 `remoteAdbHost/remoteAdbPort` 连接远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
 
 ### 示例
 

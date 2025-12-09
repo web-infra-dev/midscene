@@ -34,13 +34,9 @@ const device = new AndroidDevice(deviceId, {
 
 ### Usage notes
 
-:::info
-
 - Discover devices with `getConnectedDevices()`; the `udid` matches `adb devices`.
 - Supports remote adb via `remoteAdbHost/remoteAdbPort`; set `androidAdbPath` if adb is not on PATH.
 - Use `screenshotResizeScale` to cut latency on high-DPI devices.
-
-:::
 
 ### Examples
 

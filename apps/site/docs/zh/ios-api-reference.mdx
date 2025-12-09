@@ -27,15 +27,18 @@ const device = new IOSDevice({
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `customActions?: DeviceAction<any>[]` —— 向 Agent 暴露的额外设备动作。
 
+#### Action Space(动作空间)
+
+`IOSDevice` 的 Action Space 包含以下动作：
+- `Tap` —— 点击元素
+(请补充或修正)
+
+
 ### 使用说明
 
-:::info
-
-- 确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
+- 请确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
-
-:::
 
 ### 示例
 
