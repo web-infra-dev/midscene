@@ -42,7 +42,7 @@ describe('launchPuppeteerPage', () => {
 
     const args = mockLaunch.mock.calls[0][0].args;
     expect(args).toContain(
-      `--window-size=${defaultViewportWidth},${defaultViewportHeight + 200}`,
+      `--window-size=${defaultViewportWidth},${defaultViewportHeight + 100}`,
     );
     expect(args).not.toContain('--start-maximized');
     expect(mockLaunch).toHaveBeenCalledWith(
@@ -61,7 +61,7 @@ describe('launchPuppeteerPage', () => {
     );
 
     const args = mockLaunch.mock.calls[0][0].args;
-    expect(args).toContain('--window-size=1000,900');
+    expect(args).toContain('--window-size=1000,800');
     expect(args).not.toContain('--start-maximized');
     expect(mockLaunch).toHaveBeenCalledWith(
       expect.objectContaining({ defaultViewport: null }),
