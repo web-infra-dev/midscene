@@ -3,7 +3,7 @@ import Icon, {
   LoadingOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import { Button, Form, List, Tooltip, Typography, message } from 'antd';
+import { Button, Form, List, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
@@ -35,18 +35,7 @@ function getSDKId(sdk: any): string {
 
 function ErrorMessage({ error }: { error: string }) {
   if (!error) return null;
-  return (
-    <Tooltip
-      title={
-        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-          {error}
-        </span>
-      }
-      overlayStyle={{ maxWidth: '100vw' }}
-    >
-      Error: {error.split('\n')[0]}
-    </Tooltip>
-  );
+  return <span>Error: {error}</span>;
 }
 
 export function UniversalPlayground({
