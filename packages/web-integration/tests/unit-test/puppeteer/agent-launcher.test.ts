@@ -37,14 +37,14 @@ describe('launchPuppeteerPage', () => {
     mockNewPage.mockResolvedValue(page as any);
   });
 
-  it('uses default viewport window size for headed runs and maximizes by default', async () => {
+  it('uses default viewport window size for headed runs', async () => {
     await launchPuppeteerPage({ url: 'https://example.com' }, { headed: true });
 
     const args = mockLaunch.mock.calls[0][0].args;
     expect(args).toContain(
       `--window-size=${defaultViewportWidth},${defaultViewportHeight + 200}`,
     );
-    expect(args).toContain('--start-maximized');
+    expect(args).not.toContain('--start-maximized');
     expect(mockLaunch).toHaveBeenCalledWith(
       expect.objectContaining({ defaultViewport: null }),
     );
@@ -62,22 +62,9 @@ describe('launchPuppeteerPage', () => {
 
     const args = mockLaunch.mock.calls[0][0].args;
     expect(args).toContain('--window-size=1000,900');
-    expect(args).toContain('--start-maximized');
+    expect(args).not.toContain('--start-maximized');
     expect(mockLaunch).toHaveBeenCalledWith(
       expect.objectContaining({ defaultViewport: null }),
     );
-  });
-
-  it('allows disabling maximized window preference while keeping window size', async () => {
-    await launchPuppeteerPage(
-      { url: 'https://example.com' },
-      { headed: true, preferMaximizedWindow: false },
-    );
-
-    const args = mockLaunch.mock.calls[0][0].args;
-    expect(args).toContain(
-      `--window-size=${defaultViewportWidth},${defaultViewportHeight + 200}`,
-    );
-    expect(args).not.toContain('--start-maximized');
   });
 });

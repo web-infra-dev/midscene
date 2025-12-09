@@ -27,7 +27,6 @@ export async function launchPuppeteerPage(
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
-    preferMaximizedWindow?: boolean;
   },
   browser?: Browser,
 ) {
@@ -73,9 +72,6 @@ export async function launchPuppeteerPage(
   };
 
   const headed = preference?.headed || preference?.keepWindow;
-  const preferMaximizedWindow = headed
-    ? preference?.preferMaximizedWindow !== false
-    : false;
   const windowSizeArg = `--window-size=${width},${height + (headed ? 100 : 0)}`; // add 100px for the address bar in headed mode
   const defaultViewportConfig = headed ? null : viewportConfig;
 
@@ -94,7 +90,6 @@ export async function launchPuppeteerPage(
     '--disable-save-password-bubble',
     `--user-agent="${ua}"`,
     windowSizeArg,
-    ...(preferMaximizedWindow ? ['--start-maximized'] : []),
   ];
 
   launcherDebug(
