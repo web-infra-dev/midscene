@@ -45,6 +45,9 @@ describe('launchPuppeteerPage', () => {
       `--window-size=${defaultViewportWidth},${defaultViewportHeight + 200}`,
     );
     expect(args).not.toContain('--start-maximized');
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultViewport: null }),
+    );
   });
 
   it('respects provided viewport dimensions for headed runs', async () => {
@@ -60,5 +63,8 @@ describe('launchPuppeteerPage', () => {
     const args = mockLaunch.mock.calls[0][0].args;
     expect(args).toContain('--window-size=1000,900');
     expect(args).not.toContain('--start-maximized');
+    expect(mockLaunch).toHaveBeenCalledWith(
+      expect.objectContaining({ defaultViewport: null }),
+    );
   });
 });
