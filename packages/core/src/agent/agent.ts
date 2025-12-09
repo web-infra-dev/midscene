@@ -135,6 +135,11 @@ const normalizeScrollType = (
 const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
+type AiActOptions = {
+  cacheable?: boolean;
+  planningStrategy?: 'fast' | 'standard' | 'max';
+};
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
@@ -798,10 +803,7 @@ export class Agent<
 
   async aiAct(
     taskPrompt: string,
-    opt?: {
-      cacheable?: boolean;
-      planningStrategy?: 'fast' | 'standard' | 'max';
-    },
+    opt?: AiActOptions,
   ) {
     const modelConfigForPlanning =
       this.modelConfigManager.getModelConfig('planning');
@@ -903,9 +905,7 @@ export class Agent<
    */
   async aiAction(
     taskPrompt: string,
-    opt?: {
-      cacheable?: boolean;
-    },
+    opt?: AiActOptions,
   ) {
     return this.aiAct(taskPrompt, opt);
   }

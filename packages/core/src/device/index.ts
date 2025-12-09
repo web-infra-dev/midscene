@@ -438,7 +438,7 @@ export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
 
       if (!param.result) {
         throw new Error(
-          `Assertion failed: ${param.thought || '(no thought)'}. (Assertion = ${param.condition})`,
+          `Assertion failed: ${param.thought || '(no thought)'} (Assertion = ${param.condition})`,
         );
       }
     },
