@@ -62,6 +62,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { defineActionAssert } from '../device';
 // import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
 import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
@@ -329,10 +330,14 @@ export class Agent<
       );
     }
 
+    const baseActionSpace = this.interface.actionSpace();
+    const fullActionSpace = [...baseActionSpace, defineActionAssert()];
+
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      actionSpace: fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
@@ -357,7 +362,9 @@ export class Agent<
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
-    return this.interface.actionSpace();
+    const commonAssertionAction = defineActionAssert();
+
+    return [...this.interface.actionSpace(), commonAssertionAction];
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {

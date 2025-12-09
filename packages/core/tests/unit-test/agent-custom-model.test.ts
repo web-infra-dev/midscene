@@ -31,6 +31,12 @@ const complexModelConfig = {
   [MIDSCENE_INSIGHT_MODEL_BASE_URL]: 'https://api.sample-insight.com/v1',
 };
 
+const createMockInterface = () =>
+  ({
+    interfaceType: 'puppeteer',
+    actionSpace: () => [],
+  }) as any;
+
 describe('Agent with custom OpenAI client', () => {
   beforeEach(() => {
     vi.mock('openai');
@@ -42,7 +48,7 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('default modelConfig without createOpenAIClient', () => {
     it('should work without createOpenAIClient', () => {
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -117,7 +123,7 @@ describe('Agent with custom OpenAI client', () => {
 
   describe('complex modelConfig without createOpenAIClient', () => {
     it('should work without createOpenAIClient', () => {
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: complexModelConfig,
@@ -197,7 +203,7 @@ describe('Agent with custom OpenAI client', () => {
       }));
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -214,7 +220,7 @@ describe('Agent with custom OpenAI client', () => {
       }));
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -230,7 +236,7 @@ describe('Agent with custom OpenAI client', () => {
 
     it('should work without createOpenAIClient (backward compatibility)', () => {
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,
@@ -259,7 +265,7 @@ describe('Agent with custom OpenAI client', () => {
       );
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: complexModelConfig,
@@ -305,7 +311,7 @@ describe('Agent with custom OpenAI client', () => {
       );
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: {
@@ -361,7 +367,7 @@ describe('Agent with custom OpenAI client', () => {
       }));
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: {
@@ -397,7 +403,7 @@ describe('Agent with custom OpenAI client', () => {
       }));
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: defaultModelConfig,

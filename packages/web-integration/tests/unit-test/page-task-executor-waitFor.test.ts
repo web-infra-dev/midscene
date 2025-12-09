@@ -59,6 +59,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot-base64'),
       url: vi.fn().mockResolvedValue('https://example.com'),
       title: vi.fn().mockResolvedValue('Test Page'),
+      actionSpace: vi.fn(() => []),
     };
 
     // Create mock insight with extract method
@@ -77,6 +78,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
       onTaskStart: vi.fn(),
+      actionSpace: mockPage.actionSpace(),
     });
   });
 

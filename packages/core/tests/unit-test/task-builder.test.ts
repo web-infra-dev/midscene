@@ -21,7 +21,7 @@ class MockInterface extends AbstractInterface {
     return { width: 0, height: 0 };
   }
 
-  async actionSpace(): Promise<DeviceAction[]> {
+  actionSpace(): DeviceAction[] {
     return this.actions;
   }
 }
@@ -49,6 +49,7 @@ describe('TaskBuilder', () => {
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
       service: insightService,
+      actionSpace: mockInterface.actionSpace(),
     });
 
     const plans: PlanningAction[] = [
@@ -109,6 +110,7 @@ describe('TaskBuilder', () => {
     const taskBuilder = new TaskBuilder({
       interfaceInstance: mockInterface,
       service: insightService,
+      actionSpace: mockInterface.actionSpace(),
     });
 
     const plans: PlanningAction[] = [

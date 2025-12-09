@@ -68,19 +68,19 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       typeof this.agent.interface === 'object'
     ) {
       const page = this.agent.interface as {
-        actionSpace?: () => Promise<DeviceAction<unknown>[]>;
+        actionSpace?: () => DeviceAction<unknown>[];
       };
       if (page?.actionSpace) {
-        return await page.actionSpace();
+        return page.actionSpace();
       }
     }
 
     // Priority 3: Fallback to context parameter (for backward compatibility with tests)
     if (context && typeof context === 'object' && 'actionSpace' in context) {
       const contextPage = context as {
-        actionSpace: () => Promise<DeviceAction<unknown>[]>;
+        actionSpace: () => DeviceAction<unknown>[];
       };
-      return await contextPage.actionSpace();
+      return contextPage.actionSpace();
     }
 
     return [];

@@ -1414,7 +1414,7 @@ ${Object.keys(size)
     await adb.shell(`input${this.getDisplayArg()} keyevent 187`);
   }
 
-  async longPress(x: number, y: number, duration = 1000): Promise<void> {
+  async longPress(x: number, y: number, duration = 2000): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates

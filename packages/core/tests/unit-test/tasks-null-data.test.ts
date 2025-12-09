@@ -30,7 +30,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       // Create a WaitFor task
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
@@ -70,10 +72,11 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
@@ -112,7 +115,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Assert',
@@ -153,7 +158,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
@@ -192,7 +199,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
@@ -231,7 +240,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Query',
@@ -270,7 +281,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'String',
@@ -308,7 +321,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',

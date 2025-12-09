@@ -5,6 +5,7 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
@@ -56,6 +57,8 @@ export class TaskExecutor {
 
   taskCache?: TaskCache;
 
+  private readonly providedActionSpace: DeviceAction[];
+
   private readonly taskBuilder: TaskBuilder;
 
   private conversationHistory: ConversationHistory;
@@ -79,6 +82,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       hooks?: TaskExecutorHooks;
+      actionSpace: DeviceAction[];
     },
   ) {
     this.interface = interfaceInstance;
@@ -88,10 +92,12 @@ export class TaskExecutor {
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
+    this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
+      actionSpace: this.getActionSpace(),
     });
   }
 
@@ -108,6 +114,10 @@ export class TaskExecutor {
         onTaskUpdate: this.hooks?.onTaskUpdate,
       },
     );
+  }
+
+  private getActionSpace(): DeviceAction[] {
+    return this.providedActionSpace;
   }
 
   public async convertPlanToExecutable(
@@ -245,11 +255,7 @@ export class TaskExecutor {
                 ? modelConfigForPlanning.uiTarsModelVersion
                 : undefined;
 
-            assert(
-              this.interface.actionSpace,
-              'actionSpace for device is not implemented',
-            );
-            const actionSpace = await this.interface.actionSpace();
+            const actionSpace = this.getActionSpace();
             debug(
               'actionSpace for this interface is:',
               actionSpace.map((action) => action.name).join(', '),
