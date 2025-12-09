@@ -192,10 +192,6 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       this.agent.resetDump();
 
       return response;
-    } catch (error: unknown) {
-      // Detach debugger on error to remove the "Debugger attached" banner
-      await this.detachDebuggerSafely();
-      throw error;
     } finally {
       // Always clean up progress tracking to prevent memory leaks
       if (options.requestId) {
