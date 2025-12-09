@@ -96,6 +96,23 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     overrideAIConfig(aiConfig);
   }
 
+  /**
+   * Safely detaches the Chrome debugger without destroying the agent.
+   * This removes the "Debugger attached" banner from the browser window
+   * while keeping the agent instance intact for potential reuse.
+   * Called on errors to improve user experience by cleaning up the UI.
+   */
+  private async detachDebuggerSafely() {
+    try {
+      const page = this.agent?.interface as
+        | { detachDebugger?: () => Promise<void> }
+        | undefined;
+      await page?.detachDebugger?.();
+    } catch (error) {
+      console.warn('Failed to detach debugger:', error);
+    }
+  }
+
   async executeAction(
     actionType: string,
     value: FormValue,
@@ -172,10 +189,15 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to get dump/reportHTML from agent:', error);
       }
 
-      this.agent.resetDump();
-
       return response;
     } finally {
+      // Always reset dump to clear execution history
+      try {
+        this.agent.resetDump();
+      } catch (error: unknown) {
+        console.error('Failed to reset dump:', error);
+      }
+
       // Always clean up progress tracking to prevent memory leaks
       if (options.requestId) {
         this.cleanup(options.requestId);
