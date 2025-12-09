@@ -1,4 +1,4 @@
-import { HomeBackground } from '@rspress/core/theme';
+import { HomeBackground } from '@rspress/core/theme-original';
 import { Banner } from '../components/Banner';
 import { CTAButtons } from '../components/CTAButtons';
 import { FeatureSections } from '../components/FeatureSections';
