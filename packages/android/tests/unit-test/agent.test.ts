@@ -30,6 +30,21 @@ const mockedModelConfig = {
 } as const;
 
 describe('AndroidAgent', () => {
+  beforeEach(() => {
+    (AndroidDevice as Mock).mockImplementation(() => {
+      return {
+        interfaceType: 'android',
+        actionSpace: vi.fn().mockReturnValue([]),
+        screenshotBase64: vi.fn(),
+        size: vi.fn(),
+        getElementsInfo: vi.fn(),
+        url: vi.fn(),
+        launch: vi.fn(),
+        destroy: vi.fn(),
+      };
+    });
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
   });
@@ -117,6 +132,13 @@ describe('AndroidAgent', () => {
         return {
           connect: mockConnect,
           constructor: vi.fn(),
+          interfaceType: 'android',
+          actionSpace: vi.fn().mockReturnValue([]),
+          screenshotBase64: vi.fn(),
+          size: vi.fn().mockResolvedValue({ width: 0, height: 0, dpr: 1 }),
+          getElementsInfo: vi.fn(),
+          url: vi.fn(),
+          launch: vi.fn(),
         };
       });
 
@@ -137,6 +159,13 @@ describe('AndroidAgent', () => {
         return {
           connect: mockConnect,
           constructor: vi.fn(),
+          interfaceType: 'android',
+          actionSpace: vi.fn().mockReturnValue([]),
+          screenshotBase64: vi.fn(),
+          size: vi.fn().mockResolvedValue({ width: 0, height: 0, dpr: 1 }),
+          getElementsInfo: vi.fn(),
+          url: vi.fn(),
+          launch: vi.fn(),
         };
       });
 
@@ -156,6 +185,13 @@ describe('AndroidAgent', () => {
         return {
           connect: mockConnect,
           constructor: vi.fn(),
+          interfaceType: 'android',
+          actionSpace: vi.fn().mockReturnValue([]),
+          screenshotBase64: vi.fn(),
+          size: vi.fn().mockResolvedValue({ width: 0, height: 0, dpr: 1 }),
+          getElementsInfo: vi.fn(),
+          url: vi.fn(),
+          launch: vi.fn(),
         };
       });
 
