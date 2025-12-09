@@ -189,10 +189,15 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to get dump/reportHTML from agent:', error);
       }
 
-      this.agent.resetDump();
-
       return response;
     } finally {
+      // Always reset dump to clear execution history
+      try {
+        this.agent.resetDump();
+      } catch (error: unknown) {
+        console.error('Failed to reset dump:', error);
+      }
+
       // Always clean up progress tracking to prevent memory leaks
       if (options.requestId) {
         this.cleanup(options.requestId);
