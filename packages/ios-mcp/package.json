@@ -1,0 +1,49 @@
+{
+  "name": "@midscene/ios-mcp",
+  "version": "1.0.0",
+  "description": "Midscene MCP Server for iOS automation",
+  "bin": "dist/index.js",
+  "files": ["dist"],
+  "main": "./dist/server.js",
+  "types": "./dist/server.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "default": "./dist/server.js"
+    }
+  },
+  "scripts": {
+    "build": "rslib build",
+    "dev": "npm run build:watch",
+    "build:watch": "rslib build --watch",
+    "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js",
+    "test": "vitest run",
+    "inspect": "node scripts/inspect.mjs"
+  },
+  "devDependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/ios": "workspace:*",
+    "@midscene/report": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@modelcontextprotocol/inspector": "^0.16.3",
+    "@modelcontextprotocol/sdk": "1.10.2",
+    "@rslib/core": "^0.18.3",
+    "@rspack/core": "1.6.6",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  },
+  "dependencies": {
+    "@silvia-odwyer/photon": "0.3.3",
+    "@silvia-odwyer/photon-node": "0.3.3",
+    "bufferutil": "4.0.9",
+    "sharp": "^0.34.3",
+    "utf-8-validate": "6.0.5"
+  },
+  "license": "MIT"
+}

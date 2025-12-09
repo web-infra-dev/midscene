@@ -1,7 +1,11 @@
 import type { DeviceAction } from '@/types';
 import type { TVlModeTypes } from '@midscene/shared/env';
+import {
+  getZodDescription,
+  getZodTypeName,
+} from '@midscene/shared/zod-schema-utils';
+import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
-import { ifMidsceneLocatorField } from '../../common';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
@@ -31,144 +35,30 @@ export const descriptionForAction = (
     const paramLines: string[] = [];
 
     // Check if paramSchema is a ZodObject with shape
-    const schema = action.paramSchema as any;
+    const schema = action.paramSchema as {
+      _def?: { typeName?: string };
+      shape?: Record<string, unknown>;
+    };
     const isZodObject = schema._def?.typeName === 'ZodObject';
 
     if (isZodObject && schema.shape) {
       // Original logic for ZodObject schemas
       const shape = schema.shape;
 
-      // Helper function to get type name from zod schema
-      const getTypeName = (field: any): string => {
-        // Recursively unwrap optional, nullable, and other wrapper types to get the actual inner type
-        const unwrapField = (f: any): any => {
-          if (!f._def) return f;
-
-          const typeName = f._def.typeName;
-
-          // Handle wrapper types that have innerType
-          if (
-            typeName === 'ZodOptional' ||
-            typeName === 'ZodNullable' ||
-            typeName === 'ZodDefault'
-          ) {
-            return unwrapField(f._def.innerType);
-          }
-
-          // Handle ZodEffects (transformations, refinements, preprocessors)
-          if (typeName === 'ZodEffects') {
-            // For ZodEffects, unwrap the schema field which contains the underlying type
-            if (f._def.schema) {
-              return unwrapField(f._def.schema);
-            }
-          }
-
-          return f;
-        };
-
-        const actualField = unwrapField(field);
-        const fieldTypeName = actualField._def?.typeName;
-
-        if (fieldTypeName === 'ZodString') return 'string';
-        if (fieldTypeName === 'ZodNumber') return 'number';
-        if (fieldTypeName === 'ZodBoolean') return 'boolean';
-        if (fieldTypeName === 'ZodArray') return 'array';
-        if (fieldTypeName === 'ZodObject') {
-          // Check if this is a passthrough object (like MidsceneLocation)
-          if (ifMidsceneLocatorField(actualField)) {
-            return locatorSchemaTypeDescription;
-          }
-          return 'object';
-        }
-        if (fieldTypeName === 'ZodEnum') {
-          const values =
-            (actualField._def?.values as unknown[] | undefined)
-              ?.map((option: unknown) => String(`'${option}'`))
-              .join(', ') ?? 'enum';
-
-          return `enum(${values})`;
-        }
-        // Handle ZodUnion by taking the first option (for display purposes)
-        if (fieldTypeName === 'ZodUnion') {
-          const options = actualField._def?.options as any[] | undefined;
-          if (options && options.length > 0) {
-            // For unions, list all types
-            const types = options.map((opt: any) => getTypeName(opt));
-            return types.join(' | ');
-          }
-          return 'union';
-        }
-
-        console.warn(
-          'failed to parse Zod type. This may lead to wrong params from the LLM.\n',
-          actualField._def,
-        );
-        return actualField.toString();
-      };
-
-      // Helper function to get description from zod schema
-      const getDescription = (field: z.ZodTypeAny): string | null => {
-        // Recursively unwrap optional, nullable, and other wrapper types to get the actual inner type
-        const unwrapField = (f: any): any => {
-          if (!f._def) return f;
-
-          const typeName = f._def.typeName;
-
-          // Handle wrapper types that have innerType
-          if (
-            typeName === 'ZodOptional' ||
-            typeName === 'ZodNullable' ||
-            typeName === 'ZodDefault'
-          ) {
-            return unwrapField(f._def.innerType);
-          }
-
-          // Handle ZodEffects (transformations, refinements, preprocessors)
-          if (typeName === 'ZodEffects') {
-            // For ZodEffects, unwrap the schema field which contains the underlying type
-            if (f._def.schema) {
-              return unwrapField(f._def.schema);
-            }
-          }
-
-          return f;
-        };
-
-        // Check for direct description on the original field (wrapper may have description)
-        if ('description' in field) {
-          return field.description || null;
-        }
-
-        const actualField = unwrapField(field);
-
-        // Check for description on the unwrapped field
-        if ('description' in actualField) {
-          return actualField.description || null;
-        }
-
-        // Check for MidsceneLocation fields and add description
-        if (actualField._def?.typeName === 'ZodObject') {
-          if ('midscene_location_field_flag' in actualField._def.shape()) {
-            return 'Location information for the target element';
-          }
-        }
-
-        return null;
-      };
-
       for (const [key, field] of Object.entries(shape)) {
         if (field && typeof field === 'object') {
           // Check if field is optional
           const isOptional =
-            typeof (field as any).isOptional === 'function' &&
-            (field as any).isOptional();
+            typeof (field as { isOptional?: () => boolean }).isOptional ===
+              'function' &&
+            (field as { isOptional: () => boolean }).isOptional();
           const keyWithOptional = isOptional ? `${key}?` : key;
 
-          // Get the type name
-          const typeName = getTypeName(field);
+          // Get the type name using extracted helper
+          const typeName = getZodTypeName(field, locatorSchemaTypeDescription);
 
-          // Get description
-          const description = getDescription(field as z.ZodTypeAny);
+          // Get description using extracted helper
+          const description = getZodDescription(field as z.ZodTypeAny);
 
           // Build param line for this field
           let paramLine = `${keyWithOptional}: ${typeName}`;
@@ -189,16 +79,8 @@ export const descriptionForAction = (
       }
     } else {
       // Handle non-object schemas (string, number, etc.)
-      // For simple primitive types, the param should be passed directly as the value
-      const schemaTypeName = schema._def?.typeName;
-      let typeName = 'unknown';
-
-      if (schemaTypeName === 'ZodString') typeName = 'string';
-      else if (schemaTypeName === 'ZodNumber') typeName = 'number';
-      else if (schemaTypeName === 'ZodBoolean') typeName = 'boolean';
-
-      // Get description if available
-      const description = 'description' in schema ? schema.description : null;
+      const typeName = getZodTypeName(schema);
+      const description = getZodDescription(schema as z.ZodTypeAny);
 
       // For simple types, indicate that param should be the direct value, not an object
       let paramDescription = `- param: ${typeName}`;

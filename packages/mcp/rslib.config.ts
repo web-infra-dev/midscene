@@ -1,4 +1,3 @@
-import path from 'node:path';
 import { defineConfig } from '@rslib/core';
 import { version } from './package.json';
 
@@ -9,22 +8,8 @@ export default defineConfig({
     },
     entry: {
       index: './src/index.ts',
+      server: './src/server.ts',
     },
-  },
-  output: {
-    externals: [
-      (data, cb) => {
-        if (
-          data.context?.includes('/node_modules/ws/lib') &&
-          ['bufferutil', 'utf-8-validate'].includes(data.request as string)
-        ) {
-          cb(undefined, data.request);
-        }
-        cb();
-      },
-      '@silvia-odwyer/photon',
-      '@silvia-odwyer/photon-node',
-    ],
   },
   lib: [
     {

@@ -34,7 +34,7 @@
     "uuid": "11.1.0"
   },
   "devDependencies": {
-    "@rslib/core": "^0.18.2",
+    "@rslib/core": "^0.18.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
