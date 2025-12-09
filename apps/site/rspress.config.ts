@@ -129,8 +129,16 @@ export default defineConfig({
               link: '/command-line-tools',
             },
             {
+              text: 'Workflow in YAML format',
+              link: '/automate-with-scripts-in-yaml',
+            },
+            {
               text: 'Caching AI planning & locate',
               link: '/caching',
+            },
+            {
+              text: 'Integrate Midscene with any interface',
+              link: '/integrate-with-any-interface',
             },
           ],
         },
@@ -141,10 +149,6 @@ export default defineConfig({
               text: 'API reference (Common)',
               link: '/api',
             },
-            {
-              text: 'Workflow in YAML format',
-              link: '/automate-with-scripts-in-yaml',
-            },
           ],
         },
         {
@@ -153,10 +157,6 @@ export default defineConfig({
             {
               text: 'FAQ',
               link: '/faq',
-            },
-            {
-              text: 'Integrate Midscene with any interface',
-              link: '/integrate-with-any-interface',
             },
             {
               text: 'Expose agent as MCP server',
@@ -241,7 +241,7 @@ export default defineConfig({
               link: '/zh/android-introduction',
             },
             {
-              text: '快速开始',
+              text: '开始使用',
               link: '/zh/android-getting-started',
             },
             {
@@ -258,7 +258,7 @@ export default defineConfig({
               link: '/zh/ios-introduction',
             },
             {
-              text: '快速开始',
+              text: '开始使用',
               link: '/zh/ios-getting-started',
             },
             {
@@ -275,8 +275,16 @@ export default defineConfig({
               link: '/zh/command-line-tools',
             },
             {
+              text: 'YAML 格式的工作流',
+              link: '/zh/automate-with-scripts-in-yaml',
+            },
+            {
               text: '缓存 AI 规划和定位',
               link: '/zh/caching',
+            },
+            {
+              text: '将 Midscene 集成到任意界面',
+              link: '/zh/integrate-with-any-interface',
             },
           ],
         },
@@ -287,10 +295,6 @@ export default defineConfig({
               text: 'JavaScript API 参考',
               link: '/zh/api',
             },
-            {
-              text: 'YAML 格式的工作流',
-              link: '/zh/automate-with-scripts-in-yaml',
-            },
           ],
         },
         {
@@ -299,10 +303,6 @@ export default defineConfig({
             {
               text: '常见问题 FAQ',
               link: '/zh/faq',
-            },
-            {
-              text: '将 Midscene 集成到任意界面',
-              link: '/zh/integrate-with-any-interface',
             },
             {
               text: 'MCP 服务',
