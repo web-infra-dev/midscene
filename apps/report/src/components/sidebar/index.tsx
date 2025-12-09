@@ -222,13 +222,17 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
     groupedDump.executions.forEach((execution) => {
       execution.tasks.forEach((task) => {
-        // Time cost length (e.g., "1.23s", "123ms")
+        // Time cost length (e.g., "1.23s", "123ms") or status text
         if (typeof task.timing?.cost === 'number') {
           const timeStr =
             task.timing.cost < 1000
               ? `${task.timing.cost}ms`
               : `${(task.timing.cost / 1000).toFixed(2)}s`;
           maxTimeLength = Math.max(maxTimeLength, timeStr.length);
+        } else {
+          // Measure status text length when no timing cost
+          const statusText = task.status || '';
+          maxTimeLength = Math.max(maxTimeLength, statusText.length);
         }
 
         // Intent length

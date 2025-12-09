@@ -801,10 +801,7 @@ export class Agent<
     });
   }
 
-  async aiAct(
-    taskPrompt: string,
-    opt?: AiActOptions,
-  ) {
+  async aiAct(taskPrompt: string, opt?: AiActOptions) {
     const modelConfigForPlanning =
       this.modelConfigManager.getModelConfig('planning');
     const defaultIntentModelConfig =
@@ -903,10 +900,7 @@ export class Agent<
   /**
    * @deprecated Use {@link Agent.aiAct} instead.
    */
-  async aiAction(
-    taskPrompt: string,
-    opt?: AiActOptions,
-  ) {
+  async aiAction(taskPrompt: string, opt?: AiActOptions) {
     return this.aiAct(taskPrompt, opt);
   }
 
