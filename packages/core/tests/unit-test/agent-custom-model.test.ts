@@ -311,7 +311,7 @@ describe('Agent with custom OpenAI client', () => {
       );
 
       // Create a mock interface instance
-      const mockInterface = {} as any;
+      const mockInterface = createMockInterface();
 
       const agent = new Agent(mockInterface, {
         modelConfig: {
