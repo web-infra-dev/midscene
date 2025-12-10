@@ -422,8 +422,18 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async size() {
     if (this.viewportSize) return this.viewportSize;
-    const content = await this.getPageContentByCDP();
-    return content.size;
+
+    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
+      expression:
+        '({width: document.documentElement.clientWidth, height: document.documentElement.clientHeight, dpr: window.devicePixelRatio})',
+      returnByValue: true,
+    });
+
+    const sizeInfo: Size = result.result.value;
+    console.log('sizeInfo', sizeInfo);
+
+    this.viewportSize = sizeInfo;
+    return sizeInfo;
   }
 
   async screenshotBase64() {

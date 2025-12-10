@@ -232,9 +232,11 @@ export class Agent<
           `Invalid page width when computing screenshot scale: ${pageWidth}`,
         );
 
+        debug('will get image info of base64');
         const { width: screenshotWidth } = await imageInfoOfBase64(
           context.screenshotBase64,
         );
+        debug('image info of base64 done');
 
         assert(
           Number.isFinite(screenshotWidth) && screenshotWidth > 0,
@@ -388,13 +390,15 @@ export class Agent<
       debug('Using page.getContext for action:', action);
       context = await this.interface.getContext();
     } else {
-      debug('Using commonContextParser for action:', action);
+      debug('Using commonContextParser');
       context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
 
+    debug('will get screenshot scale');
     const computedScreenshotScale = await this.getScreenshotScale(context);
+    debug('computedScreenshotScale', computedScreenshotScale);
 
     if (computedScreenshotScale !== 1) {
       const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
