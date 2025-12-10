@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { DeviceAction, ExecutionDump, ProgressMessage } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
@@ -7,8 +7,7 @@ import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
-  private taskProgressTips: Record<string, string> = {};
-  private progressCallback?: (tip: string) => void;
+  private dumpUpdateCallback?: (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
@@ -23,15 +22,11 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return this._id;
   }
 
-  setProgressCallback(callback: (tip: string) => void): void {
+  onDumpUpdate(callback: (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => void): void {
     // Clear any existing callback before setting new one
-    this.progressCallback = undefined;
+    this.dumpUpdateCallback = undefined;
     // Set the new callback
-    this.progressCallback = callback;
-  }
-
-  private cleanup(requestId: string): void {
-    delete this.taskProgressTips[requestId];
+    this.dumpUpdateCallback = callback;
   }
 
   async parseStructuredParams(
@@ -120,31 +115,29 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
-    let originalOnTaskStartTip: ((tip: string) => void) | undefined;
+    let originalOnDumpUpdate: ((dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => void) | undefined;
 
-    // Setup progress tracking if requestId is provided
+    // Setup dump update tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
-      originalOnTaskStartTip = this.agent.onTaskStartTip;
 
-      // Set up a fresh callback
-      this.agent.onTaskStartTip = (tip: string) => {
+      // Intercept Agent's onDumpUpdate to forward progressMessages
+      originalOnDumpUpdate = this.agent.onDumpUpdate;
+      this.agent.onDumpUpdate = (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => {
         // Only process if this is still the current request
         if (this.currentRequestId !== options.requestId) {
           return;
         }
 
-        // Store tip for our progress tracking
-        this.taskProgressTips[options.requestId!] = tip;
-
-        // Call the direct progress callback set via setProgressCallback
-        if (this.progressCallback) {
-          this.progressCallback(tip);
+        // Forward to external callback with all parameters
+        if (this.dumpUpdateCallback) {
+          this.dumpUpdateCallback(dump, executionDump, progressMessages);
         }
 
-        if (typeof originalOnTaskStartTip === 'function') {
-          originalOnTaskStartTip(tip);
+        // Call original callback
+        if (typeof originalOnDumpUpdate === 'function') {
+          originalOnDumpUpdate(dump, executionDump, progressMessages);
         }
       };
     }
@@ -198,20 +191,11 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to reset dump:', error);
       }
 
-      // Always clean up progress tracking to prevent memory leaks
-      if (options.requestId) {
-        this.cleanup(options.requestId);
-        // Clear the agent callback to prevent accumulation
-        if (this.agent) {
-          this.agent.onTaskStartTip = originalOnTaskStartTip;
-        }
+      // Always clean up callbacks to prevent accumulation
+      if (options.requestId && this.agent) {
+        this.agent.onDumpUpdate = originalOnDumpUpdate;
       }
     }
-  }
-
-  async getTaskProgress(requestId: string): Promise<{ tip?: string }> {
-    // Return the stored tip for this requestId
-    return { tip: this.taskProgressTips[requestId] || undefined };
   }
 
   // Local execution task cancellation - minimal implementation

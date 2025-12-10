@@ -3,6 +3,7 @@ import {
   type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
+  type ProgressMessage,
   type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
@@ -167,7 +168,11 @@ export class Agent<
 
   taskCache?: TaskCache;
 
-  onDumpUpdate?: (dump: string, executionDump?: ExecutionDump) => void;
+  onDumpUpdate?: (
+    dump: string,
+    executionDump?: ExecutionDump,
+    progressMessages?: ProgressMessage[],
+  ) => void;
 
   destroyed = false;
 
@@ -351,32 +356,20 @@ export class Agent<
 
           try {
             if (this.onDumpUpdate) {
-              // Pass executionDump as second parameter for data unification
-              this.onDumpUpdate(this.dumpDataString(), executionDump);
+              // Generate progress messages from tasks for UI display
+              const progressMessages = this.generateProgressMessages(
+                executionDump.tasks || [],
+              );
+              // Pass executionDump and progressMessages for data unification and easy UI rendering
+              this.onDumpUpdate(
+                this.dumpDataString(),
+                executionDump,
+                progressMessages,
+              );
             }
           } catch (error) {
             console.error('Error in onDumpUpdate', error);
           }
-
-          // Update progress tip for completed Planning tasks
-          // const tasks = executionDump.tasks || [];
-          // if (tasks.length > 0) {
-          //   const lastTask = tasks[tasks.length - 1];
-          //   if (
-          //     lastTask.type === 'Planning' &&
-          //     lastTask.subType === 'Plan' &&
-          //     lastTask.status === 'finished' &&
-          //     (lastTask as ExecutionTaskPlanning).output?.log &&
-          //     this.onTaskStartTip
-          //   ) {
-          //     const tip = `${typeStr(lastTask)} - ${(lastTask as ExecutionTaskPlanning).output!.log}`;
-          //     Promise.resolve(this.onTaskStartTip(tip)).catch(
-          //       (error: unknown) => {
-          //         console.error('Error in onTaskStartTip update', error);
-          //       },
-          //     );
-          //   }
-          // }
 
           this.writeOutActionDumps();
         },
@@ -510,6 +503,40 @@ export class Agent<
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
+  }
+
+  /**
+   * Generate progress messages from execution tasks for UI display
+   * Converts ExecutionTask array to user-friendly progress messages
+   */
+  private generateProgressMessages(tasks: ExecutionTask[]): ProgressMessage[] {
+    return tasks.map((task, index) => {
+      const action = typeStr(task);
+      let description = '';
+
+      // For Planning tasks, prefer AI-generated output.log over user input
+      if (task.type === 'Planning') {
+        const planTask = task as ExecutionTaskPlanning;
+        description = planTask.output?.log || planTask.param?.userInstruction || '';
+      } else {
+        description = paramStr(task) || '';
+      }
+
+      // Map task status to ProgressMessage status
+      // Note: ExecutionTask has 'cancelled' status but ProgressMessage doesn't
+      const taskStatus = task.status;
+      const status: 'pending' | 'running' | 'finished' | 'failed' =
+        taskStatus === 'cancelled' ? 'failed' : taskStatus;
+
+      return {
+        id: `progress-task-${index}-${Date.now()}`,
+        taskId: `task-${index}`,
+        action,
+        description,
+        status,
+        timestamp: task.timing?.start || Date.now(),
+      };
+    });
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {

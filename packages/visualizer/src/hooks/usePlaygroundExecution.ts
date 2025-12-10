@@ -1,4 +1,4 @@
-import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import type { DeviceAction, ExecutionDump, ProgressMessage } from '@midscene/core';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -109,48 +109,15 @@ export function usePlaygroundExecution(
         currentRunningIdRef.current = thisRunningId;
         interruptedFlagRef.current[thisRunningId] = false;
 
-        // Clear any existing progress callback first to prevent duplicates
-        if (playgroundSDK.onProgressUpdate) {
-          playgroundSDK.onProgressUpdate(() => {}); // Clear callback
-        }
-
-        // Set up fresh progress tracking
-        if (playgroundSDK.onProgressUpdate) {
-          playgroundSDK.onProgressUpdate((tip: string) => {
-            if (interruptedFlagRef.current[thisRunningId]) {
-              return;
-            }
-
-            setInfoList((prev) => {
-              const lastItem = prev[prev.length - 1];
-              // Prevent duplicate progress tips
-              if (
-                lastItem &&
-                lastItem.type === 'progress' &&
-                lastItem.content === tip
-              ) {
-                return prev;
-              }
-
-              const progressItem: InfoListItem = {
-                id: `progress-${thisRunningId}-${Date.now()}`,
-                type: 'progress',
-                content: tip,
-                timestamp: new Date(),
-              };
-              return [...prev, progressItem];
-            });
-          });
-        }
-
-        // Set up dump update tracking
+        // Set up dump update tracking with progress messages
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
-            (dump: string, executionDump?: ExecutionDump) => {
+            (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => {
               if (interruptedFlagRef.current[thisRunningId]) {
                 return;
               }
 
+              // Update executionDump in result item
               if (executionDump) {
                 setInfoList((prev) => {
                   return prev.map((item) => {
@@ -165,6 +132,40 @@ export function usePlaygroundExecution(
                     }
                     return item;
                   });
+                });
+              }
+
+              // Convert progressMessages to InfoListItem progress messages
+              // This replaces the old string-based progress tips
+              if (progressMessages && progressMessages.length > 0) {
+                setInfoList((prev) => {
+                  // Remove existing progress items for this run to avoid duplicates
+                  const withoutOldProgress = prev.filter(
+                    item => !(item.type === 'progress' && item.id.startsWith(`progress-${thisRunningId}-`))
+                  );
+
+                  // Find the index of the system item to insert progress messages after it
+                  const systemItemIndex = withoutOldProgress.findIndex(
+                    item => item.id === `system-${thisRunningId}`
+                  );
+
+                  if (systemItemIndex === -1) {
+                    return prev; // System item not found, keep original
+                  }
+
+                  // Convert ProgressMessage to InfoListItem
+                  const newProgressItems: InfoListItem[] = progressMessages.map((pm) => ({
+                    id: `progress-${thisRunningId}-${pm.taskId}`,
+                    type: 'progress',
+                    content: `${pm.action} - ${pm.description}`,
+                    timestamp: new Date(pm.timestamp),
+                  }));
+
+                  // Insert progress items after system item
+                  const beforeSystem = withoutOldProgress.slice(0, systemItemIndex + 1);
+                  const afterSystem = withoutOldProgress.slice(systemItemIndex + 1);
+
+                  return [...beforeSystem, ...newProgressItems, ...afterSystem];
                 });
               }
             },
