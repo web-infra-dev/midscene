@@ -2,6 +2,23 @@
 
 Use this doc when you need to customize iOS device behavior, wire Midscene into WebDriverAgent-driven workflows, or troubleshoot WDA requests. For shared constructor options (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api).
 
+## Action Space
+
+`IOSDevice` exposes the following built-in actions:
+
+- `Tap` &mdash; Tap an element.
+- `DoubleClick` &mdash; Double-tap an element.
+- `Input` &mdash; Enter text with `replace`/`append`/`clear` modes and optional `autoDismissKeyboard`.
+- `Scroll` &mdash; Scroll from an element or screen center in any direction, including scroll-to-top/bottom/left/right helpers.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `KeyboardPress` &mdash; Press a specified key.
+- `IOSLongPress` &mdash; Long-press a target element with optional duration.
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Launch` &mdash; Open a URL, bundle identifier, or URL scheme.
+- `RunWdaRequest` &mdash; Call WebDriverAgent REST endpoints directly.
+- `IOSHomeButton` &mdash; Trigger the iOS system Home action.
+- `IOSAppSwitcher` &mdash; Open the iOS multitasking view.
+
 ## IOSDevice {#iosdevice}
 
 Create a WebDriverAgent-backed instance that an IOSAgent can drive.

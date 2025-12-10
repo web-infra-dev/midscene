@@ -2,6 +2,25 @@
 
 Use this doc when you need to customize Midscene's Android automation or review Android-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api).
 
+## Action Space
+
+`AndroidDevice` exposes the following built-in actions:
+
+- `Tap` &mdash; Tap an element.
+- `DoubleClick` &mdash; Double-tap an element.
+- `Input` &mdash; Enter text with `replace`/`append`/`clear` modes and optional `autoDismissKeyboard`.
+- `Scroll` &mdash; Scroll from an element or screen center in any direction, with helpers to reach the top, bottom, left, or right.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `KeyboardPress` &mdash; Press a specified key.
+- `AndroidLongPress` &mdash; Long-press a target element with optional duration.
+- `AndroidPull` &mdash; Pull up or down (e.g., to refresh) with optional distance and duration.
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Launch` &mdash; Open a web URL or `package/.Activity` string.
+- `RunAdbShell` &mdash; Execute raw `adb shell` commands.
+- `AndroidBackButton` &mdash; Trigger the system back action.
+- `AndroidHomeButton` &mdash; Return to the home screen.
+- `AndroidRecentAppsButton` &mdash; Open the multitasking/recent apps view.
+
 ## AndroidDevice {#androiddevice}
 
 Create a connection to an adb-managed device that an AndroidAgent can drive.
