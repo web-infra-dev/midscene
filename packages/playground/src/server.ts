@@ -3,6 +3,7 @@ import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent as PageAgent } from '@midscene/core/agent';
+import type { ProgressMessage } from '@midscene/core';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
@@ -40,7 +41,7 @@ class PlaygroundServer {
   port?: number | null;
   agent: PageAgent;
   staticPath: string;
-  taskProgressTips: Record<string, string>;
+  taskProgressMessages: Record<string, ProgressMessage[]>; // Store full progress messages array
   id: string; // Unique identifier for this server instance
 
   private _initialized = false;
@@ -59,7 +60,7 @@ class PlaygroundServer {
     this._app = express();
     this.tmpDir = getTmpDir()!;
     this.staticPath = staticPath;
-    this.taskProgressTips = {};
+    this.taskProgressMessages = {}; // Initialize as empty object
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
 
@@ -215,8 +216,14 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
+        const progressMessages = this.taskProgressMessages[requestId] || [];
+        // For backward compatibility, also provide a tip string from the last message
+        const tip = progressMessages.length > 0
+          ? `${progressMessages[progressMessages.length - 1].action} - ${progressMessages[progressMessages.length - 1].description}`
+          : '';
         res.json({
-          tip: this.taskProgressTips[requestId] || '',
+          tip,
+          progressMessages, // Provide full progress messages array
         });
       },
     );
@@ -347,10 +354,13 @@ class PlaygroundServer {
       // Lock this task
       if (requestId) {
         this.currentTaskId = requestId;
-        this.taskProgressTips[requestId] = '';
+        this.taskProgressMessages[requestId] = [];
 
-        this.agent.onTaskStartTip = (tip: string) => {
-          this.taskProgressTips[requestId] = tip;
+        // Use onDumpUpdate to receive progress messages
+        this.agent.onDumpUpdate = (_dump: string, _executionDump?: any, progressMessages?: ProgressMessage[]) => {
+          if (progressMessages) {
+            this.taskProgressMessages[requestId] = progressMessages;
+          }
         };
       }
 
@@ -423,9 +433,9 @@ class PlaygroundServer {
         );
       }
 
-      // Clean up task progress tip and unlock after execution completes
+      // Clean up task progress messages and unlock after execution completes
       if (requestId) {
-        delete this.taskProgressTips[requestId];
+        delete this.taskProgressMessages[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -459,7 +469,7 @@ class PlaygroundServer {
           await this.recreateAgent();
 
           // Clean up
-          delete this.taskProgressTips[requestId];
+          delete this.taskProgressMessages[requestId];
           this.currentTaskId = null;
 
           res.json({
@@ -644,7 +654,7 @@ class PlaygroundServer {
         } catch (error) {
           console.warn('Failed to destroy agent:', error);
         }
-        this.taskProgressTips = {};
+        this.taskProgressMessages = {};
 
         // Close the server
         this.server.close((error) => {

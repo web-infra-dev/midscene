@@ -356,10 +356,17 @@ export class Agent<
 
           try {
             if (this.onDumpUpdate) {
-              // Generate progress messages from tasks for UI display
-              const progressMessages = this.generateProgressMessages(
-                executionDump.tasks || [],
-              );
+              // Collect all tasks from all executions for complete progress tracking
+              const allTasks: ExecutionTask[] = [];
+              for (const execution of this.dump.executions) {
+                if (execution.tasks) {
+                  allTasks.push(...execution.tasks);
+                }
+              }
+
+              // Generate progress messages from all tasks for UI display
+              const progressMessages = this.generateProgressMessages(allTasks);
+
               // Pass executionDump and progressMessages for data unification and easy UI rendering
               this.onDumpUpdate(
                 this.dumpDataString(),
@@ -508,19 +515,15 @@ export class Agent<
   /**
    * Generate progress messages from execution tasks for UI display
    * Converts ExecutionTask array to user-friendly progress messages
+   * Uses paramStr() utility which properly handles all task types including Planning
    */
   private generateProgressMessages(tasks: ExecutionTask[]): ProgressMessage[] {
     return tasks.map((task, index) => {
       const action = typeStr(task);
-      let description = '';
-
-      // For Planning tasks, prefer AI-generated output.log over user input
-      if (task.type === 'Planning') {
-        const planTask = task as ExecutionTaskPlanning;
-        description = planTask.output?.log || planTask.param?.userInstruction || '';
-      } else {
-        description = paramStr(task) || '';
-      }
+      // paramStr() handles all task types correctly:
+      // - For Planning tasks: returns output.log (if finished) or param.userInstruction
+      // - For other tasks: returns appropriate param values
+      const description = paramStr(task) || '';
 
       // Map task status to ProgressMessage status
       // Note: ExecutionTask has 'cancelled' status but ProgressMessage doesn't

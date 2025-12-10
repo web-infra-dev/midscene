@@ -136,16 +136,11 @@ export function usePlaygroundExecution(
               }
 
               // Convert progressMessages to InfoListItem progress messages
-              // This replaces the old string-based progress tips
+              // Update existing items or add new ones to preserve progress history
               if (progressMessages && progressMessages.length > 0) {
                 setInfoList((prev) => {
-                  // Remove existing progress items for this run to avoid duplicates
-                  const withoutOldProgress = prev.filter(
-                    item => !(item.type === 'progress' && item.id.startsWith(`progress-${thisRunningId}-`))
-                  );
-
-                  // Find the index of the system item to insert progress messages after it
-                  const systemItemIndex = withoutOldProgress.findIndex(
+                  // Find the system item index to know where to insert new progress items
+                  const systemItemIndex = prev.findIndex(
                     item => item.id === `system-${thisRunningId}`
                   );
 
@@ -153,19 +148,47 @@ export function usePlaygroundExecution(
                     return prev; // System item not found, keep original
                   }
 
-                  // Convert ProgressMessage to InfoListItem
-                  const newProgressItems: InfoListItem[] = progressMessages.map((pm) => ({
-                    id: `progress-${thisRunningId}-${pm.taskId}`,
-                    type: 'progress',
-                    content: `${pm.action} - ${pm.description}`,
-                    timestamp: new Date(pm.timestamp),
-                  }));
+                  // Create a map of existing progress items by their ID
+                  const existingProgressMap = new Map<string, InfoListItem>();
+                  prev.forEach(item => {
+                    if (item.type === 'progress' && item.id.startsWith(`progress-${thisRunningId}-`)) {
+                      existingProgressMap.set(item.id, item);
+                    }
+                  });
 
-                  // Insert progress items after system item
+                  // Build updated progress items, updating existing ones or creating new ones
+                  const updatedProgressItems: InfoListItem[] = progressMessages.map((pm) => {
+                    const id = `progress-${thisRunningId}-${pm.taskId}`;
+                    const content = `${pm.action} - ${pm.description}`;
+                    const existingItem = existingProgressMap.get(id);
+
+                    if (existingItem) {
+                      // Update existing progress item with new content
+                      return {
+                        ...existingItem,
+                        content,
+                        timestamp: new Date(pm.timestamp),
+                      };
+                    }
+
+                    // Create new progress item
+                    return {
+                      id,
+                      type: 'progress' as const,
+                      content,
+                      timestamp: new Date(pm.timestamp),
+                    };
+                  });
+
+                  // Remove old progress items and insert updated/new ones
+                  const withoutOldProgress = prev.filter(
+                    item => !(item.type === 'progress' && item.id.startsWith(`progress-${thisRunningId}-`))
+                  );
+
                   const beforeSystem = withoutOldProgress.slice(0, systemItemIndex + 1);
                   const afterSystem = withoutOldProgress.slice(systemItemIndex + 1);
 
-                  return [...beforeSystem, ...newProgressItems, ...afterSystem];
+                  return [...beforeSystem, ...updatedProgressItems, ...afterSystem];
                 });
               }
             },
