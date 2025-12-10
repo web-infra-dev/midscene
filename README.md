@@ -129,9 +129,11 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 Community projects that extend Midscene.js capabilities:
 
-* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS automation support for Midscene
+* [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS Mirror automation support for Midscene
+* [midscene-pc](https://github.com/Mofangbao/midscene-pc) - PC operation device for Windows, macOS, and Linux
+* [midscene-pc-docker](https://github.com/Mofangbao/midscene-pc-docker) - Docker image with Midscene-PC server pre-installed
 * [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python SDK for Midscene automation
-* [midscene-java](https://github.com/Master-Frank/midscene-java) by @Master-Frank - Java SDK that brings Midscene automation features to JVM projects
+* [midscene-java](https://github.com/Master-Frank/midscene-java) by @Master-Frank - Java SDK for Midscene automation
 * [midscene-java](https://github.com/alstafeev/midscene-java) by @alstafeev - Java SDK for Midscene automation
 
 
