@@ -771,48 +771,7 @@ select {
   void injectStyle();
 
   // Ensure the style is reapplied on future navigations/new documents
-  const addInitScript = (page as PuppeteerPage & PlaywrightPage)
-    .addInitScript as PuppeteerPage['addInitScript'] | undefined;
-  if (typeof addInitScript === 'function') {
-    addInitScript(
-      (id: string, content: string) => {
-        try {
-          if (document.getElementById(id)) return;
-          const style = document.createElement('style');
-          style.id = id;
-          style.textContent = content;
-          document.head.appendChild(style);
-        } catch (err) {
-          console.log(
-            'Midscene - Failed to add base-select appearance style in init script:',
-            err,
-          );
-        }
-      },
-      styleId,
-      styleContent,
-    );
-  } else if (
-    typeof (page as PuppeteerPage & PlaywrightPage).evaluateOnNewDocument ===
-    'function'
-  ) {
-    (page as PuppeteerPage & PlaywrightPage).evaluateOnNewDocument(
-      (id, content) => {
-        try {
-          if (document.getElementById(id)) return;
-          const style = document.createElement('style');
-          style.id = id;
-          style.textContent = content;
-          document.head.appendChild(style);
-        } catch (err) {
-          console.log(
-            'Midscene - Failed to add base-select appearance style on new document:',
-            err,
-          );
-        }
-      },
-      styleId,
-      styleContent,
-    );
-  }
+  (page as PuppeteerPage & PlaywrightPage).on('load', () => {
+    void injectStyle();
+  });
 }
