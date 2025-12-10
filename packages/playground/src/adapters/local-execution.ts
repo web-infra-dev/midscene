@@ -153,22 +153,33 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     }
 
     try {
-      // Call the base implementation with the original signature
-      const result = await executeAction(
-        this.agent,
-        actionType,
-        actionSpace,
-        value,
-        options,
-      );
+      let result = null;
+      let executionError = null;
 
-      // For local execution, we need to package the result with dump and reportHTML
-      // similar to how the server does it
+      try {
+        // Call the base implementation with the original signature
+        result = await executeAction(
+          this.agent,
+          actionType,
+          actionSpace,
+          value,
+          options,
+        );
+      } catch (error: unknown) {
+        // Capture error but don't throw yet - we need to get dump/reportHTML first
+        executionError = error;
+      }
+
+      // Always construct response with dump and reportHTML, regardless of success/failure
       const response = {
         result,
         dump: null as unknown,
         reportHTML: null as string | null,
-        error: null as string | null,
+        error: executionError
+          ? executionError instanceof Error
+            ? executionError.message
+            : String(executionError)
+          : null,
       };
 
       try {
@@ -192,6 +203,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to get dump/reportHTML from agent:', error);
       }
 
+      // Don't throw the error - return it in response so caller can access dump/reportHTML
+      // The caller (usePlaygroundExecution) will check response.error to determine success
       return response;
     } finally {
       // Always reset dump to clear execution history
