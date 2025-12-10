@@ -2,6 +2,25 @@
 
 当你需要自定义设备行为、把 Midscene 接入框架，或排查 adb 问题时，请查阅本节。关于通用构造函数（报告、Hook、缓存等）的参数说明，请参考平台无关的 [API 参考](./api)。
 
+## Action Space（动作空间）
+
+`AndroidDevice` 的 Action Space 包含以下动作，它们就是 Midscene Agent 在规划任务时可使用的全部交互工具：
+
+- `Tap` —— 点击元素。
+- `DoubleClick` —— 双击元素。
+- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式，可选 `autoDismissKeyboard`。
+- `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `KeyboardPress` —— 按下指定键位。
+- `AndroidLongPress` —— 长按目标元素，可选自定义时长。
+- `AndroidPull` —— 上拉或下拉（如下拉刷新），可选距离与持续时间。
+- `ClearInput` —— 清空输入框内容。
+- `Launch` —— 打开网页或 `package/.Activity`。
+- `RunAdbShell` —— 执行原始 `adb shell` 命令。
+- `AndroidBackButton` —— 触发系统返回。
+- `AndroidHomeButton` —— 回到桌面。
+- `AndroidRecentAppsButton` —— 打开多任务/最近应用。
+
 ## AndroidDevice {#androiddevice}
 
 创建一个可供 AndroidAgent 驱动的 adb 设备实例。
