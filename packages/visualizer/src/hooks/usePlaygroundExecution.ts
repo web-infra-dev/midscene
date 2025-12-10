@@ -158,12 +158,21 @@ export function usePlaygroundExecution(
                   });
 
                   // Build updated progress items from executionDump.tasks
-                  const updatedProgressItems: InfoListItem[] = executionDump.tasks.map((task, index) => {
-                    const id = `progress-${thisRunningId}-task-${index}`;
-                    const action = typeStr(task);
-                    const description = paramStr(task) || '';
-                    const content = description ? `${action} - ${description}` : action;
-                    const existingItem = existingProgressMap.get(id);
+                  // Filter out Planning tasks without output.log to avoid showing param.userInstruction
+                  const updatedProgressItems: InfoListItem[] = executionDump.tasks
+                    .filter((task) => {
+                      // Skip Planning tasks that don't have output.log yet
+                      if (task.type === 'Planning' && task.subType === 'Plan') {
+                        return task.status === 'finished' && task.output?.log;
+                      }
+                      return true;
+                    })
+                    .map((task, index) => {
+                      const id = `progress-${thisRunningId}-task-${index}`;
+                      const action = typeStr(task);
+                      const description = paramStr(task) || '';
+                      const content = description ? `${action} - ${description}` : action;
+                      const existingItem = existingProgressMap.get(id);
 
                     if (existingItem) {
                       // Update existing progress item with new content
