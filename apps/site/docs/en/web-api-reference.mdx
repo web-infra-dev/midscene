@@ -47,6 +47,7 @@ In addition to the base agent options, Puppeteer exposes:
 - `waitForNavigationTimeout: number` &mdash; Maximum wait when a step causes navigation. Default `5000` (set `0` to skip waiting).
 - `waitForNetworkIdleTimeout: number` &mdash; Wait for network idle between actions to reduce flakiness. Default `2000` (set `0` to skip waiting).
 - `enableTouchEventsInActionSpace: boolean` &mdash; Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `forceChromeSelectRendering: boolean` &mdash; Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Puppeteer > `24.6.0`.
 - `customActions: DeviceAction[]` &mdash; Register bespoke actions defined via `defineAction` so planning can call domain-specific steps.
 
 ### Usage notes
@@ -132,6 +133,7 @@ const agent = new PlaywrightAgent(page, {
 - `waitForNavigationTimeout: number` &mdash; Wait time for navigation completion. Default `5000` (set `0` to disable).
 - `waitForNetworkIdleTimeout: number` &mdash; Wait between actions for network idle. Default `2000` (set `0` to disable).
 - `enableTouchEventsInActionSpace: boolean` &mdash; Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `forceChromeSelectRendering: boolean` &mdash; Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Playwright ≥ `1.52.0`.
 - `customActions: DeviceAction[]` &mdash; Extend planning with project-specific actions.
 
 ### Usage notes
