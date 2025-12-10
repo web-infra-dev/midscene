@@ -547,13 +547,7 @@ export async function callAIWithStringResponse(
 
 export function extractJSONFromCodeBlock(response: string) {
   try {
-    // First, try to match a JSON object directly in the response
-    const jsonMatch = response.match(/^\s*(\{[\s\S]*\})\s*$/);
-    if (jsonMatch) {
-      return jsonMatch[1];
-    }
-
-    // If no direct JSON object is found, try to extract JSON from a code block
+    // First, try to extract JSON from a code block
     const codeBlockMatch = response.match(
       /```(?:json)?\s*(\{[\s\S]*?\})\s*```/,
     );
@@ -561,11 +555,68 @@ export function extractJSONFromCodeBlock(response: string) {
       return codeBlockMatch[1];
     }
 
-    // If no code block is found, try to find a JSON-like structure in the text
-    const jsonLikeMatch = response.match(/\{[\s\S]*\}/);
-    if (jsonLikeMatch) {
-      return jsonLikeMatch[0];
+    // Try to find all complete JSON objects and return the last one
+    // This handles cases where LLM outputs multiple JSON objects (e.g., thinking steps)
+    // and we want the final/last one
+    const firstBraceIndex = response.indexOf('{');
+    if (firstBraceIndex !== -1) {
+      let lastCompleteJson: string | null = null;
+      let searchIndex = firstBraceIndex;
+
+      while (searchIndex < response.length && searchIndex !== -1) {
+        let braceCount = 0;
+        let inString = false;
+        let escapeNext = false;
+        let foundComplete = false;
+
+        for (let i = searchIndex; i < response.length; i++) {
+          const char = response[i];
+
+          if (escapeNext) {
+            escapeNext = false;
+            continue;
+          }
+
+          if (char === '\\') {
+            escapeNext = true;
+            continue;
+          }
+
+          if (char === '"') {
+            inString = !inString;
+            continue;
+          }
+
+          if (!inString) {
+            if (char === '{') {
+              braceCount++;
+            } else if (char === '}') {
+              braceCount--;
+              if (braceCount === 0) {
+                // Found a complete JSON object
+                lastCompleteJson = response.substring(searchIndex, i + 1);
+                foundComplete = true;
+                // Look for the next '{'
+                searchIndex = response.indexOf('{', i + 1);
+                break;
+              }
+            }
+          }
+        }
+
+        // If we didn't find a complete JSON or no more '{', exit loop
+        if (!foundComplete || searchIndex === -1) {
+          break;
+        }
+      }
+
+      if (lastCompleteJson) {
+        return lastCompleteJson;
+      }
     }
+
+    // Fallback: if bracket matching failed, return original response
+    // This shouldn't happen for valid JSON
   } catch {}
   // If no JSON-like structure is found, return the original response
   return response;

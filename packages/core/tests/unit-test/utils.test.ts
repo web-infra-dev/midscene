@@ -355,6 +355,76 @@ describe('extractJSONFromCodeBlock', () => {
       },
     });
   });
+
+  it('should handle JSON with trailing XML tags pollution', () => {
+    const input = `{
+        "thought": "thinking content",
+        "data": {
+          "result": false
+        },
+        "errors": []
+      }
+      </DATA_DEMAND>
+      </action_output>
+      </action_output>
+      </action_output>`;
+    const result = safeParseJson(input, undefined);
+    expect(result).toEqual({
+      thought: 'thinking content',
+      data: {
+        result: false,
+      },
+      errors: [],
+    });
+  });
+
+  it('should handle JSON with mixed XML tags', () => {
+    const input = `<think>Some thinking</think>
+                  {
+                    "key": "value",
+                    "nested": {
+                      "prop": "data</test>"
+                    }
+                  }
+                  </action_output>
+                  </response>`;
+    const result = safeParseJson(input, undefined);
+    expect(result).toEqual({
+      key: 'value',
+      nested: {
+        prop: 'data</test>',
+      },
+    });
+  });
+
+  it('should handle JSON with mixed XML tags, match the last JSON object', () => {
+    const input = `{
+      "thought": "thinking content 1",
+      "data": {
+        "result": false
+      },
+      "errors": []
+    }
+    </DATA_DEMAND>
+    </action_output>
+    </action_output>
+    <think> thinking </think>
+    {
+      "thought": "thinking content 2",
+      "data": {
+        "result": false
+      },
+      "errors": []
+    }`;
+    const result = safeParseJson(input, undefined);
+    expect(result).toEqual({
+      thought: "thinking content 2",
+      data: {
+        "result": false
+      },
+      errors: []
+    });
+  });
 });
 
 describe('qwen-vl-2.5', () => {
