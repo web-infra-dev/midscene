@@ -113,53 +113,39 @@ export function usePlaygroundExecution(
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
             (_dump: string, executionDump?: ExecutionDump) => {
-              if (interruptedFlagRef.current[thisRunningId] || !executionDump) {
+              if (
+                interruptedFlagRef.current[thisRunningId] ||
+                !executionDump?.tasks?.length
+              ) {
                 return;
               }
 
-              setInfoList((prev) => {
-                // Update result item with executionDump
-                const updatedList = prev.map((item) => {
-                  if (item.id === `result-${thisRunningId}` && item.result) {
-                    return {
-                      ...item,
-                      result: { ...item.result, dump: executionDump },
-                    };
-                  }
-                  return item;
-                });
+              // Build progress items from tasks (filter out unfinished Planning tasks)
+              const progressItems: InfoListItem[] = executionDump.tasks.map(
+                (task, index) => ({
+                  id: `progress-${thisRunningId}-task-${index}`,
+                  type: 'progress' as const,
+                  content: (() => {
+                    const action = typeStr(task);
+                    const description = paramStr(task);
+                    return description ? `${action} - ${description}` : action;
+                  })(),
+                  timestamp: new Date(task.timing?.start || Date.now()),
+                }),
+              );
 
-                // Find system item to insert progress items after it
-                const systemItemIndex = updatedList.findIndex(
+              // Replace this session's progress items with new ones
+              setInfoList((prev) => {
+                const systemItemIndex = prev.findIndex(
                   (item) => item.id === `system-${thisRunningId}`,
                 );
 
-                if (systemItemIndex === -1 || !executionDump.tasks?.length) {
-                  return updatedList;
+                if (systemItemIndex === -1) {
+                  return prev;
                 }
 
-                // Build progress items from tasks (filter out unfinished Planning tasks)
-                const progressItems: InfoListItem[] = executionDump.tasks
-                  .filter((task) => {
-                    // Only show finished Planning tasks with output.log
-                    if (task.type === 'Planning' && task.subType === 'Plan') {
-                      return task.status === 'finished' && task.output?.log;
-                    }
-                    return true;
-                  })
-                  .map((task, index) => ({
-                    id: `progress-${thisRunningId}-task-${index}`,
-                    type: 'progress' as const,
-                    content: (() => {
-                      const action = typeStr(task);
-                      const description = paramStr(task);
-                      return description ? `${action} - ${description}` : action;
-                    })(),
-                    timestamp: new Date(task.timing?.start || Date.now()),
-                  }));
-
-                // Remove old progress items and insert new ones after system item
-                const withoutProgress = updatedList.filter(
+                // Remove old progress items for this session
+                const filtered = prev.filter(
                   (item) =>
                     !(
                       item.type === 'progress' &&
@@ -167,10 +153,11 @@ export function usePlaygroundExecution(
                     ),
                 );
 
+                // Insert new progress items after system item
                 return [
-                  ...withoutProgress.slice(0, systemItemIndex + 1),
+                  ...filtered.slice(0, systemItemIndex + 1),
                   ...progressItems,
-                  ...withoutProgress.slice(systemItemIndex + 1),
+                  ...filtered.slice(systemItemIndex + 1),
                 ];
               });
             },

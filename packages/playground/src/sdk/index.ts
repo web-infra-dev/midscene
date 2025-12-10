@@ -115,7 +115,6 @@ export class PlaygroundSDK {
 
   // Cancel task (for remote execution)
   async cancelTask(requestId: string): Promise<any> {
-
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.cancelTask(requestId);
     }
@@ -123,12 +122,7 @@ export class PlaygroundSDK {
   }
 
   // Dump update callback management
-  onDumpUpdate(
-    callback: (
-      dump: string,
-      executionDump?: any,
-    ) => void,
-  ): void {
+  onDumpUpdate(callback: (dump: string, executionDump?: any) => void): void {
     if (this.adapter instanceof LocalExecutionAdapter) {
       this.adapter.onDumpUpdate(callback);
     }
@@ -136,7 +130,6 @@ export class PlaygroundSDK {
 
   // Cancel execution - supports both remote and local
   async cancelExecution(requestId: string): Promise<void> {
-
     if (this.adapter instanceof RemoteExecutionAdapter) {
       await this.adapter.cancelTask(requestId);
     } else if (this.adapter instanceof LocalExecutionAdapter) {

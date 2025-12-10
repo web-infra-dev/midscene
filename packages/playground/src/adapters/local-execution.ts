@@ -7,7 +7,10 @@ import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
-  private dumpUpdateCallback?: (dump: string, executionDump?: ExecutionDump) => void;
+  private dumpUpdateCallback?: (
+    dump: string,
+    executionDump?: ExecutionDump,
+  ) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
@@ -22,7 +25,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return this._id;
   }
 
-  onDumpUpdate(callback: (dump: string, executionDump?: ExecutionDump) => void): void {
+  onDumpUpdate(
+    callback: (dump: string, executionDump?: ExecutionDump) => void,
+  ): void {
     // Clear any existing callback before setting new one
     this.dumpUpdateCallback = undefined;
     // Set the new callback
@@ -115,7 +120,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
-    let originalOnDumpUpdate: ((dump: string, executionDump?: ExecutionDump) => void) | undefined;
+    let originalOnDumpUpdate:
+      | ((dump: string, executionDump?: ExecutionDump) => void)
+      | undefined;
 
     // Setup dump update tracking if requestId is provided
     if (options.requestId && this.agent) {
@@ -124,7 +131,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Intercept Agent's onDumpUpdate to forward executionDump
       originalOnDumpUpdate = this.agent.onDumpUpdate;
-      this.agent.onDumpUpdate = (dump: string, executionDump?: ExecutionDump) => {
+      this.agent.onDumpUpdate = (
+        dump: string,
+        executionDump?: ExecutionDump,
+      ) => {
         // Only process if this is still the current request
         if (this.currentRequestId !== options.requestId) {
           return;

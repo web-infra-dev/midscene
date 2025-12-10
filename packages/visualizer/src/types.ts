@@ -1,7 +1,4 @@
-import type {
-  DeviceAction,
-  UIContext,
-} from '@midscene/core';
+import type { DeviceAction, UIContext } from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -313,10 +310,7 @@ export interface PlaygroundSDKLike {
   getActionSpace(context?: any): Promise<DeviceAction<unknown>[]>;
   onProgressUpdate?: (callback: ProgressCallback) => void;
   onDumpUpdate?: (
-    callback: (
-      dump: string,
-      executionDump?: ExecutionDump,
-    ) => void,
+    callback: (dump: string, executionDump?: ExecutionDump) => void,
   ) => void;
   cancelExecution?(requestId: string): Promise<void>;
   overrideConfig?(config: any): Promise<void>;
