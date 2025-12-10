@@ -1,7 +1,5 @@
 # Changelog
 
-> For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
-
 ## v1.0 - Beta release
 
 ### 🚀 Pure vision path
@@ -14,13 +12,13 @@ Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliv
 - **Far fewer tokens**: Removing DOM extraction cuts token usage by about 80%, lowering cost and speeding up local runs
 - **Open-source options**: Open-source vision models like Qwen3-VL 8B/30B perform well, enabling self-hosted deployments
 
-See [Model strategy](./model-strategy) for details.
+See our updated [Model strategy](./model-strategy) for details.
 
 ### 🚀 Better results on complex or long-running tasks
 
 For complex and long-running scenarios, Midscene adds:
-- New aiAct planning strategy `planningStrategy`: `fast` merges planning and localization in the vision model for quicker runs; `standard` (default) separates planning and targeting and shares the previous step’s screenshot to help the model understand the flow
-- Deep thinking support in aiAct to keep reflection and flexibility in complex workflows
+- New `aiAct` planning strategy `planningStrategy`: `fast` merges planning and localization in the vision model for quicker runs; `standard` (default) separates planning and targeting and shares the previous step’s screenshot to help the model understand the flow
+- Deep thinking support in `aiAct` to keep reflection and flexibility in complex workflows
 - Multi-model combinations: per-task model configuration lets Insight and Planning use stronger comprehension models (e.g., GPT-5.1 for planning plus Doubao for interaction) to achieve the best results
 
 ### 🚀 Runtime architecture optimization
