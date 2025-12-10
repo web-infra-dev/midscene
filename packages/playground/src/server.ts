@@ -220,9 +220,13 @@ class PlaygroundServer {
         const { requestId } = req.params;
         const progressMessages = this.taskProgressMessages[requestId] || [];
         // For backward compatibility, also provide a tip string from the last message
-        const tip =
+        const lastMessage =
           progressMessages.length > 0
-            ? `${progressMessages[progressMessages.length - 1].action} - ${progressMessages[progressMessages.length - 1].description}`
+            ? progressMessages[progressMessages.length - 1]
+            : undefined;
+        const tip =
+          lastMessage && typeof lastMessage.action === 'string'
+            ? `${lastMessage.action} - ${lastMessage.description || ''}`
             : '';
         res.json({
           tip,

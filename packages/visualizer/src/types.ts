@@ -315,6 +315,7 @@ export interface PlaygroundSDKLike {
   cancelExecution?(requestId: string): Promise<void>;
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
+  getServiceMode?(): 'In-Browser-Extension' | 'Server';
   id?: string; // unique ID for SDK instances
 }
 

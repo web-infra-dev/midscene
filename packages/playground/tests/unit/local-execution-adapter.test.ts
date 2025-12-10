@@ -35,7 +35,9 @@ describe('LocalExecutionAdapter', () => {
       callActionInActionSpace: vi.fn(),
       onTaskStartTip: vi.fn(),
       destroy: vi.fn(),
-      dumpDataString: vi.fn().mockReturnValue(JSON.stringify({ executions: [{}] })),
+      dumpDataString: vi
+        .fn()
+        .mockReturnValue(JSON.stringify({ executions: [{}] })),
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
