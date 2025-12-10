@@ -14,7 +14,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - CTA Buttons
   introduction: '快速开始',
-  whatsNew: '更新日志',
+  whatsNew: '查看新特性',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
