@@ -47,7 +47,7 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
       // Check Playwright version requirement (>= 1.52)
       const playwrightVersion = getPlaywrightVersion();
       if (playwrightVersion && !semver.gte(playwrightVersion, '1.52.0')) {
-        throw new Error(
+        console.warn(
           `[midscene:error] forceChromeSelectRendering requires Playwright >= 1.52.0, but current version is ${playwrightVersion}. This feature may not work correctly.`,
         );
       }

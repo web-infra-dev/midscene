@@ -318,6 +318,18 @@ describe(
       );
     });
 
+    it('native <select /> element', async () => {
+      const htmlPath = path.join(__dirname, 'select.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage, {
+        forceChromeSelectRendering: true,
+      });
+      await agent.aiAct(
+        'select the "fruit" element, select the "apple" option, sleep 2s, refresh, select the same option again. Assert: the "Current selection: Apple" text is visible. If you find it failed to select after several attempts, do not retry, it is an fatal error',
+      );
+    });
+
     it('append custom action - UploadFile is invoked', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
