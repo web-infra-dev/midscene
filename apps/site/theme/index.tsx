@@ -1,4 +1,4 @@
-import { getCustomMDXComponent as basicGetCustomMDXComponent } from '@rspress/core/theme';
+import { getCustomMDXComponent as basicGetCustomMDXComponent } from '@rspress/core/theme-original';
 import {
   LlmsContainer,
   LlmsCopyButton,
@@ -27,4 +27,4 @@ function getCustomMDXComponent() {
 }
 
 export { getCustomMDXComponent, HomeLayout };
-export * from '@rspress/core/theme';
+export * from '@rspress/core/theme-original';

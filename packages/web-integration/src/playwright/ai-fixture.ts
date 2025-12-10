@@ -599,12 +599,16 @@ export type PlayWrightAiFixtureType = {
     page?: any,
     opts?: any,
   ) => Promise<PageAgent<PlaywrightWebPage>>;
-  ai: <T = any>(prompt: string) => Promise<T>;
-  aiAct: (taskPrompt: string) => ReturnType<PageAgent['aiAct']>;
+  ai: <T = any>(...args: Parameters<PageAgent['ai']>) => Promise<T>;
+  aiAct: (
+    ...args: Parameters<PageAgent['aiAct']>
+  ) => ReturnType<PageAgent['aiAct']>;
   /**
    * @deprecated Use {@link PlayWrightAiFixtureType.aiAct} instead.
    */
-  aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
+  aiAction: (
+    ...args: Parameters<PageAgent['aiAction']>
+  ) => ReturnType<PageAgent['aiAction']>;
   aiTap: (
     ...args: Parameters<PageAgent['aiTap']>
   ) => ReturnType<PageAgent['aiTap']>;
