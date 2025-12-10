@@ -8,7 +8,7 @@ export const EN_US = {
 
   // Banner - Stats
   githubStars: 'Github Stars',
-  activeUsers: 'No.2 in github trending',
+  activeUsers: 'No.2 in Github trending',
 
   // Banner - CTA Buttons
   introduction: 'Get Started',
@@ -37,9 +37,9 @@ and more`,
 
   // Feature Sections - MODELS
   modelsTitle: 'MODEL STRATEGY',
-  modelsHeading: `Vision
-· Multi-model
-· Open-source options`,
+  modelsHeading: `Vision Models
+ Multi-model combination
+ Adapt open-source models`,
   modelsDesc1: 'Vision models boost action precision',
   modelsDesc2: 'Multi-model setups raise completion rates',
   modelsDesc3: 'Open-source options that still perform',
@@ -51,12 +51,12 @@ and more`,
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
     'Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
-  modelGeminiName: 'Gemini-2.5-Pro',
+  modelGeminiName: 'Gemini-3-ProPro',
   modelGeminiDesc:
     'Advanced Gemini multimodal model with powerful vision capabilities and comprehensive UI automation support.',
   modelMultiModelName: 'Multi-model combo',
   modelMultiModelDesc:
-    'Optionally pair planning/insight models with a vision localizer to lift completion rates.',
+    'Supports using different models for planning and interaction to improve task completion rates',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: 'DEVELOPER EXPERIENCE',
@@ -75,10 +75,14 @@ and more`,
     'Exposes device operations as an MCP Server for collaboration with various models.',
   featureReportsPlayground: 'Reports & Playground',
   featureReportsPlaygroundDesc:
-    'Enhances debugging with intuitive visualization and testing environments.',
+    'Provides intuitive visualization reports to help developers trace back the automation process',
   featureFlexibleIntegration: 'Flexible Integration',
   featureFlexibleIntegrationDesc:
-    'Supports multiple script formats, custom models, and extensible features.',
+    'Supports using Yaml to write automation flows, supports custom Agent execution strategies',
+  featureRichAPIsLink: '/api',
+  featureMCPServerLink: '/mcp',
+  featureReportsPlaygroundLink: '/quick-experience',
+  featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
 
   // View All APIs
   apiMoreLink: 'View All APIs',

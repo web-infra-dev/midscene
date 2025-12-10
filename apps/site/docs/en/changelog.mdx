@@ -304,7 +304,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 
 ### Web integration enhancement
 
-#### 1⃣ New recording function
+#### New recording function
 - Chrome extension adds recording function, which can record user operations on the page and generate automation scripts
 - Support recording click, input, scroll and other common operations, greatly reducing the threshold for writing automation scripts
 - The recorded operations can be directly played back and debugged in the Playground
@@ -325,7 +325,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 
 ### Android interaction optimization
 
-#### 1⃣ New screenshot path generation
+#### New screenshot path generation
 - Generate a unique file path for each screenshot to avoid file overwrite issues
 - Improve stability in concurrent test scenarios
 
@@ -333,7 +333,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 
 ### Web integration enhancement
 
-#### 1⃣ New chat-style user interface
+#### New chat-style user interface
 
 - New chat-style user interface design for better user experience
 
@@ -357,7 +357,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 
 ### Android interaction optimization
 
-#### 1⃣ Input experience improvement
+#### Input experience improvement
 
 - Changed click input to slide operation, improving interaction response and stability
 - Reduced operation failures caused by inaccurate clicks
@@ -366,7 +366,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 
 ### Web integration enhancement
 
-#### 1⃣ New `aiAsk` method
+#### New `aiAsk` method
 
 - Allows direct questioning of the AI model to obtain string-formatted answers for the current page.
 - Applicable scenarios: Tasks requiring AI reasoning such as Q&A on page content and information extraction.
@@ -376,7 +376,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 await agent.aiAsk('any question')
 ```
 
-#### 2⃣ Support for passing XPath to locate elements
+#### Support for passing XPath to locate elements
 
 - Location priority: Specified XPath > Cache > AI model location.
 - Applicable scenarios: When the XPath of an element is known and the AI model location needs to be skipped.
@@ -388,11 +388,11 @@ await agent.aiTap('submit button', { xpath: '//button[@id="submit"]' })
 
 ### Android improvement
 
-#### 1⃣ Playground tasks can be cancelled
+#### Playground tasks can be cancelled
 
 - Supports interrupting ongoing automation tasks to improve debugging efficiency.
 
-#### 2⃣ Enhanced `aiLocate` API
+#### Enhanced `aiLocate` API
 
 - Returns the Device Pixel Ratio, which is commonly used to calculate the real coordinates of elements.
 

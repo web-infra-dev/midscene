@@ -248,7 +248,7 @@ export function FeatureSections() {
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Model 3 - Gemini */}
               <a
-                href={tUrl('/model-config#gemini-25-pro')}
+                href={tUrl('/model-config#gemini-3-pro')}
                 className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
@@ -258,7 +258,7 @@ export function FeatureSections() {
                   <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <img
                       src="/icon/gemini-color.svg"
-                      alt="Gemini-2.5-Pro"
+                      alt="Gemini-3-ProPro"
                       className="w-12 h-12 md:w-16 md:h-16"
                     />
                   </div>
@@ -346,12 +346,15 @@ export function FeatureSections() {
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Rich APIs Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
+              <a
+                href={tUrl(t('featureRichAPIsLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+              >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('featureRichAPIs')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <img
                       src="/icon/ai-action.svg"
                       alt="Rich APIs"
@@ -362,15 +365,18 @@ export function FeatureSections() {
                     {t('featureRichAPIsDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
 
               {/* MCP Server Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
+              <a
+                href={tUrl(t('featureMCPServerLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+              >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('featureMCPServer')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <img
                       src="/icon/ai-tap.svg"
                       alt="MCP Server"
@@ -381,18 +387,21 @@ export function FeatureSections() {
                     {t('featureMCPServerDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Reports & Playground Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
+              <a
+                href={tUrl(t('featureReportsPlaygroundLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+              >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('featureReportsPlayground')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <img
                       src="/icon/playback-report.svg"
                       alt="Reports & Playground"
@@ -403,15 +412,18 @@ export function FeatureSections() {
                     {t('featureReportsPlaygroundDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
 
               {/* Flexible Integration Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6">
+              <a
+                href={tUrl(t('featureFlexibleIntegrationLink'))}
+                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+              >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('featureFlexibleIntegration')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c]">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <img
                       src="/icon/ai-query.svg"
                       alt="Flexible Integration"
@@ -422,7 +434,7 @@ export function FeatureSections() {
                     {t('featureFlexibleIntegrationDesc')}
                   </div>
                 </div>
-              </div>
+              </a>
             </div>
 
             {/* View All APIs row */}
@@ -460,7 +472,7 @@ export function FeatureSections() {
                       </svg>
                     </div>
                     <div className="font-sans text-sm text-black/60 dark:text-white/60">
-                      aiAction, aiLocate, aiAssert...
+                      aiAct, aiLocate, aiAssert...
                     </div>
                   </a>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">

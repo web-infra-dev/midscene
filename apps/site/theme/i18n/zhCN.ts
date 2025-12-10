@@ -37,8 +37,8 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Feature Sections - MODELS
   modelsTitle: '模型策略',
   modelsHeading: `视觉模型
-· 多模型
-· 开源选项`,
+ 多模型组合
+ 适配开源模型`,
   modelsDesc1: '视觉模型提升操作精准度',
   modelsDesc2: '多模型协同提升完成率',
   modelsDesc3: '有开源选项也靠谱',
@@ -50,11 +50,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
     'Qwen 视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
-  modelGeminiName: 'Gemini-2.5-Pro',
+  modelGeminiName: 'Gemini-3-ProPro',
   modelGeminiDesc:
     'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
   modelMultiModelName: '多模型组合',
-  modelMultiModelDesc: '可选：规划/洞察模型搭配视觉定位模型，提升完成率。',
+  modelMultiModelDesc: '支持在规划、交互时选用不同模型，提升任务完成率',
 
   // Feature Sections - DEBUGGING
   debuggingTitle: '开发体验',
@@ -70,9 +70,15 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   featureMCPServer: 'MCP Server',
   featureMCPServerDesc: '将设备操作暴露为 MCP Server，并可与多种模型协作使用。',
   featureReportsPlayground: '报告与 Playground',
-  featureReportsPlaygroundDesc: '优化调试体验，提供更直观的可视化与测试环境。',
+  featureReportsPlaygroundDesc:
+    '提供直观的可视化报告，帮助开发者回溯自动化流程',
   featureFlexibleIntegration: '灵活集成',
-  featureFlexibleIntegrationDesc: '支持多种脚本格式、自定义模型及扩展特性。',
+  featureFlexibleIntegrationDesc:
+    '支持使用 Yaml 编写自动化流程，支持自定义 Agent 执行策略',
+  featureRichAPIsLink: '/api',
+  featureMCPServerLink: '/mcp',
+  featureReportsPlaygroundLink: '/quick-experience',
+  featureFlexibleIntegrationLink: '/automate-with-scripts-in-yaml',
 
   // View All APIs
   apiMoreLink: '查看所有 API',
