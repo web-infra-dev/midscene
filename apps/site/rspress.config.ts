@@ -122,7 +122,7 @@ export default defineConfig({
           ],
         },
         {
-          text: 'More feature',
+          text: 'More features',
           items: [
             {
               text: 'Command line tools',
@@ -139,6 +139,10 @@ export default defineConfig({
             {
               text: 'Integrate Midscene with any interface',
               link: '/integrate-with-any-interface',
+            },
+            {
+              text: 'Expose agent as MCP server',
+              link: '/mcp',
             },
           ],
         },
@@ -157,10 +161,6 @@ export default defineConfig({
             {
               text: 'FAQ',
               link: '/faq',
-            },
-            {
-              text: 'Expose agent as MCP server',
-              link: '/mcp',
             },
             {
               text: 'Use JavaScript to optimize your workflow',
@@ -268,7 +268,7 @@ export default defineConfig({
           ],
         },
         {
-          text: '更多功能',
+          text: '更多特性',
           items: [
             {
               text: '命令行工具',
@@ -285,6 +285,10 @@ export default defineConfig({
             {
               text: '将 Midscene 集成到任意界面',
               link: '/zh/integrate-with-any-interface',
+            },
+            {
+              text: '将设备操作暴露为 MCP',
+              link: '/zh/mcp',
             },
           ],
         },
@@ -303,14 +307,6 @@ export default defineConfig({
             {
               text: '常见问题 FAQ',
               link: '/zh/faq',
-            },
-            {
-              text: 'MCP 服务',
-              items: [
-                { text: 'Web (桥接模式)', link: '/zh/mcp-web' },
-                { text: 'Android', link: '/zh/mcp-android' },
-                { text: 'iOS', link: '/zh/mcp-ios' },
-              ],
             },
             {
               text: '使用 JavaScript 优化工作流',
