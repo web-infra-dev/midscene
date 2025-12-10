@@ -25,6 +25,27 @@ iOS UI 自动化方案具备 Midscene 的全部特性：
 
 点击查看 [iOS Playground 使用文档](/zh/ios-playground)。
 
+## 关于 WebDriverAgent
+
+WebDriver 是 W3C 制定的浏览器自动化标准协议，提供统一的 API 来控制不同的浏览器和应用。该协议定义了客户端与服务端之间的通信方式，使自动化工具能跨平台地操纵各种界面。
+
+得益于 Appium 团队以及其他开源社区的努力，业界已经出现了多个优秀的库，将桌面端和移动端的操作转化为 WebDriver 协议，例如：
+
+- **Appium** —— 跨平台移动自动化框架
+- **WebDriverAgent** —— 专注于 iOS 设备自动化的服务
+- **Selenium** —— Web 浏览器自动化工具
+- **WinAppDriver** —— Windows 应用自动化工具
+
+**Midscene 适配 WebDriver 协议**，这意味着开发者可以在任何支持 WebDriver 的设备上使用 AI 模型执行智能自动化操作。通过该设计，Midscene 不仅能完成点击、输入等传统操作，还可以：
+
+- 理解界面内容与上下文
+- 执行复杂的多步骤操作
+- 进行智能断言与验证
+- 提取并分析界面数据
+
+在 iOS 平台上，Midscene 通过 WebDriverAgent 连接 iOS 设备，让你可以用自然语言描述来控制 iOS App 和系统。
+
+
 ## 下一步
 
 * [使用 JavaScript SDK](./ios-getting-started)

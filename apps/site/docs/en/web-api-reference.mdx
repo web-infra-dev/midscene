@@ -2,6 +2,25 @@
 
 Use this doc when you need to customize Midscene's browser automation agents or review browser-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api).
 
+## Action Space
+
+The default web action space (shared by PuppeteerAgent, PlaywrightAgent, and Chrome Bridge) includes every interaction tool the Midscene Agent can use while planning tasks:
+
+- `Tap` &mdash; Left-click an element.
+- `RightClick` &mdash; Right-click an element.
+- `DoubleClick` &mdash; Double-click an element.
+- `Hover` &mdash; Hover over an element.
+- `Input` &mdash; Enter text with `replace`/`append`/`clear` modes.
+- `KeyboardPress` &mdash; Press a specified key (optionally focusing a target element first).
+- `Scroll` &mdash; Scroll from an element or screen center; supports scroll-to-top/bottom/left/right helpers.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `LongPress` &mdash; Long-press a target element with optional duration.
+- `Swipe` &mdash; Touch-style swipe gesture (available when `enableTouchEventsInActionSpace` is `true`).
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Navigate` &mdash; Open a URL in the current tab.
+- `Reload` &mdash; Reload the page.
+- `GoBack` &mdash; Navigate back in history.
+
 ## PuppeteerAgent {#puppeteer-agent}
 
 Use Midscene against a Puppeteer-controlled browser when you need AI actions in your own Puppeteer workflows.

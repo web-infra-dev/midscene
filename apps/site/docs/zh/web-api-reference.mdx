@@ -2,6 +2,25 @@
 
 当你需要自定义 Midscene 的浏览器自动化 Agent，或查阅 Web 专属构造参数时，请参考本篇。关于通用参数（报告、Hook、缓存等），请阅读[API 参考（通用）](./api)。
 
+## Action Space（动作空间）
+
+PuppeteerAgent、PlaywrightAgent 与 Chrome Bridge 共享的默认 Action Space 包括 Midscene Agent 在规划任务时可用的全部交互工具：
+
+- `Tap` —— 左键点击元素。
+- `RightClick` —— 右键点击元素。
+- `DoubleClick` —— 双击元素。
+- `Hover` —— 悬停目标元素。
+- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式。
+- `KeyboardPress` —— 按下指定键（可在按键前先聚焦目标）。
+- `Scroll` —— 以元素为起点或从屏幕中央滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `LongPress` —— 长按目标元素，可选自定义时长。
+- `Swipe` —— 触摸式滑动（开启 `enableTouchEventsInActionSpace` 时可用）。
+- `ClearInput` —— 清空输入框内容。
+- `Navigate` —— 在当前标签页打开指定 URL。
+- `Reload` —— 刷新当前页面。
+- `GoBack` —— 浏览器后退。
+
 ## PuppeteerAgent {#puppeteer-agent}
 
 当你需要在 Puppeteer 控制的浏览器里复用 Midscene 的 AI 操作能力时使用。

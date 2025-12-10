@@ -2,6 +2,23 @@
 
 当你需要自定义 iOS 设备行为、将 Midscene 接入依赖 WebDriverAgent 的工作流，或排查 WDA 请求问题时，请查阅本节。关于通用构造函数（报告、Hook、缓存等），请参考平台无关的 [API 参考](./api)。
 
+## Action Space（动作空间）
+
+`IOSDevice` 的 Action Space 包含以下动作，它们就是 Midscene Agent 在规划任务时可使用的全部交互工具：
+
+- `Tap` —— 点击元素。
+- `DoubleClick` —— 双击元素。
+- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式，可选 `autoDismissKeyboard`。
+- `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `KeyboardPress` —— 按下指定键位。
+- `IOSLongPress` —— 长按目标元素，可选自定义时长。
+- `ClearInput` —— 清空输入框内容。
+- `Launch` —— 打开网页、Bundle ID 或 URL Scheme。
+- `RunWdaRequest` —— 直接调用 WebDriverAgent REST 接口。
+- `IOSHomeButton` —— 执行 iOS 系统 Home 操作。
+- `IOSAppSwitcher` —— 打开 iOS 多任务视图。
+
 ## IOSDevice {#iosdevice}
 
 创建一个由 WebDriverAgent 支撑、供 IOSAgent 驱动的设备连接。
@@ -27,15 +44,12 @@ const device = new IOSDevice({
 - `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
 - `customActions?: DeviceAction<any>[]` —— 向 Agent 暴露的额外设备动作。
 
+
 ### 使用说明
 
-:::info
-
-- 确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
+- 请确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
 - 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
-
-:::
 
 ### 示例
 

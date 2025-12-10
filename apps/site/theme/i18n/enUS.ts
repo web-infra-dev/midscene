@@ -12,7 +12,7 @@ export const EN_US = {
 
   // Banner - CTA Buttons
   introduction: 'Get Started',
-  documentation: 'Github Project',
+  whatsNew: "What's New",
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
