@@ -325,7 +325,7 @@ describe(
       const agent = new PuppeteerAgent(originPage, {
         forceChromeSelectRendering: true,
       });
-      await agent.aiAction(
+      await agent.aiAct(
         'select the "fruit" element, select the "apple" option, sleep 2s, refresh, select the same option again. Assert: the "Current selection: Apple" text is visible. If you find it failed to select after several attempts, do not retry, it is an fatal error',
       );
     });
