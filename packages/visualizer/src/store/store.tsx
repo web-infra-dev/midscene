@@ -58,6 +58,12 @@ export const useGlobalPreference = create<{
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
   const darkModeFromQuery = getQueryPreference('darkMode');
+  const initialDarkMode =
+    darkModeFromQuery === undefined ? savedDarkMode : darkModeFromQuery;
+
+  if (darkModeFromQuery !== undefined) {
+    localStorage.setItem(DARK_MODE_KEY, initialDarkMode.toString());
+  }
   return {
     backgroundVisible: savedBackgroundVisible,
     elementsVisible:
@@ -67,8 +73,7 @@ export const useGlobalPreference = create<{
     autoZoom:
       autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
     modelCallDetailsEnabled: savedModelCallDetails,
-    darkModeEnabled:
-      darkModeFromQuery === undefined ? savedDarkMode : darkModeFromQuery,
+    darkModeEnabled: initialDarkMode,
     setBackgroundVisible: (visible: boolean) => {
       set({ backgroundVisible: visible });
       localStorage.setItem(BACKGROUND_VISIBLE_KEY, visible.toString());
