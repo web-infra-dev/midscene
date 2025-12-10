@@ -105,7 +105,13 @@
   "bin": {
     "midscene-playground": "./bin/midscene-playground"
   },
-  "files": ["static", "dist", "iife-script", "README.md", "bin"],
+  "files": [
+    "static",
+    "dist",
+    "iife-script",
+    "README.md",
+    "bin"
+  ],
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
@@ -130,7 +136,7 @@
     "js-yaml": "4.1.0",
     "langsmith": "0.3.74",
     "playwright": "1.44.1",
-    "puppeteer": "24.2.0",
+    "puppeteer": "24.6.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

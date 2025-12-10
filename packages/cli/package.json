@@ -9,7 +9,11 @@
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "files": [
+    "dist",
+    "README.md",
+    "bin"
+  ],
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
@@ -26,7 +30,7 @@
     "@midscene/web": "workspace:*",
     "http-server": "14.1.1",
     "lodash.merge": "4.6.2",
-    "puppeteer": "24.2.0"
+    "puppeteer": "24.6.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",

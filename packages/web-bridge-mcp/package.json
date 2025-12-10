@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "Midscene MCP Server for Web automation (Bridge mode)",
   "bin": "dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/server.js",
   "types": "./dist/server.d.ts",
   "exports": {
@@ -35,7 +37,7 @@
     "@rspack/core": "1.6.6",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
-    "puppeteer-core": "24.2.0",
+    "puppeteer-core": "24.6.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
