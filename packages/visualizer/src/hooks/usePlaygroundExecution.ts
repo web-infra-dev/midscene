@@ -186,12 +186,6 @@ export function usePlaygroundExecution(
         if (typeof result.result === 'object' && result.result !== null) {
           const resultObj = result.result;
           if (resultObj.dump) {
-            console.log('[usePlaygroundExecution] Got dump from result:', {
-              hasDump: !!resultObj.dump,
-              hasTasks: !!resultObj.dump?.tasks,
-              tasksLength: resultObj.dump?.tasks?.length,
-              dumpKeys: Object.keys(resultObj.dump || {}),
-            });
             result.dump = resultObj.dump;
           }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
@@ -226,33 +220,8 @@ export function usePlaygroundExecution(
 
       // Generate replay info for interaction APIs
       if (result?.dump && !noReplayAPIs.includes(actionType)) {
-        console.log('[usePlaygroundExecution] Generating replay info:', {
-          actionType,
-          hasDump: !!result.dump,
-          dumpType: typeof result.dump,
-          dumpKeys: Object.keys(result.dump || {}),
-          hasTasks: !!result.dump?.tasks,
-          tasksLength: result.dump?.tasks?.length,
-          tasksType: result.dump?.tasks
-            ? typeof result.dump.tasks
-            : 'undefined',
-          isTasksArray: Array.isArray(result.dump?.tasks),
-          fullDumpStructure: JSON.stringify(result.dump, null, 2).substring(
-            0,
-            500,
-          ),
-        });
-
         // Check if dump has tasks before wrapping
         if (!result.dump.tasks || !Array.isArray(result.dump.tasks)) {
-          console.error(
-            '[usePlaygroundExecution] Invalid dump structure - tasks missing or not an array:',
-            {
-              dump: result.dump,
-              hasTasksProperty: 'tasks' in (result.dump || {}),
-              tasksValue: result.dump?.tasks,
-            },
-          );
           // Skip replay info generation for invalid dumps
         } else {
           const groupedDump = wrapExecutionDumpForReplay(result.dump);

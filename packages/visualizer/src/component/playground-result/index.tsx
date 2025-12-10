@@ -44,18 +44,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     resultWrapperClassName += ' result-wrapper-compact';
   }
 
-  // Debug logging
-  console.log('[PlaygroundResultView] Rendering with:', {
-    hasResult: !!result,
-    hasReplayScriptsInfo: !!replayScriptsInfo,
-    hasReportHTML: !!result?.reportHTML,
-    reportHTMLLength: result?.reportHTML?.length,
-    hasError: !!result?.error,
-    hasResultData: result?.result !== undefined,
-    serviceMode,
-    loading,
-  });
-
   let resultDataToShow: React.ReactNode = emptyResultTip;
 
   if (!serverValid && serviceMode === 'Server') {
@@ -77,14 +65,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         ? result?.reportHTML
         : null;
 
-    console.log('[PlaygroundResultView] Has replay scripts, reportContent:', {
-      serviceMode,
-      hasReportHTML: !!result?.reportHTML,
-      reportHTMLLength: result?.reportHTML?.length,
-      willPassReportContent: !!reportContent,
-      reportContentLength: reportContent?.length,
-    });
-
     resultDataToShow = (
       <Player
         key={replayCounter}
@@ -101,10 +81,6 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server')
   ) {
     // No replay scripts but has report - show Player with report only
-    console.log(
-      '[PlaygroundResultView] Showing report without replay, reportHTML length:',
-      result.reportHTML.length,
-    );
     resultDataToShow = (
       <Player
         key={replayCounter}
