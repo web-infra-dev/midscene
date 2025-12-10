@@ -9,7 +9,7 @@ import { colorForName, highlightColorForType } from '../../utils/color';
 import './index.less';
 import { treeToList } from '@midscene/shared/extractor';
 import { DropShadowFilter, GlowFilter } from 'pixi-filters';
-import { useBlackboardPreference } from '../../store/store';
+import { useGlobalPreference } from '../../store/store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
@@ -113,7 +113,7 @@ export const Blackboard = (props: {
   //   setBackgroundVisible,
   //   elementsVisible,
   //   setElementsVisible,
-  // } = useBlackboardPreference();
+  // } = useGlobalPreference();
   const backgroundVisible = true;
   const elementsVisible = true;
 

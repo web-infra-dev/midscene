@@ -4,7 +4,7 @@ export {
   allScriptsFromDump,
   generateAnimationScripts,
 } from './utils/replay-scripts';
-export { useEnvConfig } from './store/store';
+export { useEnvConfig, useGlobalPreference } from './store/store';
 
 export {
   colorForName,
