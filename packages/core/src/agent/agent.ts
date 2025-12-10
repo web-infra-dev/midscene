@@ -171,7 +171,6 @@ export class Agent<
   onDumpUpdate?: (
     dump: string,
     executionDump?: ExecutionDump,
-    progressMessages?: ProgressMessage[],
   ) => void;
 
   destroyed = false;
@@ -356,22 +355,10 @@ export class Agent<
 
           try {
             if (this.onDumpUpdate) {
-              // Collect all tasks from all executions for complete progress tracking
-              const allTasks: ExecutionTask[] = [];
-              for (const execution of this.dump.executions) {
-                if (execution.tasks) {
-                  allTasks.push(...execution.tasks);
-                }
-              }
-
-              // Generate progress messages from all tasks for UI display
-              const progressMessages = this.generateProgressMessages(allTasks);
-
-              // Pass executionDump and progressMessages for data unification and easy UI rendering
+              // Pass executionDump for UI to render progress
               this.onDumpUpdate(
                 this.dumpDataString(),
                 executionDump,
-                progressMessages,
               );
             }
           } catch (error) {
@@ -510,36 +497,6 @@ export class Agent<
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
-  }
-
-  /**
-   * Generate progress messages from execution tasks for UI display
-   * Converts ExecutionTask array to user-friendly progress messages
-   * Uses paramStr() utility which properly handles all task types including Planning
-   */
-  private generateProgressMessages(tasks: ExecutionTask[]): ProgressMessage[] {
-    return tasks.map((task, index) => {
-      const action = typeStr(task);
-      // paramStr() handles all task types correctly:
-      // - For Planning tasks: returns output.log (if finished) or param.userInstruction
-      // - For other tasks: returns appropriate param values
-      const description = paramStr(task) || '';
-
-      // Map task status to ProgressMessage status
-      // Note: ExecutionTask has 'cancelled' status but ProgressMessage doesn't
-      const taskStatus = task.status;
-      const status: 'pending' | 'running' | 'finished' | 'failed' =
-        taskStatus === 'cancelled' ? 'failed' : taskStatus;
-
-      return {
-        id: `progress-task-${index}-${Date.now()}`,
-        taskId: `task-${index}`,
-        action,
-        description,
-        status,
-        timestamp: task.timing?.start || Date.now(),
-      };
-    });
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {

@@ -1,7 +1,6 @@
 import type {
   DeviceAction,
   UIContext,
-  ProgressMessage,
 } from '@midscene/core';
 import type { ComponentType } from 'react';
 
@@ -317,7 +316,6 @@ export interface PlaygroundSDKLike {
     callback: (
       dump: string,
       executionDump?: ExecutionDump,
-      progressMessages?: ProgressMessage[],
     ) => void,
   ) => void;
   cancelExecution?(requestId: string): Promise<void>;

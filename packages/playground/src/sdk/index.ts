@@ -127,7 +127,6 @@ export class PlaygroundSDK {
     callback: (
       dump: string,
       executionDump?: any,
-      progressMessages?: any[],
     ) => void,
   ): void {
     if (this.adapter instanceof LocalExecutionAdapter) {

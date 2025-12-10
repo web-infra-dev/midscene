@@ -3,7 +3,8 @@ import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent as PageAgent } from '@midscene/core/agent';
-import type { ProgressMessage } from '@midscene/core';
+import { paramStr, typeStr } from '@midscene/core/agent';
+import type { ExecutionDump, ProgressMessage } from '@midscene/core';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
@@ -356,10 +357,28 @@ class PlaygroundServer {
         this.currentTaskId = requestId;
         this.taskProgressMessages[requestId] = [];
 
-        // Use onDumpUpdate to receive progress messages
-        this.agent.onDumpUpdate = (_dump: string, _executionDump?: any, progressMessages?: ProgressMessage[]) => {
-          if (progressMessages) {
-            this.taskProgressMessages[requestId] = progressMessages;
+        // Use onDumpUpdate to receive executionDump and transform tasks to progress messages
+        this.agent.onDumpUpdate = (_dump: string, executionDump?: ExecutionDump) => {
+          if (executionDump?.tasks) {
+            // Transform executionDump.tasks to ProgressMessage[] for API compatibility
+            this.taskProgressMessages[requestId] = executionDump.tasks.map((task, index) => {
+              const action = typeStr(task);
+              const description = paramStr(task) || '';
+
+              // Map task status
+              const taskStatus = task.status;
+              const status: 'pending' | 'running' | 'finished' | 'failed' =
+                taskStatus === 'cancelled' ? 'failed' : taskStatus;
+
+              return {
+                id: `progress-task-${index}`,
+                taskId: `task-${index}`,
+                action,
+                description,
+                status,
+                timestamp: task.timing?.start || Date.now(),
+              };
+            });
           }
         };
       }

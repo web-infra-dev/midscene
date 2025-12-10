@@ -1,4 +1,5 @@
-import type { DeviceAction, ExecutionDump, ProgressMessage } from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import { paramStr, typeStr } from '@midscene/core/agent';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -109,10 +110,10 @@ export function usePlaygroundExecution(
         currentRunningIdRef.current = thisRunningId;
         interruptedFlagRef.current[thisRunningId] = false;
 
-        // Set up dump update tracking with progress messages
+        // Set up dump update tracking to transform tasks to progress items
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
-            (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => {
+            (dump: string, executionDump?: ExecutionDump) => {
               if (interruptedFlagRef.current[thisRunningId]) {
                 return;
               }
@@ -135,9 +136,9 @@ export function usePlaygroundExecution(
                 });
               }
 
-              // Convert progressMessages to InfoListItem progress messages
+              // Transform executionDump.tasks directly to InfoListItem progress messages
               // Update existing items or add new ones to preserve progress history
-              if (progressMessages && progressMessages.length > 0) {
+              if (executionDump?.tasks && executionDump.tasks.length > 0) {
                 setInfoList((prev) => {
                   // Find the system item index to know where to insert new progress items
                   const systemItemIndex = prev.findIndex(
@@ -156,10 +157,12 @@ export function usePlaygroundExecution(
                     }
                   });
 
-                  // Build updated progress items, updating existing ones or creating new ones
-                  const updatedProgressItems: InfoListItem[] = progressMessages.map((pm) => {
-                    const id = `progress-${thisRunningId}-${pm.taskId}`;
-                    const content = `${pm.action} - ${pm.description}`;
+                  // Build updated progress items from executionDump.tasks
+                  const updatedProgressItems: InfoListItem[] = executionDump.tasks.map((task, index) => {
+                    const id = `progress-${thisRunningId}-task-${index}`;
+                    const action = typeStr(task);
+                    const description = paramStr(task) || '';
+                    const content = description ? `${action} - ${description}` : action;
                     const existingItem = existingProgressMap.get(id);
 
                     if (existingItem) {
@@ -167,7 +170,7 @@ export function usePlaygroundExecution(
                       return {
                         ...existingItem,
                         content,
-                        timestamp: new Date(pm.timestamp),
+                        timestamp: new Date(task.timing?.start || Date.now()),
                       };
                     }
 
@@ -176,7 +179,7 @@ export function usePlaygroundExecution(
                       id,
                       type: 'progress' as const,
                       content,
-                      timestamp: new Date(pm.timestamp),
+                      timestamp: new Date(task.timing?.start || Date.now()),
                     };
                   });
 

@@ -1,4 +1,4 @@
-import type { DeviceAction, ExecutionDump, ProgressMessage } from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
@@ -7,7 +7,7 @@ import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
-  private dumpUpdateCallback?: (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => void;
+  private dumpUpdateCallback?: (dump: string, executionDump?: ExecutionDump) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
@@ -22,7 +22,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return this._id;
   }
 
-  onDumpUpdate(callback: (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => void): void {
+  onDumpUpdate(callback: (dump: string, executionDump?: ExecutionDump) => void): void {
     // Clear any existing callback before setting new one
     this.dumpUpdateCallback = undefined;
     // Set the new callback
@@ -115,29 +115,29 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
-    let originalOnDumpUpdate: ((dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => void) | undefined;
+    let originalOnDumpUpdate: ((dump: string, executionDump?: ExecutionDump) => void) | undefined;
 
     // Setup dump update tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
 
-      // Intercept Agent's onDumpUpdate to forward progressMessages
+      // Intercept Agent's onDumpUpdate to forward executionDump
       originalOnDumpUpdate = this.agent.onDumpUpdate;
-      this.agent.onDumpUpdate = (dump: string, executionDump?: ExecutionDump, progressMessages?: ProgressMessage[]) => {
+      this.agent.onDumpUpdate = (dump: string, executionDump?: ExecutionDump) => {
         // Only process if this is still the current request
         if (this.currentRequestId !== options.requestId) {
           return;
         }
 
-        // Forward to external callback with all parameters
+        // Forward to external callback
         if (this.dumpUpdateCallback) {
-          this.dumpUpdateCallback(dump, executionDump, progressMessages);
+          this.dumpUpdateCallback(dump, executionDump);
         }
 
         // Call original callback
         if (typeof originalOnDumpUpdate === 'function') {
-          originalOnDumpUpdate(dump, executionDump, progressMessages);
+          originalOnDumpUpdate(dump, executionDump);
         }
       };
     }
