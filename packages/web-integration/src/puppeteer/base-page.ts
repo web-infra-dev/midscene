@@ -734,29 +734,85 @@ export function forceChromeSelectRendering(
 ): void {
   // Force Chrome to render select elements using base-select appearance
   // Reference: https://developer.chrome.com/blog/a-customizable-select
-  // Note: Although addStyleTag is an async method, we cannot await it here
-  // because this function is called in the constructor. However, this should
-  // not be a problem since we won't immediately interact with select elements
-  // after the agent is created.
-  (page as PuppeteerPage & PlaywrightPage)
-    .addStyleTag({
-      content: `
+  const styleContent = `
 /* Add by Midscene because of forceChromeSelectRendering is enabled*/
 select {
   &, &::picker(select) {
     appearance: base-select !important;
   }
-}`,
-    })
-    .then(() => {
+}`;
+  const styleId = 'midscene-force-select-rendering';
+
+  const injectStyle = async () => {
+    try {
+      await (page as PuppeteerPage & PlaywrightPage).evaluate(
+        (id, content) => {
+          if (document.getElementById(id)) return;
+          const style = document.createElement('style');
+          style.id = id;
+          style.textContent = content;
+          document.head.appendChild(style);
+        },
+        styleId,
+        styleContent,
+      );
       console.log(
         'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',
       );
-    })
-    .catch((err) => {
+    } catch (err) {
       console.log(
         'Midscene - Failed to add base-select appearance style:',
         err,
       );
-    });
+    }
+  };
+
+  // Inject immediately for the current document
+  void injectStyle();
+
+  // Ensure the style is reapplied on future navigations/new documents
+  const addInitScript = (page as PuppeteerPage & PlaywrightPage)
+    .addInitScript as PuppeteerPage['addInitScript'] | undefined;
+  if (typeof addInitScript === 'function') {
+    addInitScript(
+      (id: string, content: string) => {
+        try {
+          if (document.getElementById(id)) return;
+          const style = document.createElement('style');
+          style.id = id;
+          style.textContent = content;
+          document.head.appendChild(style);
+        } catch (err) {
+          console.log(
+            'Midscene - Failed to add base-select appearance style in init script:',
+            err,
+          );
+        }
+      },
+      styleId,
+      styleContent,
+    );
+  } else if (
+    typeof (page as PuppeteerPage & PlaywrightPage).evaluateOnNewDocument ===
+    'function'
+  ) {
+    (page as PuppeteerPage & PlaywrightPage).evaluateOnNewDocument(
+      (id, content) => {
+        try {
+          if (document.getElementById(id)) return;
+          const style = document.createElement('style');
+          style.id = id;
+          style.textContent = content;
+          document.head.appendChild(style);
+        } catch (err) {
+          console.log(
+            'Midscene - Failed to add base-select appearance style on new document:',
+            err,
+          );
+        }
+      },
+      styleId,
+      styleContent,
+    );
+  }
 }
