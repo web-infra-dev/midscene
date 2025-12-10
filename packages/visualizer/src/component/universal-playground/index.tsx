@@ -137,7 +137,6 @@ export function UniversalPlayground({
     actionSpace,
     loading,
     setLoading,
-    infoList,
     setInfoList,
     replayCounter,
     setReplayCounter,

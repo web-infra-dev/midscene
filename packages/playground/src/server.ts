@@ -4,13 +4,14 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { paramStr, typeStr } from '@midscene/core/agent';
-import type { ExecutionDump, ProgressMessage } from '@midscene/core';
+import type { ExecutionDump } from '@midscene/core';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
+import type { ProgressMessage } from './types';
 
 import 'dotenv/config';
 

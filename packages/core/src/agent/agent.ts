@@ -3,7 +3,6 @@ import {
   type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
-  type ProgressMessage,
   type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
@@ -168,10 +167,7 @@ export class Agent<
 
   taskCache?: TaskCache;
 
-  onDumpUpdate?: (
-    dump: string,
-    executionDump?: ExecutionDump,
-  ) => void;
+  onDumpUpdate?: (dump: string, executionDump?: ExecutionDump) => void;
 
   destroyed = false;
 
@@ -356,10 +352,7 @@ export class Agent<
           try {
             if (this.onDumpUpdate) {
               // Pass executionDump for UI to render progress
-              this.onDumpUpdate(
-                this.dumpDataString(),
-                executionDump,
-              );
+              this.onDumpUpdate(this.dumpDataString(), executionDump);
             }
           } catch (error) {
             console.error('Error in onDumpUpdate', error);

@@ -57,7 +57,6 @@ export function usePlaygroundExecution(
   actionSpace: DeviceAction<unknown>[],
   loading: boolean,
   setLoading: (loading: boolean) => void,
-  infoList: InfoListItem[],
   setInfoList: React.Dispatch<React.SetStateAction<InfoListItem[]>>,
   replayCounter: number,
   setReplayCounter: React.Dispatch<React.SetStateAction<number>>,
@@ -113,96 +112,67 @@ export function usePlaygroundExecution(
         // Set up dump update tracking to transform tasks to progress items
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
-            (dump: string, executionDump?: ExecutionDump) => {
-              if (interruptedFlagRef.current[thisRunningId]) {
+            (_dump: string, executionDump?: ExecutionDump) => {
+              if (interruptedFlagRef.current[thisRunningId] || !executionDump) {
                 return;
               }
 
-              // Update executionDump in result item
-              if (executionDump) {
-                setInfoList((prev) => {
-                  return prev.map((item) => {
-                    if (item.id === `result-${thisRunningId}` && item.result) {
-                      return {
-                        ...item,
-                        result: {
-                          ...item.result,
-                          dump: executionDump,
-                        },
-                      };
-                    }
-                    return item;
-                  });
-                });
-              }
-
-              // Transform executionDump.tasks directly to InfoListItem progress messages
-              // Update existing items or add new ones to preserve progress history
-              if (executionDump?.tasks && executionDump.tasks.length > 0) {
-                setInfoList((prev) => {
-                  // Find the system item index to know where to insert new progress items
-                  const systemItemIndex = prev.findIndex(
-                    item => item.id === `system-${thisRunningId}`
-                  );
-
-                  if (systemItemIndex === -1) {
-                    return prev; // System item not found, keep original
-                  }
-
-                  // Create a map of existing progress items by their ID
-                  const existingProgressMap = new Map<string, InfoListItem>();
-                  prev.forEach(item => {
-                    if (item.type === 'progress' && item.id.startsWith(`progress-${thisRunningId}-`)) {
-                      existingProgressMap.set(item.id, item);
-                    }
-                  });
-
-                  // Build updated progress items from executionDump.tasks
-                  // Filter out Planning tasks without output.log to avoid showing param.userInstruction
-                  const updatedProgressItems: InfoListItem[] = executionDump.tasks
-                    .filter((task) => {
-                      // Skip Planning tasks that don't have output.log yet
-                      if (task.type === 'Planning' && task.subType === 'Plan') {
-                        return task.status === 'finished' && task.output?.log;
-                      }
-                      return true;
-                    })
-                    .map((task, index) => {
-                      const id = `progress-${thisRunningId}-task-${index}`;
-                      const action = typeStr(task);
-                      const description = paramStr(task) || '';
-                      const content = description ? `${action} - ${description}` : action;
-                      const existingItem = existingProgressMap.get(id);
-
-                    if (existingItem) {
-                      // Update existing progress item with new content
-                      return {
-                        ...existingItem,
-                        content,
-                        timestamp: new Date(task.timing?.start || Date.now()),
-                      };
-                    }
-
-                    // Create new progress item
+              setInfoList((prev) => {
+                // Update result item with executionDump
+                const updatedList = prev.map((item) => {
+                  if (item.id === `result-${thisRunningId}` && item.result) {
                     return {
-                      id,
-                      type: 'progress' as const,
-                      content,
-                      timestamp: new Date(task.timing?.start || Date.now()),
+                      ...item,
+                      result: { ...item.result, dump: executionDump },
                     };
-                  });
-
-                  // Remove old progress items and insert updated/new ones
-                  const withoutOldProgress = prev.filter(
-                    item => !(item.type === 'progress' && item.id.startsWith(`progress-${thisRunningId}-`))
-                  );
-
-                  const beforeSystem = withoutOldProgress.slice(0, systemItemIndex + 1);
-                  const afterSystem = withoutOldProgress.slice(systemItemIndex + 1);
-
-                  return [...beforeSystem, ...updatedProgressItems, ...afterSystem];
+                  }
+                  return item;
                 });
-              }
+
+                // Find system item to insert progress items after it
+                const systemItemIndex = updatedList.findIndex(
+                  (item) => item.id === `system-${thisRunningId}`,
+                );
+
+                if (systemItemIndex === -1 || !executionDump.tasks?.length) {
+                  return updatedList;
+                }
+
+                // Build progress items from tasks (filter out unfinished Planning tasks)
+                const progressItems: InfoListItem[] = executionDump.tasks
+                  .filter((task) => {
+                    // Only show finished Planning tasks with output.log
+                    if (task.type === 'Planning' && task.subType === 'Plan') {
+                      return task.status === 'finished' && task.output?.log;
+                    }
+                    return true;
+                  })
+                  .map((task, index) => ({
+                    id: `progress-${thisRunningId}-task-${index}`,
+                    type: 'progress' as const,
+                    content: (() => {
+                      const action = typeStr(task);
+                      const description = paramStr(task);
+                      return description ? `${action} - ${description}` : action;
+                    })(),
+                    timestamp: new Date(task.timing?.start || Date.now()),
+                  }));
+
+                // Remove old progress items and insert new ones after system item
+                const withoutProgress = updatedList.filter(
+                  (item) =>
+                    !(
+                      item.type === 'progress' &&
+                      item.id.startsWith(`progress-${thisRunningId}-`)
+                    ),
+                );
+
+                return [
+                  ...withoutProgress.slice(0, systemItemIndex + 1),
+                  ...progressItems,
+                  ...withoutProgress.slice(systemItemIndex + 1),
+                ];
+              });
             },
           );
         }

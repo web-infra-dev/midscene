@@ -390,19 +390,6 @@ export interface ExecutionDump extends DumpMeta {
   aiActionContext?: string;
 }
 
-/**
- * Progress message for UI display
- * Generated from ExecutionTask to provide user-friendly progress updates
- */
-export interface ProgressMessage {
-  id: string; // Unique identifier for this progress message
-  taskId: string; // Corresponding task ID from ExecutionTask
-  action: string; // Task type display name (e.g., "Plan", "Action", "Query")
-  description: string; // Human-readable description of what the task does
-  status: 'pending' | 'running' | 'finished' | 'failed'; // Task execution status
-  timestamp: number; // Unix timestamp when this message was generated
-}
-
 
 /*
 task - service-locate
