@@ -166,7 +166,9 @@ export function paramStr(task: ExecutionTask) {
     if (task.subType === 'Locate') {
       value = locateParamStr((task as ExecutionTaskPlanningLocate)?.param);
     } else {
-      value = (task as ExecutionTaskPlanning)?.param?.userInstruction;
+      // For Plan tasks, prefer output.log (actual AI-generated step) over param.userInstruction (user input)
+      const planTask = task as ExecutionTaskPlanning;
+      value = planTask.output?.log || planTask.param?.userInstruction;
     }
   }
 

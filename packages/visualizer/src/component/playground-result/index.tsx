@@ -71,11 +71,11 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     );
   } else if (replayScriptsInfo) {
     // Has replay scripts - show Player with replay and report
-    const reportContent = (serviceMode === 'In-Browser-Extension' ||
-      serviceMode === 'Server') &&
-    result?.reportHTML
-      ? result?.reportHTML
-      : null;
+    const reportContent =
+      (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server') &&
+      result?.reportHTML
+        ? result?.reportHTML
+        : null;
 
     console.log('[PlaygroundResultView] Has replay scripts, reportContent:', {
       serviceMode,
@@ -101,7 +101,10 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server')
   ) {
     // No replay scripts but has report - show Player with report only
-    console.log('[PlaygroundResultView] Showing report without replay, reportHTML length:', result.reportHTML.length);
+    console.log(
+      '[PlaygroundResultView] Showing report without replay, reportHTML length:',
+      result.reportHTML.length,
+    );
     resultDataToShow = (
       <Player
         key={replayCounter}

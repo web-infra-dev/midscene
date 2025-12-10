@@ -178,7 +178,10 @@ export function UniversalPlayground({
 
   // Determine service mode based on SDK adapter type
   const serviceMode = useMemo(() => {
-    if (!playgroundSDK || typeof (playgroundSDK as any).getServiceMode !== 'function') {
+    if (
+      !playgroundSDK ||
+      typeof (playgroundSDK as any).getServiceMode !== 'function'
+    ) {
       return 'Server'; // Default fallback
     }
     return (playgroundSDK as any).getServiceMode();
