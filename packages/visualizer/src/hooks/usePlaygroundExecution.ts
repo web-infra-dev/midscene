@@ -14,6 +14,17 @@ import { BLANK_RESULT } from '../utils/constants';
 import { allScriptsFromDump } from '../utils/replay-scripts';
 
 /**
+ * Build progress content string from task information
+ * @param task - The execution task to build content from
+ * @returns Formatted content string with action and optional description
+ */
+function buildProgressContent(task: any): string {
+  const action = typeStr(task);
+  const description = paramStr(task);
+  return description ? `${action} - ${description}` : action;
+}
+
+/**
  * Convert ExecutionDump to GroupedActionDump for replay scripts
  * @param dump - The execution dump containing tasks and their usage information
  * @returns A grouped action dump with model briefs and executions array
@@ -112,7 +123,7 @@ export function usePlaygroundExecution(
         // Set up dump update tracking to transform tasks to progress items
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
-            (_dump: string, executionDump?: ExecutionDump) => {
+            (_: string, executionDump?: ExecutionDump) => {
               if (
                 interruptedFlagRef.current[thisRunningId] ||
                 !executionDump?.tasks?.length
@@ -120,16 +131,11 @@ export function usePlaygroundExecution(
                 return;
               }
 
-              // Build progress items from tasks (filter out unfinished Planning tasks)
               const progressItems: InfoListItem[] = executionDump.tasks.map(
                 (task, index) => ({
                   id: `progress-${thisRunningId}-task-${index}`,
                   type: 'progress' as const,
-                  content: (() => {
-                    const action = typeStr(task);
-                    const description = paramStr(task);
-                    return description ? `${action} - ${description}` : action;
-                  })(),
+                  content: buildProgressContent(task),
                   timestamp: new Date(task.timing?.start || Date.now()),
                 }),
               );
@@ -145,7 +151,7 @@ export function usePlaygroundExecution(
                 }
 
                 // Remove old progress items for this session
-                const filtered = prev.filter(
+                const listWithoutCurrentProgress = prev.filter(
                   (item) =>
                     !(
                       item.type === 'progress' &&
@@ -155,9 +161,9 @@ export function usePlaygroundExecution(
 
                 // Insert new progress items after system item
                 return [
-                  ...filtered.slice(0, systemItemIndex + 1),
+                  ...listWithoutCurrentProgress.slice(0, systemItemIndex + 1),
                   ...progressItems,
-                  ...filtered.slice(systemItemIndex + 1),
+                  ...listWithoutCurrentProgress.slice(systemItemIndex + 1),
                 ];
               });
             },
