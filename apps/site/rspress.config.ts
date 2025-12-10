@@ -196,7 +196,7 @@ export default defineConfig({
           items: [
             {
               text: '介绍',
-              link: '/zh/index.html',
+              link: '/zh/introduction',
             },
             {
               text: '模型策略',
