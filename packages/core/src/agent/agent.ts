@@ -358,26 +358,25 @@ export class Agent<
             console.error('Error in onDumpUpdate', error);
           }
 
-          // Send updated progress tip for completed Planning tasks with output.log
-          // This ensures the UI shows the AI-generated step description, not the user input
-          const tasks = executionDump.tasks || [];
-          if (tasks.length > 0) {
-            const lastTask = tasks[tasks.length - 1];
-            // Only update Planning tasks that just finished and have output.log
-            if (
-              lastTask.type === 'Planning' &&
-              lastTask.subType === 'Plan' &&
-              lastTask.status === 'finished' &&
-              (lastTask as ExecutionTaskPlanning).output?.log &&
-              this.onTaskStartTip
-            ) {
-              const tip = `${typeStr(lastTask)} - ${(lastTask as ExecutionTaskPlanning).output!.log}`;
-              // Call the callback without await to avoid blocking
-              Promise.resolve(this.onTaskStartTip(tip)).catch((error: any) => {
-                console.error('Error in onTaskStartTip update', error);
-              });
-            }
-          }
+          // Update progress tip for completed Planning tasks
+          // const tasks = executionDump.tasks || [];
+          // if (tasks.length > 0) {
+          //   const lastTask = tasks[tasks.length - 1];
+          //   if (
+          //     lastTask.type === 'Planning' &&
+          //     lastTask.subType === 'Plan' &&
+          //     lastTask.status === 'finished' &&
+          //     (lastTask as ExecutionTaskPlanning).output?.log &&
+          //     this.onTaskStartTip
+          //   ) {
+          //     const tip = `${typeStr(lastTask)} - ${(lastTask as ExecutionTaskPlanning).output!.log}`;
+          //     Promise.resolve(this.onTaskStartTip(tip)).catch(
+          //       (error: unknown) => {
+          //         console.error('Error in onTaskStartTip update', error);
+          //       },
+          //     );
+          //   }
+          // }
 
           this.writeOutActionDumps();
         },
@@ -514,8 +513,7 @@ export class Agent<
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
-    // Skip Planning tasks at start - they will send updated tips after completion
-    // This prevents showing user input before showing AI-generated step description
+    // Skip Planning tasks - they send tips after completion
     if (task.type === 'Planning' && task.subType === 'Plan') {
       return;
     }

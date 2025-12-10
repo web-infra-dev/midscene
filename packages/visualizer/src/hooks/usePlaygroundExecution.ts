@@ -14,12 +14,12 @@ import { allScriptsFromDump } from '../utils/replay-scripts';
 
 /**
  * Convert ExecutionDump to GroupedActionDump for replay scripts
+ * @param dump - The execution dump containing tasks and their usage information
+ * @returns A grouped action dump with model briefs and executions array
  */
 function wrapExecutionDumpForReplay(dump: ExecutionDump) {
-  // Extract model information from tasks
   const modelBriefsSet = new Set<string>();
 
-  // Defensive check: ensure dump.tasks exists and is an array
   if (dump?.tasks && Array.isArray(dump.tasks)) {
     dump.tasks.forEach((task) => {
       if (task.usage) {
@@ -40,7 +40,7 @@ function wrapExecutionDumpForReplay(dump: ExecutionDump) {
   const modelBriefs = [...modelBriefsSet];
 
   return {
-    sdkVersion: '', // Will be populated if available
+    sdkVersion: '',
     groupName: 'Playground Execution',
     modelBriefs,
     executions: [dump],
@@ -143,7 +143,7 @@ export function usePlaygroundExecution(
           });
         }
 
-        // Set up dump update tracking (for data unification, does not affect UI)
+        // Set up dump update tracking
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
             (dump: string, executionDump?: ExecutionDump) => {
@@ -151,12 +151,9 @@ export function usePlaygroundExecution(
                 return;
               }
 
-              // Store ExecutionDump in result item for future use
-              // This does not change UI rendering, only updates data layer
               if (executionDump) {
                 setInfoList((prev) => {
                   return prev.map((item) => {
-                    // Update the result item with ExecutionDump
                     if (item.id === `result-${thisRunningId}` && item.result) {
                       return {
                         ...item,
@@ -220,10 +217,7 @@ export function usePlaygroundExecution(
 
       // Generate replay info for interaction APIs
       if (result?.dump && !noReplayAPIs.includes(actionType)) {
-        // Check if dump has tasks before wrapping
-        if (!result.dump.tasks || !Array.isArray(result.dump.tasks)) {
-          // Skip replay info generation for invalid dumps
-        } else {
+        if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
           const groupedDump = wrapExecutionDumpForReplay(result.dump);
           const info = allScriptsFromDump(groupedDump);
           setReplayCounter((c) => c + 1);

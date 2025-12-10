@@ -169,11 +169,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       };
 
       try {
-        // Get dump and reportHTML from agent like the server does
         if (this.agent.dumpDataString) {
           const dumpString = this.agent.dumpDataString();
           if (dumpString) {
-            // Agent returns GroupedActionDump, extract first ExecutionDump
             const groupedDump = JSON.parse(dumpString);
             response.dump = groupedDump.executions?.[0] || null;
           }
