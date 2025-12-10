@@ -14,7 +14,7 @@ import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
-import { useBlackboardPreference } from '../../store/store';
+import { useGlobalPreference } from '../../store/store';
 import { getTextureFromCache, loadTexture } from '../../utils/pixi-loader';
 import type {
   AnimationScript,
@@ -203,7 +203,7 @@ export function Player(props?: {
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const { autoZoom, setAutoZoom } = useBlackboardPreference();
+  const { autoZoom, setAutoZoom } = useGlobalPreference();
 
   // Update state when prop changes
   useEffect(() => {

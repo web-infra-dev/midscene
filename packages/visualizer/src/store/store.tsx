@@ -5,6 +5,8 @@ const { create } = Z;
 const AUTO_ZOOM_KEY = 'midscene-auto-zoom';
 const BACKGROUND_VISIBLE_KEY = 'midscene-background-visible';
 const ELEMENTS_VISIBLE_KEY = 'midscene-elements-visible';
+const MODEL_CALL_DETAILS_KEY = 'midscene-model-call-details';
+const DARK_MODE_KEY = 'midscene-dark-mode';
 
 const parseBooleanParam = (value: string | null): boolean | undefined => {
   if (value === null) {
@@ -33,21 +35,29 @@ const getQueryPreference = (paramName: string): boolean | undefined => {
   return parseBooleanParam(searchParams.get(paramName));
 };
 
-export const useBlackboardPreference = create<{
+export const useGlobalPreference = create<{
   backgroundVisible: boolean;
   elementsVisible: boolean;
   autoZoom: boolean;
+  modelCallDetailsEnabled: boolean;
+  darkModeEnabled: boolean;
   setBackgroundVisible: (visible: boolean) => void;
   setElementsVisible: (visible: boolean) => void;
   setAutoZoom: (enabled: boolean) => void;
+  setModelCallDetailsEnabled: (enabled: boolean) => void;
+  setDarkModeEnabled: (enabled: boolean) => void;
 }>((set) => {
   const savedAutoZoom = localStorage.getItem(AUTO_ZOOM_KEY) !== 'false';
   const savedBackgroundVisible =
     localStorage.getItem(BACKGROUND_VISIBLE_KEY) !== 'false';
   const savedElementsVisible =
     localStorage.getItem(ELEMENTS_VISIBLE_KEY) !== 'false';
+  const savedModelCallDetails =
+    localStorage.getItem(MODEL_CALL_DETAILS_KEY) === 'true';
+  const savedDarkMode = localStorage.getItem(DARK_MODE_KEY) === 'true';
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
+  const darkModeFromQuery = getQueryPreference('darkMode');
   return {
     backgroundVisible: savedBackgroundVisible,
     elementsVisible:
@@ -56,6 +66,9 @@ export const useBlackboardPreference = create<{
         : elementsVisibleFromQuery,
     autoZoom:
       autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
+    modelCallDetailsEnabled: savedModelCallDetails,
+    darkModeEnabled:
+      darkModeFromQuery === undefined ? savedDarkMode : darkModeFromQuery,
     setBackgroundVisible: (visible: boolean) => {
       set({ backgroundVisible: visible });
       localStorage.setItem(BACKGROUND_VISIBLE_KEY, visible.toString());
@@ -67,6 +80,14 @@ export const useBlackboardPreference = create<{
     setAutoZoom: (enabled: boolean) => {
       set({ autoZoom: enabled });
       localStorage.setItem(AUTO_ZOOM_KEY, enabled.toString());
+    },
+    setModelCallDetailsEnabled: (enabled: boolean) => {
+      set({ modelCallDetailsEnabled: enabled });
+      localStorage.setItem(MODEL_CALL_DETAILS_KEY, enabled.toString());
+    },
+    setDarkModeEnabled: (enabled: boolean) => {
+      set({ darkModeEnabled: enabled });
+      localStorage.setItem(DARK_MODE_KEY, enabled.toString());
     },
   };
 });
