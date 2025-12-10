@@ -43,7 +43,7 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
     if (forceChromeSelectRendering) {
       const puppeteerVersion = getPuppeteerVersion();
       if (puppeteerVersion && !semver.gte(puppeteerVersion, '24.6.0')) {
-        throw new Error(
+        console.warn(
           `[midscene:error] forceChromeSelectRendering requires Puppeteer > 24.6.0, but current version is ${puppeteerVersion}. This feature may not work correctly.`,
         );
       }
