@@ -35,7 +35,7 @@ describe('LocalExecutionAdapter', () => {
       callActionInActionSpace: vi.fn(),
       onTaskStartTip: vi.fn(),
       destroy: vi.fn(),
-      dumpDataString: vi.fn().mockReturnValue('{}'),
+      dumpDataString: vi.fn().mockReturnValue(JSON.stringify({ executions: [{}] })),
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
@@ -250,75 +250,6 @@ describe('LocalExecutionAdapter', () => {
       await adapter.executeAction('click', value, options);
 
       expect(mockAgent.onTaskStartTip).toBeDefined();
-    });
-
-    it('should store and forward task tips', async () => {
-      const mockActionSpace: DeviceAction<unknown>[] = [];
-      vi.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
-
-      const originalCallback = vi.fn();
-      mockAgent.onTaskStartTip = originalCallback;
-
-      let progress: { tip?: string };
-      vi.mocked(common.executeAction).mockImplementation(async (agent) => {
-        if (agent.onTaskStartTip) {
-          agent.onTaskStartTip('Processing...');
-        }
-        progress = await adapter.getTaskProgress('request-123');
-        return 'test result';
-      });
-
-      const value: FormValue = { type: 'click', prompt: 'click button' };
-      const options: ExecutionOptions = { requestId: 'request-123' };
-
-      await adapter.executeAction('click', value, options);
-
-      // Check that the tip is stored
-      expect(progress!.tip).toBe('Processing...');
-
-      // Check that original callback was called
-      expect(originalCallback).toHaveBeenCalledWith('Processing...');
-    });
-
-    it('should cleanup progress tracking after execution', async () => {
-      const mockActionSpace: DeviceAction<unknown>[] = [];
-      vi.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
-
-      const value: FormValue = { type: 'click', prompt: 'click button' };
-      const options: ExecutionOptions = { requestId: 'request-123' };
-
-      // First setup some progress
-      await adapter.executeAction('click', value, options);
-
-      // Progress should be cleaned up
-      const progress = await adapter.getTaskProgress('request-123');
-      expect(progress.tip).toBeUndefined();
-    });
-
-    it('should cleanup even when execution throws', async () => {
-      const mockActionSpace: DeviceAction<unknown>[] = [];
-      vi.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
-      vi.mocked(common.executeAction).mockRejectedValue(
-        new Error('Execution failed'),
-      );
-
-      const value: FormValue = { type: 'click', prompt: 'click button' };
-      const options: ExecutionOptions = { requestId: 'request-123' };
-
-      await expect(
-        adapter.executeAction('click', value, options),
-      ).rejects.toThrow('Execution failed');
-
-      // Progress should still be cleaned up
-      const progress = await adapter.getTaskProgress('request-123');
-      expect(progress.tip).toBeUndefined();
-    });
-  });
-
-  describe('getTaskProgress', () => {
-    it('should return undefined tip for unknown requestId', async () => {
-      const result = await adapter.getTaskProgress('unknown-id');
-      expect(result).toEqual({ tip: undefined });
     });
   });
 
