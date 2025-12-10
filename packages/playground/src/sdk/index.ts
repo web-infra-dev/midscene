@@ -203,4 +203,12 @@ export class PlaygroundSDK {
     }
     return null;
   }
+
+  // Get service mode based on adapter type
+  getServiceMode(): 'In-Browser-Extension' | 'Server' {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return 'In-Browser-Extension';
+    }
+    return 'Server';
+  }
 }

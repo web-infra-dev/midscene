@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -11,6 +11,41 @@ import type {
 import { noReplayAPIs } from '@midscene/playground';
 import { BLANK_RESULT } from '../utils/constants';
 import { allScriptsFromDump } from '../utils/replay-scripts';
+
+/**
+ * Convert ExecutionDump to GroupedActionDump for replay scripts
+ */
+function wrapExecutionDumpForReplay(dump: ExecutionDump) {
+  // Extract model information from tasks
+  const modelBriefsSet = new Set<string>();
+
+  // Defensive check: ensure dump.tasks exists and is an array
+  if (dump?.tasks && Array.isArray(dump.tasks)) {
+    dump.tasks.forEach((task) => {
+      if (task.usage) {
+        const { model_name, model_description, intent } = task.usage;
+        if (intent && model_name) {
+          modelBriefsSet.add(
+            model_description
+              ? `${intent}/${model_name}(${model_description})`
+              : `${intent}/${model_name}`,
+          );
+        }
+      }
+    });
+  } else {
+    console.warn('[wrapExecutionDumpForReplay] Invalid dump structure:', dump);
+  }
+
+  const modelBriefs = [...modelBriefsSet];
+
+  return {
+    sdkVersion: '', // Will be populated if available
+    groupName: 'Playground Execution',
+    modelBriefs,
+    executions: [dump],
+  };
+}
 
 /**
  * Hook for handling playground execution logic
@@ -108,6 +143,37 @@ export function usePlaygroundExecution(
           });
         }
 
+        // Set up dump update tracking (for data unification, does not affect UI)
+        if (playgroundSDK.onDumpUpdate) {
+          playgroundSDK.onDumpUpdate(
+            (dump: string, executionDump?: ExecutionDump) => {
+              if (interruptedFlagRef.current[thisRunningId]) {
+                return;
+              }
+
+              // Store ExecutionDump in result item for future use
+              // This does not change UI rendering, only updates data layer
+              if (executionDump) {
+                setInfoList((prev) => {
+                  return prev.map((item) => {
+                    // Update the result item with ExecutionDump
+                    if (item.id === `result-${thisRunningId}` && item.result) {
+                      return {
+                        ...item,
+                        result: {
+                          ...item.result,
+                          dump: executionDump,
+                        },
+                      };
+                    }
+                    return item;
+                  });
+                });
+              }
+            },
+          );
+        }
+
         // Execute the action using the SDK
         result.result = await playgroundSDK.executeAction(actionType, value, {
           requestId: thisRunningId.toString(),
@@ -119,7 +185,15 @@ export function usePlaygroundExecution(
         // For some adapters, result might already include dump and reportHTML
         if (typeof result.result === 'object' && result.result !== null) {
           const resultObj = result.result;
-          if (resultObj.dump) result.dump = resultObj.dump;
+          if (resultObj.dump) {
+            console.log('[usePlaygroundExecution] Got dump from result:', {
+              hasDump: !!resultObj.dump,
+              hasTasks: !!resultObj.dump?.tasks,
+              tasksLength: resultObj.dump?.tasks?.length,
+              dumpKeys: Object.keys(resultObj.dump || {}),
+            });
+            result.dump = resultObj.dump;
+          }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
           if (resultObj.error) result.error = resultObj.error;
 
@@ -131,6 +205,13 @@ export function usePlaygroundExecution(
       } catch (e: any) {
         result.error = e?.message || String(e);
         console.error('Playground execution error:', e);
+
+        // Try to extract dump and reportHTML from error object
+        // The adapter may attach these even on error
+        if (typeof e === 'object' && e !== null) {
+          if (e.dump) result.dump = e.dump;
+          if (e.reportHTML) result.reportHTML = e.reportHTML;
+        }
       }
 
       if (interruptedFlagRef.current[thisRunningId]) {
@@ -145,10 +226,33 @@ export function usePlaygroundExecution(
 
       // Generate replay info for interaction APIs
       if (result?.dump && !noReplayAPIs.includes(actionType)) {
-        const info = allScriptsFromDump(result.dump);
-        setReplayCounter((c) => c + 1);
-        replayInfo = info;
-        counter = replayCounter + 1;
+        console.log('[usePlaygroundExecution] Generating replay info:', {
+          actionType,
+          hasDump: !!result.dump,
+          dumpType: typeof result.dump,
+          dumpKeys: Object.keys(result.dump || {}),
+          hasTasks: !!result.dump?.tasks,
+          tasksLength: result.dump?.tasks?.length,
+          tasksType: result.dump?.tasks ? typeof result.dump.tasks : 'undefined',
+          isTasksArray: Array.isArray(result.dump?.tasks),
+          fullDumpStructure: JSON.stringify(result.dump, null, 2).substring(0, 500),
+        });
+
+        // Check if dump has tasks before wrapping
+        if (!result.dump.tasks || !Array.isArray(result.dump.tasks)) {
+          console.error('[usePlaygroundExecution] Invalid dump structure - tasks missing or not an array:', {
+            dump: result.dump,
+            hasTasksProperty: 'tasks' in (result.dump || {}),
+            tasksValue: result.dump?.tasks,
+          });
+          // Skip replay info generation for invalid dumps
+        } else {
+          const groupedDump = wrapExecutionDumpForReplay(result.dump);
+          const info = allScriptsFromDump(groupedDump);
+          setReplayCounter((c) => c + 1);
+          replayInfo = info;
+          counter = replayCounter + 1;
+        }
       }
 
       // Update system message to completed

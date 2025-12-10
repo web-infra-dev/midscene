@@ -176,6 +176,14 @@ export function UniversalPlayground({
   // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
 
+  // Determine service mode based on SDK adapter type
+  const serviceMode = useMemo(() => {
+    if (!playgroundSDK || typeof (playgroundSDK as any).getServiceMode !== 'function') {
+      return 'Server'; // Default fallback
+    }
+    return (playgroundSDK as any).getServiceMode();
+  }, [playgroundSDK]);
+
   // Apply configuration
   const finalShowContextPreview =
     showContextPreview && componentConfig.showContextPreview !== false;
@@ -314,7 +322,7 @@ export function UniversalPlayground({
                               result={item.result || null}
                               loading={item.loading || false}
                               serverValid={true}
-                              serviceMode={'Server'}
+                              serviceMode={serviceMode}
                               replayScriptsInfo={item.replayScriptsInfo || null}
                               replayCounter={item.replayCounter || 0}
                               loadingProgressText={
@@ -364,7 +372,7 @@ export function UniversalPlayground({
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
-            serviceMode={'Server'}
+            serviceMode={serviceMode}
             selectedType={selectedType}
             dryMode={dryMode}
             stoppable={canStop}

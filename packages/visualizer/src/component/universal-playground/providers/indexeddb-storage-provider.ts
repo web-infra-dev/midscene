@@ -203,34 +203,29 @@ export class IndexedDBStorageProvider implements StorageProvider {
    * Compress result data for storage while preserving playback functionality
    */
   private compressResultForStorage(result: InfoListItem): InfoListItem {
-    if (!result.result?.dump?.executions) {
+    if (!result.result?.dump?.tasks) {
       return result;
     }
 
-    const compressedExecutions = result.result.dump.executions.map(
-      (execution) => ({
-        ...execution,
-        tasks:
-          execution.tasks?.map((task) => ({
-            ...task,
-            // Compress screenshots if they're too large (>1MB)
-            uiContext: task.uiContext
-              ? {
-                  ...task.uiContext,
-                  screenshotBase64:
-                    this.compressScreenshotIfNeeded(
-                      task.uiContext.screenshotBase64,
-                    ) ?? task.uiContext.screenshotBase64,
-                }
-              : task.uiContext,
-            // Compress recorder screenshots
-            recorder: task.recorder?.map((record) => ({
-              ...record,
-              screenshot: this.compressScreenshotIfNeeded(record.screenshot),
-            })),
-          })) || [],
-      }),
-    );
+    // ExecutionDump now has tasks directly (not wrapped in executions array)
+    const compressedTasks = result.result.dump.tasks.map((task) => ({
+      ...task,
+      // Compress screenshots if they're too large (>1MB)
+      uiContext: task.uiContext
+        ? {
+            ...task.uiContext,
+            screenshotBase64:
+              this.compressScreenshotIfNeeded(
+                task.uiContext.screenshotBase64,
+              ) ?? task.uiContext.screenshotBase64,
+          }
+        : task.uiContext,
+      // Compress recorder screenshots
+      recorder: task.recorder?.map((record) => ({
+        ...record,
+        screenshot: this.compressScreenshotIfNeeded(record.screenshot),
+      })),
+    }));
 
     return {
       ...result,
@@ -238,7 +233,7 @@ export class IndexedDBStorageProvider implements StorageProvider {
         ...result.result,
         dump: {
           ...result.result.dump,
-          executions: compressedExecutions,
+          tasks: compressedTasks,
         },
       },
     };

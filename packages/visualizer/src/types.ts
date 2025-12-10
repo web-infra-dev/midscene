@@ -222,13 +222,17 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   return undefined;
 };
 
-import type { GroupedActionDump, WebUIContext } from '@midscene/core';
+import type {
+  ExecutionDump,
+  GroupedActionDump,
+  WebUIContext,
+} from '@midscene/core';
 import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {
   result: any;
-  dump?: GroupedActionDump | null;
+  dump?: ExecutionDump | null;
   reportHTML?: string | null;
   error: string | null;
 }
@@ -305,6 +309,9 @@ export interface PlaygroundSDKLike {
   ): Promise<unknown>;
   getActionSpace(context?: any): Promise<DeviceAction<unknown>[]>;
   onProgressUpdate?: (callback: ProgressCallback) => void;
+  onDumpUpdate?: (
+    callback: (dump: string, executionDump?: ExecutionDump) => void,
+  ) => void;
   cancelExecution?(requestId: string): Promise<void>;
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;

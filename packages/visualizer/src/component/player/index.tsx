@@ -205,6 +205,14 @@ export function Player(props?: {
   const [subTitleText, setSubTitleText] = useState('');
   const { autoZoom, setAutoZoom } = useBlackboardPreference();
 
+  // Debug logging for reportFileContent
+  console.log('[Player] Received props:', {
+    hasReplayScripts: !!props?.replayScripts,
+    scriptCount: props?.replayScripts?.length,
+    hasReportFileContent: !!props?.reportFileContent,
+    reportFileContentLength: props?.reportFileContent?.length,
+  });
+
   // Update state when prop changes
   useEffect(() => {
     if (props?.autoZoom !== undefined) {
@@ -1046,18 +1054,25 @@ export function Player(props?: {
               </div>
             )}
 
-            {props?.reportFileContent ? (
-              <Tooltip title="Download Report">
-                <div
-                  className="status-icon"
-                  onMouseEnter={() => setMouseOverStatusIcon(true)}
-                  onMouseLeave={() => setMouseOverStatusIcon(false)}
-                  onClick={() => downloadReport(props.reportFileContent!)}
-                >
-                  <DownloadOutlined color="#333" />
-                </div>
-              </Tooltip>
-            ) : null}
+            {(() => {
+              console.log('[Player] Rendering download button check:', {
+                hasReportFileContent: !!props?.reportFileContent,
+                reportLength: props?.reportFileContent?.length,
+                willRenderButton: !!props?.reportFileContent,
+              });
+              return props?.reportFileContent ? (
+                <Tooltip title="Download Report">
+                  <div
+                    className="status-icon"
+                    onMouseEnter={() => setMouseOverStatusIcon(true)}
+                    onMouseLeave={() => setMouseOverStatusIcon(false)}
+                    onClick={() => downloadReport(props.reportFileContent!)}
+                  >
+                    <DownloadOutlined color="#333" />
+                  </div>
+                </Tooltip>
+              ) : null;
+            })()}
             <Tooltip title={isRecording ? 'Generating...' : 'Export Video'}>
               <div
                 className="status-icon"

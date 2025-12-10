@@ -166,7 +166,7 @@ export class Agent<
 
   taskCache?: TaskCache;
 
-  onDumpUpdate?: (dump: string) => void;
+  onDumpUpdate?: (dump: string, executionDump?: ExecutionDump) => void;
 
   destroyed = false;
 
@@ -350,7 +350,8 @@ export class Agent<
 
           try {
             if (this.onDumpUpdate) {
-              this.onDumpUpdate(this.dumpDataString());
+              // Pass executionDump as second parameter for data unification
+              this.onDumpUpdate(this.dumpDataString(), executionDump);
             }
           } catch (error) {
             console.error('Error in onDumpUpdate', error);

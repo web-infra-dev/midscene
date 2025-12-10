@@ -44,6 +44,18 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     resultWrapperClassName += ' result-wrapper-compact';
   }
 
+  // Debug logging
+  console.log('[PlaygroundResultView] Rendering with:', {
+    hasResult: !!result,
+    hasReplayScriptsInfo: !!replayScriptsInfo,
+    hasReportHTML: !!result?.reportHTML,
+    reportHTMLLength: result?.reportHTML?.length,
+    hasError: !!result?.error,
+    hasResultData: result?.result !== undefined,
+    serviceMode,
+    loading,
+  });
+
   let resultDataToShow: React.ReactNode = emptyResultTip;
 
   if (!serverValid && serviceMode === 'Server') {
@@ -58,19 +70,42 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       </div>
     );
   } else if (replayScriptsInfo) {
+    // Has replay scripts - show Player with replay and report
+    const reportContent = (serviceMode === 'In-Browser-Extension' ||
+      serviceMode === 'Server') &&
+    result?.reportHTML
+      ? result?.reportHTML
+      : null;
+
+    console.log('[PlaygroundResultView] Has replay scripts, reportContent:', {
+      serviceMode,
+      hasReportHTML: !!result?.reportHTML,
+      reportHTMLLength: result?.reportHTML?.length,
+      willPassReportContent: !!reportContent,
+      reportContentLength: reportContent?.length,
+    });
+
     resultDataToShow = (
       <Player
         key={replayCounter}
         replayScripts={replayScriptsInfo.scripts}
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
-        reportFileContent={
-          (serviceMode === 'In-Browser-Extension' ||
-            serviceMode === 'Server') &&
-          result?.reportHTML
-            ? result?.reportHTML
-            : null
-        }
+        reportFileContent={reportContent}
+        fitMode={fitMode}
+        autoZoom={autoZoom}
+      />
+    );
+  } else if (
+    result?.reportHTML &&
+    (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server')
+  ) {
+    // No replay scripts but has report - show Player with report only
+    console.log('[PlaygroundResultView] Showing report without replay, reportHTML length:', result.reportHTML.length);
+    resultDataToShow = (
+      <Player
+        key={replayCounter}
+        reportFileContent={result.reportHTML}
         fitMode={fitMode}
         autoZoom={autoZoom}
       />
