@@ -42,26 +42,26 @@ English | [简体中文](./README.zh.md)
 - Use Javascript SDK or YAML to write your automation script.
 
 ### Web & Mobile App & Any Interface
-- **Web Automation**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
-- **Android Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
-- **iOS Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-ios.html) with iOS Simulator to control your local iOS devices and simulators.
-- **Any Interface Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) to control your own interface.
+- **Web Automation**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer), [Playwright](https://midscenejs.com/integrate-with-playwright) or use [Bridge Mode](https://midscenejs.com/bridge-mode) to control your desktop browser.
+- **Android Automation**: Use [Javascript SDK](https://midscenejs.com/android-getting-started) with adb to control your local Android device.
+- **iOS Automation**: Use [Javascript SDK](https://midscenejs.com/ios-getting-started) with iOS Simulator to control your local iOS devices and simulators.
+- **Any Interface Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface) to control your own interface.
 
 ### Tools
 - **Visual Reports for Debugging**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
-- [**Caching for Efficiency**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
+- [**Caching for Efficiency**](https://midscenejs.com/caching): Replay your script with cache and get the result faster.
 - **MCP**: Midscene provides MCP services that expose atomic Midscene Agent actions as MCP tools so upper-layer agents can inspect and operate UIs with natural language. [Docs](https://midscenejs.com/mcp)
 
 ### Three kinds of APIs
-- [Interaction API](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
-- [Data Extraction API](https://midscenejs.com/api.html#data-extraction): extract data from the user interface and dom.
-- [Utility API](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+- [Interaction API](https://midscenejs.com/api#interaction-methods): interact with the user interface.
+- [Data Extraction API](https://midscenejs.com/api#data-extraction): extract data from the user interface and dom.
+- [Utility API](https://midscenejs.com/api#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
 
 ## 👉 Zero-code Quick Experience
 
-- **[Chrome Extension](https://midscenejs.com/quick-experience.html)**: Start in-browser experience immediately through [the Chrome Extension](https://midscenejs.com/quick-experience.html), without writing any code.
-- **[Android Playground](https://midscenejs.com/quick-experience-with-android.html)**: There is also a built-in Android playground to control your local Android device.
-- **[iOS Playground](https://midscenejs.com/quick-experience-with-ios.html)**: There is also a built-in iOS playground to control your local iOS device.
+- **[Chrome Extension](https://midscenejs.com/quick-experience)**: Start in-browser experience immediately through [the Chrome Extension](https://midscenejs.com/quick-experience), without writing any code.
+- **[Android Playground](https://midscenejs.com/android-getting-started)**: There is also a built-in Android playground to control your local Android device.
+- **[iOS Playground](https://midscenejs.com/ios-getting-started)**: There is also a built-in iOS playground to control your local iOS device.
 
 ## ✨ Driven by Visual Language Model
 
@@ -72,7 +72,7 @@ Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`
 * Less tokens and money cost compared to generalLLM models.
 * Support open-source models.
 
-Read more about [Choose a model](https://midscenejs.com/choose-a-model)
+Read more about [Model Strategy](https://midscenejs.com/model-strategy)
 
 ## 👀 Comparing to other projects
 
@@ -90,7 +90,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 * Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
 * Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API Reference: [https://midscenejs.com/api.html](https://midscenejs.com/api.html)
+* API Reference: [https://midscenejs.com/api](https://midscenejs.com/api)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 Community

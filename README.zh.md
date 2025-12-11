@@ -42,26 +42,26 @@
 - 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
 ### Web & Mobile App & 任意界面
-- **Web 自动化**: 可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
-- **Android 自动化**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
-- **iOS 自动化**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-ios.html) 配合 WebDriverAgent 来控制本地 iOS 设备。
-- **任意界面自动化**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) 来控制你自己的界面。
+- **Web 自动化**: 可以[与 Puppeteer 集成](https://midscenejs.com/zh/integrate-with-puppeteer)，[与 Playwright 集成](https://midscenejs.com/zh/integrate-with-playwright)或使用[桥接模式](https://midscenejs.com/zh/bridge-mode)来控制桌面浏览器。
+- **Android 自动化**: 使用 [Javascript SDK](https://midscenejs.com/zh/android-getting-started) 配合 adb 来控制本地 Android 设备。
+- **iOS 自动化**: 使用 [Javascript SDK](https://midscenejs.com/zh/ios-getting-started) 配合 WebDriverAgent 来控制本地 iOS 设备。
+- **任意界面自动化**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-any-interface) 来控制你自己的界面。
 
 ### 工具
 - **用于调试的可视化报告**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
-- [**使用缓存，提高执行效率**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
+- [**使用缓存，提高执行效率**](https://midscenejs.com/zh/caching): 使用缓存能力重放脚本，提高执行效率。
 - **MCP**: Midscene 提供 MCP 服务，将 Midscene Agent 的原子操作暴露为 MCP 工具，上层 Agent 可以用自然语言检查和操作界面。[文档](https://midscenejs.com/zh/mcp)。
 
 ### 三种类型的 API
-  - [**交互 API**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
-  - [**数据提取 API**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面和 DOM 中提取数据。
-  - [**实用 API**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
+  - [**交互 API**](https://midscenejs.com/zh/api#interaction-methods): 与用户界面交互。
+  - [**数据提取 API**](https://midscenejs.com/zh/api#data-extraction): 从用户界面和 DOM 中提取数据。
+  - [**实用 API**](https://midscenejs.com/zh/api#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
 
 ## 👉 无需代码，快速体验
 
-- **[Chrome 插件](https://midscenejs.com/zh/quick-experience.html)**: 通过 [Chrome 插件](https://midscenejs.com/zh/quick-experience.html) 立即开始体验，无需编写代码。
-- **[Android Playground](https://midscenejs.com/zh/quick-experience-with-android.html)**: 内置的 Android Playground 可以控制你的本地 Android 设备。
-- **[iOS Playground](https://midscenejs.com/zh/quick-experience-with-ios.html)**: 内置的 iOS Playground 可以控制你的本地 iOS 设备。
+- **[Chrome 插件](https://midscenejs.com/zh/quick-experience)**: 通过 [Chrome 插件](https://midscenejs.com/zh/quick-experience) 立即开始体验，无需编写代码。
+- **[Android Playground](https://midscenejs.com/zh/android-getting-started)**: 内置的 Android Playground 可以控制你的本地 Android 设备。
+- **[iOS Playground](https://midscenejs.com/zh/ios-getting-started)**: 内置的 iOS Playground 可以控制你的本地 iOS 设备。
 
 ## ✨ 视觉语言模型驱动
 
@@ -72,7 +72,7 @@ Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`�
 * 相比通用 LLM 模型，Token 使用量更少、成本更低。
 * 支持开源模型。
 
-更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
+更多信息请阅读 [模型策略](https://midscenejs.com/zh/model-strategy)。
 
 ## 👀 与其它工具比较
 
@@ -88,7 +88,7 @@ Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`�
 
 * 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
 * 示例项目: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
-* API 文档: [https://midscenejs.com/zh/api.html](https://midscenejs.com/zh/api.html)
+* API 文档: [https://midscenejs.com/zh/api](https://midscenejs.com/zh/api)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
 
 ## 🤝 社区

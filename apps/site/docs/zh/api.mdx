@@ -735,7 +735,7 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 
 ### `agent.runYaml()`
 
-执行一个 YAML 格式的自动化脚本。脚本中的 `tasks` 部分会被执行，并返回所有 `.aiQuery` 调用的结果。
+执行一个 YAML 格式的自动化脚本。脚本中的 `tasks` 部分会被解析和执行，并返回所有 `.aiQuery` 调用的结果。
 
 - 类型
 
