@@ -6,9 +6,11 @@ Midscene integrates the OpenAI SDK by default for AI calls. The SDK defines the 
 
 This doc focuses on Midscene model configuration. For how we choose models, see [Model strategy](./model-strategy). For quick recipes for popular models, see [Common model configuration](./model-common-config).
 
-## Configuration items
 
-### Required settings
+## Required settings
+
+You need to set a default model for Midscene; see [Model strategy](./model-strategy) for details.
+
 
 | Name | Description |
 |------|-------------|
@@ -17,7 +19,7 @@ This doc focuses on Midscene model configuration. For how we choose models, see 
 | `MIDSCENE_MODEL_NAME` | Model name |
 | `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |
 
-### Advanced settings (optional)
+## Advanced settings (optional)
 
 | Name | Description |
 |------|-------------|
@@ -31,7 +33,7 @@ This doc focuses on Midscene model configuration. For how we choose models, see 
 
 > Note: Control replanning behavior with the agent option `replanningCycleLimit` (defaults to 20, or 40 for `vlm-ui-tars`), not with environment variables.
 
-### Configure a dedicated Insight model (optional)
+### Configure a dedicated Insight model
 
 Set the following if the Insight intent needs a different model:
 
@@ -45,7 +47,7 @@ Set the following if the Insight intent needs a different model:
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 
-### Configure a dedicated Planning model (optional)
+### Configure a dedicated Planning model
 
 Set the following if the Planning intent needs a different model:
 
@@ -59,7 +61,7 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
 
-### Debug logging switches (optional)
+### Debug logging switches
 
 Enable the following variables to print richer debug logs. Regardless of the switches, logs are also saved under `./midscene_run/log`.
 
@@ -71,11 +73,11 @@ Enable the following variables to print richer debug logs. Regardless of the swi
 | `DEBUG=midscene:android:adb` | Prints Android adb command details |
 | `DEBUG=midscene:*` | Prints every debug log |
 
-### Still-compatible configs (not recommended)
+## Still-compatible configs (not recommended)
 
 The following environment variables are deprecated but still compatible. We recommend migrating to the new configuration approach.
 
-#### Planning model configuration (deprecated)
+### Planning model configuration
 
 | Name | Description | New approach |
 |------|-------------|--------------|
@@ -85,7 +87,7 @@ The following environment variables are deprecated but still compatible. We reco
 | `MIDSCENE_USE_GEMINI` | Deprecated. Enables Gemini model | Use `MIDSCENE_MODEL_FAMILY="gemini"` |
 | `MIDSCENE_USE_VLM_UI_TARS` | Deprecated. Enables UI-TARS model | Use `MIDSCENE_MODEL_FAMILY="vlm-ui-tars*"` |
 
-#### General configuration (deprecated)
+### General configuration
 
 | Name | Description | New approach |
 |------|-------------|--------------|
@@ -149,7 +151,12 @@ After starting Midscene, you should see logs similar to:
 DEBUGGING MODE: langsmith wrapper enabled
 ```
 
-For more details, see the [API documentation](./api#using-langsmith).
+Notes:
+- LangSmith and Langfuse can be enabled simultaneously.
+- Node.js only; browser environments will throw errors.
+- If you use [`createOpenAIClient`](./api#custom-openai-client), it overrides the env-based auto-integration.
+
+For finer-grained control (e.g., enabling LangSmith only for specific tasks), use [`createOpenAIClient`](./api#custom-openai-client) to wrap the client manually.
 
 ### Using Langfuse
 
@@ -180,4 +187,7 @@ After starting Midscene, you should see logs similar to:
 DEBUGGING MODE: langfuse wrapper enabled
 ```
 
-For more details, see the [API documentation](./api#using-langfuse).
+Notes:
+- LangSmith and Langfuse can be enabled simultaneously.
+- Node.js only; browser environments will throw errors.
+- If you use [`createOpenAIClient`](./api#custom-openai-client), it overrides the env-based auto-integration.
