@@ -26,6 +26,10 @@ const { Text } = Typography;
 
 // Function to get stable ID for SDK (adapter-driven)
 function getSDKId(sdk: any): string {
+  // Handle null/undefined SDK
+  if (!sdk) {
+    return 'playground-default';
+  }
   // Primary: Use adapter ID if available (works for both remote and local)
   if (sdk.id && typeof sdk.id === 'string') {
     return `agent-${sdk.id}`;
