@@ -53,12 +53,12 @@ export default defineConfig({
               link: '/introduction',
             },
             {
-              text: 'Model strategy 🔥',
+              text: 'Model strategy',
               link: '/model-strategy',
             },
             {
-              text: 'Model configuration',
-              link: '/model-config',
+              text: 'Common model configuration 🔥',
+              link: '/model-common-config',
             },
           ],
         },
@@ -153,6 +153,10 @@ export default defineConfig({
               text: 'API reference (Common)',
               link: '/api',
             },
+            {
+              text: 'Model configuration',
+              link: '/model-config',
+            },
           ],
         },
         {
@@ -203,8 +207,8 @@ export default defineConfig({
               link: '/zh/model-strategy',
             },
             {
-              text: '模型配置 🔥',
-              link: '/zh/model-config',
+              text: '常用模型配置 🔥',
+              link: '/zh/model-common-config',
             },
           ],
         },
@@ -298,6 +302,10 @@ export default defineConfig({
             {
               text: 'JavaScript API 参考',
               link: '/zh/api',
+            },
+            {
+              text: '模型配置',
+              link: '/zh/model-config',
             },
           ],
         },

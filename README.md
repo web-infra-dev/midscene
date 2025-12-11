@@ -65,7 +65,7 @@ English | [简体中文](./README.zh.md)
 
 ## ✨ Driven by Visual Language Model
 
-Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-2.5-pro` and `UI-TARS`. 
+Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-3-pro` and `UI-TARS`. 
 
 * Capable of finding and understanding the target element on the page by just providing the screenshot.
 * No dom or semantic markups are required.
@@ -73,32 +73,6 @@ Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`
 * Support open-source models.
 
 Read more about [Choose a model](https://midscenejs.com/choose-a-model)
-
-## 💡 Two Styles of Automation
-
-### Auto Planning
-
-Midscene will automatically plan the steps and execute them. It may be slower and heavily rely on the quality of the AI model.
-
-```javascript
-await aiAct('click all the records one by one. If one record contains the text "completed", skip it');
-```
-
-### Workflow Style
-
-Split complex logic into multiple steps to improve the stability of the automation code.
-
-```javascript
-const recordList = await agent.aiQuery('string[], the record list')
-for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
-  if (!hasCompleted) {
-    await agent.aiTap(record)
-  }
-}
-```
-
-> For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](https://midscenejs.com/blog-programming-practice-using-structured-api.html)
 
 ## 👀 Comparing to other projects
 
