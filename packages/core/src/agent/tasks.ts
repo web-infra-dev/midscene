@@ -243,7 +243,6 @@ export class TaskExecutor {
           param: {
             userInstruction: userPrompt,
             aiActContext,
-            aiActionContext: aiActContext,
             imagesIncludeCount,
           },
           executor: async (param, executorContext) => {
@@ -272,8 +271,7 @@ export class TaskExecutor {
               ? uiTarsPlanning
               : plan)(param.userInstruction, {
                 context: uiContext,
-                actionContext:
-                  param.aiActContext ?? param.aiActionContext,
+                actionContext: param.aiActContext,
                 interfaceType: this.interface.interfaceType as InterfaceType,
                 actionSpace,
                 modelConfig: modelConfigForPlanning,
