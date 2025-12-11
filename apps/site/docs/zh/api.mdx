@@ -774,7 +774,7 @@ console.log(result);
 
 :::
 
-### `agent.setAIActionContext()`
+### `agent.setAIActContext()`
 
 设置在调用 `agent.aiAct()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
 
@@ -783,7 +783,7 @@ console.log(result);
 - 类型
 
 ```typescript
-function setAIActionContext(actionContext: string): void;
+function setAIActContext(actionContext: string): void;
 ```
 
 - 参数：
@@ -793,8 +793,14 @@ function setAIActionContext(actionContext: string): void;
 - 示例：
 
 ```typescript
-await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先关闭它');
+await agent.setAIActContext('如果 “使用cookie” 对话框存在，先关闭它');
 ```
+
+:::note
+
+`agent.setAIActionContext()` 已被弃用，请改用 `agent.setAIActContext()`。弃用的方法仍作为兼容别名保留。
+
+:::
 
 ### `agent.evaluateJavaScript()`
 
