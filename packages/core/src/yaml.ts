@@ -94,6 +94,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'autoPrintReportMsg'
   | 'reportFileName'
   | 'replanningCycleLimit'
+  | 'aiActContext'
   | 'aiActionContext'
   | 'cache'
 >;
