@@ -132,6 +132,8 @@ for (const record of recordList) {
 基于 Midscene.js 开发的社区项目：
 
 * [midscene-ios](https://github.com/lhuanyu/midscene-ios) - iOS 设备自动化工具
+* [midscene-pc](https://github.com/Mofangbao/midscene-pc) - 支持 Windows、macOS 和 Linux 的 PC 操作设备
+* [midscene-pc-docker](https://github.com/Mofangbao/midscene-pc-docker) - 预装 MidScene-PC 服务器的 Docker 容器镜像
 * [Midscene-Python](https://github.com/Python51888/Midscene-Python) - Python 版本的 Midscene SDK
 * [midscene-java](https://github.com/Master-Frank/midscene-java) by @Master-Frank - Java 版本的 Midscene SDK，便于在 JVM 项目中使用自动化能力
 * [midscene-java](https://github.com/alstafeev/midscene-java) by @alstafeev - Java SDK,用于 Midscene 自动化
