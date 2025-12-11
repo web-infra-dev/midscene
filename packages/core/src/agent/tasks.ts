@@ -270,13 +270,13 @@ export class TaskExecutor {
             const planResult = await (uiTarsModelVersion
               ? uiTarsPlanning
               : plan)(param.userInstruction, {
-                context: uiContext,
-                actionContext: param.aiActContext,
-                interfaceType: this.interface.interfaceType as InterfaceType,
-                actionSpace,
-                modelConfig: modelConfigForPlanning,
-                conversationHistory: this.conversationHistory,
-                includeBbox: includeBboxInPlanning,
+              context: uiContext,
+              actionContext: param.aiActContext,
+              interfaceType: this.interface.interfaceType as InterfaceType,
+              actionSpace,
+              modelConfig: modelConfigForPlanning,
+              conversationHistory: this.conversationHistory,
+              includeBbox: includeBboxInPlanning,
               imagesIncludeCount,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
