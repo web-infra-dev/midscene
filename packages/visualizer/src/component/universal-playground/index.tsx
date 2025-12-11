@@ -3,7 +3,7 @@ import Icon, {
   LoadingOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import { Button, Form, List, Typography, message } from 'antd';
+import { Alert, Button, Form, List, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
@@ -16,6 +16,7 @@ import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
 import { defaultMainButtons } from '../../utils/constants';
 import { PromptInput } from '../prompt-input';
+import ShinyText from '../shiny-text';
 import {
   createStorageProvider,
   detectBestStorageType,
@@ -35,7 +36,15 @@ function getSDKId(sdk: any): string {
 
 function ErrorMessage({ error }: { error: string }) {
   if (!error) return null;
-  return <span>Error: {error}</span>;
+  // Ensure only one "Error: " prefix and style it red
+  const cleanError = error.replace(/^(Error:\s*)+/, 'Error: ');
+  return (
+    <Alert
+      message={<span style={{ color: '#ff4d4f' }}>{cleanError}</span>}
+      type="error"
+      showIcon
+    />
+  );
 }
 
 export function UniversalPlayground({
@@ -137,7 +146,6 @@ export function UniversalPlayground({
     actionSpace,
     loading,
     setLoading,
-    infoList,
     setInfoList,
     replayCounter,
     setReplayCounter,
@@ -175,6 +183,14 @@ export function UniversalPlayground({
 
   // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
+
+  // Determine service mode based on SDK adapter type
+  const serviceMode = useMemo(() => {
+    if (!playgroundSDK || typeof playgroundSDK.getServiceMode !== 'function') {
+      return 'Server'; // Default fallback
+    }
+    return playgroundSDK.getServiceMode();
+  }, [playgroundSDK]);
 
   // Apply configuration
   const finalShowContextPreview =
@@ -267,9 +283,11 @@ export function UniversalPlayground({
                             )}
                             {description && (
                               <div>
-                                <span className="progress-description">
-                                  {description}
-                                </span>
+                                <ShinyText
+                                  text={description}
+                                  className="progress-description"
+                                  disabled={!shouldShowLoading}
+                                />
                               </div>
                             )}
                             {item.result?.error && (
@@ -303,18 +321,12 @@ export function UniversalPlayground({
                       </div>
                       {(item.content || item.result) && (
                         <div className="system-message-content">
-                          {item.type === 'result' && item.result?.error && (
-                            <div className="error-message">
-                              <div className="divider" />
-                              <ErrorMessage error={item.result.error} />
-                            </div>
-                          )}
                           {item.type === 'result' ? (
                             <PlaygroundResultView
                               result={item.result || null}
                               loading={item.loading || false}
                               serverValid={true}
-                              serviceMode={'Server'}
+                              serviceMode={serviceMode}
                               replayScriptsInfo={item.replayScriptsInfo || null}
                               replayCounter={item.replayCounter || 0}
                               loadingProgressText={
@@ -364,7 +376,7 @@ export function UniversalPlayground({
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
-            serviceMode={'Server'}
+            serviceMode={serviceMode}
             selectedType={selectedType}
             dryMode={dryMode}
             stoppable={canStop}

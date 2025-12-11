@@ -1,9 +1,5 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import {
-  UniversalPlayground,
-  createStorageProvider,
-  detectBestStorageType,
-} from '@midscene/visualizer';
+import { UniversalPlayground } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
@@ -31,16 +27,6 @@ export function BrowserExtensionPlayground({
   // Check if run button should be enabled - but DON'T call getAgent yet
   const { config } = useEnvConfig();
   const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
-
-  // Create storage provider for persistence - use IndexedDB for better capacity
-  const storage = useMemo(() => {
-    const bestStorageType = detectBestStorageType();
-    console.log(`Chrome Extension Playground using ${bestStorageType} storage`);
-    return createStorageProvider(
-      bestStorageType,
-      'chrome-extension-playground',
-    );
-  }, []);
 
   // Simplified agent tracking using a single ref for both agent and SDK
   const agentInfoRef = useRef<{ agent: any; sdk: PlaygroundSDK } | null>(null);
@@ -172,7 +158,6 @@ export function BrowserExtensionPlayground({
   return (
     <UniversalPlayground
       playgroundSDK={playgroundSDK}
-      storage={storage}
       contextProvider={contextProvider}
       config={{
         showContextPreview,

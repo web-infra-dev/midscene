@@ -11,6 +11,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type ExecutionTaskPlanning,
   type GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
@@ -166,7 +167,26 @@ export class Agent<
 
   taskCache?: TaskCache;
 
-  onDumpUpdate?: (dump: string) => void;
+  private dumpUpdateListeners: Array<
+    (dump: string, executionDump?: ExecutionDump) => void
+  > = [];
+
+  get onDumpUpdate():
+    | ((dump: string, executionDump?: ExecutionDump) => void)
+    | undefined {
+    return this.dumpUpdateListeners[0];
+  }
+
+  set onDumpUpdate(callback:
+    | ((dump: string, executionDump?: ExecutionDump) => void)
+    | undefined) {
+    // Clear existing listeners
+    this.dumpUpdateListeners = [];
+    // Add callback to array if provided
+    if (callback) {
+      this.dumpUpdateListeners.push(callback);
+    }
+  }
 
   destroyed = false;
 
@@ -350,12 +370,14 @@ export class Agent<
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
-          try {
-            if (this.onDumpUpdate) {
-              this.onDumpUpdate(this.dumpDataString());
+          // Call all registered dump update listeners
+          const dumpString = this.dumpDataString();
+          for (const listener of this.dumpUpdateListeners) {
+            try {
+              listener(dumpString, executionDump);
+            } catch (error) {
+              console.error('Error in onDumpUpdate listener', error);
             }
-          } catch (error) {
-            console.error('Error in onDumpUpdate', error);
           }
 
           this.writeOutActionDumps();
@@ -1225,6 +1247,42 @@ export class Agent<
     return this.interface.evaluateJavaScript(script);
   }
 
+  /**
+   * Add a dump update listener
+   * @param listener Listener function
+   * @returns A remove function that can be called to remove this listener
+   */
+  addDumpUpdateListener(
+    listener: (dump: string, executionDump?: ExecutionDump) => void,
+  ): () => void {
+    this.dumpUpdateListeners.push(listener);
+
+    // Return remove function
+    return () => {
+      this.removeDumpUpdateListener(listener);
+    };
+  }
+
+  /**
+   * Remove a dump update listener
+   * @param listener The listener function to remove
+   */
+  removeDumpUpdateListener(
+    listener: (dump: string, executionDump?: ExecutionDump) => void,
+  ): void {
+    const index = this.dumpUpdateListeners.indexOf(listener);
+    if (index > -1) {
+      this.dumpUpdateListeners.splice(index, 1);
+    }
+  }
+
+  /**
+   * Clear all dump update listeners
+   */
+  clearDumpUpdateListeners(): void {
+    this.dumpUpdateListeners = [];
+  }
+
   async destroy() {
     // Early return if already destroyed
     if (this.destroyed) {
@@ -1279,10 +1337,14 @@ export class Agent<
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
-    try {
-      this.onDumpUpdate?.(this.dumpDataString());
-    } catch (error) {
-      console.error('Failed to update dump', error);
+    // Call all registered dump update listeners
+    const dumpString = this.dumpDataString();
+    for (const listener of this.dumpUpdateListeners) {
+      try {
+        listener(dumpString);
+      } catch (error) {
+        console.error('Error in onDumpUpdate listener', error);
+      }
     }
 
     this.writeOutActionDumps();

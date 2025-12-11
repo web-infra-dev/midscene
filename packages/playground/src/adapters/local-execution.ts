@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
@@ -7,8 +7,10 @@ import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
-  private taskProgressTips: Record<string, string> = {};
-  private progressCallback?: (tip: string) => void;
+  private dumpUpdateCallback?: (
+    dump: string,
+    executionDump?: ExecutionDump,
+  ) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
@@ -23,15 +25,13 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     return this._id;
   }
 
-  setProgressCallback(callback: (tip: string) => void): void {
+  onDumpUpdate(
+    callback: (dump: string, executionDump?: ExecutionDump) => void,
+  ): void {
     // Clear any existing callback before setting new one
-    this.progressCallback = undefined;
+    this.dumpUpdateCallback = undefined;
     // Set the new callback
-    this.progressCallback = callback;
-  }
-
-  private cleanup(requestId: string): void {
-    delete this.taskProgressTips[requestId];
+    this.dumpUpdateCallback = callback;
   }
 
   async parseStructuredParams(
@@ -120,60 +120,72 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
-    let originalOnTaskStartTip: ((tip: string) => void) | undefined;
+    let removeListener: (() => void) | undefined;
 
-    // Setup progress tracking if requestId is provided
+    // Reset dump at the start of execution to ensure clean state
+    try {
+      this.agent.resetDump?.();
+    } catch (error: unknown) {
+      console.warn('Failed to reset dump before execution:', error);
+    }
+
+    // Setup dump update tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
-      originalOnTaskStartTip = this.agent.onTaskStartTip;
 
-      // Set up a fresh callback
-      this.agent.onTaskStartTip = (tip: string) => {
-        // Only process if this is still the current request
-        if (this.currentRequestId !== options.requestId) {
-          return;
-        }
+      // Add listener and save remove function
+      removeListener = this.agent.addDumpUpdateListener(
+        (dump: string, executionDump?: ExecutionDump) => {
+          // Only process if this is still the current request
+          if (this.currentRequestId !== options.requestId) {
+            return;
+          }
 
-        // Store tip for our progress tracking
-        this.taskProgressTips[options.requestId!] = tip;
-
-        // Call the direct progress callback set via setProgressCallback
-        if (this.progressCallback) {
-          this.progressCallback(tip);
-        }
-
-        if (typeof originalOnTaskStartTip === 'function') {
-          originalOnTaskStartTip(tip);
-        }
-      };
+          // Forward to external callback
+          if (this.dumpUpdateCallback) {
+            this.dumpUpdateCallback(dump, executionDump);
+          }
+        },
+      );
     }
 
     try {
-      // Call the base implementation with the original signature
-      const result = await executeAction(
-        this.agent,
-        actionType,
-        actionSpace,
-        value,
-        options,
-      );
+      let result = null;
+      let executionError = null;
 
-      // For local execution, we need to package the result with dump and reportHTML
-      // similar to how the server does it
+      try {
+        // Call the base implementation with the original signature
+        result = await executeAction(
+          this.agent,
+          actionType,
+          actionSpace,
+          value,
+          options,
+        );
+      } catch (error: unknown) {
+        // Capture error but don't throw yet - we need to get dump/reportHTML first
+        executionError = error;
+      }
+
+      // Always construct response with dump and reportHTML, regardless of success/failure
       const response = {
         result,
         dump: null as unknown,
         reportHTML: null as string | null,
-        error: null as string | null,
+        error: executionError
+          ? executionError instanceof Error
+            ? executionError.message
+            : String(executionError)
+          : null,
       };
 
       try {
-        // Get dump and reportHTML from agent like the server does
         if (this.agent.dumpDataString) {
           const dumpString = this.agent.dumpDataString();
           if (dumpString) {
-            response.dump = JSON.parse(dumpString);
+            const groupedDump = JSON.parse(dumpString);
+            response.dump = groupedDump.executions?.[0] || null;
           }
         }
 
@@ -189,29 +201,15 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to get dump/reportHTML from agent:', error);
       }
 
+      // Don't throw the error - return it in response so caller can access dump/reportHTML
+      // The caller (usePlaygroundExecution) will check response.error to determine success
       return response;
     } finally {
-      // Always reset dump to clear execution history
-      try {
-        this.agent.resetDump();
-      } catch (error: unknown) {
-        console.error('Failed to reset dump:', error);
-      }
-
-      // Always clean up progress tracking to prevent memory leaks
-      if (options.requestId) {
-        this.cleanup(options.requestId);
-        // Clear the agent callback to prevent accumulation
-        if (this.agent) {
-          this.agent.onTaskStartTip = originalOnTaskStartTip;
-        }
+      // Remove listener to prevent accumulation
+      if (removeListener) {
+        removeListener();
       }
     }
-  }
-
-  async getTaskProgress(requestId: string): Promise<{ tip?: string }> {
-    // Return the stored tip for this requestId
-    return { tip: this.taskProgressTips[requestId] || undefined };
   }
 
   // Local execution task cancellation - minimal implementation
@@ -231,6 +229,40 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       console.error(`Failed to cancel agent: ${errorMessage}`);
       return { error: `Failed to cancel: ${errorMessage}` };
     }
+  }
+
+  /**
+   * Get current execution data without resetting
+   * This allows retrieving dump and report when execution is stopped
+   */
+  async getCurrentExecutionData(): Promise<{
+    dump: ExecutionDump | null;
+    reportHTML: string | null;
+  }> {
+    const response = {
+      dump: null as ExecutionDump | null,
+      reportHTML: null as string | null,
+    };
+
+    try {
+      // Get dump data
+      if (this.agent.dumpDataString) {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump = JSON.parse(dumpString);
+          response.dump = groupedDump.executions?.[0] || null;
+        }
+      }
+
+      // Get report HTML
+      if (this.agent.reportHTMLString) {
+        response.reportHTML = this.agent.reportHTMLString() || null;
+      }
+    } catch (error: unknown) {
+      console.error('Failed to get current execution data:', error);
+    }
+
+    return response;
   }
 
   // Get interface information from the agent

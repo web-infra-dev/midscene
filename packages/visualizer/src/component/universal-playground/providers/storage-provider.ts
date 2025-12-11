@@ -47,7 +47,7 @@ export class LocalStorageProvider implements StorageProvider {
       // Only save light message data (exclude heavy result data)
       const lightMessages = messagesToSave.map((msg) => ({
         ...msg,
-        result: undefined, // Remove heavy result data
+        result: msg.type === 'result' ? undefined : msg.result, // Only remove heavy result data for 'result' type
       }));
 
       const messageData = JSON.stringify(lightMessages);
@@ -67,7 +67,7 @@ export class LocalStorageProvider implements StorageProvider {
           const recentMessages = messages.slice(-10); // Keep only last 10 messages
           const lightRecentMessages = recentMessages.map((msg) => ({
             ...msg,
-            result: undefined,
+            result: msg.type === 'result' ? undefined : msg.result,
           }));
 
           const messageData = JSON.stringify(lightRecentMessages);

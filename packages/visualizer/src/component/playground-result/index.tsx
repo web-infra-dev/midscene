@@ -58,19 +58,33 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
       </div>
     );
   } else if (replayScriptsInfo) {
+    // Has replay scripts - show Player with replay and report
+    const reportContent =
+      (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server') &&
+      result?.reportHTML
+        ? result?.reportHTML
+        : null;
+
     resultDataToShow = (
       <Player
         key={replayCounter}
         replayScripts={replayScriptsInfo.scripts}
         imageWidth={replayScriptsInfo.width}
         imageHeight={replayScriptsInfo.height}
-        reportFileContent={
-          (serviceMode === 'In-Browser-Extension' ||
-            serviceMode === 'Server') &&
-          result?.reportHTML
-            ? result?.reportHTML
-            : null
-        }
+        reportFileContent={reportContent}
+        fitMode={fitMode}
+        autoZoom={autoZoom}
+      />
+    );
+  } else if (
+    result?.reportHTML &&
+    (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server')
+  ) {
+    // No replay scripts but has report - show Player with report only
+    resultDataToShow = (
+      <Player
+        key={replayCounter}
+        reportFileContent={result.reportHTML}
         fitMode={fitMode}
         autoZoom={autoZoom}
       />
