@@ -74,32 +74,6 @@ Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`
 
 Read more about [Choose a model](https://midscenejs.com/choose-a-model)
 
-## 💡 Two Styles of Automation
-
-### Auto Planning
-
-Midscene will automatically plan the steps and execute them. It may be slower and heavily rely on the quality of the AI model.
-
-```javascript
-await aiAct('click all the records one by one. If one record contains the text "completed", skip it');
-```
-
-### Workflow Style
-
-Split complex logic into multiple steps to improve the stability of the automation code.
-
-```javascript
-const recordList = await agent.aiQuery('string[], the record list')
-for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
-  if (!hasCompleted) {
-    await agent.aiTap(record)
-  }
-}
-```
-
-> For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](https://midscenejs.com/blog-programming-practice-using-structured-api.html)
-
 ## 👀 Comparing to other projects
 
 There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?

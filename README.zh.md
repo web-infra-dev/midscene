@@ -74,33 +74,6 @@ Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`�
 
 更多信息请查看 [选择 AI 模型](https://midscenejs.com/zh/choose-a-model)。
 
-## 💡 两种风格的自动化
-
-### 自动规划
-
-Midscene 会自动规划步骤并执行。它可能较慢，并且深度依赖于 AI 模型的质量。
-
-```javascript
-await aiAct('click all the records one by one. If one record contains the text "completed", skip it');
-```
-
-### 工作流风格
-
-将复杂逻辑拆分为多个步骤，以提高自动化代码的稳定性。
-
-```javascript
-const recordList = await agent.aiQuery('string[], the record list')
-for (const record of recordList) {
-  const hasCompleted = await agent.aiBoolean(`check if the record ${record}" contains the text "completed"`)
-  if (!hasCompleted) {
-    await agent.aiTap(record)
-  }
-}
-```
-
-> 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码
-](https://midscenejs.com/zh/blog-programming-practice-using-structured-api.html)
-
 ## 👀 与其它工具比较
 
 * **视觉驱动带来可靠性和效率**: 借助视觉语言模型，Midscene.js 适用于 Web 和移动 App 的自动化，无论界面采用何种技术栈。
