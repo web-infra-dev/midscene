@@ -445,7 +445,14 @@ export class Agent<
     return await this.getUIContext('locate');
   }
 
+  /**
+   * @deprecated Use {@link setAIActContext} instead.
+   */
   async setAIActionContext(prompt: string) {
+    await this.setAIActContext(prompt);
+  }
+
+  async setAIActContext(prompt: string) {
     if (this.opts.aiActionContext) {
       console.warn(
         'aiActionContext is already set, and it is called again, will override the previous setting',

@@ -782,7 +782,7 @@ For more information about YAML scripts, please refer to [Automate with Scripts 
 
 :::
 
-### `agent.setAIActionContext()`
+### `agent.setAIActContext()`
 
 Set the background knowledge that should be sent to the AI model when calling `agent.aiAct()` or `agent.ai()`. This will override the previous setting.
 
@@ -791,7 +791,7 @@ For instant action type APIs, like `aiTap()`, this setting will not take effect.
 - Type
 
 ```typescript
-function setAIActionContext(actionContext: string): void;
+function setAIActContext(actionContext: string): void;
 ```
 
 - Parameters:
@@ -801,10 +801,14 @@ function setAIActionContext(actionContext: string): void;
 - Example:
 
 ```typescript
-await agent.setAIActionContext(
-  'Close the cookie consent dialog first if it exists',
-);
+await agent.setAIActContext('Close the cookie consent dialog first if it exists');
 ```
+
+:::note
+
+`agent.setAIActionContext()` is deprecated. Please use `agent.setAIActContext()` instead. The deprecated method remains as an alias for compatibility.
+
+:::
 
 ### `agent.evaluateJavaScript()`
 
