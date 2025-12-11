@@ -382,6 +382,35 @@ export default defineConfig({
           attrs: {
             type: 'text/javascript',
           },
+          children: `(() => {
+        const redirects = {
+          '/web-mcp': '/mcp',
+          '/mcp-android': '/mcp',
+          '/zh/web-mcp': '/zh/mcp',
+          '/zh/mcp-android': '/zh/mcp',
+          '/blog-support-android-automation': '/android-introduction',
+          '/blog-support-ios-automation': '/ios-introduction',
+          '/zh/blog-support-android-automation': '/zh/android-introduction',
+          '/zh/blog-support-ios-automation': '/zh/ios-introduction',
+          '/quick-experience-with-android': '/android-playground',
+          '/quick-experience-with-ios': '/ios-playground',
+          '/zh/quick-experience-with-android': '/zh/android-playground',
+          '/zh/quick-experience-with-ios': '/zh/ios-playground',
+        } as Record<string, string>;
+
+        const currentPath = window.location.pathname.replace(/\/$/, '');
+        const targetPath = redirects[currentPath];
+
+        if (targetPath) {
+          window.location.replace(targetPath);
+        }
+      })();`,
+        },
+        {
+          tag: 'script',
+          attrs: {
+            type: 'text/javascript',
+          },
           children: `(function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
