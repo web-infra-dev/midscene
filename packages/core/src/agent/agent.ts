@@ -197,6 +197,10 @@ export class Agent<
    */
   private frozenUIContext?: UIContext;
 
+  private get aiActContext(): string | undefined {
+    return this.opts.aiActContext ?? this.opts.aiActionContext;
+  }
+
   /**
    * Flag to track if VL model warning has been shown
    */
@@ -321,6 +325,13 @@ export class Agent<
         ? { replanningCycleLimit: envReplanningCycleLimit }
         : {},
     );
+
+    const resolvedAiActContext =
+      this.opts.aiActContext ?? this.opts.aiActionContext;
+    if (resolvedAiActContext !== undefined) {
+      this.opts.aiActContext = resolvedAiActContext;
+      this.opts.aiActionContext ??= resolvedAiActContext;
+    }
 
     if (
       opts?.modelConfig &&
@@ -453,11 +464,12 @@ export class Agent<
   }
 
   async setAIActContext(prompt: string) {
-    if (this.opts.aiActionContext) {
+    if (this.aiActContext) {
       console.warn(
-        'aiActionContext is already set, and it is called again, will override the previous setting',
+        'aiActContext is already set, and it is called again, will override the previous setting',
       );
     }
+    this.opts.aiActContext = prompt;
     this.opts.aiActionContext = prompt;
   }
 
@@ -841,9 +853,9 @@ export class Agent<
       this.modelConfigManager.getModelConfig('default');
 
     let planningStrategyToUse = opt?.planningStrategy || 'standard';
-    if (this.opts.aiActionContext && planningStrategyToUse === 'fast') {
+    if (this.aiActContext && planningStrategyToUse === 'fast') {
       console.warn(
-        'using fast planning strategy with aiActionContext is not recommended',
+        'using fast planning strategy with aiActContext is not recommended',
       );
     }
 
@@ -900,7 +912,7 @@ export class Agent<
       modelConfigForPlanning,
       defaultIntentModelConfig,
       includeBboxInPlanning,
-      this.opts.aiActionContext,
+      this.aiActContext,
       cacheable,
       replanningCycleLimit,
       imagesIncludeCount,
