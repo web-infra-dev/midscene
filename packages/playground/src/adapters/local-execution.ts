@@ -120,36 +120,27 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   ): Promise<unknown> {
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
-    let originalOnDumpUpdate:
-      | ((dump: string, executionDump?: ExecutionDump) => void)
-      | undefined;
+    let removeListener: (() => void) | undefined;
 
     // Setup dump update tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
 
-      // Intercept Agent's onDumpUpdate to forward executionDump
-      originalOnDumpUpdate = this.agent.onDumpUpdate;
-      this.agent.onDumpUpdate = (
-        dump: string,
-        executionDump?: ExecutionDump,
-      ) => {
-        // Only process if this is still the current request
-        if (this.currentRequestId !== options.requestId) {
-          return;
-        }
+      // Add listener and save remove function
+      removeListener = this.agent.addDumpUpdateListener(
+        (dump: string, executionDump?: ExecutionDump) => {
+          // Only process if this is still the current request
+          if (this.currentRequestId !== options.requestId) {
+            return;
+          }
 
-        // Forward to external callback
-        if (this.dumpUpdateCallback) {
-          this.dumpUpdateCallback(dump, executionDump);
-        }
-
-        // Call original callback
-        if (typeof originalOnDumpUpdate === 'function') {
-          originalOnDumpUpdate(dump, executionDump);
-        }
-      };
+          // Forward to external callback
+          if (this.dumpUpdateCallback) {
+            this.dumpUpdateCallback(dump, executionDump);
+          }
+        },
+      );
     }
 
     try {
@@ -214,9 +205,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         console.error('Failed to reset dump:', error);
       }
 
-      // Always clean up callbacks to prevent accumulation
-      if (options.requestId && this.agent) {
-        this.agent.onDumpUpdate = originalOnDumpUpdate;
+      // Remove listener to prevent accumulation
+      if (removeListener) {
+        removeListener();
       }
     }
   }

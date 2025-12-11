@@ -41,6 +41,8 @@ describe('LocalExecutionAdapter', () => {
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
+      addDumpUpdateListener: vi.fn(() => vi.fn()), // Returns a remove function
+      removeDumpUpdateListener: vi.fn(),
     } as unknown as PlaygroundAgent;
     adapter = new LocalExecutionAdapter(mockAgent);
   });
