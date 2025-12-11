@@ -387,6 +387,8 @@ export interface ExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
+  aiActContext?: string;
+  /** @deprecated Use {@link aiActContext} instead. */
   aiActionContext?: string;
 }
 
@@ -481,6 +483,8 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
   {
     userInstruction: string;
+    aiActContext?: string;
+    /** @deprecated Use {@link aiActContext} instead. */
     aiActionContext?: string;
   },
   PlanningAIResponse
@@ -626,6 +630,8 @@ export interface AgentOpt {
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
+  aiActContext?: string;
+  /** @deprecated Use {@link aiActContext} instead. */
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;

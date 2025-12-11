@@ -64,8 +64,12 @@ function buildAgentOptions(
   preferenceTestId: string,
   fileName: string,
 ): Partial<AgentOpt> {
+  const aiActContext = yamlAgent?.aiActContext ?? yamlAgent?.aiActionContext;
+
   return {
     ...(yamlAgent || {}),
+    aiActContext,
+    aiActionContext: aiActContext ?? yamlAgent?.aiActionContext,
     cache: processCacheConfig(yamlAgent?.cache, fileName),
     testId: preferenceTestId,
   };

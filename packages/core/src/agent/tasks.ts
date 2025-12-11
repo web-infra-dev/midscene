@@ -242,6 +242,7 @@ export class TaskExecutor {
           subType: 'Plan',
           param: {
             userInstruction: userPrompt,
+            aiActContext: backgroundKnowledge,
             aiActionContext: backgroundKnowledge,
             imagesIncludeCount,
           },
@@ -267,11 +268,13 @@ export class TaskExecutor {
               );
             }
 
+            const actionContext =
+              param.aiActContext ?? param.aiActionContext;
             const planResult = await (uiTarsModelVersion
               ? uiTarsPlanning
               : plan)(param.userInstruction, {
               context: uiContext,
-              actionContext: param.aiActionContext,
+              actionContext,
               interfaceType: this.interface.interfaceType as InterfaceType,
               actionSpace,
               modelConfig: modelConfigForPlanning,

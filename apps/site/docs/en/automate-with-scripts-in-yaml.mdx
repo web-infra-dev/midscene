@@ -85,7 +85,7 @@ agent:
   replanningCycleLimit: <number>
 
   # Background knowledge to send to the AI model when calling aiAct, optional
-  aiActionContext: <string>
+  aiActContext: <string>
 
   # Cache configuration, optional
   cache:
@@ -99,7 +99,7 @@ agent:
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
-- **aiActionContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
+- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. (`aiActionContext` is still supported for compatibility)
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
@@ -116,7 +116,7 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
+  aiActContext: "If any popup appears, click agree. If login page appears, skip it."
   cache:
     id: "checkout-cache"
     strategy: "read-write"
