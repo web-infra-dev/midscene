@@ -14,11 +14,6 @@ import {
   BridgeConnector,
   type BridgeStatus,
 } from '../../utils/bridgeConnector';
-import {
-  clearStoredBridgeMessages,
-  getBridgeMsgsFromStorage,
-  storeBridgeMsgsToStorage,
-} from '../../utils/bridgeDB';
 import { iconForStatus } from '../misc';
 
 import './index.less';
@@ -52,50 +47,6 @@ export default function Bridge() {
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
-
-  // load messages from storage on component mount
-  useEffect(() => {
-    const loadMessages = async () => {
-      try {
-        const messages = await getBridgeMsgsFromStorage();
-        setMessageList(messages as BridgeMessageItem[]);
-      } catch (error) {
-        console.error('Failed to load bridge messages from storage:', error);
-      }
-    };
-
-    loadMessages();
-  }, []);
-
-  // restore connectionStatusMessageId when initializing
-  useEffect(() => {
-    if (messageList.length > 0) {
-      // find the last status message as the current connection status message
-      const lastStatusMessage = messageList
-        .slice()
-        .reverse()
-        .find((msg) => msg.type === 'status');
-
-      // only restore ID when there is an unfinished connection session
-      // check if the last message indicates the connection has ended
-      if (lastStatusMessage) {
-        const lastContent = lastStatusMessage.content.toLowerCase();
-        const isConnectionEnded =
-          lastContent.includes('closed') ||
-          lastContent.includes('stopped') ||
-          lastContent.includes('disconnect');
-
-        if (!isConnectionEnded) {
-          connectionStatusMessageId.current = lastStatusMessage.id;
-        }
-      }
-    }
-  }, [messageList]);
-
-  // save messages to localStorage
-  useEffect(() => {
-    storeBridgeMsgsToStorage(messageList);
-  }, [messageList]);
 
   const appendBridgeMessage = (content: string) => {
     // if there is a connection status message, append all messages to the existing message
@@ -210,15 +161,7 @@ export default function Bridge() {
   const clearMessageList = () => {
     setMessageList([]);
     connectionStatusMessageId.current = null;
-    clearStoredBridgeMessages();
   };
-
-  // scroll to bottom when component first mounts (if there are messages from localStorage)
-  useEffect(() => {
-    if (messageList.length > 0 && messageListRef.current) {
-      messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
-    }
-  }, []); // only run once on mount
 
   // check if scrolled to bottom
   const checkIfScrolledToBottom = () => {
