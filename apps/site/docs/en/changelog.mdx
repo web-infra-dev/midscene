@@ -36,7 +36,8 @@ See our updated [Model strategy](./model-strategy) for details.
 For complex and long-running scenarios, Midscene adds:
 - New `aiAct` planning strategy `planningStrategy`
   - `fast` mode merges planning and localization in the vision model for quicker runs
-  - `standard` mode (default) separates planning and targeting and shares the previous step’s screenshot to improve long-task success rates
+  - `standard` mode (v1.0 default) separates planning and targeting and shares the previous step’s screenshot to improve long-task success rates; token usage is slightly higher than `fast`
+  - If you want to keep the lower token usage from 0.x, switch to `fast` manually
 - Multi-model combinations
   - Per-task model configuration lets Insight and Planning use stronger comprehension models (e.g., GPT-5.1 for planning plus Doubao for interaction) to achieve the best results
 

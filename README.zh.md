@@ -12,7 +12,7 @@
 </div>
 
 <p align="center">
-  视觉驱动的 AI 操作助手，适用于 Web、Android、iOS、自动化和测试。开源并采用 MIT 许可协议。
+  视觉模型驱动，支持全平台的 UI 自动化 SDK
 </p>
 
 <p align="center">

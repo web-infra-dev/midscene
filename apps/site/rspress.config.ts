@@ -5,10 +5,8 @@ import { pluginSitemap } from '@rspress/plugin-sitemap';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
-  title:
-    'Midscene - AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use',
-  description:
-    'It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
+  title: 'Midscene - Joyful UI Automation',
+  description: 'Driving all platforms UI automation with vision-based model',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',

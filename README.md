@@ -12,7 +12,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Visual-driven AI Operator for Web, Android, iOS, Automation & Testing. Open-source and MIT licensed.
+  Driving all platforms UI automation with vision-based model
 </p>
 
 <p align="center">

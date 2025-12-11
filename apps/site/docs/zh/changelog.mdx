@@ -36,7 +36,8 @@ npm install @midscene/cli@beta
 在复杂任务、长任务下，Midscene 提供了以下优化：
 - `aiAct` 新增规划模式 `planningStrategy`
   - `fast` 模式合并视觉模型的规划和定位能力，执行更快
-  - `standard` 模式（默认）拆分规划和定位并提供上一步的截图，帮助模型提升长任务的成功率
+  - `standard` 模式（1.0 版本默认）拆分规划和定位并提供上一步的截图，帮助模型提升长任务的成功率，此模式下 token 使用量会略高于 `fast` 模式
+  - 如你希望保持 0.x 版本的低 token 使用量特性，你需要手动切换到 `fast` 模式
 - 支持多模型结合
   - 可为 Insight、Planning 额外配置更强的 AI 理解模型（如 GPT-5.1 规划 + Doubao 交互），获得最佳表现
 
