@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { defineConfig } from '@rspress/core';
+import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
 
@@ -382,35 +383,6 @@ export default defineConfig({
           attrs: {
             type: 'text/javascript',
           },
-          children: `(() => {
-        const redirects = {
-          '/web-mcp': '/mcp',
-          '/mcp-android': '/mcp',
-          '/zh/web-mcp': '/zh/mcp',
-          '/zh/mcp-android': '/zh/mcp',
-          '/blog-support-android-automation': '/android-introduction',
-          '/blog-support-ios-automation': '/ios-introduction',
-          '/zh/blog-support-android-automation': '/zh/android-introduction',
-          '/zh/blog-support-ios-automation': '/zh/ios-introduction',
-          '/quick-experience-with-android': '/android-playground',
-          '/quick-experience-with-ios': '/ios-playground',
-          '/zh/quick-experience-with-android': '/zh/android-playground',
-          '/zh/quick-experience-with-ios': '/zh/ios-playground',
-        } as Record<string, string>;
-
-        const currentPath = window.location.pathname.replace(/\/$/, '');
-        const targetPath = redirects[currentPath];
-
-        if (targetPath) {
-          window.location.replace(targetPath);
-        }
-      })();`,
-        },
-        {
-          tag: 'script',
-          attrs: {
-            type: 'text/javascript',
-          },
           children: `(function(c,l,a,r,i,t,y){
         c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
         t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
@@ -448,6 +420,58 @@ export default defineConfig({
     ]),
     pluginSitemap({
       siteUrl: 'https://midscenejs.com',
+    }),
+    pluginClientRedirects({
+      redirects: [
+        {
+          from: '^/web-mcp/?$',
+          to: '/mcp',
+        },
+        {
+          from: '^/mcp-android/?$',
+          to: '/mcp',
+        },
+        {
+          from: '^/blog-support-android-automation/?$',
+          to: '/android-introduction',
+        },
+        {
+          from: '^/blog-support-ios-automation/?$',
+          to: '/ios-introduction',
+        },
+        {
+          from: '^/quick-experience-with-android/?$',
+          to: '/android-playground',
+        },
+        {
+          from: '^/quick-experience-with-ios/?$',
+          to: '/ios-playground',
+        },
+        {
+          from: '^/zh/web-mcp/?$',
+          to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/mcp-android/?$',
+          to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/blog-support-android-automation/?$',
+          to: '/zh/android-introduction',
+        },
+        {
+          from: '^/zh/blog-support-ios-automation/?$',
+          to: '/zh/ios-introduction',
+        },
+        {
+          from: '^/zh/quick-experience-with-android/?$',
+          to: '/zh/android-playground',
+        },
+        {
+          from: '^/zh/quick-experience-with-ios/?$',
+          to: '/zh/ios-playground',
+        },
+      ],
     }),
   ],
 });
