@@ -85,8 +85,7 @@ agent:
 
   # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
   aiActContext: <string>
-  # 旧字段名，仍然兼容
-  aiActionContext: <string>
+  # 兼容的旧字段（aiActionContext）仍可使用，但不推荐
 
   # 缓存配置，可选
   cache:
@@ -100,7 +99,7 @@ agent:
 
 - **适用环境**：Web、iOS 和 Android 环境都支持 `agent` 配置
 - **testId 优先级**：CLI 参数 > YAML agent.testId > 文件名
-- **aiActContext**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景。旧名称 `aiActionContext` 依然兼容。
+- **aiActContext**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景。兼容旧字段（见注释），但不建议新脚本继续使用。
 - **缓存配置**：详细用法请参考 [缓存功能文档](./caching.mdx)
 
 :::

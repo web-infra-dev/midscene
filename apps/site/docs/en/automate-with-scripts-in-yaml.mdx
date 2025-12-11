@@ -86,8 +86,7 @@ agent:
 
   # Background knowledge to send to the AI model when calling aiAct, optional
   aiActContext: <string>
-  # Legacy alias that is still supported for backward compatibility
-  aiActionContext: <string>
+  # Legacy alias (aiActionContext) remains for backward compatibility, but avoid using it in new scripts
 
   # Cache configuration, optional
   cache:
@@ -101,7 +100,7 @@ agent:
 
 - **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
 - **testId priority**: CLI parameter > YAML agent.testId > filename
-- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. The legacy `aiActionContext` name is still accepted for backward compatibility.
+- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. A legacy alias remains for backward compatibility (see inline comment) but should not be used in new scripts.
 - **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
