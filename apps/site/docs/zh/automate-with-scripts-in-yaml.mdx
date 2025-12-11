@@ -84,6 +84,8 @@ agent:
   replanningCycleLimit: <number>
 
   # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
+  aiActContext: <string>
+  # 旧字段名，仍然兼容
   aiActionContext: <string>
 
   # 缓存配置，可选
@@ -98,7 +100,7 @@ agent:
 
 - **适用环境**：Web、iOS 和 Android 环境都支持 `agent` 配置
 - **testId 优先级**：CLI 参数 > YAML agent.testId > 文件名
-- **aiActionContext**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
+- **aiActContext**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景。旧名称 `aiActionContext` 依然兼容。
 - **缓存配置**：详细用法请参考 [缓存功能文档](./caching.mdx)
 
 :::
@@ -115,7 +117,7 @@ agent:
   autoPrintReportMsg: false
   reportFileName: "checkout-report"
   replanningCycleLimit: 30
-  aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
+  aiActContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
   cache:
     id: "checkout-cache"
     strategy: "read-write"
