@@ -65,7 +65,7 @@
 
 ## ✨ 视觉语言模型驱动
 
-Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-2.5-pro` 和 `UI-TARS`。
+Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-3-pro` 和 `UI-TARS`。
 
 * 只需提供截图即可定位并理解页面上的目标元素。
 * 无需依赖 DOM 或语义标注。

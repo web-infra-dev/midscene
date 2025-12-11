@@ -156,8 +156,8 @@ const page = pages[0] || await browser.newPage();
 const agent = new PuppeteerAgent(page);
 
 // Use AI methods
-await agent.aiAction('navigate to https://example.com');
-await agent.aiAction('click the login button');
+await agent.aiAct('navigate to https://example.com');
+await agent.aiAct('click the login button');
 const result = await agent.aiQuery('get page title: {title: string}');
 
 // Cleanup

@@ -65,7 +65,7 @@ English | [简体中文](./README.zh.md)
 
 ## ✨ Driven by Visual Language Model
 
-Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-2.5-pro` and `UI-TARS`. 
+Midscene.js supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-3-pro` and `UI-TARS`. 
 
 * Capable of finding and understanding the target element on the page by just providing the screenshot.
 * No dom or semantic markups are required.

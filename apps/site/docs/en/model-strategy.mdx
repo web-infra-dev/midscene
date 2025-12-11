@@ -6,11 +6,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 Quick start
 If you want to try Midscene right away, pick a model and follow its configuration guide:
-* [Doubao Seed vision models](./model-config#doubao-seed-vision)
-* [Qwen3-VL](./model-config#qwen3-vl)
-* [Qwen2.5-VL](./model-config#qwen25-vl)
-* [Gemini-3-Pro](./model-config#gemini-3-pro)
-* [UI-TARS](./model-config#ui-tars)
+* [Doubao Seed vision models](./model-common-config#doubao-seed-vision)
+* [Qwen3-VL](./model-common-config#qwen3-vl)
+* [Qwen2.5-VL](./model-common-config#qwen25-vl)
+* [Gemini-3-Pro](./model-common-config#gemini-3-pro)
+* [UI-TARS](./model-common-config#ui-tars)
 
 :::
 
@@ -29,8 +29,7 @@ To solve element localization, UI automation frameworks traditionally follow one
 
 Earlier Midscene releases supported both approaches so developers could compare them. After dozens of versions and hundreds of projects, the pure-vision route now clearly wins:
 
-- **Stable results**: These models pair strong UI planning with interface understanding, helping developers get productive quickly.
-- **UI workflow planning**: Vision models generally have solid UI operation planning and can handle some complex task flows.
+- **Stable results**: These models pair strong UI planning with element targeting and interface understanding, helping developers get productive quickly.
 - **Works everywhere**: Automation no longer depends on how the UI is rendered. Android, iOS, desktop apps, or a browser `<canvas>`—if you can capture a screenshot, Midscene can interact with it.
 - **Developer-friendly**: Removing selectors and DOM fuss makes the model “handshake” easier. Even teammates unfamiliar with rendering tech can become productive quickly.
 - **Far fewer tokens**: Dropping DOM extraction cuts token usage by ~80%, reducing cost and speeding up local runs.
@@ -48,11 +47,11 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 
 | Model family | Deployment | Midscene notes |
 | --- | --- | --- |
-| Doubao Seed vision models<br />[Quick setup](./model-config.mdx#doubao-seed-vision) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
-| Qwen3-VL<br />[Quick setup](./model-config.mdx#qwen3-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama (open-source)](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
-| Qwen2.5-VL<br />[Quick setup](./model-config.mdx#qwen25-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
-| Gemini-3-Pro<br />[Quick setup](./model-config.mdx#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Price is higher than Doubao and Qwen |
-| UI-TARS<br />[Quick setup](./model-config.mdx#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
+| Doubao Seed vision models<br />[Quick setup](./model-common-config#doubao-seed-vision) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
+| Qwen3-VL<br />[Quick setup](./model-common-config#qwen3-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama (open-source)](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
+| Qwen2.5-VL<br />[Quick setup](./model-common-config#qwen25-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
+| Gemini-3-Pro<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Price is higher than Doubao and Qwen |
+| UI-TARS<br />[Quick setup](./model-common-config#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
 
 :::info Why not use multimodal models like gpt-5 as the default?
 
@@ -78,7 +77,7 @@ This sounds simple, but the model must understand per-field rules, identify each
 
 In these situations, configure separate models for *Planning* and *Insight*, and use the default model purely as a “visual localizer” to reduce reasoning burden. Multi-model setups are the most practical and effective way to lift UI automation success, at a small cost in latency and tokens.
 
-With a `gpt-5.1` + `qwen3-vl` combo, we can complete the above task almost perfectly.
+For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt51-planning-insight-qwen3).
 
 ### *Planning* intent
 
@@ -109,15 +108,15 @@ Midscene's run report logs detailed task traces. Inspect them to pinpoint failur
 3. Tweak the `planningStrategy` option in `aiAct` to increase planning depth.
 4. Try different models, or combine multiple models to compensate for weaker understanding.
 
-## Limitations of the pure-vision approach
+## More
+
+### Limitations of the pure-vision approach
 
 Vision models are a highly general approach: they do not depend on a specific UI rendering stack and can analyze screenshots directly, letting developers ramp up and tune quickly across any app surface.
 
 The flip side is higher demands on the model itself.
 
 For example, on mobile UI automation, if you have a component tree plus full a11y annotations, you can lean on a small text-only model and reason over structure, potentially pushing performance further. Pure vision skips those annotations and is more universal, saving UI labeling effort but consuming more model resources at runtime.
-
-## More
 
 ### Model configuration doc
 
@@ -162,5 +161,3 @@ For compatibility, we still support these OpenAI-style names, though they are no
 - `OPENAI_BASE_URL`
 
 When both are present, Midscene prefers the new `MIDSCENE_MODEL_*` variables.
-
-<TroubleshootingLLMConnectivity />
