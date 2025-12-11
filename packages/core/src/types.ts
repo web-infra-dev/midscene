@@ -154,6 +154,17 @@ export interface ReportDumpWithAttributes {
   attributes?: Record<string, any>;
 }
 
+export type AiActContextCompatible =
+  | {
+      aiActContext?: string;
+      aiActionContext?: never;
+    }
+  | {
+      /** @deprecated Use {@link aiActContext} instead. */
+      aiActionContext?: string;
+      aiActContext?: never;
+    };
+
 export interface ServiceDump extends DumpMeta {
   type: 'locate' | 'extract' | 'assert';
   logId: string;
@@ -383,14 +394,11 @@ export type ExecutionTask<
     searchAreaUsage?: AIUsageInfo;
   };
 
-export interface ExecutionDump extends DumpMeta {
+export type ExecutionDump = DumpMeta & {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
-  aiActContext?: string;
-  /** @deprecated Use {@link aiActContext} instead. */
-  aiActionContext?: string;
-}
+} & AiActContextCompatible;
 
 /*
 task - service-locate
@@ -481,12 +489,9 @@ task - planning
 
 export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
-  {
+  ({
     userInstruction: string;
-    aiActContext?: string;
-    /** @deprecated Use {@link aiActContext} instead. */
-    aiActionContext?: string;
-  },
+  } & AiActContextCompatible),
   PlanningAIResponse
 >;
 
@@ -619,7 +624,7 @@ export type Cache =
   | true // Will throw error at runtime - deprecated
   | CacheConfig; // Object configuration (requires explicit id)
 
-export interface AgentOpt {
+export type AgentOpt = AiActContextCompatible & {
   testId?: string;
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
@@ -630,9 +635,6 @@ export interface AgentOpt {
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
-  aiActContext?: string;
-  /** @deprecated Use {@link aiActContext} instead. */
-  aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
   modelConfig?: TModelConfig;
@@ -669,7 +671,7 @@ export interface AgentOpt {
    * ```
    */
   createOpenAIClient?: CreateOpenAIClientFn;
-}
+};
 
 export type TestStatus =
   | 'passed'
