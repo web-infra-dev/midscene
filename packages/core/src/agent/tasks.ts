@@ -204,7 +204,7 @@ export class TaskExecutor {
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
     includeBboxInPlanning: boolean,
-    backgroundKnowledge?: string,
+    aiActContext?: string,
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
@@ -242,7 +242,7 @@ export class TaskExecutor {
           subType: 'Plan',
           param: {
             userInstruction: userPrompt,
-            aiActionContext: backgroundKnowledge,
+            aiActContext,
             imagesIncludeCount,
           },
           executor: async (param, executorContext) => {
@@ -271,7 +271,7 @@ export class TaskExecutor {
               ? uiTarsPlanning
               : plan)(param.userInstruction, {
               context: uiContext,
-              actionContext: param.aiActionContext,
+              actionContext: param.aiActContext,
               interfaceType: this.interface.interfaceType as InterfaceType,
               actionSpace,
               modelConfig: modelConfigForPlanning,

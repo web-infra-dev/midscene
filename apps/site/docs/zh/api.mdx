@@ -21,7 +21,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 - `reportFileName: string`: 报告文件的名称，默认值由 midscene 内部生成。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
-- `actionContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `aiActContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 "有 cookie 对话框时先关闭它"，默认值为空。此前名为 `aiActionContext`，旧名称仍然兼容。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20（UI-TARS 模型默认 40）。推荐通过 agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
@@ -783,12 +783,12 @@ console.log(result);
 - 类型
 
 ```typescript
-function setAIActContext(actionContext: string): void;
+function setAIActContext(aiActContext: string): void;
 ```
 
 - 参数：
 
-  - `actionContext: string` - 要发送给 AI 模型的背景知识。
+  - `aiActContext: string` - 要发送给 AI 模型的背景知识。`aiActionContext` 旧参数名依然可用。
 
 - 示例：
 
