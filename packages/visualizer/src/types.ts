@@ -313,6 +313,10 @@ export interface PlaygroundSDKLike {
     callback: (dump: string, executionDump?: ExecutionDump) => void,
   ) => void;
   cancelExecution?(requestId: string): Promise<void>;
+  getCurrentExecutionData?(): Promise<{
+    dump: ExecutionDump | null;
+    reportHTML: string | null;
+  }>;
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';

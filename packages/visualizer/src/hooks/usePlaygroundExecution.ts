@@ -298,6 +298,21 @@ export function usePlaygroundExecution(
     const thisRunningId = currentRunningIdRef.current;
     if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
       try {
+        // Get current execution data before stopping
+        let executionData: {
+          dump: ExecutionDump | null;
+          reportHTML: string | null;
+        } | null = null;
+
+        if (playgroundSDK.getCurrentExecutionData) {
+          try {
+            executionData = await playgroundSDK.getCurrentExecutionData();
+          } catch (error) {
+            console.error('Failed to get execution data before stop:', error);
+          }
+        }
+
+        // Cancel execution
         await playgroundSDK.cancelExecution(thisRunningId.toString());
         interruptedFlagRef.current[thisRunningId] = true;
         setLoading(false);
@@ -307,19 +322,54 @@ export function usePlaygroundExecution(
           playgroundSDK.onProgressUpdate(() => {});
         }
 
-        // Update info list to mark as stopped
+        // Clear dump update callback
+        if (playgroundSDK.onDumpUpdate) {
+          playgroundSDK.onDumpUpdate(() => {});
+        }
+
+        // Update system message to mark as stopped
         setInfoList((prev) =>
           prev.map((item) =>
-            item.id === `system-${thisRunningId}` && item.loading
+            item.id === `system-${thisRunningId}`
               ? {
                   ...item,
-                  content: 'Operation stopped',
+                  content: '',
                   loading: false,
                   loadingProgressText: '',
                 }
               : item,
           ),
         );
+
+        // Add result item if we have execution data
+        if (executionData && (executionData.dump || executionData.reportHTML)) {
+          const resultItem: InfoListItem = {
+            id: `stop-result-${thisRunningId}`,
+            type: 'result',
+            content: 'Execution stopped by user',
+            timestamp: new Date(),
+            result: {
+              result: null,
+              dump: executionData.dump,
+              reportHTML: executionData.reportHTML,
+              error: null,
+            },
+            loading: false,
+            verticalMode,
+            replayCounter,
+          };
+          setInfoList((prev) => [...prev, resultItem]);
+        } else {
+          // If no execution data, show simple stop message
+          const stopItem: InfoListItem = {
+            id: `stop-${thisRunningId}`,
+            type: 'system',
+            content: 'Operation stopped',
+            timestamp: new Date(),
+            loading: false,
+          };
+          setInfoList((prev) => [...prev, stopItem]);
+        }
 
         // Add separator item
         const separatorItem: InfoListItem = {
@@ -339,6 +389,8 @@ export function usePlaygroundExecution(
     interruptedFlagRef,
     setLoading,
     setInfoList,
+    verticalMode,
+    replayCounter,
   ]);
 
   // Check if execution can be stopped

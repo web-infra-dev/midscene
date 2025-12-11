@@ -16,6 +16,7 @@ import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
 import { defaultMainButtons } from '../../utils/constants';
 import { PromptInput } from '../prompt-input';
+import ShinyText from '../shiny-text';
 import {
   createStorageProvider,
   detectBestStorageType,
@@ -282,9 +283,11 @@ export function UniversalPlayground({
                             )}
                             {description && (
                               <div>
-                                <span className="progress-description">
-                                  {description}
-                                </span>
+                                <ShinyText
+                                  text={description}
+                                  className="progress-description"
+                                  disabled={!shouldShowLoading}
+                                />
                               </div>
                             )}
                             {item.result?.error && (

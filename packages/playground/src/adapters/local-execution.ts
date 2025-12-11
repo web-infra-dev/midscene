@@ -122,6 +122,13 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     const actionSpace = await this.getActionSpace();
     let removeListener: (() => void) | undefined;
 
+    // Reset dump at the start of execution to ensure clean state
+    try {
+      this.agent.resetDump?.();
+    } catch (error: unknown) {
+      console.warn('Failed to reset dump before execution:', error);
+    }
+
     // Setup dump update tracking if requestId is provided
     if (options.requestId && this.agent) {
       // Track current request ID to prevent stale callbacks
@@ -198,13 +205,6 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // The caller (usePlaygroundExecution) will check response.error to determine success
       return response;
     } finally {
-      // Always reset dump to clear execution history
-      try {
-        this.agent.resetDump();
-      } catch (error: unknown) {
-        console.error('Failed to reset dump:', error);
-      }
-
       // Remove listener to prevent accumulation
       if (removeListener) {
         removeListener();
@@ -229,6 +229,40 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       console.error(`Failed to cancel agent: ${errorMessage}`);
       return { error: `Failed to cancel: ${errorMessage}` };
     }
+  }
+
+  /**
+   * Get current execution data without resetting
+   * This allows retrieving dump and report when execution is stopped
+   */
+  async getCurrentExecutionData(): Promise<{
+    dump: ExecutionDump | null;
+    reportHTML: string | null;
+  }> {
+    const response = {
+      dump: null as ExecutionDump | null,
+      reportHTML: null as string | null,
+    };
+
+    try {
+      // Get dump data
+      if (this.agent.dumpDataString) {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump = JSON.parse(dumpString);
+          response.dump = groupedDump.executions?.[0] || null;
+        }
+      }
+
+      // Get report HTML
+      if (this.agent.reportHTMLString) {
+        response.reportHTML = this.agent.reportHTMLString() || null;
+      }
+    } catch (error: unknown) {
+      console.error('Failed to get current execution data:', error);
+    }
+
+    return response;
   }
 
   // Get interface information from the agent

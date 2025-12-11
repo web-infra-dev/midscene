@@ -138,6 +138,21 @@ export class PlaygroundSDK {
     }
   }
 
+  // Get current execution data (dump and report)
+  async getCurrentExecutionData(): Promise<{
+    dump: any | null;
+    reportHTML: string | null;
+  }> {
+    if (
+      this.adapter instanceof LocalExecutionAdapter &&
+      this.adapter.getCurrentExecutionData
+    ) {
+      return await this.adapter.getCurrentExecutionData();
+    }
+    // For remote execution or if method not available, return empty data
+    return { dump: null, reportHTML: null };
+  }
+
   // Screenshot method for remote execution
   async getScreenshot(): Promise<{
     screenshot: string;

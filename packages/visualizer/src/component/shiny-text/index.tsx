@@ -16,14 +16,17 @@ const ShinyText: React.FC<ShinyTextProps> = ({
   disabled = false,
   speed = 5,
   className = '',
+  colorTheme = 'blue',
 }) => {
   const style = {
     '--animation-duration': `${speed}s`,
   } as React.CSSProperties;
 
+  const themeClass = `theme-${colorTheme}`;
+
   return (
     <div
-      className={`shiny-text ${disabled ? 'disabled' : ''} ${className}`}
+      className={`shiny-text ${themeClass} ${disabled ? 'disabled' : ''} ${className}`}
       style={style}
     >
       {text}
