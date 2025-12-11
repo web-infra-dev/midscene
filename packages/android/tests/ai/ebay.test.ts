@@ -27,7 +27,9 @@ describe('Test todo list', () => {
     'search headphones',
     async () => {
       // 👀 type keywords, perform a search
-      await agent.aiAction('type "Headphones" in search box, hit Enter');
+      await agent.aiAction(
+        'type "Headphones" in search box, click search button',
+      );
 
       // 👀 wait for the loading
       await agent.aiWaitFor('there is at least one headphone item on page');

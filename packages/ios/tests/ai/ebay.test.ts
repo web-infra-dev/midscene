@@ -42,7 +42,7 @@ describe('Test eBay search', () => {
 
       // 👀 type keywords, perform a search
       await agent.aiAction(
-        'type "Headphones" in search box, tap search button',
+        'type "Headphones" in search box, click search button',
       );
 
       // 👀 wait for the loading
