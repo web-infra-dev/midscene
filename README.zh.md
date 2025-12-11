@@ -42,20 +42,20 @@
 - 使用 Javascript SDK 或 YAML 格式编写自动化脚本。
 
 ### Web & Mobile App & 任意界面
-- **Web 自动化 🖥️**: 可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
-- **Android 自动化 📱**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
-- **iOS 自动化 🍎**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-ios.html) 配合 WebDriverAgent 来控制本地 iOS 设备。
-- **任意界面自动化 🌐**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) 来控制你自己的界面。
+- **Web 自动化**: 可以[与 Puppeteer 集成](https://midscenejs.com/integrate-with-puppeteer.html)，[与 Playwright 集成](https://midscenejs.com/integrate-with-playwright.html)或使用[桥接模式](https://midscenejs.com/bridge-mode-by-chrome-extension.html)来控制桌面浏览器。
+- **Android 自动化**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-android.html) 配合 adb 来控制本地 Android 设备。
+- **iOS 自动化**: 使用 [Javascript SDK](https://midscenejs.com/zh/integrate-with-ios.html) 配合 WebDriverAgent 来控制本地 iOS 设备。
+- **任意界面自动化**: 使用 [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) 来控制你自己的界面。
 
 ### 工具
 - **用于调试的可视化报告**: 通过我们的测试报告和 Playground，你可以轻松理解、回放和调试整个过程。
 - [**使用缓存，提高执行效率**](https://midscenejs.com/zh/caching.html): 使用缓存能力重放脚本，提高执行效率。
-- **MCP**: 允许其他 MCP Client 直接使用 Midscene 的能力。[**Web MCP**](https://midscenejs.com/zh/web-mcp.html) [**Android MCP**](https://midscenejs.com/zh/mcp-android.html)。
+- **MCP**: Midscene 提供 MCP 服务，将 Midscene Agent 的原子操作暴露为 MCP 工具，上层 Agent 可以用自然语言检查和操作界面。[文档](https://midscenejs.com/zh/mcp)。
 
 ### 三种类型的 API
-  - [**交互 API 🔗**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
-  - [**数据提取 API 🔗**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面和 DOM 中提取数据。
-  - [**实用 API 🔗**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
+  - [**交互 API**](https://midscenejs.com/zh/api.html#interaction-methods): 与用户界面交互。
+  - [**数据提取 API**](https://midscenejs.com/zh/api.html#data-extraction): 从用户界面和 DOM 中提取数据。
+  - [**实用 API**](https://midscenejs.com/zh/api.html#more-apis): 实用函数，如 `aiAssert()` （断言）, `aiLocate()` （定位）, `aiWaitFor()` （等待）。
 
 ## 👉 无需代码，快速体验
 
@@ -109,7 +109,7 @@ for (const record of recordList) {
 
 * **开源、免费、部署灵活**: Midscene.js 是一个开源项目，并且支持自托管模型。
 
-* **与 Javascript 集成**: 你可以永远相信 Javascript 😎
+* **与 Javascript 集成**: 你可以永远相信 Javascript
 
 ## 📄 资源 
 
@@ -175,5 +175,5 @@ Midscene.js 遵循 [MIT 许可协议](https://github.com/web-infra-dev/midscene/
 ---
 
 <div align="center">
-  如果本项目对你有帮助或启发，请给我们一个 ⭐️
+  如果本项目对你有帮助或启发，请给我们一个 star
 </div>

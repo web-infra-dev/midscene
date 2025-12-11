@@ -17,7 +17,7 @@ English | [简体中文](./README.zh.md)
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@midscene/web"><img src="https://img.shields.io/npm/v/@midscene/web?style=flat-square&color=00a8f0" alt="npm version" /></a>
-  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/%F0%9F%A4%97-UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
+  <a href="https://huggingface.co/ByteDance-Seed/UI-TARS-1.5-7B"><img src="https://img.shields.io/badge/UI%20TARS%20Models-yellow" alt="hugging face model" /></a>
   <a href="https://npm-compare.com/@midscene/web/#timeRange=THREE_YEARS"><img src="https://img.shields.io/npm/dm/@midscene/web.svg?style=flat-square&color=00a8f0" alt="downloads" /></a>
   <a href="https://github.com/web-infra-dev/midscene/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square&color=00a8f0" alt="License" />
   <a href="https://discord.gg/2JyBHxszE4"><img src="https://img.shields.io/discord/1328277792730779648?style=flat-square&color=7289DA&label=Discord&logo=discord&logoColor=white" alt="discord" /></a>
@@ -42,20 +42,20 @@ English | [简体中文](./README.zh.md)
 - Use Javascript SDK or YAML to write your automation script.
 
 ### Web & Mobile App & Any Interface
-- **Web Automation 🖥️**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
-- **Android Automation 📱**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
-- **iOS Automation 🍎**: Use [Javascript SDK](https://midscenejs.com/integrate-with-ios.html) with iOS Simulator to control your local iOS devices and simulators.
-- **Any Interface Automation 🌐**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) to control your own interface.
+- **Web Automation**: Either integrate with [Puppeteer](https://midscenejs.com/integrate-with-puppeteer.html), [Playwright](https://midscenejs.com/integrate-with-playwright.html) or use [Bridge Mode](https://midscenejs.com/bridge-mode-by-chrome-extension.html) to control your desktop browser.
+- **Android Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-android.html) with adb to control your local Android device.
+- **iOS Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-ios.html) with iOS Simulator to control your local iOS devices and simulators.
+- **Any Interface Automation**: Use [Javascript SDK](https://midscenejs.com/integrate-with-any-interface.html) to control your own interface.
 
 ### Tools
-- **Visual Reports for Debugging 🎞️**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
-- [**Caching for Efficiency 🔄**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
-- **MCP**: Allows other MCP Clients to directly use Midscene's capabilities. [**Web MCP**](https://midscenejs.com/web-mcp.html) [**Android MCP**](https://midscenejs.com/mcp-android.html)
+- **Visual Reports for Debugging**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+- [**Caching for Efficiency**](https://midscenejs.com/caching.html): Replay your script with cache and get the result faster.
+- **MCP**: Midscene provides MCP services that expose atomic Midscene Agent actions as MCP tools so upper-layer agents can inspect and operate UIs with natural language. [Docs](https://midscenejs.com/mcp)
 
 ### Three kinds of APIs
-- [Interaction API 🔗](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
-- [Data Extraction API 🔗](https://midscenejs.com/api.html#data-extraction): extract data from the user interface and dom.
-- [Utility API 🔗](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+- [Interaction API](https://midscenejs.com/api.html#interaction-methods): interact with the user interface.
+- [Data Extraction API](https://midscenejs.com/api.html#data-extraction): extract data from the user interface and dom.
+- [Utility API](https://midscenejs.com/api.html#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
 
 ## 👉 Zero-code Quick Experience
 
@@ -110,7 +110,7 @@ There are so many UI automation tools out there, and each one seems to be all-po
 
 * **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project, and it supports self-hosted models.
 
-* **Integrate with Javascript**: You can always bet on Javascript 😎
+* **Integrate with Javascript**: You can always bet on Javascript
 
 ## 📄 Resources 
 
@@ -175,5 +175,5 @@ Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/mai
 ---
 
 <div align="center">
-  If this project helps you or inspires you, please give us a ⭐️
+  If this project helps you or inspires you, please give us a star
 </div>
