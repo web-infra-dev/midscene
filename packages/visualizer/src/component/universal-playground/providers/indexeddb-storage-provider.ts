@@ -67,7 +67,7 @@ export class IndexedDBStorageProvider implements StorageProvider {
           messagesToSave.map((msg, index) => {
             const lightMessage = {
               ...msg,
-              result: undefined, // Remove heavy result data - stored separately
+              result: msg.type === 'result' ? undefined : msg.result, // Remove heavy result data only for 'result' type
             };
 
             const data = {

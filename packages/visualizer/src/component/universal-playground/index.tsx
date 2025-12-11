@@ -3,7 +3,7 @@ import Icon, {
   LoadingOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import { Button, Form, List, Typography, message } from 'antd';
+import { Alert, Button, Form, List, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
@@ -35,7 +35,15 @@ function getSDKId(sdk: any): string {
 
 function ErrorMessage({ error }: { error: string }) {
   if (!error) return null;
-  return <span>Error: {error}</span>;
+  // Ensure only one "Error: " prefix and style it red
+  const cleanError = error.replace(/^(Error:\s*)+/, 'Error: ');
+  return (
+    <Alert
+      message={<span style={{ color: '#ff4d4f' }}>{cleanError}</span>}
+      type="error"
+      showIcon
+    />
+  );
 }
 
 export function UniversalPlayground({
@@ -310,12 +318,6 @@ export function UniversalPlayground({
                       </div>
                       {(item.content || item.result) && (
                         <div className="system-message-content">
-                          {item.type === 'result' && item.result?.error && (
-                            <div className="error-message">
-                              <div className="divider" />
-                              <ErrorMessage error={item.result.error} />
-                            </div>
-                          )}
                           {item.type === 'result' ? (
                             <PlaygroundResultView
                               result={item.result || null}

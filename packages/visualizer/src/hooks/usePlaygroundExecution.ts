@@ -137,6 +137,9 @@ export function usePlaygroundExecution(
                   type: 'progress' as const,
                   content: buildProgressContent(task),
                   timestamp: new Date(task.timing?.start || Date.now()),
+                  result: task.error
+                    ? { error: String(task.error), result: null }
+                    : undefined,
                 }),
               );
 
