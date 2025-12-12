@@ -125,6 +125,22 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   ) {
     this.scriptPath = scriptPath;
     this.result = {};
+    const resolvedAiActContext =
+      script.agent?.aiActContext ?? script.agent?.aiActionContext;
+
+    if (resolvedAiActContext !== undefined && script.agent) {
+      if (
+        script.agent.aiActContext === undefined &&
+        script.agent.aiActionContext !== undefined
+      ) {
+        console.warn(
+          'agent.aiActionContext is deprecated, please use agent.aiActContext instead. The legacy name is still accepted for backward compatibility.',
+        );
+      }
+
+      script.agent.aiActContext = resolvedAiActContext;
+    }
+
     this.target =
       script.target ||
       script.web ||
