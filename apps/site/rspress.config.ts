@@ -424,6 +424,30 @@ export default defineConfig({
     pluginClientRedirects({
       redirects: [
         {
+          from: '^/integrate-with-android/?$',
+          to: '/android-getting-started',
+        },
+        {
+          from: '^/android-playground/?$',
+          to: '/android-introduction',
+        },
+        {
+          from: '^/choose-a-model/?$',
+          to: '/model-strategy',
+        },
+        {
+          from: '^/model-provider/?$',
+          to: '/model-config',
+        },
+        {
+          from: '^/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          to: '/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          from: '^/bridge-mode-by-chrome-extension/?$',
+          to: '/bridge-mode',
+        },
+        {
           from: '^/web-mcp/?$',
           to: '/mcp',
         },
@@ -441,11 +465,11 @@ export default defineConfig({
         },
         {
           from: '^/quick-experience-with-android/?$',
-          to: '/android-playground',
+          to: '/android-getting-started',
         },
         {
           from: '^/quick-experience-with-ios/?$',
-          to: '/ios-playground',
+          to: '/ios-getting-started',
         },
         {
           from: '^/zh/web-mcp/?$',
@@ -465,11 +489,27 @@ export default defineConfig({
         },
         {
           from: '^/zh/quick-experience-with-android/?$',
-          to: '/zh/android-playground',
+          to: '/zh/android-getting-started',
         },
         {
           from: '^/zh/quick-experience-with-ios/?$',
-          to: '/zh/ios-playground',
+          to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/zh/choose-a-model/?$',
+          to: '/zh/model-strategy',
+        },
+        {
+          from: '^/zh/model-provider/?$',
+          to: '/zh/model-config',
+        },
+        {
+          from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          to: '/zh/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          from: '^/zh/bridge-mode-by-chrome-extension/?$',
+          to: '/zh/bridge-mode',
         },
       ],
     }),
