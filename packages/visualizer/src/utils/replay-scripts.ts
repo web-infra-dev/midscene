@@ -160,7 +160,7 @@ export const allScriptsFromDump = (
     ? (dump as GroupedActionDump)
     : {
         sdkVersion: '',
-        groupName: 'Playground Execution',
+        groupName: 'Execution',
         modelBriefs: [],
         executions: [dump as ExecutionDump],
       };
