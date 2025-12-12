@@ -17,10 +17,14 @@ export const defaultWaitForNetworkIdleTimeout =
 
 export function resolveAiActionContext(
   target: MidsceneYamlScriptWebEnv,
-  preference?: Partial<Pick<AgentOpt, 'aiActionContext'>>,
+  preference?: Partial<Pick<AgentOpt, 'aiActionContext' | 'aiActContext'>>,
 ): AgentOpt['aiActionContext'] | undefined {
   // Prefer the web target override if provided; otherwise fall back to agent-level preference.
-  return target.aiActionContext ?? preference?.aiActionContext;
+  const data =
+    preference?.aiActContext ??
+    preference?.aiActionContext ??
+    target.aiActionContext;
+  return data;
 }
 
 /**
@@ -287,12 +291,14 @@ export async function puppeteerAgentForTarget(
     preference,
     browser,
   );
-  const aiActionContext = resolveAiActionContext(target, preference);
+  const aiActContext = resolveAiActionContext(target, preference);
+
+  const { aiActionContext, ...preferenceToUse } = preference ?? {};
 
   // prepare Midscene agent
   const agent = new PuppeteerAgent(page, {
-    ...preference,
-    aiActionContext,
+    ...preferenceToUse,
+    aiActContext,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation

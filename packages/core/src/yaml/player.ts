@@ -139,7 +139,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       }
 
       script.agent.aiActContext = resolvedAiActContext;
-      script.agent.aiActionContext ??= resolvedAiActContext;
     }
 
     this.target =
