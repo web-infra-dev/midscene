@@ -51,7 +51,7 @@ and more`,
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
     'Qwen vision-language model with high-quality image understanding and UI element recognition at competitive pricing.',
-  modelGeminiName: 'Gemini-3-ProPro',
+  modelGeminiName: 'Gemini-3-Pro',
   modelGeminiDesc:
     'Advanced Gemini multimodal model with powerful vision capabilities and comprehensive UI automation support.',
   modelMultiModelName: 'Multi-model combo',

@@ -258,7 +258,7 @@ export function FeatureSections() {
                   <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
                     <img
                       src="/icon/gemini-color.svg"
-                      alt="Gemini-3-ProPro"
+                      alt="Gemini-3-Pro"
                       className="w-12 h-12 md:w-16 md:h-16"
                     />
                   </div>

@@ -50,7 +50,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   modelQwenName: 'Qwen3-VL',
   modelQwenDesc:
     'Qwen 视觉语言模型，支持高质量图像理解和 UI 元素识别，性价比高。',
-  modelGeminiName: 'Gemini-3-ProPro',
+  modelGeminiName: 'Gemini-3-Pro',
   modelGeminiDesc:
     'Gemini 先进的多模态模型，拥有强大的视觉能力和全面的 UI 自动化支持。',
   modelMultiModelName: '多模型组合',
