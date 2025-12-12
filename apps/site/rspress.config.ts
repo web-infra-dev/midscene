@@ -39,6 +39,26 @@ export default defineConfig({
           'https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d',
       },
     ],
+    nav: [
+      {
+        text: 'Versions',
+        items: [
+          {
+            text: 'Changelog',
+            link: 'https://midscenejs.com/changelog',
+          },
+          {
+            text: 'Midscene.js v0.x',
+            link: 'https://v0.midscenejs.com',
+          },
+          {
+            text: 'Midscene.js v1.x',
+            link: 'https://midscenejs.com',
+          },
+        ],
+        position: 'left',
+      },
+    ],
     locales: [
       {
         lang: 'en',
