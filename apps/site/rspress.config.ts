@@ -432,6 +432,10 @@ export default defineConfig({
           to: '/android-introduction',
         },
         {
+          from: '^/ios-playground/?$',
+          to: '/ios-getting-started',
+        },
+        {
           from: '^/choose-a-model/?$',
           to: '/model-strategy',
         },
@@ -510,6 +514,14 @@ export default defineConfig({
         {
           from: '^/zh/bridge-mode-by-chrome-extension/?$',
           to: '/zh/bridge-mode',
+        },
+        {
+          from: '^/zh/android-playground/?$',
+          to: '/zh/android-introduction',
+        },
+        {
+          from: '^/zh/ios-playground/?$',
+          to: '/zh/ios-getting-started',
         },
       ],
     }),
