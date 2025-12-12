@@ -29,9 +29,25 @@
     text-wrap: unset;
     word-wrap: break-word;
     overflow-wrap: break-word;
-    background: #F2F4F7;
+    background: #f2f4f7;
     border-radius: 8px;
     padding: 14px;
     overflow: scroll;
+  }
+}
+
+[data-theme='dark'] {
+  .result-wrapper {
+    .loading-container {
+      .loading-progress-text {
+        color: rgba(255, 255, 255, 0.45);
+      }
+    }
+
+    pre {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafd;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
   }
 }
