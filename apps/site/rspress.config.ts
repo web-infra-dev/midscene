@@ -42,6 +42,25 @@ export default defineConfig({
       docRepoBaseUrl:
         'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
     },
+    nav: [
+      {
+        text: 'Versions',
+        items: [
+          {
+            text: 'Changelog',
+            link: 'https://midscenejs.com/changelog',
+          },
+          {
+            text: 'Midscene.js v0.x',
+            link: 'https://v0.midscenejs.com',
+          },
+          {
+            text: 'Midscene.js v1.x',
+            link: 'https://midscenejs.com',
+          },
+        ],
+      },
+    ],
     sidebar: {
       '/': [
         {

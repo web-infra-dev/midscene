@@ -13,7 +13,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   activeUsers: 'Github 趋势榜第2名',
 
   // Banner - CTA Buttons
-  introduction: '快速开始',
+  introduction: '使用文档',
   whatsNew: '查看新特性',
 
   // Feature Sections - CLIENTS

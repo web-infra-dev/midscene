@@ -11,7 +11,7 @@ export const EN_US = {
   activeUsers: 'No.2 in Github trending',
 
   // Banner - CTA Buttons
-  introduction: 'Get Started',
+  introduction: 'Documentation',
   whatsNew: "What's New",
 
   // Feature Sections - CLIENTS
