@@ -56,7 +56,6 @@ export default defineConfig({
             link: 'https://midscenejs.com',
           },
         ],
-        position: 'left',
       },
     ],
     locales: [
