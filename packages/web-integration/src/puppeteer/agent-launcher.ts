@@ -19,7 +19,8 @@ export function resolveAiActionContext(
   target: MidsceneYamlScriptWebEnv,
   preference?: Partial<Pick<AgentOpt, 'aiActionContext' | 'aiActContext'>>,
 ): AgentOpt['aiActionContext'] | undefined {
-  // Prefer the web target override if provided; otherwise fall back to agent-level preference.
+  // Prefer agent-level preference if provided; otherwise fall back to target-level context.
+  // Priority: preference.aiActContext > preference.aiActionContext (deprecated) > target.aiActionContext
   const data =
     preference?.aiActContext ??
     preference?.aiActionContext ??
