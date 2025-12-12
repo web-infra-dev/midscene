@@ -328,7 +328,7 @@ export function expandSearchArea(
   screenSize: Size,
   vlMode: TVlModeTypes | undefined,
 ) {
-  const minEdgeSize = vlMode === 'doubao-vision' ? 500 : 300;
+  const minEdgeSize = 500; // vlMode === 'doubao-vision' ? 500 : 300;
   const defaultPadding = 160;
 
   // Calculate padding needed to reach minimum edge size
