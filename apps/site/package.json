@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@rspress/core": "2.0.0-rc.2",
+    "@rspress/plugin-client-redirects": "2.0.0-rc.2",
     "@rspress/plugin-llms": "2.0.0-rc.2",
     "@rspress/plugin-sitemap": "2.0.0-rc.2",
     "@tailwindcss/postcss": "4.1.11",

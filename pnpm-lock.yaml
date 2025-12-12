@@ -473,6 +473,9 @@ importers:
       '@rspress/core':
         specifier: 2.0.0-rc.2
         version: 2.0.0-rc.2(@types/react@19.1.5)
+      '@rspress/plugin-client-redirects':
+        specifier: 2.0.0-rc.2
+        version: 2.0.0-rc.2(@rspress/core@2.0.0-rc.2(@types/react@19.1.5))
       '@rspress/plugin-llms':
         specifier: 2.0.0-rc.2
         version: 2.0.0-rc.2(@rspress/core@2.0.0-rc.2(@types/react@19.1.5))
@@ -3859,6 +3862,12 @@ packages:
   '@rspress/mdx-rs@0.6.6':
     resolution: {integrity: sha512-NpNhTKBIlV3O6ADhoZkgHvBFvXMW2TYlIWmIT1ysJESUBqDpaN9H3Teve5fugjU2pQ2ORBZO6SQGKliMw/8m/Q==}
     engines: {node: '>= 10'}
+
+  '@rspress/plugin-client-redirects@2.0.0-rc.2':
+    resolution: {integrity: sha512-85otiMkqDqFw/79gvDrhQEp5E1mqBneCGe3sN/TArwOq5VlsWVlz7iutOxOYrjpX6tV6/Me/jVgbqEPxJtQI7A==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      '@rspress/core': ^2.0.0-rc.2
 
   '@rspress/plugin-llms@2.0.0-rc.2':
     resolution: {integrity: sha512-nHukNNXBqISMqZizpNPrgcI18DjIBfUdYINl9w8foP3j/S8CTdvsxMpc1EVElywsJo46OE4uYPnIPSts9zL3gg==}
@@ -14027,6 +14036,10 @@ snapshots:
       '@rspress/mdx-rs-win32-arm64-msvc': 0.6.6
       '@rspress/mdx-rs-win32-x64-msvc': 0.6.6
 
+  '@rspress/plugin-client-redirects@2.0.0-rc.2(@rspress/core@2.0.0-rc.2(@types/react@19.1.5))':
+    dependencies:
+      '@rspress/core': 2.0.0-rc.2(@types/react@19.1.5)
+
   '@rspress/plugin-llms@2.0.0-rc.2(@rspress/core@2.0.0-rc.2(@types/react@19.1.5))':
     dependencies:
       '@rspress/core': 2.0.0-rc.2(@types/react@19.1.5)
@@ -18104,7 +18117,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 24.10.2
+      '@types/node': 18.19.118
       merge-stream: 2.0.0
       supports-color: 8.1.1
 

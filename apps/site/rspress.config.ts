@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { defineConfig } from '@rspress/core';
+import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
 
@@ -419,6 +420,110 @@ export default defineConfig({
     ]),
     pluginSitemap({
       siteUrl: 'https://midscenejs.com',
+    }),
+    pluginClientRedirects({
+      redirects: [
+        {
+          from: '^/integrate-with-android/?$',
+          to: '/android-getting-started',
+        },
+        {
+          from: '^/android-playground/?$',
+          to: '/android-introduction',
+        },
+        {
+          from: '^/ios-playground/?$',
+          to: '/ios-getting-started',
+        },
+        {
+          from: '^/choose-a-model/?$',
+          to: '/model-strategy',
+        },
+        {
+          from: '^/model-provider/?$',
+          to: '/model-config',
+        },
+        {
+          from: '^/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          to: '/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          from: '^/bridge-mode-by-chrome-extension/?$',
+          to: '/bridge-mode',
+        },
+        {
+          from: '^/web-mcp/?$',
+          to: '/mcp',
+        },
+        {
+          from: '^/mcp-android/?$',
+          to: '/mcp',
+        },
+        {
+          from: '^/blog-support-android-automation/?$',
+          to: '/android-introduction',
+        },
+        {
+          from: '^/blog-support-ios-automation/?$',
+          to: '/ios-introduction',
+        },
+        {
+          from: '^/quick-experience-with-android/?$',
+          to: '/android-getting-started',
+        },
+        {
+          from: '^/quick-experience-with-ios/?$',
+          to: '/ios-getting-started',
+        },
+        {
+          from: '^/zh/web-mcp/?$',
+          to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/mcp-android/?$',
+          to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/blog-support-android-automation/?$',
+          to: '/zh/android-introduction',
+        },
+        {
+          from: '^/zh/blog-support-ios-automation/?$',
+          to: '/zh/ios-introduction',
+        },
+        {
+          from: '^/zh/quick-experience-with-android/?$',
+          to: '/zh/android-getting-started',
+        },
+        {
+          from: '^/zh/quick-experience-with-ios/?$',
+          to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/zh/choose-a-model/?$',
+          to: '/zh/model-strategy',
+        },
+        {
+          from: '^/zh/model-provider/?$',
+          to: '/zh/model-config',
+        },
+        {
+          from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          to: '/zh/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          from: '^/zh/bridge-mode-by-chrome-extension/?$',
+          to: '/zh/bridge-mode',
+        },
+        {
+          from: '^/zh/android-playground/?$',
+          to: '/zh/android-introduction',
+        },
+        {
+          from: '^/zh/ios-playground/?$',
+          to: '/zh/ios-getting-started',
+        },
+      ],
     }),
   ],
 });
