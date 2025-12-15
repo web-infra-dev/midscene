@@ -13,7 +13,7 @@
   "scripts": {
     "build": "rslib build",
     "dev": "npm run build:watch",
-    "build:watch": "rslib build --watch"
+    "build:watch": "rslib build --watch --no-clean"
   },
   "devDependencies": {
     "@rsbuild/plugin-react": "^1.4.1",

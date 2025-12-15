@@ -14,7 +14,7 @@
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/ios-playground",
     "build": "rslib build",
-    "build:watch": "rslib build --watch"
+    "build:watch": "rslib build --watch --no-clean"
   },
   "dependencies": {
     "@midscene/ios": "workspace:*"
