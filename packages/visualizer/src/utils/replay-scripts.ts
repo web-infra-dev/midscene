@@ -144,17 +144,36 @@ const capitalizeFirstLetter = (str: string) => {
 };
 
 export const allScriptsFromDump = (
-  dump: GroupedActionDump,
+  dump: GroupedActionDump | ExecutionDump | null | undefined,
 ): ReplayScriptsInfo | null => {
+  if (!dump) {
+    console.warn('[allScriptsFromDump] dump is empty');
+    return {
+      scripts: [],
+      modelBriefs: [],
+    };
+  }
+
+  const normalizedDump: GroupedActionDump = Array.isArray(
+    (dump as GroupedActionDump).executions,
+  )
+    ? (dump as GroupedActionDump)
+    : {
+        sdkVersion: '',
+        groupName: 'Execution',
+        modelBriefs: [],
+        executions: [dump as ExecutionDump],
+      };
+
   // find out the width and height of the screenshot - collect all unique dimensions
   const dimensionsSet = new Set<string>();
   let firstWidth: number | undefined = undefined;
   let firstHeight: number | undefined = undefined;
-  const sdkVersion: string | undefined = dump.sdkVersion;
+  const sdkVersion: string | undefined = normalizedDump.sdkVersion;
 
   const modelBriefsSet = new Set<string>();
 
-  dump.executions.forEach((execution) => {
+  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
     execution.tasks.forEach((task) => {
       if (task.uiContext?.size?.width) {
         const w = task.uiContext.size.width;
@@ -179,7 +198,7 @@ export const allScriptsFromDump = (
 
   // Use first dimensions as default for the overall player size
   const allScripts: AnimationScript[] = [];
-  dump.executions.forEach((execution) => {
+  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
     const scripts = generateAnimationScripts(
       execution,
       -1,
@@ -212,8 +231,14 @@ export const allScriptsFromDump = (
     },
   );
 
+  const normalizedModelBriefs = normalizedDump.modelBriefs?.length
+    ? normalizedDump.modelBriefs
+    : [];
+
   const modelBriefs: string[] = (() => {
-    const list = [...modelBriefsSet];
+    const list = normalizedModelBriefs.length
+      ? normalizedModelBriefs
+      : [...modelBriefsSet];
     if (!list.length) {
       return list;
     }
