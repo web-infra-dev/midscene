@@ -1,7 +1,7 @@
 import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
 import './index.less';
 import type { z } from '@midscene/core';
-import { Button, Dropdown, Form, Input, Radio, Tooltip } from 'antd';
+import { Button, Dropdown, Form, Input, Radio, Switch, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
   useCallback,
@@ -12,6 +12,7 @@ import React, {
 } from 'react';
 import type { HistoryItem } from '../../store/history';
 import { useHistoryStore } from '../../store/history';
+import { useEnvConfig } from '../../store/store';
 import type { DeviceType, RunType } from '../../types';
 import type { ServiceModeType } from '../../types';
 import {
@@ -89,6 +90,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const addHistory = useHistoryStore((state) => state.addHistory);
   const setLastSelectedType = useHistoryStore(
     (state) => state.setLastSelectedType,
+  );
+  const planningStrategy = useEnvConfig((state) => state.planningStrategy);
+  const setPlanningStrategy = useEnvConfig(
+    (state) => state.setPlanningStrategy,
   );
   const historyForSelectedType = useMemo(
     () => history[selectedType] || [],
@@ -1087,7 +1092,25 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           </div>
         )}
 
-        <div className="form-controller-wrapper">{renderActionButton()}</div>
+        <div
+          className={`form-controller-wrapper ${selectedType === 'aiAct' ? 'with-strategy' : ''}`}
+        >
+          {selectedType === 'aiAct' && (
+            <div className="planning-strategy-selector">
+              <Switch
+                size="small"
+                checked={planningStrategy === 'fast'}
+                onChange={(checked) =>
+                  setPlanningStrategy(checked ? 'fast' : 'standard')
+                }
+              />
+              <span className="strategy-label">
+                {planningStrategy === 'fast' ? 'Fast' : 'Standard'}
+              </span>
+            </div>
+          )}
+          {renderActionButton()}
+        </div>
       </div>
     </div>
   );

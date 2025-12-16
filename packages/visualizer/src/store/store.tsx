@@ -1,4 +1,5 @@
 import * as Z from 'zustand';
+import type { PlanningStrategyType } from '../types';
 
 const { create } = Z;
 
@@ -103,6 +104,7 @@ const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_THINK_KEY = 'midscene-deep-think';
 const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
 const DOM_INCLUDED_KEY = 'midscene-dom-included';
+const PLANNING_STRATEGY_KEY = 'midscene-planning-strategy';
 
 // Device-specific configuration keys
 const IME_STRATEGY_KEY = 'midscene-ime-strategy';
@@ -170,6 +172,8 @@ export const useEnvConfig = create<{
   setScreenshotIncluded: (screenshotIncluded: boolean) => void;
   domIncluded: boolean | 'visible-only';
   setDomIncluded: (domIncluded: boolean | 'visible-only') => void;
+  planningStrategy: PlanningStrategyType;
+  setPlanningStrategy: (planningStrategy: PlanningStrategyType) => void;
   popupTab: 'playground' | 'bridge' | 'recorder';
   setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
   // Device-specific configuration options
@@ -209,6 +213,9 @@ export const useEnvConfig = create<{
     ) as KeyboardDismissStrategyType) || 'esc-first';
   const savedAlwaysRefreshScreenInfo =
     localStorage.getItem(ALWAYS_REFRESH_SCREEN_INFO_KEY) === 'true'; // default false
+  const savedPlanningStrategy =
+    (localStorage.getItem(PLANNING_STRATEGY_KEY) as PlanningStrategyType) ||
+    'standard';
 
   return {
     serviceMode: ifInExtension
@@ -261,6 +268,11 @@ export const useEnvConfig = create<{
     setDomIncluded: (domIncluded: boolean | 'visible-only') => {
       set({ domIncluded });
       localStorage.setItem(DOM_INCLUDED_KEY, domIncluded.toString());
+    },
+    planningStrategy: savedPlanningStrategy,
+    setPlanningStrategy: (planningStrategy: PlanningStrategyType) => {
+      set({ planningStrategy });
+      localStorage.setItem(PLANNING_STRATEGY_KEY, planningStrategy);
     },
     popupTab: 'playground',
     setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {

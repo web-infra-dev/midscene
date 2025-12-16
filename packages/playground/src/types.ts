@@ -34,6 +34,7 @@ export interface ExecutionOptions {
   deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
+  planningStrategy?: 'fast' | 'standard';
   context?: any;
   requestId?: string;
   deviceOptions?: DeviceOptions;
