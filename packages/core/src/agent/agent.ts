@@ -1,4 +1,6 @@
 import {
+  type ActionParam,
+  type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
   type AgentOpt,
@@ -9,12 +11,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type Executor,
   type GroupedActionDump,
-  Insight,
-  type InsightAction,
-  type InsightExtractOption,
-  type InsightExtractParam,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -24,7 +21,12 @@ import {
   type PlanningAction,
   type Rect,
   type ScrollParam,
+  Service,
+  type ServiceAction,
+  type ServiceExtractOption,
+  type ServiceExtractParam,
   type TUserPrompt,
+  type ThinkingLevel,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -50,6 +52,7 @@ import {
 } from '../yaml/index';
 
 import type { AbstractInterface } from '@/device';
+import type { TaskRunner } from '@/task-runner';
 import {
   ModelConfigManager,
   globalModelConfigManager,
@@ -59,7 +62,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 // import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
-import { TaskExecutor, locatePlanForLocate } from './tasks';
+import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   commonContextParser,
@@ -67,7 +70,6 @@ import {
   parsePrompt,
   printReportMsg,
 } from './utils';
-import { trimContextByViewport } from './utils';
 
 const debug = getDebug('agent');
 
@@ -83,7 +85,7 @@ const includedInRect = (point: [number, number], rect: Rect) => {
   return x >= left && x <= left + width && y >= top && y <= top + height;
 };
 
-const defaultInsightExtractOption: InsightExtractOption = {
+const defaultServiceExtractOption: ServiceExtractOption = {
   domIncluded: false,
   screenshotIncluded: true,
 };
@@ -103,12 +105,36 @@ const CACHE_STRATEGY_VALUES = CACHE_STRATEGIES.map(
   (value) => `"${value}"`,
 ).join(', ');
 
+const legacyScrollTypeMap = {
+  once: 'singleAction',
+  untilBottom: 'scrollToBottom',
+  untilTop: 'scrollToTop',
+  untilRight: 'scrollToRight',
+  untilLeft: 'scrollToLeft',
+} as const;
+
+type LegacyScrollType = keyof typeof legacyScrollTypeMap;
+
+const normalizeScrollType = (
+  scrollType: ScrollParam['scrollType'] | LegacyScrollType | undefined,
+): ScrollParam['scrollType'] | undefined => {
+  if (!scrollType) {
+    return scrollType;
+  }
+
+  if (scrollType in legacyScrollTypeMap) {
+    return legacyScrollTypeMap[scrollType as LegacyScrollType];
+  }
+
+  return scrollType as ScrollParam['scrollType'];
+};
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
   interface: InterfaceType;
 
-  insight: Insight;
+  service: Service;
 
   dump: GroupedActionDump;
 
@@ -154,6 +180,8 @@ export class Agent<
    * Internal promise to deduplicate screenshot scale computation
    */
   private screenshotScalePromise?: Promise<number>;
+
+  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   // @deprecated use .interface instead
   get page() {
@@ -235,19 +263,22 @@ export class Agent<
       opts || {},
     );
 
-    if (opts?.modelConfig && typeof opts?.modelConfig !== 'function') {
+    if (
+      opts?.modelConfig &&
+      (typeof opts?.modelConfig !== 'object' || Array.isArray(opts.modelConfig))
+    ) {
       throw new Error(
-        `opts.modelConfig must be one of function or undefined, but got ${typeof opts?.modelConfig}`,
+        `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
     this.modelConfigManager = opts?.modelConfig
-      ? new ModelConfigManager(opts.modelConfig)
+      ? new ModelConfigManager(opts.modelConfig, opts?.createOpenAIClient)
       : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
-    this.insight = new Insight(async (action: InsightAction) => {
-      return this.getUIContext(action);
+    this.service = new Service(async () => {
+      return this.getUIContext();
     });
 
     // Process cache configuration
@@ -264,10 +295,26 @@ export class Agent<
       );
     }
 
-    this.taskExecutor = new TaskExecutor(this.interface, this.insight, {
+    this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      hooks: {
+        onTaskUpdate: (runner) => {
+          const executionDump = runner.dump();
+          this.appendExecutionDump(executionDump, runner);
+
+          try {
+            if (this.onDumpUpdate) {
+              this.onDumpUpdate(this.dumpDataString());
+            }
+          } catch (error) {
+            console.error('Error in onDumpUpdate', error);
+          }
+
+          this.writeOutActionDumps();
+        },
+      },
     });
     this.dump = this.resetDump();
     this.reportFileName =
@@ -279,7 +326,7 @@ export class Agent<
     return this.interface.actionSpace();
   }
 
-  async getUIContext(action?: InsightAction): Promise<UIContext> {
+  async getUIContext(action?: ServiceAction): Promise<UIContext> {
     // Check VL model configuration when UI context is first needed
     this.ensureVLModelWarning();
 
@@ -343,15 +390,27 @@ export class Agent<
       executions: [],
       modelBriefs: [],
     };
+    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
   }
 
-  appendExecutionDump(execution: ExecutionDump) {
-    // use trimContextByViewport to process execution
-    const trimmedExecution = trimContextByViewport(execution);
+  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
     const currentDump = this.dump;
-    currentDump.executions.push(trimmedExecution);
+    if (runner) {
+      const existingIndex = this.executionDumpIndexByRunner.get(runner);
+      if (existingIndex !== undefined) {
+        currentDump.executions[existingIndex] = execution;
+        return;
+      }
+      currentDump.executions.push(execution);
+      this.executionDumpIndexByRunner.set(
+        runner,
+        currentDump.executions.length - 1,
+      );
+      return;
+    }
+    currentDump.executions.push(execution);
   }
 
   dumpDataString() {
@@ -394,11 +453,8 @@ export class Agent<
     }
   }
 
-  private async afterTaskRunning(executor: Executor, doNotThrowError = false) {
-    const executionDump = executor.dump();
-    if (this.opts.aiActionContext) {
-      executionDump.aiActionContext = this.opts.aiActionContext;
-    }
+  private async handleRunnerAfterFlush(runner: TaskRunner) {
+    const executionDump = runner.dump();
     this.appendExecutionDump(executionDump);
 
     try {
@@ -410,13 +466,14 @@ export class Agent<
     }
 
     this.writeOutActionDumps();
+  }
 
-    if (executor.isInErrorState() && !doNotThrowError) {
-      const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.errorMessage}\n${errorTask?.errorStack}`, {
-        cause: errorTask?.error,
-      });
-    }
+  wrapActionInActionSpace<T extends DeviceAction>(
+    name: string,
+  ): (param: ActionParam<T>) => Promise<ActionReturn<T>> {
+    return async (param: ActionParam<T>) => {
+      return await this.callActionInActionSpace<ActionReturn<T>>(name, param);
+    };
   }
 
   async callActionInActionSpace<T = any>(
@@ -442,14 +499,17 @@ export class Agent<
     );
 
     // assume all operation in action space is related to locating
-    const modelConfig = this.modelConfigManager.getModelConfig('grounding');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
 
-    const { output, executor } = await this.taskExecutor.runPlans(
+    const { output } = await this.taskExecutor.runPlans(
       title,
       plans,
-      modelConfig,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
     );
-    await this.afterTaskRunning(executor);
     return output;
   }
 
@@ -565,8 +625,12 @@ export class Agent<
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
+    // Convert value to string to ensure consistency
+    const stringValue = typeof value === 'number' ? String(value) : value;
+
     return this.callActionInActionSpace('Input', {
       ...(opt || {}),
+      value: stringValue,
       locate: detailedLocateParam,
     });
   }
@@ -679,6 +743,22 @@ export class Agent<
       };
     }
 
+    if (opt) {
+      const normalizedScrollType = normalizeScrollType(
+        (opt as ScrollParam).scrollType as
+          | ScrollParam['scrollType']
+          | LegacyScrollType
+          | undefined,
+      );
+
+      if (normalizedScrollType !== (opt as ScrollParam).scrollType) {
+        (opt as ScrollParam) = {
+          ...(opt || {}),
+          scrollType: normalizedScrollType as ScrollParam['scrollType'],
+        };
+      }
+    }
+
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',
       opt,
@@ -690,38 +770,58 @@ export class Agent<
     });
   }
 
-  async aiAction(
+  async aiAct(
     taskPrompt: string,
     opt?: {
       cacheable?: boolean;
+      thinkingLevel?: ThinkingLevel;
     },
   ) {
-    const modelConfig = this.modelConfigManager.getModelConfig('planning');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+
+    let thinkingLevelToUse = opt?.thinkingLevel;
+    if (!thinkingLevelToUse && this.opts.aiActionContext) {
+      thinkingLevelToUse = 'high';
+    } else if (!thinkingLevelToUse) {
+      thinkingLevelToUse = 'medium';
+    }
+
+    // should include bbox in planning if
+    // 1. the planning model is the same as the default intent model
+    // or 2. the thinking level is high
+    const includeBboxInPlanning =
+      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName ||
+      thinkingLevelToUse === 'high';
+    debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
     // if vlm-ui-tars, plan cache is not used
-    const isVlmUiTars = modelConfig.vlMode === 'vlm-ui-tars';
+    const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
     const matchedCache =
       isVlmUiTars || cacheable === false
         ? undefined
         : this.taskCache?.matchPlanCache(taskPrompt);
     if (matchedCache && this.taskCache?.isCacheResultUsed) {
       // log into report file
-      const { executor } = await this.taskExecutor.loadYamlFlowAsPlanning(
+      await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
         matchedCache.cacheContent?.yamlWorkflow,
       );
-
-      await this.afterTaskRunning(executor);
 
       debug('matched cache, will call .runYaml to run the action');
       const yaml = matchedCache.cacheContent?.yamlWorkflow;
       return this.runYaml(yaml);
     }
 
-    const { output, executor } = await this.taskExecutor.action(
+    const { output } = await this.taskExecutor.action(
       taskPrompt,
-      modelConfig,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+      includeBboxInPlanning,
+      thinkingLevelToUse === 'off' ? 'off' : 'cot',
       this.opts.aiActionContext,
       cacheable,
     );
@@ -747,86 +847,89 @@ export class Agent<
       );
     }
 
-    await this.afterTaskRunning(executor);
     return output;
   }
 
+  /**
+   * @deprecated Use {@link Agent.aiAct} instead.
+   */
+  async aiAction(
+    taskPrompt: string,
+    opt?: {
+      cacheable?: boolean;
+    },
+  ) {
+    return this.aiAct(taskPrompt, opt);
+  }
+
   async aiQuery<ReturnType = any>(
-    demand: InsightExtractParam,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    demand: ServiceExtractParam,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<ReturnType> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { output, executor } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'Query',
-        demand,
-        modelConfig,
-        opt,
-      );
-    await this.afterTaskRunning(executor);
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
+      'Query',
+      demand,
+      modelConfig,
+      opt,
+    );
     return output as ReturnType;
   }
 
   async aiBoolean(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<boolean> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, executor } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'Boolean',
-        textPrompt,
-        modelConfig,
-        opt,
-        multimodalPrompt,
-      );
-    await this.afterTaskRunning(executor);
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
+      'Boolean',
+      textPrompt,
+      modelConfig,
+      opt,
+      multimodalPrompt,
+    );
     return output as boolean;
   }
 
   async aiNumber(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<number> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, executor } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'Number',
-        textPrompt,
-        modelConfig,
-        opt,
-        multimodalPrompt,
-      );
-    await this.afterTaskRunning(executor);
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
+      'Number',
+      textPrompt,
+      modelConfig,
+      opt,
+      multimodalPrompt,
+    );
     return output as number;
   }
 
   async aiString(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
     const { textPrompt, multimodalPrompt } = parsePrompt(prompt);
-    const { output, executor } =
-      await this.taskExecutor.createTypeQueryExecution(
-        'String',
-        textPrompt,
-        modelConfig,
-        opt,
-        multimodalPrompt,
-      );
-    await this.afterTaskRunning(executor);
+    const { output } = await this.taskExecutor.createTypeQueryExecution(
+      'String',
+      textPrompt,
+      modelConfig,
+      opt,
+      multimodalPrompt,
+    );
     return output as string;
   }
 
   async aiAsk(
     prompt: TUserPrompt,
-    opt: InsightExtractOption = defaultInsightExtractOption,
+    opt: ServiceExtractOption = defaultServiceExtractOption,
   ): Promise<string> {
     return this.aiString(prompt, opt);
   }
@@ -862,9 +965,9 @@ export class Agent<
         deepThink,
       );
       // use same intent as aiLocate
-      const modelConfig = this.modelConfigManager.getModelConfig('grounding');
+      const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
-      const text = await this.insight.describe(center, modelConfig, {
+      const text = await this.service.describe(center, modelConfig, {
         deepThink,
       });
       debug('aiDescribe text', text);
@@ -923,14 +1026,17 @@ export class Agent<
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam);
     const plans = [locatePlan];
-    const modelConfig = this.modelConfigManager.getModelConfig('grounding');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
 
-    const { executor, output } = await this.taskExecutor.runPlans(
+    const { output } = await this.taskExecutor.runPlans(
       taskTitleStr('Locate', locateParamStr(locateParam)),
       plans,
-      modelConfig,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
     );
-    await this.afterTaskRunning(executor);
 
     const { element } = output;
 
@@ -952,52 +1058,82 @@ export class Agent<
   async aiAssert(
     assertion: TUserPrompt,
     msg?: string,
-    opt?: AgentAssertOpt & InsightExtractOption,
+    opt?: AgentAssertOpt & ServiceExtractOption,
   ) {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
-    const insightOpt: InsightExtractOption = {
-      domIncluded: opt?.domIncluded ?? defaultInsightExtractOption.domIncluded,
+    const serviceOpt: ServiceExtractOption = {
+      domIncluded: opt?.domIncluded ?? defaultServiceExtractOption.domIncluded,
       screenshotIncluded:
         opt?.screenshotIncluded ??
-        defaultInsightExtractOption.screenshotIncluded,
-      doNotThrowError: opt?.doNotThrowError,
+        defaultServiceExtractOption.screenshotIncluded,
     };
 
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);
+    const assertionText =
+      typeof assertion === 'string' ? assertion : assertion.prompt;
 
-    const { output, executor, thought } =
-      await this.taskExecutor.createTypeQueryExecution<boolean>(
-        'Assert',
-        textPrompt,
-        modelConfig,
-        insightOpt,
-        multimodalPrompt,
-      );
-    await this.afterTaskRunning(executor, true);
+    try {
+      const { output, thought } =
+        await this.taskExecutor.createTypeQueryExecution<boolean>(
+          'Assert',
+          textPrompt,
+          modelConfig,
+          serviceOpt,
+          multimodalPrompt,
+        );
 
-    const message = output
-      ? undefined
-      : `Assertion failed: ${msg || (typeof assertion === 'string' ? assertion : assertion.prompt)}\nReason: ${
-          thought || executor.latestErrorTask()?.error || '(no_reason)'
-        }`;
+      const pass = Boolean(output);
+      const message = pass
+        ? undefined
+        : `Assertion failed: ${msg || assertionText}\nReason: ${thought || '(no_reason)'}`;
 
-    if (opt?.keepRawResponse) {
-      return {
-        pass: output,
-        thought,
-        message,
-      };
-    }
+      if (opt?.keepRawResponse) {
+        return {
+          pass,
+          thought,
+          message,
+        };
+      }
 
-    if (!output) {
-      throw new Error(message);
+      if (!pass) {
+        throw new Error(message);
+      }
+    } catch (error) {
+      if (error instanceof TaskExecutionError) {
+        const errorTask = error.errorTask;
+        const thought = errorTask?.thought;
+        const rawError = errorTask?.error;
+        const rawMessage =
+          errorTask?.errorMessage ||
+          (rawError instanceof Error
+            ? rawError.message
+            : rawError
+              ? String(rawError)
+              : undefined);
+        const reason = thought || rawMessage || '(no_reason)';
+        const message = `Assertion failed: ${msg || assertionText}\nReason: ${reason}`;
+
+        if (opt?.keepRawResponse) {
+          return {
+            pass: false,
+            thought,
+            message,
+          };
+        }
+
+        throw new Error(message, {
+          cause: rawError ?? error,
+        });
+      }
+
+      throw error;
     }
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
-    const modelConfig = this.modelConfigManager.getModelConfig('VQA');
-    const { executor } = await this.taskExecutor.waitFor(
+    const modelConfig = this.modelConfigManager.getModelConfig('insight');
+    await this.taskExecutor.waitFor(
       assertion,
       {
         timeoutMs: opt?.timeoutMs || 15 * 1000,
@@ -1005,41 +1141,10 @@ export class Agent<
       },
       modelConfig,
     );
-    await this.afterTaskRunning(executor, true);
-
-    if (executor.isInErrorState()) {
-      const errorTask = executor.latestErrorTask();
-      throw new Error(`${errorTask?.error}\n${errorTask?.errorStack}`);
-    }
   }
 
-  async ai(taskPrompt: string, type = 'action') {
-    if (type === 'action') {
-      return this.aiAction(taskPrompt);
-    }
-    if (type === 'query') {
-      return this.aiQuery(taskPrompt);
-    }
-
-    if (type === 'assert') {
-      return this.aiAssert(taskPrompt);
-    }
-
-    if (type === 'tap') {
-      return this.aiTap(taskPrompt);
-    }
-
-    if (type === 'rightClick') {
-      return this.aiRightClick(taskPrompt);
-    }
-
-    if (type === 'doubleClick') {
-      return this.aiDoubleClick(taskPrompt);
-    }
-
-    throw new Error(
-      `Unknown type: ${type}, only support 'action', 'query', 'assert', 'tap', 'rightClick', 'doubleClick'`,
-    );
+  async ai(...args: Parameters<typeof this.aiAct>) {
+    return this.aiAct(...args);
   }
 
   async runYaml(yamlScriptContent: string): Promise<{
@@ -1085,7 +1190,7 @@ export class Agent<
     this.destroyed = true;
   }
 
-  async logScreenshot(
+  async recordToReport(
     title?: string,
     opt?: {
       content: string;
@@ -1125,9 +1230,6 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     };
-    if (this.opts.aiActionContext) {
-      executionDump.aiActionContext = this.opts.aiActionContext;
-    }
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
@@ -1138,6 +1240,18 @@ export class Agent<
     }
 
     this.writeOutActionDumps();
+  }
+
+  /**
+   * @deprecated Use {@link Agent.recordToReport} instead.
+   */
+  async logScreenshot(
+    title?: string,
+    opt?: {
+      content: string;
+    },
+  ) {
+    await this.recordToReport(title, opt);
   }
 
   _unstableLogContent() {

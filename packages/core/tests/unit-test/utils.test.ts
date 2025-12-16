@@ -1,23 +1,24 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import * as fs from 'node:fs';
 import {
+  extractJSONFromCodeBlock,
+  preprocessDoubaoBboxJson,
+  safeParseJson,
+} from '@/ai-model/service-caller';
+import {
   type MidsceneLocationResultType,
+  adaptBbox,
   adaptBboxToRect,
   adaptDoubaoBbox,
   adaptGeminiBbox,
-  adaptQwenBbox,
+  adaptQwen2_5Bbox as adaptQwenBbox,
   dumpActionParam,
   expandSearchArea,
   findAllMidsceneLocatorField,
   loadActionParam,
   mergeRects,
   normalized01000,
-} from '@/ai-model/common';
-import {
-  extractJSONFromCodeBlock,
-  preprocessDoubaoBboxJson,
-  safeParseJson,
-} from '@/ai-model/service-caller';
+} from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
@@ -25,6 +26,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
 import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
+import { ifPlanLocateParamIsBbox } from '../../src/agent/utils';
 import {
   getTmpDir,
   getTmpFile,
@@ -441,35 +443,6 @@ describe('doubao-vision', () => {
       ]
     `);
   });
-  it('adaptDoubaoBbox', () => {
-    const result = adaptDoubaoBbox([[100, 200, 300, 400]] as any, 400, 900);
-    expect(result).toMatchInlineSnapshot(`
-      [
-        40,
-        180,
-        120,
-        360,
-      ]
-    `);
-  });
-  it('adaptDoubaoBbox', () => {
-    const result = adaptDoubaoBbox(
-      [
-        [100, 200, 300, 400],
-        [100, 200, 300, 400],
-      ] as any,
-      400,
-      900,
-    );
-    expect(result).toMatchInlineSnapshot(`
-      [
-        40,
-        180,
-        120,
-        360,
-      ]
-    `);
-  });
 
   it('adaptDoubaoBbox with string bbox', () => {
     const result = adaptDoubaoBbox(['123 222', '789 100'], 1000, 2000);
@@ -491,6 +464,49 @@ describe('doubao-vision', () => {
         444,
         789,
         200,
+      ]
+    `);
+  });
+});
+
+describe('adaptBbox - doubao normalization', () => {
+  it('flattens single nested doubao bbox', () => {
+    const result = adaptBbox(
+      [[100, 200, 300, 400]] as any,
+      400,
+      900,
+      400,
+      900,
+      'doubao-vision',
+    );
+    expect(result).toMatchInlineSnapshot(`
+      [
+        40,
+        180,
+        120,
+        360,
+      ]
+    `);
+  });
+
+  it('flattens nested doubao bbox list by taking the first entry', () => {
+    const result = adaptBbox(
+      [
+        [100, 200, 300, 400],
+        [100, 200, 300, 400],
+      ] as any,
+      400,
+      900,
+      400,
+      900,
+      'doubao-vision',
+    );
+    expect(result).toMatchInlineSnapshot(`
+      [
+        40,
+        180,
+        120,
+        360,
       ]
     `);
   });
@@ -847,7 +863,7 @@ describe('search area', () => {
       const result = expandSearchArea(
         { left: 25, top: 891, width: 127, height: 23 },
         { width: 1900, height: 916 },
-        'qwen-vl',
+        'qwen2.5-vl',
       );
 
       expect(result).toMatchInlineSnapshot(`
@@ -1540,5 +1556,58 @@ describe('loadActionParam and dumpActionParam integration', () => {
         "locator2": "string locator",
       }
     `);
+  });
+});
+
+describe('ifPlanLocateParamIsBbox', () => {
+  it('should return true when bbox is valid array with 4 elements', () => {
+    const param = {
+      prompt: 'test element',
+      bbox: [100, 200, 300, 400] as [number, number, number, number],
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(true);
+  });
+
+  it('should return false when bbox is undefined', () => {
+    const param = {
+      prompt: 'test element',
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+
+  it('should return false when bbox is not an array', () => {
+    const param = {
+      prompt: 'test element',
+      bbox: 'not an array' as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+
+  it('should return false when bbox array length is not 4', () => {
+    const param1 = {
+      prompt: 'test element',
+      bbox: [100, 200] as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param1)).toBe(false);
+
+    const param2 = {
+      prompt: 'test element',
+      bbox: [100, 200, 300] as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param2)).toBe(false);
+
+    const param3 = {
+      prompt: 'test element',
+      bbox: [100, 200, 300, 400, 500] as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param3)).toBe(false);
+  });
+
+  it('should return false when bbox is null', () => {
+    const param = {
+      prompt: 'test element',
+      bbox: null as any,
+    };
+    expect(ifPlanLocateParamIsBbox(param)).toBe(false);
   });
 });

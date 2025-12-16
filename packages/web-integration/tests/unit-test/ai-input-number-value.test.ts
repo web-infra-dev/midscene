@@ -37,7 +37,6 @@ vi.mock('@/common/utils', async () => {
   return {
     ...actual,
     WebPageContextParser: vi.fn().mockResolvedValue({}),
-    trimContextByViewport: vi.fn((execution) => execution),
     printReportMsg: vi.fn(),
   };
 });
@@ -54,10 +53,11 @@ const mockPage = {
   destroy: vi.fn(),
 } as unknown as AbstractWebPage;
 
-const mockedModelConfigFnResult = {
+const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'mock-model',
-  MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-  MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+  MIDSCENE_MODEL_API_KEY: 'mock-api-key',
+  MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
+  MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
 };
 
 // Mock task executor
@@ -75,7 +75,7 @@ describe('PageAgent aiInput with number value', () => {
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => mockedModelConfigFnResult,
+      modelConfig: mockedModelConfig,
     });
 
     // Replace the taskExecutor with our mock
@@ -107,7 +107,7 @@ describe('PageAgent aiInput with number value', () => {
     ];
 
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -147,7 +147,7 @@ describe('PageAgent aiInput with number value', () => {
     ];
 
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -164,7 +164,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should accept integer zero for aiInput', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -181,7 +181,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should accept negative number for aiInput', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -198,7 +198,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should accept decimal number for aiInput', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },
@@ -215,7 +215,7 @@ describe('PageAgent aiInput with number value', () => {
 
   it('should use legacy aiInput(value, locatePrompt) signature with number', async () => {
     const mockExecutorResult = {
-      executor: {
+      runner: {
         dump: () => ({ name: 'test', tasks: [] }),
         isInErrorState: () => false,
       },

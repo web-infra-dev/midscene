@@ -1,7 +1,11 @@
 import { join } from 'node:path';
 import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
-import { traverseTree, treeToList } from '@midscene/shared/extractor';
+import {
+  descriptionOfTree,
+  traverseTree,
+  treeToList,
+} from '@midscene/shared/extractor';
 import {
   compositeElementInfoImg,
   imageInfoOfBase64,
@@ -9,7 +13,7 @@ import {
 } from '@midscene/shared/img';
 import { getElementInfosScriptContent } from '@midscene/shared/node';
 import { createServer } from 'http-server';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { launchPage } from '../ai/web/puppeteer/utils';
 
 const pageDir = join(__dirname, './fixtures/web-extractor');
@@ -22,19 +26,24 @@ describe(
   },
   () => {
     const port = 8082;
+    let localServer: any;
+
     beforeAll(async () => {
-      const localServer = await new Promise((resolve, reject) => {
+      localServer = await new Promise((resolve, reject) => {
         const server = createServer({
           root: pageDir,
         });
         server.listen(port, '127.0.0.1', () => {
           resolve(server);
         });
+        server.server.on('error', reject);
       });
+    });
 
-      return () => {
-        (localServer as any).server.close();
-      };
+    afterAll(() => {
+      if (localServer?.server) {
+        localServer.server.close();
+      }
     });
 
     it('basic', async () => {
@@ -46,7 +55,11 @@ describe(
         },
       });
 
-      const { tree, screenshotBase64 } = await WebPageContextParser(page, {});
+      const tree = await page.getElementsNodeTree?.();
+      const description = await await descriptionOfTree(tree, 200, false, true);
+      const screenshotBase64 = await page.screenshotBase64();
+
+      // const { tree, screenshotBase64 } = await WebPageContextParser(page, {});
       const content = treeToList(tree);
       const markedImg = await compositeElementInfoImg({
         inputImgBase64: await page.screenshotBase64(),
@@ -94,7 +107,7 @@ describe(
         },
       );
 
-      const { tree } = await WebPageContextParser(page, {});
+      const tree = await page.getElementsNodeTree?.();
       const content = treeToList(tree);
       // Merge children rects of html element
       expect(content[0].rect.width).toBeGreaterThan(25);
@@ -128,7 +141,8 @@ describe(
         return items.find((item) => item.attributes?.id === 'J_resize');
       };
 
-      const { tree } = await WebPageContextParser(page, {});
+      const tree = await page.getElementsNodeTree?.();
+
       const content = treeToList(tree);
       const item = filterTargetElement(content);
       expect(item).toBeDefined();
@@ -139,7 +153,7 @@ describe(
 
       await new Promise((resolve) => setTimeout(resolve, 3000 + 1000));
 
-      const { tree: tree2 } = await WebPageContextParser(page, {});
+      const tree2 = await page.getElementsNodeTree?.();
       const content2 = treeToList(tree2);
       const item2 = filterTargetElement(content2);
       expect(item2).toBeDefined();
@@ -325,42 +339,6 @@ describe(
         await reset();
       });
 
-      it('getXpathsById should work with cached elements', async () => {
-        const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
-          viewport: {
-            width: 1080,
-            height: 3000,
-            deviceScaleFactor: 1,
-          },
-        });
-
-        const elementInfosScriptContent = getElementInfosScriptContent();
-
-        // First, ensure we have extracted element info (which populates the cache)
-        await page.evaluateJavaScript?.(
-          `${elementInfosScriptContent}midscene_element_inspector.webExtractNodeTree(document)`,
-        );
-
-        // Try to get xpath by an element id from the cache
-        const result = await page.evaluateJavaScript?.(
-          `${elementInfosScriptContent}
-          // Get any cached element ID from the window cache
-          const cacheList = window.midsceneNodeHashCacheList;
-          if (cacheList && cacheList.length > 0) {
-            const firstCachedId = cacheList[0].id;
-            midscene_element_inspector.getXpathsById(firstCachedId);
-          } else {
-            null;
-          }`,
-        );
-
-        // If there are cached elements, we should get a valid xpath
-        expect(result).toHaveLength(1);
-        expect(result[0]).toMatch(/^\/html/);
-
-        await reset();
-      });
-
       it('getXpathsByPoint should handle elements with special characters', async () => {
         const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
           viewport: {
@@ -387,7 +365,7 @@ describe(
         await reset();
       });
 
-      it('cacheFeatureForRect should default to order-insensitive (normalize-space) mode', async () => {
+      it('cacheFeatureForRect should work correctly', async () => {
         const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
           viewport: {
             width: 1080,
@@ -405,7 +383,7 @@ describe(
           height: 40,
         };
 
-        // Call cacheFeatureForRect without opt parameter (should default to orderSensitive=false)
+        // Call cacheFeatureForRect
         const cacheFeature = await page.cacheFeatureForRect?.(rect);
 
         expect(cacheFeature).toBeDefined();
@@ -415,51 +393,6 @@ describe(
 
         const xpath = xpaths?.[0];
         expect(xpath).toMatch(/^\/html/);
-
-        // Verify with explicit orderSensitive=false
-        const cacheFeatureInsensitive = await page.cacheFeatureForRect?.(rect, {
-          _orderSensitive: false,
-        });
-
-        const xpathsInsensitive = (cacheFeatureInsensitive as any)
-          ?.xpaths as string[];
-        const xpathInsensitive = xpathsInsensitive?.[0];
-
-        // Default behavior should match explicit orderSensitive=false
-        expect(xpath).toBe(xpathInsensitive);
-
-        // Verify that orderSensitive=true produces different (index-based) xpath
-        const cacheFeatureSensitive = await page.cacheFeatureForRect?.(rect, {
-          _orderSensitive: true,
-        });
-
-        const xpathsSensitive = (cacheFeatureSensitive as any)
-          ?.xpaths as string[];
-        const xpathSensitive = xpathsSensitive?.[0];
-
-        // Skip special elements like body
-        if (
-          xpathSensitive &&
-          xpathSensitive !== '/html/body' &&
-          xpathSensitive !== '/html'
-        ) {
-          // Order-sensitive xpath should:
-          // 1. Either use index format like [1], [2] at the end
-          // 2. Or NOT use normalize-space (for better distinction)
-          const isIndexBased = /\[\d+\]/.test(xpathSensitive);
-          const hasNormalizeSpace =
-            xpathSensitive.includes('normalize-space()');
-
-          // For order-insensitive (default), leaf elements with text should prefer normalize-space
-          // For order-sensitive, it should use index-based format
-          if (xpath !== xpathSensitive) {
-            // They should be different
-            expect(xpath).not.toBe(xpathSensitive);
-
-            // Order-sensitive should either use index or not use normalize-space
-            expect(isIndexBased || !hasNormalizeSpace).toBe(true);
-          }
-        }
 
         await reset();
       });

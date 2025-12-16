@@ -30,6 +30,10 @@ vi.mock('@midscene/android', () => ({
   agentFromAdbDevice: vi.fn(),
 }));
 
+vi.mock('@midscene/ios', () => ({
+  agentFromWebDriverAgent: vi.fn(),
+}));
+
 vi.mock('@midscene/web/bridge-mode', () => ({
   AgentOverChromeBridge: vi.fn(),
 }));
@@ -38,7 +42,9 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
   puppeteerAgentForTarget: vi.fn(),
 }));
 
+import { agentFromAdbDevice } from '@midscene/android';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
 import { createServer } from 'http-server';
 
@@ -342,6 +348,393 @@ describe('create-yaml-player', () => {
 
       // Verify that cache is disabled
       expect(result).toBeUndefined();
+    });
+  });
+
+  describe('Device Options Propagation', () => {
+    test('should pass all Android device options from YAML to agentFromAdbDevice', async () => {
+      const mockAndroidOptions = {
+        deviceId: 'emulator-5554',
+        androidAdbPath: '/custom/path/to/adb',
+        remoteAdbHost: '192.168.1.100',
+        remoteAdbPort: 5037,
+        imeStrategy: 'yadb-for-non-ascii' as const,
+        displayId: 1,
+        usePhysicalDisplayIdForScreenshot: true,
+        usePhysicalDisplayIdForDisplayLookup: true,
+        screenshotResizeScale: 0.5,
+        alwaysRefreshScreenInfo: true,
+        autoDismissKeyboard: true,
+        keyboardDismissStrategy: 'esc-first' as const,
+        launch: 'com.example.app',
+      };
+
+      const mockScript: MidsceneYamlScript = {
+        android: mockAndroidOptions,
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        // Capture the setup function to call it later
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function that was passed to ScriptPlayer
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify agentFromAdbDevice was called with deviceId and all options
+      expect(agentFromAdbDevice).toHaveBeenCalledWith(
+        mockAndroidOptions.deviceId,
+        expect.objectContaining({
+          androidAdbPath: mockAndroidOptions.androidAdbPath,
+          remoteAdbHost: mockAndroidOptions.remoteAdbHost,
+          remoteAdbPort: mockAndroidOptions.remoteAdbPort,
+          imeStrategy: mockAndroidOptions.imeStrategy,
+          displayId: mockAndroidOptions.displayId,
+          usePhysicalDisplayIdForScreenshot:
+            mockAndroidOptions.usePhysicalDisplayIdForScreenshot,
+          usePhysicalDisplayIdForDisplayLookup:
+            mockAndroidOptions.usePhysicalDisplayIdForDisplayLookup,
+          screenshotResizeScale: mockAndroidOptions.screenshotResizeScale,
+          alwaysRefreshScreenInfo: mockAndroidOptions.alwaysRefreshScreenInfo,
+          autoDismissKeyboard: mockAndroidOptions.autoDismissKeyboard,
+          keyboardDismissStrategy: mockAndroidOptions.keyboardDismissStrategy,
+          launch: mockAndroidOptions.launch,
+        }),
+      );
+    });
+
+    test('should pass all iOS device options from YAML to agentFromWebDriverAgent', async () => {
+      const mockIOSOptions = {
+        deviceId: '00008110-000123456789ABCD',
+        wdaPort: 8100,
+        wdaHost: '192.168.1.100',
+        useWDA: true,
+        autoDismissKeyboard: true,
+        launch: 'com.example.app',
+      };
+
+      const mockScript: MidsceneYamlScript = {
+        ios: mockIOSOptions,
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function that was passed to ScriptPlayer
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify agentFromWebDriverAgent was called with all options
+      expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          deviceId: mockIOSOptions.deviceId,
+          wdaPort: mockIOSOptions.wdaPort,
+          wdaHost: mockIOSOptions.wdaHost,
+          useWDA: mockIOSOptions.useWDA,
+          autoDismissKeyboard: mockIOSOptions.autoDismissKeyboard,
+          launch: mockIOSOptions.launch,
+        }),
+      );
+    });
+
+    test('should handle Android config with minimal options', async () => {
+      const mockScript: MidsceneYamlScript = {
+        android: {
+          deviceId: 'test-device',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify basic call structure
+      expect(agentFromAdbDevice).toHaveBeenCalledWith(
+        'test-device',
+        expect.objectContaining({
+          deviceId: 'test-device',
+        }),
+      );
+    });
+
+    test('should handle iOS config with minimal options', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {},
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify basic call
+      expect(agentFromWebDriverAgent).toHaveBeenCalled();
+    });
+  });
+
+  describe('aiActionContext Propagation', () => {
+    test('should pass aiActionContext from agent config to Android agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        android: {
+          deviceId: 'test-device',
+        },
+        agent: {
+          aiActionContext: 'This is a test context for Android',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify aiActionContext was passed to Android agent
+      expect(agentFromAdbDevice).toHaveBeenCalledWith(
+        'test-device',
+        expect.objectContaining({
+          aiActionContext: 'This is a test context for Android',
+        }),
+      );
+    });
+
+    test('should pass aiActionContext from agent config to iOS agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {
+          deviceId: 'test-ios-device',
+        },
+        agent: {
+          aiActionContext: 'This is a test context for iOS',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify aiActionContext was passed to iOS agent
+      expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiActionContext: 'This is a test context for iOS',
+        }),
+      );
+    });
+
+    test('should pass aiActionContext from agent config to bridge mode agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          bridgeMode: 'newTabWithUrl',
+        },
+        agent: {
+          aiActionContext: 'This is a test context for bridge mode',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = {
+        destroy: vi.fn(),
+        connectNewTabWithUrl: vi.fn(),
+      };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      // Mock AgentOverChromeBridge from the bridge-mode module
+      const { AgentOverChromeBridge } = await import(
+        '@midscene/web/bridge-mode'
+      );
+      vi.mocked(AgentOverChromeBridge).mockImplementation(
+        (opts) => mockAgent as any,
+      );
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify aiActionContext was passed to bridge mode agent
+      expect(AgentOverChromeBridge).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiActionContext: 'This is a test context for bridge mode',
+        }),
+      );
+    });
+
+    test('should handle undefined aiActionContext gracefully for Android', async () => {
+      const mockScript: MidsceneYamlScript = {
+        android: {
+          deviceId: 'test-device',
+        },
+        // No agent config provided
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify aiActionContext is undefined when not provided
+      expect(agentFromAdbDevice).toHaveBeenCalledWith(
+        'test-device',
+        expect.objectContaining({
+          aiActionContext: undefined,
+        }),
+      );
+    });
+
+    test('should handle undefined aiActionContext gracefully for iOS', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {},
+        // No agent config provided
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify aiActionContext is undefined when not provided
+      expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aiActionContext: undefined,
+        }),
+      );
     });
   });
 });

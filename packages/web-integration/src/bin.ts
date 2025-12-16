@@ -5,10 +5,6 @@ import 'dotenv/config';
 
 // Create page and agent instances with minimal valid data
 const page = new StaticPage({
-  tree: {
-    node: null,
-    children: [],
-  },
   size: { width: 800, height: 600 },
   screenshotBase64: '',
 });

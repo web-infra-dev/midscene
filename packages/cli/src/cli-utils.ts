@@ -10,12 +10,27 @@ declare const __VERSION__: string;
 
 const debug = getDebug('midscene:cli');
 
+// Convert kebab-case to camelCase
+function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+// Convert camelCase to kebab-case
+function camelToKebab(str: string): string {
+  return str
+    .replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+    .replace(/^-/, ''); // Remove leading dash if present
+}
+
 export const parseProcessArgs = async (): Promise<{
   path?: string;
   files?: string[];
   options: Record<string, any>;
 }> => {
   const args = yargs(hideBin(process.argv))
+    .parserConfiguration({
+      'dot-notation': true, // Enable dot notation to parse --web.userAgent as nested object
+    })
     .usage(
       `Midscene.js helps you automate browser actions, assertions, and data extraction by AI. 
 Homepage: https://midscenejs.com
@@ -69,84 +84,48 @@ Usage:
         type: 'boolean',
         description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
       },
-      'web.user-agent': {
-        alias: 'web.userAgent',
-        type: 'string',
-        description: 'Override user agent for web environments.',
-      },
-      'web.viewport-width': {
-        alias: 'web.viewportWidth',
-        type: 'number',
-        description: 'Override viewport width for web environments.',
-      },
-      'web.viewport-height': {
-        alias: 'web.viewportHeight',
-        type: 'number',
-        description: 'Override viewport height for web environments.',
-      },
-      'android.device-id': {
-        alias: 'android.deviceId',
-        type: 'string',
-        description: 'Override device ID for Android environments.',
-      },
-      'ios.device-id': {
-        alias: 'ios.deviceId',
-        type: 'string',
-        description: 'Override device ID for iOS environments.',
-      },
-      'ios.wda-port': {
-        alias: 'ios.wdaPort',
-        type: 'number',
-        description: 'Override WebDriverAgent port for iOS environments.',
-      },
-      'ios.wda-host': {
-        alias: 'ios.wdaHost',
-        type: 'string',
-        description: 'Override WebDriverAgent host for iOS environments.',
-      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()
+    .epilogue(`For complete list of configuration options, please visit:
+  • Web options: https://midscenejs.com/automate-with-scripts-in-yaml#the-web-part
+  • Android options: https://midscenejs.com/automate-with-scripts-in-yaml#the-android-part
+  • iOS options: https://midscenejs.com/automate-with-scripts-in-yaml#the-ios-part
+
+Examples:
+  $0 script.yaml --web.user-agent "Custom Agent" --web.viewport-width 1920
+  $0 script.yaml --android.device-id emulator-5554 --android.ime-strategy yadb-for-non-ascii
+  $0 script.yaml --ios.wda-port 8100 --ios.auto-dismiss-keyboard`)
     .wrap(yargs().terminalWidth());
 
   const argv = await args.argv;
   debug('argv', argv);
 
-  // Transform kebab-case to camelCase for nested objects
+  // Transform arguments: ensure both kebab-case and camelCase versions exist
   const transformedArgv: any = { ...argv };
 
-  // Handle web arguments
-  if (argv['web.user-agent']) {
-    transformedArgv.web = transformedArgv.web || {};
-    transformedArgv.web.userAgent = argv['web.user-agent'];
-  }
-  if (argv['web.viewport-width']) {
-    transformedArgv.web = transformedArgv.web || {};
-    transformedArgv.web.viewportWidth = argv['web.viewport-width'];
-  }
-  if (argv['web.viewport-height']) {
-    transformedArgv.web = transformedArgv.web || {};
-    transformedArgv.web.viewportHeight = argv['web.viewport-height'];
-  }
+  // Helper function to ensure both formats exist for all keys in an object
+  const ensureBothFormats = (obj: Record<string, any>): Record<string, any> => {
+    const result: Record<string, any> = {};
+    Object.keys(obj).forEach((key) => {
+      const camelKey = kebabToCamel(key);
+      const kebabKey = camelToKebab(key);
+      // Store both formats
+      result[kebabKey] = obj[key];
+      result[camelKey] = obj[key];
+    });
+    return result;
+  };
 
-  // Handle android arguments
-  if (argv['android.device-id']) {
-    transformedArgv.android = transformedArgv.android || {};
-    transformedArgv.android.deviceId = argv['android.device-id'];
+  // Process web, android, and ios options
+  if (argv.web && typeof argv.web === 'object') {
+    transformedArgv.web = ensureBothFormats(argv.web);
   }
-
-  // Handle iOS arguments
-  if (argv['ios.device-id']) {
-    transformedArgv.ios = transformedArgv.ios || {};
-    transformedArgv.ios.deviceId = argv['ios.device-id'];
+  if (argv.android && typeof argv.android === 'object') {
+    transformedArgv.android = ensureBothFormats(argv.android);
   }
-  if (argv['ios.wda-port']) {
-    transformedArgv.ios = transformedArgv.ios || {};
-    transformedArgv.ios.wdaPort = argv['ios.wda-port'];
-  }
-  if (argv['ios.wda-host']) {
-    transformedArgv.ios = transformedArgv.ios || {};
-    transformedArgv.ios.wdaHost = argv['ios.wda-host'];
+  if (argv.ios && typeof argv.ios === 'object') {
+    transformedArgv.ios = ensureBothFormats(argv.ios);
   }
 
   return {

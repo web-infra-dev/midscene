@@ -25,10 +25,10 @@ vi.mock('@midscene/core', async () => {
   };
 });
 
-const mockedModelConfigFnResult = {
+const mockedModelConfig = {
   MIDSCENE_MODEL_NAME: 'gpt-4o',
-  MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-  MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
+  MIDSCENE_MODEL_API_KEY: 'mock-api-key',
+  MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
 };
 
 describe('VL Model Check for Different Interface Types', () => {
@@ -42,7 +42,7 @@ describe('VL Model Check for Different Interface Types', () => {
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
     }).not.toThrow();
   });
@@ -57,7 +57,7 @@ describe('VL Model Check for Different Interface Types', () => {
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
     }).not.toThrow();
   });
@@ -72,7 +72,7 @@ describe('VL Model Check for Different Interface Types', () => {
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
     }).not.toThrow();
   });
@@ -87,7 +87,7 @@ describe('VL Model Check for Different Interface Types', () => {
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
     }).not.toThrow();
   });
@@ -102,7 +102,7 @@ describe('VL Model Check for Different Interface Types', () => {
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
     }).not.toThrow();
   });
@@ -119,7 +119,7 @@ describe('VL Model Check for Different Interface Types', () => {
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => mockedModelConfigFnResult,
+        modelConfig: mockedModelConfig,
       });
     }).not.toThrow();
   });
@@ -133,15 +133,15 @@ describe('VL Model Check for Different Interface Types', () => {
 
     const modelConfigWithVL = {
       MIDSCENE_MODEL_NAME: 'gemini-2.0-flash-exp',
-      MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-      MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
-      MIDSCENE_VL_MODE: 'gemini',
+      MIDSCENE_MODEL_API_KEY: 'mock-api-key',
+      MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
+      MIDSCENE_MODEL_FAMILY: 'gemini',
     };
 
     expect(() => {
       new Agent(mockPage, {
         generateReport: false,
-        modelConfig: () => modelConfigWithVL,
+        modelConfig: modelConfigWithVL,
       });
     }).not.toThrow();
   });

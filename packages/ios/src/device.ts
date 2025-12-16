@@ -11,6 +11,8 @@ import {
 import {
   type AbstractInterface,
   type ActionTapParam,
+  type IOSDeviceInputOpt,
+  type IOSDeviceOpt,
   defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
@@ -27,20 +29,17 @@ import { getDebug } from '@midscene/shared/logger';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 
+// Re-export IOSDeviceOpt and IOSDeviceInputOpt for backward compatibility
+export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
+
 const debugDevice = getDebug('ios:device');
 const BackspaceChar = '\u0008'; // Unicode backspace character
 
-export type IOSDeviceInputOpt = {
-  autoDismissKeyboard?: boolean;
-};
-
-export type IOSDeviceOpt = {
-  deviceId?: string;
-  customActions?: DeviceAction<any>[];
-  wdaPort?: number;
-  wdaHost?: string;
-  useWDA?: boolean;
-} & IOSDeviceInputOpt;
+/**
+ * HTTP methods supported by WebDriverAgent API
+ */
+export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
+export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
@@ -81,7 +80,7 @@ export class IOSDevice implements AbstractInterface {
             .boolean()
             .optional()
             .describe(
-              'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
+              'Whether to dismiss the keyboard after input. Defaults to true if not specified. Set to false to keep the keyboard visible after input.',
             ),
           mode: z
             .enum(['replace', 'clear', 'append'])
@@ -127,15 +126,15 @@ export class IOSDevice implements AbstractInterface {
             }
           : undefined;
         const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'untilTop') {
+        if (scrollToEventName === 'scrollToTop') {
           await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'untilBottom') {
+        } else if (scrollToEventName === 'scrollToBottom') {
           await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'untilRight') {
+        } else if (scrollToEventName === 'scrollToRight') {
           await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'untilLeft') {
+        } else if (scrollToEventName === 'scrollToLeft') {
           await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'once' || !scrollToEventName) {
+        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           if (param?.direction === 'down' || !param || !param.direction) {
             await this.scrollDown(param?.distance || undefined, startingPoint);
           } else if (param.direction === 'up') {
@@ -170,23 +169,6 @@ export class IOSDevice implements AbstractInterface {
       }),
       defineActionKeyboardPress(async (param) => {
         await this.pressKey(param.keyName);
-      }),
-      defineAction({
-        name: 'IOSHomeButton',
-        description: 'Trigger the system "home" operation on iOS devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.home();
-        },
-      }),
-      defineAction({
-        name: 'IOSAppSwitcher',
-        description:
-          'Trigger the system "app switcher" operation on iOS devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.appSwitcher();
-        },
       }),
       defineAction<
         z.ZodObject<{
@@ -224,8 +206,10 @@ export class IOSDevice implements AbstractInterface {
       }),
     ];
 
+    const platformSpecificActions = Object.values(createPlatformActions(this));
+
     const customActions = this.customActions || [];
-    return [...defaultActions, ...customActions];
+    return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
   constructor(options?: IOSDeviceOpt) {
@@ -779,32 +763,42 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async hideKeyboard(keyNames?: string[]): Promise<boolean> {
     try {
-      // If keyNames are provided, use them instead of manual swipe down
-      if (keyNames && keyNames.length > 0) {
-        debugDevice(
-          `Using keyNames to dismiss keyboard: ${keyNames.join(', ')}`,
-        );
-        await this.wdaBackend.dismissKeyboard(keyNames);
-        debugDevice('Dismissed keyboard using provided keyNames');
-        await sleep(300);
-        return true;
-      }
+      // Always try WDA's dismissKeyboard API first (most reliable)
+      // Use common keyboard button names if not specified
+      const dismissKeys =
+        keyNames && keyNames.length > 0
+          ? keyNames
+          : ['return', 'done', 'go', 'search', 'next', 'send'];
 
-      // Default behavior: Get window size for swipe coordinates
-      const windowSize = await this.wdaBackend.getWindowSize();
-
-      // Calculate swipe coordinates at one-third position of the screen
-      const centerX = Math.round(windowSize.width / 2);
-      const startY = Math.round(windowSize.height * 0.33); // Start at one-third from top
-      const endY = Math.round(windowSize.height * 0.33 + 10); // Swipe down
-
-      // Perform swipe down gesture to dismiss keyboard
-      await this.swipe(centerX, startY, centerX, endY, 50);
       debugDevice(
-        'Dismissed keyboard with swipe down gesture at screen one-third position',
+        `Attempting to dismiss keyboard using WDA API with keys: ${dismissKeys.join(', ')}`,
       );
 
-      await sleep(300);
+      try {
+        await this.wdaBackend.dismissKeyboard(dismissKeys);
+        debugDevice('Successfully dismissed keyboard using WDA API');
+        await sleep(500); // Wait longer to ensure UI is stable
+        return true;
+      } catch (wdaError) {
+        debugDevice(
+          `WDA dismissKeyboard failed, falling back to swipe gesture: ${wdaError}`,
+        );
+      }
+
+      // Fallback: Use swipe gesture if WDA API fails
+      // Use safer coordinates: swipe up from bottom of screen
+      const windowSize = await this.wdaBackend.getWindowSize();
+      const centerX = Math.round(windowSize.width / 2);
+      const startY = Math.round(windowSize.height * 0.9); // Start near bottom
+      const endY = Math.round(windowSize.height * 0.5); // Swipe up to middle
+
+      // Perform swipe up gesture to dismiss keyboard
+      await this.swipe(centerX, startY, centerX, endY, 300);
+      debugDevice(
+        'Dismissed keyboard with swipe up gesture from bottom of screen',
+      );
+
+      await sleep(500); // Wait longer to ensure UI is stable
       return true;
     } catch (error) {
       debugDevice(`Failed to hide keyboard: ${error}`);
@@ -859,6 +853,7 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       debugDevice(`Opening URL via Safari: ${url}`);
 
       // Launch Safari
+      await this.wdaBackend.terminateApp('com.apple.mobilesafari');
       await this.wdaBackend.launchApp('com.apple.mobilesafari');
       await sleep(2000); // Wait for Safari to launch
 
@@ -892,6 +887,26 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
   }
 
+  /**
+   * Execute a WebDriverAgent API request directly
+   * This is the iOS equivalent of Android's runAdbShell
+   * @param method HTTP method (GET, POST, DELETE, PUT)
+   * @param endpoint WebDriver API endpoint
+   * @param data Optional request body data
+   * @returns Response from the WebDriver API
+   */
+  async runWdaRequest<TResult = any>(
+    method: WDAHttpMethod,
+    endpoint: string,
+    data?: any,
+  ): Promise<TResult> {
+    return await this.wdaBackend.executeRequest<TResult>(
+      method,
+      endpoint,
+      data,
+    );
+  }
+
   async destroy(): Promise<void> {
     if (this.destroyed) {
       return;
@@ -911,3 +926,80 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     debugDevice(`iOS device ${this.deviceId} destroyed`);
   }
 }
+
+const runWdaRequestParamSchema = z.object({
+  method: z
+    .enum(WDA_HTTP_METHODS)
+    .describe('HTTP method (GET, POST, DELETE, PUT)'),
+  endpoint: z.string().describe('WebDriver API endpoint'),
+  data: z
+    .object({})
+    .passthrough()
+    .optional()
+    .describe('Optional request body data as JSON object'),
+});
+
+type RunWdaRequestParam = z.infer<typeof runWdaRequestParamSchema>;
+type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
+
+const launchParamSchema = z.string().describe('App bundle ID or URL to launch');
+
+type LaunchParam = z.infer<typeof launchParamSchema>;
+
+export type DeviceActionRunWdaRequest = DeviceAction<
+  RunWdaRequestParam,
+  RunWdaRequestReturn
+>;
+export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+
+/**
+ * Platform-specific action definitions for iOS
+ * Single source of truth for both runtime behavior and type definitions
+ */
+const createPlatformActions = (device: IOSDevice) => {
+  return {
+    RunWdaRequest: defineAction<
+      typeof runWdaRequestParamSchema,
+      RunWdaRequestParam,
+      RunWdaRequestReturn
+    >({
+      name: 'RunWdaRequest',
+      description: 'Execute WebDriverAgent API request directly on iOS device',
+      interfaceAlias: 'runWdaRequest',
+      paramSchema: runWdaRequestParamSchema,
+      call: async (param) => {
+        return await device.runWdaRequest(
+          param.method,
+          param.endpoint,
+          param.data,
+        );
+      },
+    }),
+    Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
+      name: 'Launch',
+      description: 'Launch an iOS app or URL',
+      interfaceAlias: 'launch',
+      paramSchema: launchParamSchema,
+      call: async (param) => {
+        await device.launch(param);
+      },
+    }),
+    IOSHomeButton: defineAction({
+      name: 'IOSHomeButton',
+      description: 'Trigger the system "home" operation on iOS devices',
+      call: async () => {
+        await device.home();
+      },
+    }),
+    IOSAppSwitcher: defineAction({
+      name: 'IOSAppSwitcher',
+      description: 'Trigger the system "app switcher" operation on iOS devices',
+      call: async () => {
+        await device.appSwitcher();
+      },
+    }),
+  } as const;
+};
+
+export type DeviceActionIOSHomeButton = DeviceAction<undefined, void>;
+export type DeviceActionIOSAppSwitcher = DeviceAction<undefined, void>;

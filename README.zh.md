@@ -81,7 +81,7 @@ Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`�
 Midscene 会自动规划步骤并执行。它可能较慢，并且深度依赖于 AI 模型的质量。
 
 ```javascript
-await aiAction('click all the records one by one. If one record contains the text "completed", skip it');
+await aiAct('click all the records one by one. If one record contains the text "completed", skip it');
 ```
 
 ### 工作流风格

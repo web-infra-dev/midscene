@@ -3,9 +3,10 @@ import type { PlaywrightTaskAttributes } from '@/types';
 import type {
   ExecutionDump,
   ExecutionTask,
-  ExecutionTaskInsightLocate,
+  ExecutionTaskPlanningLocate,
   GroupedActionDump,
-  InsightDump,
+  LocateResultElement,
+  ServiceDump,
 } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
 import {
@@ -15,6 +16,13 @@ import {
 import * as Z from 'zustand';
 
 const { create } = Z;
+
+export const isElementField = (value: unknown): value is LocateResultElement =>
+  Boolean(value) &&
+  typeof value === 'object' &&
+  Boolean((value as any).center) &&
+  Boolean((value as any).rect);
+
 export const useBlackboardPreference = create<{
   markerVisible: boolean;
   elementsVisible: boolean;
@@ -31,7 +39,7 @@ export const useBlackboardPreference = create<{
   },
 }));
 export interface HistoryItem {
-  type: 'aiAction' | 'aiQuery' | 'aiAssert';
+  type: 'aiAct' | 'aiQuery' | 'aiAssert';
   prompt: string;
   timestamp: number;
 }
@@ -55,7 +63,7 @@ export interface DumpStoreType {
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
   setActiveTask: (task: ExecutionTask) => void;
-  insightDump: InsightDump | null;
+  insightDump: ServiceDump | null;
   _contextLoadId: number;
   hoverTask: ExecutionTask | null;
   hoverTimestamp: number | null;
@@ -203,8 +211,11 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
             : null,
       });
       console.log('will set task', task);
-      if (task.type === 'Insight') {
-        const dump = (task as ExecutionTaskInsightLocate).log;
+      if (
+        task.type === 'Insight' ||
+        (task.type === 'Planning' && task.subType === 'Locate')
+      ) {
+        const dump = (task as ExecutionTaskPlanningLocate).log;
         set({
           insightDump: dump,
         });

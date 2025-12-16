@@ -12,8 +12,14 @@ export const screenshotIncludedTip = 'include screenshot in request';
 // dom included tip
 export const domIncludedTip = 'include DOM info in request';
 
+// Android device options tips
+export const imeStrategyTip = 'IME strategy';
+export const autoDismissKeyboardTip = 'Auto dismiss keyboard';
+export const keyboardDismissStrategyTip = 'Keyboard dismiss strategy';
+export const alwaysRefreshScreenInfoTip = 'Always refresh screen info';
+
 export const apiMetadata = {
-  aiAction: {
+  aiAct: {
     group: 'interaction',
     title: 'Auto Planning: plan the steps and execute',
   },
@@ -37,7 +43,7 @@ export const apiMetadata = {
   aiWaitFor: { group: 'validation', title: 'Wait for a condition to be met' },
 };
 
-export const defaultMainButtons = ['aiAction', 'aiTap', 'aiQuery', 'aiAssert'];
+export const defaultMainButtons = ['aiAct', 'aiTap', 'aiQuery', 'aiAssert'];
 
 // welcome message template
 export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =

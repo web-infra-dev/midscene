@@ -295,8 +295,6 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     });
 
     const expression = () => {
-      (window as any).midscene_element_inspector.setNodeHashCacheListOnWindow();
-
       const tree = (
         window as any
       ).midscene_element_inspector.webExtractNodeTree();
@@ -338,6 +336,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   public async evaluateJavaScript(script: string) {
     return this.sendCommandToDebugger('Runtime.evaluate', {
       expression: script,
+      awaitPromise: true,
     });
   }
 
@@ -376,25 +375,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return treeToList(tree);
   }
 
-  async getXpathsById(id: string) {
-    const script = await getHtmlElementScript();
-
-    // check tab url
-    await this.sendCommandToDebugger<
-      CDPTypes.Runtime.EvaluateResponse,
-      CDPTypes.Runtime.EvaluateRequest
-    >('Runtime.evaluate', {
-      expression: script,
-    });
-
-    const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression: `window.midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
-      returnByValue: true,
-    });
-    return result.result.value;
-  }
-
-  async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+  async getXpathsByPoint(point: Point, isOrderSensitive = false) {
     const script = await getHtmlElementScript();
 
     await this.sendCommandToDebugger<
@@ -463,6 +444,27 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     const tabId = await this.getTabIdOrConnectToCurrentTab();
     const url = await chrome.tabs.get(tabId).then((tab) => tab.url);
     return url || '';
+  }
+
+  async navigate(url: string): Promise<void> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await chrome.tabs.update(tabId, { url });
+    // Wait for navigation to complete
+    await this.waitUntilNetworkIdle();
+  }
+
+  async reload(): Promise<void> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await chrome.tabs.reload(tabId);
+    // Wait for reload to complete
+    await this.waitUntilNetworkIdle();
+  }
+
+  async goBack(): Promise<void> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await chrome.tabs.goBack(tabId);
+    // Wait for navigation to complete
+    await this.waitUntilNetworkIdle();
   }
 
   async scrollUntilTop(startingPoint?: Point) {

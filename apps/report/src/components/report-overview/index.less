@@ -13,7 +13,7 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      background: #F5F7FA;
+      background: #f5f7fa;
       border-radius: 8px;
       flex: 1;
       min-width: 0;
@@ -34,11 +34,48 @@
         color: rgba(0, 0, 0, 0.65);
 
         &.stats-passed {
-          color: #00AD4B;
+          color: #00ad4b;
         }
 
         &.stats-failed {
-          color: #E40303;
+          color: #e40303;
+        }
+
+        &.stats-timedout {
+          color: #ff8c00;
+        }
+      }
+    }
+  }
+}
+
+// Dark mode styles
+[data-theme='dark'] {
+  .report-overview {
+    background: #1f1f1f;
+
+    .test-case-stats {
+      .stats-card {
+        background: rgba(255, 255, 255, 0.08);
+
+        .stats-label {
+          color: #f8fafd;
+        }
+
+        .stats-value {
+          color: #f8fafd;
+
+          &.stats-passed {
+            color: #52c41a;
+          }
+
+          &.stats-failed {
+            color: #ff4d4f;
+          }
+
+          &.stats-timedout {
+            color: #ffa940;
+          }
         }
       }
     }

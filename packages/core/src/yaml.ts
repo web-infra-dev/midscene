@@ -1,19 +1,19 @@
-import type { TUserPrompt } from './ai-model/common';
-import type { AgentOpt, Rect } from './types';
-import type { BaseElement, UIContext } from './types';
+import type { TUserPrompt } from './common';
+import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
+import type { AgentOpt, LocateResultElement, Rect } from './types';
+import type { UIContext } from './types';
 
 export interface LocateOption {
   prompt?: TUserPrompt;
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
-  uiContext?: UIContext<BaseElement>;
+  uiContext?: UIContext;
 }
 
-export interface InsightExtractOption {
+export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
-  doNotThrowError?: boolean;
 }
 
 export interface ReferenceImage {
@@ -26,11 +26,19 @@ export interface DetailedLocateParam extends LocateOption {
   referenceImage?: ReferenceImage;
 }
 
-export interface ScrollParam {
-  direction: 'down' | 'up' | 'right' | 'left';
-  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance?: null | number; // distance in px
-}
+export type ActionScrollParam = {
+  direction?: 'down' | 'up' | 'right' | 'left';
+  scrollType?:
+    | 'singleAction'
+    | 'scrollToBottom'
+    | 'scrollToTop'
+    | 'scrollToRight'
+    | 'scrollToLeft';
+  distance?: number | null;
+  locate?: LocateResultElement;
+};
+
+export type ScrollParam = Omit<ActionScrollParam, 'locate'>;
 
 export interface MidsceneYamlScript {
   // @deprecated
@@ -95,7 +103,9 @@ export interface MidsceneYamlScriptWebEnv
   closeNewTabsAfterDisconnect?: boolean;
 }
 
-export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
+export interface MidsceneYamlScriptAndroidEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<AndroidDeviceOpt, 'customActions'> {
   // The Android device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 
@@ -103,14 +113,9 @@ export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
   launch?: string;
 }
 
-export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptConfig {
-  // WebDriverAgent configuration
-  wdaPort?: number;
-  wdaHost?: string;
-
-  // Keyboard behavior configuration
-  autoDismissKeyboard?: boolean;
-
+export interface MidsceneYamlScriptIOSEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<IOSDeviceOpt, 'customActions'> {
   // The URL or app bundle ID to launch, optional, will use the current screen if not specified
   launch?: string;
 }
@@ -121,8 +126,10 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptIOSEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
-  ai?: string; // this is the shortcut for aiAction
+  // defined as aiAction for backward compatibility
   aiAction?: string;
+  ai?: string; // this is the shortcut for aiAct
+  aiAct?: string;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
 }
@@ -133,27 +140,27 @@ export interface MidsceneYamlFlowItemAIAssert {
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIQuery extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIQuery extends ServiceExtractOption {
   aiQuery: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAINumber extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAINumber extends ServiceExtractOption {
   aiNumber: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIString extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIString extends ServiceExtractOption {
   aiString: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIAsk extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIAsk extends ServiceExtractOption {
   aiAsk: string;
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIBoolean extends InsightExtractOption {
+export interface MidsceneYamlFlowItemAIBoolean extends ServiceExtractOption {
   aiBoolean: string;
   name?: string;
 }
@@ -179,6 +186,7 @@ export interface MidsceneYamlFlowItemSleep {
 
 export interface MidsceneYamlFlowItemLogScreenshot {
   logScreenshot?: string; // optional, the title of the screenshot
+  recordToReport?: string; // preferred key for record title
   content?: string;
 }
 
@@ -186,7 +194,13 @@ export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
   | MidsceneYamlFlowItemAIQuery
+  | MidsceneYamlFlowItemAINumber
+  | MidsceneYamlFlowItemAIString
+  | MidsceneYamlFlowItemAIAsk
+  | MidsceneYamlFlowItemAIBoolean
+  | MidsceneYamlFlowItemAILocate
   | MidsceneYamlFlowItemAIWaitFor
+  | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
   | MidsceneYamlFlowItemLogScreenshot;
 

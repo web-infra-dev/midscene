@@ -2,27 +2,23 @@ import type {
   DeviceAction,
   InterfaceType,
   PlanningAIResponse,
+  RawResponsePlanningAIResponse,
+  ThinkingStrategy,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type {
-  ChatCompletionContentPart,
-  ChatCompletionMessageParam,
-} from 'openai/resources/index';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   AIActionType,
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
-  markupImageForLLM,
-  warnGPT4oSizeLimit,
-} from './common';
+} from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
-import { describeUserPage } from './prompt/util';
 import { callAIWithObjectResponse } from './service-caller/index';
 
 const debug = getDebug('planning');
@@ -36,20 +32,20 @@ export async function plan(
     actionContext?: string;
     modelConfig: IModelConfig;
     conversationHistory?: ConversationHistory;
+    includeBbox: boolean;
+    thinkingStrategy: ThinkingStrategy;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
   const { screenshotBase64, size } = context;
 
-  const { modelName, vlMode } = modelConfig;
+  const { vlMode } = modelConfig;
 
-  const { description: pageDescription, elementById } = await describeUserPage(
-    context,
-    { vlMode },
-  );
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    vlMode: vlMode,
+    vlMode,
+    includeBbox: opts.includeBbox,
+    thinkingStrategy: opts.thinkingStrategy,
   });
 
   let imagePayload = screenshotBase64;
@@ -57,24 +53,14 @@ export async function plan(
   let imageHeight = size.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
-  if (vlMode === 'qwen-vl') {
+
+  // Process image based on VL mode requirements
+  if (vlMode === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
     imagePayload = paddedResult.imageBase64;
-  } else if (vlMode === 'qwen3-vl') {
-    // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
-    // imageWidth = paddedResult.width;
-    // imageHeight = paddedResult.height;
-    // imagePayload = paddedResult.imageBase64;
-  } else if (!vlMode) {
-    imagePayload = await markupImageForLLM(screenshotBase64, context.tree, {
-      width: imageWidth,
-      height: imageHeight,
-    });
   }
-
-  warnGPT4oSizeLimit(size, modelName);
 
   const historyLog = opts.conversationHistory?.snapshot() || [];
   // .filter((item) => item.role === 'assistant') || [];
@@ -105,43 +91,41 @@ export async function plan(
     },
   ];
 
+  const latestImageMessage: ChatCompletionMessageParam = {
+    role: 'user',
+    content: [
+      {
+        type: 'text',
+        text: 'I have finished the action previously planned, and the last screenshot is as follows:',
+      },
+      {
+        type: 'image_url',
+        image_url: {
+          url: imagePayload,
+          detail: 'high',
+        },
+      },
+      // Planning uses pure vision mode, no DOM description needed
+    ],
+  };
+
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...knowledgeContext,
     ...instruction,
     ...historyLog,
-    {
-      role: 'user',
-      content: [
-        {
-          type: 'image_url',
-          image_url: {
-            url: imagePayload,
-            detail: 'high',
-          },
-        },
-        ...(vlMode
-          ? []
-          : ([
-              {
-                type: 'text',
-                text: pageDescription,
-              },
-            ] as ChatCompletionContentPart[])),
-      ],
-    },
+    latestImageMessage,
   ];
 
-  const { content, usage } = await callAIWithObjectResponse<PlanningAIResponse>(
-    msgs,
-    AIActionType.PLAN,
-    modelConfig,
-  );
-  const rawResponse = JSON.stringify(content, undefined, 2);
-  const planFromAI = content;
+  const { content: planFromAI, usage } =
+    await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
+      msgs,
+      AIActionType.PLAN,
+      modelConfig,
+    );
+  const rawResponse = JSON.stringify(planFromAI, undefined, 2);
 
-  const actions =
-    (planFromAI.action?.type ? [planFromAI.action] : planFromAI.actions) || [];
+  const actions = planFromAI.action ? [planFromAI.action] : [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,
@@ -156,7 +140,6 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  // TODO: use zod.parse to parse the action.param, and then fill the bbox param.
   actions.forEach((action) => {
     const type = action.type;
     const actionInActionSpace = opts.actionSpace.find(
@@ -172,22 +155,16 @@ export async function plan(
 
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
-      if (locateResult) {
-        if (vlMode) {
-          action.param[field] = fillBboxParam(
-            locateResult,
-            imageWidth,
-            imageHeight,
-            rightLimit,
-            bottomLimit,
-            vlMode,
-          );
-        } else {
-          const element = elementById(locateResult);
-          if (element) {
-            action.param[field].id = element.id;
-          }
-        }
+      if (locateResult && vlMode !== undefined) {
+        // Always use VL mode to fill bbox parameters
+        action.param[field] = fillBboxParam(
+          locateResult,
+          imageWidth,
+          imageHeight,
+          rightLimit,
+          bottomLimit,
+          vlMode,
+        );
       }
     });
   });
@@ -205,21 +182,14 @@ export async function plan(
     );
   }
 
+  conversationHistory?.append(latestImageMessage);
+
   conversationHistory?.append({
     role: 'assistant',
     content: [
       {
         type: 'text',
         text: rawResponse,
-      },
-    ],
-  });
-  conversationHistory?.append({
-    role: 'user',
-    content: [
-      {
-        type: 'text',
-        text: 'I have finished the action previously planned',
       },
     ],
   });

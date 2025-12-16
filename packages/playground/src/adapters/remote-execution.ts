@@ -191,6 +191,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       { key: 'deepThink', value: options.deepThink },
       { key: 'screenshotIncluded', value: options.screenshotIncluded },
       { key: 'domIncluded', value: options.domIncluded },
+      { key: 'deviceOptions', value: options.deviceOptions },
       { key: 'params', value: value.params },
     ] as const;
 

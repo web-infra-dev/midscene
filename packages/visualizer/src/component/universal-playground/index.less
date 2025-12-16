@@ -354,3 +354,81 @@
     }
   }
 }
+
+// Dark mode styles
+[data-theme='dark'] {
+  .universal-playground {
+    .error-hint {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .status-indicator {
+      color: #f8fafd;
+
+      &.error {
+        color: #ff4d4f;
+      }
+
+      &.success {
+        color: #52c41a;
+      }
+    }
+
+    .operation-label {
+      color: #f8fafd;
+    }
+
+    .alert-message {
+      color: #f8fafd;
+      background-color: rgba(82, 38, 7, 0.3);
+    }
+
+    .operation-item {
+      .operation-icon-wrapper {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      .operation-content {
+        background-color: transparent;
+
+        .operation-title {
+          color: rgba(255, 255, 255, 0.45);
+        }
+      }
+    }
+
+    .playground-footer {
+      background-color: rgba(255, 255, 255, 0.04);
+
+      .status-text {
+        color: #f8fafd;
+      }
+    }
+
+    .results-info {
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .result-section {
+      .result-title {
+        color: #f8fafd;
+      }
+
+      .result-details {
+        color: #f8fafd;
+      }
+
+      .result-value {
+        color: #f8fafd;
+
+        &.success {
+          color: #52c41a;
+        }
+
+        &.error {
+          color: #ff4d4f;
+        }
+      }
+    }
+  }
+}

@@ -1,36 +1,34 @@
 import type {
   AIDataExtractionResponse,
-  AIElementLocatorResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
-  BaseElement,
-  ElementById,
-  InsightExtractOption,
   Rect,
   ReferenceImage,
+  ServiceExtractOption,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
+import { generateElementByPosition } from '@midscene/shared/extractor/dom-util';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
   preProcessImageUrl,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
 import type {
   ChatCompletionSystemMessageParam,
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
-import type { TMultimodalPrompt, TUserPrompt } from './common';
+import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import {
   AIActionType,
   adaptBboxToRect,
   expandSearchArea,
-  markupImageForLLM,
   mergeRects,
-} from './common';
+} from '../common';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
@@ -44,11 +42,9 @@ import {
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
 import {
-  describeUserPage,
-  distance,
-  distanceThreshold,
-  elementByPositionWithElementInfo,
-} from './prompt/util';
+  orderSensitiveJudgePrompt,
+  systemPromptToJudgeOrderSensitive,
+} from './prompt/order-sensitive-judge';
 import { callAIWithObjectResponse } from './service-caller/index';
 
 export type AIArgs = [
@@ -93,7 +89,7 @@ const promptsToChatParam = async (
         content: [
           {
             type: 'text',
-            text: `reference image ${item.name}:`,
+            text: `this is the reference image named '${item.name}':`,
           },
         ],
       });
@@ -115,10 +111,8 @@ const promptsToChatParam = async (
   return msgs;
 };
 
-export async function AiLocateElement<
-  ElementType extends BaseElement = BaseElement,
->(options: {
-  context: UIContext<ElementType>;
+export async function AiLocateElement(options: {
+  context: UIContext;
   targetElementDescription: TUserPrompt;
   referenceImage?: ReferenceImage;
   callAIFn: typeof callAIWithObjectResponse<
@@ -127,27 +121,27 @@ export async function AiLocateElement<
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
   modelConfig: IModelConfig;
 }): Promise<{
-  parseResult: AIElementLocatorResponse;
+  parseResult: {
+    elements: LocateResultElement[];
+    errors?: string[];
+  };
   rect?: Rect;
   rawResponse: string;
-  elementById: ElementById;
   usage?: AIUsageInfo;
-  isOrderSensitive?: boolean;
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
   const { screenshotBase64 } = context;
 
-  const { description, elementById, insertElementByPosition } =
-    await describeUserPage(context, { vlMode });
-
   assert(
     targetElementDescription,
     'cannot find the target element description',
   );
-  const userInstructionPrompt = findElementPrompt({
-    pageDescription: description,
-    targetElementDescription: extraTextFromUserPrompt(targetElementDescription),
+  const targetElementDescriptionText = extraTextFromUserPrompt(
+    targetElementDescription,
+  );
+  const userInstructionPrompt = await findElementPrompt.format({
+    targetElementDescription: targetElementDescriptionText,
   });
   const systemPrompt = systemPromptToLocateElement(vlMode);
 
@@ -172,22 +166,11 @@ export async function AiLocateElement<
     imageHeight = options.searchConfig.rect?.height;
     originalImageWidth = imageWidth;
     originalImageHeight = imageHeight;
-  } else if (vlMode === 'qwen-vl') {
+  } else if (vlMode === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
     imagePayload = paddedResult.imageBase64;
-  } else if (vlMode === 'qwen3-vl') {
-    // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
-    // imageWidth = paddedResult.width;
-    // imageHeight = paddedResult.height;
-    // imagePayload = paddedResult.imageBase64;
-  } else if (!vlMode) {
-    imagePayload = await markupImageForLLM(
-      screenshotBase64,
-      context.tree,
-      context.size,
-    );
   }
 
   const msgs: AIArgs = [
@@ -223,12 +206,15 @@ export async function AiLocateElement<
   const rawResponse = JSON.stringify(res.content);
 
   let resRect: Rect | undefined;
-  let matchedElements: AIElementLocatorResponse['elements'] =
-    'elements' in res.content ? res.content.elements : [];
-  let errors: AIElementLocatorResponse['errors'] | undefined =
+  let matchedElements = 'elements' in res.content ? res.content.elements : [];
+  let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
   try {
-    if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
+    if (
+      'bbox' in res.content &&
+      Array.isArray(res.content.bbox) &&
+      res.content.bbox.length >= 1
+    ) {
       resRect = adaptBboxToRect(
         res.content.bbox,
         imageWidth,
@@ -246,19 +232,15 @@ export async function AiLocateElement<
         x: resRect.left + resRect.width / 2,
         y: resRect.top + resRect.height / 2,
       };
-      let element = elementByPositionWithElementInfo(context.tree, rectCenter);
 
-      const distanceToCenter = element
-        ? distance({ x: element.center[0], y: element.center[1] }, rectCenter)
-        : 0;
-
-      if (!element || distanceToCenter > distanceThreshold) {
-        element = insertElementByPosition(rectCenter);
-      }
+      const element: LocateResultElement = generateElementByPosition(
+        rectCenter,
+        targetElementDescriptionText as string,
+      );
+      errors = [];
 
       if (element) {
         matchedElements = [element];
-        errors = [];
       }
     }
   } catch (e) {
@@ -276,23 +258,16 @@ export async function AiLocateElement<
   return {
     rect: resRect,
     parseResult: {
-      elements: matchedElements,
-      errors,
+      elements: matchedElements as LocateResultElement[],
+      errors: errors as string[],
     },
     rawResponse,
-    elementById,
     usage: res.usage,
-    isOrderSensitive:
-      typeof res.content === 'object' &&
-      res.content !== null &&
-      'isOrderSensitive' in res.content
-        ? (res.content as any).isOrderSensitive
-        : undefined,
   };
 }
 
 export async function AiLocateSection(options: {
-  context: UIContext<BaseElement>;
+  context: UIContext;
   sectionDescription: TUserPrompt;
   modelConfig: IModelConfig;
 }): Promise<{
@@ -307,7 +282,7 @@ export async function AiLocateSection(options: {
   const { screenshotBase64 } = context;
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
-  const sectionLocatorInstructionText = sectionLocatorInstruction({
+  const sectionLocatorInstructionText = await sectionLocatorInstruction.format({
     sectionDescription: extraTextFromUserPrompt(sectionDescription),
   });
   const msgs: AIArgs = [
@@ -392,7 +367,7 @@ export async function AiLocateSection(options: {
     const croppedResult = await cropByRect(
       screenshotBase64,
       sectionRect,
-      vlMode === 'qwen-vl',
+      vlMode === 'qwen2.5-vl',
     );
     imageBase64 = croppedResult.imageBase64;
     sectionRect.width = croppedResult.width;
@@ -408,32 +383,23 @@ export async function AiLocateSection(options: {
   };
 }
 
-export async function AiExtractElementInfo<
-  T,
-  ElementType extends BaseElement = BaseElement,
->(options: {
+export async function AiExtractElementInfo<T>(options: {
   dataQuery: string | Record<string, string>;
   multimodalPrompt?: TMultimodalPrompt;
-  context: UIContext<ElementType>;
-  extractOption?: InsightExtractOption;
+  context: UIContext;
+  pageDescription?: string;
+  extractOption?: ServiceExtractOption;
   modelConfig: IModelConfig;
 }) {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
-  const { vlMode } = modelConfig;
   const systemPrompt = systemPromptToExtract();
-
   const { screenshotBase64 } = context;
 
-  const { description, elementById } = await describeUserPage(context, {
-    truncateTextLength: 200,
-    filterNonTextContent: false,
-    visibleOnly: false,
-    domIncluded: extractOption?.domIncluded,
-    vlMode,
-  });
-
-  const extractDataPromptText = extractDataQueryPrompt(description, dataQuery);
+  const extractDataPromptText = await extractDataQueryPrompt(
+    options.pageDescription || '',
+    dataQuery,
+  );
 
   const userContent: ChatCompletionUserMessageParam['content'] = [];
 
@@ -475,7 +441,37 @@ export async function AiExtractElementInfo<
   );
   return {
     parseResult: result.content,
-    elementById,
+    usage: result.usage,
+  };
+}
+
+export async function AiJudgeOrderSensitive(
+  description: string,
+  callAIFn: typeof callAIWithObjectResponse<{ isOrderSensitive: boolean }>,
+  modelConfig: IModelConfig,
+): Promise<{
+  isOrderSensitive: boolean;
+  usage?: AIUsageInfo;
+}> {
+  const systemPrompt = systemPromptToJudgeOrderSensitive();
+  const userPrompt = orderSensitiveJudgePrompt(description);
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: userPrompt,
+    },
+  ];
+
+  const result = await callAIFn(
+    msgs,
+    AIActionType.INSPECT_ELEMENT, // Reuse existing action type for now
+    modelConfig,
+  );
+
+  return {
+    isOrderSensitive: result.content.isOrderSensitive ?? false,
     usage: result.usage,
   };
 }

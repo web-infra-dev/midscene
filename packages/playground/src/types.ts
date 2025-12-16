@@ -23,12 +23,20 @@ export interface ServerResponse {
   error?: string;
 }
 
+export interface DeviceOptions {
+  imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  autoDismissKeyboard?: boolean;
+  keyboardDismissStrategy?: 'esc-first' | 'back-first';
+  alwaysRefreshScreenInfo?: boolean;
+}
+
 export interface ExecutionOptions {
   deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
   context?: any;
   requestId?: string;
+  deviceOptions?: DeviceOptions;
 }
 
 // Extended web types for playground

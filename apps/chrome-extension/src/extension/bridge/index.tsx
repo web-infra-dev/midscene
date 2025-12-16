@@ -2,9 +2,10 @@ import {
   ApiOutlined,
   ArrowDownOutlined,
   ClearOutlined,
+  DownOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { Button, List, Spin, Switch } from 'antd';
+import { Button, Input, List, Spin, Switch } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import AutoConnectIcon from '../../icons/auto-connect.svg?react';
@@ -31,6 +32,8 @@ interface BridgeMessageItem {
 }
 
 const AUTO_CONNECT_STORAGE_KEY = 'midscene-bridge-auto-connect';
+const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
+const DEFAULT_SERVER_URL = 'ws://localhost:3766';
 
 export default function Bridge() {
   const [bridgeStatus, setBridgeStatus] = useState<BridgeStatus>('closed');
@@ -41,6 +44,11 @@ export default function Bridge() {
     const saved = localStorage.getItem(AUTO_CONNECT_STORAGE_KEY);
     return saved === 'true';
   });
+  const [serverUrl, setServerUrl] = useState<string>(() => {
+    // Only restore from localStorage if user has customized it
+    return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
+  });
+  const [isServerConfigExpanded, setIsServerConfigExpanded] = useState(false);
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
@@ -120,8 +128,20 @@ export default function Bridge() {
     }
   };
 
-  const bridgeConnectorRef = useRef<BridgeConnector | null>(
-    new BridgeConnector(
+  const bridgeConnectorRef = useRef<BridgeConnector | null>(null);
+
+  // Initialize BridgeConnector when serverUrl changes or on first mount
+  useEffect(() => {
+    // Clean up existing connector
+    if (bridgeConnectorRef.current) {
+      bridgeConnectorRef.current.disconnect();
+    }
+
+    // Use custom serverUrl if provided, otherwise use default
+    const effectiveUrl = serverUrl || DEFAULT_SERVER_URL;
+
+    // Create new connector with current serverUrl
+    bridgeConnectorRef.current = new BridgeConnector(
       (message, type) => {
         appendBridgeMessage(message);
         if (type === 'status') {
@@ -136,19 +156,26 @@ export default function Bridge() {
           appendBridgeMessage(`Bridge status changed to ${status}`);
         }
       },
-    ),
-  );
-
-  useEffect(() => {
-    // Auto-connect on component mount if enabled
-    if (autoConnect && bridgeStatus === 'closed') {
-      startConnection();
-    }
+      effectiveUrl !== DEFAULT_SERVER_URL ? effectiveUrl : undefined,
+    );
 
     return () => {
       bridgeConnectorRef.current?.disconnect();
     };
-  }, []);
+  }, [serverUrl]);
+
+  useEffect(() => {
+    // Auto-connect on component mount if enabled
+    // Only check on initial mount, not when autoConnect changes
+    if (
+      autoConnect &&
+      bridgeStatus === 'closed' &&
+      bridgeConnectorRef.current
+    ) {
+      startConnection();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const stopConnection = () => {
     bridgeConnectorRef.current?.disconnect();
@@ -165,6 +192,18 @@ export default function Bridge() {
   const handleAutoConnectChange = (checked: boolean) => {
     setAutoConnect(checked);
     localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, String(checked));
+  };
+
+  const handleServerUrlChange = (value: string) => {
+    setServerUrl(value);
+
+    // Only store to localStorage if user has customized the value
+    // If empty or default, remove from localStorage to use default
+    if (value && value !== DEFAULT_SERVER_URL) {
+      localStorage.setItem(BRIDGE_SERVER_URL_KEY, value);
+    } else {
+      localStorage.removeItem(BRIDGE_SERVER_URL_KEY);
+    }
   };
 
   // clear the message list
@@ -318,6 +357,40 @@ export default function Bridge() {
                 More about bridge mode
               </a>
             </p>
+            {/* Server Configuration */}
+            <div className="server-config-section">
+              <div
+                className="server-config-header"
+                onClick={() =>
+                  setIsServerConfigExpanded(!isServerConfigExpanded)
+                }
+              >
+                <DownOutlined
+                  className={`server-config-arrow ${isServerConfigExpanded ? 'expanded' : ''}`}
+                />
+                <span className="server-config-title">
+                  Use remote server (optional)
+                </span>
+              </div>
+              {isServerConfigExpanded && (
+                <div className="server-config-content">
+                  <Input
+                    value={serverUrl}
+                    onChange={(e) => handleServerUrlChange(e.target.value)}
+                    placeholder="ws://localhost:3766"
+                    disabled={bridgeStatus !== 'closed'}
+                    className="server-config-input"
+                  />
+                  <small className="server-config-hint">
+                    {serverUrl && serverUrl !== DEFAULT_SERVER_URL ? (
+                      <>Remote mode: Connect to {serverUrl}</>
+                    ) : (
+                      <>Local mode (default): ws://localhost:3766</>
+                    )}
+                  </small>
+                </div>
+              )}
+            </div>
             {messageList.length > 0 && (
               <List
                 itemLayout="vertical"

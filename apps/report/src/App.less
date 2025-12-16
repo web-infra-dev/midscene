@@ -6,11 +6,16 @@ body {
   margin: 0;
   line-height: 1;
   overflow: hidden;
-  background: #F2F4F7;
+  background: #f2f4f7;
+}
+
+// Dark mode for body
+[data-theme='dark'] {
+  background: #141414;
 }
 
 .rspress-nav {
-  transition: .2s;
+  transition: 0.2s;
 }
 
 :root {
@@ -43,7 +48,6 @@ footer.mt-8 {
 // ----------
 
 .page-container {
-
   blockquote,
   dl,
   dd,
@@ -64,15 +68,9 @@ footer.mt-8 {
   flex-direction: column;
   height: 100%;
   color: @main-text;
-  font-family: -apple-system,
-  BlinkMacSystemFont,
-  "Segoe UI",
-  "Noto Sans",
-  Helvetica,
-  Arial,
-  sans-serif,
-  "Apple Color Emoji",
-  "Segoe UI Emoji";
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   font-size: 14px;
   border-top: 1px solid @border-color;
   border-bottom: 1px solid @border-color;
@@ -85,9 +83,13 @@ footer.mt-8 {
 
 .page-side {
   height: calc(100% - 8px);
-  background: #F2F4F7;
+  background: #f2f4f7;
   padding-right: 8px;
   margin-bottom: 8px;
+}
+
+[data-theme='dark'] .page-side {
+  background: #141414;
 }
 
 .page-nav {
@@ -119,6 +121,44 @@ footer.mt-8 {
   .page-nav-right {
     color: #595959;
     font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+
+    .page-nav-version {
+      margin-right: 4px;
+    }
+
+    .theme-divider {
+      width: 1px;
+      height: 16px;
+      background: #00000014;
+    }
+
+    .theme-toggle-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: #595959;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 0;
+
+      &:hover {
+        background: #e6e8eb;
+      }
+
+      svg {
+        width: 20px;
+        height: 20px;
+      }
+    }
   }
 }
 
@@ -172,7 +212,7 @@ footer.mt-8 {
     flex-direction: row;
     flex-grow: 1;
     overflow: hidden;
-    background: #FFF;
+    background: #fff;
     border-radius: 16px;
   }
 
@@ -211,5 +251,69 @@ footer.mt-8 {
   .json-content {
     word-wrap: break-word;
     white-space: pre-wrap;
+  }
+}
+
+// Dark mode styles
+[data-theme='dark'] {
+  background: #141414;
+
+  .page-container {
+    color: #f8fafd;
+    border-top-color: rgba(255, 255, 255, 0.12);
+    border-bottom-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .page-nav {
+    .page-nav-title {
+      color: #f8fafd;
+    }
+  }
+
+  .cost-str {
+    color: #f8fafd;
+  }
+
+  .page-nav-right {
+    color: #f8fafd;
+
+    .theme-divider {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .theme-toggle-button {
+      color: #f8fafd;
+
+      &:hover {
+        background: #2c2e31;
+      }
+    }
+  }
+
+  .page-nav-title-hint {
+    color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  .main-right {
+    background: #1f1f1f;
+
+    .main-right-header {
+      color: #f8fafd;
+    }
+  }
+
+  .main-content {
+    background: #1f1f1f;
+  }
+
+  .main-content-container {
+    background: #1f1f1f;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .replay-all-mode-wrapper .player-tools-wrapper {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
   }
 }

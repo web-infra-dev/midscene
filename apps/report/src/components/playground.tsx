@@ -1,5 +1,5 @@
 import type { DeviceAction, UIContext } from '@midscene/core';
-import { PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
+import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
 import {
   ContextPreview,
@@ -18,8 +18,10 @@ import type { StaticPageAgent } from '@midscene/web/static';
 import { Form, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-
-type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
+import {
+  type ServiceModeType,
+  getReportPlaygroundSDK,
+} from '../utils/report-playground-utils';
 
 // Constants
 const PROGRESS_POLL_INTERVAL = 500;
@@ -30,23 +32,6 @@ const blankResult = {
   dump: null,
   reportHTML: null,
   error: null,
-};
-
-// Initialize PlaygroundSDK instances for different service modes
-const getPlaygroundSDK = (serviceMode: ServiceModeType, agent?: any) => {
-  if (serviceMode === 'Server') {
-    return new PlaygroundSDK({
-      type: 'remote-execution',
-    });
-  }
-  // For In-Browser and In-Browser-Extension modes, use local execution
-  if (!agent) {
-    throw new Error('Agent is required for local execution mode');
-  }
-  return new PlaygroundSDK({
-    type: 'local-execution',
-    agent,
-  });
 };
 
 // Utility function to determine if the run button should be enabled
@@ -110,7 +95,9 @@ export function StandardPlayground({
   useEffect(() => {
     if (serviceMode === 'Server') {
       // For server mode, we don't need agent initially
-      playgroundSDK.current = getPlaygroundSDK(serviceMode as ServiceModeType);
+      playgroundSDK.current = getReportPlaygroundSDK(
+        serviceMode as ServiceModeType,
+      );
     }
     // For In-Browser mode, we'll initialize PlaygroundSDK when we actually need it
     // to ensure we use the same agent instance
@@ -121,7 +108,7 @@ export function StandardPlayground({
     (agent: any) => {
       // Only recreate if agent has changed or SDK doesn't exist
       if (!playgroundSDK.current || currentAgent.current !== agent) {
-        playgroundSDK.current = getPlaygroundSDK(
+        playgroundSDK.current = getReportPlaygroundSDK(
           serviceMode as ServiceModeType,
           agent,
         );
@@ -336,9 +323,10 @@ export function StandardPlayground({
           },
         );
         if (response && typeof response === 'object' && 'result' in response) {
-          result.result = response.result;
-          result.dump = response.dump;
-          result.reportHTML = response.reportHTML;
+          const serverResponse = response as ServerResponse;
+          result.result = serverResponse.result;
+          result.dump = serverResponse.dump;
+          result.reportHTML = serverResponse.reportHTML;
         } else {
           result.result = response;
         }

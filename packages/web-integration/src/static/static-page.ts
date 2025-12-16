@@ -28,16 +28,7 @@ export default class StaticPage implements AbstractInterface {
   private uiContext: WebUIContext;
 
   constructor(uiContext: WebUIContext) {
-    if (uiContext.tree) {
-      this.uiContext = uiContext;
-    } else {
-      this.uiContext = Object.assign(uiContext, {
-        tree: {
-          node: null,
-          children: [],
-        },
-      });
-    }
+    this.uiContext = uiContext;
   }
 
   actionSpace(): DeviceAction[] {
@@ -79,10 +70,6 @@ export default class StaticPage implements AbstractInterface {
 
   async getElementsNodeTree() {
     return ThrowNotImplemented('getElementsNodeTree');
-  }
-
-  async getXpathsById(id: string) {
-    return ThrowNotImplemented('getXpathsById');
   }
 
   async getXpathsByPoint(point: Point) {

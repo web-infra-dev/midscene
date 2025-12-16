@@ -1,5 +1,5 @@
 import { writeFileSync } from 'node:fs';
-import Insight, { type Rect } from '@midscene/core';
+import Service, { type Rect } from '@midscene/core';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
@@ -28,14 +28,13 @@ let resultCollector: TestResultCollector;
 
 let failCaseThreshold = 2;
 if (process.env.CI) {
-  failCaseThreshold = globalModelConfigManager.getModelConfig('grounding')
-    .vlMode
+  failCaseThreshold = globalModelConfigManager.getModelConfig('insight').vlMode
     ? 2
     : 3;
 }
 
 beforeAll(async () => {
-  const modelConfig = globalModelConfigManager.getModelConfig('grounding');
+  const modelConfig = globalModelConfigManager.getModelConfig('insight');
 
   const { vlMode, modelName } = modelConfig;
 
@@ -77,7 +76,7 @@ testSources.forEach((source) => {
         const prompt = testCase.prompt;
         const startTime = Date.now();
 
-        const insight = new Insight(context);
+        const service = new Service(context);
 
         let result: Awaited<ReturnType<typeof insight.locate>> | Error;
         try {

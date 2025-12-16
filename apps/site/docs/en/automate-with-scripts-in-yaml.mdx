@@ -34,83 +34,13 @@ You can find a sample project that uses YAML scripts for automation here:
 
 <SetupEnv />
 
-Alternatively, you can use a `.env` file in the same directory where you run the command to store your configuration. The Midscene command-line tool will automatically load it when running a YAML script.
-
-```ini filename=.env
-OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-## Install the command-line tool
-
-Install `@midscene/cli` globally:
-
-```bash
-npm i -g @midscene/cli
-# Or install it within your project
-npm i @midscene/cli --save-dev
-```
-
-Create a file named `bing-search.yaml` to drive a web browser automation task:
-
-```yaml
-web:
-  url: https://www.bing.com
-
-tasks:
-  - name: Search for weather
-    flow:
-      - ai: Search for "today's weather"
-      - sleep: 3000
-      - aiAssert: The results show weather information
-```
-
-Or, to drive an Android device automation task (requires the device to be connected via adb):
-
-```yaml
-android:
-  # launch: https://www.bing.com
-  deviceId: s4ey59
-
-tasks:
-  - name: Search for weather
-    flow:
-      - ai: Open the browser and navigate to bing.com
-      - ai: Search for "today's weather"
-      - sleep: 3000
-      - aiAssert: The results show weather information
-```
-
-Or, to drive an iOS device automation task (requires WebDriverAgent configuration):
-
-```yaml
-ios:
-  # launch: com.apple.mobilesafari
-  wdaPort: 8100
-
-tasks:
-  - name: Search for weather
-    flow:
-      - ai: Open the browser and navigate to bing.com
-      - ai: Search for "today's weather"
-      - sleep: 3000
-      - aiAssert: The results show weather information
-```
-
-Run the script:
-
-```bash
-midscene ./bing-search.yaml
-# Or if you installed Midscene in your project
-npx midscene ./bing-search.yaml
-```
-
-You will see the script's execution progress and the visual report file.
+To execute YAML workflows from the command line, install the Midscene CLI. See [Command line tools](./command-line-tools) for installation guidance, `.env` usage, and details on the `midscene` runner.
 
 ## Script file structure
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-A standard `.yaml` script file includes a `web`, `android`, or `ios` section to configure the environment, and a `tasks` section to define the automation tasks.
+A standard `.yaml` script file includes a `web`, `android`, or `ios` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
 
 ```yaml
 web:
@@ -124,6 +54,50 @@ tasks:
       - sleep: 3000
       - aiAssert: The results show weather information
 ```
+
+
+### The `agent` part
+
+If you need to use the `aiActionContext` parameter, you can set it through the `agent` section:
+
+```yaml
+# AI agent configuration
+agent:
+  # Background knowledge to send to the AI model when calling aiAct, optional.
+  aiActionContext: <string>
+```
+
+:::tip aiActionContext configuration
+
+- **Applicable environments**: Web, iOS, and Android environments can all use the `agent` section to set `aiActionContext`
+- **Purpose**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
+
+:::
+
+#### Usage example
+
+```yaml
+# agent configuration, applies to all environments
+agent:
+  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
+
+# iOS environment configuration
+ios:
+  launch: https://www.bing.com
+  wdaPort: 8100
+
+# Or Android environment configuration
+android:
+  deviceId: s4ey59
+  launch: https://www.bing.com
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Search for "today's weather"
+      - aiAssert: The results show weather information
+```
+
 
 ### The `web` part
 
@@ -176,48 +150,6 @@ web:
   acceptInsecureCerts: <boolean>
 ```
 
-### Global agent configuration
-
-If you need to use the `aiActionContext` parameter, you can set it through the global `agent` configuration:
-
-```yaml
-# Global AI agent configuration
-agent:
-  # Background knowledge to send to the AI model when calling aiAction, optional.
-  aiActionContext: <string>
-```
-
-:::tip aiActionContext configuration
-
-- **Applicable environments**: Web, iOS, and Android environments can all use the global `agent` configuration to set `aiActionContext`
-- **Purpose**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
-
-:::
-
-#### Usage example
-
-```yaml
-# Global agent configuration, applies to all environments
-agent:
-  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
-
-# iOS environment configuration
-ios:
-  launch: https://www.bing.com
-  wdaPort: 8100
-
-# Or Android environment configuration
-android:
-  deviceId: s4ey59
-  launch: https://www.bing.com
-
-tasks:
-  - name: Search for weather
-    flow:
-      - ai: Search for "today's weather"
-      - aiAssert: The results show weather information
-```
-
 ### The `android` part
 
 ```yaml
@@ -230,6 +162,65 @@ android:
 
   # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
   output: <path-to-output-file>
+
+  # All other options supported by the AndroidDevice constructor
+  # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
+  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
+  # screenshotResizeScale, alwaysRefreshScreenInfo, etc.
+  # See the AndroidDevice constructor documentation for the complete list
+```
+
+:::tip View Complete Android Configuration Options
+
+YAML scripts now support all configuration options from the `AndroidDevice` constructor. For the complete list of options, please refer to [AndroidDevice Constructor in Android Integration Documentation](./android-getting-started#androiddevice-constructor).
+
+:::
+
+#### Android Platform-Specific Actions
+
+**`runAdbShell` - Execute ADB Shell Commands**
+
+Execute ADB shell commands on Android devices.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Clear app data
+    flow:
+      - runAdbShell: 'pm clear com.example.app'
+
+  - name: Get battery info
+    flow:
+      - runAdbShell: 'dumpsys battery'
+```
+
+**Common ADB Shell Commands:**
+- `pm clear <package>` - Clear app data
+- `dumpsys battery` - Get battery information
+- `dumpsys window` - Get window information
+- `settings get secure android_id` - Get device ID
+- `input keyevent <keycode>` - Send key events
+
+**`launch` - Launch App or URL**
+
+Launch Android apps or open URLs.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Launch Settings app
+    flow:
+      - launch:
+          uri: com.android.settings
+
+  - name: Open webpage
+    flow:
+      - launch:
+          uri: https://www.example.com
 ```
 
 ### The `ios` part
@@ -253,6 +244,71 @@ ios:
 
   # Whether to save log content to a JSON file, optional, defaults to `false`. If true, saves to `unstableLogContent.json`. If a string, saves to the specified path. The log content structure may change in the future.
   unstableLogContent: <boolean | path-to-unstable-log-file>
+
+  # All other options supported by the IOSDevice constructor
+  # See the IOSDevice constructor documentation for the complete list
+```
+
+:::tip View Complete iOS Configuration Options
+YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice constructor in the iOS API reference](./ios-api-reference#iosdevice-constructor).
+:::
+
+#### iOS Platform-Specific Actions
+
+**`runWdaRequest` - Execute WebDriverAgent API Requests**
+
+Execute WebDriverAgent API requests directly on iOS devices.
+
+```yaml
+ios:
+  launch: 'com.apple.mobilesafari'
+
+tasks:
+  - name: Press home button via WDA
+    flow:
+      - runWdaRequest:
+          method: POST
+          endpoint: /session/test/wda/pressButton
+          data:
+            name: home
+
+  - name: Get device information
+    flow:
+      - runWdaRequest:
+          method: GET
+          endpoint: /wda/device/info
+```
+
+**Parameters:**
+- `method` (string, required): HTTP method (GET, POST, DELETE, etc.)
+- `endpoint` (string, required): WebDriverAgent API endpoint
+- `data` (any, optional): Request body data
+
+**Common WebDriverAgent Endpoints:**
+- `/wda/screen` - Get screen information
+- `/wda/device/info` - Get device information
+- `/session/{sessionId}/wda/pressButton` - Press hardware buttons
+- `/session/{sessionId}/wda/apps/launch` - Launch apps
+- `/session/{sessionId}/wda/apps/activate` - Activate apps
+
+**`launch` - Launch App or URL**
+
+Launch iOS apps or open URLs.
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: Launch Settings app
+    flow:
+      - launch:
+          uri: com.apple.Preferences
+
+  - name: Open webpage
+    flow:
+      - launch:
+          uri: https://www.example.com
 ```
 
 ### The `tasks` part
@@ -269,12 +325,13 @@ tasks:
       # Auto Planning (.ai)
       # ----------------
 
-      # Perform an interaction. `ai` is a shorthand for `aiAction`.
+      # Perform an interaction. `ai` is a shorthand for `aiAct`.
       - ai: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # This usage is the same as `ai`.
-      - aiAction: <prompt>
+      # Note: In earlier versions, this was also written as `aiAction`. The current version supports both names.
+      - aiAct: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Instant Action (.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
@@ -308,16 +365,16 @@ tasks:
 
       # Scroll globally or on an element described by a prompt.
       - aiScroll:
-        direction: 'up' # or 'down' | 'left' | 'right'
-        scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
-        distance: <number> # Optional, the scroll distance in pixels.
+        direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'.
+        scrollType: 'singleAction' # or 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'. Defaults to 'singleAction'.
+        distance: <number> # Optional, the scroll distance in pixels. Use null to let Midscene decide automatically.
         locate: <prompt> # Optional, the element to scroll on.
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Log the current screenshot with a description in the report file.
-      - logScreenshot: <title> # Optional, the title of the screenshot. If not provided, the title will be 'untitled'.
+      - recordToReport: <title> # Optional, the title of the screenshot. If not provided, the title will be 'untitled'.
         content: <content> # Optional, the description of the screenshot.
 
       # Data Extraction
@@ -384,7 +441,7 @@ tasks:
             convertHttpImage2Base64: true
 ```
 
-For VQA steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
+For insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
 
 ```yaml
 tasks:
@@ -397,179 +454,3 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
-
-## Advanced usage of the command-line tool
-
-`@midscene/cli` provides flexible ways to run your automation scripts.
-
-### Run one or more scripts
-
-You can pass a single `.yaml` script file or use a glob pattern to match multiple `.yaml` files to the `midscene` command. This is a shorthand for the `--files` argument.
-
-```bash
-# Run a single script
-midscene ./bing-search.yaml
-
-# Use a glob pattern to run all matching scripts
-midscene './scripts/**/*.yaml'
-```
-
-### Command-line options
-
-The command-line tool provides several options to control the execution behavior of your scripts.
-
-- `--files <file1> <file2> ...`: Specifies a list of script files to execute, which will be run in order. Supports glob patterns, following the syntax supported by [glob](https://www.npmjs.com/package/glob).
-- `--concurrent <number>`: Sets the number of concurrent executions. Defaults to `1`.
-- `--continue-on-error`: If this flag is set, it will continue to run the remaining scripts even if one fails. Defaults to off.
-- `--share-browser-context`: Shares the same browser context (e.g., Cookies and `localStorage`) across all scripts. This is very useful for sequential tests that require a login state. Defaults to off.
-- `--summary <filename>`: Specifies the path for the generated JSON format summary report file.
-- `--headed`: Runs the script in a browser with a graphical user interface, rather than in headless mode.
-- `--keep-window`: Keeps the browser window open after the script execution is complete. This option automatically enables `--headed` mode.
-- `--config <filename>`: Specifies a configuration file. Parameters in the config file will be used as default values for the command-line arguments.
-- `--web.userAgent <ua>`: Sets the browser UA, which will override the `web.userAgent` parameter in all script files.
-- `--web.viewportWidth <width>`: Sets the browser viewport width, which will override the `web.viewportWidth` parameter in all script files.
-- `--web.viewportHeight <height>`: Sets the browser viewport height, which will override the `web.viewportHeight` parameter in all script files.
-- `--android.deviceId <device-id>`: Sets the Android device ID, which will override the `android.deviceId` parameter in all script files.
-- `--ios.wdaPort <port>`: Sets the WebDriverAgent port, which will override the `ios.wdaPort` parameter in all script files.
-- `--ios.wdaHost <host>`: Sets the WebDriverAgent host address, which will override the `ios.wdaHost` parameter in all script files.
-- `--dotenv-debug`: Sets the debug log for dotenv, disabled by default.
-- `--dotenv-override`: Sets whether dotenv overrides global environment variables with the same name, disabled by default.
-
-Examples:
-
-Use the `--files` argument to specify the file order and run in parallel.
-
-```bash
-midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
-```
-
-Run all scripts with a concurrency of 4 and continue on any file error.
-
-```bash
-midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
-```
-
-### Writing command-line arguments in a file
-
-You can write a configuration file in YAML format and reference it with `--config`. When invoking the command-line tool, command-line arguments have higher priority than the configuration file.
-
-```yaml
-files:
-  - './scripts/login.yaml'
-  - './scripts/search.yaml'
-  - './scripts/**/*.yaml'
-
-concurrent: 4
-continueOnError: true
-shareBrowserContext: true
-```
-
-Usage:
-
-```bash
-midscene --config ./config.yaml
-```
-
-## More features
-
-### Using environment variables in `.yaml` files
-
-You can use environment variables in your `.yaml` files with the `${variable-name}` syntax.
-
-For example, if you have a `.env` file with the following content:
-
-```ini filename=.env
-topic=weather today
-```
-
-You can use the environment variable in your `.yaml` file like this:
-
-```yaml
-#...
-- ai: type ${topic} in input box
-#...
-```
-
-### Running in headed mode
-
-> `web` scenarios only
-
-'Headed' mode means the browser window will be visible. By default, scripts run in headless mode.
-
-To run in headed mode, you can use the `--headed` option. Additionally, if you want to keep the browser window open after the script finishes, you can use the `--keep-window` option. The `--keep-window` option automatically enables `--headed` mode.
-
-Headed mode consumes more resources, so it is recommended to use it only locally.
-
-```bash
-# Run in headed mode
-midscene /path/to/yaml --headed
-
-# Run in headed mode and keep the browser window open afterward
-midscene /path/to/yaml --keep-window
-```
-
-### Using bridge mode
-
-> `web` scenarios only
-
-By using bridge mode, you can leverage YAML scripts to automate your existing desktop browser. This is particularly useful for reusing cookies, plugins, and page states, or for interacting manually with automation scripts.
-
-To use bridge mode, you first need to install the Chrome extension and then use the following configuration in the `target` section:
-
-```diff
-web:
-  url: https://www.bing.com
-+ bridgeMode: newTabWithUrl
-```
-
-Please refer to [Bridge Mode via Chrome Extension](./bridge-mode-by-chrome-extension) for more details.
-
-### Running YAML scripts with JavaScript
-
-You can also run a YAML script using JavaScript by calling the [`runYaml`](./api.html#runyaml) method on the Agent. Note that this method will only execute the `tasks` part of the YAML script.
-
-### Analyzing command-line tool results
-
-After execution is complete, the following files will be generated in the output directory:
-
-- The file path specified by the `--summary` option (defaults to `index.json`), containing the execution status and statistics of all files.
-- The individual execution results of each YAML file (in JSON format).
-- The visual reports for each file (in HTML format).
-
-## Configure dotenv's default behavior
-
-Midscene uses [`dotenv`](https://github.com/motdotla/dotenv) to load environment variables from a `.env` file.
-
-### Disable dotenv's debug logs
-
-By default, Midscene prints debug information from dotenv. If you don't want to see this information, you can use the `--dotenv-debug` option to disable it.
-
-```bash
-midscene /path/to/yaml --dotenv-debug=false
-```
-
-### Use .env to override global environment variables
-
-By default, `dotenv` will not override global environment variables with the same name found in the `.env` file. If you want to override them, you can use the `--dotenv-override` option.
-
-```bash
-midscene /path/to/yaml --dotenv-override=true
-```
-
-## FAQ
-
-**How can I get cookies in JSON format from Chrome?**
-
-You can use this [Chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies in JSON format.
-
-**How can I open the debug log for dotenv?**
-
-Midscene uses `dotenv` to load environment variables from a `.env` file. You can use the `--dotenv-debug` option to open the debug log for dotenv.
-
-```bash
-midscene /path/to/yaml --dotenv-debug=true
-```
-
-## More
-
-You might also be interested in [Prompting Tips](./prompting-tips).

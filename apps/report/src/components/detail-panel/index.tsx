@@ -1,38 +1,74 @@
 'use client';
 import './index.less';
-import { useExecutionDump } from '@/components/store';
+import { isElementField, useExecutionDump } from '@/components/store';
 import {
   CameraOutlined,
   FileTextOutlined,
-  ScheduleOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import type {
-  ExecutionTaskInsightLocate,
   ExecutionTaskPlanning,
+  ExecutionTaskPlanningLocate,
 } from '@midscene/core';
-import { filterBase64Value, timeStr } from '@midscene/visualizer';
+import { filterBase64Value } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
-import { Segmented, Tooltip } from 'antd';
+import { Segmented } from 'antd';
 import { useEffect, useState } from 'react';
+import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
 
-const ScreenshotItem = (props: { time: string; img: string }) => {
+const ScreenshotItem = (props: {
+  title: string;
+  img?: string;
+  children?: React.ReactNode;
+}) => {
   return (
     <div className="screenshot-item">
-      <div className="screenshot-item-title">{props.time}</div>
-      <div>
-        <img src={props.img} alt="screenshot" />
-      </div>
+      <div className="screenshot-item-title">{props.title}</div>
+      {props.img && (
+        <div>
+          <img src={props.img} alt="screenshot" />
+        </div>
+      )}
+      {props.children && <div>{props.children}</div>}
     </div>
   );
 };
 
 const VIEW_TYPE_REPLAY = 'replay';
-const VIEW_TYPE_BLACKBOARD = 'blackboard';
 const VIEW_TYPE_SCREENSHOT = 'screenshot';
 const VIEW_TYPE_JSON = 'json';
+
+// Helper function to recursively extract all elements from param
+const extractElementsFromParam = (param: any): any[] => {
+  const elements: any[] = [];
+
+  const traverse = (value: any) => {
+    if (!value) return;
+
+    // Check if it's an element field
+    if (isElementField(value)) {
+      elements.push(value);
+      return;
+    }
+
+    // Check if it's an array
+    if (Array.isArray(value)) {
+      value.forEach((item) => traverse(item));
+      return;
+    }
+
+    // Check if it's an object
+    if (typeof value === 'object' && value !== null) {
+      Object.values(value).forEach((val) => traverse(val));
+      return;
+    }
+  };
+
+  traverse(param);
+  return elements;
+};
 
 const DetailPanel = (): JSX.Element => {
   const insightDump = useExecutionDump((store) => store.insightDump);
@@ -42,7 +78,6 @@ const DetailPanel = (): JSX.Element => {
     (store) => store._executionDumpLoadId,
   );
   const activeTask = useExecutionDump((store) => store.activeTask);
-  const blackboardViewAvailable = Boolean(activeTask?.uiContext);
   const [preferredViewType, setViewType] = useState(VIEW_TYPE_REPLAY);
   const animationScripts = useExecutionDump(
     (store) => store.activeExecutionAnimation,
@@ -55,14 +90,8 @@ const DetailPanel = (): JSX.Element => {
     (activeTask?.uiContext as WebUIContext)?._isFrozen,
   );
 
-  let availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
-  if (blackboardViewAvailable) {
-    availableViewTypes = [
-      VIEW_TYPE_BLACKBOARD,
-      VIEW_TYPE_SCREENSHOT,
-      VIEW_TYPE_JSON,
-    ];
-  }
+  const availableViewTypes = [VIEW_TYPE_SCREENSHOT, VIEW_TYPE_JSON];
+
   if (
     activeTask?.type === 'Planning' &&
     animationScripts &&
@@ -94,48 +123,97 @@ const DetailPanel = (): JSX.Element => {
         {filterBase64Value(JSON.stringify(activeTask, undefined, 2))}
       </div>
     );
-  } else if (viewType === VIEW_TYPE_BLACKBOARD) {
-    if (blackboardViewAvailable) {
-      let highlightElements;
-
-      if (insightDump?.matchedElement) {
-        highlightElements = insightDump?.matchedElement;
-      } else {
-        highlightElements = (activeTask as ExecutionTaskInsightLocate).output
-          ?.element // hit cache
-          ? [activeTask.output.element]
-          : [];
-      }
-      content = (
-        <Blackboard
-          uiContext={activeTask.uiContext as WebUIContext}
-          highlightElements={highlightElements}
-          highlightRect={insightDump?.taskInfo?.searchArea}
-          key={`${_contextLoadId}`}
-        />
-      );
-    } else {
-      content = <div>invalid view</div>;
-    }
   } else if (viewType === VIEW_TYPE_SCREENSHOT) {
+    const screenshotItems: {
+      timestamp?: number;
+      screenshot: string;
+      timing?: string;
+    }[] = [];
+
+    // locator view
+    let contextLocatorView;
+    let highlightElements: any[] = [];
+
+    if (
+      isElementField(
+        (activeTask as ExecutionTaskPlanningLocate).output?.element,
+      )
+    ) {
+      // hit cache
+      highlightElements = [activeTask.output.element];
+    }
+
+    // Extract elements from param
+    if (activeTask.param) {
+      // For Planning tasks, extract from output.actions[0].param
+      const paramElements = extractElementsFromParam(
+        activeTask.output?.actions?.[0]?.param,
+      );
+      highlightElements = [...highlightElements, ...paramElements];
+    }
+
+    // For Action Space tasks (tap, scroll, etc.), extract from param.locate
+    if (activeTask.type === 'Action Space' && activeTask.param) {
+      const locateElements = extractElementsFromParam(activeTask.param);
+      highlightElements = [...highlightElements, ...locateElements];
+    }
+
+    contextLocatorView =
+      highlightElements.length > 0 ? (
+        <ScreenshotItem
+          title={isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'}
+        >
+          <Blackboard
+            key={`${_contextLoadId}`}
+            uiContext={activeTask.uiContext as WebUIContext}
+            highlightElements={highlightElements}
+            highlightRect={insightDump?.taskInfo?.searchArea}
+          />
+        </ScreenshotItem>
+      ) : null;
+
+    // screenshot view
+    const screenshotFromContext = activeTask.uiContext?.screenshotBase64;
+    if (screenshotFromContext) {
+      screenshotItems.push({
+        timestamp: activeTask.timing?.start ?? undefined,
+        screenshot: screenshotFromContext,
+        timing: 'before-calling',
+      });
+    }
+
     if (activeTask.recorder?.length) {
+      for (const item of activeTask.recorder) {
+        if (item.screenshot) {
+          screenshotItems.push({
+            timestamp: item.ts,
+            screenshot: item.screenshot,
+            timing: item.timing,
+          });
+        }
+      }
+    }
+
+    if (screenshotItems.length > 0 || contextLocatorView) {
       content = (
         <div className="screenshot-item-wrapper scrollable">
-          {activeTask.recorder
-            .filter((item) => item.screenshot)
-            .map((item, index) => {
-              const fullTime = timeStr(item.ts);
-              const str = item.timing
-                ? `${fullTime} / ${item.timing}`
-                : fullTime;
-              return (
-                <ScreenshotItem key={index} time={str} img={item.screenshot!} />
-              );
-            })}
+          {contextLocatorView && <div>{contextLocatorView}</div>}
+          {screenshotItems.map((item) => {
+            const time = item.timing
+              ? `${fullTimeStrWithMilliseconds(item.timestamp)} / ${item.timing}`
+              : fullTimeStrWithMilliseconds(item.timestamp);
+            return (
+              <ScreenshotItem
+                key={item.timestamp}
+                title={time}
+                img={item.screenshot}
+              />
+            );
+          })}
         </div>
       );
     } else {
-      content = <div>no screenshot</div>; // TODO: pretty error message
+      content = <div>No screenshot</div>;
     }
   }
 
@@ -165,17 +243,6 @@ const DetailPanel = (): JSX.Element => {
         label: 'Replay',
         value: type,
         icon: <VideoCameraOutlined />,
-      };
-    }
-    if (type === VIEW_TYPE_BLACKBOARD) {
-      return {
-        label: isPageContextFrozen ? (
-          <Tooltip title="Current uiContext is frozen">Insight 🧊</Tooltip>
-        ) : (
-          'Insight'
-        ),
-        value: type,
-        icon: <ScheduleOutlined />,
       };
     }
     if (type === VIEW_TYPE_SCREENSHOT) {

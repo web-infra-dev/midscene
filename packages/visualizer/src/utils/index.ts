@@ -4,6 +4,10 @@ export function timeStr(timestamp?: number) {
   return timestamp ? dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss') : '-';
 }
 
+export function fullTimeStrWithMilliseconds(timestamp?: number) {
+  return timestamp ? dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss.SSS') : '-';
+}
+
 export function filterBase64Value(input: string) {
   return input.replace(/data:image\/[^"]+"/g, 'data:image..."');
 }

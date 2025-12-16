@@ -1,6 +1,10 @@
 import './App.less';
-import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
+  PLAYGROUND_SERVER_PORT,
+  SCRCPY_SERVER_PORT,
+} from '@midscene/shared/constants';
+import {
+  ScreenshotViewer,
   globalThemeConfig,
   safeOverrideAIConfig,
   useEnvConfig,
@@ -17,6 +21,13 @@ import ScrcpyPlayer, {
 
 const { Content } = Layout;
 
+// Helper function to detect if device is remote (IP:Port format)
+const isRemoteDevice = (deviceId: string | null): boolean => {
+  if (!deviceId) return false;
+  // Remote device format: IP:Port (e.g., 192.168.1.10:5555)
+  return /^\d+\.\d+\.\d+\.\d+:\d+$/.test(deviceId);
+};
+
 export default function App() {
   // Device and connection state - now simplified since device is pre-selected
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
@@ -26,6 +37,7 @@ export default function App() {
     `http://localhost:${SCRCPY_SERVER_PORT}`,
   );
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [usePollingMode, setUsePollingMode] = useState(false);
 
   // Configuration state
   const { config } = useEnvConfig();
@@ -125,6 +137,11 @@ export default function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Detect if device is remote and switch to polling mode
+  useEffect(() => {
+    setUsePollingMode(isRemoteDevice(selectedDeviceId));
+  }, [selectedDeviceId]);
+
   return (
     <ConfigProvider theme={globalThemeConfig()}>
       {contextHolder}
@@ -157,11 +174,28 @@ export default function App() {
                   selectedDeviceId={selectedDeviceId}
                   scrcpyPlayerRef={scrcpyPlayerRef}
                 />
-                <ScrcpyPlayer
-                  ref={scrcpyPlayerRef}
-                  serverUrl={serverUrl}
-                  autoConnect={connectToDevice}
-                />
+                {!usePollingMode ? (
+                  <ScrcpyPlayer
+                    ref={scrcpyPlayerRef}
+                    serverUrl={serverUrl}
+                    autoConnect={connectToDevice}
+                  />
+                ) : (
+                  <ScreenshotViewer
+                    getScreenshot={() =>
+                      fetch(
+                        `http://localhost:${PLAYGROUND_SERVER_PORT}/screenshot`,
+                      ).then((r) => r.json())
+                    }
+                    getInterfaceInfo={() =>
+                      fetch(
+                        `http://localhost:${PLAYGROUND_SERVER_PORT}/interface-info`,
+                      ).then((r) => r.json())
+                    }
+                    serverOnline={true}
+                    isUserOperating={false}
+                  />
+                )}
               </div>
             </Panel>
           </PanelGroup>

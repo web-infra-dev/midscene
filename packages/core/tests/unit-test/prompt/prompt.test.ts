@@ -109,12 +109,27 @@ describe('action space', () => {
 });
 
 describe('system prompts', () => {
-  it('planning - 4o', async () => {
+  it('planning - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       vlMode: undefined,
+      includeBbox: false,
+      thinkingStrategy: 'cot',
     });
     expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - should throw error when includeBbox is true but vlMode is undefined', async () => {
+    await expect(
+      systemPromptToTaskPlanning({
+        actionSpace: mockActionSpace,
+        vlMode: undefined,
+        includeBbox: true,
+        thinkingStrategy: 'cot',
+      }),
+    ).rejects.toThrow(
+      'vlMode cannot be undefined when includeBbox is true. A valid vlMode is required for bbox-based location.',
+    );
   });
 
   it('planning - 4o - response format', () => {
@@ -122,10 +137,22 @@ describe('system prompts', () => {
     expect(schema).toMatchSnapshot();
   });
 
-  it('planning - qwen', async () => {
+  it('planning - qwen - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen2.5-vl',
+      includeBbox: true,
+      thinkingStrategy: 'cot',
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - qwen - thinking=off', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      vlMode: 'qwen2.5-vl',
+      includeBbox: true,
+      thinkingStrategy: 'off',
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -134,6 +161,8 @@ describe('system prompts', () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       vlMode: 'gemini',
+      includeBbox: true,
+      thinkingStrategy: 'cot',
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -141,7 +170,9 @@ describe('system prompts', () => {
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen-vl',
+      vlMode: 'qwen2.5-vl',
+      includeBbox: true,
+      thinkingStrategy: 'cot',
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -152,7 +183,7 @@ describe('system prompts', () => {
   });
 
   it('section locator - qwen', () => {
-    const prompt = systemPromptToLocateSection('qwen-vl');
+    const prompt = systemPromptToLocateSection('qwen2.5-vl');
     expect(prompt).toMatchSnapshot();
   });
 
@@ -162,7 +193,7 @@ describe('system prompts', () => {
   });
 
   it('locator - qwen', () => {
-    const prompt = systemPromptToLocateElement('qwen-vl');
+    const prompt = systemPromptToLocateElement('qwen2.5-vl');
     expect(prompt).toMatchSnapshot();
   });
 

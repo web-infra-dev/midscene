@@ -1,16 +1,71 @@
+import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import { IOSDevice, type IOSDeviceOpt } from './device';
+import {
+  type DeviceActionIOSAppSwitcher,
+  type DeviceActionIOSHomeButton,
+  type DeviceActionLaunch,
+  type DeviceActionRunWdaRequest,
+  IOSDevice,
+  type IOSDeviceOpt,
+} from './device';
 import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
 
 type IOSAgentOpt = AgentOpt;
 
+type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
+  ? []
+  : [ActionParam<T>];
+
+/**
+ * Helper type to convert DeviceAction to wrapped method signature
+ */
+type WrappedAction<T extends DeviceAction> = (
+  ...args: ActionArgs<T>
+) => Promise<ActionReturn<T>>;
+
 export class IOSAgent extends PageAgent<IOSDevice> {
-  async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
+  /**
+   * Launch an iOS app or URL
+   * Type-safe wrapper around the Launch action from actionSpace
+   */
+  launch!: WrappedAction<DeviceActionLaunch>;
+
+  /**
+   * Execute WebDriverAgent API request directly
+   * Type-safe wrapper around the RunWdaRequest action from actionSpace
+   */
+  runWdaRequest!: WrappedAction<DeviceActionRunWdaRequest>;
+
+  /**
+   * Trigger the system home operation on iOS devices
+   */
+  home!: WrappedAction<DeviceActionIOSHomeButton>;
+
+  /**
+   * Trigger the system app switcher operation on iOS devices
+   */
+  appSwitcher!: WrappedAction<DeviceActionIOSAppSwitcher>;
+
+  constructor(device: IOSDevice, opts?: IOSAgentOpt) {
+    super(device, opts);
+    this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
+    this.runWdaRequest =
+      this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
+    this.home =
+      this.createActionWrapper<DeviceActionIOSHomeButton>('IOSHomeButton');
+    this.appSwitcher =
+      this.createActionWrapper<DeviceActionIOSAppSwitcher>('IOSAppSwitcher');
+  }
+
+  private createActionWrapper<T extends DeviceAction>(
+    name: string,
+  ): WrappedAction<T> {
+    const action = this.wrapActionInActionSpace<T>(name);
+    return ((...args: ActionArgs<T>) =>
+      action(args[0] as ActionParam<T>)) as WrappedAction<T>;
   }
 }
 
@@ -25,13 +80,8 @@ export async function agentFromWebDriverAgent(
     throw new Error(`iOS environment not available: ${envCheck.error}`);
   }
 
-  const device = new IOSDevice({
-    autoDismissKeyboard: opts?.autoDismissKeyboard,
-    customActions: opts?.customActions,
-    wdaPort: opts?.wdaPort,
-    wdaHost: opts?.wdaHost,
-    useWDA: opts?.useWDA,
-  });
+  // Pass all device options to IOSDevice constructor, ensuring we pass an empty object if opts is undefined
+  const device = new IOSDevice(opts || {});
 
   await device.connect();
 

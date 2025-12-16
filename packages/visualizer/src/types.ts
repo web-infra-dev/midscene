@@ -81,7 +81,7 @@ export const VALIDATION_CONSTANTS = {
     LOCATION: 'midscene_location_field_flag',
   },
   DEFAULT_VALUES: {
-    ACTION_TYPE: 'aiAction',
+    ACTION_TYPE: 'aiAct',
     TIMEOUT_MS: 15000,
     CHECK_INTERVAL_MS: 3000,
   },
@@ -249,9 +249,12 @@ export interface StaticPlaygroundProps {
 // service mode type
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
+// device type
+export type DeviceType = 'web' | 'android' | 'ios';
+
 // run type
 export type RunType =
-  | 'aiAction'
+  | 'aiAct'
   | 'aiQuery'
   | 'aiAssert'
   | 'aiTap'
@@ -345,6 +348,7 @@ export interface UniversalPlaygroundConfig {
   enableScrollToBottom?: boolean;
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
+  deviceType?: DeviceType;
 }
 
 // branding interface

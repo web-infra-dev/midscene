@@ -3,9 +3,9 @@ import {
   MIDSCENE_ADB_PATH,
   MIDSCENE_CACHE,
   MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_NAME,
-  MIDSCENE_OPENAI_API_KEY,
-  MIDSCENE_OPENAI_BASE_URL,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
   OPENAI_API_KEY,
@@ -82,8 +82,8 @@ describe('overrideAIConfig', () => {
     expect(() =>
       globalConfigManager.overrideAIConfig({
         [MIDSCENE_MODEL_NAME]: 'gpt-4',
-        [MIDSCENE_OPENAI_API_KEY]: 'sk-test-key',
-        [MIDSCENE_OPENAI_BASE_URL]: 'https://api.openai.com/v1',
+        [MIDSCENE_MODEL_API_KEY]: 'sk-test-key',
+        [MIDSCENE_MODEL_BASE_URL]: 'https://api.openai.com/v1',
         [OPENAI_API_KEY]: 'sk-legacy-key',
         [OPENAI_BASE_URL]: 'https://api.openai.com/v1',
       }),
@@ -306,6 +306,8 @@ describe('getEnvConfigValue', () => {
     vi.stubEnv(MIDSCENE_MODEL_NAME, '<test-model>');
     vi.stubEnv(OPENAI_API_KEY, '<test-openai-api-key>');
     vi.stubEnv(OPENAI_BASE_URL, '<test-openai-base-url>');
+    // Reset MIDSCENE_CACHE to ensure tests start with clean state
+    vi.stubEnv(MIDSCENE_CACHE, '');
   });
 
   afterEach(() => {

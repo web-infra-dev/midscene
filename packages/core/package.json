@@ -1,7 +1,7 @@
 {
   "name": "@midscene/core",
   "description": "Automate browser actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML. See https://midscenejs.com/ for details.",
-  "version": "0.30.10",
+  "version": "1.0.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -72,20 +72,18 @@
     "test:parse-action": "npm run test:ai -- tests/ai/parse-action.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.33.1",
-    "@azure/identity": "4.5.0",
-    "@midscene/recorder": "workspace:*",
+    "@langchain/core": "0.3.26",
     "@midscene/shared": "workspace:*",
     "@ui-tars/action-parser": "1.2.3",
+    "dayjs": "^1.11.11",
     "dotenv": "^16.4.5",
     "https-proxy-agent": "7.0.2",
+    "openai": "6.3.0",
     "jsonrepair": "3.12.0",
-    "langsmith": "0.3.7",
-    "openai": "4.81.0",
-    "socks-proxy-agent": "8.0.4",
-    "zod": "3.24.3",
     "semver": "7.5.2",
-    "js-yaml": "4.1.0"
+    "js-yaml": "4.1.0",
+    "zod": "3.24.3",
+    "socks-proxy-agent": "8.0.4"
   },
   "devDependencies": {
     "@rslib/core": "^0.11.2",

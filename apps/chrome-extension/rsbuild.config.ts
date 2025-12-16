@@ -11,7 +11,13 @@ export default defineConfig({
   tools: {
     rspack: {
       watchOptions: {
-        ignored: /\.git/,
+        ignored: [
+          '**/.git/**',
+          '**/web-ext-profile/**',
+          '**/extension_output/**',
+          'dist/**', // Only ignore THIS app's dist folder, not workspace packages
+          '**/node_modules/**',
+        ],
       },
     },
   },

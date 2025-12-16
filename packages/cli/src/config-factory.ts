@@ -59,7 +59,6 @@ async function expandFilePatterns(
   basePath: string,
 ): Promise<string[]> {
   const allFiles: string[] = [];
-  const seenFiles = new Set<string>();
 
   for (const pattern of patterns) {
     try {
@@ -67,11 +66,10 @@ async function expandFilePatterns(
         cwd: basePath,
       });
 
+      // Add all matched files, including duplicates
+      // This allows users to execute the same file multiple times
       for (const file of yamlFiles) {
-        if (!seenFiles.has(file)) {
-          seenFiles.add(file);
-          allFiles.push(file);
-        }
+        allFiles.push(file);
       }
     } catch (error) {
       console.warn(`Warning: Failed to expand pattern "${pattern}":`, error);

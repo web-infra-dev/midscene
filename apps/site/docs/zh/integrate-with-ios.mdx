@@ -15,7 +15,7 @@ import { PackageManagerTabs } from '@theme';
 
 :::info 案例展示
 
-[查看更多案例](./blog-support-ios-automation.mdx)
+[查看更多案例](./ios-introduction)
 
 <p align="center">
   <img src="/ios.png" alt="ios" width="400" />
@@ -140,7 +140,7 @@ Promise.resolve(
     await sleep(3000);
 
     // 👀 输入关键词，执行搜索
-    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
+    await agent.aiAct('在搜索框输入 "Headphones" ，敲回车');
 
     // 👀 等待加载完成
     await agent.aiWaitFor('页面中至少有一个耳机商品');
@@ -191,6 +191,8 @@ npx tsx demo.ts
 
 ## 构造函数与接口
 
+<a id="iosdevice"></a>
+
 ### `IOSDevice` 的构造函数
 
 IOSDevice 的构造函数支持以下参数：
@@ -200,6 +202,8 @@ IOSDevice 的构造函数支持以下参数：
   - `wdaHost?: string` - 可选参数，WebDriverAgent 主机。默认值为 'localhost'。
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true。
   - `customActions?: DeviceAction<any>[]` - 可选参数，自定义设备动作列表。
+
+<a id="iosagent"></a>
 
 ### iOS Agent 上的更多接口
 
@@ -244,7 +248,107 @@ await agent.launch('tel:+1234567890'); // 拨打电话
 await agent.launch('mailto:example@email.com'); // 发送邮件
 ```
 
-#### `agentFromWebDriverAgent()` (推荐)
+#### `agent.runWdaRequest()`
+
+直接调用 WebDriverAgent 的 API 接口。
+
+> 注意：该方法允许你直接调用 WebDriverAgent 提供的底层 API，适用于需要执行特定 WDA 操作的场景。
+
+- 类型
+
+```typescript
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+- 参数：
+
+  - `method: string` - HTTP 请求方法（GET, POST, DELETE 等）
+  - `endpoint: string` - WebDriver API 端点路径
+  - `data?: Record<string, any>` - 可选的请求体数据（JSON 对象）
+
+- 返回值：
+
+  - `Promise<any>` - 返回 API 响应结果
+
+- 示例：
+
+```typescript
+import { IOSAgent, IOSDevice, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+// 获取屏幕信息
+const screenInfo = await agent.runWdaRequest('GET', '/wda/screen');
+console.log(screenInfo); // { value: { scale: 3, ... } }
+
+// 按下 Home 键
+const result = await agent.runWdaRequest('POST', '/session/test/wda/pressButton', {
+  name: 'home'
+});
+
+// 获取设备信息
+const deviceInfo = await agent.runWdaRequest('GET', '/wda/device/info');
+```
+
+:::info 在 YAML 脚本中使用
+
+除了在 JavaScript/TypeScript 中使用这些方法，你还可以在 YAML 脚本中使用 iOS 的平台特定动作。
+
+要了解如何在 YAML 脚本中使用 `runWdaRequest` 和 `launch` 动作，请参考 [YAML 脚本中的 iOS 平台特定动作](./automate-with-scripts-in-yaml#ios-部分)。
+
+:::
+
+#### `agent.home()`
+
+返回到 iOS 主屏幕。
+
+- 类型
+
+```typescript
+function home(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.home(); // 回到主屏幕
+```
+
+#### `agent.appSwitcher()`
+
+打开 iOS 多任务切换界面。
+
+- 类型
+
+```typescript
+function appSwitcher(): Promise<void>;
+```
+
+- 参数：无
+- 返回值：`Promise<void>`
+
+- 示例：
+
+```typescript
+import { IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent();
+
+await agent.appSwitcher(); // 打开多任务切换界面
+```
+
+### `agentFromWebDriverAgent()` (推荐)
 
 通过连接 WebDriverAgent 服务创建 IOSAgent，这是最简便的方式。
 
@@ -314,7 +418,7 @@ const agent = await agentFromWebDriverAgent({
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('点击红色按钮五次');
+await agent.aiAct('点击红色按钮五次');
 ```
 
 更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
@@ -367,3 +471,8 @@ const agent = await agentFromWebDriverAgent({
 ```bash
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
+
+## 更多
+
+- 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
+- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)

@@ -17,6 +17,7 @@ export class BridgeConnector {
       type: 'log' | 'status',
     ) => void = () => {},
     private onStatusChange: (status: BridgeStatus) => void = () => {},
+    private serverEndpoint?: string,
   ) {}
 
   private setStatus(status: BridgeStatus) {
@@ -48,12 +49,16 @@ export class BridgeConnector {
 
         let activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
         try {
-          activeBridgePage = new ExtensionBridgePageBrowserSide(() => {
-            if (this.status !== 'closed') {
-              this.setStatus('disconnected');
-              this.activeBridgePage = null;
-            }
-          }, this.onMessage);
+          activeBridgePage = new ExtensionBridgePageBrowserSide(
+            this.serverEndpoint,
+            () => {
+              if (this.status !== 'closed') {
+                this.setStatus('disconnected');
+                this.activeBridgePage = null;
+              }
+            },
+            this.onMessage,
+          );
 
           await activeBridgePage.connect();
           this.activeBridgePage = activeBridgePage;

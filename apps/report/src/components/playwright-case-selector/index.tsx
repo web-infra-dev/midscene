@@ -14,7 +14,7 @@ const TEST_STATUS_OPTIONS = [
   { value: 'passed', label: 'Passed' },
   { value: 'failed', label: 'Failed' },
   { value: 'skipped', label: 'Skipped' },
-  { value: 'timedOut', label: 'Timed Out' },
+  { value: 'timedOut', label: 'Timeout' },
   { value: 'interrupted', label: 'Interrupted' },
 ];
 

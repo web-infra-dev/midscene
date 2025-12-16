@@ -1,6 +1,3 @@
-import './component/playground/index.less';
-import './component/universal-playground/index.less';
-
 export {
   type AnimationScript,
   type ReplayScriptsInfo,
@@ -22,6 +19,7 @@ export type { NavActionsProps } from './component/nav-actions';
 
 export { Logo } from './component/logo';
 export { iconForStatus, timeCostStrElement } from './component/misc';
+export { useTheme } from './hooks/useTheme';
 export { useServerValid } from './hooks/useServerValid';
 export {
   useSafeOverrideAIConfig,
@@ -35,6 +33,7 @@ export { ContextPreview } from './component/context-preview';
 export { PromptInput } from './component/prompt-input';
 export { Player } from './component/player';
 export { Blackboard } from './component/blackboard';
+export { default as ScreenshotViewer } from './component/screenshot-viewer';
 
 // Export playground utilities
 export {

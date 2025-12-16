@@ -4,6 +4,7 @@ import {
   LlmsCopyButton,
   LlmsViewOptions,
 } from '@rspress/plugin-llms/runtime';
+import { HomeLayout } from './pages';
 
 function getCustomMDXComponent() {
   const { h1: H1, ...components } = basicGetCustomMDXComponent();
@@ -25,5 +26,5 @@ function getCustomMDXComponent() {
   };
 }
 
-export { getCustomMDXComponent };
+export { getCustomMDXComponent, HomeLayout };
 export * from '@rspress/core/theme';

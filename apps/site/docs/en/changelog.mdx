@@ -59,16 +59,16 @@ v0.30 improves the cache system, allowing you to control cache behavior based on
 ## v0.29 - 📱 iOS platform support added
 
 ### 🚀 iOS platform support added
-The biggest highlight of v0.29 is the official introduction of iOS platform support! Now you can connect and automate iOS devices through WebDriver, extending Midscene's powerful AI automation capabilities to the Apple ecosystem, details: [Support iOS automation](./blog-support-ios-automation).
+The biggest highlight of v0.29 is the official introduction of iOS platform support! Now you can connect and automate iOS devices through WebDriver, extending Midscene's powerful AI automation capabilities to the Apple ecosystem, details: [Support iOS automation](./ios-introduction).
 
 ### 🚅 Qwen3-VL model adaptation
 
-We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Choose an AI model](./choose-a-model).
+We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Model strategy](./model-strategy).
 
 ### 🤖 AI core capability enhancement
 
-- **UI-TARS Model Performance Optimization**: Optimized aiAction planning, improved dialogue history management, and provided better context awareness capabilities
-- **AI Assertion and Action Optimization**: We updated the prompt for `aiAssert` and optimized the internal implementation of `aiAction`, making AI-driven assertions and action execution more precise and reliable
+- **UI-TARS Model Performance Optimization**: Optimized aiAct planning, improved dialogue history management, and provided better context awareness capabilities
+- **AI Assertion and Action Optimization**: We updated the prompt for `aiAssert` and optimized the internal implementation of `aiAct`, making AI-driven assertions and action execution more precise and reliable
 
 ### 📊 Reporting and debugging experience optimization
 - **URL Parameter Playback Control**: To improve debugging experience, you can now directly control the default behavior of report playback through URL parameters
@@ -145,7 +145,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Add all agent APIs to Playwright fixture, simplify test script writing, and solve the problem of not generating reports when using agentForPage
 
 ### 📱 Android automation enhancement
-- New keyboard hiding strategy([keyboardDismissStrategy](./integrate-with-android.html#androiddevice-constructor)), allowing you to specify the way to automatically hide the keyboard
+- New keyboard hiding strategy([keyboardDismissStrategy](./android-getting-started.html#androiddevice-constructor)), allowing you to specify the way to automatically hide the keyboard
 
 ### 📊 Report function optimization
 - Report content lazy parsing, solving the problem of report crash when the report is large
@@ -199,7 +199,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 ## v0.24 - 🤖 MCP for Android automation
 
 ### 🚀 MCP for Android automation
-- You can now use Midscene MCP to automate Android apps, just like you use it for web apps. Read more: [MCP for Android Automation](./mcp-android.mdx)
+- You can now use Midscene MCP to automate Android apps, just like you use it for web apps. Read more: [MCP for Android Automation](./mcp#android-device-management)
 
 ### 🌐 Optimization
 - For Mac platform Puppeteer, a double input clearing mechanism has been added to ensure that the input box is cleared before input
@@ -248,7 +248,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Support storing more complex data structures, laying the foundation for future feature extensions
 
 #### 3️⃣ Customize replanning cycle limit
-- Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAction).
+- Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAct).
 - The default value is 10. When the AI needs to re-plan more than this limit, an error will be thrown and suggest splitting the task.
 - Provide more flexible task execution control, adapting to different automation scenarios
 
@@ -360,14 +360,14 @@ Reduce the size of the generated report by trimming redundant data, significantl
 
 ### Custom node in report
 
-* Add the `logScreenshot` API to the agent. Take a screenshot of the current page as a report node, and support setting the node title and description to make the automated testing process more intuitive. Applicable for capturing screenshots of key steps, error status capture, UI validation, etc.
+* Add the `recordToReport` API to the agent. Take a screenshot of the current page as a report node, and support setting the node title and description to make the automated testing process more intuitive. Applicable for capturing screenshots of key steps, error status capture, UI validation, etc.
 
-![](/blog/logScreenshot-api.png)
+![](/blog/recordToReport-api.png)
 
 * Example:
 
 ```javascript
-test('login github', async ({ ai, aiAssert, aiInput, logScreenshot }) => {
+test('login github', async ({ ai, aiAssert, aiInput, recordToReport }) => {
   if (CACHE_TIME_OUT) {
     test.setTimeout(200 * 1000);
   }
@@ -376,7 +376,7 @@ test('login github', async ({ ai, aiAssert, aiInput, logScreenshot }) => {
   await aiInput('123456', 'password');
 
   // log by your own
-  await logScreenshot('Login page', {
+  await recordToReport('Login page', {
     content: 'Username is quanru, password is 123456',
   });
 
@@ -424,7 +424,7 @@ Upgrade now to experience these powerful new features!
 
 * [Custom Report Node API documentation](/en/api.mdx#log-screenshot)
 
-* [API documentation for more Android configuration items](/en/integrate-with-android.mdx#androiddevice-constructor)
+* [API documentation for more Android configuration items](/en/android-getting-started.mdx#androiddevice-constructor)
 
 
 ## v0.17 - Let AI see the DOM of the page
@@ -516,7 +516,7 @@ Refactor cache file format from json to yaml, improve readability.
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/en-midscene-mcp-Sauce-Demo.mp4" controls/>
 
-Read more: [MCP](./web-mcp.mdx)
+Read more: [MCP](./mcp#choosing-your-environment)
 
 ### Support structured API for agent
 
@@ -534,7 +534,7 @@ Read more: [Use JavaScript to Optimize the AI Automation Code](./blog-programmin
 🛠️ YAML or JS SDK
 ⚡ Auto‑planning & Instant Actions APIs
 
-Read more: [Android automation](./blog-support-android-automation.mdx)
+Read more: [Android automation](./android-introduction)
 
 ### More features
 
@@ -629,7 +629,7 @@ Compared to previous CI environment debugging, the advantages are:
 
 ![](/blog/0.9.0.png)
 
-Documentation: [Use Chrome Extension to Experience Midscene](./bridge-mode-by-chrome-extension.mdx)
+Documentation: [Use Chrome Extension to Experience Midscene](./bridge-mode.mdx)
 
 
 ## v0.8.0 - Chrome extension

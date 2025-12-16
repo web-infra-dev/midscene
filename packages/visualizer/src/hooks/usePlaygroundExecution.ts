@@ -30,7 +30,15 @@ export function usePlaygroundExecution(
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
 ) {
   // Get execution options from environment config
-  const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
+  const {
+    deepThink,
+    screenshotIncluded,
+    domIncluded,
+    imeStrategy,
+    autoDismissKeyboard,
+    keyboardDismissStrategy,
+    alwaysRefreshScreenInfo,
+  } = useEnvConfig();
   // Handle form submission and execution
   const handleRun = useCallback(
     async (value: FormValue) => {
@@ -109,11 +117,19 @@ export function usePlaygroundExecution(
         }
 
         // Execute the action using the SDK
+        const deviceOptionsToSend = {
+          imeStrategy,
+          autoDismissKeyboard,
+          keyboardDismissStrategy,
+          alwaysRefreshScreenInfo,
+        };
+
         result.result = await playgroundSDK.executeAction(actionType, value, {
           requestId: thisRunningId.toString(),
           deepThink,
           screenshotIncluded,
           domIncluded,
+          deviceOptions: deviceOptionsToSend,
         });
 
         // For some adapters, result might already include dump and reportHTML
@@ -213,6 +229,10 @@ export function usePlaygroundExecution(
       deepThink,
       screenshotIncluded,
       domIncluded,
+      imeStrategy,
+      autoDismissKeyboard,
+      keyboardDismissStrategy,
+      alwaysRefreshScreenInfo,
     ],
   );
 

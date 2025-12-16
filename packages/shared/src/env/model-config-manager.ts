@@ -1,87 +1,100 @@
-import {
-  decideModelConfigFromEnv,
-  decideModelConfigFromIntentConfig,
-} from './decide-model-config';
 import type { GlobalConfigManager } from './global-config-manager';
+import { decideModelConfigFromIntentConfig } from './parse-model-config';
 
-import type { IModelConfig, TIntent, TModelConfigFn } from './types';
-
-const ALL_INTENTS: TIntent[] = ['VQA', 'default', 'grounding', 'planning'];
-
-export type TIntentConfigMap = Record<
+import type {
+  CreateOpenAIClientFn,
+  IModelConfig,
   TIntent,
-  ReturnType<TModelConfigFn> | undefined
->;
+  TModelConfig,
+} from './types';
+import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
 export class ModelConfigManager {
   private modelConfigMap: Record<TIntent, IModelConfig> | undefined = undefined;
 
-  // once modelConfigFn is set, isolatedMode will be true
-  // modelConfigMap will only depend on modelConfigFn and not effect by process.env
+  private isInitialized = false;
+
+  // once modelConfig is set, isolatedMode will be true
+  // modelConfigMap will only depend on provided config and not be affected by process.env
   private isolatedMode = false;
 
   private globalConfigManager: GlobalConfigManager | undefined = undefined;
 
-  constructor(modelConfigFn?: TModelConfigFn) {
-    if (modelConfigFn) {
-      this.isolatedMode = true;
-      const intentConfigMap = this.calcIntentConfigMap(modelConfigFn);
-      this.modelConfigMap =
-        this.calcModelConfigMapBaseOnIntent(intentConfigMap);
-    }
-  }
+  private modelConfig?: TModelConfig;
+  private createOpenAIClientFn?: CreateOpenAIClientFn;
 
-  private calcIntentConfigMap(modelConfigFn: TModelConfigFn): TIntentConfigMap {
-    const intentConfigMap: TIntentConfigMap = {
-      VQA: undefined,
-      default: undefined,
-      grounding: undefined,
-      planning: undefined,
-    };
-
-    for (const i of ALL_INTENTS) {
-      const result = modelConfigFn({ intent: i });
-      if (!result) {
-        throw new Error(
-          `The agent has an option named modelConfig is a function, but it return ${result} when call with intent ${i}, which should be a object.`,
-        );
-      }
-      intentConfigMap[i] = result;
-    }
-    return intentConfigMap;
-  }
-
-  private calcModelConfigMapBaseOnIntent(intentConfigMap: TIntentConfigMap) {
-    const modelConfigMap: Record<TIntent, IModelConfig | undefined> = {
-      VQA: undefined,
-      default: undefined,
-      grounding: undefined,
-      planning: undefined,
-    };
-    for (const i of ALL_INTENTS) {
-      const result = decideModelConfigFromIntentConfig(
-        i,
-        intentConfigMap[i] as unknown as Record<string, string | undefined>,
-      );
-      modelConfigMap[i] = result;
-    }
-    return modelConfigMap as Record<TIntent, IModelConfig>;
-  }
-
-  private calcModelConfigMapBaseOnEnv(
-    allEnvConfig: Record<string, string | undefined>,
+  constructor(
+    modelConfig?: TModelConfig,
+    createOpenAIClientFn?: CreateOpenAIClientFn,
   ) {
-    const modelConfigMap: Record<TIntent, IModelConfig | undefined> = {
-      VQA: undefined,
-      default: undefined,
-      grounding: undefined,
-      planning: undefined,
-    };
-    for (const i of ALL_INTENTS) {
-      const result = decideModelConfigFromEnv(i, allEnvConfig);
-      modelConfigMap[i] = result;
+    this.modelConfig = modelConfig;
+    this.createOpenAIClientFn = createOpenAIClientFn;
+  }
+
+  private initialize() {
+    if (this.isInitialized) {
+      return;
     }
-    return modelConfigMap as Record<TIntent, IModelConfig>;
+
+    let configMap: Record<string, string | undefined>;
+    if (this.modelConfig) {
+      this.isolatedMode = true;
+      configMap = this.normalizeModelConfig(this.modelConfig);
+    } else {
+      configMap = this.globalConfigManager?.getAllEnvConfig() || {};
+    }
+
+    const defaultConfig = decideModelConfigFromIntentConfig(
+      'default',
+      configMap,
+    );
+    if (!defaultConfig) {
+      throw new Error(
+        'default model config is not found, which should not happen',
+      );
+    }
+
+    const insightConfig = decideModelConfigFromIntentConfig(
+      'insight',
+      configMap,
+    );
+
+    const planningConfig = decideModelConfigFromIntentConfig(
+      'planning',
+      configMap,
+    );
+
+    this.modelConfigMap = {
+      default: {
+        ...defaultConfig,
+        createOpenAIClient: this.createOpenAIClientFn,
+      },
+      insight: {
+        ...(insightConfig || defaultConfig),
+        createOpenAIClient: this.createOpenAIClientFn,
+      },
+      planning: {
+        ...(planningConfig || defaultConfig),
+        createOpenAIClient: this.createOpenAIClientFn,
+      },
+    };
+
+    this.isInitialized = true;
+  }
+
+  private normalizeModelConfig(
+    config: TModelConfig,
+  ): Record<string, string | undefined> {
+    return Object.entries(config).reduce<Record<string, string | undefined>>(
+      (acc, [key, value]) => {
+        if (value === undefined || value === null) {
+          return acc;
+        }
+        acc[key] = String(value);
+        return acc;
+      },
+      Object.create(null),
+    );
   }
 
   /**
@@ -93,7 +106,7 @@ export class ModelConfigManager {
         'ModelConfigManager work in isolated mode, so clearModelConfigMap should not be called',
       );
     }
-    this.modelConfigMap = undefined;
+    this.isInitialized = false;
   }
 
   /**
@@ -101,26 +114,16 @@ export class ModelConfigManager {
    * if isolatedMode is false, modelConfigMap can be changed by process.env so we need to recalculate it when it's undefined
    */
   getModelConfig(intent: TIntent): IModelConfig {
-    if (this.isolatedMode) {
-      if (!this.modelConfigMap) {
-        throw new Error(
-          'modelConfigMap is not initialized in isolated mode, which should not happen',
-        );
-      }
-      return this.modelConfigMap[intent];
-    } else {
-      if (!this.modelConfigMap) {
-        if (!this.globalConfigManager) {
-          throw new Error(
-            'globalConfigManager is not registered, which should not happen',
-          );
-        }
-        this.modelConfigMap = this.calcModelConfigMapBaseOnEnv(
-          this.globalConfigManager.getAllEnvConfig(),
-        );
-      }
-      return this.modelConfigMap[intent];
+    // check if initialized
+    if (!this.isInitialized) {
+      this.initialize();
     }
+    if (!this.modelConfigMap) {
+      throw new Error(
+        'modelConfigMap is not initialized, which should not happen',
+      );
+    }
+    return this.modelConfigMap[intent];
   }
 
   getUploadTestServerUrl(): string | undefined {
@@ -133,12 +136,12 @@ export class ModelConfigManager {
     this.globalConfigManager = globalConfigManager;
   }
 
-  throwErrorIfNonVLModel(intent: TIntent = 'grounding') {
-    const modelConfig = this.getModelConfig(intent);
+  throwErrorIfNonVLModel() {
+    const modelConfig = this.getModelConfig('default');
 
     if (!modelConfig.vlMode) {
       throw new Error(
-        'No visual language model (VL model) detected for the current scenario. Element localization may be inaccurate. Please verify your model configuration. Learn more: https://midscenejs.com/choose-a-model',
+        'MIDSCENE_MODEL_FAMILY is not set to a visual language model (VL model), the element localization can not be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html',
       );
     }
   }

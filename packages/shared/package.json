@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "0.30.10",
+  "version": "1.0.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -89,6 +89,7 @@
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",
     "dotenv": "^16.4.5",
+    "openai": "6.3.0",
     "rimraf": "~3.0.2",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

@@ -1,15 +1,19 @@
-# API 参考
-
-> 在以下文档中，你可能会看到带有 `agent.` 前缀的函数调用。如果你在 Playwright 中，这些调用是不带 `agent.` 前缀的，如 `async ({ ai, aiQuery }) => { /* ... */}`。这只是解构语法的区别。
+# API 参考（公共部分）
 
 ## 构造器
 
-Midscene 中每个 Agent 都有自己的构造函数。
+Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造函数都接受一组共享的配置项（设备、报告、缓存、AI 配置、钩子等），然后再叠加平台专属的配置，比如浏览器里的导航控制或 Android 的 ADB 配置。
 
-- 在 Puppeteer 中，使用 [PuppeteerAgent](./integrate-with-puppeteer)
-- 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./bridge-mode-by-chrome-extension#constructor)
-- 在 Android 中，使用 [AndroidAgent](./integrate-with-android)
-- 如果你为自定义界面创建 GUI Agent，请参考 [集成到任意界面](./integrate-with-any-interface)
+你可以通过下面的链接查看各 Agent 的导入路径和平台专属参数：
+
+- 在 Puppeteer 中，使用 [PuppeteerAgent](./web-api-reference#puppeteer-agent)
+- 在 Playwright 中，使用 [PlaywrightAgent](./web-api-reference#playwright-agent)
+- 在桥接模式（Bridge Mode）中，使用 [AgentOverChromeBridge](./web-api-reference#chrome-bridge-agent)
+- 在 Android 中，使用 [Android API 参考](./android-api-reference)
+- 在 iOS 中，使用 [iOS API 参考](./ios-api-reference)
+- 如果你要把 GUI Agent 集成到自己的界面，请参考 [自定义界面 Agent](#custom-interface-agent)
+
+### 参数
 
 这些 Agent 有一些相同的构造参数：
 
@@ -17,17 +21,86 @@ Midscene 中每个 Agent 都有自己的构造函数。
 - `reportFileName: string`: 报告文件的名称，默认值由 midscene 内部生成。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
-- `actionContext: string`: 调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `actionContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
+- `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
-在 Playwright 和 Puppeteer 中，有以下共同的参数：
+### 自定义模型
 
-- `forceSameTabNavigation: boolean`: 如果为 true，则限制页面在当前 tab 打开。默认值为 true。
-- `waitForNavigationTimeout: number`: 在页面跳转后等待页面加载完成的超时时间，默认值为 5000ms，设置为 0 则不做等待。
+`modelConfig: Record<string, string | number>` 可选。它允许你通过代码配置模型，而不是通过环境变量。
 
-在 Puppeteer 中，还有以下参数：
+> 如果在 Agent 初始化时提供了 `modelConfig`，**系统环境变量中的模型配置将全部被忽略**，仅使用该对象中的值。
+> 这里可配置的 key / value 与 [模型配置](./model-config) 文档中说明的内容完全一致。你也可以参考 [模型策略](./model-strategy) 中的说明。
 
-- `waitForNetworkIdleTimeout: number`: 在执行每个操作后等待网络空闲的超时时间，默认值为 2000ms，设置为 0 则不做等待。
+**基础示例（所有意图共用同一模型）：**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: {
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_BASE_URL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    MIDSCENE_MODEL_API_KEY: 'sk-...',
+    MIDSCENE_MODEL_FAMILY: 'qwen3-vl'
+  }
+});
+```
+
+**为不同任务类型配置不同模型（使用针对意图的环境变量键）：**
+```typescript
+const agent = new PuppeteerAgent(page, {
+  modelConfig: {
+    // 默认
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    MIDSCENE_MODEL_API_KEY: 'sk-default-key',
+    MIDSCENE_MODEL_BASE_URL: '.....',
+    MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+
+    // planning 意图
+    MIDSCENE_PLANNING_MODEL_NAME: 'gpt-5.1',
+    MIDSCENE_PLANNING_MODEL_API_KEY: 'sk-planning-key',
+    MIDSCENE_PLANNING_MODEL_BASE_URL: '...',
+
+    // insight 意图
+    MIDSCENE_INSIGHT_MODEL_NAME: 'qwen-vl-plus',
+    MIDSCENE_INSIGHT_MODEL_API_KEY: 'sk-insight-key'
+  }
+});
+```
+
+### 自定义 OpenAI 客户端
+
+`createOpenAIClient: (openai, options) => Promise<OpenAI | undefined>` 可选。它允许你包装 OpenAI 客户端实例，用于集成可观测性工具（如 LangSmith、LangFuse）或应用自定义中间件。
+
+**参数说明：**
+- `openai: OpenAI` - Midscene 创建的基础 OpenAI 客户端实例，已包含所有必要配置（API 密钥、基础 URL、代理等）
+- `options: Record<string, unknown>` - OpenAI 初始化选项，包括：
+  - `baseURL?: string` - API 接入地址
+  - `apiKey?: string` - API 密钥
+  - `dangerouslyAllowBrowser: boolean` - 在 Midscene 中始终为 true
+  - 其他 OpenAI 配置选项
+
+**返回值：**
+- 返回包装后的 OpenAI 客户端实例，或返回 `undefined` 表示使用原始实例
+
+**示例（集成 LangSmith）：**
+```typescript
+import { wrapOpenAI } from 'langsmith/wrappers';
+
+const agent = new PuppeteerAgent(page, {
+  createOpenAIClient: async (openai, options) => {
+    // 为规划任务包装 LangSmith
+    if (options.baseURL?.includes('planning')) {
+      return wrapOpenAI(openai, {
+        metadata: { task: 'planning' }
+      });
+    }
+
+    // 其他任务返回原始客户端
+    return openai;
+  }
+});
+```
+
+**注意：** 对于 LangSmith 和 Langfuse 集成，推荐使用更简单的[环境变量方式](#使用-langsmith)，无需编写 `createOpenAIClient` 代码。如果你提供了自定义的客户端包装函数，它会覆盖环境变量的自动集成行为。
 
 ## 交互方法
 
@@ -42,14 +115,20 @@ Midscene 中每个 Agent 都有自己的构造函数。
 
 :::
 
-### `agent.aiAction()` 或 `.ai()`
+### `agent.aiAct()` 或 `.ai()`
 
 这个方法允许你通过自然语言描述一系列 UI 操作步骤。Midscene 会自动规划这些步骤并执行。
+
+:::info 向后兼容
+
+这个接口在之前版本里也被写为 `aiAction()`，当前的版本兼容两种写法。为了保持代码的一致性，建议使用新的 `aiAct()` 方法。
+
+:::
 
 - 类型
 
 ```typescript
-function aiAction(
+function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
@@ -72,7 +151,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
 
 ```typescript
 // 基本用法
-await agent.aiAction('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
+await agent.aiAct('在搜索框中输入 "JavaScript"，然后点击搜索按钮');
 
 // 使用 .ai 简写形式
 await agent.ai(
@@ -80,7 +159,7 @@ await agent.ai(
 );
 
 // 使用 ui-tars 模型时，可以使用更目标驱动的提示词
-await agent.aiAction('发布一条微博，内容为 "Hello World"');
+await agent.aiAct('发布一条微博，内容为 "Hello World"');
 ```
 
 :::tip
@@ -91,7 +170,7 @@ await agent.aiAction('发布一条微博，内容为 "Hello World"');
 
 关联文档：
 
-- [选择 AI 模型](./choose-a-model)
+- [模型策略](./model-strategy)
 
 :::
 
@@ -177,7 +256,7 @@ function aiInput(
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android 中有效。默认值为 true。
+    - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS 中有效。默认值为 true。
     - `mode?: 'replace' | 'clear' | 'append'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
       - `'append'`: 将文本追加到现有内容后面，不清空输入框。
@@ -243,9 +322,9 @@ function aiScroll(
 - 参数：
 
   - `scrollParam: PlanningActionParamScroll` - 滚动参数
-    - `direction: 'up' | 'down' | 'left' | 'right'` - 滚动方向。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
-    - `scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft'` - 滚动类型
-    - `distance: number` - 滚动距离，单位为像素。
+    - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
+    - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - 滚动类型，默认值为 `singleAction`。
+    - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
   - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素。默认值为 false
@@ -260,7 +339,7 @@ function aiScroll(
 
 ```typescript
 await agent.aiScroll(
-  { direction: 'up', distance: 100, scrollType: 'once' },
+  { direction: 'up', distance: 100, scrollType: 'singleAction' },
   '表单区域',
 );
 ```
@@ -625,7 +704,7 @@ function aiWaitFor(
 
   - `assertion: string` - 用自然语言描述的断言条件
   - `options?: object` - 可选的配置对象
-    - `timeoutMs?: number` - 超时时间（毫秒），默认为 15000
+    - `timeoutMs?: number` - 超时时间（毫秒，默认为 15000）。每轮检查开始时都会记录时间，只要该时间点仍在超时窗口内，就会进入下一轮检查；否则视为超时
     - `checkIntervalMs?: number` - 检查间隔（毫秒），默认为 3000
 
 - 返回值：
@@ -690,7 +769,7 @@ console.log(result);
 
 ### `agent.setAIActionContext()`
 
-设置在调用 `agent.aiAction()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
+设置在调用 `agent.aiAct()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
 
 对于即时操作类型的 API，比如 `aiTap()`，这个设置不会生效。
 
@@ -737,14 +816,14 @@ const result = await agent.evaluateJavaScript('document.title');
 console.log(result);
 ```
 
-### `agent.logScreenshot()`
+### `agent.recordToReport()`
 
 在报告文件中记录当前截图，并添加描述。
 
 - 类型
 
 ```typescript
-function logScreenshot(title?: string, options?: Object): Promise<void>;
+function recordToReport(title?: string, options?: Object): Promise<void>;
 ```
 
 - 参数：
@@ -760,7 +839,7 @@ function logScreenshot(title?: string, options?: Object): Promise<void>;
 - 示例：
 
 ```typescript
-await agent.logScreenshot('登录页面', {
+await agent.recordToReport('登录页面', {
   content: '用户 A',
 });
 ```
@@ -847,61 +926,47 @@ console.log(logContent);
 
 报告文件的路径。
 
-## 更多配置
+### 在运行时设置环境变量（已弃用）
 
-### 在运行时设置环境变量
+> 已弃用，请使用 `modelConfig` 参数代替。
 
-你可以通过 `overrideAIConfig` 方法在运行时设置环境变量。
+通过 `overrideAIConfig` 方法在运行时设置全局环境变量。
 
 ```typescript
 import { overrideAIConfig } from '@midscene/web/puppeteer'; // 或其他的 Agent
 
 overrideAIConfig({
-  OPENAI_BASE_URL: '...',
-  OPENAI_API_KEY: '...',
+  MIDSCENE_MODEL_BASE_URL: '...', // 推荐使用新的变量名
+  MIDSCENE_MODEL_API_KEY: '...', // 推荐使用新的变量名
   MIDSCENE_MODEL_NAME: '...',
+
+  // 旧的变量名仍然兼容：
+  // OPENAI_BASE_URL: '...',
+  // OPENAI_API_KEY: '...',
 });
-```
-
-### 打印 AI 性能信息
-
-设置 `DEBUG=midscene:ai:profile:stats` 环境变量，你可以看到每次调用 AI 的时间和 token 数量。
-
-```bash
-export DEBUG=midscene:ai:profile:stats
-```
-
-### 自定义运行产物目录
-
-设置 `MIDSCENE_RUN_DIR` 变量，你可以自定义运行产物目录。
-
-```bash
-export MIDSCENE_RUN_DIR=midscene_run # 默认值为当前运行目录下的 midscene_run 目录，支持设置为绝对路径或者相对于当前目录的相对路径
-```
-
-### 自定义重新规划循环限制
-
-设置 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 变量，你可以自定义在执行操作(`aiAction`)时允许的最大重新规划循环次数。
-
-```bash
-export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # 默认值为 10。当 AI 需要重新规划超过这个限制时，会抛出错误建议将任务拆分为多个步骤
 ```
 
 ### 使用 LangSmith
 
-LangSmith 是一个用于调试大语言模型的平台。想要集成 LangSmith，请按以下步骤操作：
+LangSmith 是一个用于调试大语言模型的平台。Midscene 提供了自动集成支持，只需安装依赖并设置环境变量即可。
+
+**步骤 1：安装依赖**
 
 ```bash
-# 设置环境变量
+npm install langsmith
+```
 
-# 启用调试标志
+**步骤 2：设置环境变量**
+
+```bash
+# 启用 Midscene 的 LangSmith 自动集成
 export MIDSCENE_LANGSMITH_DEBUG=1
 
 # LangSmith 配置
-export LANGSMITH_TRACING_V2=true
-export LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
-export LANGSMITH_API_KEY="your_key_here"
-export LANGSMITH_PROJECT="your_project_name_here"
+export LANGCHAIN_API_KEY="your-langchain-api-key-here"
+export LANGCHAIN_TRACING=true
+export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
+# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
 ```
 
 启动 Midscene 后，你应该会看到类似如下的日志：
@@ -910,9 +975,46 @@ export LANGSMITH_PROJECT="your_project_name_here"
 DEBUGGING MODE: langsmith wrapper enabled
 ```
 
-## 高级功能
+**高级用法：**
 
-### 使用图片作为提示词
+如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以使用 [`createOpenAIClient`](#自定义-openai-客户端) 参数手动包装客户端。
+
+### 使用 Langfuse
+
+Langfuse 是另一个流行的 LLM 可观测性平台。集成方式与 LangSmith 类似。
+
+**步骤 1：安装依赖**
+
+```bash
+npm install langfuse
+```
+
+**步骤 2：设置环境变量**
+
+```bash
+# 启用 Midscene 的 Langfuse 自动集成
+export MIDSCENE_LANGFUSE_DEBUG=1
+
+# Langfuse 配置
+export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
+export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
+# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
+```
+
+启动 Midscene 后，你应该会看到类似如下的日志：
+
+```log
+DEBUGGING MODE: langfuse wrapper enabled
+```
+
+**注意事项：**
+
+- LangSmith 和 Langfuse 可以同时启用
+- 这些集成仅在 Node.js 环境中可用，浏览器环境会抛出错误
+- 如果你使用了 [`createOpenAIClient`](#自定义-openai-客户端) 参数，环境变量方式将被覆盖
+
+## 使用图片作为提示词
 
 你可以在提示词中使用图片作为补充，来描述无法通过自然语言表达的内容。
 
@@ -966,7 +1068,7 @@ await agent.aiAssert({
 
 在提示词中使用图片时，可能需要关注模型提供商对图片体积和尺寸的要求，过大（比如超过 10M）或过小（比如小于 10 像素）的图片都有可能导致模型调用时出现报错，具体的限制请以你所使用模型提供商的文档为准。
 
-## 自动化报告合并
+## 报告合并工具
 
 在运行多个自动化工作流时，每个 agent 都会生成独立的报告文件。`ReportMergingTool` 提供了将多个自动化报告合并为单个报告的能力，便于统一查看和管理自动化结果。
 
@@ -1170,13 +1272,13 @@ describe('Android 设置自动化', () => {
   });
 
   it('切换 WLAN', async () => {
-    await agent.aiAction('找到并进入 WLAN 设置');
-    await agent.aiAction('切换 WLAN 状态一次');
+    await agent.aiAct('找到并进入 WLAN 设置');
+    await agent.aiAct('切换 WLAN 状态一次');
   });
 
   it('切换蓝牙', async () => {
-    await agent.aiAction('找到并进入蓝牙设置');
-    await agent.aiAction('切换蓝牙状态一次');
+    await agent.aiAct('找到并进入蓝牙设置');
+    await agent.aiAct('切换蓝牙状态一次');
   });
 });
 ```

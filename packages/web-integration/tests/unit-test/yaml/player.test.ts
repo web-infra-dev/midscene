@@ -9,6 +9,7 @@ import type {
   GroupedActionDump,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
+import { actionTapParamSchema } from '@midscene/core/device';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
@@ -880,6 +881,7 @@ tasks:
           {
             name: 'aiTap',
             interfaceAlias: 'aiTap',
+            paramSchema: actionTapParamSchema,
             call: vi.fn(),
           },
         ],

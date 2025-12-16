@@ -34,83 +34,13 @@ tasks:
 
 <SetupEnv />
 
-或使用当前命令运行目录下的 `.env` 文件存储配置，Midscene 命令行工具在运行 yaml 脚本时会自动加载它
-
-```ini filename=.env
-OPENAI_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-## 使用命令行工具
-
-全局安装 `@midscene/cli`
-
-```bash
-npm i -g @midscene/cli
-# 或在项目中安装
-npm i @midscene/cli --save-dev
-```
-
-编写一个名为 `bing-search.yaml` 的文件来驱动 web 浏览器的自动化任务
-
-```yaml
-web:
-  url: https://www.bing.com
-
-tasks:
-  - name: 搜索天气
-    flow:
-      - ai: 搜索 "今日天气"
-      - sleep: 3000
-      - aiAssert: 结果显示天气信息
-```
-
-或者驱动安卓设备的自动化任务（需要使用 adb 连接安卓设备）
-
-```yaml
-android:
-  # launch: https://www.bing.com
-  deviceId: s4ey59
-
-tasks:
-  - name: 搜索天气
-    flow:
-      - ai: 打开浏览器并导航到 bing.com
-      - ai: 搜索 "今日天气"
-      - sleep: 3000
-      - aiAssert: 结果显示天气信息
-```
-
-或者驱动 iOS 设备的自动化任务（需要配置 WebDriverAgent）
-
-```yaml
-ios:
-  # launch: com.apple.mobilesafari
-  wdaPort: 8100
-
-tasks:
-  - name: 搜索天气
-    flow:
-      - ai: 打开浏览器并导航到 bing.com
-      - ai: 搜索 "今日天气"
-      - sleep: 3000
-      - aiAssert: 结果显示天气信息
-```
-
-运行脚本
-
-```bash
-midscene ./bing-search.yaml
-# 或者如果你在项目中安装了 midscene
-npx midscene ./bing-search.yaml
-```
-
-你将会看到脚本的执行进度和可视化运行报告文件。
+如果需要通过命令行执行 YAML 工作流，请查看 [命令行工具](./command-line-tools)，了解安装、`.env` 支持以及 `midscene` 命令的用法。
 
 ## 脚本文件结构
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，可选的 `agent` 部分配置 AI 代理行为，以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
 web:
@@ -124,6 +54,49 @@ tasks:
       - sleep: 3000
       - aiAssert: 结果显示天气信息
 ```
+
+### `agent` 部分
+
+如需使用 `aiActionContext` 参数，可以通过 `agent` 部分来设置：
+
+```yaml
+# AI agent 配置
+agent:
+  # 在调用 aiAct 时发送给 AI 模型的背景知识，可选
+  aiActionContext: <string>
+```
+
+:::tip aiActionContext 配置说明
+
+- **适用环境**：Web、iOS 和 Android 环境都可以通过 `agent` 部分来设置 `aiActionContext`
+- **作用**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
+
+:::
+
+#### 使用示例
+
+```yaml
+# agent 配置，适用于所有环境
+agent:
+  aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
+
+# iOS 环境配置
+ios:
+  launch: https://www.bing.com
+  wdaPort: 8100
+
+# 或 Android 环境配置
+android:
+  deviceId: s4ey59
+  launch: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - aiAssert: 结果显示天气信息
+```
+
 
 ### `web` 部分
 
@@ -176,47 +149,6 @@ web:
   acceptInsecureCerts: <boolean>
 ```
 
-### 全局 agent 配置
-
-如需使用 `aiActionContext` 参数，可以通过全局的 `agent` 配置来设置：
-
-```yaml
-# 全局 AI agent 配置
-agent:
-  # 在调用 aiAction 时发送给 AI 模型的背景知识，可选
-  aiActionContext: <string>
-```
-
-:::tip aiActionContext 配置说明
-
-- **适用环境**：Web、iOS 和 Android 环境都可以通过全局的 `agent` 配置来设置 `aiActionContext`
-- **作用**：为 AI 模型提供背景知识，例如处理弹窗、业务介绍等常见场景
-
-:::
-
-#### 使用示例
-
-```yaml
-# 全局 agent 配置，适用于所有环境
-agent:
-  aiActionContext: "如果出现弹窗，点击同意。如果出现登录页面，跳过它。"
-
-# iOS 环境配置
-ios:
-  launch: https://www.bing.com
-  wdaPort: 8100
-
-# 或 Android 环境配置
-android:
-  deviceId: s4ey59
-  launch: https://www.bing.com
-
-tasks:
-  - name: 搜索天气
-    flow:
-      - ai: 搜索 "今日天气"
-      - aiAssert: 结果显示天气信息
-```
 
 ### `android` 部分
 
@@ -230,6 +162,67 @@ android:
 
   # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
   output: <path-to-output-file>
+
+  # 其他 AndroidDevice 构造函数支持的所有选项
+  # 例如：androidAdbPath, remoteAdbHost, remoteAdbPort,
+  # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
+  # screenshotResizeScale, alwaysRefreshScreenInfo 等
+  # 完整配置项请参考 AndroidDevice 的构造函数文档
+```
+
+:::tip 查看完整的 Android 配置项
+
+YAML 脚本现在支持 `AndroidDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [Android 集成文档中的 AndroidDevice 构造函数](./integrate-with-android#androiddevice-的构造函数)。
+
+:::
+
+#### Android 平台特定动作
+
+Android 平台提供了一些特定的动作，可以在 YAML 脚本的 `flow` 中使用：
+
+**`runAdbShell` - 执行 ADB Shell 命令**
+
+在 Android 设备上执行 ADB shell 命令。
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 清除应用数据
+    flow:
+      - runAdbShell: 'pm clear com.example.app'
+
+  - name: 获取电池信息
+    flow:
+      - runAdbShell: 'dumpsys battery'
+```
+
+常用 ADB Shell 命令：
+- `pm clear <package>` - 清除应用数据
+- `dumpsys battery` - 获取电池信息
+- `dumpsys window` - 获取窗口信息
+- `settings get secure android_id` - 获取设备 ID
+- `input keyevent <keycode>` - 发送按键事件
+
+**`launch` - 启动应用或 URL**
+
+启动 Android 应用或打开 URL。
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 启动设置应用
+    flow:
+      - launch:
+          uri: com.android.settings
+
+  - name: 打开网页
+    flow:
+      - launch:
+          uri: https://www.example.com
 ```
 
 ### `ios` 部分
@@ -253,6 +246,73 @@ ios:
 
   # 是否保存日志内容到 JSON 文件，可选，默认 `false`。如果为 true，保存到 `unstableLogContent.json` 文件中。如果为字符串，则保存到该字符串指定的路径中。日志内容的结构可能会在未来发生变化。
   unstableLogContent: <boolean | path-to-unstable-log-file>
+
+  # 其他 IOSDevice 构造函数支持的所有选项
+  # 完整配置项请参考 IOSDevice 的构造函数文档
+```
+
+:::tip 查看完整的 iOS 配置项
+YAML 脚本现在支持 `IOSDevice` 构造函数的所有配置选项。完整的配置项列表请参考 [iOS 集成文档中的 IOSDevice 构造函数](./integrate-with-ios#iosdevice-的构造函数)。
+:::
+
+#### iOS 平台特定动作
+
+iOS 平台提供了一些特定的动作，可以在 YAML 脚本的 `flow` 中使用：
+
+**`runWdaRequest` - 执行 WebDriverAgent API 请求**
+
+在 iOS 设备上直接执行 WebDriverAgent API 请求。
+
+```yaml
+ios:
+  launch: 'com.apple.mobilesafari'
+
+tasks:
+  - name: 通过 WDA 按下主屏幕按钮
+    flow:
+      - runWdaRequest:
+          method: POST
+          endpoint: /session/test/wda/pressButton
+          data:
+            name: home
+
+  - name: 获取设备信息
+    flow:
+      - runWdaRequest:
+          method: GET
+          endpoint: /wda/device/info
+```
+
+参数：
+- `method`（字符串，必需）：HTTP 方法（GET、POST、DELETE 等）
+- `endpoint`（字符串，必需）：WebDriverAgent API 端点
+- `data`（任意类型，可选）：请求体数据
+
+常用 WebDriverAgent 端点：
+- `/wda/screen` - 获取屏幕信息
+- `/wda/device/info` - 获取设备信息
+- `/session/{sessionId}/wda/pressButton` - 按硬件按钮
+- `/session/{sessionId}/wda/apps/launch` - 启动应用
+- `/session/{sessionId}/wda/apps/activate` - 激活应用
+
+**`launch` - 启动应用或 URL**
+
+启动 iOS 应用或打开 URL。
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: 启动设置应用
+    flow:
+      - launch:
+          uri: com.apple.Preferences
+
+  - name: 打开网页
+    flow:
+      - launch:
+          uri: https://www.example.com
 ```
 
 ### `tasks` 部分
@@ -269,12 +329,13 @@ tasks:
       # 自动规划(Auto Planning, .ai)
       # ----------------
 
-      # 执行一个交互，`ai` 是 `aiAction` 的简写方式
+      # 执行一个交互，`ai` 是 `aiAct` 的简写方式
       - ai: <prompt>
-        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
+        cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时,是否允许缓存当前 API 调用结果。默认值为 True
 
       # 这种用法与 `ai` 相同
-      - aiAction: <prompt>
+      # 注意：在之前版本中也被写作 `aiAction`，当前版本兼容两种写法
+      - aiAct: <prompt>
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 即时操作(Instant Action, .aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
@@ -310,9 +371,9 @@ tasks:
 
       # 全局滚动，或滚动 prompt 描述的元素
       - aiScroll:
-        direction: 'up' # 或 'down' | 'left' | 'right'
-        scrollType: 'once' # 或 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
-        distance: <number> # 可选，滚动距离，单位为像素
+        direction: 'down' # 或 'up' | 'left' | 'right'，默认值为 'down'
+        scrollType: 'singleAction' # 或 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'，默认值为 'singleAction'
+        distance: <number> # 可选，滚动距离，单位为像素。设置为 null 表示由 Midscene 自动决定。
         locate: <prompt> # 可选，执行滚动的元素
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
@@ -320,7 +381,7 @@ tasks:
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 在报告文件中记录当前截图，并添加描述
-      - logScreenshot: <title> # 可选，截图的标题，如果未提供，则标题为 'untitled'
+      - recordToReport: <title> # 可选，截图的标题，如果未提供，则标题为 'untitled'
         content: <content> # 可选，截图的描述
 
       # 数据提取
@@ -353,7 +414,6 @@ tasks:
     flow:
       # ...
 ```
-
 
 #### 使用图像提示
 
@@ -401,180 +461,3 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
-
-
-## 命令行工具的高级用法
-
-`@midscene/cli` 提供了灵活的方式来运行你的自动化脚本。
-
-### 运行一个或多个脚本
-
-你可以直接向 `midscene` 命令传递一个 `.yaml` 脚本文件或使用通配符模式来匹配多个 `.yaml`。这是 `--files` 参数的简写方式。
-
-```bash
-# 运行单个脚本
-midscene ./bing-search.yaml
-
-# 使用通配符模式运行所有匹配的脚本
-midscene './scripts/**/*.yaml'
-```
-
-### 命令行选项
-
-命令行工具提供了一些选项来控制脚本的执行行为。
-
-- `--files <file1> <file2> ...`: 指定要执行的脚本文件列表，文件将按顺序执行。支持通配符模式，遵循 [glob](https://www.npmjs.com/package/glob) 支持的语法。
-- `--concurrent <number>`: 设置并发执行的数量。默认为 `1`。
-- `--continue-on-error`: 如果设置了此选项，即使有脚本文件执行失败，也会继续运行余下的脚本文件。默认关闭。
-- `--share-browser-context`: 在所有脚本之间共享同一个浏览器上下文（例如 Cookies 和 `localStorage`）。这对于需要登录状态的连续测试非常有用，默认关闭。
-- `--summary <filename>`: 指定生成的 JSON 格式汇总报告文件的路径。
-- `--headed`: 在有图形界面的浏览器中运行脚本，而不是在无头模式下。
-- `--keep-window`: 脚本执行结束后保持浏览器窗口打开。此选项会自动启用 `--headed` 参数。
-- `--config <filename>`: 指定配置文件，配置文件中的参数将作为命令行参数的默认值。
-- `--web.userAgent <ua>`: 设置浏览器 UA，这将覆盖所有脚本文件中的 `web.userAgent` 参数。
-- `--web.viewportWidth <width>`: 设置浏览器视口宽度，这将覆盖所有脚本文件中的 `web.viewportWidth` 参数。
-- `--web.viewportHeight <height>`: 设置浏览器视口高度，这将覆盖所有脚本文件中的 `web.viewportHeight` 参数。
-- `--android.deviceId <device-id>`: 设置安卓设备 ID，这将覆盖所有脚本文件中的 `android.deviceId` 参数。
-- `--ios.wdaPort <port>`: 设置 WebDriverAgent 端口，这将覆盖所有脚本文件中的 `ios.wdaPort` 参数。
-- `--ios.wdaHost <host>`: 设置 WebDriverAgent 主机地址，这将覆盖所有脚本文件中的 `ios.wdaHost` 参数。
-- `--dotenv-debug`: 设置 dotenv 的 debug 日志，默认关闭。
-- `--dotenv-override`: 设置 dotenv 是否覆盖同名的全局环境变量，默认关闭。
-
-举例：
-
-使用 `--files` 参数来指定文件顺序，并行执行
-
-```bash
-midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
-```
-
-以 4 个并发数运行所有脚本，并在任一文件出错时继续
-
-```bash
-midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
-```
-
-### 以文件形式编写命令行参数
-
-你可以编写 YAML 格式的配置文件，然后通过 `--config` 来引用它。调用命令行工具时，命令行参数的优先级高于配置文件。
-
-```yaml
-files:
-  - './scripts/login.yaml'
-  - './scripts/search.yaml'
-  - './scripts/**/*.yaml'
-
-concurrent: 4
-continueOnError: true
-shareBrowserContext: true
-```
-
-使用方法：
-
-```bash
-midscene --config ./config.yaml
-```
-
-## 更多特性
-
-### 在 `.yaml` 文件中使用环境变量
-
-你可以在 `.yaml` 文件中使用环境变量，通过 `${variable-name}` 的方式。
-
-例如，如果你有一个 `.env` 文件，内容如下：
-
-```ini filename=.env
-topic=weather today
-```
-
-你可以在 `.yaml` 文件中使用环境变量，如下所示：
-
-```yaml
-#...
-- ai: type ${topic} in input box
-#...
-```
-
-### 运行在有界面(Headed)模式下
-
-> 仅 `web` 场景下支持
-
-'headed' 模式意味着浏览器窗口是可见的。默认情况下，脚本会在无界面模式下运行。
-
-如果你想运行在有界面模式下，你可以使用 `--headed` 选项。此外，如果你想在脚本运行结束后保持浏览器窗口打开，你可以使用 `--keep-window` 选项。`--keep-window` 选项会自动开启 `--headed` 模式。
-
-headed 模式会消耗更多资源，所以建议你仅在本地使用。
-
-```bash
-# 运行在有界面模式下
-midscene /path/to/yaml --headed
-
-# 运行在有界面模式下，并在结束后保持浏览器窗口打开
-midscene /path/to/yaml --keep-window
-```
-
-### 使用桥接模式
-
-> 仅 `web` 场景下支持
-
-通过使用桥接模式，你可以利用 YAML 脚本在已有的桌面浏览器上执行自动化。这对于需要复用 Cookies、插件和页面状态，或者需要人工与自动化脚本交互的情况非常有用。
-
-使用桥接模式，你需要先安装 Chrome 扩展，然后在 `target` 部分使用以下配置：
-
-```diff
-web:
-  url: https://www.bing.com
-+ bridgeMode: newTabWithUrl
-```
-
-请参阅 [通过 Chrome 扩展桥接模式](./bridge-mode-by-chrome-extension) 了解更多详细信息。
-
-### 使用 JavaScript 运行 YAML 脚本
-
-你也可以使用 JavaScript 运行 YAML 脚本，调用 Agent 上的 [`runYaml`](./api.html#runyaml) 方法即可。注意，这种方法只会执行 YAML 脚本中的 `tasks` 部分。
-
-### 分析命令行工具的运行结果
-
-执行完成后，会在输出目录中生成以下文件：
-
-- 由 `--summary` 选项指定的文件路径（默认是 `index.json`），包含所有文件的执行状态和统计信息
-- 各个 YAML 文件的独立执行结果（JSON 格式）
-- 各个文件的可视化报告（HTML 格式）
-
-## 配置 dotenv 的默认行为
-
-Midscene 使用 [`dotenv`](https://github.com/motdotla/dotenv) 加载 `.env` 文件中的环境变量。
-
-### 关闭 dotenv 的 debug 日志
-
-默认情况下，Midscene 会打印 dotenv 的 debug 信息，如果你不想看到这些信息，你可以使用 `--dotenv-debug` 选项关闭。
-
-```bash
-midscene /path/to/yaml --dotenv-debug=false
-```
-
-### 使用 .env 中的环境变量覆盖同名的全局环境变量
-
-默认情况下，`dotenv` 不会覆盖`.env` 文件中同名的全局环境变量。如果希望覆盖，你可以使用 `--dotenv-override` 选项。
-
-```bash
-midscene /path/to/yaml --dotenv-override=true
-```
-
-## FAQ
-
-**如何从 Chrome 中获取 JSON 格式的 Cookies？**
-
-你可以使用这个 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 来导出 Cookies 为 JSON 格式。
-
-**如何打开 dotenv 的 debug 日志？**
-
-Midscene 使用 `dotenv` 加载 `.env` 文件中的环境变量。你可以使用 `--dotenv-debug` 选项来打开 dotenv 的 debug 日志。
-
-```bash
-midscene /path/to/yaml --dotenv-debug=true
-```
-
-## 更多
-
-你可能还想了解 [提示词技巧](./prompting-tips)

@@ -29,7 +29,7 @@ export class ReportMergingTool {
     reportFileName: 'AUTO' | string = 'AUTO', // user custom report filename, save into midscene report dir if undefined
     opts?: {
       rmOriginalReports?: boolean; // whether to remove origin report files
-      overwrite?: boolean; // if outfilepath specified, throw an error when overwrite = true, otherwise overwrite the file
+      overwrite?: boolean; // if output filepath specified, throw an error when overwrite = true, otherwise overwrite the file
     },
   ): string | null {
     if (this.reportInfos.length <= 1) {
@@ -52,7 +52,7 @@ export class ReportMergingTool {
         `${getReportFileName('merged-report')}.html`,
       );
     } else {
-      // user specified a outfilepath
+      // user specified a output filepath
       outputFilePath = path.resolve(targetDir, `${reportFileName}.html`);
       if (fs.existsSync(outputFilePath) && !overwrite) {
         throw Error(

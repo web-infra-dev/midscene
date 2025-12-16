@@ -1,12 +1,13 @@
 {
   "name": "@midscene/mcp",
-  "version": "0.30.10",
+  "version": "1.0.0",
   "bin": "dist/index.js",
   "files": ["dist"],
   "scripts": {
     "build": "rslib build",
-    "dev": "rslib build --watch",
-    "build:watch": "npm run dev",
+    "dev": "npm run build:watch",
+    "build:watch": "rslib build --watch",
+    "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js",
     "test": "vitest run",
     "inspect": "node scripts/inspect.mjs"
   },

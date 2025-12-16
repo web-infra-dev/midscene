@@ -1,18 +1,22 @@
+import { PromptTemplate } from '@langchain/core/prompts';
 import type { TVlModeTypes } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
 export function systemPromptToLocateSection(vlMode: TVlModeTypes | undefined) {
+  const bboxFormat = bboxDescription(vlMode);
   return `
-You goal is to find out one section containing the target element in the screenshot, put it in the \`bbox\` field. If the user describe the target element with some reference elements, you should also find the section containing the reference elements, put it in the \`references_bbox\` field.
+## Role:
+You are an AI assistant that helps identify UI elements.
 
-Usually, it should be approximately an area not more than 300x300px. Changes of the size are allowed if there are many elements to cover.
+## Objective:
+- Find a section containing the target element
+- If the description mentions reference elements, also locate sections containing those references
 
-return in this JSON format:
+## Output Format:
 \`\`\`json
 {
-  "bbox": [number, number, number, number],
+  "bbox": [number, number, number, number],  // ${bboxFormat}
   "references_bbox"?: [
-    [number, number, number, number],
     [number, number, number, number],
     ...
   ],
@@ -20,11 +24,13 @@ return in this JSON format:
 }
 \`\`\`
 
-In which, all the numbers in the \`bbox\` and \`references_bbox\` represent ${bboxDescription(vlMode)}.
+Fields:
+* \`bbox\` - Bounding box of the section containing the target element
+* \`references_bbox\` - Optional array of bounding boxes for reference elements
+* \`error\` - Optional error message if the section cannot be found
 
-For example, if the user describe the target element as "the delete button on the second row with title 'Peter'", you should put the bounding box of the delete button in the \`bbox\` field, and the bounding box of the second row in the \`references_bbox\` field.
-
-the return value should be like this:
+Example:
+If the description is "delete button on the second row with title 'Peter'", return:
 \`\`\`json
 {
   "bbox": [100, 100, 200, 200],
@@ -34,12 +40,7 @@ the return value should be like this:
 `;
 }
 
-export const sectionLocatorInstruction = ({
-  sectionDescription,
-}: {
-  sectionDescription: string;
-}) => `Here is the target element user interested in:
-<targetDescription>
-${sectionDescription}
-</targetDescription>
-  `;
+export const sectionLocatorInstruction = new PromptTemplate({
+  template: 'Find section containing: {sectionDescription}',
+  inputVariables: ['sectionDescription'],
+});

@@ -1,8 +1,10 @@
 import assert from 'node:assert';
 import type { Point } from '@midscene/core';
+import { z } from '@midscene/core';
 import {
   AbstractInterface,
   type DeviceAction,
+  defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
@@ -371,6 +373,10 @@ export interface ChromePageDestroyOptions {
 }
 
 export abstract class AbstractWebPage extends AbstractInterface {
+  navigate?(url: string): Promise<void>;
+  reload?(): Promise<void>;
+  goBack?(): Promise<void>;
+
   get mouse(): MouseAction {
     return {
       click: async (
@@ -485,15 +491,15 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
         }
       : undefined;
     const scrollToEventName = param?.scrollType;
-    if (scrollToEventName === 'untilTop') {
+    if (scrollToEventName === 'scrollToTop') {
       await page.scrollUntilTop(startingPoint);
-    } else if (scrollToEventName === 'untilBottom') {
+    } else if (scrollToEventName === 'scrollToBottom') {
       await page.scrollUntilBottom(startingPoint);
-    } else if (scrollToEventName === 'untilRight') {
+    } else if (scrollToEventName === 'scrollToRight') {
       await page.scrollUntilRight(startingPoint);
-    } else if (scrollToEventName === 'untilLeft') {
+    } else if (scrollToEventName === 'scrollToLeft') {
       await page.scrollUntilLeft(startingPoint);
-    } else if (scrollToEventName === 'once' || !scrollToEventName) {
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
       if (param?.direction === 'down' || !param || !param.direction) {
         await page.scrollDown(param?.distance || undefined, startingPoint);
       } else if (param.direction === 'up') {
@@ -613,5 +619,44 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     const element = param.locate;
     assert(element, 'Element not found, cannot clear input');
     await page.clearInput(element as unknown as ElementInfo);
+  }),
+
+  defineAction({
+    name: 'Navigate',
+    description:
+      'Navigate the browser to a specified URL. Opens the URL in the current tab.',
+    paramSchema: z.object({
+      url: z.string().describe('The URL to navigate to'),
+    }),
+    call: async (param) => {
+      if (!page.navigate) {
+        throw new Error(
+          'Navigate operation is not supported on this page type',
+        );
+      }
+      await page.navigate(param.url);
+    },
+  }),
+
+  defineAction({
+    name: 'Reload',
+    description: 'Reload the current page',
+    call: async () => {
+      if (!page.reload) {
+        throw new Error('Reload operation is not supported on this page type');
+      }
+      await page.reload();
+    },
+  }),
+
+  defineAction({
+    name: 'GoBack',
+    description: 'Navigate back in browser history',
+    call: async () => {
+      if (!page.goBack) {
+        throw new Error('GoBack operation is not supported on this page type');
+      }
+      await page.goBack();
+    },
   }),
 ];

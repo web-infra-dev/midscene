@@ -5,22 +5,21 @@ export interface ConversationHistoryOptions {
   initialMessages?: ChatCompletionMessageParam[];
 }
 
+const defaultMaxUserImagesCount = 6;
+
 export class ConversationHistory {
   private readonly maxUserImageMessages: number;
   private readonly messages: ChatCompletionMessageParam[] = [];
 
   constructor(options?: ConversationHistoryOptions) {
-    this.maxUserImageMessages = options?.maxUserImageMessages ?? 4;
+    this.maxUserImageMessages =
+      options?.maxUserImageMessages ?? defaultMaxUserImagesCount;
     if (options?.initialMessages?.length) {
       this.seed(options.initialMessages);
     }
   }
 
   append(message: ChatCompletionMessageParam) {
-    if (message.role === 'user') {
-      this.pruneOldestUserMessageIfNecessary();
-    }
-
     this.messages.push(message);
   }
 
@@ -35,8 +34,47 @@ export class ConversationHistory {
     this.messages.length = 0;
   }
 
-  snapshot(): ChatCompletionMessageParam[] {
-    return [...this.messages];
+  snapshot(options?: {
+    maxImageMessages?: number;
+  }): ChatCompletionMessageParam[] {
+    const maxImageMessages =
+      options?.maxImageMessages ?? this.maxUserImageMessages;
+
+    // Count image_url messages from back to front
+    let imageCount = 0;
+    const processedMessages = [...this.messages]
+      .reverse()
+      .map((message): ChatCompletionMessageParam => {
+        if (
+          typeof message.content !== 'string' &&
+          Array.isArray(message.content)
+        ) {
+          // Also process content items from back to front
+          const processedContent = [...message.content]
+            .reverse()
+            .map((item) => {
+              if (item.type === 'image_url') {
+                imageCount++;
+                if (imageCount > maxImageMessages) {
+                  // Replace with text type
+                  return {
+                    type: 'text' as const,
+                    text: '(omitted due to size limit)',
+                  };
+                }
+              }
+              return item;
+            })
+            .reverse();
+          return {
+            ...message,
+            content: processedContent,
+          } as ChatCompletionMessageParam;
+        }
+        return message;
+      });
+
+    return processedMessages.reverse();
   }
 
   get length(): number {
@@ -49,20 +87,5 @@ export class ConversationHistory {
 
   toJSON(): ChatCompletionMessageParam[] {
     return this.snapshot();
-  }
-
-  private pruneOldestUserMessageIfNecessary() {
-    const userMessages = this.messages.filter((item) => item.role === 'user');
-    if (userMessages.length < this.maxUserImageMessages) {
-      return;
-    }
-
-    const firstUserMessageIndex = this.messages.findIndex(
-      (item) => item.role === 'user',
-    );
-
-    if (firstUserMessageIndex >= 0) {
-      this.messages.splice(firstUserMessageIndex, 1);
-    }
   }
 }

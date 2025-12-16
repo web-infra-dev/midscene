@@ -17,6 +17,13 @@ describe('Test todo list', () => {
     agent = new AndroidAgent(page, {
       aiActionContext:
         'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+      modelConfig: {
+        MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+        MIDSCENE_MODEL_BASE_URL:
+          'https://dashscope.aliyuncs.com/compatible-mode/v1',
+        MIDSCENE_MODEL_API_KEY: 'sk-...',
+        MIDSCENE_MODEL_FAMILY: 'qwen3-vl',
+      },
     });
     await page.connect();
     await page.launch(pageUrl);

@@ -11,11 +11,9 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
-import { treeToList } from '@midscene/shared/extractor';
-import { Dropdown, Spin, Switch, Tooltip } from 'antd';
+import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
-import ShowMarkerIcon from '../../icons/show-marker.svg';
 import { useBlackboardPreference } from '../../store/store';
 import { getTextureFromCache, loadTexture } from '../../utils/pixi-loader';
 import type {
@@ -143,6 +141,14 @@ class RecordingSession {
       }
     };
 
+    // Add error handler for MediaRecorder
+    mediaRecorder.onerror = (event) => {
+      console.error('MediaRecorder error:', event);
+      message.error('Video recording failed. Please try again.');
+      this.recording = false;
+      this.mediaRecorder = null;
+    };
+
     this.mediaRecorder = mediaRecorder;
     this.recording = true;
     return this.mediaRecorder.start();
@@ -154,8 +160,24 @@ class RecordingSession {
       return;
     }
 
+    // Bind onstop handler BEFORE calling stop() to ensure it's attached in time
     this.mediaRecorder.onstop = () => {
+      // Check if we have any data
+      if (this.chunks.length === 0) {
+        console.error('No video data captured');
+        message.error('Video export failed: No data captured.');
+        return;
+      }
+
       const blob = new Blob(this.chunks, { type: 'video/webm' });
+
+      // Check blob size
+      if (blob.size === 0) {
+        console.error('Video blob is empty');
+        message.error('Video export failed: Empty file.');
+        return;
+      }
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -163,7 +185,8 @@ class RecordingSession {
       a.click();
       URL.revokeObjectURL(url);
     };
-    this.mediaRecorder?.stop();
+
+    this.mediaRecorder.stop();
     this.recording = false;
     this.mediaRecorder = null;
   }
@@ -177,12 +200,10 @@ export function Player(props?: {
   key?: string | number;
   fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
   autoZoom?: boolean; // enable auto zoom when playing, default to true
-  elementsVisible?: boolean; // show element markers when playing, default to true
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const { autoZoom, setAutoZoom, elementsVisible, setElementsVisible } =
-    useBlackboardPreference();
+  const { autoZoom, setAutoZoom } = useBlackboardPreference();
 
   // Update state when prop changes
   useEffect(() => {
@@ -190,12 +211,6 @@ export function Player(props?: {
       setAutoZoom(props.autoZoom);
     }
   }, [props?.autoZoom, setAutoZoom]);
-
-  useEffect(() => {
-    if (props?.elementsVisible !== undefined) {
-      setElementsVisible(props.elementsVisible);
-    }
-  }, [props?.elementsVisible, setElementsVisible]);
 
   const scripts = props?.replayScripts;
   const imageWidth = props?.imageWidth || 1920;
@@ -223,10 +238,6 @@ export function Player(props?: {
     container.zIndex = LAYER_ORDER_INSIGHT;
     return container;
   }, []);
-
-  useEffect(() => {
-    insightMarkContainer.visible = elementsVisible;
-  }, [elementsVisible, insightMarkContainer]);
 
   const basicCameraState = {
     left: 0,
@@ -736,8 +747,9 @@ export function Player(props?: {
 
   const [isRecording, setIsRecording] = useState(false);
   const recorderSessionRef = useRef<RecordingSession | null>(null);
+  const cancelAnimationRef = useRef<(() => void) | null>(null);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (recorderSessionRef.current) {
       console.warn('recorderSession exists');
       return;
@@ -746,6 +758,14 @@ export function Player(props?: {
     if (!app.canvas) {
       console.warn('canvas is not initialized');
       return;
+    }
+
+    // Cancel any ongoing animation before starting export
+    if (cancelAnimationRef.current) {
+      cancelAnimationRef.current();
+      cancelAnimationRef.current = null;
+      // Wait for animation cleanup to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
     recorderSessionRef.current = new RecordingSession(app.canvas);
@@ -765,6 +785,7 @@ export function Player(props?: {
         }
         const { frame, cancel, timeout } = frameKit();
         cancelFn = cancel;
+        cancelAnimationRef.current = cancel;
         const allImages: string[] = scripts
           .filter((item) => !!item.img)
           .map((item) => item.img!);
@@ -821,14 +842,11 @@ export function Player(props?: {
             }
             currentImg.current = item.img;
             await repaintImage(item.imageWidth, item.imageHeight);
-            const elements = item.context?.tree
-              ? treeToList(item.context.tree)
-              : [];
             const highlightElements = item.highlightElement
               ? [item.highlightElement]
               : [];
             await insightElementsAnimation(
-              elements,
+              [],
               highlightElements,
               item.searchArea,
               item.duration,
@@ -879,11 +897,35 @@ export function Player(props?: {
         }
       })().catch((e) => {
         console.error('player error', e);
+
+        // Ignore frame cancel errors (these are expected when animation is cancelled)
+        if (e?.message === ERROR_FRAME_CANCEL) {
+          console.log('Animation cancelled (expected behavior)');
+          return;
+        }
+
+        // Reset recording state on error
+        const wasRecording = !!recorderSessionRef.current;
+        if (recorderSessionRef.current) {
+          try {
+            recorderSessionRef.current.stop();
+          } catch (stopError) {
+            console.error('Error stopping recorder:', stopError);
+          }
+          recorderSessionRef.current = null;
+        }
+        setIsRecording(false);
+
+        // Only show error message if we were actually recording
+        if (wasRecording) {
+          message.error('Failed to export video. Please try again.');
+        }
       }),
     );
     // Cleanup function
     return () => {
       cancelFn?.();
+      cancelAnimationRef.current = null;
     };
   };
 
@@ -1095,51 +1137,6 @@ export function Player(props?: {
                           checked={autoZoom}
                           onChange={(checked) => {
                             setAutoZoom(checked);
-                            triggerReplay();
-                          }}
-                          onClick={(_, e) => e?.stopPropagation?.()}
-                        />
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'elementsVisible',
-                    style: {
-                      height: '39px',
-                      margin: 0,
-                      padding: '0 12px',
-                    },
-                    label: (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          height: '39px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <ShowMarkerIcon
-                            style={{ width: '16px', height: '16px' }}
-                          />
-                          <span
-                            style={{ fontSize: '12px', marginRight: '16px' }}
-                          >
-                            Show element markers
-                          </span>
-                        </div>
-                        <Switch
-                          size="small"
-                          checked={elementsVisible}
-                          onChange={(checked) => {
-                            setElementsVisible(checked);
                             triggerReplay();
                           }}
                           onClick={(_, e) => e?.stopPropagation?.()}

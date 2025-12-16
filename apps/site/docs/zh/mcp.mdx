@@ -1,0 +1,254 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# MCP 服务
+
+Midscene 提供一个 MCP 服务，让 AI 助手可以同时自动化 Web 浏览器与 Android 设备。通过调整配置中的环境变量，你可以在**浏览器桥接模式**与**Android 模式**之间切换，而无需更换服务器。
+
+:::info 什么是 MCP
+[MCP](https://modelcontextprotocol.io/introduction)（Model Context Protocol）是一套标准，让 AI 模型可以与外部工具和能力进行交互。对于 Midscene，MCP 工具让 AI 模型可以控制浏览器、连接 Android 设备、操作 UI 元素等。
+:::
+
+## 使用场景
+
+- 控制浏览器执行自动化任务
+- 自动生成 Midscene 自动化脚本
+- 在 Android 设备上执行自动化测试
+- 操控 Android 应用完成 UI 交互
+
+## 环境选择
+
+| 环境 | 适用场景 | 核心要求 |
+|------|----------|---------|
+| **Web（桥接模式）** | 想直接操作当前桌面浏览器，无需额外启动自动化浏览器。 | 安装 Midscene Chrome 扩展并启用桥接模式。 |
+| **Android** | 需要与 Android 设备或模拟器交互。 | 已启用 USB 调试的 Android 设备/模拟器、ADB 工具，配置 `MIDSCENE_MCP_ANDROID_MODE`。 |
+
+只需调整 MCP 配置中的环境变量，即可在两种模式之间切换。
+
+## 设置 Midscene MCP
+
+### 通用前提条件
+
+1. OpenAI API 密钥或其他支持的 AI 模型服务。更多信息参见 [模型策略](./model-strategy)。
+
+### 额外要求
+
+**Web（桥接模式）**
+
+- 安装 Midscene Chrome 扩展（从 [Chrome Web Extension](https://chromewebstore.google.com/detail/midscenejs/gbldofcpkknbggpkmbdaefngejllnief?hl=zh-CN&utm_source=ext_sidebar) 下载）。
+- 在扩展中切换到桥接模式并点击「允许连接」。
+
+**Android**
+
+- 安装并配置 [Android adb](https://developer.android.com/tools/adb?hl=zh-cn) 工具。
+- 将开启 USB 调试的 Android 设备或模拟器连接到电脑。
+
+### 配置
+
+在 MCP 客户端中添加 Midscene MCP 服务器，通过 `MIDSCENE_MCP_ANDROID_MODE` 变量切换模式：
+
+```json
+{
+  "mcpServers": {
+    "mcp-midscene": {
+      "command": "npx",
+      "args": ["-y", "@midscene/mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000",
+        "MIDSCENE_MCP_ANDROID_MODE": "true or false"
+      }
+    }
+  }
+}
+```
+
+- `MIDSCENE_MCP_ANDROID_MODE` 设为 `"false"`（或省略）时启用 Web 自动化。
+- `MIDSCENE_MCP_ANDROID_MODE` 设为 `"true"` 时切换到 Android 自动化能力。
+
+更多 AI 模型配置参考 [模型策略](./model-strategy)。
+
+## 可用工具
+
+Midscene MCP 暴露了跨平台共享的 AI 交互工具，以及 Android 专属的设备控制能力。
+
+| 功能分类 | 工具名称 | 适用环境 | 功能描述 |
+|---------|---------|---------|---------|
+| **导航** | midscene_navigate | Web | 在当前标签页导航到指定 URL。 |
+| **标签页管理** | midscene_get_tabs | Web | 获取所有打开的浏览器标签页。 |
+|  | midscene_set_active_tab | Web | 通过 ID 切换到特定标签页。 |
+| **设备管理** | midscene_android_list_devices | Android | 列出所有已连接的 Android 设备。 |
+|  | midscene_android_connect | Android | 通过 ADB 连接指定 Android 设备。 |
+| **应用控制** | midscene_android_launch | Android | 启动应用或在设备上打开网页。 |
+| **系统操作** | midscene_android_back | Android | 执行 Android 返回键。 |
+|  | midscene_android_home | Android | 执行 Android 主页键。 |
+| **页面交互** | midscene_aiTap | Web & Android | 点击自然语言描述的元素。 |
+|  | midscene_aiInput | Web & Android | 在元素中输入文本。 |
+|  | midscene_aiHover | Web | 悬停在某个元素上。 |
+|  | midscene_aiKeyboardPress | Web & Android | 按下特定键盘按键。 |
+|  | midscene_aiScroll | Web & Android | 滚动页面或特定元素。 |
+| **验证与观察** | midscene_aiWaitFor | Web & Android | 等待某个条件为真。 |
+|  | midscene_aiAssert | Web & Android | 断言某个条件为真。 |
+|  | midscene_screenshot | Web & Android | 对当前页面/屏幕截图。 |
+| **Playwright 示例** | midscene_playwright_example | Web | 提供 Midscene 场景的 Playwright 代码模板。 |
+
+### Web 导航
+
+- **midscene_navigate**：在当前标签页导航到指定 URL。
+  ```
+  参数：
+  - url：要访问的 URL。
+  ```
+
+### Web 标签页管理
+
+- **midscene_get_tabs**：获取所有打开的标签页及其 ID、标题、URL。
+  ```
+  参数：无
+  ```
+
+- **midscene_set_active_tab**：通过 ID 切换标签页。
+  ```
+  参数：
+  - tabId：目标标签页 ID。
+  ```
+
+### Android 设备管理
+
+- **midscene_android_list_devices**：列出所有可用于自动化的 Android 设备。
+  ```
+  参数：无
+  ```
+
+- **midscene_android_connect**：通过 ADB 连接到某个 Android 设备。
+  ```
+  参数：
+  - deviceId：（可选）要连接的设备 ID，默认为第一个可用设备。
+  - displayId：（可选）多屏设备的显示屏 ID（如 0/1/2），指定后所有 ADB 输入都会指向该屏幕。
+  - alwaysRefreshScreenInfo：（可选）是否每次调用都刷新设备屏幕信息。若设备可能旋转建议设为 true。
+  ```
+
+### Android 应用控制
+
+- **midscene_android_launch**：在 Android 设备上启动应用或访问 URL。
+  ```
+  参数：
+  - uri：要启动的应用包名、Activity 名称或网页 URL。
+  ```
+
+- **midscene_android_back**：模拟 Android 返回键。
+  ```
+  参数：无
+  ```
+
+- **midscene_android_home**：模拟 Android 主页键。
+  ```
+  参数：无
+  ```
+
+### 跨平台页面交互工具
+
+- **midscene_aiTap**：点击自然语言描述的元素。
+  ```
+  参数：
+  - locate：目标元素的描述。
+  ```
+
+- **midscene_aiInput**：向表单字段或元素输入文本。
+  ```
+  参数：
+  - value：输入值。
+  - locate：要输入的元素描述。
+  ```
+
+- **midscene_aiHover**（仅 Web）：悬停在指定元素上。
+  ```
+  参数：
+  - locate：悬停目标元素描述。
+  ```
+
+- **midscene_aiKeyboardPress**：按下特定键盘按键。
+  ```
+  参数：
+  - key：按键（例如 'Enter'、'Tab'、'Escape'）。
+  - locate：（可选）按键前需要聚焦的元素。
+  - deepThink：（可选）启用更精确的元素定位。
+  ```
+
+- **midscene_aiScroll**：滚动页面或元素。
+  ```
+  参数：
+  - direction：'up'、'down'、'left'、'right'。
+  - scrollType：'once'、'untilBottom'、'untilTop'、'untilLeft'、'untilRight'。
+  - distance：（可选）滚动距离（像素）。
+  - locate：（可选）需要滚动的元素描述。
+  - deepThink：（可选）启用更精确的元素定位。
+  ```
+
+### 跨平台验证与观察工具
+
+- **midscene_aiWaitFor**：等待条件满足。
+  ```
+  参数：
+  - assertion：要等待的条件描述。
+  - timeoutMs：（可选）最大等待时间（毫秒）。
+  - checkIntervalMs：（可选）轮询间隔（毫秒）。
+  ```
+
+- **midscene_aiAssert**：断言条件为真。
+  ```
+  参数：
+  - assertion：要检查的条件描述。
+  ```
+
+- **midscene_screenshot**：对当前页面或屏幕截图。
+  ```
+  参数：
+  - name：截图名称。
+  ```
+
+### Playwright 示例
+
+- **midscene_playwright_example**（仅 Web）：输出与描述匹配的 Midscene Playwright 代码示例。
+  ```
+  参数：
+  - locate：要生成示例的操作或元素描述。
+  ```
+
+## 常见问题
+
+### Midscene MCP 相比其他 MCP 有哪些优势？
+
+- 桥接模式允许直接控制当前浏览器，无需额外登录或下载新的浏览器。
+- 内置 Prompt 模板与操作策略，让浏览器自动化更稳定可靠。
+- Android 模式在同一 MCP 服务中扩展到真实设备或模拟器。
+
+### Web 常见问题排查
+
+- 确认已安装 Midscene Chrome 扩展，并且桥接模式已启用。
+- 如遇导航失败，检查当前浏览器会话是否能访问目标 URL。
+
+### Android 常见问题排查
+
+- 确保已安装 Android SDK 与 ADB。
+- Android 设备需开启开发者选项与 USB 调试。
+- 使用 `adb devices` 确认设备已连接。
+- 若端口 `3766` 被占用，可按以下方式释放：
+
+  ```bash
+  # macOS / Linux
+  lsof -i:3766 | awk 'NR>1 {print $2}' | xargs -r kill -9
+
+  # Windows
+  FOR /F "tokens=5" %i IN ('netstat -ano ^| findstr :3766') DO taskkill /F /PID %i
+  ```
+
+### 如何查看 Midscene 执行报告？
+
+每次任务执行结束，都会生成一份 Midscene 任务报告。可直接在命令行打开：
+
+```bash
+open report_file_name.html
+```

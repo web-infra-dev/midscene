@@ -1,6 +1,12 @@
-import { getMidsceneLocationSchema } from '@/ai-model';
-import type { DeviceAction, LocateResultElement } from '@/types';
+import { getMidsceneLocationSchema } from '@/common';
+import type {
+  ActionScrollParam,
+  DeviceAction,
+  LocateResultElement,
+} from '@/types';
+import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
@@ -14,7 +20,10 @@ export abstract class AbstractInterface {
 
   abstract cacheFeatureForRect?(
     rect: Rect,
-    opt?: { _orderSensitive: boolean },
+    options?: {
+      targetDescription?: string;
+      modelConfig?: IModelConfig;
+    },
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
@@ -41,23 +50,25 @@ export abstract class AbstractInterface {
 
 // Generic function to define actions with proper type inference
 // TRuntime allows specifying a different type for the runtime parameter (after location resolution)
+// TReturn allows specifying the return type of the action
 export const defineAction = <
-  TSchema extends z.ZodType,
-  TRuntime = z.infer<TSchema>,
+  TSchema extends z.ZodType | undefined = undefined,
+  TRuntime = TSchema extends z.ZodType ? z.infer<TSchema> : undefined,
+  TReturn = any,
 >(
   config: {
     name: string;
     description: string;
     interfaceAlias?: string;
-    paramSchema: TSchema;
-    call: (param: TRuntime) => Promise<void>;
+    paramSchema?: TSchema;
+    call: (param: TRuntime) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<
-      DeviceAction<TRuntime>,
+      DeviceAction<TRuntime, TReturn>,
       'name' | 'description' | 'interfaceAlias' | 'paramSchema' | 'call'
     >
   >,
-): DeviceAction<TRuntime> => {
+): DeviceAction<TRuntime, TReturn> => {
   return config as any; // Type assertion needed because schema validation type differs from runtime type
 };
 
@@ -153,6 +164,8 @@ export const defineActionHover = (
 };
 
 // Input
+const inputLocateDescription =
+  'the position of the placeholder or text content in the target input field. If there is no content, locate the center of the input field.';
 export const actionInputParamSchema = z.object({
   value: z
     .union([z.string(), z.number()])
@@ -161,7 +174,7 @@ export const actionInputParamSchema = z.object({
       'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
     ),
   locate: getMidsceneLocationSchema()
-    .describe('The element to be input')
+    .describe(inputLocateDescription)
     .optional(),
   mode: z
     .enum(['replace', 'clear', 'append'])
@@ -228,9 +241,17 @@ export const actionScrollParamSchema = z.object({
     .default('down')
     .describe('The direction to scroll'),
   scrollType: z
-    .enum(['once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft'])
-    .default('once')
-    .describe('The scroll type'),
+    .enum([
+      'singleAction',
+      'scrollToBottom',
+      'scrollToTop',
+      'scrollToRight',
+      'scrollToLeft',
+    ])
+    .default('singleAction')
+    .describe(
+      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+    ),
   distance: z
     .number()
     .nullable()
@@ -238,14 +259,8 @@ export const actionScrollParamSchema = z.object({
     .describe('The distance in pixels to scroll'),
   locate: getMidsceneLocationSchema()
     .optional()
-    .describe('The element to be scrolled'),
+    .describe('The target element to be scrolled'),
 });
-export type ActionScrollParam = {
-  direction?: 'down' | 'up' | 'right' | 'left';
-  scrollType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance?: number | null;
-  locate?: LocateResultElement;
-};
 
 export const defineActionScroll = (
   call: (param: ActionScrollParam) => Promise<void>,
@@ -381,11 +396,61 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
-    description: 'Clear the text content of an input field',
+    description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
     call,
   });
 };
 
+// Assert
+export const actionAssertParamSchema = z.object({
+  thought: z
+    .string()
+    .describe('The thinking process of analyzing the assertion'),
+  result: z
+    .boolean()
+    .describe('Whether the assertion is truthy, return true or false'),
+});
+export type ActionAssertParam = {
+  thought: string;
+  result: boolean;
+};
+
+export const defineActionAssert = (
+  call: (param: ActionAssertParam) => Promise<void>,
+): DeviceAction<ActionAssertParam> => {
+  return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
+    name: 'Assert',
+    description:
+      'If the user explicitly requires making an assertion (like "there should be a button with text "Yes" in the popup"), think about it, provide the reasoning and result here.',
+    interfaceAlias: 'aiAssert',
+    paramSchema: actionAssertParamSchema,
+    call,
+  });
+};
+
+/**
+ * Creates an Assert action with default implementation.
+ * This action can be used across all interfaces without modification.
+ * If pass=true, the assertion succeeds silently.
+ * If pass=false, the assertion fails and throws an error with the thought as the error message.
+ */
+export const createAssertAction = (): DeviceAction<ActionAssertParam> => {
+  const debug = getDebug('core:planning-assert');
+  return defineActionAssert(async (param: ActionAssertParam) => {
+    debug('assertion', param.thought, param.result);
+    if (!param.result) {
+      throw new Error(`Assertion failed: ${param.thought}`);
+    }
+    // If pass is true, do nothing (assertion succeeds)
+  });
+};
+
 export type { DeviceAction } from '../types';
+export type {
+  AndroidDeviceOpt,
+  AndroidDeviceInputOpt,
+  IOSDeviceOpt,
+  IOSDeviceInputOpt,
+} from './device-options';

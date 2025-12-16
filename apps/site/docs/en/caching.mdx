@@ -19,7 +19,7 @@ With caching hit, time cost is significantly reduced. For example, in the follow
 Midscene's caching mechanism is based on input stability and output reusability. When the same task instructions are repeatedly executed in similar page environments, Midscene will prioritize using cached results to avoid repeated AI model calls, significantly improving execution efficiency.
 
 The core caching mechanisms include:
-- **Task instruction caching**: For planning operations (such as `ai`, `aiAction`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
+- **Task instruction caching**: For planning operations (such as `ai`, `aiAct`), Midscene uses the prompt instruction as the cache key to store the execution plan returned by AI
 - **Element location caching**: For location operations (such as `aiLocate`, `aiTap`), the system uses the location prompt as the cache key to store element XPath information, and verifies whether the XPath is still valid on the next execution
 - **Invalidation mechanism**: When cache becomes invalid, the system automatically falls back to AI model for re-analysis
 - **Never cache query results**: The query results like `aiBoolean`, `aiQuery`, `aiAssert` will never be cached.

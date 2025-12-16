@@ -1,10 +1,10 @@
+import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
-  adaptQwenBbox,
+  adaptQwen2_5Bbox as adaptQwenBbox,
   fillBboxParam,
   getMidsceneLocationSchema,
-} from '@/ai-model/common';
-import { buildYamlFlowFromPlans } from '@/ai-model/common';
-import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
+} from '@/common';
+import { buildYamlFlowFromPlans } from '@/common';
 import {
   MIDSCENE_USE_DOUBAO_VISION,
   OPENAI_API_KEY,
