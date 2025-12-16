@@ -9,19 +9,21 @@
     "preview": "rsbuild preview"
   },
   "dependencies": {
+    "@midscene/recorder": "workspace:*",
     "antd": "^5.21.6",
     "dayjs": "^1.11.11",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "@midscene/recorder": "workspace:*"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@rsbuild/plugin-node-polyfill": "1.4.2",
-    "@rsbuild/plugin-type-check": "1.2.4",
+    "@midscene/shared": "workspace:*",
     "@rsbuild/core": "^1.5.17",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
     "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-type-check": "1.2.4",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "rsbuild-plugin-workspace-dev": "0.0.1",
     "typescript": "^5.8.3"
   }
 }

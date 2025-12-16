@@ -9,6 +9,7 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version as playgroundVersion } from '../../packages/playground/package.json';
 
 export default defineConfig({
@@ -35,6 +36,13 @@ export default defineConfig({
       path.join(__dirname, 'src', 'favicon.ico'),
     ),
     pluginTypeCheck(),
+    pluginWorkspaceDev({
+      projects: {
+        '@midscene/report': {
+          skip: true,
+        },
+      },
+    }),
   ],
   resolve: {
     alias: {

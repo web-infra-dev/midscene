@@ -18,7 +18,7 @@
   "files": ["dist", "static"],
   "scripts": {
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "dev": "npm run build:watch",
     "test": "vitest --run",
     "test:watch": "vitest",

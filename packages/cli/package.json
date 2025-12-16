@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:ai": "AITEST=true vitest --run",
     "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"

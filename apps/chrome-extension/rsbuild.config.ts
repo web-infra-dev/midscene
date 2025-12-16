@@ -6,6 +6,7 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version } from '../../packages/visualizer/package.json';
 
 export default defineConfig({
@@ -103,5 +104,12 @@ export default defineConfig({
     pluginLess(),
     pluginSvgr(),
     pluginTypeCheck(),
+    pluginWorkspaceDev({
+      projects: {
+        '@midscene/report': {
+          skip: true,
+        },
+      },
+    }),
   ],
 });

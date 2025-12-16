@@ -79,7 +79,7 @@
     "build": "npm run build:script && npm run build:pkg",
     "build:pkg": "rslib build",
     "build:script": "rslib build -c ./rslib.inspect.config.ts",
-    "build:watch": "npm run build:script && rslib build --watch",
+    "build:watch": "npm run build:script && rslib build --watch --no-clean",
     "reset": "rimraf ./**/node_modules",
     "test": "vitest --run",
     "test:u": "vitest --run -u"
