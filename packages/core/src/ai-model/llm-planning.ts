@@ -3,7 +3,6 @@ import type {
   InterfaceType,
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
-  ThinkingStrategy,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -31,9 +30,9 @@ export async function plan(
     actionSpace: DeviceAction<any>[];
     actionContext?: string;
     modelConfig: IModelConfig;
-    conversationHistory?: ConversationHistory;
+    conversationHistory: ConversationHistory;
     includeBbox: boolean;
-    thinkingStrategy: ThinkingStrategy;
+    imagesIncludeCount?: number;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -45,7 +44,6 @@ export async function plan(
     actionSpace: opts.actionSpace,
     vlMode,
     includeBbox: opts.includeBbox,
-    thinkingStrategy: opts.thinkingStrategy,
   });
 
   let imagePayload = screenshotBase64;
@@ -62,22 +60,9 @@ export async function plan(
     imagePayload = paddedResult.imageBase64;
   }
 
-  const historyLog = opts.conversationHistory?.snapshot() || [];
-  // .filter((item) => item.role === 'assistant') || [];
-
-  const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
-    ? [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>`,
-            },
-          ],
-        },
-      ]
-    : [];
+  const actionContext = opts.actionContext
+    ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
+    : '';
 
   const instruction: ChatCompletionMessageParam[] = [
     {
@@ -85,45 +70,69 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `<user_instruction>${userInstruction}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction}</user_instruction>`,
         },
       ],
     },
   ];
 
-  const latestImageMessage: ChatCompletionMessageParam = {
-    role: 'user',
-    content: [
-      {
-        type: 'text',
-        text: 'I have finished the action previously planned, and the last screenshot is as follows:',
-      },
-      {
-        type: 'image_url',
-        image_url: {
-          url: imagePayload,
-          detail: 'high',
+  let latestFeedbackMessage: ChatCompletionMessageParam;
+
+  if (conversationHistory.pendingFeedbackMessage) {
+    latestFeedbackMessage = {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `${conversationHistory.pendingFeedbackMessage}. The last screenshot is attached. Please going on according to the instruction.`,
         },
-      },
-      // Planning uses pure vision mode, no DOM description needed
-    ],
-  };
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ],
+    };
+
+    conversationHistory.resetPendingFeedbackMessageIfExists();
+  } else {
+    latestFeedbackMessage = {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'this is the latest screenshot',
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ],
+    };
+  }
+  conversationHistory.append(latestFeedbackMessage);
+  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...knowledgeContext,
     ...instruction,
     ...historyLog,
-    latestImageMessage,
   ];
 
-  const { content: planFromAI, usage } =
-    await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
-      msgs,
-      AIActionType.PLAN,
-      modelConfig,
-    );
-  const rawResponse = JSON.stringify(planFromAI, undefined, 2);
+  const {
+    content: planFromAI,
+    contentString: rawResponse,
+    usage,
+  } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
+    msgs,
+    AIActionType.PLAN,
+    modelConfig,
+  );
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   const returnValue: PlanningAIResponse = {
@@ -168,8 +177,6 @@ export async function plan(
       }
     });
   });
-  // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
-  assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
 
   if (
     actions.length === 0 &&
@@ -182,9 +189,7 @@ export async function plan(
     );
   }
 
-  conversationHistory?.append(latestImageMessage);
-
-  conversationHistory?.append({
+  conversationHistory.append({
     role: 'assistant',
     content: [
       {

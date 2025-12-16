@@ -3,6 +3,7 @@ import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
 import type {
   DetailedLocateParam,
+  DeviceAction,
   ElementCacheFeature,
   ExecutionTaskActionApply,
   ExecutionTaskApply,
@@ -31,6 +32,18 @@ import {
 
 const debug = getDebug('agent:task-builder');
 
+/**
+ * Check if a cache object is non-empty
+ */
+function hasNonEmptyCache(cache: unknown): boolean {
+  return (
+    cache !== null &&
+    cache !== undefined &&
+    typeof cache === 'object' &&
+    Object.keys(cache).length > 0
+  );
+}
+
 export function locatePlanForLocate(param: string | DetailedLocateParam) {
   const locate = typeof param === 'string' ? { prompt: param } : param;
   const locatePlan: PlanningAction<PlanningLocateParam> = {
@@ -45,6 +58,7 @@ interface TaskBuilderDeps {
   interfaceInstance: AbstractInterface;
   service: Service;
   taskCache?: TaskCache;
+  actionSpace: DeviceAction[];
 }
 
 interface BuildOptions {
@@ -67,10 +81,18 @@ export class TaskBuilder {
 
   private readonly taskCache?: TaskCache;
 
-  constructor({ interfaceInstance, service, taskCache }: TaskBuilderDeps) {
+  private readonly actionSpace: DeviceAction[];
+
+  constructor({
+    interfaceInstance,
+    service,
+    taskCache,
+    actionSpace,
+  }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
+    this.actionSpace = actionSpace;
   }
 
   public async build(
@@ -181,7 +203,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
   ): Promise<void> {
     const planType = plan.type;
-    const actionSpace = await this.interface.actionSpace();
+    const actionSpace = this.actionSpace;
     const action = actionSpace.find((item) => item.name === planType);
     const param = plan.param;
 
@@ -199,33 +221,25 @@ export class TaskBuilder {
 
     locateFields.forEach((field) => {
       if (param[field]) {
-        if (ifPlanLocateParamIsBbox(param[field])) {
-          debug(
-            'plan locate param is bbox, will match element from plan',
-            param[field],
-          );
-          const elementFromPlan = matchElementFromPlan(param[field]);
-          if (elementFromPlan) {
-            param[field] = elementFromPlan;
-          }
-        } else {
-          const locatePlan = locatePlanForLocate(param[field]);
-          debug(
-            'will prepend locate param for field',
-            `action.type=${planType}`,
-            `param=${JSON.stringify(param[field])}`,
-            `locatePlan=${JSON.stringify(locatePlan)}`,
-          );
-          const locateTask = this.createLocateTask(
-            locatePlan,
-            param[field],
-            context,
-            (result) => {
-              param[field] = result;
-            },
-          );
-          context.tasks.push(locateTask);
-        }
+        // Always use createLocateTask for all locate params (including bbox)
+        // This ensures cache writing happens even when bbox is available
+        const locatePlan = locatePlanForLocate(param[field]);
+        debug(
+          'will prepend locate param for field',
+          `action.type=${planType}`,
+          `param=${JSON.stringify(param[field])}`,
+          `locatePlan=${JSON.stringify(locatePlan)}`,
+          `hasBbox=${ifPlanLocateParamIsBbox(param[field])}`,
+        );
+        const locateTask = this.createLocateTask(
+          locatePlan,
+          param[field],
+          context,
+          (result) => {
+            param[field] = result;
+          },
+        );
+        context.tasks.push(locateTask);
       } else {
         assert(
           !requiredLocateFields.includes(field),
@@ -338,11 +352,6 @@ export class TaskBuilder {
     const { cacheable, modelConfigForDefaultIntent } = context;
 
     let locateParam = detailedLocateParam;
-    console.log(
-      'modelConfigForDefaultIntent-locateParam',
-      modelConfigForDefaultIntent,
-      locateParam,
-    );
 
     if (typeof locateParam === 'string') {
       locateParam = {
@@ -397,12 +406,26 @@ export class TaskBuilder {
           }
         };
 
+        // from bbox (plan hit)
+        const elementFromBbox = ifPlanLocateParamIsBbox(param)
+          ? matchElementFromPlan(param)
+          : undefined;
+        const isPlanHit = !!elementFromBbox;
+
         // from xpath
         let rectFromXpath: Rect | undefined;
-        if (param.xpath && this.interface.rectMatchesCacheFeature) {
-          rectFromXpath = await this.interface.rectMatchesCacheFeature({
-            xpaths: [param.xpath],
-          });
+        if (
+          !isPlanHit &&
+          param.xpath &&
+          this.interface.rectMatchesCacheFeature
+        ) {
+          try {
+            rectFromXpath = await this.interface.rectMatchesCacheFeature({
+              xpaths: [param.xpath],
+            });
+          } catch {
+            // xpath locate failed, allow fallback to cache or AI locate
+          }
         }
         const elementFromXpath = rectFromXpath
           ? generateElementByPosition(
@@ -415,29 +438,28 @@ export class TaskBuilder {
                 : param.prompt?.prompt || '',
             )
           : undefined;
-        const userExpectedPathHitFlag = !!elementFromXpath;
+        const isXpathHit = !!elementFromXpath;
 
         const cachePrompt = param.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
-        const elementFromCache = userExpectedPathHitFlag
-          ? null
-          : await matchElementFromCache(
-              {
-                taskCache: this.taskCache,
-                interfaceInstance: this.interface,
-              },
-              cacheEntry,
-              cachePrompt,
-              param.cacheable,
-            );
-        const cacheHitFlag = !!elementFromCache;
-
-        const planHitFlag = false;
+        const elementFromCache =
+          isPlanHit || isXpathHit
+            ? null
+            : await matchElementFromCache(
+                {
+                  taskCache: this.taskCache,
+                  interfaceInstance: this.interface,
+                },
+                cacheEntry,
+                cachePrompt,
+                param.cacheable,
+              );
+        const isCacheHit = !!elementFromCache;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
-        if (!userExpectedPathHitFlag && !cacheHitFlag && !planHitFlag) {
+        if (!isXpathHit && !isCacheHit && !isPlanHit) {
           try {
             locateResult = await this.service.locate(
               param,
@@ -457,13 +479,28 @@ export class TaskBuilder {
         }
 
         const element =
-          elementFromXpath || elementFromCache || elementFromAiLocate;
+          elementFromBbox ||
+          elementFromXpath ||
+          elementFromCache ||
+          elementFromAiLocate;
+
+        // Check if locate cache already exists (for planHitFlag case)
+        const locateCacheAlreadyExists = hasNonEmptyCache(
+          locateCacheRecord?.cacheContent?.cache,
+        );
 
         let currentCacheEntry: ElementCacheFeature | undefined;
+        // Write cache if:
+        // 1. element found
+        // 2. taskCache enabled
+        // 3. not a cache hit (otherwise we'd be writing what we just read)
+        // 4. not already cached (for bbox/plan hit case, avoid redundant writes)
+        // 5. cacheable is not explicitly false
         if (
           element &&
           this.taskCache &&
-          !cacheHitFlag &&
+          !isCacheHit &&
+          !locateCacheAlreadyExists &&
           param?.cacheable !== false
         ) {
           if (this.interface.cacheFeatureForRect) {
@@ -478,7 +515,7 @@ export class TaskBuilder {
                   modelConfig: modelConfigForDefaultIntent,
                 },
               );
-              if (feature && Object.keys(feature).length > 0) {
+              if (hasNonEmptyCache(feature)) {
                 debug(
                   'update cache, prompt: %s, cache: %o',
                   cachePrompt,
@@ -519,14 +556,21 @@ export class TaskBuilder {
 
         let hitBy: ExecutionTaskHitBy | undefined;
 
-        if (userExpectedPathHitFlag) {
+        if (isPlanHit) {
+          hitBy = {
+            from: 'Plan',
+            context: {
+              bbox: param.bbox,
+            },
+          };
+        } else if (isXpathHit) {
           hitBy = {
             from: 'User expected path',
             context: {
               xpath: param.xpath,
             },
           };
-        } else if (cacheHitFlag) {
+        } else if (isCacheHit) {
           hitBy = {
             from: 'Cache',
             context: {

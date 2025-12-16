@@ -18,7 +18,7 @@
   "files": ["dist", "static"],
   "scripts": {
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "dev": "npm run build:watch",
     "test": "vitest --run",
     "test:watch": "vitest",
@@ -34,7 +34,7 @@
     "uuid": "11.1.0"
   },
   "devDependencies": {
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.3",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",

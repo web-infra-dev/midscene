@@ -46,7 +46,20 @@ import { agentFromAdbDevice } from '@midscene/android';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromWebDriverAgent } from '@midscene/ios';
 import { globalConfigManager } from '@midscene/shared/env';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
 import { createServer } from 'http-server';
+
+/**
+ * Test helper: Gets the arguments from a specific mock function call.
+ * @param mockFn - The mocked function
+ * @param callIndex - Index of the call (default: 0 for first call)
+ * @param argIndex - Index of the argument (default: 0 for first argument)
+ * @returns The argument value at the specified indices
+ */
+function getMockCallArg<T>(mockFn: any, callIndex = 0, argIndex = 0): T {
+  return mockFn.mock.calls[callIndex][argIndex];
+}
 
 describe('create-yaml-player', () => {
   const mockFilePath = '/test/script.yml';
@@ -693,13 +706,14 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // Verify aiActionContext is undefined when not provided
-      expect(agentFromAdbDevice).toHaveBeenCalledWith(
-        'test-device',
-        expect.objectContaining({
-          aiActionContext: undefined,
-        }),
-      );
+      // Verify that when agent config is undefined, testId is still set from fileName
+      // and aiActionContext is not present (undefined fields are not spread)
+      const callArgs = getMockCallArg(vi.mocked(agentFromAdbDevice), 0, 1);
+      expect(callArgs).toMatchObject({
+        testId: 'script',
+        deviceId: 'test-device',
+      });
+      expect(callArgs).not.toHaveProperty('aiActionContext');
     });
 
     test('should handle undefined aiActionContext gracefully for iOS', async () => {
@@ -729,12 +743,326 @@ describe('create-yaml-player', () => {
         await setupFnCallback();
       }
 
-      // Verify aiActionContext is undefined when not provided
-      expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+      // Verify that when agent config is undefined, testId is still set from fileName
+      // and aiActionContext is not present (undefined fields are not spread)
+      const callArgs = getMockCallArg(vi.mocked(agentFromWebDriverAgent), 0, 0);
+      expect(callArgs).toMatchObject({
+        testId: 'script',
+      });
+      expect(callArgs).not.toHaveProperty('aiActionContext');
+    });
+  });
+
+  describe('Extended Agent Options Propagation', () => {
+    test('should pass all new agent options from YAML to Puppeteer agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          serve: './test',
+          url: 'test.html',
+        },
+        agent: {
+          testId: 'custom-test-id',
+          groupName: 'Custom Group',
+          groupDescription: 'Custom description',
+          generateReport: true,
+          autoPrintReportMsg: false,
+          reportFileName: 'custom-report',
+          replanningCycleLimit: 25,
+          aiActionContext: 'Test context',
+          cache: { id: 'test-cache', strategy: 'read-write' },
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // Call the setup function
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify all agent options were passed
+      // Note: YAML testId takes precedence over fileName
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
         expect.objectContaining({
-          aiActionContext: undefined,
+          groupName: 'Custom Group',
+          groupDescription: 'Custom description',
+          generateReport: true,
+          autoPrintReportMsg: false,
+          reportFileName: 'custom-report',
+          replanningCycleLimit: 25,
+          aiActionContext: 'Test context',
+          testId: 'custom-test-id', // YAML testId is used
+        }),
+        undefined,
+      );
+    });
+
+    test('should pass extended agent options to Android agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        android: {
+          deviceId: 'test-device',
+        },
+        agent: {
+          groupName: 'Android Test',
+          generateReport: false,
+          replanningCycleLimit: 30,
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromAdbDevice).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      expect(agentFromAdbDevice).toHaveBeenCalledWith(
+        'test-device',
+        expect.objectContaining({
+          groupName: 'Android Test',
+          generateReport: false,
+          replanningCycleLimit: 30,
         }),
       );
+    });
+
+    test('should pass extended agent options to iOS agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        ios: {},
+        agent: {
+          reportFileName: 'ios-test-report',
+          autoPrintReportMsg: true,
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn(), launch: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(agentFromWebDriverAgent).mockResolvedValue(mockAgent as any);
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      expect(agentFromWebDriverAgent).toHaveBeenCalledWith(
+        expect.objectContaining({
+          reportFileName: 'ios-test-report',
+          autoPrintReportMsg: true,
+        }),
+      );
+    });
+
+    test('should pass extended agent options to bridge mode agent', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          bridgeMode: 'currentTab',
+        },
+        agent: {
+          groupDescription: 'Bridge test',
+          replanningCycleLimit: 40,
+        },
+        tasks: [],
+      };
+
+      const mockAgent = {
+        destroy: vi.fn(),
+        connectCurrentTab: vi.fn().mockResolvedValue(undefined),
+      };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(AgentOverChromeBridge).mockImplementation(
+        (opts) => mockAgent as any,
+      );
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      expect(AgentOverChromeBridge).toHaveBeenCalledWith(
+        expect.objectContaining({
+          groupDescription: 'Bridge test',
+          replanningCycleLimit: 40,
+        }),
+      );
+    });
+
+    test('should prioritize CLI preference testId over YAML testId', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          serve: './test',
+          url: 'test.html',
+        },
+        agent: {
+          testId: 'yaml-test-id',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript, {
+        testId: 'cli-test-id',
+      });
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // CLI testId should take priority
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          testId: 'cli-test-id',
+        }),
+        undefined,
+      );
+    });
+
+    test('should use YAML testId when no preference testId exists', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          serve: './test',
+          url: 'test.html',
+        },
+        agent: {
+          testId: 'yaml-test-id',
+        },
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // When no explicit CLI testId is provided, YAML testId takes precedence over fileName
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          testId: 'yaml-test-id',
+        }),
+        undefined,
+      );
+    });
+
+    test('should handle undefined agent config gracefully', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          serve: './test',
+          url: 'test.html',
+        },
+        // No agent config provided
+        tasks: [],
+      };
+
+      const mockAgent = { destroy: vi.fn() };
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Should not throw and should call with default values
+      expect(puppeteerAgentForTarget).toHaveBeenCalled();
     });
   });
 });

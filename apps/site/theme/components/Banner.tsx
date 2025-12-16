@@ -1,8 +1,8 @@
-import { useI18n, useI18nUrl } from '../i18n';
+import { useI18n } from '../i18n';
+import { CTAButtons } from './CTAButtons';
 
 export function Banner() {
   const t = useI18n();
-  const tUrl = useI18nUrl();
 
   return (
     <div className="flex justify-center items-center w-full min-h-[400px] md:min-h-[664px] bg-white dark:bg-[#121212]">
@@ -53,25 +53,8 @@ export function Banner() {
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-start gap-3 md:gap-x-5 mt-8 md:mt-12 w-full md:w-auto">
-          <a
-            href={tUrl('/introduction')}
-            className="w-full md:w-auto h-12 px-6 flex items-center justify-center rounded-full bg-[#0555FF] hover:bg-[#0444DD] transition-colors"
-          >
-            <span className="text-sm font-semibold font-sans text-[#FAFAFA] whitespace-nowrap">
-              {t('introduction')}
-            </span>
-          </a>
-          <a
-            href="https://github.com/web-infra-dev/midscene"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full md:w-auto h-12 px-6 flex items-center justify-center rounded-full transition-colors bg-[#E5E5E5] hover:bg-[#D4D4D4] dark:bg-[#292929] dark:hover:bg-[#333333]"
-          >
-            <span className="font-semibold font-sans text-sm whitespace-nowrap text-black dark:text-white">
-              {t('documentation')}
-            </span>
-          </a>
+        <div className="mt-8 md:mt-12">
+          <CTAButtons />
         </div>
       </div>
     </div>

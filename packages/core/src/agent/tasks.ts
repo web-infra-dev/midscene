@@ -5,6 +5,7 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
@@ -18,14 +19,9 @@ import type {
   ServiceDump,
   ServiceExtractOption,
   ServiceExtractParam,
-  ThinkingStrategy,
 } from '@/types';
 import { ServiceError } from '@/types';
-import {
-  type IModelConfig,
-  MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  globalConfigManager,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -50,8 +46,7 @@ interface TaskExecutorHooks {
 }
 
 const debug = getDebug('device-task-executor');
-const defaultReplanningCycleLimit = 20;
-const defaultVlmUiTarsReplanningCycleLimit = 40;
+const maxErrorCountAllowedInOnePlanningLoop = 5;
 
 export { TaskExecutionError };
 
@@ -61,6 +56,8 @@ export class TaskExecutor {
   service: Service;
 
   taskCache?: TaskCache;
+
+  private readonly providedActionSpace: DeviceAction[];
 
   private readonly taskBuilder: TaskBuilder;
 
@@ -85,6 +82,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       hooks?: TaskExecutorHooks;
+      actionSpace: DeviceAction[];
     },
   ) {
     this.interface = interfaceInstance;
@@ -94,10 +92,12 @@ export class TaskExecutor {
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
+    this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
       service,
       taskCache: opts.taskCache,
+      actionSpace: this.getActionSpace(),
     });
   }
 
@@ -114,6 +114,10 @@ export class TaskExecutor {
         onTaskUpdate: this.hooks?.onTaskUpdate,
       },
     );
+  }
+
+  private getActionSpace(): DeviceAction[] {
+    return this.providedActionSpace;
   }
 
   public async convertPlanToExecutable(
@@ -174,113 +178,6 @@ export class TaskExecutor {
     };
   }
 
-  private createPlanningTask(
-    userInstruction: string,
-    actionContext: string | undefined,
-    modelConfigForPlanning: IModelConfig,
-    modelConfigForDefaultIntent: IModelConfig,
-    includeBbox: boolean,
-    thinkingStrategy: ThinkingStrategy,
-  ): ExecutionTaskPlanningApply {
-    const task: ExecutionTaskPlanningApply = {
-      type: 'Planning',
-      subType: 'Plan',
-      param: {
-        userInstruction,
-        aiActionContext: actionContext,
-      },
-      executor: async (param, executorContext) => {
-        const startTime = Date.now();
-        const { uiContext } = executorContext;
-        assert(uiContext, 'uiContext is required for Planning task');
-        const { vlMode } = modelConfigForPlanning;
-        const uiTarsModelVersion =
-          vlMode === 'vlm-ui-tars'
-            ? modelConfigForPlanning.uiTarsModelVersion
-            : undefined;
-
-        assert(
-          this.interface.actionSpace,
-          'actionSpace for device is not implemented',
-        );
-        const actionSpace = await this.interface.actionSpace();
-        debug(
-          'actionSpace for this interface is:',
-          actionSpace.map((action) => action.name).join(', '),
-        );
-        assert(Array.isArray(actionSpace), 'actionSpace must be an array');
-        if (actionSpace.length === 0) {
-          console.warn(
-            `ActionSpace for ${this.interface.interfaceType} is empty. This may lead to unexpected behavior.`,
-          );
-        }
-
-        const planResult = await (uiTarsModelVersion ? uiTarsPlanning : plan)(
-          param.userInstruction,
-          {
-            context: uiContext,
-            actionContext: param.aiActionContext,
-            interfaceType: this.interface.interfaceType as InterfaceType,
-            actionSpace,
-            modelConfig: modelConfigForPlanning,
-            conversationHistory: this.conversationHistory,
-            includeBbox,
-            thinkingStrategy,
-          },
-        );
-        debug('planResult', JSON.stringify(planResult, null, 2));
-
-        const {
-          actions,
-          log,
-          more_actions_needed_by_instruction,
-          error,
-          usage,
-          rawResponse,
-          sleep,
-        } = planResult;
-
-        executorContext.task.log = {
-          ...(executorContext.task.log || {}),
-          rawResponse,
-        };
-        executorContext.task.usage = usage;
-
-        const finalActions = actions || [];
-
-        if (sleep) {
-          const timeNow = Date.now();
-          const timeRemaining = sleep - (timeNow - startTime);
-          if (timeRemaining > 0) {
-            finalActions.push(this.sleepPlan(timeRemaining));
-          }
-        }
-
-        if (finalActions.length === 0) {
-          assert(
-            !more_actions_needed_by_instruction || sleep,
-            error ? `Failed to plan: ${error}` : 'No plan found',
-          );
-        }
-
-        return {
-          output: {
-            actions: finalActions,
-            more_actions_needed_by_instruction,
-            log,
-            yamlFlow: planResult.yamlFlow,
-          },
-          cache: {
-            hit: false,
-          },
-          uiContext,
-        };
-      },
-    };
-
-    return task;
-  }
-
   async runPlans(
     title: string,
     plans: PlanningAction[],
@@ -302,26 +199,15 @@ export class TaskExecutor {
     };
   }
 
-  private getReplanningCycleLimit(isVlmUiTars: boolean) {
-    return (
-      this.replanningCycleLimit ||
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_REPLANNING_CYCLE_LIMIT,
-      ) ||
-      (isVlmUiTars
-        ? defaultVlmUiTarsReplanningCycleLimit
-        : defaultReplanningCycleLimit)
-    );
-  }
-
   async action(
     userPrompt: string,
     modelConfigForPlanning: IModelConfig,
     modelConfigForDefaultIntent: IModelConfig,
     includeBboxInPlanning: boolean,
-    thinkingStrategy: ThinkingStrategy,
-    actionContext?: string,
+    aiActContext?: string,
     cacheable?: boolean,
+    replanningCycleLimitOverride?: number,
+    imagesIncludeCount?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -339,28 +225,109 @@ export class TaskExecutor {
 
     let replanCount = 0;
     const yamlFlow: MidsceneYamlFlowItem[] = [];
-    const replanningCycleLimit = this.getReplanningCycleLimit(
-      modelConfigForPlanning.vlMode === 'vlm-ui-tars',
+    const replanningCycleLimit =
+      replanningCycleLimitOverride ?? this.replanningCycleLimit;
+    assert(
+      replanningCycleLimit !== undefined,
+      'replanningCycleLimit is required for TaskExecutor.action',
     );
+
+    let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
 
     // Main planning loop - unified plan/replan logic
     while (true) {
-      if (replanCount > replanningCycleLimit) {
-        const errorMsg = `Replanning ${replanningCycleLimit} times, which is more than the limit, please split the task into multiple steps`;
-        return session.appendErrorPlan(errorMsg);
-      }
+      const result = await session.appendAndRun(
+        {
+          type: 'Planning',
+          subType: 'Plan',
+          param: {
+            userInstruction: userPrompt,
+            aiActContext,
+            imagesIncludeCount,
+          },
+          executor: async (param, executorContext) => {
+            const startTime = Date.now();
+            const { uiContext } = executorContext;
+            assert(uiContext, 'uiContext is required for Planning task');
+            const { vlMode } = modelConfigForPlanning;
+            const uiTarsModelVersion =
+              vlMode === 'vlm-ui-tars'
+                ? modelConfigForPlanning.uiTarsModelVersion
+                : undefined;
 
-      // Create planning task (automatically includes execution history if available)
-      const planningTask = this.createPlanningTask(
-        userPrompt,
-        actionContext,
-        modelConfigForPlanning,
-        modelConfigForDefaultIntent,
-        includeBboxInPlanning,
-        thinkingStrategy,
+            const actionSpace = this.getActionSpace();
+            debug(
+              'actionSpace for this interface is:',
+              actionSpace.map((action) => action.name).join(', '),
+            );
+            assert(Array.isArray(actionSpace), 'actionSpace must be an array');
+            if (actionSpace.length === 0) {
+              console.warn(
+                `ActionSpace for ${this.interface.interfaceType} is empty. This may lead to unexpected behavior.`,
+              );
+            }
+
+            const planResult = await (uiTarsModelVersion
+              ? uiTarsPlanning
+              : plan)(param.userInstruction, {
+              context: uiContext,
+              actionContext: param.aiActContext,
+              interfaceType: this.interface.interfaceType as InterfaceType,
+              actionSpace,
+              modelConfig: modelConfigForPlanning,
+              conversationHistory: this.conversationHistory,
+              includeBbox: includeBboxInPlanning,
+              imagesIncludeCount,
+            });
+            debug('planResult', JSON.stringify(planResult, null, 2));
+
+            const {
+              actions,
+              log,
+              more_actions_needed_by_instruction,
+              error,
+              usage,
+              rawResponse,
+              sleep,
+            } = planResult;
+
+            executorContext.task.log = {
+              ...(executorContext.task.log || {}),
+              rawResponse,
+            };
+            executorContext.task.usage = usage;
+            executorContext.task.output = {
+              actions: actions || [],
+              more_actions_needed_by_instruction,
+              log,
+              yamlFlow: planResult.yamlFlow,
+            };
+            executorContext.uiContext = uiContext;
+
+            const finalActions = [...(actions || [])];
+
+            if (sleep) {
+              const timeNow = Date.now();
+              const timeRemaining = sleep - (timeNow - startTime);
+              if (timeRemaining > 0) {
+                finalActions.push(this.sleepPlan(timeRemaining));
+              }
+            }
+
+            assert(!error, `Failed to continue: ${error}\n${log || ''}`);
+
+            return {
+              cache: {
+                hit: false,
+              },
+            } as any;
+          },
+        },
+        {
+          allowWhenError: true,
+        },
       );
 
-      const result = await session.appendAndRun(planningTask);
       const planResult = result?.output as PlanningAIResponse | undefined;
 
       // Execute planned actions
@@ -385,15 +352,54 @@ export class TaskExecutor {
           )}`,
         );
       }
-      await session.appendAndRun(executables.tasks);
+      if (this.conversationHistory.pendingFeedbackMessage) {
+        console.warn(
+          'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
+          this.conversationHistory.pendingFeedbackMessage,
+        );
+      }
+      let errorFlag = false;
+      try {
+        await session.appendAndRun(executables.tasks);
+      } catch (error: any) {
+        errorFlag = true;
+        errorCountInOnePlanningLoop++;
+        this.conversationHistory.pendingFeedbackMessage = `Error executing running tasks: ${error?.message || String(error)}`;
+        debug(
+          'error when executing running tasks, but continue to run if it is not too many errors:',
+          error instanceof Error ? error.message : String(error),
+          'current error count in one planning loop:',
+          errorCountInOnePlanningLoop,
+        );
+      }
+
+      if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
+        return session.appendErrorPlan('Too many errors in one planning loop');
+      }
 
       // Check if task is complete
       if (!planResult?.more_actions_needed_by_instruction) {
-        break;
+        if (errorFlag) {
+          debug(
+            'more_actions_needed_by_instruction is false, but there are errors in one planning loop, continue to run',
+          );
+        } else {
+          break;
+        }
       }
 
       // Increment replan count for next iteration
-      replanCount++;
+      ++replanCount;
+
+      if (replanCount > replanningCycleLimit) {
+        const errorMsg = `Replanned ${replanningCycleLimit} times, exceeding the limit. Please configure a larger value for replanningCycleLimit (or use MIDSCENE_REPLANNING_CYCLE_LIMIT) to handle more complex tasks.`;
+        return session.appendErrorPlan(errorMsg);
+      }
+
+      if (!this.conversationHistory.pendingFeedbackMessage) {
+        this.conversationHistory.pendingFeedbackMessage =
+          'I have finished the action previously planned.';
+      }
     }
 
     const finalResult = {

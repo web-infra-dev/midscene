@@ -237,8 +237,8 @@ const DetailSide = (): JSX.Element => {
   const dump = useExecutionDump((store) => store.insightDump);
   const { matchedElement: elements } = dump || {};
 
-  const aiActionContextValue = (task as ExecutionTaskPlanningApply)?.param
-    ?.aiActionContext;
+  const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
+    ?.aiActContext;
 
   // Helper functions for rendering element items
   const elementEl = renderElementDetailBox;
@@ -326,11 +326,11 @@ const DetailSide = (): JSX.Element => {
         key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
-      ...(aiActionContextValue
+      ...(aiActContextValue
         ? [
             {
-              key: 'action context',
-              content: aiActionContextValue,
+              key: 'act context',
+              content: aiActContextValue,
             },
           ]
         : []),
@@ -865,7 +865,11 @@ const DetailSide = (): JSX.Element => {
             onMouseEnter={noop}
             onMouseLeave={noop}
             title="output"
-            content={<pre>{String(data)}</pre>}
+            content={
+              <pre className="description-content">
+                {JSON.stringify(data, undefined, 2)}
+              </pre>
+            }
           />,
         );
       }

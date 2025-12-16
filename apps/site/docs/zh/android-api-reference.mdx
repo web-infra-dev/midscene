@@ -1,36 +1,45 @@
 # API 参考（Android）
 
-当你需要自定义设备行为、把 Midscene 接入框架，或排查 adb 问题时，请查阅本节内容。关于通用构造函数（报告、Hook、缓存等）的参数说明，请参考平台无关的 [API 参考](./api.mdx) 以及 [Prompting tips](./prompting-tips)，以获得提示工程方面的帮助。
+当你需要自定义设备行为、把 Midscene 接入框架，或排查 adb 问题时，请查阅本节。关于通用构造函数（报告、Hook、缓存等）的参数说明，请参考平台无关的 [API 参考](./api)。
 
-## 导入与基础用法
+## Action Space（动作空间）
 
-要操作 Android 设备，请导入 Android SDK：
+`AndroidDevice` 使用以下动作空间，Midscene Agent 在规划任务时可以使用这些操作：
 
-```typescript
-import {
-  AndroidAgent,
-  AndroidDevice,
-  getConnectedDevices,
-} from '@midscene/android';
+- `Tap` —— 点击元素。
+- `DoubleClick` —— 双击元素。
+- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式，可选 `autoDismissKeyboard`。
+- `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `KeyboardPress` —— 按下指定键位。
+- `AndroidLongPress` —— 长按目标元素，可选自定义时长。
+- `AndroidPull` —— 上拉或下拉（如下拉刷新），可选距离与持续时间。
+- `ClearInput` —— 清空输入框内容。
+- `Launch` —— 打开网页或 `package/.Activity`。
+- `RunAdbShell` —— 执行原始 `adb shell` 命令。
+- `AndroidBackButton` —— 触发系统返回。
+- `AndroidHomeButton` —— 回到桌面。
+- `AndroidRecentAppsButton` —— 打开多任务/最近应用。
+
+## AndroidDevice {#androiddevice}
+
+创建一个可供 AndroidAgent 驱动的 adb 设备实例。
+
+### 导入
+
+```ts
+import { AndroidDevice, getConnectedDevices } from '@midscene/android';
 ```
 
-基础示例：
+### 构造函数
 
-```typescript
-const devices = await getConnectedDevices();
-const device = new AndroidDevice(devices[0].udid);
-await device.connect();
-
-const agent = new AndroidAgent(device, {
-  actionContext: 'If a permissions dialog appears, accept it.',
+```ts
+const device = new AndroidDevice(deviceId, {
+  // 设备参数...
 });
 ```
 
-## AndroidDevice 构造函数 {#androiddevice-constructor}
-
-```ts
-new AndroidDevice(deviceId: string, opts?: AndroidDeviceOpt)
-```
+### 设备选项
 
 - `deviceId: string` —— 来自 `adb devices` 或 `getConnectedDevices()` 的值。
 - `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
@@ -42,86 +51,115 @@ new AndroidDevice(deviceId: string, opts?: AndroidDeviceOpt)
 - `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放，默认 `1 / devicePixelRatio`。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
 
-## AndroidAgent 构造函数 {#androidagent}
+### 使用说明
+
+- 可以使用 `getConnectedDevices()` 发现设备，`udid` 与 `adb devices` 输出一致。
+- 可以使用 `remoteAdbHost/remoteAdbPort` 连接远程 adb；如果 adb 不在 PATH 中，可设置 `androidAdbPath`。
+
+### 示例
+
+#### 快速开始
 
 ```ts
-new AndroidAgent(device: AndroidDevice, options?: PageAgentOpt)
+import { AndroidAgent, AndroidDevice, getConnectedDevices } from '@midscene/android';
+
+const [first] = await getConnectedDevices();
+const device = new AndroidDevice(first.udid);
+await device.connect();
+
+const agent = new AndroidAgent(device, {
+  aiActionContext: 'If a permissions dialog appears, accept it.',
+});
+
+await agent.launch('https://www.ebay.com');
+await agent.aiAct('search "Headphones" and wait for results');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: number}[], find item in list and corresponding price',
+);
+console.log(items);
 ```
 
-- `device: AndroidDevice`（必填）负责截图、点击、文本输入、Back/Home 事件等。可结合上文构造函数和 `getConnectedDevices()` 配置设备行为。
-- `options?: PageAgentOpt` 与 [API constructors](./api#common-parameters) 中的通用 Agent 选项一致，包含 `generateReport`、`reportFileName`、`actionContext`/`aiActionContext`、`modelConfig`、`cacheId`、`customActions`、`createOpenAIClient`、`onTaskStartTip` 等。
-- 工厂方法：`agentFromAdbDevice(deviceId?, opts?)` 会连接 adb 设备并返回可用的 Agent，适合一步式调用。
-- 工具函数：`getConnectedDevices()` 用于枚举 adb 设备；YAML 工作流共享相同字段，可参考 [使用 YAML 的自动化脚本](./automate-with-scripts-in-yaml)。
+#### 启动原生 App
 
-## Android Agent 方法
+```ts
+await agent.launch('com.android.settings/.Settings');
+await agent.back();
+await agent.home();
+```
 
-### `agent.launch()`
+## AndroidAgent {#androidagent}
+
+将 Midscene 的 AI 规划能力绑定到 AndroidDevice，实现 UI 自动化。
+
+### 导入
+
+```ts
+import { AndroidAgent } from '@midscene/android';
+```
+
+### 构造函数
+
+```ts
+const agent = new AndroidAgent(device, {
+  // 通用 Agent 参数...
+});
+```
+
+### Android 特有选项
+
+- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
+
+### 使用说明
+
+:::info
+
+- 一个设备连接对应一个 Agent。
+- `launch`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
+- 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
+:::
+
+### Android 特有方法
+
+#### `agent.launch()`
 
 启动网页或原生 Android activity/package。
 
-```typescript
+```ts
 function launch(uri: string): Promise<void>;
 ```
 
 - `uri: string` —— 可以是网页 URL，也可以是 `package/.Activity` 形式的字符串，例如 `com.android.settings/.Settings`。
 
-```typescript
-const agent = new AndroidAgent(device);
-await agent.launch('https://www.ebay.com');
-await agent.launch('com.android.settings');
-await agent.launch('com.android.settings/.Settings');
-```
-
-### `agent.runAdbShell()`
+#### `agent.runAdbShell()`
 
 通过连接的设备运行原始的 `adb shell` 命令。
 
-```typescript
+```ts
 function runAdbShell(command: string): Promise<string>;
 ```
 
 - `command: string` —— 原样传递给 `adb shell` 的命令。
 
-```typescript
+```ts
 const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
 ```
 
-:::info YAML 用法
-`launch` 和 `runAdbShell` 等 Android 特有的辅助函数也可以在 YAML 脚本中使用，语法请查阅 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
-:::
+#### 导航辅助
 
-### `agent.back()`
+- `agent.back(): Promise<void>` —— 触发 Android 系统的返回操作。
+- `agent.home(): Promise<void>` —— 返回桌面。
+- `agent.recentApps(): Promise<void>` —— 打开多任务/最近应用界面。
 
-触发 Android 系统的返回操作。
+### 辅助工具
 
-```typescript
-function back(): Promise<void>;
-```
-
-### `agent.home()`
-
-返回桌面。
-
-```typescript
-function home(): Promise<void>;
-```
-
-### `agent.recentApps()`
-
-打开多任务/最近应用界面。
-
-```typescript
-function recentApps(): Promise<void>;
-```
-
-## Android 辅助工具
-
-### `agentFromAdbDevice()`
+#### `agentFromAdbDevice()`
 
 从任意已连接的 adb 设备创建 `AndroidAgent`。
 
-```typescript
+```ts
 function agentFromAdbDevice(
   deviceId?: string,
   opts?: PageAgentOpt & AndroidDeviceOpt,
@@ -129,16 +167,20 @@ function agentFromAdbDevice(
 ```
 
 - `deviceId?: string` —— 连接特定设备；留空表示使用“第一个可用设备”。
-- `opts?: PageAgentOpt & AndroidDeviceOpt` —— 在一个对象中合并 Agent 选项与 [AndroidDevice 构造函数](#androiddevice-constructor) 的设置。
+- `opts?: PageAgentOpt & AndroidDeviceOpt` —— 在一个对象中合并 Agent 选项与 [`AndroidDevice`](#androiddevice) 的设置。
 
-### `getConnectedDevices()`
+#### `getConnectedDevices()`
 
 列举 Midscene 可驱动的 adb 设备。
 
-```typescript
+```ts
 function getConnectedDevices(): Promise<Array<{
   udid: string;
   state: string;
   port?: number;
 }>>;
 ```
+
+### 相关阅读
+
+- [Android 快速开始](./android-getting-started) 获取搭建与脚本示例。

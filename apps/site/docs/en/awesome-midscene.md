@@ -5,7 +5,7 @@ A curated list of community projects that extend Midscene.js capabilities across
 ## Community projects
 
 ### iOS automation
-- **[midscene-ios](https://github.com/lhuanyu/midscene-ios)** - iOS Mirror Automation Support for Midscene
+- **[midscene-ios](https://github.com/lhuanyu/midscene-ios)** - iOS Mirror automation support for Midscene
   - Enables automated testing and interaction with iOS applications
   - Extends Midscene's cross-platform capabilities to Apple's mobile ecosystem
 
@@ -24,9 +24,12 @@ A curated list of community projects that extend Midscene.js capabilities across
   - Allows integration with existing Python testing and automation workflows
 
 ### Java SDK
-- **[midscene-java](https://github.com/Master-Frank/midscene-java)** - Java SDK for Midscene automation
+- **[midscene-java](https://github.com/Master-Frank/midscene-java)** by @Master-Frank - Java SDK for Midscene automation
   - Offers a JVM-friendly way to script Midscene experiences similar to the Python SDK
   - Fits easily into existing Java automation or testing pipelines
+- **[midscene-java](https://github.com/alstafeev/midscene-java)** by @alstafeev - Java SDK for Midscene automation
+  - Provides a JVM-native interface for scripting Midscene
+  - Integrates seamlessly into established Java testing frameworks and automation workflows
 
 ## Contributing
 

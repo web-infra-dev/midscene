@@ -14,7 +14,7 @@ import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
-type AndroidAgentOpt = AgentOpt;
+export type AndroidAgentOpt = AgentOpt;
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []
@@ -87,6 +87,12 @@ export async function agentFromAdbDevice(
 ) {
   if (!deviceId) {
     const devices = await getConnectedDevices();
+
+    if (devices.length === 0) {
+      throw new Error(
+        'No Android devices found. Please connect an Android device and ensure ADB is properly configured. Run `adb devices` to verify device connection.',
+      );
+    }
 
     deviceId = devices[0].udid;
 

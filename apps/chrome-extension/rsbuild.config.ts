@@ -1,10 +1,12 @@
 import path from 'node:path';
+import { commonIgnoreWarnings } from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version } from '../../packages/visualizer/package.json';
 
 export default defineConfig({
@@ -19,6 +21,7 @@ export default defineConfig({
           '**/node_modules/**',
         ],
       },
+      ignoreWarnings: commonIgnoreWarnings,
     },
   },
   environments: {
@@ -54,6 +57,7 @@ export default defineConfig({
   },
   dev: {
     writeToDisk: true,
+    lazyCompilation: false, // Disable lazy compilation for Chrome extension compatibility
   },
   output: {
     polyfill: 'entry',
@@ -100,5 +104,12 @@ export default defineConfig({
     pluginLess(),
     pluginSvgr(),
     pluginTypeCheck(),
+    pluginWorkspaceDev({
+      projects: {
+        '@midscene/report': {
+          skip: true,
+        },
+      },
+    }),
   ],
 });

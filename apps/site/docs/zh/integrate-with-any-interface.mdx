@@ -2,24 +2,14 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与任意界面集成
 
-从 Midscene v0.28.0 开始，我们推出了与任意界面集成的功能。定义符合 `AbstractInterface` 定义的界面控制器类，即可获得一个功能齐全的 Midscene Agent。
+你可以使用 Midscene 的 Agent 来控制任意界面，比如 IoT 设备、内部应用、车载显示器等，只需要实现一个符合 `AbstractInterface` 定义的 UI 操作类。
 
-该功能的典型用途是构建一个针对你自己界面的 GUI 自动化 Agent，比如 IoT 设备、内部应用、车载显示器等。
+在实现了 UI 操作类之后，你可以获得 Midscene Agent 的全部特性：
 
-在实现了 UI 操作的类之后，你可以获得以下特性：
-
-- TypeScript 的 GUI 自动化 Agent SDK
+- TypeScript 的 GUI 自动化 Agent SDK，支持与任意界面集成
 - 用于调试的 Playground
 - 通过 yaml 脚本控制界面
-- Midscene Agent 的全部特性
-- MCP 服务器 (仍在开发中...)
-
-请注意：只有具备视觉定位（visual grounding）能力的模型才能用于操作 UI 界面。请阅读[模型策略](./model-strategy)文档以选择合适的模型。
-
-
-:::tip 预览功能说明
-此功能仍在预览阶段，欢迎你在 [GitHub](https://github.com/web-infra-dev/midscene/issues) 上给我们提建议。
-:::
+- 暴露 UI 操作的 MCP 服务
 
 ## 演示和社区项目
 
@@ -34,7 +24,6 @@ import SetupEnv from './common/setup-env.mdx';
 还有一些使用此功能的社区项目：
 
 * [midscene-ios](https://github.com/lhuanyu/midscene-ios) - 使用 Midscene 驱动 "iPhone 镜像" 应用的项目
-
 
 <SetupEnv />
 
@@ -511,13 +500,7 @@ console.log('Playground 已关闭！');
 
 ## 常见问题（FAQ）
 
-**我可以使用普通的 LLM 模型（如 GPT-4o）来控制界面吗？**
-
-不可以，你不能使用普通的 LLM 模型（如 GPT-4o）来控制界面。你必须使用具备视觉定位能力的模型。具备视觉定位能力的模型可以在页面上定位目标元素并返回元素的坐标，这能显著提升自动化的稳定性。
-
-请阅读[模型策略](./model-strategy)文档以选择合适的模型。
-
-**我的 interface-controller 可以在本文档中被推荐吗？**
+**我的 interface-controller 是通用的，可以收录到本文档中吗？**
 
 可以，我们很乐意收集有创意的项目并将它们列在本文档中。
 

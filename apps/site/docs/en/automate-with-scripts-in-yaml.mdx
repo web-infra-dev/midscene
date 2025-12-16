@@ -58,19 +58,50 @@ tasks:
 
 ### The `agent` part
 
-If you need to use the `aiActionContext` parameter, you can set it through the `agent` section:
+The `agent` section configures AI agent behavior and test report options. All fields are optional.
 
 ```yaml
 # AI agent configuration
 agent:
-  # Background knowledge to send to the AI model when calling aiAct, optional.
-  aiActionContext: <string>
+  # Test identifier, used for reporting and cache identification, optional
+  testId: <string>
+
+  # Report group name, optional
+  groupName: <string>
+
+  # Report group description, optional
+  groupDescription: <string>
+
+  # Whether to generate test reports, optional, defaults to true
+  generateReport: <boolean>
+
+  # Whether to automatically print report messages, optional, defaults to true
+  autoPrintReportMsg: <boolean>
+
+  # Custom report file name, optional
+  reportFileName: <string>
+
+  # Maximum AI replanning cycle limit, optional, defaults to 20 (40 for UI-TARS model)
+  replanningCycleLimit: <number>
+
+  # Background knowledge to send to the AI model when calling aiAct, optional
+  aiActContext: <string>
+  # Legacy alias (aiActionContext) remains for backward compatibility, but avoid using it in new scripts
+
+  # Cache configuration, optional
+  cache:
+    # Cache strategy, optional, values: 'read-only' | 'read-write' | 'write-only'
+    strategy: <string>
+    # Cache ID, required
+    id: <string>
 ```
 
-:::tip aiActionContext configuration
+:::tip Agent Configuration Notes
 
-- **Applicable environments**: Web, iOS, and Android environments can all use the `agent` section to set `aiActionContext`
-- **Purpose**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc.
+- **Applicable environments**: Web, iOS, and Android environments all support `agent` configuration
+- **testId priority**: CLI parameter > YAML agent.testId > filename
+- **aiActContext**: Provides background knowledge to the AI model, like how to handle popups, business introduction, etc. A legacy alias remains for backward compatibility (see inline comment) but should not be used in new scripts.
+- **Cache configuration**: For detailed usage, refer to the [Caching documentation](./caching.mdx)
 
 :::
 
@@ -79,7 +110,17 @@ agent:
 ```yaml
 # agent configuration, applies to all environments
 agent:
-  aiActionContext: "If any popup appears, click agree. If login page appears, skip it."
+  testId: "checkout-test"
+  groupName: "E2E Test Suite"
+  groupDescription: "Complete checkout flow testing"
+  generateReport: true
+  autoPrintReportMsg: false
+  reportFileName: "checkout-report"
+  replanningCycleLimit: 30
+  aiActContext: "If any popup appears, click agree. If login page appears, skip it."
+  cache:
+    id: "checkout-cache"
+    strategy: "read-write"
 
 # iOS environment configuration
 ios:
@@ -148,6 +189,15 @@ web:
 
   # Whether to ignore HTTPS certificate errors, optional, defaults to false.
   acceptInsecureCerts: <boolean>
+
+  # Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode), optional.
+  # Use this to customize Chrome browser behavior, such as disabling third-party cookie blocking.
+  # ⚠️ Security Warning: Some arguments (e.g., --no-sandbox, --disable-web-security) may reduce browser security.
+  # Use only in controlled testing environments.
+  chromeArgs:
+    - '--disable-features=ThirdPartyCookiePhaseout'
+    - '--disable-features=SameSiteByDefaultCookies'
+    - '--window-size=1920,1080'
 ```
 
 ### The `android` part
@@ -250,7 +300,9 @@ ios:
 ```
 
 :::tip View Complete iOS Configuration Options
+
 YAML scripts now support all configuration options from the `IOSDevice` constructor. For the complete list of options, please refer to [IOSDevice constructor in the iOS API reference](./ios-api-reference#iosdevice-constructor).
+
 :::
 
 #### iOS Platform-Specific Actions

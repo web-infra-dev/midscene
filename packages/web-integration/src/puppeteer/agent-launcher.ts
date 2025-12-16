@@ -3,7 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
 import { PuppeteerAgent } from '@/puppeteer/index';
-import type { Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
+import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, { type Browser } from 'puppeteer';
 
@@ -14,6 +14,84 @@ export const defaultViewportHeight = 768;
 export const defaultViewportScale = process.platform === 'darwin' ? 2 : 1;
 export const defaultWaitForNetworkIdleTimeout =
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT;
+
+export function resolveAiActionContext(
+  target: MidsceneYamlScriptWebEnv,
+  preference?: Partial<Pick<AgentOpt, 'aiActionContext' | 'aiActContext'>>,
+): AgentOpt['aiActionContext'] | undefined {
+  // Prefer agent-level preference if provided; otherwise fall back to target-level context.
+  // Priority: preference.aiActContext > preference.aiActionContext (deprecated) > target.aiActionContext
+  const data =
+    preference?.aiActContext ??
+    preference?.aiActionContext ??
+    target.aiActionContext;
+  return data;
+}
+
+/**
+ * Chrome arguments that may reduce browser security.
+ * These should only be used in controlled testing environments.
+ *
+ * Security implications:
+ * - `--no-sandbox`: Disables Chrome's sandbox security model
+ * - `--disable-setuid-sandbox`: Disables setuid sandbox on Linux
+ * - `--disable-web-security`: Allows cross-origin requests without CORS
+ * - `--ignore-certificate-errors`: Ignores SSL/TLS certificate errors
+ * - `--disable-features=IsolateOrigins`: Disables origin isolation
+ * - `--disable-site-isolation-trials`: Disables site isolation
+ * - `--allow-running-insecure-content`: Allows mixed HTTP/HTTPS content
+ */
+const DANGEROUS_ARGS = [
+  '--no-sandbox',
+  '--disable-setuid-sandbox',
+  '--disable-web-security',
+  '--ignore-certificate-errors',
+  '--disable-features=IsolateOrigins',
+  '--disable-site-isolation-trials',
+  '--allow-running-insecure-content',
+] as const;
+
+/**
+ * Validates Chrome launch arguments for security concerns.
+ * Emits a warning if dangerous arguments are detected.
+ *
+ * This function filters out arguments that are already present in baseArgs
+ * to avoid warning about platform-specific defaults (e.g., --no-sandbox on non-Windows).
+ *
+ * @param args - Chrome launch arguments to validate
+ * @param baseArgs - Base Chrome arguments already configured
+ *
+ * @example
+ * ```typescript
+ * // Will show warning for --disable-web-security
+ * validateChromeArgs(['--disable-web-security', '--headless'], ['--no-sandbox']);
+ *
+ * // Will NOT show warning for --no-sandbox (already in baseArgs)
+ * validateChromeArgs(['--no-sandbox'], ['--no-sandbox', '--headless']);
+ * ```
+ */
+function validateChromeArgs(args: string[], baseArgs: string[]): void {
+  // Filter out arguments that are already in baseArgs
+  const newArgs = args.filter(
+    (arg) =>
+      !baseArgs.some((baseArg) => {
+        // Check if arg starts with the same flag as baseArg (before '=' if present)
+        const argFlag = arg.split('=')[0];
+        const baseFlag = baseArg.split('=')[0];
+        return argFlag === baseFlag;
+      }),
+  );
+
+  const dangerousArgs = newArgs.filter((arg) =>
+    DANGEROUS_ARGS.some((dangerous) => arg.startsWith(dangerous)),
+  );
+
+  if (dangerousArgs.length > 0) {
+    console.warn(
+      `Warning: Dangerous Chrome arguments detected: ${dangerousArgs.join(', ')}.\nThese arguments may reduce browser security. Use only in controlled testing environments.`,
+    );
+  }
+}
 
 interface FreeFn {
   name: string;
@@ -36,9 +114,7 @@ export async function launchPuppeteerPage(
   // prepare the environment
   const ua = target.userAgent || defaultUA;
   let width = defaultViewportWidth;
-  let preferMaximizedWindow = true;
   if (target.viewportWidth) {
-    preferMaximizedWindow = false;
     assert(
       typeof target.viewportWidth === 'number',
       'viewportWidth must be a number',
@@ -48,7 +124,6 @@ export async function launchPuppeteerPage(
   }
   let height = defaultViewportHeight;
   if (target.viewportHeight) {
-    preferMaximizedWindow = false;
     assert(
       typeof target.viewportHeight === 'number',
       'viewportHeight must be a number',
@@ -61,7 +136,6 @@ export async function launchPuppeteerPage(
   }
   let dpr = defaultViewportScale;
   if (target.viewportScale) {
-    preferMaximizedWindow = false;
     assert(
       typeof target.viewportScale === 'number',
       'viewportScale must be a number',
@@ -76,9 +150,8 @@ export async function launchPuppeteerPage(
   };
 
   const headed = preference?.headed || preference?.keepWindow;
-
-  // only maximize window in headed mode
-  preferMaximizedWindow = preferMaximizedWindow && !!headed;
+  const windowSizeArg = `--window-size=${width},${height + (headed ? 100 : 0)}`; // add 100px for the address bar in headed mode
+  const defaultViewportConfig = headed ? null : viewportConfig;
 
   // launch the browser
   if (headed && process.env.CI === '1') {
@@ -88,16 +161,30 @@ export async function launchPuppeteerPage(
   }
   // do not use 'no-sandbox' on windows https://www.perplexity.ai/search/how-to-solve-this-with-nodejs-dMHpdCypRa..JA8TkQzbeQ
   const isWindows = process.platform === 'win32';
-  const args = [
+
+  const baseArgs = [
     ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
     '--disable-features=HttpsFirstBalancedModeAutoEnable',
     '--disable-features=PasswordLeakDetection',
     '--disable-save-password-bubble',
     `--user-agent="${ua}"`,
-    preferMaximizedWindow
-      ? '--start-maximized'
-      : `--window-size=${width},${height + 200}`, // add 200px for the address bar
+    windowSizeArg,
   ];
+
+  // Merge custom Chrome arguments
+  let args = baseArgs;
+  if (target.chromeArgs && target.chromeArgs.length > 0) {
+    validateChromeArgs(target.chromeArgs, baseArgs);
+
+    // Custom args come after base args, allowing them to override defaults
+    args = [...baseArgs, ...target.chromeArgs];
+    launcherDebug(
+      'Merging custom Chrome arguments',
+      target.chromeArgs,
+      'Final args',
+      args,
+    );
+  }
 
   launcherDebug(
     'launching browser with viewport, headed',
@@ -113,7 +200,7 @@ export async function launchPuppeteerPage(
   if (!browserInstance) {
     browserInstance = await puppeteer.launch({
       headless: !preference?.headed,
-      defaultViewport: viewportConfig,
+      defaultViewport: defaultViewportConfig,
       args,
       acceptInsecureCerts: target.acceptInsecureCerts,
     });
@@ -133,8 +220,6 @@ export async function launchPuppeteerPage(
     });
   }
   const page = await browserInstance.newPage();
-  // await page.setUserAgent(ua);
-  // await page.setViewport(viewportConfig);
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
@@ -186,9 +271,20 @@ export async function puppeteerAgentForTarget(
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
-    testId?: string;
-    cache?: Cache;
-  },
+  } & Partial<
+    Pick<
+      AgentOpt,
+      | 'testId'
+      | 'groupName'
+      | 'groupDescription'
+      | 'generateReport'
+      | 'autoPrintReportMsg'
+      | 'reportFileName'
+      | 'replanningCycleLimit'
+      | 'cache'
+      | 'aiActionContext'
+    >
+  >,
   browser?: Browser,
 ) {
   const { page, freeFn } = await launchPuppeteerPage(
@@ -196,13 +292,14 @@ export async function puppeteerAgentForTarget(
     preference,
     browser,
   );
+  const aiActContext = resolveAiActionContext(target, preference);
+
+  const { aiActionContext, ...preferenceToUse } = preference ?? {};
 
   // prepare Midscene agent
   const agent = new PuppeteerAgent(page, {
-    autoPrintReportMsg: false,
-    testId: preference?.testId,
-    cache: preference?.cache,
-    aiActionContext: target.aiActionContext,
+    ...preferenceToUse,
+    aiActContext,
     forceSameTabNavigation:
       typeof target.forceSameTabNavigation !== 'undefined'
         ? target.forceSameTabNavigation

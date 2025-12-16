@@ -1,21 +1,24 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export interface ConversationHistoryOptions {
-  maxUserImageMessages?: number;
   initialMessages?: ChatCompletionMessageParam[];
 }
 
-const defaultMaxUserImagesCount = 6;
-
 export class ConversationHistory {
-  private readonly maxUserImageMessages: number;
   private readonly messages: ChatCompletionMessageParam[] = [];
 
+  public pendingFeedbackMessage: string;
+
   constructor(options?: ConversationHistoryOptions) {
-    this.maxUserImageMessages =
-      options?.maxUserImageMessages ?? defaultMaxUserImagesCount;
     if (options?.initialMessages?.length) {
       this.seed(options.initialMessages);
+    }
+    this.pendingFeedbackMessage = '';
+  }
+
+  resetPendingFeedbackMessageIfExists() {
+    if (this.pendingFeedbackMessage) {
+      this.pendingFeedbackMessage = '';
     }
   }
 
@@ -34,47 +37,46 @@ export class ConversationHistory {
     this.messages.length = 0;
   }
 
-  snapshot(options?: {
-    maxImageMessages?: number;
-  }): ChatCompletionMessageParam[] {
-    const maxImageMessages =
-      options?.maxImageMessages ?? this.maxUserImageMessages;
+  /**
+   * Snapshot the conversation history, and replace the images with text if the number of images exceeds the limit.
+   * @param maxImages - The maximum number of images to include in the snapshot. Undefined means no limit.
+   * @returns The snapshot of the conversation history.
+   */
+  snapshot(maxImages?: number): ChatCompletionMessageParam[] {
+    if (maxImages === undefined) {
+      return [...this.messages];
+    }
 
-    // Count image_url messages from back to front
+    const clonedMessages = structuredClone(this.messages);
     let imageCount = 0;
-    const processedMessages = [...this.messages]
-      .reverse()
-      .map((message): ChatCompletionMessageParam => {
-        if (
-          typeof message.content !== 'string' &&
-          Array.isArray(message.content)
-        ) {
-          // Also process content items from back to front
-          const processedContent = [...message.content]
-            .reverse()
-            .map((item) => {
-              if (item.type === 'image_url') {
-                imageCount++;
-                if (imageCount > maxImageMessages) {
-                  // Replace with text type
-                  return {
-                    type: 'text' as const,
-                    text: '(omitted due to size limit)',
-                  };
-                }
-              }
-              return item;
-            })
-            .reverse();
-          return {
-            ...message,
-            content: processedContent,
-          } as ChatCompletionMessageParam;
-        }
-        return message;
-      });
 
-    return processedMessages.reverse();
+    // Traverse from the end to the beginning
+    for (let i = clonedMessages.length - 1; i >= 0; i--) {
+      const message = clonedMessages[i];
+      const content = message.content;
+
+      // Only process if content is an array
+      if (Array.isArray(content)) {
+        for (let j = 0; j < content.length; j++) {
+          const item = content[j];
+
+          // Check if this is an image
+          if (item.type === 'image_url') {
+            imageCount++;
+
+            // If we've exceeded the limit, replace with text
+            if (imageCount > maxImages) {
+              content[j] = {
+                type: 'text',
+                text: '(image ignored due to size optimization)',
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return clonedMessages;
   }
 
   get length(): number {

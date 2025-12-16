@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Select Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    select {
+      padding: 6px;
+      font-size: 16px;
+    }
+
+    #result {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Test HTML &lt;select&gt; Element</h2>
+
+  <label for="fruit">Choose a fruit:</label>
+  <select id="fruit">
+    <option value="" disabled selected>Please select...</option>
+    <option value="apple">Apple</option>
+    <option value="banana">Banana</option>
+    <option value="orange">Orange</option>
+    <option value="watermelon" disabled>Watermelon (disabled)</option>
+  </select>
+
+  <div id="result">Current selection: none</div>
+
+  <script>
+    const sel = document.getElementById('fruit');
+    const result = document.getElementById('result');
+
+    sel.addEventListener('change', () => {
+      result.textContent = "Current selection: " + sel.options[sel.selectedIndex].text;
+    });
+  </script>
+</body>
+
+</html>

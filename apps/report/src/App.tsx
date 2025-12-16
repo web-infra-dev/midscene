@@ -5,7 +5,12 @@ import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
+import {
+  Logo,
+  Player,
+  globalThemeConfig,
+  useGlobalPreference,
+} from '@midscene/visualizer';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
@@ -44,42 +49,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store) => store.dump);
-  const [proModeEnabled, setProModeEnabled] = useState(false);
+  const {
+    modelCallDetailsEnabled: proModeEnabled,
+    setModelCallDetailsEnabled: setProModeEnabled,
+    darkModeEnabled: isDarkMode,
+    setDarkModeEnabled: setIsDarkMode,
+  } = useGlobalPreference();
 
-  // Helper function to parse boolean query parameters
-  const parseBooleanParam = (value: string | null): boolean | undefined => {
-    if (value === null) {
-      return undefined;
-    }
-    const normalized = value.trim().toLowerCase();
-    if (['1', 'true', 'yes', 'on'].includes(normalized)) {
-      return true;
-    }
-    if (['0', 'false', 'no', 'off'].includes(normalized)) {
-      return false;
-    }
-    return undefined;
-  };
-
-  // Initialize dark mode from URL query or localStorage
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Check URL query parameter first
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const darkModeFromQuery = parseBooleanParam(searchParams.get('darkMode'));
-      if (darkModeFromQuery !== undefined) {
-        return darkModeFromQuery;
-      }
-    }
-    // Fall back to localStorage
-    const saved = localStorage.getItem('midscene-dark-mode');
-    return saved === 'true';
-  });
-
-  // Save dark mode preference to localStorage
   useEffect(() => {
-    localStorage.setItem('midscene-dark-mode', String(isDarkMode));
-    // Set data-theme on document root for global dark mode support
     document.documentElement.setAttribute(
       'data-theme',
       isDarkMode ? 'dark' : 'light',

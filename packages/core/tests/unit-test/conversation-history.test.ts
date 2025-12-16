@@ -20,6 +20,11 @@ const userMessageWithImage = (text: string, imageUrl: string) => ({
   ],
 });
 
+const ignoredImagePlaceholder = {
+  type: 'text' as const,
+  text: '(image ignored due to size optimization)',
+};
+
 describe('ConversationHistory', () => {
   it('resets state and seeds new messages', () => {
     const history = new ConversationHistory();
@@ -35,6 +40,23 @@ describe('ConversationHistory', () => {
     expect(history.length).toBe(2);
   });
 
+  it('clears pending feedback message only when set', () => {
+    const history = new ConversationHistory();
+
+    expect(history.pendingFeedbackMessage).toBe('');
+
+    history.resetPendingFeedbackMessageIfExists();
+    expect(history.pendingFeedbackMessage).toBe('');
+
+    history.pendingFeedbackMessage = 'Need a screenshot';
+    history.resetPendingFeedbackMessageIfExists();
+    expect(history.pendingFeedbackMessage).toBe('');
+
+    history.pendingFeedbackMessage = '';
+    history.resetPendingFeedbackMessageIfExists();
+    expect(history.pendingFeedbackMessage).toBe('');
+  });
+
   it('returns independent snapshot copies', () => {
     const history = new ConversationHistory();
     history.append(assistantMessage('hello'));
@@ -45,55 +67,8 @@ describe('ConversationHistory', () => {
     expect(history.snapshot()).toEqual([assistantMessage('hello')]);
   });
 
-  it('limits image messages in snapshot from back to front', () => {
-    const history = new ConversationHistory({ maxUserImageMessages: 2 });
-
-    history.append(userMessageWithImage('first', 'data:image1'));
-    history.append(assistantMessage('ack1'));
-    history.append(userMessageWithImage('second', 'data:image2'));
-    history.append(assistantMessage('ack2'));
-    history.append(userMessageWithImage('third', 'data:image3'));
-
-    const snapshot = history.snapshot();
-
-    // First image should be omitted (counting from back, it's the 3rd one)
-    expect(snapshot[0]).toEqual({
-      role: 'user',
-      content: [
-        { type: 'text', text: 'first' },
-        { type: 'text', text: '(omitted due to size limit)' },
-      ],
-    });
-
-    // Second and third images should be preserved
-    expect(snapshot[2]).toEqual(userMessageWithImage('second', 'data:image2'));
-    expect(snapshot[4]).toEqual(userMessageWithImage('third', 'data:image3'));
-  });
-
-  it('respects maxImageMessages parameter in snapshot options', () => {
-    const history = new ConversationHistory({ maxUserImageMessages: 5 });
-
-    history.append(userMessageWithImage('first', 'data:image1'));
-    history.append(userMessageWithImage('second', 'data:image2'));
-    history.append(userMessageWithImage('third', 'data:image3'));
-
-    // Override with maxImageMessages: 1
-    const snapshot = history.snapshot({ maxImageMessages: 1 });
-
-    // Only the last image should be preserved
-    expect(snapshot[0].content).toEqual([
-      { type: 'text', text: 'first' },
-      { type: 'text', text: '(omitted due to size limit)' },
-    ]);
-    expect(snapshot[1].content).toEqual([
-      { type: 'text', text: 'second' },
-      { type: 'text', text: '(omitted due to size limit)' },
-    ]);
-    expect(snapshot[2]).toEqual(userMessageWithImage('third', 'data:image3'));
-  });
-
-  it('handles messages with multiple images in content', () => {
-    const history = new ConversationHistory({ maxUserImageMessages: 2 });
+  it('returns image messages without modification', () => {
+    const history = new ConversationHistory();
 
     const messageWithTwoImages: ChatCompletionMessageParam = {
       role: 'user',
@@ -104,17 +79,53 @@ describe('ConversationHistory', () => {
       ],
     };
 
+    history.append(userMessageWithImage('first', 'data:image1'));
+    history.append(assistantMessage('ack1'));
     history.append(messageWithTwoImages);
-    history.append(userMessageWithImage('another', 'data:image3'));
 
     const snapshot = history.snapshot();
 
-    // From back to front: image3 (1st), image2 (2nd), image1 (3rd - should be omitted)
-    expect(snapshot[0].content).toEqual([
-      { type: 'text', text: 'Look at these' },
-      { type: 'text', text: '(omitted due to size limit)' },
-      { type: 'image_url', image_url: { url: 'data:image2' } },
-    ]);
-    expect(snapshot[1]).toEqual(userMessageWithImage('another', 'data:image3'));
+    expect(snapshot[0]).toEqual(userMessageWithImage('first', 'data:image1'));
+    expect(snapshot[1]).toEqual(assistantMessage('ack1'));
+    expect(snapshot[2]).toEqual(messageWithTwoImages);
+  });
+
+  it('replaces older images with text when exceeding the maxImages limit', () => {
+    const history = new ConversationHistory();
+
+    const messageWithTwoImages: ChatCompletionMessageParam = {
+      role: 'user',
+      content: [
+        { type: 'text', text: 'More images' },
+        { type: 'image_url', image_url: { url: 'data:image2' } },
+        { type: 'image_url', image_url: { url: 'data:image3' } },
+      ],
+    };
+
+    history.append(userMessageWithImage('first', 'data:image1'));
+    history.append(assistantMessage('ack'));
+    history.append(messageWithTwoImages);
+
+    const snapshotWithLimit = history.snapshot(1);
+
+    expect(snapshotWithLimit[0]).toEqual({
+      role: 'user',
+      content: [{ type: 'text', text: 'first' }, ignoredImagePlaceholder],
+    });
+    expect(snapshotWithLimit[2]).toEqual({
+      role: 'user',
+      content: [
+        { type: 'text', text: 'More images' },
+        { type: 'image_url', image_url: { url: 'data:image2' } },
+        ignoredImagePlaceholder,
+      ],
+    });
+
+    // Original history remains unchanged
+    const snapshotWithoutLimit = history.snapshot();
+    expect(snapshotWithoutLimit[0]).toEqual(
+      userMessageWithImage('first', 'data:image1'),
+    );
+    expect(snapshotWithoutLimit[2]).toEqual(messageWithTwoImages);
   });
 });

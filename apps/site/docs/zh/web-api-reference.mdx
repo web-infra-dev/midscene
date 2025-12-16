@@ -2,12 +2,41 @@
 
 当你需要自定义 Midscene 的浏览器自动化 Agent，或查阅 Web 专属构造参数时，请参考本篇。关于通用参数（报告、Hook、缓存等），请阅读[API 参考（通用）](./api)。
 
+## Action Space（动作空间）
+
+PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，Midscene Agent 在规划任务时可以使用这些操作：
+
+- `Tap` —— 左键点击元素。
+- `RightClick` —— 右键点击元素。
+- `DoubleClick` —— 双击元素。
+- `Hover` —— 悬停目标元素。
+- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式。
+- `KeyboardPress` —— 按下指定键（可在按键前先聚焦目标）。
+- `Scroll` —— 以元素为起点或从屏幕中央滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `LongPress` —— 长按目标元素，可选自定义时长。
+- `Swipe` —— 触摸式滑动（开启 `enableTouchEventsInActionSpace` 时可用）。
+- `ClearInput` —— 清空输入框内容。
+- `Navigate` —— 在当前标签页打开指定 URL。
+- `Reload` —— 刷新当前页面。
+- `GoBack` —— 浏览器后退。
+
 ## PuppeteerAgent {#puppeteer-agent}
+
+当你需要在 Puppeteer 控制的浏览器里复用 Midscene 的 AI 操作能力时使用。
 
 ### 导入
 
 ```ts
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
+```
+
+### 构造器
+
+```ts
+const agent = new PuppeteerAgent(page, {
+  // 浏览器特有配置...
+});
 ```
 
 ### 浏览器特有选项
@@ -17,11 +46,22 @@ import { PuppeteerAgent } from '@midscene/web/puppeteer';
 - `forceSameTabNavigation: boolean` —— 限制始终在当前标签页内导航，默认 `true`。
 - `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
+- `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。
 - `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
 
-Puppeteer 的安装与使用可参考 [集成到 Puppeteer](./integrate-with-puppeteer#puppeteeragent)。
+### 使用说明
 
-### 快速上手示例
+:::info
+
+- 每个页面一个 Agent：默认情况下（`forceSameTabNavigation: true`）Midscene 会拦截新标签并在当前页打开，便于调试；若想保留新标签行为可设为 `false`，并为每个标签创建新的 Agent。
+- 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
+
+:::
+
+### 示例
+
+#### 快速上手
 
 ```ts
 import puppeteer from 'puppeteer';
@@ -45,7 +85,7 @@ await agent.aiAssert('there is a category filter on the left sidebar');
 await browser.close();
 ```
 
-### 连接远程 Puppeteer 浏览器
+#### 连接远程 Puppeteer 浏览器
 
 ```ts
 import puppeteer from 'puppeteer';
@@ -65,9 +105,13 @@ await agent.destroy();
 await browser.disconnect();
 ```
 
-更多详细流程与远程 CDP 说明，请阅读[集成到 Puppeteer](./integrate-with-puppeteer)。
+### 另请参阅
+
+- [集成到 Puppeteer](./integrate-with-puppeteer) 获取安装、Fixture 与远程 CDP 配置。
 
 ## PlaywrightAgent {#playwright-agent}
+
+在 Playwright 浏览器中使用 Midscene 以支持带 AI 的测试或自动化流程。
 
 ### 导入
 
@@ -75,16 +119,35 @@ await browser.disconnect();
 import { PlaywrightAgent } from '@midscene/web/playwright';
 ```
 
+### 构造器
+
+```ts
+const agent = new PlaywrightAgent(page, {
+  // 浏览器特有配置...
+});
+```
+
 ### 浏览器特有选项
 
 - `forceSameTabNavigation: boolean` —— 强制在当前标签页内执行，默认 `true`。
 - `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
+- `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
+- `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。
 - `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
 
-配置示例可参考 [集成到 Playwright](./integrate-with-playwright#playwrightagent)。
+### 使用说明
 
-### 快速上手示例
+:::info
+
+- 每个页面一个 Agent：默认 `forceSameTabNavigation` 为 `true`，Midscene 会拦截新标签确保稳定性；如需新标签请设为 `false` 并为每个标签创建新的 Agent。
+- 更多交互方法请参考 [API 参考（通用）](./api#interaction-methods)。
+
+:::
+
+### 示例
+
+#### 快速上手
 
 ```ts
 import { chromium } from 'playwright';
@@ -105,7 +168,7 @@ await agent.aiTap('click the first result card');
 await browser.close();
 ```
 
-### 在 Playwright 测试中使用
+#### 使用 Midscene fixture 扩展 Playwright 测试
 
 ```ts
 // playwright.config.ts
@@ -130,7 +193,9 @@ test('search flow', async ({ agentForPage, page }) => {
 });
 ```
 
-更多安装和 Fixture 用法请参阅[集成到 Playwright](./integrate-with-playwright)。
+### 另请参阅
+
+- [集成到 Playwright](./integrate-with-playwright) 获取安装、Fixture 用法和更多配置。
 
 ## Chrome Bridge Agent {#chrome-bridge-agent}
 
@@ -142,23 +207,70 @@ Bridge Mode 允许 Midscene 通过扩展控制当前桌面 Chrome 标签页，�
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 ```
 
-### 构造示例
+### 构造器
 
 ```ts
 const agent = new AgentOverChromeBridge({
   allowRemoteAccess: false,
+  // 其他桥接配置...
 });
 ```
 
 ### 桥接配置
 
+- `closeNewTabsAfterDisconnect?: boolean` —— 是否在销毁时自动关闭桥接创建的新标签页，默认 `false`。
 - `allowRemoteAccess?: boolean` —— 是否允许远程机器连接，默认 `false`（监听 `127.0.0.1`）。
 - `host?: string` —— 自定义 Bridge Server 的监听地址，优先级高于 `allowRemoteAccess`。
 - `port?: number` —— Bridge Server 端口，默认 `3766`。
 
 完整安装与能力说明，见 [Chrome 插件桥接模式](./bridge-mode#constructor)。
 
-### 示例：打开新的桌面标签页
+### 使用说明
+
+:::info
+
+请先调用 `connectCurrentTab` 或 `connectNewTabWithUrl` 再执行其他操作。每个 `AgentOverChromeBridge` 只能连接一个标签页；`destroy` 之后需要重新创建实例。
+
+:::
+
+### 方法
+
+#### `connectCurrentTab()`
+
+```ts
+function connectCurrentTab(options?: {
+  forceSameTabNavigation?: boolean;
+}): Promise<void>;
+```
+
+- `options.forceSameTabNavigation`（默认 `true`）会拦截新标签并在当前页打开，方便调试；若想保留新标签行为可设为 `false`，但需要为每个新标签创建新的 Agent。
+- 连接当前激活标签页，成功后返回 `Promise<void>`，如果扩展未允许连接会报错。
+
+#### `connectNewTabWithUrl()`
+
+```ts
+function connectNewTabWithUrl(
+  url: string,
+  options?: { forceSameTabNavigation?: boolean },
+): Promise<void>;
+```
+
+- `url` —— 新标签页要打开的地址。
+- `options` —— 与 `connectCurrentTab` 相同。
+- 打开新标签并连接成功后返回 `Promise<void>`。
+
+#### `destroy()`
+
+```ts
+function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
+```
+
+- `closeNewTabsAfterDisconnect` —— 运行时覆盖构造器配置，为 `true` 时销毁时关闭桥接创建的新标签页。
+- 清理桥接连接和本地服务完成后返回 `Promise<void>`。
+
+### 示例
+
+#### 打开新的桌面标签页
 
 ```ts
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -171,7 +283,7 @@ await agent.aiAssert('some search results show up');
 await agent.destroy();
 ```
 
-### 示例：附着到当前标签页
+#### 附着到当前标签页
 
 ```ts
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -186,4 +298,7 @@ await agent.aiAct('open Gmail and report how many unread emails are visible');
 await agent.destroy();
 ```
 
-更多关于扩展安装、执行顺序与 YAML 用法，请阅读 [桥接模式](./bridge-mode)。
+### 另请参阅
+
+- [API 参考（通用）](./api#interaction-methods) 查看共享的 Agent 方法。
+- [桥接模式](./bridge-mode) 了解扩展安装、执行顺序与 YAML 用法。

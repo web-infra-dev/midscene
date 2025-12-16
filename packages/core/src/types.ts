@@ -25,6 +25,7 @@ export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
+  cached_input: number | undefined;
   time_cost: number | undefined;
   model_name: string | undefined;
   model_description: string | undefined;
@@ -133,7 +134,6 @@ export interface LocateResult {
 }
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
-export type ThinkingStrategy = 'off' | 'cot';
 
 export interface ServiceTaskInfo {
   durationMs: number;
@@ -223,6 +223,7 @@ export type OnTaskStartTip = (tip: string) => Promise<void> | void;
 export interface AgentWaitForOpt {
   checkIntervalMs?: number;
   timeoutMs?: number;
+  [key: string]: unknown;
 }
 
 export interface AgentAssertOpt {
@@ -259,6 +260,7 @@ export interface PlanningAIResponse
   rawResponse?: string;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
+  error?: string;
 }
 
 export interface PlanningActionParamSleep {
@@ -385,7 +387,7 @@ export interface ExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
-  aiActionContext?: string;
+  aiActContext?: string;
 }
 
 /*
@@ -479,7 +481,7 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
   {
     userInstruction: string;
-    aiActionContext?: string;
+    aiActContext?: string;
   },
   PlanningAIResponse
 >;
@@ -624,11 +626,17 @@ export interface AgentOpt {
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
+  aiActContext?: string;
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
   modelConfig?: TModelConfig;
   cache?: Cache;
+  /**
+   * Maximum number of replanning cycles for aiAct.
+   * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
+   * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
+   */
   replanningCycleLimit?: number;
 
   /**

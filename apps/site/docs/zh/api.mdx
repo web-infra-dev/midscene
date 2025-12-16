@@ -21,8 +21,8 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 - `reportFileName: string`: 报告文件的名称，默认值由 midscene 内部生成。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
-- `actionContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 '有 cookie 对话框时先关闭它'，默认值为空。
-- `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20。
+- `aiActContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 "有 cookie 对话框时先关闭它"，默认值为空。此前名为 `aiActionContext`，旧名称仍然兼容。
+- `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20（UI-TARS 模型默认 40）。推荐通过 agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
 
 ### 自定义模型
@@ -100,7 +100,7 @@ const agent = new PuppeteerAgent(page, {
 });
 ```
 
-**注意：** 对于 LangSmith 和 Langfuse 集成，推荐使用更简单的[环境变量方式](#使用-langsmith)，无需编写 `createOpenAIClient` 代码。如果你提供了自定义的客户端包装函数，它会覆盖环境变量的自动集成行为。
+**注意：** 对于 LangSmith 和 Langfuse 集成，推荐使用 [模型配置](./model-config#使用-langsmith) 中介绍的环境变量方式，无需编写 `createOpenAIClient` 代码。如果你提供了自定义的客户端包装函数，它会覆盖环境变量的自动集成行为。
 
 ## 交互方法
 
@@ -132,6 +132,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
+    planningStrategy?: 'fast' | 'standard';
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
@@ -142,6 +143,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
   - `prompt: string` - 用自然语言描述的操作内容
   - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
+    - `planningStrategy?: 'fast' | 'standard'` - 规划模式：`fast` 合并视觉模型的规划和定位能力，执行更快，适合简单指令；`standard`（默认）拆分规划和定位，并提供上一步操作的过程截图，帮助模型理解整个交互流程
 
 - 返回值：
 
@@ -166,7 +168,7 @@ await agent.aiAct('发布一条微博，内容为 "Hello World"');
 
 在实际运行时，Midscene 会将用户指令规划（Planning）成多个步骤，然后逐步执行。如果 Midscene 认为无法执行，将抛出一个错误。
 
-为了获得最佳效果，请尽可能提供清晰、详细的步骤描述。具体可以参考这篇文档：[编写提示词的技巧](./prompting-tips)
+为了获得最佳效果，请尽可能提供清晰、详细的步骤描述。
 
 关联文档：
 
@@ -628,6 +630,7 @@ await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 ```
 
 :::tip
+
 断言在测试脚本中非常重要。为了降低因 AI 幻觉导致错误断言的风险（例如遗漏错误），你也可以使用 `.aiQuery` 加上常规的 JavaScript 断言来替代 `.aiAssert`。
 
 例如，你可以这样替代上面的断言代码：
@@ -725,12 +728,14 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 ```
 
 :::tip
+
 考虑到 AI 服务的时间消耗，`.aiWaitFor` 并不是一个特别高效的方法。使用一个普通的 `sleep` 可能是替代 `waitFor` 的另一种方式。
+
 :::
 
 ### `agent.runYaml()`
 
-执行一个 YAML 格式的自动化脚本。脚本中的 `tasks` 部分会被执行，并返回所有 `.aiQuery` 调用的结果。
+执行一个 YAML 格式的自动化脚本。脚本中的 `tasks` 部分会被解析和执行，并返回所有 `.aiQuery` 调用的结果。
 
 - 类型
 
@@ -764,10 +769,12 @@ console.log(result);
 ```
 
 :::tip
+
 更多关于 YAML 脚本的信息，请参考 [Automate with Scripts in YAML](./automate-with-scripts-in-yaml)。
+
 :::
 
-### `agent.setAIActionContext()`
+### `agent.setAIActContext()`
 
 设置在调用 `agent.aiAct()` 或 `agent.ai()` 时，发送给 AI 模型的背景知识。这个设置会覆盖之前的设置。
 
@@ -776,18 +783,24 @@ console.log(result);
 - 类型
 
 ```typescript
-function setAIActionContext(actionContext: string): void;
+function setAIActContext(aiActContext: string): void;
 ```
 
 - 参数：
 
-  - `actionContext: string` - 要发送给 AI 模型的背景知识。
+  - `aiActContext: string` - 要发送给 AI 模型的背景知识。`aiActionContext` 旧参数名依然可用。
 
 - 示例：
 
 ```typescript
-await agent.setAIActionContext('如果 “使用cookie” 对话框存在，先关闭它');
+await agent.setAIActContext('如果 “使用cookie” 对话框存在，先关闭它');
 ```
+
+:::note
+
+`agent.setAIActionContext()` 已被弃用，请改用 `agent.setAIActContext()`。弃用的方法仍作为兼容别名保留。
+
+:::
 
 ### `agent.evaluateJavaScript()`
 
@@ -882,7 +895,9 @@ await agent.unfreezePageContext();
 ```
 
 :::tip
+
 在报告中，使用冻结上下文的操作会在 Insight tab 中显示 🧊 图标。
+
 :::
 
 ### `agent.unfreezePageContext()`
@@ -945,74 +960,6 @@ overrideAIConfig({
   // OPENAI_API_KEY: '...',
 });
 ```
-
-### 使用 LangSmith
-
-LangSmith 是一个用于调试大语言模型的平台。Midscene 提供了自动集成支持，只需安装依赖并设置环境变量即可。
-
-**步骤 1：安装依赖**
-
-```bash
-npm install langsmith
-```
-
-**步骤 2：设置环境变量**
-
-```bash
-# 启用 Midscene 的 LangSmith 自动集成
-export MIDSCENE_LANGSMITH_DEBUG=1
-
-# LangSmith 配置
-export LANGCHAIN_API_KEY="your-langchain-api-key-here"
-export LANGCHAIN_TRACING=true
-export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
-# export LANGCHAIN_ENDPOINT="https://eu.api.smith.langchain.com" # 如果在欧洲区域注册
-```
-
-启动 Midscene 后，你应该会看到类似如下的日志：
-
-```log
-DEBUGGING MODE: langsmith wrapper enabled
-```
-
-**高级用法：**
-
-如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以使用 [`createOpenAIClient`](#自定义-openai-客户端) 参数手动包装客户端。
-
-### 使用 Langfuse
-
-Langfuse 是另一个流行的 LLM 可观测性平台。集成方式与 LangSmith 类似。
-
-**步骤 1：安装依赖**
-
-```bash
-npm install langfuse
-```
-
-**步骤 2：设置环境变量**
-
-```bash
-# 启用 Midscene 的 Langfuse 自动集成
-export MIDSCENE_LANGFUSE_DEBUG=1
-
-# Langfuse 配置
-export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
-export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
-export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
-# export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 美国区域
-```
-
-启动 Midscene 后，你应该会看到类似如下的日志：
-
-```log
-DEBUGGING MODE: langfuse wrapper enabled
-```
-
-**注意事项：**
-
-- LangSmith 和 Langfuse 可以同时启用
-- 这些集成仅在 Node.js 环境中可用，浏览器环境会抛出错误
-- 如果你使用了 [`createOpenAIClient`](#自定义-openai-客户端) 参数，环境变量方式将被覆盖
 
 ## 使用图片作为提示词
 

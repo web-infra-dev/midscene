@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "test": "vitest --run",
     "test:ai": "AITEST=true vitest --run",
     "test:ai:temp": "AITEST=true BRIDGE_MODE=true vitest tests/bridge.test.ts"
@@ -26,10 +26,10 @@
     "@midscene/web": "workspace:*",
     "http-server": "14.1.1",
     "lodash.merge": "4.6.2",
-    "puppeteer": "24.2.0"
+    "puppeteer": "24.6.0"
   },
   "devDependencies": {
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",
     "@types/lodash.merge": "4.6.9",
     "@types/minimist": "1.2.5",

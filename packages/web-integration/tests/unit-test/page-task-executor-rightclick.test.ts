@@ -42,7 +42,9 @@ describe('TaskExecutor RightClick Action', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    taskExecutor = new TaskExecutor(mockPage, mockInsight, {});
+    taskExecutor = new TaskExecutor(mockPage, mockInsight, {
+      actionSpace: mockPage.actionSpace(),
+    });
   });
 
   it('should execute RightClick action correctly', async () => {

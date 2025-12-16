@@ -25,6 +25,7 @@ export const MIDSCENE_MODEL_HTTP_PROXY = 'MIDSCENE_MODEL_HTTP_PROXY';
 export const MIDSCENE_MODEL_API_KEY = 'MIDSCENE_MODEL_API_KEY';
 export const MIDSCENE_MODEL_BASE_URL = 'MIDSCENE_MODEL_BASE_URL';
 export const MIDSCENE_MODEL_MAX_TOKENS = 'MIDSCENE_MODEL_MAX_TOKENS';
+export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -70,13 +71,13 @@ export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
-export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
-  'MIDSCENE_REPLANNING_CYCLE_LIMIT';
-
 export const MIDSCENE_PREFERRED_LANGUAGE = 'MIDSCENE_PREFERRED_LANGUAGE';
 
 export const MIDSCENE_CACHE_MAX_FILENAME_LENGTH =
   'MIDSCENE_CACHE_MAX_FILENAME_LENGTH';
+
+export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
+  'MIDSCENE_REPLANNING_CYCLE_LIMIT';
 
 export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
 
@@ -91,6 +92,7 @@ export const MIDSCENE_INSIGHT_MODEL_BASE_URL =
 export const MIDSCENE_INSIGHT_MODEL_API_KEY = 'MIDSCENE_INSIGHT_MODEL_API_KEY';
 export const MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_INSIGHT_MODEL_TIMEOUT = 'MIDSCENE_INSIGHT_MODEL_TIMEOUT';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -104,6 +106,8 @@ export const MIDSCENE_PLANNING_MODEL_API_KEY =
   'MIDSCENE_PLANNING_MODEL_API_KEY';
 export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_PLANNING_MODEL_TIMEOUT =
+  'MIDSCENE_PLANNING_MODEL_TIMEOUT';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -176,6 +180,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_SOCKS_PROXY,
   MIDSCENE_MODEL_HTTP_PROXY,
+  MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -195,6 +200,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -202,6 +208,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_PLANNING_MODEL_TIMEOUT,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -265,6 +272,8 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_BASE_URL]?: string;
   [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
+  // timeout
+  [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
 }
 
 export interface IModelConfigForPlanning {
@@ -277,6 +286,8 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_BASE_URL]?: string;
   [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
+  // timeout
+  [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
 }
 
 /**
@@ -387,6 +398,11 @@ export interface IModelConfig {
   openaiBaseURL?: string;
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
+  /**
+   * Timeout for API calls in milliseconds.
+   * If not set, uses OpenAI SDK default (10 minutes).
+   */
+  timeout?: number;
   /**
    * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
    * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'

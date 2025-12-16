@@ -116,6 +116,34 @@ Action: finished()`;
     expect(parsed[0].action_type).toBe('finished');
     expect(parsed[0].action_inputs).toEqual({});
   });
+
+  it('should parse left_double action', () => {
+    const text = `Thought: Double-click the search button
+Action: left_double(start_box='(460,452)')`;
+
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].action_type).toBe('left_double');
+    expect(parsed[0].action_inputs.start_box).toBeDefined();
+    expect(parsed[0].thought).toBe('Double-click the search button');
+  });
+
+  it('should parse right_single action', () => {
+    const text = `Thought: Right-click to open context menu
+Action: right_single(start_box='(300,200)')`;
+
+    const { parsed } = actionParser({
+      prediction: text,
+      factor: 1000,
+    });
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].action_type).toBe('right_single');
+    expect(parsed[0].action_inputs.start_box).toBeDefined();
+    expect(parsed[0].thought).toBe('Right-click to open context menu');
+  });
 });
 
 describe('getSummary', () => {

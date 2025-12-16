@@ -47,6 +47,7 @@ const mockPage = {
   keyboard: {
     type: vi.fn(),
   },
+  actionSpace: vi.fn(() => []),
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ dpr: 1 }),

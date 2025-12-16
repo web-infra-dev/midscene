@@ -65,11 +65,14 @@ export class Page<
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
-
+  private enableTouchEventsInActionSpace: boolean;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
-    const defaultActions = commonWebActionsForWebPage(this);
+    const defaultActions = commonWebActionsForWebPage(
+      this,
+      this.enableTouchEventsInActionSpace,
+    );
     const customActions = this.customActions || [];
     return [...defaultActions, ...customActions];
   }
@@ -109,6 +112,8 @@ export class Page<
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
     this.customActions = opts?.customActions;
+    this.enableTouchEventsInActionSpace =
+      opts?.enableTouchEventsInActionSpace ?? false;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -411,7 +416,9 @@ export class Page<
         await sleep(200);
         await (this.underlyingPage as PlaywrightPage).mouse.down();
         await sleep(300);
-        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y);
+        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, {
+          steps: 20,
+        });
         await sleep(500);
         await (this.underlyingPage as PlaywrightPage).mouse.up();
         await sleep(200);
@@ -711,5 +718,60 @@ export function forceClosePopup(
     } else {
       debugProfile(`page is already closed, skip goto ${url}`);
     }
+  });
+}
+
+/**
+ * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
+ * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
+ *
+ * Reference: https://developer.chrome.com/blog/a-customizable-select
+ *
+ * Adds a style tag with CSS rules to make all select elements use base-select appearance.
+ */
+export function forceChromeSelectRendering(
+  page: PuppeteerPage | PlaywrightPage,
+): void {
+  // Force Chrome to render select elements using base-select appearance
+  // Reference: https://developer.chrome.com/blog/a-customizable-select
+  const styleContent = `
+/* Add by Midscene because of forceChromeSelectRendering is enabled*/
+select {
+  &, &::picker(select) {
+    appearance: base-select !important;
+  }
+}`;
+  const styleId = 'midscene-force-select-rendering';
+
+  const injectStyle = async () => {
+    try {
+      await (page as PuppeteerPage & PlaywrightPage).evaluate(
+        (id, content) => {
+          if (document.getElementById(id)) return;
+          const style = document.createElement('style');
+          style.id = id;
+          style.textContent = content;
+          document.head.appendChild(style);
+        },
+        styleId,
+        styleContent,
+      );
+      console.log(
+        'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',
+      );
+    } catch (err) {
+      console.log(
+        'Midscene - Failed to add base-select appearance style:',
+        err,
+      );
+    }
+  };
+
+  // Inject immediately for the current document
+  void injectStyle();
+
+  // Ensure the style is reapplied on future navigations/new documents
+  (page as PuppeteerPage & PlaywrightPage).on('load', () => {
+    void injectStyle();
   });
 }

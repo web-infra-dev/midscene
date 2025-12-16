@@ -1,150 +1,14 @@
-import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
-
 # 模型配置
 
 Midscene 通过读取操作系统中指定的环境变量来完成配置。
 
 Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务的参数风格，绝大多数模型服务商（或模型部署工具）都提供了满足这种要求的接口。
 
-本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-strategy)。
+本篇文档会重点介绍 Midscene 的模型配置参数。如果你对 Midscene 的模型策略感兴趣，请阅读 [模型策略](./model-strategy)。如果你想查看常用模型的配置示例，请阅读 [常用模型配置](./model-common-config)。
 
-## 快速接入
+## 必选配置
 
-这里介绍常见模型的配置项。
-
-### 豆包 Seed 视觉模型 {#doubao-seed-vision}
-
-从 [火山引擎](https://volcengine.com) 获取 API 密钥，然后补充以下环境变量：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_MODEL_FAMILY="doubao-vision"
-```
-
-### 千问 Qwen3-VL {#qwen3-vl}
-
-以阿里云 `qwen3-vl-plus` 模型为例，它的环境变量配置如下：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-MIDSCENE_MODEL_FAMILY="qwen3-vl"
-```
-
-### 千问 Qwen2.5-VL {#qwen25-vl}
-
-以阿里云 `qwen-vl-max-latest` 模型为例，它的环境变量配置如下：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
-MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
-```
-
-### Gemini-2.5-Pro {#gemini-25-pro}
-
-在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置：
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
-MIDSCENE_MODEL_API_KEY="......"
-MIDSCENE_MODEL_NAME="gemini-2.5-pro-preview-05-06"
-MIDSCENE_MODEL_FAMILY="gemini"
-```
-
-### UI-TARS {#ui-tars}
-
-你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
-
-```bash
-MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
-MIDSCENE_MODEL_API_KEY="...."
-MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
-```
-
-**关于 `MIDSCENE_MODEL_FAMILY` 配置**
-
-`MIDSCENE_MODEL_FAMILY` 用于指定 UI-TARS 版本，使用以下值之一：
-- `vlm-ui-tars` - 用于模型版本 `1.0`
-- `vlm-ui-tars-doubao` - 用于在火山引擎上部署的模型版本 `1.5`（与 `vlm-ui-tars-doubao-1.5` 等效）
-- `vlm-ui-tars-doubao-1.5` - 用于在火山引擎上部署的模型版本 `1.5`
-
-:::tip
-
-旧版本使用 `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` 或 `MIDSCENE_USE_VLM_UI_TARS=1.5` 配置，该配置仍然兼容但已废弃，建议迁移到 `MIDSCENE_MODEL_FAMILY`。
-
-迁移对应关系：
-- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
-- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
-- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
-
-:::
-
-### <del>`GPT-4o`</del>
-
-从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-strategy)。
-
-## 配置环境变量的方式
-
-请将所有配置放置在系统环境变量中。
-
-以下介绍一些常见方法，你也可以使用自己项目中的其他配置方案。
-
-### 方法一：在系统中设置环境变量
-
-> 在 Midscene Chrome 插件中，你也可以使用这种 `export KEY="value"` 配置格式
-
-```bash
-# 替换为你自己的 API Key
-export MIDSCENE_MODEL_API_KEY="sk-abcde..."
-export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-export MIDSCENE_MODEL_API_KEY="......"
-export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
-```
-
-### 方法二：编写 `.env` 文件
-
-在项目的运行路径下创建一个 `.env` 文件，并添加以下内容，Midscene 的命令行工具默认会读取这个文件。
-
-```bash
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-请注意：
-1. 这里不需要在每一行前添加 `export`
-2. 只有 Midscene 命令行工具会默认读取这个文件，如果是 Javascript SDK ，请参考下一条自行手动加载
-
-### 方法三：引用 dotenv 库配置环境变量
-
-[Dotenv](https://www.npmjs.com/package/dotenv) 是一个零依赖的 npm 包，用于将环境变量从 `.env` 文件加载到 node.js 的环境变量参数 `process.env` 中。
-
-我们的 [demo 项目](https://github.com/web-infra-dev/midscene-example) 使用了这种方式。
-
-```bash
-# 安装 dotenv
-npm install dotenv --save
-```
-
-在项目根目录下创建一个 `.env` 文件，并添加以下内容。注意这里不需要在每一行前添加 `export`。
-
-```bash
-MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
-```
-
-在脚本中导入 dotenv 模块，导入后它会自动读取 `.env` 文件中的环境变量。
-
-```typescript
-import 'dotenv/config';
-```
-
-## 配置项
-
-### 必选配置
+你需要为 Midscene 配上一个默认模型，详见 [模型策略](./model-strategy) 文档。
 
 | 名称 | 描述 |
 |------|-------------|
@@ -153,19 +17,21 @@ import 'dotenv/config';
 | `MIDSCENE_MODEL_NAME` | 模型名称 |
 | `MIDSCENE_MODEL_FAMILY` | 模型系列，用于确定坐标处理方式 |
 
-### 高阶配置（可选）
+## 高阶配置（可选）
 
 | 名称 | 描述 |
 |------|-------------|
+| `MIDSCENE_MODEL_TIMEOUT` | AI 接口调用超时时间（毫秒，默认意图），默认使用 OpenAI SDK 默认值（10 分钟）|
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON |
-| `MIDSCENE_REPLANNING_CYCLE_LIMIT` | 最大重规划次数限制，默认是 10 |
 | `MIDSCENE_RUN_DIR` | 运行产物目录，默认值为当前工作目录下的 `midscene_run`，支持设置绝对路径或相对路径 |
 | `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
 
-### 为 Insight 意图单独配置模型（可选）
+> 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
+
+### 为 Insight 意图单独配置模型
 
 如果你想为 Insight 意图单独配置模型，需额外配置以下字段：
 
@@ -174,11 +40,26 @@ import 'dotenv/config';
 | `MIDSCENE_INSIGHT_MODEL_API_KEY` | API Key |
 | `MIDSCENE_INSIGHT_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
 | `MIDSCENE_INSIGHT_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | 可选，Insight 意图的 AI 接口调用超时时间（毫秒）|
 | `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
 
-### 调试日志开关（可选）
+### 为 Planning 意图单独配置模型
+
+如果你想为 Planning 意图单独配置模型，需额外配置以下字段：
+
+| 名称 | 描述 |
+|------|-------------|
+| `MIDSCENE_PLANNING_MODEL_API_KEY` | API Key |
+| `MIDSCENE_PLANNING_MODEL_BASE_URL` | API 的接入 URL，常见以版本号结尾（如`/v1`）；不需要编写最后的 `/chat/completion` 部分 |
+| `MIDSCENE_PLANNING_MODEL_NAME` | 模型名称 |
+| `MIDSCENE_PLANNING_MODEL_TIMEOUT` | 可选，Planning 意图的 AI 接口调用超时时间（毫秒）|
+| `MIDSCENE_PLANNING_MODEL_HTTP_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_HTTP_PROXY` |
+| `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | 可选，效果等同于 `MIDSCENE_MODEL_SOCKS_PROXY`  |
+| `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | 可选，效果等同于 `MIDSCENE_MODEL_INIT_CONFIG_JSON`  |
+
+### 调试日志开关
 
 通过设置以下配置，可以在命令行打印更多调试日志。
 无论是否配置，这些日志都会打印在 `./midscene_run/log` 文件夹中。
@@ -192,11 +73,11 @@ import 'dotenv/config';
 | `DEBUG=midscene:*` | 打印所有调试日志 |
 
 
-### 仍兼容的模型配置（不推荐）
+## 仍兼容的模型配置（不推荐）
 
 以下环境变量已废弃但仍然兼容，建议尽快迁移到新的配置方式。
 
-#### Planning 模型配置（已废弃）
+### Planning 模型配置
 
 | 名称 | 描述 | 新配置方式 |
 |------|-------------|-----------|
@@ -206,7 +87,7 @@ import 'dotenv/config';
 | `MIDSCENE_USE_GEMINI` | 已弃用。启用 Gemini 模型 | 使用 `MIDSCENE_MODEL_FAMILY="gemini"` |
 | `MIDSCENE_USE_VLM_UI_TARS` | 已弃用。启用 UI-TARS 模型 | 使用 `MIDSCENE_MODEL_FAMILY="vlm-ui-tars*"` |
 
-#### 通用配置（已废弃）
+### 通用配置
 
 | 名称 | 描述 | 新配置方式 |
 |------|-------------|-----------|
@@ -217,11 +98,28 @@ import 'dotenv/config';
 | `MIDSCENE_OPENAI_SOCKS_PROXY` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `OPENAI_MAX_TOKENS` | 已弃用但仍兼容 | 使用 `MIDSCENE_MODEL_MAX_TOKENS` |
 
-## 使用 Javascript 配置参数
+## 使用 JavaScript 配置参数
 
-你也可以使用 Javascript 来为每个 Agent 配置模型参数，详见 [API 参考](./api)
+你也可以使用 JavaScript 来为每个 Agent 配置模型参数，详见 [API 参考](./api)
 
-<TroubleshootingLLMConnectivity />
+```typescript
+const agent = new Agent(page, {
+  // 通过 modelConfig 配置
+  modelConfig: {
+    MIDSCENE_MODEL_TIMEOUT: '60000', // 60 秒
+    MIDSCENE_MODEL_NAME: 'qwen3-vl-plus',
+    // ... 其他配置
+  }
+});
+```
+
+## 常见问题
+
+### 如何查看模型的 token 使用情况？
+
+通过在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，你可以打印模型的使用信息和响应时间。
+
+你也可以在报告文件中查看模型的使用量统计。
 
 ### 使用 LangSmith
 
@@ -252,7 +150,12 @@ export LANGCHAIN_ENDPOINT="https://api.smith.langchain.com"
 DEBUGGING MODE: langsmith wrapper enabled
 ```
 
-更多详情，请参阅 [API 文档](./api#使用-langsmith)。
+注意：
+- LangSmith 和 Langfuse 可以同时启用
+- 仅支持 Node.js 环境，浏览器环境会报错
+- 如果使用 [`createOpenAIClient`](./api#自定义-openai-客户端) 参数，环境变量方式会被覆盖
+
+如果需要更细粒度的控制（例如只对特定任务启用 LangSmith），可以通过 [`createOpenAIClient`](./api#自定义-openai-客户端) 手动包装客户端。
 
 ### 使用 Langfuse
 
@@ -283,12 +186,7 @@ export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
 DEBUGGING MODE: langfuse wrapper enabled
 ```
 
-更多详情，请参阅 [API 文档](./api#使用-langfuse)。
-
-## 常见问题
-
-### 如何查看模型的 token 使用情况？
-
-通过在环境变量中设置 `DEBUG=midscene:ai:profile:stats`，你可以打印模型的使用信息和响应时间。
-
-你也可以在报告文件中查看模型的使用量统计。
+注意：
+- LangSmith 和 Langfuse 可以同时启用
+- 仅支持 Node.js 环境，浏览器环境会报错
+- 如果使用 [`createOpenAIClient`](./api#自定义-openai-客户端) 参数，环境变量方式会被覆盖

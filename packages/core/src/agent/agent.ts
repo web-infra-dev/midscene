@@ -11,6 +11,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type ExecutionTaskPlanning,
   type GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
@@ -26,7 +27,6 @@ import {
   type ServiceExtractOption,
   type ServiceExtractParam,
   type TUserPrompt,
-  type ThinkingLevel,
   type UIContext,
 } from '../index';
 export type TestStatus =
@@ -54,12 +54,16 @@ import {
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
+  type IModelConfig,
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
   ModelConfigManager,
+  globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { defineActionAssert } from '../device';
 // import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
 import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
@@ -129,6 +133,14 @@ const normalizeScrollType = (
   return scrollType as ScrollParam['scrollType'];
 };
 
+const defaultReplanningCycleLimit = 20;
+const defaultVlmUiTarsReplanningCycleLimit = 40;
+
+type AiActOptions = {
+  cacheable?: boolean;
+  planningStrategy?: 'fast' | 'standard' | 'max';
+};
+
 export class Agent<
   InterfaceType extends AbstractInterface = AbstractInterface,
 > {
@@ -155,7 +167,26 @@ export class Agent<
 
   taskCache?: TaskCache;
 
-  onDumpUpdate?: (dump: string) => void;
+  private dumpUpdateListeners: Array<
+    (dump: string, executionDump?: ExecutionDump) => void
+  > = [];
+
+  get onDumpUpdate():
+    | ((dump: string, executionDump?: ExecutionDump) => void)
+    | undefined {
+    return this.dumpUpdateListeners[0];
+  }
+
+  set onDumpUpdate(callback:
+    | ((dump: string, executionDump?: ExecutionDump) => void)
+    | undefined) {
+    // Clear existing listeners
+    this.dumpUpdateListeners = [];
+    // Add callback to array if provided
+    if (callback) {
+      this.dumpUpdateListeners.push(callback);
+    }
+  }
 
   destroyed = false;
 
@@ -165,6 +196,10 @@ export class Agent<
    * Frozen page context for consistent AI operations
    */
   private frozenUIContext?: UIContext;
+
+  private get aiActContext(): string | undefined {
+    return this.opts.aiActContext ?? this.opts.aiActionContext;
+  }
 
   /**
    * Flag to track if VL model warning has been shown
@@ -221,9 +256,11 @@ export class Agent<
           `Invalid page width when computing screenshot scale: ${pageWidth}`,
         );
 
+        debug('will get image info of base64');
         const { width: screenshotWidth } = await imageInfoOfBase64(
           context.screenshotBase64,
         );
+        debug('image info of base64 done');
 
         assert(
           Number.isFinite(screenshotWidth) && screenshotWidth > 0,
@@ -251,8 +288,29 @@ export class Agent<
     }
   }
 
+  private resolveReplanningCycleLimit(
+    modelConfigForPlanning: IModelConfig,
+  ): number {
+    if (this.opts.replanningCycleLimit !== undefined) {
+      return this.opts.replanningCycleLimit;
+    }
+
+    return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
+      ? defaultVlmUiTarsReplanningCycleLimit
+      : defaultReplanningCycleLimit;
+  }
+
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
+
+    const envConfig = globalConfigManager.getAllEnvConfig();
+    const envReplanningCycleLimitRaw =
+      envConfig[MIDSCENE_REPLANNING_CYCLE_LIMIT];
+    const envReplanningCycleLimit =
+      envReplanningCycleLimitRaw !== undefined
+        ? Number(envReplanningCycleLimitRaw)
+        : undefined;
+
     this.opts = Object.assign(
       {
         generateReport: true,
@@ -261,7 +319,19 @@ export class Agent<
         groupDescription: '',
       },
       opts || {},
+      opts?.replanningCycleLimit === undefined &&
+        envReplanningCycleLimit !== undefined &&
+        !Number.isNaN(envReplanningCycleLimit)
+        ? { replanningCycleLimit: envReplanningCycleLimit }
+        : {},
     );
+
+    const resolvedAiActContext =
+      this.opts.aiActContext ?? this.opts.aiActionContext;
+    if (resolvedAiActContext !== undefined) {
+      this.opts.aiActContext = resolvedAiActContext;
+      this.opts.aiActionContext ??= resolvedAiActContext;
+    }
 
     if (
       opts?.modelConfig &&
@@ -271,8 +341,11 @@ export class Agent<
         `opts.modelConfig must be a plain object map of env keys to values, but got ${typeof opts?.modelConfig}`,
       );
     }
-    this.modelConfigManager = opts?.modelConfig
-      ? new ModelConfigManager(opts.modelConfig, opts?.createOpenAIClient)
+    // Create ModelConfigManager if modelConfig or createOpenAIClient is provided
+    // Otherwise, use the global config manager
+    const hasCustomConfig = opts?.modelConfig || opts?.createOpenAIClient;
+    this.modelConfigManager = hasCustomConfig
+      ? new ModelConfigManager(opts?.modelConfig, opts?.createOpenAIClient)
       : globalModelConfigManager;
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
@@ -295,21 +368,27 @@ export class Agent<
       );
     }
 
+    const baseActionSpace = this.interface.actionSpace();
+    const fullActionSpace = [...baseActionSpace, defineActionAssert()];
+
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      actionSpace: fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
-          try {
-            if (this.onDumpUpdate) {
-              this.onDumpUpdate(this.dumpDataString());
+          // Call all registered dump update listeners
+          const dumpString = this.dumpDataString();
+          for (const listener of this.dumpUpdateListeners) {
+            try {
+              listener(dumpString, executionDump);
+            } catch (error) {
+              console.error('Error in onDumpUpdate listener', error);
             }
-          } catch (error) {
-            console.error('Error in onDumpUpdate', error);
           }
 
           this.writeOutActionDumps();
@@ -323,7 +402,9 @@ export class Agent<
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
-    return this.interface.actionSpace();
+    const commonAssertionAction = defineActionAssert();
+
+    return [...this.interface.actionSpace(), commonAssertionAction];
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
@@ -342,13 +423,15 @@ export class Agent<
       debug('Using page.getContext for action:', action);
       context = await this.interface.getContext();
     } else {
-      debug('Using commonContextParser for action:', action);
+      debug('Using commonContextParser');
       context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
 
+    debug('will get screenshot scale');
     const computedScreenshotScale = await this.getScreenshotScale(context);
+    debug('computedScreenshotScale', computedScreenshotScale);
 
     if (computedScreenshotScale !== 1) {
       const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
@@ -373,12 +456,20 @@ export class Agent<
     return await this.getUIContext('locate');
   }
 
+  /**
+   * @deprecated Use {@link setAIActContext} instead.
+   */
   async setAIActionContext(prompt: string) {
-    if (this.opts.aiActionContext) {
+    await this.setAIActContext(prompt);
+  }
+
+  async setAIActContext(prompt: string) {
+    if (this.aiActContext) {
       console.warn(
-        'aiActionContext is already set, and it is called again, will override the previous setting',
+        'aiActContext is already set, and it is called again, will override the previous setting',
       );
     }
+    this.opts.aiActContext = prompt;
     this.opts.aiActionContext = prompt;
   }
 
@@ -451,21 +542,6 @@ export class Agent<
     if (this.onTaskStartTip) {
       await this.onTaskStartTip(tip);
     }
-  }
-
-  private async handleRunnerAfterFlush(runner: TaskRunner) {
-    const executionDump = runner.dump();
-    this.appendExecutionDump(executionDump);
-
-    try {
-      if (this.onDumpUpdate) {
-        this.onDumpUpdate(this.dumpDataString());
-      }
-    } catch (error) {
-      console.error('Error in onDumpUpdate', error);
-    }
-
-    this.writeOutActionDumps();
   }
 
   wrapActionInActionSpace<T extends DeviceAction>(
@@ -770,60 +846,76 @@ export class Agent<
     });
   }
 
-  async aiAct(
-    taskPrompt: string,
-    opt?: {
-      cacheable?: boolean;
-      thinkingLevel?: ThinkingLevel;
-    },
-  ) {
+  async aiAct(taskPrompt: string, opt?: AiActOptions) {
     const modelConfigForPlanning =
       this.modelConfigManager.getModelConfig('planning');
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    let thinkingLevelToUse = opt?.thinkingLevel;
-    if (!thinkingLevelToUse && this.opts.aiActionContext) {
-      thinkingLevelToUse = 'high';
-    } else if (!thinkingLevelToUse) {
-      thinkingLevelToUse = 'medium';
+    let planningStrategyToUse = opt?.planningStrategy || 'standard';
+    if (this.aiActContext && planningStrategyToUse === 'fast') {
+      console.warn(
+        'using fast planning strategy with aiActContext is not recommended',
+      );
+    }
+
+    if ((this.opts as any)?._deepThink) {
+      debug('using deep think planning strategy');
+      planningStrategyToUse = 'max';
     }
 
     // should include bbox in planning if
     // 1. the planning model is the same as the default intent model
-    // or 2. the thinking level is high
+    // and
+    // 2. the planning strategy is fast
     const includeBboxInPlanning =
-      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName ||
-      thinkingLevelToUse === 'high';
+      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
+      planningStrategyToUse === 'fast';
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
+    const replanningCycleLimit = this.resolveReplanningCycleLimit(
+      modelConfigForPlanning,
+    );
     // if vlm-ui-tars, plan cache is not used
     const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
     const matchedCache =
       isVlmUiTars || cacheable === false
         ? undefined
         : this.taskCache?.matchPlanCache(taskPrompt);
-    if (matchedCache && this.taskCache?.isCacheResultUsed) {
+    if (
+      matchedCache &&
+      this.taskCache?.isCacheResultUsed &&
+      matchedCache.cacheContent?.yamlWorkflow?.trim()
+    ) {
       // log into report file
       await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
-        matchedCache.cacheContent?.yamlWorkflow,
+        matchedCache.cacheContent.yamlWorkflow,
       );
 
       debug('matched cache, will call .runYaml to run the action');
-      const yaml = matchedCache.cacheContent?.yamlWorkflow;
+      const yaml = matchedCache.cacheContent.yamlWorkflow;
       return this.runYaml(yaml);
     }
 
+    // If cache matched but yamlWorkflow is empty, fall through to normal execution
+
+    let imagesIncludeCount: number | undefined = 1;
+    if (planningStrategyToUse === 'standard') {
+      imagesIncludeCount = 2;
+    } else if (planningStrategyToUse === 'max') {
+      imagesIncludeCount = undefined; // unlimited images
+    }
     const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfigForPlanning,
       defaultIntentModelConfig,
       includeBboxInPlanning,
-      thinkingLevelToUse === 'off' ? 'off' : 'cot',
-      this.opts.aiActionContext,
+      this.aiActContext,
       cacheable,
+      replanningCycleLimit,
+      imagesIncludeCount,
     );
 
     // update cache
@@ -853,12 +945,7 @@ export class Agent<
   /**
    * @deprecated Use {@link Agent.aiAct} instead.
    */
-  async aiAction(
-    taskPrompt: string,
-    opt?: {
-      cacheable?: boolean;
-    },
-  ) {
+  async aiAction(taskPrompt: string, opt?: AiActOptions) {
     return this.aiAct(taskPrompt, opt);
   }
 
@@ -1179,6 +1266,42 @@ export class Agent<
     return this.interface.evaluateJavaScript(script);
   }
 
+  /**
+   * Add a dump update listener
+   * @param listener Listener function
+   * @returns A remove function that can be called to remove this listener
+   */
+  addDumpUpdateListener(
+    listener: (dump: string, executionDump?: ExecutionDump) => void,
+  ): () => void {
+    this.dumpUpdateListeners.push(listener);
+
+    // Return remove function
+    return () => {
+      this.removeDumpUpdateListener(listener);
+    };
+  }
+
+  /**
+   * Remove a dump update listener
+   * @param listener The listener function to remove
+   */
+  removeDumpUpdateListener(
+    listener: (dump: string, executionDump?: ExecutionDump) => void,
+  ): void {
+    const index = this.dumpUpdateListeners.indexOf(listener);
+    if (index > -1) {
+      this.dumpUpdateListeners.splice(index, 1);
+    }
+  }
+
+  /**
+   * Clear all dump update listeners
+   */
+  clearDumpUpdateListeners(): void {
+    this.dumpUpdateListeners = [];
+  }
+
   async destroy() {
     // Early return if already destroyed
     if (this.destroyed) {
@@ -1233,10 +1356,14 @@ export class Agent<
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
-    try {
-      this.onDumpUpdate?.(this.dumpDataString());
-    } catch (error) {
-      console.error('Failed to update dump', error);
+    // Call all registered dump update listeners
+    const dumpString = this.dumpDataString();
+    for (const listener of this.dumpUpdateListeners) {
+      try {
+        listener(dumpString);
+      } catch (error) {
+        console.error('Error in onDumpUpdate listener', error);
+      }
     }
 
     this.writeOutActionDumps();
@@ -1256,24 +1383,10 @@ export class Agent<
 
   _unstableLogContent() {
     const { groupName, groupDescription, executions } = this.dump;
-    const newExecutions = Array.isArray(executions)
-      ? executions.map((execution: any) => {
-          const { tasks, ...restExecution } = execution;
-          let newTasks = tasks;
-          if (Array.isArray(tasks)) {
-            newTasks = tasks.map((task: any) => {
-              // only remove uiContext and log from task
-              const { uiContext, log, ...restTask } = task;
-              return restTask;
-            });
-          }
-          return { ...restExecution, ...(newTasks ? { tasks: newTasks } : {}) };
-        })
-      : [];
     return {
       groupName,
       groupDescription,
-      executions: newExecutions,
+      executions: executions || [],
     };
   }
 

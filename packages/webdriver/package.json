@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "test": "vitest",
     "lint": "biome check .",
     "lint:fix": "biome check . --write"
@@ -18,7 +18,7 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

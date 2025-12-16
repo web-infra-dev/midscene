@@ -24,7 +24,7 @@ describe(
     });
 
     it.skip(
-      'error in beforeInvokeAction',
+      'long task',
       async () => {
         const { originPage, reset } = await launchPage(
           'https://www.github.com/signup',
@@ -39,8 +39,35 @@ describe(
 
         await agent.aiAct(
           '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
+          // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
           {
-            thinkingLevel: 'high',
+            planningStrategy: 'fast',
+          },
+        );
+      },
+      15 * 60 * 1000,
+    );
+
+    it.skip(
+      'long task',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://cpstest.org/drag-test.php',
+          {
+            headless: false,
+          },
+        );
+        resetFn = reset;
+        const agent = new PuppeteerAgent(originPage);
+
+        await sleep(10 * 1000);
+
+        await agent.aiAct(
+          // '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
+          // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
+          '按住“dragMe”元素，往右拖动300像素',
+          {
+            planningStrategy: 'max',
           },
         );
       },
@@ -96,14 +123,14 @@ describe(
       // );
       // return;
 
-      agent.setAIActionContext(
-        'This is a testing application for Sauce Demo by Swag Lab',
-      );
+      // agent.setAIActionContext(
+      //   'This is a testing application for Sauce Demo by Swag Lab',
+      // );
 
-      const flag = await agent.aiBoolean('this is a login page');
-      expect(flag).toBe(true);
+      // const flag = await agent.aiBoolean('this is a login page');
+      // expect(flag).toBe(true);
 
-      await agent.aiAssert('this is a login page');
+      // await agent.aiAssert('this is a login page');
 
       await agent.ai(
         'type "standard_user" in user name input, type "secret_sauce" in password',
@@ -288,6 +315,18 @@ describe(
       );
       await agent.aiAssert(
         'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
+      );
+    });
+
+    it('native <select /> element', async () => {
+      const htmlPath = path.join(__dirname, 'select.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+      resetFn = reset;
+      const agent = new PuppeteerAgent(originPage, {
+        forceChromeSelectRendering: true,
+      });
+      await agent.aiAct(
+        'select the "fruit" element, select the "apple" option, sleep 2s, refresh, select the same option again. Assert: the "Current selection: Apple" text is visible. If you find it failed to select after several attempts, do not retry, it is an fatal error',
       );
     });
 

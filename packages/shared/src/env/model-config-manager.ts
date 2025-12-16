@@ -7,7 +7,6 @@ import type {
   TIntent,
   TModelConfig,
 } from './types';
-import { VL_MODE_RAW_VALID_VALUES as VL_MODES } from './types';
 
 export class ModelConfigManager {
   private modelConfigMap: Record<TIntent, IModelConfig> | undefined = undefined;
@@ -64,6 +63,8 @@ export class ModelConfigManager {
       configMap,
     );
 
+    // Each intent uses its own timeout from parsed config (MIDSCENE_MODEL_TIMEOUT,
+    // MIDSCENE_INSIGHT_MODEL_TIMEOUT, MIDSCENE_PLANNING_MODEL_TIMEOUT).
     this.modelConfigMap = {
       default: {
         ...defaultConfig,

@@ -5,11 +5,11 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 :::info 快速开始
 
 如果你想快速开始体验 Midscene，请选择模型并参考配置文档：
-* [豆包 Seed 视觉模型](./model-config.mdx#doubao-seed-vision)
-* [千问 Qwen3-VL](./model-config.mdx#qwen3-vl)
-* [千问 Qwen2.5-VL](./model-config.mdx#qwen25-vl)
-* [Gemini-2.5-Pro](./model-config.mdx#gemini-25-pro)
-* [UI-TARS](./model-config.mdx#ui-tars)
+* [豆包 Seed 视觉模型](./model-common-config#doubao-seed-vision)
+* [千问 Qwen3-VL](./model-common-config#qwen3-vl)
+* [千问 Qwen2.5-VL](./model-common-config#qwen25-vl)
+* [Gemini-3-Pro](./model-common-config#gemini-3-pro)
+* [UI-TARS](./model-common-config#ui-tars)
 
 :::
 
@@ -22,45 +22,45 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 为了完成元素定位工作，UI 自动化框架一般有两种技术路线：
 
 * 基于 DOM + 截图标注：提前提取页面的 DOM 结构，结合截图做好标注，请模型“挑选”其中的内容。
-* 纯视觉：基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
+* 纯视觉：利用模型的视觉定位能力，基于截图完成所有分析工作，即模型收到的只有图片，没有 DOM，也没有标注信息。
 
 ## Midscene 采用纯视觉路线来完成元素定位
 
 Midscene 早期同时兼容上述两种技术路线，交由开发者自行选择比对。但在几十个版本迭代、上百个项目的观察后，我们发现“纯视觉”方案开始体现出优越性：
 
-- **效果稳定**：业界领先的视觉模型（如 Doubao Seed 1.6、Qwen3-VL 等）表现足够稳定，已经可以满足大多数业务需求。
+- **效果稳定**：这些模型在 UI 操作规划、组件定位、界面理解等领域的综合表现较好，能够帮助开发者更快上手。
 - **适用于任意系统**：自动化框架不再依赖 UI 渲染的技术栈。无论是 Android、iOS、桌面应用，还是浏览器中的 canvas 标签，只要能获取截图，Midscene 即可完成交互操作。
-- **易于编写**：抛弃各类 selector 和 DOM 之后，开发者与模型的“磨合”会变得更简单，不熟悉渲染技术的新人也能很快上手
-- **token 量显著下降**：在去除 DOM 提取之后，视觉方案的 token 使用量可以减少 80%，成本更低，且本地运行速度也变得更快
+- **易于编写**：抛弃各类 selector 和 DOM 之后，开发者与模型的“磨合”会变得更简单，不熟悉渲染技术的新人也能很快上手。
+- **token 量显著下降**：在去除 DOM 提取之后，视觉方案的 token 使用量可以减少 80%，成本更低，且本地运行速度也变得更快。
 - **有开源模型解决方案**：开源模型表现渐佳，开发者开始有机会进行私有化部署模型，如 Qwen3-VL 提供的 8B、30B 等版本在不少项目中都有着不错的效果
 
 综合上述情况，**从 1.0 版本开始，Midscene 只支持纯视觉方案**，不再提供“提取 DOM”的兼容模式。
 
-## Midscene 推荐使用的视觉模型
+## 推荐使用的视觉模型
 
-经过大量项目实测，我们推荐使用这些模型作为使用 Midscene 的默认模型：豆包 Seed，千问 VL，Gemini-2.5-pro，UI-TARS。
+经过大量项目实测，我们推荐使用这些模型作为使用 Midscene 的默认模型：豆包 Seed，千问 VL，Gemini-3-Pro，UI-TARS。
 
 这些模型都具备良好的“元素定位”能力，且在任务规划、界面理解等场景上也有不错的表现。
 
-如何你不知道从哪里开始，选用你眼下最容易获得的模型即可，然后在后续迭代中再进行横向比对。
+如果你不知道从哪里开始，选用你眼下最容易获得的模型即可，然后在后续迭代中再进行横向比对。
 
 |模型系列|部署|Midscene 评价|
 |---|---|---|
-|豆包 Seed 视觉模型<br />[快速配置](./model-config.mdx#doubao-seed-vision)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
-|千问 Qwen3-VL<br />[快速配置](./model-config.mdx#qwen3-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama(开源)](https://ollama.com/library/qwen3-vl)|⭐⭐⭐⭐<br />复杂场景断言能力不够稳定 <br/>性能超群，操作准确<br />有开源版本（[HuggingFace](https://huggingface.co/Qwen) / [Github](https://github.com/QwenLM/)）|
-|千问 Qwen2.5-VL<br />[快速配置](./model-config.mdx#qwen25-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐<br/>综合效果不如 Qwen3-VL |
-|Gemini-2.5-Pro<br />[快速配置](./model-config.mdx#gemini-25-pro)|[Google Cloud](https://cloud.google.com/gemini-api/docs/gemini-25-overview)|⭐⭐⭐<br /> UI 定位准确性不如豆包和千问|
-|UI-TARS <br />[快速配置](./model-config.mdx#ui-tars)|[火山引擎](https://www.volcengine.com/docs/82379/1536429)|⭐⭐<br /> 有探索能力，但在不同场景表现可能差异较大<br />有开源版本（[HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [Github](https://github.com/bytedance/ui-tars)） |
+|豆包 Seed 视觉模型<br />[快速配置](./model-common-config#doubao-seed-vision)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
+|千问 Qwen3-VL<br />[快速配置](./model-common-config#qwen3-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama(开源)](https://ollama.com/library/qwen3-vl)|⭐⭐⭐⭐<br />复杂场景断言能力不够稳定 <br/>性能超群，操作准确<br />有开源版本（[HuggingFace](https://huggingface.co/Qwen) / [Github](https://github.com/QwenLM/)）|
+|千问 Qwen2.5-VL<br />[快速配置](./model-common-config#qwen25-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐<br/>综合效果不如 Qwen3-VL |
+|Gemini-3-Pro<br />[快速配置](./model-common-config#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br /> 价格高于豆包和千问|
+|UI-TARS <br />[快速配置](./model-common-config#ui-tars)|[火山引擎](https://www.volcengine.com/docs/82379/1536429)|⭐⭐<br /> 有探索能力，但在不同场景表现可能差异较大<br />有开源版本（[HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [Github](https://github.com/bytedance/ui-tars)） |
 
 :::info 为什么不能使用 gpt-5 这样的多模态模型作为默认模型 ?
 
-Midscene 对模型的 UI 定位能力（也称之为 Visual Grounding 特性）要求很高， gpt-5 一类的模型在此类场景表现很差，无法使用。但你可以考虑把它作为专用的“规划模型”，我们会在后文提到。
+Midscene 对模型的 UI 定位能力（也称之为 Visual Grounding 特性）要求很高，gpt-5 一类的模型在此类场景表现很差，无法作为默认模型。但你可以考虑把它作为专用的“规划模型”，我们会在后文提到。
 
 :::
 
 ## 高阶特性：多模型配合
 
-Midscene 的默认模型策略在很大程度上解决了 UI 自动化项目启动阶段的问题。但随着开发者提交的任务和上下文越加复杂、希望有泛化理解能力时，这些默认模型可能难以应对。我们以这个注册 Github 账号的 Prompt 为例：
+Midscene 的默认模型策略在很大程度上解决了 UI 自动化项目启动阶段的问题。但随着开发者提交的任务和上下文越加复杂、希望有泛化理解能力时，默认模型的规划能力可能难以应对。我们以这个注册 Github 账号的 Prompt 为例：
 
 ```text
 完成 github 账号注册的表单填写，确保表单上没有遗漏的字段，选择“美国”作为地区。
@@ -72,11 +72,11 @@ Midscene 的默认模型策略在很大程度上解决了 UI 自动化项目启�
 最终返回表单上实际填写的字段内容。
 ```
 
-这个诉求看似简单，但实际要求模型同时理解每个表单项的规则、理解每个控件、操作复杂的地区选择框、主动翻页和触发校验等操作，还要找到对应的元素。使用默认模型时，这些诉求往往难以同时满足，导致成功率较低。
+这个诉求看似简单，但实际要求模型同时理解每个表单项的规则、理解每个控件、操作复杂的地区选择框、主动翻页和触发校验等操作，还要找到对应的元素。使用默认模型时，这些诉求可能难以同时满足，导致成功率较低。
 
 面对此类场景，你可以为 *任务规划（Planning）*、*视觉理解（Insight)* 单独配置不同的模型，将默认模型仅用作为“视觉定位器”，以此降低推理的难度，发挥出各自的最大效果。多模型结合是当前提升 UI 自动化成功率最实用、最有效的手段。多模型的代价是速度和 token 消耗会略有上升。
 
-以上述案例为例，在配置了 `gpt-5.1` + `qwen3-vl` 的组合后，我们可以近乎完美地完成任务。
+想快速使用多模型组合配置，参考 [多模型配置示例](./model-common-config#gpt51-planning-insight-qwen3)。
 
 ### *Planning* 意图
 
@@ -92,7 +92,25 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 此处我们推荐使用 `gpt-5.1` 或其他视觉问答（VQA）能力强的模型。
 
+## 如何调优执行效果？
+
+如果你在执行过程中遇到了成功率不满足需求的情况，可以尝试以下方法。
+
+0. 查看 Midscene 的回放报告，确保任务执行的时序是正常的，没有进入错误的页面或逻辑分支
+1. 使用最优质的、更新的、更大尺寸的模型版本，这会大幅改善 UI 自动化的成功率。比如 Qwen3-VL 的效果会优于 Qwen2.5-VL，同一个模型的 72B 版本准确性会优于 30B 版本
+2. 确保模型的 `MIDSCENE_MODEL_FAMILY` 环境变量配置正确，否则定位结果会出现明显偏移
+3. 调整 `aiAct` 的规划模式 `planningStrategy`，提升思考深度
+4. 尝试使用不同的模型，或尝试多模型组合，解决理解能力不足的问题
+
 ## 更多
+
+### 使用视觉模型方案的不足
+
+视觉模型更像是一种具有高度“通用性”的解决方案，它不依赖于具体的 UI 渲染技术栈，能完全基于截图进行分析，它能让开发者快速上手、快速调优，并扩展到任意应用场景。
+
+对应的，它也存在一些不足，主要体现在对模型的要求偏高。
+
+以移动端的 UI 自动化为例，如果界面上有组件树信息 + 完备的 a11y（无障碍）标注，开发者可以使用小尺寸的纯文本模型、基于组件结构推理来完成自动化任务，更有机会把性能做到极致。而纯视觉模型方案则忽略了这些信息，它省下了开发者标注界面的开发成本、更通用，但在运行时需要耗费更多的模型资源。
 
 ### 模型配置文档
 
@@ -122,6 +140,9 @@ Midscene 要求模型服务商提供兼容 OpenAI 风格的接口（这并不是
 
 可以，你可以为每个 Agent 实例单独配置模型，具体请参考 [API 参考](./api) 中的 `modelConfig` 参数。
 
+### 希望将浏览器 DOM 信息发送给模型？
+
+Midscene 默认不发送浏览器 DOM 信息给模型，如果你依然希望在进行界面理解时发送（如附加一些截图里不可见的信息），你可以在 `aiAsk` 或 `aiQuery` 等界面理解接口的 options 参数中设置 `domIncluded` 为 `true`，来发送浏览器 DOM 信息给模型。更多详情请参考 [API 参考](./api)。
 
 ### 早期版本兼容
 

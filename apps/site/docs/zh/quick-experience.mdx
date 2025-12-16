@@ -1,5 +1,6 @@
-import StartExperience from './common/start-experience.mdx';
+import SetupEnv from './common/setup-env.mdx';
 import PrepareKeyForFurtherUse from './common/prepare-key-for-further-use.mdx';
+import StartExperience from './common/start-experience.mdx';
 
 # 通过 Chrome 插件快速体验
 
@@ -12,36 +13,26 @@ import PrepareKeyForFurtherUse from './common/prepare-key-for-further-use.mdx';
   controls
 />
 
-## 准备工作
 
-<PrepareKeyForFurtherUse />
-
-## 安装与配置
+## 安装 Chrome 扩展
 
 前往 Chrome 扩展商店安装 Midscene 扩展：[Midscene](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
 
-或下载安装包手动安装（**不推荐，无法获得自动更新**）：[Releases](https://github.com/web-infra-dev/midscene/releases)
+启动扩展（可能默认折叠在 Chrome 扩展列表中），你应该能在浏览器右侧看到名为 “Midscene” 的侧边栏。
 
-启动扩展（可能默认折叠在 Chrome 扩展列表中），通过粘贴 Key=Value 格式配置插件环境：
+<SetupEnv />
 
-```bash
-MIDSCENE_MODEL_BASE_URL="替换为你的模型服务地址"
-MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
-MIDSCENE_MODEL_NAME="替换为你的模型名称"
-MIDSCENE_MODEL_FAMILY="替换为你的模型系列"
-```
-
-更多配置信息请参考[模型策略](./model-strategy)文档。
+## 开始体验
 
 <StartExperience />
 
-- [使用 Chrome 插件的桥接模式](./bridge-mode)
-- [与 Puppeteer 集成](./integrate-with-puppeteer)
-- [与 Playwright 集成](./integrate-with-playwright)
-
 ## FAQ
 
-- 插件运行失败，提示 'Cannot access a chrome-extension:// URL of different extension'
+### 是否可以手动安装 Chrome 扩展？
+
+如果无法访问 Chrome 扩展商店，可以从 [Releases](https://github.com/web-infra-dev/midscene/releases) 下载安装包手动安装。但不推荐使用这种方式，因为无法获得自动更新。
+
+### 插件运行失败，提示 'Cannot access a chrome-extension:// URL of different extension'
 
 这一般是与其他插件冲突所致，如页面已经被其他插件注入了 `<iframe />` 或 `<script />`。
 

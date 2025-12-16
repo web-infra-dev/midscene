@@ -13,15 +13,11 @@ import {
 
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser } from '@midscene/shared/utils';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import { SocksProxyAgent } from 'socks-proxy-agent';
-import { AIActionType, type AIArgs } from '../../common';
-import { assertSchema } from '../prompt/assertion';
-import { planSchema } from '../prompt/llm-planning';
+import type { AIActionType, AIArgs } from '../../common';
 
 async function createChatClient({
   AIActionTypeValue,
@@ -47,23 +43,107 @@ async function createChatClient({
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
     createOpenAIClient,
+    timeout,
   } = modelConfig;
 
-  let proxyAgent = undefined;
+  let proxyAgent: any = undefined;
   const debugProxy = getDebug('ai:call:proxy');
+
+  // Helper function to sanitize proxy URL for logging (remove credentials)
+  // Uses URL API instead of regex to avoid ReDoS vulnerabilities
+  const sanitizeProxyUrl = (url: string): string => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.username) {
+        // Keep username for debugging, hide password for security
+        parsed.password = '****';
+        return parsed.href;
+      }
+      return url;
+    } catch {
+      // If URL parsing fails, return original URL (will be caught later)
+      return url;
+    }
+  };
+
   if (httpProxy) {
-    debugProxy('using http proxy', httpProxy);
-    proxyAgent = new HttpsProxyAgent(httpProxy);
+    debugProxy('using http proxy', sanitizeProxyUrl(httpProxy));
+    if (ifInBrowser) {
+      console.warn(
+        'HTTP proxy is configured but not supported in browser environment',
+      );
+    } else {
+      // Dynamic import with variable to avoid bundler static analysis
+      const moduleName = 'undici';
+      const { ProxyAgent } = await import(moduleName);
+      proxyAgent = new ProxyAgent({
+        uri: httpProxy,
+        // Note: authentication is handled via the URI (e.g., http://user:pass@proxy.com:8080)
+      });
+    }
   } else if (socksProxy) {
-    debugProxy('using socks proxy', socksProxy);
-    proxyAgent = new SocksProxyAgent(socksProxy);
+    debugProxy('using socks proxy', sanitizeProxyUrl(socksProxy));
+    if (ifInBrowser) {
+      console.warn(
+        'SOCKS proxy is configured but not supported in browser environment',
+      );
+    } else {
+      try {
+        // Dynamic import with variable to avoid bundler static analysis
+        const moduleName = 'fetch-socks';
+        const { socksDispatcher } = await import(moduleName);
+        // Parse SOCKS proxy URL (e.g., socks5://127.0.0.1:1080)
+        const proxyUrl = new URL(socksProxy);
+
+        // Validate hostname
+        if (!proxyUrl.hostname) {
+          throw new Error('SOCKS proxy URL must include a valid hostname');
+        }
+
+        // Validate and parse port
+        const port = Number.parseInt(proxyUrl.port, 10);
+        if (!proxyUrl.port || Number.isNaN(port)) {
+          throw new Error('SOCKS proxy URL must include a valid port');
+        }
+
+        // Parse SOCKS version from protocol
+        const protocol = proxyUrl.protocol.replace(':', '');
+        const socksType =
+          protocol === 'socks4' ? 4 : protocol === 'socks5' ? 5 : 5;
+
+        proxyAgent = socksDispatcher({
+          type: socksType,
+          host: proxyUrl.hostname,
+          port,
+          ...(proxyUrl.username
+            ? {
+                userId: decodeURIComponent(proxyUrl.username),
+                password: decodeURIComponent(proxyUrl.password || ''),
+              }
+            : {}),
+        });
+        debugProxy('socks proxy configured successfully', {
+          type: socksType,
+          host: proxyUrl.hostname,
+          port: port,
+        });
+      } catch (error) {
+        console.error('Failed to configure SOCKS proxy:', error);
+        throw new Error(
+          `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks4://host:port, socks5://host:port, or with authentication: socks5://user:pass@host:port`,
+        );
+      }
+    }
   }
 
   const openAIOptions = {
     baseURL: openaiBaseURL,
     apiKey: openaiApiKey,
-    ...(proxyAgent ? { httpAgent: proxyAgent as any } : {}),
+    // Use fetchOptions.dispatcher for fetch-based SDK instead of httpAgent
+    // Note: Type assertion needed due to undici version mismatch between dependencies
+    ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
     ...openaiExtraConfig,
+    ...(typeof timeout === 'number' ? { timeout } : {}),
     dangerouslyAllowBrowser: true,
   };
 
@@ -133,8 +213,6 @@ export async function callAI(
       modelConfig,
     });
 
-  const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
-
   const maxTokens =
     globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
@@ -149,6 +227,25 @@ export async function callAI(
   let accumulated = '';
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
+
+  const buildUsageInfo = (usageData?: OpenAI.CompletionUsage) => {
+    if (!usageData) return undefined;
+
+    const cachedInputTokens = (
+      usageData as { prompt_tokens_details?: { cached_tokens?: number } }
+    )?.prompt_tokens_details?.cached_tokens;
+
+    return {
+      prompt_tokens: usageData.prompt_tokens ?? 0,
+      completion_tokens: usageData.completion_tokens ?? 0,
+      total_tokens: usageData.total_tokens ?? 0,
+      cached_input: cachedInputTokens ?? 0,
+      time_cost: timeCost ?? 0,
+      model_name: modelName,
+      model_description: modelDescription,
+      intent: modelConfig.intent,
+    } satisfies AIUsageInfo;
+  };
 
   const commonConfig = {
     temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
@@ -171,7 +268,6 @@ export async function callAI(
         {
           model: modelName,
           messages,
-          response_format: responseFormat,
           ...commonConfig,
         },
         {
@@ -227,15 +323,7 @@ export async function callAI(
             accumulated,
             reasoning_content: '',
             isComplete: true,
-            usage: {
-              prompt_tokens: usage.prompt_tokens ?? 0,
-              completion_tokens: usage.completion_tokens ?? 0,
-              total_tokens: usage.total_tokens ?? 0,
-              time_cost: timeCost ?? 0,
-              model_name: modelName,
-              model_description: modelDescription,
-              intent: modelConfig.intent,
-            },
+            usage: buildUsageInfo(usage),
           };
           options.onChunk!(finalChunk);
           break;
@@ -249,7 +337,6 @@ export async function callAI(
       const result = await completion.create({
         model: modelName,
         messages,
-        response_format: responseFormat,
         ...commonConfig,
       } as any);
       timeCost = Date.now() - startTime;
@@ -282,22 +369,12 @@ export async function callAI(
         prompt_tokens: estimatedTokens,
         completion_tokens: estimatedTokens,
         total_tokens: estimatedTokens * 2,
-      };
+      } as OpenAI.CompletionUsage;
     }
 
     return {
       content: content || '',
-      usage: usage
-        ? {
-            prompt_tokens: usage.prompt_tokens ?? 0,
-            completion_tokens: usage.completion_tokens ?? 0,
-            total_tokens: usage.total_tokens ?? 0,
-            time_cost: timeCost ?? 0,
-            model_name: modelName,
-            model_description: modelDescription,
-            intent: modelConfig.intent,
-          }
-        : undefined,
+      usage: buildUsageInfo(usage),
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
@@ -312,58 +389,20 @@ export async function callAI(
   }
 }
 
-export const getResponseFormat = (
-  modelName: string,
-  AIActionTypeValue: AIActionType,
-):
-  | OpenAI.ChatCompletionCreateParams['response_format']
-  | OpenAI.ResponseFormatJSONObject => {
-  let responseFormat:
-    | OpenAI.ChatCompletionCreateParams['response_format']
-    | OpenAI.ResponseFormatJSONObject
-    | undefined;
-
-  if (modelName.includes('gpt-4')) {
-    switch (AIActionTypeValue) {
-      case AIActionType.ASSERT:
-        responseFormat = assertSchema;
-        break;
-      case AIActionType.PLAN:
-        responseFormat = planSchema;
-        break;
-      case AIActionType.EXTRACT_DATA:
-      case AIActionType.DESCRIBE_ELEMENT:
-        responseFormat = { type: AIResponseFormat.JSON };
-        break;
-      case AIActionType.TEXT:
-        // No response format for plain text - return as-is
-        responseFormat = undefined;
-        break;
-    }
-  }
-
-  // gpt-4o-2024-05-13 only supports json_object response format
-  // Skip for plain text to allow string output
-  if (
-    modelName === 'gpt-4o-2024-05-13' &&
-    AIActionTypeValue !== AIActionType.TEXT
-  ) {
-    responseFormat = { type: AIResponseFormat.JSON };
-  }
-
-  return responseFormat;
-};
-
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
-): Promise<{ content: T; usage?: AIUsageInfo }> {
+): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
   const response = await callAI(messages, AIActionTypeValue, modelConfig);
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
-  return { content: jsonContent, usage: response.usage };
+  return {
+    content: jsonContent,
+    contentString: response.content,
+    usage: response.usage,
+  };
 }
 
 export async function callAIWithStringResponse(

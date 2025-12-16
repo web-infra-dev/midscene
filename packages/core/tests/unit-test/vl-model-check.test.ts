@@ -31,13 +31,19 @@ const mockedModelConfig = {
   MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
 };
 
+const createMockInterface = (
+  interfaceType: AbstractInterface['interfaceType'],
+) =>
+  ({
+    interfaceType,
+    destroy: vi.fn(),
+    size: vi.fn().mockResolvedValue({ dpr: 1 }),
+    actionSpace: vi.fn(() => []),
+  }) as unknown as AbstractInterface;
+
 describe('VL Model Check for Different Interface Types', () => {
   it('should not require VL model for puppeteer interface', () => {
-    const mockPage = {
-      interfaceType: 'puppeteer',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('puppeteer');
 
     expect(() => {
       new Agent(mockPage, {
@@ -48,11 +54,7 @@ describe('VL Model Check for Different Interface Types', () => {
   });
 
   it('should not require VL model for playwright interface', () => {
-    const mockPage = {
-      interfaceType: 'playwright',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('playwright');
 
     expect(() => {
       new Agent(mockPage, {
@@ -63,11 +65,7 @@ describe('VL Model Check for Different Interface Types', () => {
   });
 
   it('should not require VL model for chrome-extension-proxy interface', () => {
-    const mockPage = {
-      interfaceType: 'chrome-extension-proxy',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('chrome-extension-proxy');
 
     expect(() => {
       new Agent(mockPage, {
@@ -78,11 +76,7 @@ describe('VL Model Check for Different Interface Types', () => {
   });
 
   it('should not require VL model for page-over-chrome-extension-bridge interface', () => {
-    const mockPage = {
-      interfaceType: 'page-over-chrome-extension-bridge',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('page-over-chrome-extension-bridge');
 
     expect(() => {
       new Agent(mockPage, {
@@ -93,11 +87,7 @@ describe('VL Model Check for Different Interface Types', () => {
   });
 
   it('should not require VL model for static interface', () => {
-    const mockPage = {
-      interfaceType: 'static',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('static');
 
     expect(() => {
       new Agent(mockPage, {
@@ -108,11 +98,7 @@ describe('VL Model Check for Different Interface Types', () => {
   });
 
   it('should require VL model for android interface without vlMode', () => {
-    const mockPage = {
-      interfaceType: 'android',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('android');
 
     // This should not throw at construction time, but would throw when
     // ensureVLModelWarning is called (e.g., during an AI action)
@@ -125,11 +111,7 @@ describe('VL Model Check for Different Interface Types', () => {
   });
 
   it('should not throw error for android interface with VL model configured', () => {
-    const mockPage = {
-      interfaceType: 'android',
-      destroy: vi.fn(),
-      size: vi.fn().mockResolvedValue({ dpr: 1 }),
-    } as unknown as AbstractInterface;
+    const mockPage = createMockInterface('android');
 
     const modelConfigWithVL = {
       MIDSCENE_MODEL_NAME: 'gemini-2.0-flash-exp',

@@ -1,6 +1,6 @@
 # Midscene.js - AI 驱动，带来愉悦的 UI 自动化体验
 
-开源的 AI 操作助手，适用于 Web、移动端、自动化和测试
+视觉模型驱动，支持全平台的 UI 自动化 SDK
 
 ## 功能特性
 
@@ -43,22 +43,24 @@
 ## 零代码快速体验
 
 - **[Chrome 插件](./quick-experience)**：通过 [Chrome 插件](./quick-experience) 立即开始浏览器内体验，无需编写任何代码。
-- **[Android Playground](./android-playground)**：使用 Android playground 来控制你的本地 Android 设备。
-- **[iOS Playground](./ios-playground)**：使用 iOS playground 来控制你的本地 iOS 设备。
+- **[Android Playground](./android-getting-started#试用-playground-零代码)**：使用 Android playground 来控制你的本地 Android 设备。
+- **[iOS Playground](./ios-getting-started#试用-playground)**：使用 iOS playground 来控制你的本地 iOS 设备。
 
 ## 模型选择
 
-Midscene.js 支持多模态 LLM 模型，如 `gpt-4o`，以及视觉语言模型，如 `Qwen2.5-VL`、`Doubao-1.5-thinking-vision-pro`、`gemini-2.5-pro` 和 `UI-TARS`。
+Midscene 推荐使用视觉模型进行 UI 自动化，以提升任务的成功率，帮助开发者快速完成调试。
 
-推荐使用视觉语言模型进行 UI 自动化。
+- 视觉方案：优先使用具备强大 UI 理解能力的视觉模型，以获得更高的定位和操作准确度。
+- 已支持模型：Doubao Seed（视觉模型）、Qwen3-VL、Gemini-3-Pro 等
+- 多模型组合：可在任务规划与交互阶段分别配置不同模型，支持商用与开源模型搭配使用，进一步提升完成率。详见[多模型配合](./model-strategy#高阶特性多模型配合)。
 
-了解更多关于[模型策略](./model-strategy)
+请阅读[模型策略](./model-strategy)了解更多关于模型选择的信息。
 
 ## 两种自动化风格
 
 ### 自动规划
 
-Midscene 将自动规划步骤并执行。这可能会比较慢，并且严重依赖 AI 模型的质量。
+AI 自主规划执行流程，完成任务
 
 ```javascript
 await aiAct('逐一点击所有记录。如果某个记录包含文本"completed"，则跳过它');
@@ -78,12 +80,12 @@ for (const record of recordList) {
 }
 ```
 
-> 有关工作流风格的更多详细信息，请参阅 [Blog - 使用 JavaScript 优化 AI 自动化代码](./blog-programming-practice-using-structured-api)
+> 有关工作流风格的更多详细信息，请参阅 [使用 JavaScript 优化 AI 自动化代码](./use-javascript-to-optimize-ai-automation-code)
 
 
 ## 与其他工具比较
 
-* **调试体验**: 你很快就会发现，调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
+* **调试体验**: 开始使用 UI 自动化时，你会发现调试和维护自动化脚本才是真正的痛点。无论模型多么强大，你仍然需要投入调试过程以确保其保持长期稳定。Midscene.js 提供了可视化报告、内置的 Playground 和 Chrome 插件，以调试整个运行过程。这是大多数开发者真正需要的特性，我们也在持续努力改进调试体验。
 
 * **开源、免费、部署灵活**: Midscene.js 是一个开源项目。它与云服务和模型提供商解耦，你可以选择公共或私有部署。总会有一个适合你的方案。
 

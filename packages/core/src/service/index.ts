@@ -151,7 +151,7 @@ export default class Service {
 
     let errorLog: string | undefined;
     if (parseResult.errors?.length) {
-      errorLog = `AI model failed to locate: \n${parseResult.errors.join('\n')}`;
+      errorLog = `failed to locate element: \n${parseResult.errors.join('\n')}`;
     }
 
     const dumpData: PartialServiceDumpFromSDK = {

@@ -24,7 +24,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@midscene/playground": "workspace:*",
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3",

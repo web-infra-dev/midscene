@@ -1,12 +1,14 @@
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
+import { commonIgnoreWarnings } from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 
 // Read all JSON files from test-data directory
 const testDataDir = path.join(__dirname, 'test-data');
@@ -27,7 +29,9 @@ const allTestData = jsonFiles.map((file) => {
 // ERROR: This repository uses pkg in bundler mode. It is necessary to declare @midscene/report in the dependency; otherwise, it may cause packaging order issues and thus lead to the failure of report injection
 const copyReportTemplate = () => ({
   name: 'copy-report-template',
-  setup(api) {
+  setup(api: {
+    onAfterBuild: (arg0: ({ compiler }: { compiler: any }) => void) => void;
+  }) {
     api.onAfterBuild(({ compiler }) => {
       const magicString = 'REPLACE_ME_WITH_REPORT_HTML';
       const replacedMark = '/*REPORT_HTML_REPLACED*/';
@@ -146,6 +150,7 @@ export default defineConfig({
         },
       },
       externals: ['sharp'],
+      ignoreWarnings: commonIgnoreWarnings,
     },
   },
   output: {
@@ -159,5 +164,12 @@ export default defineConfig({
     pluginSvgr(),
     copyReportTemplate(),
     pluginTypeCheck(),
+    pluginWorkspaceDev({
+      projects: {
+        '@midscene/report': {
+          skip: true,
+        },
+      },
+    }),
   ],
 });

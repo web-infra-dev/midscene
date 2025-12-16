@@ -1,25 +1,16 @@
 import SetupEnv from './common/setup-env.mdx';
 
-# Integrate with any interface 
+# Integrate with any interface
 
-From Midscene v0.28.0, we have launched the feature to integrate with any interface. Define your own interface controller class conforming to the `AbstractInterface` class, and you can get a fully-featured Midscene Agent.
+You can use Midscene Agent to control any interface—such as IoT devices, in-house apps, and in-vehicle displays—by implementing a UI operation class that conforms to `AbstractInterface`.
 
-A typical usage of this feature is to build a GUI Automation Agent for your own interface, like an IoT device, an in-house app, a display in car, etc. 
+After implementing the UI operation class, you get the full capabilities of Midscene Agent:
 
-After implementing the class, you can have all these popular features:
-
-- the GUI Automation Agent SDK
+- the TypeScript GUI Automation Agent SDK, supporting integration with any interface
 - the playground for debugging
-- control this interface by yaml script
-- the MCP server
-- all the features of Midscene Agent
+- controlling the interface with YAML scripts
+- an MCP service that exposes UI actions
 
-Please note that only models with visual grounding capabilities can be used to control the interface. Read [Model strategy](./model-strategy) to pick a suitable model.
-
-
-This feature is still in the preview stage, and we welcome your feedback and suggestions on [GitHub](https://github.com/web-infra-dev/midscene/issues).
-
-:::
 
 ## Demo and community project
 
@@ -534,15 +525,9 @@ await result.close();
 console.log('Playground closed!');
 ```
 
-## FAQ 
+## FAQ
 
-**Can i use normal LLM models like GPT-4o to control the interface?**
-
-No, you cannot use normal LLM models like GPT-4o to control the interface. You must use a model with visual grounding capabilities. Models with visual grounding capabilities can locate the target elements on the page and return the coordinates of the elements, and they can dramatically improve the stability of the automation.
-
-Read [Model strategy](./model-strategy) to learn more.
-
-**Can my interface-controller be recommended in this document?**
+**My interface-controller is general-purpose; can it be included in this document?**
 
 Yes, we are happy to gather creative projects and list them in this document.
 

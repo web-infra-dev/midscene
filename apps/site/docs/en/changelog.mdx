@@ -1,10 +1,78 @@
 # Changelog
 
-> For the complete changelog, please refer to: [Midscene Releases](https://github.com/web-infra-dev/midscene/releases)
+## v1.0 - Beta release
 
-## v0.30 - 🎯 Cache management upgrade and mobile experience optimization
+Try v1.0 with the `@beta` tag:
 
-### 🎯 More flexible cache strategy
+```bash
+# web
+npm install @midscene/web@beta
+
+# android
+npm install @midscene/android@beta
+
+# ios
+npm install @midscene/ios@beta
+
+# cli
+npm install @midscene/cli@beta
+```
+
+### 🚀 Pure vision path
+
+Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliver more stable UI automation. Visual models provide:
+
+- **Stable results**: Leading vision models (Doubao Seed 1.6, Qwen3-VL, etc.) are reliable enough for most production needs
+- **UI workflow planning**: Vision models generally excel at planning UI flows and can handle many complex task sequences
+- **Works everywhere**: Automation no longer depends on the rendering stack—Android, iOS, desktop apps, or a browser `<canvas>`: if you can capture a screenshot, Midscene can interact with it
+- **Developer-friendly**: Dropping selectors and DOM keeps prompts simpler; teammates unfamiliar with rendering tech can become productive quickly
+- **Far fewer tokens**: Removing DOM extraction cuts token usage by about 80%, lowering cost and speeding up local runs
+- **Open-source options**: Open-source vision models like Qwen3-VL 8B/30B perform well, enabling self-hosted deployments
+
+See our updated [Model strategy](./model-strategy) for details.
+
+### 🚀 Better results on complex or long-running tasks
+
+For complex and long-running scenarios, Midscene adds:
+- New `aiAct` planning strategy `planningStrategy`
+  - `fast` mode merges planning and localization in the vision model for quicker runs
+  - `standard` mode (v1.0 default) separates planning and targeting and shares the previous step’s screenshot to improve long-task success rates; token usage is slightly higher than `fast`
+  - If you want to keep the lower token usage from 0.x, switch to `fast` manually
+- Multi-model combinations
+  - Per-task model configuration lets Insight and Planning use stronger comprehension models (e.g., GPT-5.1 for planning plus Doubao for interaction) to achieve the best results
+
+### 🚀 Runtime architecture optimization
+
+* Reuse portions of context to reduce device-info calls and improve runtime performance
+* Optimize Action Space combinations for Web and mobile environments to provide models with a more useful toolset
+
+### 🚀 Report polish
+
+* More professional: right-side visualized interaction parameters, cleaner left-side flow, and a timeline view that helps pinpoint issues quickly
+* Better aesthetics: dark mode, element highlighting, and clearer presentation of model decisions
+
+### 🚀 MCP architecture redesign
+
+We redesigned the MCP architecture to expose Action Spaces in iOS, Android, and Web as MCP services, giving upstream Agents stable UI operation capabilities and helping developers build higher-level Agents. See [MCP architecture](./mcp).
+
+### 🚀 Mobile automation
+
+#### iOS improvements
+- Added compatibility across WebDriverAgent 5.x–7.x
+- Added WebDriver Clear API support to solve dynamic input field issues
+- Improved device compatibility
+
+#### Android improvements
+- Added screenshot polling fallback to improve remote device stability
+- Added automatic screen-orientation adaptation (displayId screenshots)
+- Added YAML script support for `runAdbShell`
+
+#### Cross-platform
+- Expose system operation helpers on the Agent instance, including Home, Back, RecentApp, and more
+
+## v0.30 - Cache management upgrade and mobile experience optimization
+
+### More flexible cache strategy
 
 v0.30 improves the cache system, allowing you to control cache behavior based on actual needs:
 
@@ -12,11 +80,11 @@ v0.30 improves the cache system, allowing you to control cache behavior based on
 - **Automatic cleanup of unused cache**: Agent can automatically clean up unused cache records when destroyed, preventing cache files from accumulating
 - **Simplified unified configuration**: Cache configuration parameters for CLI and Agent are now unified, no need to remember different configurations
 
-### 📊 Report management convenience
+### Report management convenience
 
 - **Support for merging multiple reports**: In addition to playwright scenarios, all scenarios now support merging multiple automation execution reports into a single file for centralized viewing and sharing of test results
 
-### 📱 Mobile automation optimization
+### Mobile automation optimization
 
 #### iOS platform improvements
 - **Real device support improvement**: Removed simctl check restriction, making iOS real device automation smoother
@@ -30,7 +98,7 @@ v0.30 improves the cache system, allowing you to control cache behavior based on
 #### Cross-platform consistency
 - **ClearInput support on all platforms**: Solves the problem of AI being unable to accurately plan clear input operations across platforms
 
-### 🔧 Feature enhancements
+### Feature enhancements
 
 - **Failure classification**: CLI execution results can now distinguish between "skipped failures" and "actual failures", helping locate issue causes
 - **aiInput append mode**: Added `append` option to append input while preserving existing content, suitable for editing scenarios
@@ -39,12 +107,12 @@ v0.30 improves the cache system, allowing you to control cache behavior based on
   - Bridge mode supports auto-connect, reducing manual operations
   - Support for GPT-4o and non-visual language models
 
-### 🛡️ Type safety improvements
+### Type safety improvements
 
 - **Zod schema validation**: Introduced type checking for action parameters, detecting parameter errors during development to avoid runtime issues
 - **Number type support**: Fixed `aiInput` support for number type values, making type handling more robust
 
-### 🐞 Bug fixes
+### Bug fixes
 
 - Fixed potential issues caused by Playwright circular dependencies
 - Fixed issue where `aiWaitFor` as the first statement could not generate reports
@@ -52,33 +120,33 @@ v0.30 improves the cache system, allowing you to control cache behavior based on
 - Optimized report display logic to view both error information and element positioning information simultaneously
 - Fixed issue where `cacheable` option in `aiAction` subtasks was not properly passed
 
-### 📚 Community
+### Community
 
 - Awesome Midscene section added [midscene-java](./awesome-midscene.md) community project
 
-## v0.29 - 📱 iOS platform support added
+## v0.29 - iOS platform support added
 
-### 🚀 iOS platform support added
+### iOS platform support added
 The biggest highlight of v0.29 is the official introduction of iOS platform support! Now you can connect and automate iOS devices through WebDriver, extending Midscene's powerful AI automation capabilities to the Apple ecosystem, details: [Support iOS automation](./ios-introduction).
 
-### 🚅 Qwen3-VL model adaptation
+### Qwen3-VL model adaptation
 
 We've adapted the latest Qwen `Qwen3-VL` model, giving developers faster and more accurate visual understanding capabilities. See [Model strategy](./model-strategy).
 
-### 🤖 AI core capability enhancement
+### AI core capability enhancement
 
 - **UI-TARS Model Performance Optimization**: Optimized aiAct planning, improved dialogue history management, and provided better context awareness capabilities
 - **AI Assertion and Action Optimization**: We updated the prompt for `aiAssert` and optimized the internal implementation of `aiAct`, making AI-driven assertions and action execution more precise and reliable
 
-### 📊 Reporting and debugging experience optimization
+### Reporting and debugging experience optimization
 - **URL Parameter Playback Control**: To improve debugging experience, you can now directly control the default behavior of report playback through URL parameters
 
-### 📚 Documentation
+### Documentation
 - Updated documentation deployment cache strategy to ensure users can access the latest documentation content in time
 
-## v0.28 - 📱 Build your own GUI automation agent by integrating with your own interface (preview feature)
+## v0.28 - Build your own GUI automation agent by integrating with your own interface (preview feature)
 
-### 🚀 Support for integration with any interface (preview feature)
+### Support for integration with any interface (preview feature)
 
 v0.28 introduces the capability to integrate with your own interface. Define an interface controller class that conforms to the `AbstractInterface` definition, and you can get a fully-featured Midscene Agent.
 
@@ -88,130 +156,130 @@ Combined with the universal Playground architecture and SDK enhancement features
 
 For more information, please refer to [Integrate with Any Interface (Preview Feature)](./integrate-with-any-interface.mdx)
 
-### 📱 Android platform optimization
+### Android platform optimization
 - **Planning Cache Support**: Added planning cache functionality for Android platform, improving execution efficiency
 - **Input Strategy Enhancement**: Optimized input clearing strategy based on IME settings, improving Android platform input experience
 - **Scroll Calculation Improvement**: Optimized scroll endpoint calculation algorithm for Android platform
 
-### 👆 Gesture operation extension
+### Gesture operation extension
 - **Double-Click Operation Support**: Added support for double-click actions
 - **Long Press and Swipe Gestures**: Added support for long press and swipe gestures
 
-### ⚙️ Core function enhancement
+### Core function enhancement
 - **Agent Configuration Isolation**: Implemented model configuration isolation between different agents, avoiding configuration conflicts
 - **Execution Option Extension**: Added useCache and replanningCycleLimit configuration options for Agent, providing more fine-grained control
 - **YAML Script Support**: Support for running universal custom devices through YAML scripts, enhancing automation capabilities
 
-### 🐞 Bug fixes
+### Bug fixes
 - Fixed Qwen model search region size issues
 - Optimized deepThink parameter handling and rectangle size calculation
 - Resolved issues related to Playwright double-click operations
 - Improved TEXT action type processing logic
 
-### 📚 Documentation and community
+### Documentation and community
 - Added custom interface documentation to help developers better extend functionality
 - Added [Awesome Midscene](./awesome-midscene.md) section in README to showcase community projects
 
-## v0.27 - 🧠 Core module refactoring, assertions and reports functionally enhanced
+## v0.27 - Core module refactoring, assertions and reports functionally enhanced
 
-### ⚠️ Core module refactoring
+### Core module refactoring
 
 Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in v0.26 to improve development experience and reduce contribution thresholds, v0.27 takes it a step further by refactoring the core modules on a large scale. This makes it extremely easy to extend new devices and add new AI operations, and we sincerely welcome community developers to contribute!
 
 **Due to the wide scope of this refactoring, please feel free to report any issues you encounter after upgrading, and we will address them promptly.**
 
-### 🌐 API enhancement
+### API enhancement
 
 - **`aiAssert` Functionally Enhanced**
   - New `name` field allows naming different assertion tasks, making it easier to identify and parse in JSON output results
   - New `domIncluded` and `screenshotIncluded` options allow flexible control over whether to send DOM snapshots and page screenshots to AI
 
-### 🤖 Chrome extension playground upgrade
+### Chrome extension playground upgrade
 
 - All Agent APIs can be directly debugged and run in the Playground! Interactive, extraction, and verification cover three major categories of methods, with visual operations and verification that boost your automation development efficiency! Come experience the truly versatile AI automation platform! 🚀
 
-### 📊 Report function optimization
+### Report function optimization
 - **New Marking Layer Switch**: The report player has added a switch to hide the marking layer, allowing users to view the original page view without obstruction when playing back.
 
-### 🐞 Bug fixes
+### Bug fixes
 - Fixed the problem that `aiWaitFor` sometimes caused the report to not be generated
 - Reduced memory consumption of Playwright plugin
 
 
-## v0.26 - 🚀 Toolchain fully integrated [Rslib](https://github.com/web-infra-dev/rslib), greatly improving development experience and reducing contribution threshold
+## v0.26 - Toolchain fully integrated [Rslib](https://github.com/web-infra-dev/rslib), greatly improving development experience and reducing contribution threshold
 
-### 🌐 Web integration optimization
+### Web integration optimization
 - Support freezing page context([freezePageContext](./api.mdx#agentfreezepagecontext)/[unfreezePageContext](./api.mdx#agentunfreezepagecontext)), so that all subsequent operations reuse the same page snapshot, avoiding repeated page status acquisition
 - Add all agent APIs to Playwright fixture, simplify test script writing, and solve the problem of not generating reports when using agentForPage
 
-### 📱 Android automation enhancement
+### Android automation enhancement
 - New keyboard hiding strategy([keyboardDismissStrategy](./android-getting-started.html#androiddevice-constructor)), allowing you to specify the way to automatically hide the keyboard
 
-### 📊 Report function optimization
+### Report function optimization
 - Report content lazy parsing, solving the problem of report crash when the report is large
 - Report player adds automatic zoom switch, making it easier to view the global perspective playback
 - Support aiAssert / aiQuery tasks in report playback, to fully show the entire page change process
 - Fix the problem that the sidebar status is not displayed as a failure icon when the assertion fails
 - Fix the problem that the drop-down filter in the report cannot be switched
 
-### 🚀 Build and engineering
+### Build and engineering
 - Build tool migration to [Rslib](https://github.com/web-infra-dev/rslib) library development tool, improving build efficiency and development experience
 - Full repository source code jump, making it easier for developers to view source code
 - MCP npm package product volume optimization, from 56M to 30M, greatly improving loading speed
 
-### 🐞 Bug fixes
+### Bug fixes
 - CLI automatically opens headed mode when keepWindow is true
 - Fix the implementation problem of getGlobalConfig, solve the problem of abnormal environment variable initialization
 - Ensure that the mime-type in base64 encoding is correct
 - Fix the return value type of aiAssert task
 
-## v0.25 - 🚀 Support using images as AI prompt input
+## v0.25 - Support using images as AI prompt input
 
-### 🎯 Core function enhancement
+### Core function enhancement
 - New worker runtime support, support running in worker environment
 - Support using images as AI prompt input, see [Prompting with images](./api.mdx#prompting-with-images)
 - Image processing upgrade, using Photon & Sharp for efficient image cropping
 
-### 🌐 Web integration optimization
+### Web integration optimization
 - Get XPath by coordinates, improve cache reproducibility
 - Cache file moves plan module to the front, improving readability
 - Chrome Recorder supports exporting all events to markdown documents
 - agent supports specifying HTML report name, see [reportFileName](./api.mdx)
 
-### 📱 Android automation enhancement
+### Android automation enhancement
 - Long press gesture support
 - Pull-to-refresh support
 
-### 🐞 Bug fixes
+### Bug fixes
 - Use global config to handle environment variables, avoid issues caused by multiple packaging
 - Manually construct error information when error object serialization fails
 - Fix playwright report type dependency declaration order issue
 - Fix MCP packaging issue
 
-### 📚 Documentation AI-friendly
+### Documentation AI-friendly
 - [LLMs.txt](./llm-txt.mdx) is now available in both Chinese and English, making it easier for AI to understand
 - Each document now has a copy-to-markdown button, making it easier to feed to AI
 
-### 🤖 Other function enhancement
+### Other function enhancement
 - Chrome Recorder supports aiScroll function
 - Refactor aiAssert to be consistent with aiBoolean
 
-## v0.24 - 🤖 MCP for Android automation
+## v0.24 - MCP for Android automation
 
-### 🚀 MCP for Android automation
+### MCP for Android automation
 - You can now use Midscene MCP to automate Android apps, just like you use it for web apps. Read more: [MCP for Android Automation](./mcp#android-device-management)
 
-### 🌐 Optimization
+### Optimization
 - For Mac platform Puppeteer, a double input clearing mechanism has been added to ensure that the input box is cleared before input
 
-### 🔧 Development experience
+### Development experience
 - Simplify the way to build `htmlElement.js` to avoid report template build issues caused by circular dependencies
 - Optimize development workflow, just use `npm run dev` to enter midscene project development
 
 
-## v0.23 - 📊 New report style and YAML script ability enhancement
+## v0.23 - New report style and YAML script ability enhancement
 
-### 🎨 Report system upgrade
+### Report system upgrade
 #### New report style
 - New report style design, providing clearer and more beautiful test result display
 - Optimize report layout and visual effects, improve user reading experience
@@ -219,7 +287,7 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 
 ![](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/new%20report.png)
 
-### ⚙️ YAML script ability enhancement
+### YAML script ability enhancement
 
 #### Support multiple YAML files batch execution
 - New config mode support, support configure Yaml file running order, browser reuse strategy, parallelism
@@ -227,27 +295,27 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 
 ![](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Tuji_20250722_161353.338.png)
 
-### 🧪 Test coverage enhancement
+### Test coverage enhancement
 
 #### Android test enhancement
 - New Android platform related test cases, improve code quality and stability
 - Improve test coverage, ensure the reliability of Android features
 
-## v0.22- 🎬 Chrome extension recording function released
+## v0.22- Chrome extension recording function released
 
-### 🌐 Web integration enhancement
+### Web integration enhancement
 
-#### 1️⃣ New recording function
+#### New recording function
 - Chrome extension adds recording function, which can record user operations on the page and generate automation scripts
 - Support recording click, input, scroll and other common operations, greatly reducing the threshold for writing automation scripts
 - The recorded operations can be directly played back and debugged in the Playground
 
-#### 2️⃣ Upgrade to IndexedDB for storage
+#### 2⃣ Upgrade to IndexedDB for storage
 - Chrome extension's Playground and Bridge now use IndexedDB for data storage
 - Compared to the previous storage scheme, it provides larger storage capacity and better performance
 - Support storing more complex data structures, laying the foundation for future feature extensions
 
-#### 3️⃣ Customize replanning cycle limit
+#### 3⃣ Customize replanning cycle limit
 - Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAct).
 - The default value is 10. When the AI needs to re-plan more than this limit, an error will be thrown and suggest splitting the task.
 - Provide more flexible task execution control, adapting to different automation scenarios
@@ -256,50 +324,50 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 ```
 
-### 📱 Android interaction optimization
+### Android interaction optimization
 
-#### 1️⃣ New screenshot path generation
+#### New screenshot path generation
 - Generate a unique file path for each screenshot to avoid file overwrite issues
 - Improve stability in concurrent test scenarios
 
-## v0.21 - 🎨 Chrome extension UI upgrade
+## v0.21 - Chrome extension UI upgrade
 
-### 🌐 Web integration enhancement
+### Web integration enhancement
 
-#### 1️⃣ New chat-style user interface
+#### New chat-style user interface
 
 - New chat-style user interface design for better user experience
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4" controls/>
 
-#### 2️⃣ Flexible timeout configuration
+#### 2⃣ Flexible timeout configuration
 
 - Supports overriding timeout settings from test fixture, providing more flexible timeout control
 - Applicable scenarios: Different test cases require different timeout settings
 
-#### 3️⃣ Unified Puppeteer and Playwright configuration
+#### 3⃣ Unified Puppeteer and Playwright configuration
 
 - New `waitForNavigationTimeout` and `waitForNetworkIdleTimeout` parameters for Playwright
 - Unified timeout options configuration for Puppeteer and Playwright, providing consistent API experience, reducing learning costs
 
-#### 4️⃣ New data export callback mechanism
+#### 4⃣ New data export callback mechanism
 
 - New `agent.onDumpUpdate` callback function, can get real-time notification when data is exported
 - Refactored the post-task processing flow to ensure the correct execution of asynchronous operations
 - Applicable scenarios: Monitoring or processing exported data
 
-### 📱 Android interaction optimization
+### Android interaction optimization
 
-#### 1️⃣ Input experience improvement
+#### Input experience improvement
 
 - Changed click input to slide operation, improving interaction response and stability
 - Reduced operation failures caused by inaccurate clicks
 
 ## v0.20 - Support for assigning XPath to locate elements
 
-### 🌐 Web integration enhancement
+### Web integration enhancement
 
-#### 1️⃣ New `aiAsk` method
+#### New `aiAsk` method
 
 - Allows direct questioning of the AI model to obtain string-formatted answers for the current page.
 - Applicable scenarios: Tasks requiring AI reasoning such as Q&A on page content and information extraction.
@@ -309,7 +377,7 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 await agent.aiAsk('any question')
 ```
 
-#### 2️⃣ Support for passing XPath to locate elements
+#### Support for passing XPath to locate elements
 
 - Location priority: Specified XPath > Cache > AI model location.
 - Applicable scenarios: When the XPath of an element is known and the AI model location needs to be skipped.
@@ -319,17 +387,17 @@ await agent.aiAsk('any question')
 await agent.aiTap('submit button', { xpath: '//button[@id="submit"]' })
 ```
 
-### 📱 Android improvement
+### Android improvement
 
-#### 1️⃣ Playground tasks can be cancelled
+#### Playground tasks can be cancelled
 
 - Supports interrupting ongoing automation tasks to improve debugging efficiency.
 
-#### 2️⃣ Enhanced `aiLocate` API
+#### Enhanced `aiLocate` API
 
 - Returns the Device Pixel Ratio, which is commonly used to calculate the real coordinates of elements.
 
-### 📈 Report generation optimization
+### Report generation optimization
 
 Improve report generation mechanism, from batch storage to single append, effectively reducing memory usage and avoiding memory overflow when the number of test cases is large.
 
@@ -420,7 +488,7 @@ const agent = await agentFromAdbDevice('s4ey59', {
 })
 ```
 
-Upgrade now to experience these powerful new features! 
+Upgrade now to experience these powerful new features!
 
 * [Custom Report Node API documentation](/en/api.mdx#log-screenshot)
 
@@ -510,8 +578,8 @@ Refactor cache file format from json to yaml, improve readability.
 
 ### Midscene MCP
 
-🤖 Use Cursor / Trae to help write test cases. 
-🕹️ Quickly implement browser operations akin to the Manus platform. 
+🤖 Use Cursor / Trae to help write test cases.
+🕹️ Quickly implement browser operations akin to the Manus platform.
 🔧 Integrate Midscene capabilities swiftly into your platforms and tools.
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/ozpmyhn_lm_hymuPild/ljhwZthlaukjlkulzlp/midscene/en-midscene-mcp-Sauce-Demo.mp4" controls/>
@@ -522,7 +590,7 @@ Read more: [MCP](./mcp#choosing-your-environment)
 
 APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
-Read more: [Use JavaScript to Optimize the AI Automation Code](./blog-programming-practice-using-structured-api.md)
+Read more: [Use JavaScript to Optimize the AI Automation Code](./use-javascript-to-optimize-ai-automation-code.md)
 
 ## v0.15 - Android automation unlocked!
 
@@ -545,7 +613,7 @@ Read more: [Android automation](./android-introduction)
 
 ## v0.14 - Instant actions
 
-"Instant Actions" introduces new atomic APIs, enhancing the accuracy of AI operations. 
+"Instant Actions" introduces new atomic APIs, enhancing the accuracy of AI operations.
 
 Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.md)
 
@@ -565,13 +633,13 @@ Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.m
 
 ### Integrate Qwen 2.5 VL's native capabilities
 
-* Keeps output accuracy. 
-* Supports more element interactions. 
+* Keeps output accuracy.
+* Supports more element interactions.
 * Cuts operating cost by over 80%.
 
 ## v0.11.0 - UI-TARS model caching
 
-### **✨ UI-TARS model support caching**
+### ** UI-TARS model support caching**
 
 * Enable caching by document 👉 ： [Enable Caching](./caching.mdx)
 
@@ -581,7 +649,7 @@ Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.m
 
 ![](/blog/0.11.0.png)
 
-### **✨ Optimize DOM tree extraction strategy**
+### ** Optimize DOM tree extraction strategy**
 
 * Optimize the information ability of the dom tree, accelerate the inference process of models like GPT 4o
 
@@ -600,7 +668,7 @@ UI-TARS: Pioneering Automated GUI Interaction with Native Agents - Figure 1
 
 UI-TARS: Pioneering Automated GUI Interaction with Native - Figure 4
 
-### **✨** Model advantage
+### **** Model advantage
 
 UI-TARS has the following advantages in GUI tasks:
 
@@ -634,7 +702,7 @@ Documentation: [Use Chrome Extension to Experience Midscene](./bridge-mode.mdx)
 
 ## v0.8.0 - Chrome extension
 
-### **✨ New Chrome extension, run Midscene anywhere**
+### ** New Chrome extension, run Midscene anywhere**
 
 Through the Midscene browser extension, you can run Midscene on any page, without writing any code.
 
@@ -646,7 +714,7 @@ Experience it now 👉：[Use Chrome Extension to Experience Midscene](./quick-e
 
 ## v0.7.0 - Playground ability
 
-### **✨ Playground ability, debug anytime**
+### ** Playground ability, debug anytime**
 
 Now you don't have to keep re-running scripts to debug prompts!
 
@@ -657,7 +725,7 @@ On the new test report page, you can debug the AI execution results at any time,
 
 ## v0.6.0 - Doubao model support
 
-### **✨ Doubao model support**
+### ** Doubao model support**
 
 * Support for calling Doubao models, reference the environment variables below to experience.
 
@@ -682,19 +750,19 @@ Example:
 
 ❌ The left-bottom play button (requires image understanding, failed)
 
-### **✨ Support for GPT-4o structured output, cost reduction**
+### ** Support for GPT-4o structured output, cost reduction**
 
 By using the gpt-4o-2024-08-06 model, Midscene now supports structured output (structured-output) features, ensuring enhanced stability and reduced costs by 40%+.
 
 Midscene now supports hitting GPT-4o prompt caching features, and the cost of AI calls will continue to decrease as the company's GPT platform is deployed.
 
-### **✨ Test report: support animation playback**
+### ** Test report: support animation playback**
 
-Now you can view the animation playback of each step in the test report, quickly debug your running script 
+Now you can view the animation playback of each step in the test report, quickly debug your running script
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-play-all.mp4" controls/>
 
-### **✨ Speed up: merge plan and locate operations, response speed increased by 30%**
+### ** Speed up: merge plan and locate operations, response speed increased by 30%**
 
 In the new version, we have merged the Plan and Locate operations in the prompt execution to a certain extent, which increases the response speed of AI by 30%.
 
@@ -706,7 +774,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ![](/blog/0.6.0-2.png)
 
-### **✨ Test report: the accuracy of different models**
+### ** Test report: the accuracy of different models**
 
 * GPT 4o series models, 100% correct rate
 
@@ -716,7 +784,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ![](/blog/0.6.0-4.png)
 
-### **🐞** Problem fix
+### **** Problem fix
 
 * Optimize the page information extraction to avoid collecting obscured elements, improving success rate, speed, and AI call cost 🚀
 
@@ -731,7 +799,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ## v0.5.0 - Support GPT-4o structured output
 
-### **✨ New features**
+### ** New features**
 
 * Support for gpt-4o-2024-08-06 model to provide 100% JSON format limit, reducing Midscene task planning hallucination behavior
 
@@ -753,7 +821,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 * Support for AI to add, delete, and modify the existing input
 
-### **🐞** Problem fix
+### **** Problem fix
 
 * Optimize the page information extraction to avoid collecting obscured elements, improving success rate, speed, and AI call cost 🚀
 
@@ -776,7 +844,7 @@ puppeteerPage.screenshot = async (options) => {
 
 ## v0.4.0 - Support CLI usage
 
-### **✨ New features**
+### ** New features**
 
 * Support for Cli usage, reducing the usage threshold of Midscene
 
@@ -794,24 +862,24 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 * Playwright AI task report shows the overall time and aggregates AI tasks by test group
 
-### **🐞** Problem fix
+### **** Problem fix
 
 * Optimize the AI interaction process to reduce the likelihood of hallucination in KeyboardPress and Input events
 
 
 ## v0.3.0 - Support AI report HTML
 
-### **✨ New features**
+### ** New features**
 
 * Generate html format AI report, aggregate AI tasks by test group, facilitate test report distribution
 
-### **🐞** Problem fix
+### **** Problem fix
 
 * Fix the problem of AI report scrolling preview
 
 ## v0.2.0 - Control Puppeteer by natural language
 
-### **✨ New features**
+### ** New features**
 
 * Support for using natural language to control puppeteer to implement page automation 🗣️💻
 
@@ -823,7 +891,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.1.0 - Control Playwright by natural language
 
-### **✨ New features**
+### ** New features**
 
 * Support for using natural language to control puppeteer to implement page automation 🗣️💻
 

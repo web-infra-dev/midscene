@@ -1,6 +1,6 @@
 # Midscene.js - joyful automation by AI
 
-Open-source AI Operator for Web, Mobile App, Automation & Testing
+Driving all platforms UI automation with vision-based model
 
 ## Features
 
@@ -44,22 +44,24 @@ We've prepared some showcases for you to learn the use of Midscene.js.
 ## Zero-code quick experience
 
 - **[Chrome Extension](./quick-experience)**: Start in-browser experience immediately through [the Chrome Extension](./quick-experience), without writing any code.
-- **[Android Playground](./android-playground)**: There is also a built-in Android playground to control your local Android device.
-- **[iOS Playground](./ios-playground)**: There is also a built-in iOS playground to control your local iOS device.
+- **[Android Playground](./android-getting-started#try-playground-no-code)**: There is also a built-in Android playground to control your local Android device.
+- **[iOS Playground](./ios-getting-started#try-playground)**: There is also a built-in iOS playground to control your local iOS device.
 
 ## Model choices
 
-Midscene.js supports both multimodal LLMs like `gpt-4o`, and visual-language models like `Qwen2.5-VL`, `Doubao-1.5-thinking-vision-pro`, `gemini-2.5-pro` and `UI-TARS`. 
+Midscene recommends using vision models for UI automation to improve task success rates and speed up debugging.
 
-Visual-language models are recommended for UI automation.
+- **Vision-first**: Prioritize vision models with strong UI understanding to achieve more accurate targeting and actions.
+- **Supported models**: Doubao Seed (vision model), Qwen3-VL, Gemini-3-Pro, etc.
+- **Multi-model combo**: Configure different models for task planning and interaction phases. You can mix commercial and open-source models to further improve completion rates. See [Multi-model setup](./model-strategy#advanced-combining-multiple-models) for details.
 
-Read more about [Model strategy](./model-strategy)
+Please read [Model strategy](./model-strategy) to learn more about model selection.
 
 ## Two styles of automation
 
 ### Auto planning
 
-Midscene will automatically plan the steps and execute them. It may be slower and heavily rely on the quality of the AI model.
+AI autonomously plans and executes the flow to complete the task.
 
 ```javascript
 await aiAct('click all the records one by one. If one record contains the text "completed", skip it');
@@ -79,14 +81,14 @@ for (const record of recordList) {
 }
 ```
 
-> For more details about the workflow style, please refer to [Blog - Use JavaScript to Optimize the AI Automation Code](./blog-programming-practice-using-structured-api)
+> For more details about the workflow style, please refer to [Use JavaScript to Optimize the AI Automation Code](./use-javascript-to-optimize-ai-automation-code)
 
 
 ## Comparing to other projects
 
 There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
 
-* **Debugging Experience**: You will soon realize that debugging and maintaining automation scripts is the real challenge. No matter how magical the demo looks, ensuring stability over time requires careful debugging. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
+* **Debugging Experience**: When you start using UI automation, you'll find debugging and maintaining automation scripts is the real pain point. No matter how powerful the model is, you still need to invest in debugging to keep it stable. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
 
 * **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
 

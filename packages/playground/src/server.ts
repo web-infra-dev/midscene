@@ -2,13 +2,16 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { ExecutionDump } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
+import { paramStr, typeStr } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
+import type { ProgressMessage } from './types';
 
 import 'dotenv/config';
 
@@ -40,7 +43,7 @@ class PlaygroundServer {
   port?: number | null;
   agent: PageAgent;
   staticPath: string;
-  taskProgressTips: Record<string, string>;
+  taskProgressMessages: Record<string, ProgressMessage[]>; // Store full progress messages array
   id: string; // Unique identifier for this server instance
 
   private _initialized = false;
@@ -59,7 +62,7 @@ class PlaygroundServer {
     this._app = express();
     this.tmpDir = getTmpDir()!;
     this.staticPath = staticPath;
-    this.taskProgressTips = {};
+    this.taskProgressMessages = {}; // Initialize as empty object
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
 
@@ -215,8 +218,19 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
+        const progressMessages = this.taskProgressMessages[requestId] || [];
+        // For backward compatibility, also provide a tip string from the last message
+        const lastMessage =
+          progressMessages.length > 0
+            ? progressMessages[progressMessages.length - 1]
+            : undefined;
+        const tip =
+          lastMessage && typeof lastMessage.action === 'string'
+            ? `${lastMessage.action} - ${lastMessage.description || ''}`
+            : '';
         res.json({
-          tip: this.taskProgressTips[requestId] || '',
+          tip,
+          progressMessages, // Provide full progress messages array
         });
       },
     );
@@ -225,7 +239,7 @@ class PlaygroundServer {
       try {
         let actionSpace = [];
 
-        actionSpace = await this.agent.interface.actionSpace();
+        actionSpace = this.agent.interface.actionSpace();
 
         // Process actionSpace to make paramSchema serializable with shape info
         const processedActionSpace = actionSpace.map((action: unknown) => {
@@ -347,10 +361,36 @@ class PlaygroundServer {
       // Lock this task
       if (requestId) {
         this.currentTaskId = requestId;
-        this.taskProgressTips[requestId] = '';
+        this.taskProgressMessages[requestId] = [];
 
-        this.agent.onTaskStartTip = (tip: string) => {
-          this.taskProgressTips[requestId] = tip;
+        // Use onDumpUpdate to receive executionDump and transform tasks to progress messages
+        this.agent.onDumpUpdate = (
+          _dump: string,
+          executionDump?: ExecutionDump,
+        ) => {
+          if (executionDump?.tasks) {
+            // Transform executionDump.tasks to ProgressMessage[] for API compatibility
+            this.taskProgressMessages[requestId] = executionDump.tasks.map(
+              (task, index) => {
+                const action = typeStr(task);
+                const description = paramStr(task) || '';
+
+                // Map task status
+                const taskStatus = task.status;
+                const status: 'pending' | 'running' | 'finished' | 'failed' =
+                  taskStatus === 'cancelled' ? 'failed' : taskStatus;
+
+                return {
+                  id: `progress-task-${index}`,
+                  taskId: `task-${index}`,
+                  action,
+                  description,
+                  status,
+                  timestamp: task.timing?.start || Date.now(),
+                };
+              },
+            );
+          }
         };
       }
 
@@ -371,7 +411,7 @@ class PlaygroundServer {
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
-        const actionSpace = await this.agent.interface.actionSpace();
+        const actionSpace = this.agent.interface.actionSpace();
 
         // Prepare value object for executeAction
         const value = {
@@ -423,9 +463,9 @@ class PlaygroundServer {
         );
       }
 
-      // Clean up task progress tip and unlock after execution completes
+      // Clean up task progress messages and unlock after execution completes
       if (requestId) {
-        delete this.taskProgressTips[requestId];
+        delete this.taskProgressMessages[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -459,7 +499,7 @@ class PlaygroundServer {
           await this.recreateAgent();
 
           // Clean up
-          delete this.taskProgressTips[requestId];
+          delete this.taskProgressMessages[requestId];
           this.currentTaskId = null;
 
           res.json({
@@ -644,7 +684,7 @@ class PlaygroundServer {
         } catch (error) {
           console.warn('Failed to destroy agent:', error);
         }
-        this.taskProgressTips = {};
+        this.taskProgressMessages = {};
 
         // Close the server
         this.server.close((error) => {

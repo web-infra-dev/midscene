@@ -1,33 +1,31 @@
-## Start experiencing
+After configuration, you can start using Midscene right away. It provides several key operation tabs:
 
-After the configuration, you can immediately experience Midscene. It provides multiple key operation tabs, including but not limited to:
-
-- **Action**: interact with the web page. This is also known as "Auto Planning". For example:
+- **Act**: interact with the page. This is Auto Planning, corresponding to `aiAct`. For example:
 ```
-type Midscene in the search box
-click the login button
+Type “Midscene” in the search box, run the search, and open the first result
 ```
 
-- **Query**: extract JSON data from the web page
-
 ```
-extract the user id from the page, return in \{ id: string \}
+Fill out the registration form and make sure every field passes validation
 ```
 
-- **Assert**: validate the page
+- **Query**: extract JSON data from the interface, corresponding to `aiQuery`.
+
+Similar methods include `aiBoolean()`, `aiNumber()`, and `aiString()` for directly extracting booleans, numbers, and strings.
 
 ```
-the page title is "Midscene"
+Extract the user ID from the page and return JSON data in the { id: string } structure
 ```
 
-- **Tap**: perform a single tap on the element where you want to click. This is also known as "Instant Action".
+- **Assert**: understand the page and assert; if the condition is not met, throw an error, corresponding to `aiAssert`.
 
 ```
-the login button
+There is a login button on the page, with a user agreement link below it
 ```
 
-All Agent APIs can be directly debugged and run in the Playground! Interactive, extraction, and verification methods are fully covered, with visual operations and verification that boost your automation development efficiency!
+- **Tap**: click on an element. This is Instant Action, corresponding to `aiTap`.
+```
+Click the login button
+```
 
-Enjoy !
-
-> For the different between "Auto Planning" and "Instant Action", please refer to the [API](../api.mdx) document.
+> For the difference between Auto Planning and Instant Action, see the [API](../api.mdx) document.

@@ -5,6 +5,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
+  MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_FAMILY,
@@ -12,6 +13,7 @@ import {
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_SOCKS_PROXY,
+  MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
   MIDSCENE_OPENAI_SOCKS_PROXY,
@@ -21,6 +23,7 @@ import {
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
+  MIDSCENE_PLANNING_MODEL_TIMEOUT,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
 } from './types';
@@ -42,6 +45,10 @@ interface IModelConfigKeys {
    * Extra
    */
   modelFamily: string;
+  /**
+   * Timeout
+   */
+  timeout: string;
 }
 
 export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -61,6 +68,10 @@ export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    * Extra
    */
   modelFamily: 'THERE_IS_NO_MODEL_FAMILY_FOR_INSIGHT',
+  /**
+   * Timeout
+   */
+  timeout: MIDSCENE_INSIGHT_MODEL_TIMEOUT,
 } as const;
 
 export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -80,6 +91,10 @@ export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    * Extra
    */
   modelFamily: 'THERE_IS_NO_MODEL_FAMILY_FOR_PLANNING',
+  /**
+   * Timeout
+   */
+  timeout: MIDSCENE_PLANNING_MODEL_TIMEOUT,
 } as const;
 
 // modelConfig return default
@@ -100,6 +115,10 @@ export const DEFAULT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    * Extra
    */
   modelFamily: MIDSCENE_MODEL_FAMILY,
+  /**
+   * Timeout
+   */
+  timeout: MIDSCENE_MODEL_TIMEOUT,
 } as const;
 
 // read from process.env
@@ -120,4 +139,8 @@ export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
    * Extra
    */
   modelFamily: 'DEFAULT_MODEL_CONFIG_KEYS has no modelFamily key',
+  /**
+   * Timeout - use the new key for legacy mode too
+   */
+  timeout: MIDSCENE_MODEL_TIMEOUT,
 } as const;

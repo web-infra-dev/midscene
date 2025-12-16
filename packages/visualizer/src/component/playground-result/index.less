@@ -35,16 +35,19 @@
     overflow: scroll;
   }
 }
-// Dark mode styles
+
 [data-theme='dark'] {
   .result-wrapper {
-    .loading-container .loading-progress-text {
-      color: #f8fafd;
+    .loading-container {
+      .loading-progress-text {
+        color: rgba(255, 255, 255, 0.45);
+      }
     }
 
     pre {
-      background: #141414;
+      background: rgba(255, 255, 255, 0.08);
       color: #f8fafd;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
   }
 }

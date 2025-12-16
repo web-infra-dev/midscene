@@ -2,12 +2,41 @@
 
 Use this doc when you need to customize Midscene's browser automation agents or review browser-only constructor options. For shared parameters (reporting, hooks, caching, etc.), see the platform-agnostic [API reference (Common)](./api).
 
+## Action Space
+
+PuppeteerAgent, PlaywrightAgent, and Chrome Bridge share one action space; the Midscene Agent can use these actions while planning tasks:
+
+- `Tap` &mdash; Left-click an element.
+- `RightClick` &mdash; Right-click an element.
+- `DoubleClick` &mdash; Double-click an element.
+- `Hover` &mdash; Hover over an element.
+- `Input` &mdash; Enter text with `replace`/`append`/`clear` modes.
+- `KeyboardPress` &mdash; Press a specified key (optionally focusing a target element first).
+- `Scroll` &mdash; Scroll from an element or screen center; supports scroll-to-top/bottom/left/right helpers.
+- `DragAndDrop` &mdash; Drag from one element to another.
+- `LongPress` &mdash; Long-press a target element with optional duration.
+- `Swipe` &mdash; Touch-style swipe gesture (available when `enableTouchEventsInActionSpace` is `true`).
+- `ClearInput` &mdash; Clear the contents of an input field.
+- `Navigate` &mdash; Open a URL in the current tab.
+- `Reload` &mdash; Reload the page.
+- `GoBack` &mdash; Navigate back in history.
+
 ## PuppeteerAgent {#puppeteer-agent}
+
+Use Midscene against a Puppeteer-controlled browser when you need AI actions in your own Puppeteer workflows.
 
 ### Import
 
 ```ts
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
+```
+
+### Constructor
+
+```ts
+const agent = new PuppeteerAgent(page, {
+  // browser-specific options...
+});
 ```
 
 ### Browser-specific options
@@ -17,11 +46,22 @@ In addition to the base agent options, Puppeteer exposes:
 - `forceSameTabNavigation: boolean` &mdash; Restrict navigation to the current tab. Default `true`.
 - `waitForNavigationTimeout: number` &mdash; Maximum wait when a step causes navigation. Default `5000` (set `0` to skip waiting).
 - `waitForNetworkIdleTimeout: number` &mdash; Wait for network idle between actions to reduce flakiness. Default `2000` (set `0` to skip waiting).
+- `enableTouchEventsInActionSpace: boolean` &mdash; Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `forceChromeSelectRendering: boolean` &mdash; Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Puppeteer > `24.6.0`.
 - `customActions: DeviceAction[]` &mdash; Register bespoke actions defined via `defineAction` so planning can call domain-specific steps.
 
-For Playwright/Puppeteer setup guides, see [Integrate with Puppeteer](./integrate-with-puppeteer#puppeteeragent).
+### Usage notes
 
-### Quick start example
+:::info
+
+- One agent per page: by default (`forceSameTabNavigation: true`), Midscene opens new links in the current tab for easier debugging. Set it to `false` if you want new tabs, and create a new agent per tab.
+- For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
+
+:::
+
+### Examples
+
+#### Quick start
 
 ```ts
 import puppeteer from 'puppeteer';
@@ -45,7 +85,7 @@ await agent.aiAssert('there is a category filter on the left sidebar');
 await browser.close();
 ```
 
-### Connect to a remote Puppeteer browser
+#### Connect to a remote Puppeteer browser
 
 ```ts
 import puppeteer from 'puppeteer';
@@ -65,9 +105,13 @@ await agent.destroy();
 await browser.disconnect();
 ```
 
-See [Integrate with Puppeteer](./integrate-with-puppeteer) for the full walkthrough plus fixtures and remote-CDP guidance.
+### See also
+
+- [Integrate with Puppeteer](./integrate-with-puppeteer) for installation, fixtures, and remote-CDP guidance.
 
 ## PlaywrightAgent {#playwright-agent}
+
+Use Midscene inside a Playwright browser for AI-driven testing or automation alongside your Playwright flows.
 
 ### Import
 
@@ -75,16 +119,35 @@ See [Integrate with Puppeteer](./integrate-with-puppeteer) for the full walkthro
 import { PlaywrightAgent } from '@midscene/web/playwright';
 ```
 
+### Constructor
+
+```ts
+const agent = new PlaywrightAgent(page, {
+  // browser-specific options...
+});
+```
+
 ### Browser-specific options
 
 - `forceSameTabNavigation: boolean` &mdash; Keep automation inside the active tab. Default `true`.
 - `waitForNavigationTimeout: number` &mdash; Wait time for navigation completion. Default `5000` (set `0` to disable).
 - `waitForNetworkIdleTimeout: number` &mdash; Wait between actions for network idle. Default `2000` (set `0` to disable).
+- `enableTouchEventsInActionSpace: boolean` &mdash; Add touch gestures (like swipe) to the action space so the agent can handle touch-only interactions. Default `false`.
+- `forceChromeSelectRendering: boolean` &mdash; Force `select` elements to render with Chrome's base-select styling so they're visible in screenshots/element extraction; requires Playwright ≥ `1.52.0`.
 - `customActions: DeviceAction[]` &mdash; Extend planning with project-specific actions.
 
-See [Integrate with Playwright](./integrate-with-playwright#playwrightagent) for wiring instructions and advanced configuration.
+### Usage notes
 
-### Quick start example
+:::info
+
+- One agent per page: with `forceSameTabNavigation` (default `true`), Midscene intercepts new tabs for stability. Set it to `false` to allow new tabs and create a separate agent for each.
+- For the full list of interaction methods, see [API reference (Common)](./api#interaction-methods).
+
+:::
+
+### Examples
+
+#### Quick start
 
 ```ts
 import { chromium } from 'playwright';
@@ -105,7 +168,7 @@ await agent.aiTap('click the first result card');
 await browser.close();
 ```
 
-### Use inside Playwright tests
+#### Extend Playwright tests with Midscene fixtures
 
 ```ts
 // playwright.config.ts
@@ -130,7 +193,9 @@ test('search flow', async ({ agentForPage, page }) => {
 });
 ```
 
-Review [Integrate with Playwright](./integrate-with-playwright) for installation, fixture utilities, and more AI helper methods.
+### See also
+
+- [Integrate with Playwright](./integrate-with-playwright) for setup, fixtures, and advanced configuration.
 
 ## Chrome Bridge Agent {#chrome-bridge-agent}
 
@@ -142,23 +207,70 @@ Bridge Mode lets Midscene operate your currently active desktop Chrome tab throu
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 ```
 
-### Constructor example
+### Constructor
 
 ```ts
 const agent = new AgentOverChromeBridge({
   allowRemoteAccess: false,
+  // other bridge options...
 });
 ```
 
 ### Bridge options
 
+- `closeNewTabsAfterDisconnect?: boolean` &mdash; Close any bridge-created tabs when the agent is destroyed. Default `false`.
 - `allowRemoteAccess?: boolean` &mdash; Allow remote machines to attach. Defaults to `false` (binds to `127.0.0.1`).
 - `host?: string` &mdash; Override the interface for the bridge server. Takes precedence over `allowRemoteAccess`.
 - `port?: number` &mdash; TCP port for the bridge server. Default `3766`.
 
 See [Bridge Mode by Chrome extension](./bridge-mode#constructor) for full installation and capability details.
 
-### Example: open a new desktop tab
+### Usage notes
+
+:::info
+
+Call `connectCurrentTab` or `connectNewTabWithUrl` before issuing other actions. Each `AgentOverChromeBridge` instance can only attach to one tab; create a new instance after `destroy`.
+
+:::
+
+### Bridge methods
+
+#### `connectCurrentTab()`
+
+```ts
+function connectCurrentTab(options?: {
+  forceSameTabNavigation?: boolean;
+}): Promise<void>;
+```
+
+- `options.forceSameTabNavigation` (default `true`) intercepts new tabs and opens them in the current tab to simplify debugging; set to `false` if you want normal new-tab behavior (create a separate agent per tab).
+- Resolves on a successful handshake with the active tab; rejects if the extension is not allowed to connect.
+
+#### `connectNewTabWithUrl()`
+
+```ts
+function connectNewTabWithUrl(
+  url: string,
+  options?: { forceSameTabNavigation?: boolean },
+): Promise<void>;
+```
+
+- `url` &mdash; Address to open in a new desktop tab before attaching.
+- `options` &mdash; Same as `connectCurrentTab`.
+- Resolves when the new tab is opened and the bridge is connected.
+
+#### `destroy()`
+
+```ts
+function destroy(closeNewTabsAfterDisconnect?: boolean): Promise<void>;
+```
+
+- `closeNewTabsAfterDisconnect` &mdash; Optional runtime override for the constructor setting; `true` closes bridge-created tabs on teardown.
+- Resolves after the bridge connection and local server are fully cleaned up.
+
+### Examples
+
+#### Open a new desktop tab
 
 ```ts
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -171,7 +283,7 @@ await agent.aiAssert('some search results show up');
 await agent.destroy();
 ```
 
-### Example: attach to current tab
+#### Attach to current tab
 
 ```ts
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
@@ -186,4 +298,7 @@ await agent.aiAct('open Gmail and report how many unread emails are visible');
 await agent.destroy();
 ```
 
-See [Bridge mode](./bridge-mode) for extension setup, command sequence, and YAML usage.
+### See also
+
+- [API reference (Common)](./api#interaction-methods) for shared agent methods.
+- [Bridge mode](./bridge-mode) for extension setup, command sequence, and YAML usage.

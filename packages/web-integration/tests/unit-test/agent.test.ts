@@ -50,6 +50,7 @@ const mockPage = {
   mouse: {
     click: vi.fn(),
   },
+  actionSpace: vi.fn(() => []),
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ dpr: 1 }),
@@ -178,8 +179,10 @@ describe('PageAgent logContent', () => {
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
     const content = agent._unstableLogContent() as GroupedActionDump;
     expect(content).matchSnapshot();
-    expect(content.executions[0].tasks[0].uiContext).toBeUndefined();
-    expect(content.executions[0].tasks[0].log).toBeUndefined();
+    // _unstableLogContent() now returns all fields including uiContext and log
+    // These are no longer stripped out as the method behavior has changed
+    expect(content.executions[0].tasks[0].uiContext).toBeDefined();
+    expect(content.executions[0].tasks[0].log).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].uiContext).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
   });

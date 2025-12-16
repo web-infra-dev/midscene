@@ -1,14 +1,13 @@
 import * as path from 'node:path';
 import { defineConfig } from '@rspress/core';
+import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
 import { pluginLlms } from '@rspress/plugin-llms';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
-  title:
-    'Midscene - AI UI Automation, AI Testing, Computer Use, Browser Use, Android Use',
-  description:
-    'It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.',
+  title: 'Midscene - Joyful UI Automation',
+  description: 'Driving all platforms UI automation with vision-based model',
   icon: '/midscene-icon.png',
   logo: {
     light: '/midscene_with_text_light.png',
@@ -43,6 +42,25 @@ export default defineConfig({
       docRepoBaseUrl:
         'https://github.com/web-infra-dev/midscene/tree/main/apps/site/docs',
     },
+    nav: [
+      {
+        text: 'Versions',
+        items: [
+          {
+            text: 'Changelog',
+            link: 'https://midscenejs.com/changelog',
+          },
+          {
+            text: 'Midscene.js v0.x',
+            link: 'https://v0.midscenejs.com',
+          },
+          {
+            text: 'Midscene.js v1.x',
+            link: 'https://midscenejs.com',
+          },
+        ],
+      },
+    ],
     sidebar: {
       '/': [
         {
@@ -53,12 +71,12 @@ export default defineConfig({
               link: '/introduction',
             },
             {
-              text: 'Model strategy 🔥',
+              text: 'Model strategy',
               link: '/model-strategy',
             },
             {
-              text: 'Model configuration',
-              link: '/model-config',
+              text: 'Common model configuration 🔥',
+              link: '/model-common-config',
             },
           ],
         },
@@ -82,7 +100,7 @@ export default defineConfig({
               link: '/bridge-mode',
             },
             {
-              text: 'API reference (Web)',
+              text: 'API reference (web browser)',
               link: '/web-api-reference',
             },
           ],
@@ -113,7 +131,7 @@ export default defineConfig({
             },
             {
               text: 'Getting started',
-              link: '/ios/getting-started',
+              link: '/ios-getting-started',
             },
             {
               text: 'API reference (iOS)',
@@ -122,15 +140,27 @@ export default defineConfig({
           ],
         },
         {
-          text: 'More feature',
+          text: 'More features',
           items: [
             {
               text: 'Command line tools',
               link: '/command-line-tools',
             },
             {
+              text: 'Workflow in YAML format',
+              link: '/automate-with-scripts-in-yaml',
+            },
+            {
               text: 'Caching AI planning & locate',
               link: '/caching',
+            },
+            {
+              text: 'Integrate Midscene with any interface',
+              link: '/integrate-with-any-interface',
+            },
+            {
+              text: 'Expose agent as MCP server',
+              link: '/mcp',
             },
           ],
         },
@@ -142,8 +172,8 @@ export default defineConfig({
               link: '/api',
             },
             {
-              text: 'Workflow in YAML format',
-              link: '/automate-with-scripts-in-yaml',
+              text: 'Model configuration',
+              link: '/model-config',
             },
           ],
         },
@@ -151,25 +181,12 @@ export default defineConfig({
           text: 'Advanced',
           items: [
             {
-              text: 'Integrate Midscene with any interface',
-              link: '/integrate-with-any-interface',
-            },
-            {
-              text: 'Expose agent as MCP server',
-              link: '/mcp',
+              text: 'FAQ',
+              link: '/faq',
             },
             {
               text: 'Use JavaScript to optimize your workflow',
-              link: '/blog-programming-practice-using-structured-api',
-            },
-          ],
-        },
-        {
-          text: 'FAQ',
-          items: [
-            {
-              text: 'FAQ',
-              link: '/faq',
+              link: '/use-javascript-to-optimize-ai-automation-code',
             },
           ],
         },
@@ -201,15 +218,15 @@ export default defineConfig({
           items: [
             {
               text: '介绍',
-              link: '/zh/index.html',
+              link: '/zh/introduction',
             },
             {
               text: '模型策略',
               link: '/zh/model-strategy',
             },
             {
-              text: '模型配置 🔥',
-              link: '/zh/model-config',
+              text: '常用模型配置 🔥',
+              link: '/zh/model-common-config',
             },
           ],
         },
@@ -233,7 +250,7 @@ export default defineConfig({
               link: '/zh/bridge-mode',
             },
             {
-              text: 'API 参考（Web）',
+              text: 'API 参考（Web 浏览器）',
               link: '/zh/web-api-reference',
             },
           ],
@@ -246,7 +263,7 @@ export default defineConfig({
               link: '/zh/android-introduction',
             },
             {
-              text: '快速开始',
+              text: '开始使用',
               link: '/zh/android-getting-started',
             },
             {
@@ -263,7 +280,7 @@ export default defineConfig({
               link: '/zh/ios-introduction',
             },
             {
-              text: '快速开始',
+              text: '开始使用',
               link: '/zh/ios-getting-started',
             },
             {
@@ -273,15 +290,27 @@ export default defineConfig({
           ],
         },
         {
-          text: '更多功能',
+          text: '更多特性',
           items: [
             {
               text: '命令行工具',
               link: '/zh/command-line-tools',
             },
             {
+              text: 'YAML 格式的工作流',
+              link: '/zh/automate-with-scripts-in-yaml',
+            },
+            {
               text: '缓存 AI 规划和定位',
               link: '/zh/caching',
+            },
+            {
+              text: '将 Midscene 集成到任意界面',
+              link: '/zh/integrate-with-any-interface',
+            },
+            {
+              text: '将设备操作暴露为 MCP',
+              link: '/zh/mcp',
             },
           ],
         },
@@ -293,8 +322,8 @@ export default defineConfig({
               link: '/zh/api',
             },
             {
-              text: 'YAML 格式的工作流',
-              link: '/zh/automate-with-scripts-in-yaml',
+              text: '模型配置',
+              link: '/zh/model-config',
             },
           ],
         },
@@ -302,25 +331,12 @@ export default defineConfig({
           text: '进阶',
           items: [
             {
-              text: '将 Midscene 集成到任意界面',
-              link: '/zh/integrate-with-any-interface',
-            },
-            {
-              text: '暴露 Agent 为 MCP 服务',
-              link: '/zh/mcp',
+              text: '常见问题 FAQ',
+              link: '/zh/faq',
             },
             {
               text: '使用 JavaScript 优化工作流',
-              link: '/zh/blog-programming-practice-using-structured-api',
-            },
-          ],
-        },
-        {
-          text: '常见问题',
-          items: [
-            {
-              text: '常见问题 FAQ',
-              link: '/zh/faq',
+              link: '/zh/use-javascript-to-optimize-ai-automation-code',
             },
           ],
         },
@@ -423,6 +439,110 @@ export default defineConfig({
     ]),
     pluginSitemap({
       siteUrl: 'https://midscenejs.com',
+    }),
+    pluginClientRedirects({
+      redirects: [
+        {
+          from: '^/integrate-with-android/?$',
+          to: '/android-getting-started',
+        },
+        {
+          from: '^/android-playground/?$',
+          to: '/android-introduction',
+        },
+        {
+          from: '^/ios-playground/?$',
+          to: '/ios-getting-started',
+        },
+        {
+          from: '^/choose-a-model/?$',
+          to: '/model-strategy',
+        },
+        {
+          from: '^/model-provider/?$',
+          to: '/model-config',
+        },
+        {
+          from: '^/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          to: '/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          from: '^/bridge-mode-by-chrome-extension/?$',
+          to: '/bridge-mode',
+        },
+        {
+          from: '^/web-mcp/?$',
+          to: '/mcp',
+        },
+        {
+          from: '^/mcp-android/?$',
+          to: '/mcp',
+        },
+        {
+          from: '^/blog-support-android-automation/?$',
+          to: '/android-introduction',
+        },
+        {
+          from: '^/blog-support-ios-automation/?$',
+          to: '/ios-introduction',
+        },
+        {
+          from: '^/quick-experience-with-android/?$',
+          to: '/android-getting-started',
+        },
+        {
+          from: '^/quick-experience-with-ios/?$',
+          to: '/ios-getting-started',
+        },
+        {
+          from: '^/zh/web-mcp/?$',
+          to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/mcp-android/?$',
+          to: '/zh/mcp',
+        },
+        {
+          from: '^/zh/blog-support-android-automation/?$',
+          to: '/zh/android-introduction',
+        },
+        {
+          from: '^/zh/blog-support-ios-automation/?$',
+          to: '/zh/ios-introduction',
+        },
+        {
+          from: '^/zh/quick-experience-with-android/?$',
+          to: '/zh/android-getting-started',
+        },
+        {
+          from: '^/zh/quick-experience-with-ios/?$',
+          to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/zh/choose-a-model/?$',
+          to: '/zh/model-strategy',
+        },
+        {
+          from: '^/zh/model-provider/?$',
+          to: '/zh/model-config',
+        },
+        {
+          from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          to: '/zh/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          from: '^/zh/bridge-mode-by-chrome-extension/?$',
+          to: '/zh/bridge-mode',
+        },
+        {
+          from: '^/zh/android-playground/?$',
+          to: '/zh/android-introduction',
+        },
+        {
+          from: '^/zh/ios-playground/?$',
+          to: '/zh/ios-getting-started',
+        },
+      ],
     }),
   ],
 });
