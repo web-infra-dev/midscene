@@ -217,8 +217,9 @@ export function usePlaygroundExecution(
       let replayInfo = null;
       let counter = replayCounter;
 
-      // Generate replay info for interaction APIs
-      if (result?.dump && !noReplayAPIs.includes(actionType)) {
+      // Generate replay info for all APIs (including noReplayAPIs)
+      // This allows noReplayAPIs to display both output and report
+      if (result?.dump) {
         if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
           const groupedDump = wrapExecutionDumpForReplay(result.dump);
           const info = allScriptsFromDump(groupedDump);
@@ -254,6 +255,7 @@ export function usePlaygroundExecution(
         replayCounter: counter,
         loadingProgressText: '',
         verticalMode: verticalMode,
+        actionType: actionType, // Save actionType for display logic
       };
 
       setInfoList((prev) => [...prev, resultItem]);
