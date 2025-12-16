@@ -55,7 +55,7 @@ describe('ConversationHistory', () => {
     history.append(userMessageWithImage('third', 'data:image3'));
 
     const snapshot = history.snapshot();
-    
+
     // First image should be omitted (counting from back, it's the 3rd one)
     expect(snapshot[0]).toEqual({
       role: 'user',
