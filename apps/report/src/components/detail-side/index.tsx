@@ -865,7 +865,11 @@ const DetailSide = (): JSX.Element => {
             onMouseEnter={noop}
             onMouseLeave={noop}
             title="output"
-            content={<pre>{String(data)}</pre>}
+            content={
+              <pre className="description-content">
+                {JSON.stringify(data, undefined, 2)}
+              </pre>
+            }
           />,
         );
       }
