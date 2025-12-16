@@ -78,4 +78,10 @@ describe('replaceIllegalPathCharsAndSpace', () => {
     const result = replaceIllegalPathCharsAndSpace(input);
     expect(result).toBe('cache-id-with-special-chars-and-spaces--');
   });
+
+  it('should replace hash symbol # with dash', () => {
+    const input = 'file#with#hash#symbols.txt';
+    const result = replaceIllegalPathCharsAndSpace(input);
+    expect(result).toBe('file-with-hash-symbols.txt');
+  });
 });
