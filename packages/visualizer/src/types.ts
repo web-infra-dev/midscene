@@ -349,6 +349,7 @@ export interface InfoListItem {
   replayCounter?: number;
   loadingProgressText?: string;
   verticalMode?: boolean;
+  actionType?: string; // Track which action type was executed
 }
 
 // main component config interface

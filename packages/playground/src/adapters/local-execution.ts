@@ -189,6 +189,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           }
         }
 
+        // Always generate reportHTML for all APIs (including noReplayAPIs)
         if (this.agent.reportHTMLString) {
           response.reportHTML = this.agent.reportHTMLString() || null;
         }

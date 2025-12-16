@@ -338,6 +338,7 @@ export function UniversalPlayground({
                               }
                               verticalMode={item.verticalMode || false}
                               fitMode="width"
+                              actionType={item.actionType}
                             />
                           ) : (
                             <>
