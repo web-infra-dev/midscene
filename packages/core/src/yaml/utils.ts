@@ -10,7 +10,9 @@ import yaml from 'js-yaml';
 
 const debugUtils = getDebug('yaml:utils');
 
-export function interpolateEnvVars(content: string): string {
+export function interpolateEnvVars(content: string, filePath?: string): string {
+  // runYaml do not replace variables, so we can pass the original content directly
+  if (filePath && filePath === 'yaml') return content;
   // Process line by line to skip commented lines
   const lines = content.split('\n');
   const processedLines = lines.map((line) => {
@@ -54,7 +56,7 @@ export function parseYamlScript(
       `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
     );
   }
-  const interpolatedContent = interpolateEnvVars(processedContent);
+  const interpolatedContent = interpolateEnvVars(processedContent, filePath);
   const obj = yaml.load(interpolatedContent, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;
