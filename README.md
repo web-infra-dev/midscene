@@ -7,6 +7,8 @@
 
 English | [简体中文](./README.zh.md)
 
+<strong>官网 / Official Website</strong>: <a href="https://midscenejs.com/">https://midscenejs.com/</a>
+
 <a href="https://trendshift.io/repositories/12524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12524" alt="web-infra-dev%2Fmidscene | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 </div>
@@ -30,9 +32,9 @@ English | [简体中文](./README.zh.md)
 ## 📣 v1.0 Beta Notice
 
 > **We are preparing the v1.0 release.** It is currently published under the npm `@beta` tag.  
-> The latest docs and code are on [https://midscenejs.com/](https://midscenejs.com/) and the `main` branch.  
-> For legacy documentation, visit [https://v0.midscenejs.com/](https://v0.midscenejs.com/).  
-> v1.0 changelog: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
+> The v1.0 docs and code are on [https://midscenejs.com/](https://midscenejs.com/) and the `main` branch.  
+> The v0.x docs and code are on [https://v0.midscenejs.com/](https://v0.midscenejs.com/) and the `v0` branch.  
+> The v1.0 changelog: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
 
 ## Showcases
 
@@ -86,7 +88,8 @@ Read more about [Model Strategy](https://midscenejs.com/model-strategy)
 
 ## 📄 Resources 
 
-* Home Page and Documentation: [https://midscenejs.com](https://midscenejs.com/)
+* Official Website: [https://midscenejs.com](https://midscenejs.com/)
+* Documentation: [https://midscenejs.com](https://midscenejs.com/)
 * Sample Projects: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
 * API Reference: [https://midscenejs.com/api](https://midscenejs.com/api)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
