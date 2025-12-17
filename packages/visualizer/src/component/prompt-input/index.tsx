@@ -1,7 +1,7 @@
 import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
 import './index.less';
 import type { z } from '@midscene/core';
-import { Button, Dropdown, Form, Input, Radio, Switch, Tooltip } from 'antd';
+import { Button, Dropdown, Form, Input, Radio, Space, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
   useCallback,
@@ -1096,18 +1096,34 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           className={`form-controller-wrapper ${selectedType === 'aiAct' ? 'with-strategy' : ''}`}
         >
           {selectedType === 'aiAct' && (
-            <div className="planning-strategy-selector">
-              <Switch
-                size="small"
-                checked={planningStrategy === 'fast'}
-                onChange={(checked) =>
-                  setPlanningStrategy(checked ? 'fast' : 'standard')
-                }
-              />
-              <span className="strategy-label">
-                {planningStrategy === 'fast' ? 'Fast' : 'Standard'}
-              </span>
-            </div>
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'standard',
+                    label: 'Standard',
+                    onClick: () => setPlanningStrategy('standard'),
+                  },
+                  {
+                    key: 'fast',
+                    label: 'Fast',
+                    onClick: () => setPlanningStrategy('fast'),
+                  },
+                ],
+                selectedKeys: [planningStrategy],
+              }}
+              trigger={['click']}
+            >
+              <a
+                onClick={(e) => e.preventDefault()}
+                className="planning-strategy-selector"
+              >
+                <Space size={4}>
+                  {planningStrategy === 'fast' ? 'Fast' : 'Standard'}
+                  <DownOutlined style={{ fontSize: 10 }} />
+                </Space>
+              </a>
+            </Dropdown>
           )}
           {renderActionButton()}
         </div>
