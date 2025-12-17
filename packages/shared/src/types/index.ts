@@ -17,7 +17,7 @@ export type Rect = Point & Size & { zoom?: number };
 export abstract class BaseElement {
   abstract id: string;
 
-  abstract indexId?: number; // markerId for web
+  // abstract indexId?: number; // markerId for web
 
   abstract attributes: {
     nodeType: NodeType;
@@ -30,7 +30,7 @@ export abstract class BaseElement {
 
   abstract center: [number, number];
 
-  abstract xpaths?: string[];
+  // abstract xpaths?: string[];
 
   abstract isVisible: boolean;
 }
@@ -45,3 +45,9 @@ export interface ElementTreeNode<
 export interface WebElementInfo extends ElementInfo {
   zoom: number;
 }
+
+export type LocateResultElement = {
+  description: string; // the description of the element
+  center: [number, number];
+  rect: Rect;
+};

@@ -1,0 +1,121 @@
+import PrepareIOS from './common/prepare-ios.mdx';
+import McpSharedTools from './common/mcp-shared-tools.mdx';
+import McpReport from './common/mcp-report.mdx';
+
+# Expose devices as an MCP service
+
+[MCP](https://modelcontextprotocol.io/introduction) (Model Context Protocol) is a protocol standard that lets AI models interact with external tools and capabilities.
+
+Midscene provides MCP services that expose atomic operations in Midscene Agent (each Action in the Action Space) as MCP tools. Upper-layer Agents can use natural language to inspect the UI, precisely operate UI elements, and run automation tasks without needing to understand the underlying implementation.
+
+Because Midscene Agent relies on a vision model, configure the environment variables required by Midscene inside the MCP service instead of reusing the upstream Agent's model configuration.
+
+## MCP tool list
+
+| Tool name | Description |
+|---------|---------|
+| Device connections such as `web_connect`, `ios_connect`, `android_connect` | Connect to target devices such as browsers, iOS devices, or Android devices |
+| `take_screenshot` | Get the latest screenshot |
+| Device actions | Each Action in the Action Space, such as `Tap`, `Scroll`, etc. |
+
+## View execution reports
+
+After each interaction finishes, Midscene generates a task report. You can open it directly in the command line:
+
+```bash
+open report_file_name.html
+```
+
+The report includes detailed interaction information such as screenshots, operation logs, and error details to help with debugging and troubleshooting.
+
+
+## Configure MCP
+
+### Browser Bridge Mode
+
+`@midscene/web-bridge-mcp` exposes the [Chrome extension Bridge Mode](./bridge-mode) as an MCP service.
+
+**Environment preparation**
+
+Refer to [Chrome Bridge Mode](./bridge-mode) to ensure the browser extension starts correctly and that you have clicked **Allow connection** in Bridge Mode.
+
+**Configuration**
+
+Add the Midscene Web Bridge MCP server (`@midscene/web-bridge-mcp`) in your MCP client. For model configuration parameters, see [Model strategy](./model-strategy).
+
+```json
+{
+  "mcpServers": {
+    "midscene-web": {
+      "command": "npx",
+      "args": ["-y", "@midscene/web-bridge-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name",
+        "MIDSCENE_MODEL_FAMILY": "replace with your model family",
+        "MCP_SERVER_REQUEST_TIMEOUT": "600000"
+      }
+    }
+  }
+}
+```
+
+### iOS MCP service
+
+**Environment preparation**
+
+- **AI model service**: Prepare an OpenAI API Key or another supported AI model service. See [Model strategy](./model-strategy) for more details.
+- **Device setup**: Follow [iOS Getting Started](./ios-getting-started) to configure WebDriverAgent, certificates, and device connections, and make sure WebDriverAgent is running. You can verify screenshots and basic operations in [iOS Playground](./ios-getting-started#try-playground).
+
+**Configuration**
+
+Add the Midscene iOS MCP server (`@midscene/ios-mcp`) in your MCP client. For model configuration parameters, see [Model strategy](./model-strategy).
+
+```json
+{
+  "mcpServers": {
+    "midscene-ios": {
+      "command": "npx",
+      "args": ["-y", "@midscene/ios-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name",
+        "MIDSCENE_MODEL_FAMILY": "replace with your model family",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```
+
+
+### Android MCP service
+
+**Environment preparation**
+
+- **AI model service**: Prepare an OpenAI API Key or another supported AI model service. See [Model strategy](./model-strategy) for more details.
+- **Device setup**: Follow [Android Getting Started](./android-getting-started) to configure adb and connect your device. Ensure `adb devices` can recognize the target device. Use [Android Playground](./android-getting-started#try-playground-no-code) to verify screenshots and basic operations.
+
+**Configuration**
+
+Add the Midscene Android MCP server (`@midscene/android-mcp`) in your MCP client. For model configuration parameters, see [Model strategy](./model-strategy).
+
+```json
+{
+  "mcpServers": {
+    "midscene-android": {
+      "command": "npx",
+      "args": ["-y", "@midscene/android-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name",
+        "MIDSCENE_MODEL_FAMILY": "replace with your model family",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```

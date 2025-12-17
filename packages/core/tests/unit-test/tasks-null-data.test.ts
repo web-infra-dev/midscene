@@ -9,7 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 describe('TaskExecutor - Null Data Handling', () => {
   describe('createTypeQueryTask', () => {
     it('should handle null data for WaitFor operation', async () => {
-      // Mock insight that returns null
+      // Mock service that returns null
       const mockInsight = {
         contextRetrieverFn: vi.fn(async () => ({
           screenshotBase64: 'mock-screenshot',
@@ -30,7 +30,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       // Create a WaitFor task
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
@@ -38,11 +40,14 @@ describe('TaskExecutor - Null Data Handling', () => {
         'Element is visible',
         mockModelConfig,
         {},
-        {}, // InsightExtractOption
+        {}, // ServiceExtractOption
       );
 
       // Execute the task
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // For WaitFor with null data, output should be false (condition not met)
       expect(result.output).toBe(false);
@@ -67,10 +72,11 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
@@ -79,7 +85,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBe(false);
       expect(result.thought).toBe('Failed to evaluate condition');
@@ -106,7 +115,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Assert',
@@ -116,9 +127,12 @@ describe('TaskExecutor - Null Data Handling', () => {
       );
 
       // For Assert with null data (falsy), should throw error
-      await expect(queryTask.executor({}, { task: queryTask })).rejects.toThrow(
-        'Assertion failed: Could not verify assertion',
-      );
+      await expect(
+        queryTask.executor({}, {
+          task: queryTask,
+          uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+        } as any),
+      ).rejects.toThrow('Assertion failed: Could not verify assertion');
     });
 
     it('should handle valid data for WaitFor operation', async () => {
@@ -144,7 +158,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
@@ -153,7 +169,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBe(true);
       expect(result.thought).toBe('Condition is met');
@@ -180,7 +199,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'WaitFor',
@@ -189,7 +210,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // When AI returns a plain string, it should be used directly
       expect(result.output).toBe('true');
@@ -216,7 +240,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Query',
@@ -225,7 +251,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       // For Query with null data, entire null object should be returned
       expect(result.output).toBeNull();
@@ -252,7 +281,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'String',
@@ -261,7 +292,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBeNull();
     });
@@ -287,7 +321,9 @@ describe('TaskExecutor - Null Data Handling', () => {
         from: 'legacy-env',
       };
 
-      const taskExecutor = new TaskExecutor({} as any, mockInsight, {});
+      const taskExecutor = new TaskExecutor({} as any, mockInsight, {
+        actionSpace: [],
+      });
 
       const queryTask = await (taskExecutor as any).createTypeQueryTask(
         'Number',
@@ -296,7 +332,10 @@ describe('TaskExecutor - Null Data Handling', () => {
         {},
       );
 
-      const result = await queryTask.executor({}, { task: queryTask });
+      const result = await queryTask.executor({}, {
+        task: queryTask,
+        uiContext: { screenshotBase64: '', size: { width: 0, height: 0 } },
+      } as any);
 
       expect(result.output).toBeNull();
     });

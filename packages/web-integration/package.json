@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "0.30.10",
+  "version": "1.0.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -86,18 +86,11 @@
       "import": "./dist/es/static/index.mjs"
     }
   },
-  "watch": {
-    "build": {
-      "patterns": ["src"],
-      "extensions": "tsx,less,scss,css,js,jsx,ts",
-      "quiet": false
-    }
-  },
   "scripts": {
-    "dev": "npm run build && npx npm-watch",
+    "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/midscene-playground",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
@@ -125,17 +118,19 @@
     "socket.io-client": "4.8.1"
   },
   "devDependencies": {
-    "@types/js-yaml": "4.0.9",
-    "devtools-protocol": "0.0.1380148",
     "@playwright/test": "^1.44.1",
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.3",
     "@types/chrome": "0.0.279",
     "@types/cors": "^2.8.17",
     "@types/http-server": "^0.12.4",
+    "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
-    "playwright": "1.44.1",
-    "puppeteer": "24.2.0",
+    "@types/semver": "7.7.0",
+    "devtools-protocol": "0.0.1380148",
     "js-yaml": "4.1.0",
+    "langsmith": "0.3.74",
+    "playwright": "1.44.1",
+    "puppeteer": "24.6.0",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"

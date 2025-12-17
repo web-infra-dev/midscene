@@ -1,17 +1,24 @@
 import './App.less';
 
-import { Alert, ConfigProvider, Empty } from 'antd';
+import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
-import { Logo, Player, globalThemeConfig } from '@midscene/visualizer';
+import {
+  Logo,
+  Player,
+  globalThemeConfig,
+  useGlobalPreference,
+} from '@midscene/visualizer';
 import DetailPanel from './components/detail-panel';
 import DetailSide from './components/detail-side';
 import GlobalHoverPreview from './components/global-hover-preview';
 import Sidebar from './components/sidebar';
 import { type DumpStoreType, useExecutionDump } from './components/store';
 import Timeline from './components/timeline';
+import ThemeDarkIcon from './icons/theme-dark.svg?react';
+import ThemeLightIcon from './icons/theme-light.svg?react';
 import type {
   PlaywrightTaskAttributes,
   PlaywrightTasks,
@@ -42,7 +49,19 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store) => store.dump);
-  const [proModeEnabled, setProModeEnabled] = useState(false);
+  const {
+    modelCallDetailsEnabled: proModeEnabled,
+    setModelCallDetailsEnabled: setProModeEnabled,
+    darkModeEnabled: isDarkMode,
+    setDarkModeEnabled: setIsDarkMode,
+  } = useGlobalPreference();
+
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      'data-theme',
+      isDarkMode ? 'dark' : 'light',
+    );
+  }, [isDarkMode]);
 
   useEffect(() => {
     if (dumps?.[0]) {
@@ -198,11 +217,17 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   }, []);
 
   return (
-    <ConfigProvider theme={globalThemeConfig()}>
+    <ConfigProvider
+      theme={{
+        ...globalThemeConfig(),
+        algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
       <div
         className="page-container"
         key={`render-${globalRenderCount}`}
         style={{ height: containerHeight }}
+        data-theme={isDarkMode ? 'dark' : 'light'}
       >
         <div className="page-nav">
           <div className="page-nav-left">
@@ -213,6 +238,15 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               v{sdkVersion}
               {modelBriefs.length ? ` | ${modelBriefs.join(', ')}` : ''}
             </div>
+            <div className="theme-divider" />
+            <button
+              type="button"
+              className="theme-toggle-button"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              aria-label="Toggle theme"
+            >
+              {isDarkMode ? <ThemeDarkIcon /> : <ThemeLightIcon />}
+            </button>
           </div>
         </div>
         {mainContent}
@@ -242,7 +276,7 @@ export function App() {
           playwright_test_description: '',
           playwright_test_id: '',
           playwright_test_title: '',
-          playwright_test_status: '',
+          playwright_test_status: undefined,
           playwright_test_duration: 0,
         };
         Array.from(el.attributes).forEach((attr) => {

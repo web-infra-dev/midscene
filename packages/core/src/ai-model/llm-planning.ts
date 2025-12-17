@@ -2,27 +2,22 @@ import type {
   DeviceAction,
   InterfaceType,
   PlanningAIResponse,
+  RawResponsePlanningAIResponse,
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type {
-  ChatCompletionContentPart,
-  ChatCompletionMessageParam,
-} from 'openai/resources/index';
+import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   AIActionType,
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
-  markupImageForLLM,
-  warnGPT4oSizeLimit,
-} from './common';
+} from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
-import { describeUserPage } from './prompt/util';
 import { callAIWithObjectResponse } from './service-caller/index';
 
 const debug = getDebug('planning');
@@ -35,21 +30,20 @@ export async function plan(
     actionSpace: DeviceAction<any>[];
     actionContext?: string;
     modelConfig: IModelConfig;
-    conversationHistory?: ConversationHistory;
+    conversationHistory: ConversationHistory;
+    includeBbox: boolean;
+    imagesIncludeCount?: number;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
   const { screenshotBase64, size } = context;
 
-  const { modelName, vlMode } = modelConfig;
+  const { vlMode } = modelConfig;
 
-  const { description: pageDescription, elementById } = await describeUserPage(
-    context,
-    { vlMode },
-  );
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
-    vlMode: vlMode,
+    vlMode,
+    includeBbox: opts.includeBbox,
   });
 
   let imagePayload = screenshotBase64;
@@ -57,41 +51,18 @@ export async function plan(
   let imageHeight = size.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
-  if (vlMode === 'qwen-vl') {
+
+  // Process image based on VL mode requirements
+  if (vlMode === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
     imagePayload = paddedResult.imageBase64;
-  } else if (vlMode === 'qwen3-vl') {
-    // const paddedResult = await paddingToMatchBlockByBase64(imagePayload, 32);
-    // imageWidth = paddedResult.width;
-    // imageHeight = paddedResult.height;
-    // imagePayload = paddedResult.imageBase64;
-  } else if (!vlMode) {
-    imagePayload = await markupImageForLLM(screenshotBase64, context.tree, {
-      width: imageWidth,
-      height: imageHeight,
-    });
   }
 
-  warnGPT4oSizeLimit(size, modelName);
-
-  const historyLog = opts.conversationHistory?.snapshot() || [];
-  // .filter((item) => item.role === 'assistant') || [];
-
-  const knowledgeContext: ChatCompletionMessageParam[] = opts.actionContext
-    ? [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>`,
-            },
-          ],
-        },
-      ]
-    : [];
+  const actionContext = opts.actionContext
+    ? `<high_priority_knowledge>${opts.actionContext}</high_priority_knowledge>\n`
+    : '';
 
   const instruction: ChatCompletionMessageParam[] = [
     {
@@ -99,20 +70,22 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `<user_instruction>${userInstruction}</user_instruction>`,
+          text: `${actionContext}<user_instruction>${userInstruction}</user_instruction>`,
         },
       ],
     },
   ];
 
-  const msgs: ChatCompletionMessageParam[] = [
-    { role: 'system', content: systemPrompt },
-    ...knowledgeContext,
-    ...instruction,
-    ...historyLog,
-    {
+  let latestFeedbackMessage: ChatCompletionMessageParam;
+
+  if (conversationHistory.pendingFeedbackMessage) {
+    latestFeedbackMessage = {
       role: 'user',
       content: [
+        {
+          type: 'text',
+          text: `${conversationHistory.pendingFeedbackMessage}. The last screenshot is attached. Please going on according to the instruction.`,
+        },
         {
           type: 'image_url',
           image_url: {
@@ -120,28 +93,48 @@ export async function plan(
             detail: 'high',
           },
         },
-        ...(vlMode
-          ? []
-          : ([
-              {
-                type: 'text',
-                text: pageDescription,
-              },
-            ] as ChatCompletionContentPart[])),
       ],
-    },
+    };
+
+    conversationHistory.resetPendingFeedbackMessageIfExists();
+  } else {
+    latestFeedbackMessage = {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: 'this is the latest screenshot',
+        },
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+      ],
+    };
+  }
+  conversationHistory.append(latestFeedbackMessage);
+  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
+
+  const msgs: ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    ...instruction,
+    ...historyLog,
   ];
 
-  const { content, usage } = await callAIWithObjectResponse<PlanningAIResponse>(
+  const {
+    content: planFromAI,
+    contentString: rawResponse,
+    usage,
+  } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
     msgs,
     AIActionType.PLAN,
     modelConfig,
   );
-  const rawResponse = JSON.stringify(content, undefined, 2);
-  const planFromAI = content;
 
-  const actions =
-    (planFromAI.action?.type ? [planFromAI.action] : planFromAI.actions) || [];
+  const actions = planFromAI.action ? [planFromAI.action] : [];
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,
@@ -156,7 +149,6 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  // TODO: use zod.parse to parse the action.param, and then fill the bbox param.
   actions.forEach((action) => {
     const type = action.type;
     const actionInActionSpace = opts.actionSpace.find(
@@ -172,27 +164,19 @@ export async function plan(
 
     locateFields.forEach((field) => {
       const locateResult = action.param[field];
-      if (locateResult) {
-        if (vlMode) {
-          action.param[field] = fillBboxParam(
-            locateResult,
-            imageWidth,
-            imageHeight,
-            rightLimit,
-            bottomLimit,
-            vlMode,
-          );
-        } else {
-          const element = elementById(locateResult);
-          if (element) {
-            action.param[field].id = element.id;
-          }
-        }
+      if (locateResult && vlMode !== undefined) {
+        // Always use VL mode to fill bbox parameters
+        action.param[field] = fillBboxParam(
+          locateResult,
+          imageWidth,
+          imageHeight,
+          rightLimit,
+          bottomLimit,
+          vlMode,
+        );
       }
     });
   });
-  // in Qwen-VL, error means error. In GPT-4o, error may mean more actions are needed.
-  assert(!planFromAI.error, `Failed to plan actions: ${planFromAI.error}`);
 
   if (
     actions.length === 0 &&
@@ -205,21 +189,12 @@ export async function plan(
     );
   }
 
-  conversationHistory?.append({
+  conversationHistory.append({
     role: 'assistant',
     content: [
       {
         type: 'text',
         text: rawResponse,
-      },
-    ],
-  });
-  conversationHistory?.append({
-    role: 'user',
-    content: [
-      {
-        type: 'text',
-        text: 'I have finished the action previously planned',
       },
     ],
   });

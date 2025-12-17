@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 import { PackageManagerTabs } from '@theme';
 
 # 集成到 Playwright
@@ -15,7 +16,9 @@ import { PackageManagerTabs } from '@theme';
 ## 直接集成 Midscene Agent
 
 :::info 样例项目
+
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+
 :::
 
 ### 第一步：安装依赖
@@ -50,7 +53,7 @@ Promise.resolve(
     const agent = new PlaywrightAgent(page);
 
     // 👀 type keywords, perform a search
-    await agent.aiAction('type "Headphones" in search box, hit Enter');
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
 
     // 👀 wait for the loading
     await agent.aiWaitFor('there is at least one headphone item on page');
@@ -94,7 +97,7 @@ Promise.resolve(
 );
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
 
 ### 第三步：运行
 
@@ -121,22 +124,14 @@ npx tsx demo.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-### 如何限制页面在当前 tab 打开
-
-如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
-
-```typescript
-const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: true,
-});
-```
-
 ## 在 Playwright 的测试用例中集成 Midscene
 
 这里我们假设你已经拥有一个集成了 Playwright 的测试项目。
 
 :::info 样例项目
+
 你可以在这里看到向 Playwright 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
+
 :::
 
 ### 第一步：新增依赖，更新配置文件
@@ -175,43 +170,13 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### 第三步：编写测试用例
 
-#### 基础 AI 操作
-
-- `ai` 或 `aiAction` - 通用 AI 交互
-- `aiTap` - 点击操作
-- `aiHover` - 悬停操作
-- `aiInput` - 输入操作
-- `aiKeyboardPress` - 键盘操作
-- `aiScroll` - 滚动操作
-- `aiRightClick` - 右键点击操作
-
-#### 查询
-
-- `aiAsk` - 询问 AI 模型任何问题
-- `aiQuery` - 从当前页面提取结构化的数据
-- `aiNumber` - 从当前页面提取数字
-- `aiString` - 从当前页面提取字符串
-- `aiBoolean` - 从当前页面提取布尔值
-
-#### 更多 API
-
-- `aiAssert` - 断言
-- `aiWaitFor` - 等待
-- `aiLocate` - 定位元素
-- `runYaml` - 执行 YAML 自动化脚本
-- `setAIActionContext` - 设置 AI 动作上下文，在调用 `agent.aiAction()` 时，发送给 AI 模型的背景知识
-- `evaluateJavaScript` - 在页面上下文中执行 JavaScript
-- `logScreenshot` - 在报告文件中记录当前截图，并添加描述
-- `freezePageContext` - 冻结页面上下文
-- `unfreezePageContext` - 解冻页面上下文
-
-除了上述暴露的快捷方法之外，如果还需要调用其它 agent 提供的 [API](./api.mdx)，请使用 `agentForPage` 获取 `PageAgent` 实例，使用 `PageAgent` 调用 API 进行交互：
+完整的交互、查询和辅助 API 请参考 [Agent API 参考](./api#interaction-methods)。如果需要调用更底层的能力，可以使用 `agentForPage` 获取 `PageAgent` 实例，再直接调用对应的方法：
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
-  await agent.logScreenshot();
+  await agent.recordToReport();
   const logContent = agent._unstableLogContent();
   console.log(logContent);
 });
@@ -238,7 +203,7 @@ test('search headphone on ebay', async ({
   aiScroll,
   aiWaitFor,
   aiRightClick,
-  logScreenshot,
+  recordToReport,
 }) => {
   // 使用 aiInput 输入搜索关键词
   await aiInput('Headphones', '搜索框');
@@ -270,12 +235,12 @@ test('search headphone on ebay', async ({
   // 使用 aiAssert 验证筛选功能
   await aiAssert('界面左侧有类目筛选功能');
 
-  // 使用 logScreenshot 记录当前状态
-  await logScreenshot('搜索结果', { content: '耳机搜索的最终结果' });
+  // 使用 recordToReport 记录当前状态
+  await recordToReport('搜索结果', { content: '耳机搜索的最终结果' });
 });
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
 
 ### Step 4. 运行测试用例
 
@@ -287,7 +252,65 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
-## 扩展自定义交互动作
+## Advanced
+
+### 关于在新标签页打开
+
+每个 Agent 实例都与对应的页面唯一绑定，为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
+
+如果你想恢复在新标签页打开的行为，你可以设置 `forceSameTabNavigation` 选项为 `false`，但相应的，你需要为新标签页创建一个 Agent 实例。
+
+```typescript
+const mid = new PlaywrightAgent(page, {
+  forceSameTabNavigation: false,
+});
+```
+
+### 连接远程 Playwright 浏览器并接入 Midscene Agent
+
+:::info 示例项目
+
+你可以在这里找到远程 Playwright 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+
+:::
+
+当你已经在自有基础设施或供应商服务里运行浏览器时，可通过连接远程 Playwright 服务复用这些浏览器，让实例更贴近目标环境、避免重复启动，同时保持相同的 Midscene AI 自动化能力。
+
+#### 前置依赖
+
+<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
+
+<GetCdpUrl />
+
+#### 代码示例
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+// 来自远程浏览器服务的 CDP WebSocket URL
+const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
+
+// 连接并选取页面
+const browser = await chromium.connectOverCDP(cdpWsUrl);
+const context = browser.contexts()[0];
+const page = context.pages()[0] || await context.newPage();
+
+// 创建 Midscene Agent（用法与本地 Playwright agent 一致）
+const agent = new PlaywrightAgent(page);
+
+// 像平常一样调用 AI 方法
+await agent.aiAction('跳转到 https://example.com');
+await agent.aiAction('点击登录按钮');
+
+// 清理
+await agent.destroy();
+await browser.close();
+```
+
+连接完成后，后续的 `PlaywrightAgent` 使用方式与本地启动的浏览器保持一致。
+
+### 扩展自定义交互动作
 
 使用 `customActions` 选项，结合 `defineAction` 定义的自定义交互动作，可以扩展 Agent 的动作空间。这些动作会追加在内置动作之后，方便 Agent 在规划阶段调用。
 
@@ -318,12 +341,13 @@ const agent = new PlaywrightAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('点击红色按钮五次');
+await agent.aiAct('点击红色按钮五次');
 ```
 
 更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
 
 ## 更多
 
-- 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
-- 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
+- Playwright 的 API 文档请参考 [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent)。
+- 样例项目：[直接集成 Playwright](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)，[Playwright 测试集成](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)，[远程 Playwright 集成](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)

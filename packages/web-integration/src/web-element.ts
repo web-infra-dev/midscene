@@ -6,7 +6,6 @@ import type {
   WebElementInfo,
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
-import { traverseTree } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
@@ -23,6 +22,16 @@ export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+  enableTouchEventsInActionSpace?: boolean;
+  /**
+   * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
+   * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
+   *
+   * Reference: https://developer.chrome.com/blog/a-customizable-select
+   *
+   * When enabled, adds a style tag with `select { appearance: base-select !important; }` to the page.
+   */
+  forceChromeSelectRendering?: boolean;
   beforeInvokeAction?: () => Promise<void>;
   afterInvokeAction?: () => Promise<void>;
   customActions?: DeviceAction<any>[];
@@ -97,28 +106,25 @@ export async function WebPageContextParser(
     uploadServerUrl: _opt.uploadServerUrl,
   });
 
-  debug('will traverse element tree');
-  const tree = (await page.getElementsNodeTree?.()) || {
-    node: null,
-    children: [],
-  };
-  const webTree = traverseTree(tree!, (elementInfo) => {
-    const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
-    return new WebElementInfoImpl({
-      rect,
-      id,
-      content,
-      attributes,
-      indexId,
-      isVisible,
-    });
-  });
-  debug('traverse element tree end');
+  // debug('will traverse element tree');
+  // const tree = (await page.getElementsNodeTree?.()) || {
+  //   node: null,
+  //   children: [],
+  // };
+  // // const webTree = traverseTree(tree!, (elementInfo) => {
+  // //   const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
+  // //   return new WebElementInfoImpl({
+  // //     rect,
+  // //     id,
+  // //     content,
+  // //     attributes,
+  // //     indexId,
+  // //     isVisible,
+  // //   });
+  // // });
+  // debug('traverse element tree end');
 
-  return {
-    ...basicContext,
-    tree: webTree,
-  };
+  return basicContext;
 }
 
 export const limitOpenNewTabScript = `

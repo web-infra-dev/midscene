@@ -202,3 +202,42 @@
     }
   }
 }
+
+// Dark mode styles
+[data-theme='dark'] {
+  .player-container {
+    background: #141414;
+    border-color: #292929;
+
+    &[data-fit-mode='height'] {
+      background: #292929;
+      border-color: #292929;
+
+      .canvas-container {
+        background-color: #141414;
+      }
+    }
+
+    .canvas-container {
+      background-color: #1f1f1f;
+    }
+
+    .player-tools {
+      color: #f8fafd;
+
+      .ant-spin {
+        color: #f8fafd;
+      }
+
+      .status-icon {
+        svg {
+          color: #f8fafd;
+        }
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+        }
+      }
+    }
+  }
+}

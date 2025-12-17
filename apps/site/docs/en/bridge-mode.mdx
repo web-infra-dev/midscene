@@ -1,0 +1,170 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# Bridge mode by Chrome extension
+
+import { PackageManagerTabs } from '@theme';
+
+The bridge mode in the Midscene Chrome extension is a tool that allows you to use local scripts to control the desktop version of Chrome. Your scripts can connect to either a new tab or the currently active tab.
+
+Using the desktop version of Chrome allows you to reuse all cookies, plugins, page status, and everything else you want. You can work with automation scripts to complete your tasks. This mode is commonly referred to as 'man-in-the-loop' in the context of automation.
+
+![bridge mode](/midscene-bridge-mode.png)
+
+:::info Demo Project
+
+check the demo project of bridge mode: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)
+
+:::
+
+<SetupEnv />
+
+> In bridge mode, the AI models configs should be set in the Node.js side instead of the browser side.
+
+## Get started
+
+### Step 1. Install Midscene extension from Chrome web store
+
+Install [Midscene extension from Chrome web store](https://chromewebstore.google.com/detail/midscene/gbldofcpkknbggpkmbdaefngejllnief)
+
+### Step 2. Install dependencies
+
+<PackageManagerTabs command="install @midscene/web tsx --save-dev" />
+
+### Step 3. Write scripts
+
+Write and save the following code as `./demo-new-tab.ts`.
+
+```typescript
+import { AgentOverChromeBridge } from "@midscene/web/bridge-mode";
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const agent = new AgentOverChromeBridge();
+
+    // This will connect to a new tab on your desktop Chrome
+    // remember to start your chrome extension, click 'allow connection' button. Otherwise you will get an timeout error
+    await agent.connectNewTabWithUrl("https://www.bing.com");
+
+    // these are the same as normal Midscene agent
+    await agent.ai('type "AI 101" and hit Enter');
+    await sleep(3000);
+
+    await agent.aiAssert("there are some search results");
+    await agent.destroy();
+  })()
+);
+```
+
+### Step 4. Start the Chrome extension
+
+Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connection".
+
+<p align="center">
+  <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
+</p>
+
+### Step 5. Run the script
+
+Run your scripts
+
+```bash
+tsx demo-new-tab.ts
+```
+
+After executing the script, you should see the status of the Chrome extension switched to 'connected', and a new tab has been opened. Now this tab is controlled by your scripts.
+
+:::tip
+
+⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
+
+:::
+
+## Use bridge mode in YAML script
+
+[Yaml scripts](./automate-with-scripts-in-yaml) is a way for developers to write automation scripts in yaml format, which is easy to read and write comparing to javascript.
+
+To use bridge mode in yaml script, set the `bridgeMode` property in the `target` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
+
+Set `closeNewTabsAfterDisconnect` to true if you want to close the newly created tabs when the bridge is destroyed. This is optional and the default value is false.
+
+For example, the following script will open a new tab by Chrome extension bridge: 
+
+```diff
+target:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
++ closeNewTabsAfterDisconnect: true
+tasks:
+```
+
+Run the script:
+
+```bash
+midscene ./bing.yaml
+```
+
+Remember to start the chrome extension and click 'Allow connection' button after the script is running.
+
+### Unsupported options
+
+In bridge mode, these options will be ignored (they will follow your desktop browser's settings):
+- userAgent
+- viewportWidth
+- viewportHeight
+- viewportScale
+- waitForNetworkIdle
+- cookie
+
+## Remote Access Configuration
+
+By default, the Bridge Server only listens on `127.0.0.1`, allowing only local Chrome extension connections. If you need cross-machine communication (e.g., server on machine A, browser on machine B), you can enable remote access:
+
+**Server Side (Node.js Script):**
+
+```typescript
+// Enable remote access (recommended)
+const agent = new AgentOverChromeBridge({
+  allowRemoteAccess: true  // Listen on 0.0.0.0:3766
+});
+
+// Or specify a specific network interface
+const agent = new AgentOverChromeBridge({
+  host: '192.168.1.100',  // Listen on specific IP
+  port: 3766
+});
+```
+
+**Client Side (Chrome Extension):**
+
+1. Open the Chrome extension's Bridge Mode page
+2. Fill in the server address in the "Bridge Server URL" input field
+   - Local mode: `ws://localhost:3766` (default)
+   - Remote mode: `ws://192.168.1.100:3766` (replace with your server IP)
+3. Click the "Allow Connection" button
+
+<p align="center">
+  <img src="/bridge_remote_config.png" alt="bridge remote config" width="400"/>
+</p>
+
+:::warning Security Notice
+
+When remote access is enabled, the Bridge Server will be exposed on the network. Please ensure:
+- Only use in trusted network environments
+- Use firewall to restrict access
+- Do not use in public network environments to avoid security risks
+
+:::
+
+## FAQ
+
+* Where should I config the model parameters (like `MIDSCENE_MODEL_API_KEY`), in the browser or in the terminal?
+
+When using bridge mode, you should config the model parameters in the terminal. For more configuration details, please refer to [Model strategy](./model-strategy).
+
+## More
+
+- For every Agent method, check the [API reference](./api#interaction-methods).
+- For the full Chrome Bridge API surface, see [API reference (Web)](./web-api-reference#chrome-bridge-agent).
+- Demo project
+  - Bridge mode demo: [https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo](https://github.com/web-infra-dev/midscene-example/blob/main/bridge-mode-demo)

@@ -1,10 +1,9 @@
 // config keys
-export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
+export const MIDSCENE_MODEL_INIT_CONFIG_JSON =
+  'MIDSCENE_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_MODEL_NAME = 'MIDSCENE_MODEL_NAME';
-export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
-export const MIDSCENE_DEBUG_AI_PROFILE = 'MIDSCENE_DEBUG_AI_PROFILE';
-export const MIDSCENE_DEBUG_AI_RESPONSE = 'MIDSCENE_DEBUG_AI_RESPONSE';
+export const MIDSCENE_DEBUG_MODEL_PROFILE = 'MIDSCENE_DEBUG_MODEL_PROFILE';
+export const MIDSCENE_DEBUG_MODEL_RESPONSE = 'MIDSCENE_DEBUG_MODEL_RESPONSE';
 export const MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG =
   'MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG';
 export const MIDSCENE_DEBUG_MODE = 'MIDSCENE_DEBUG_MODE';
@@ -15,10 +14,43 @@ export const MIDSCENE_MCP_ANDROID_MODE = 'MIDSCENE_MCP_ANDROID_MODE';
 export const DOCKER_CONTAINER = 'DOCKER_CONTAINER';
 export const MIDSCENE_FORCE_DEEP_THINK = 'MIDSCENE_FORCE_DEEP_THINK';
 
-export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
-export const MIDSCENE_OPENAI_HTTP_PROXY = 'MIDSCENE_OPENAI_HTTP_PROXY';
+// Observability
+export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
+export const MIDSCENE_LANGFUSE_DEBUG = 'MIDSCENE_LANGFUSE_DEBUG';
+
+export const MIDSCENE_MODEL_SOCKS_PROXY = 'MIDSCENE_MODEL_SOCKS_PROXY';
+export const MIDSCENE_MODEL_HTTP_PROXY = 'MIDSCENE_MODEL_HTTP_PROXY';
+
+// New primary names for public API
+export const MIDSCENE_MODEL_API_KEY = 'MIDSCENE_MODEL_API_KEY';
+export const MIDSCENE_MODEL_BASE_URL = 'MIDSCENE_MODEL_BASE_URL';
+export const MIDSCENE_MODEL_MAX_TOKENS = 'MIDSCENE_MODEL_MAX_TOKENS';
+export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
+
+/**
+ * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
+ */
 export const OPENAI_API_KEY = 'OPENAI_API_KEY';
+/**
+ * @deprecated Use MIDSCENE_MODEL_BASE_URL instead. This is kept for backward compatibility.
+ */
 export const OPENAI_BASE_URL = 'OPENAI_BASE_URL';
+/**
+ * @deprecated Use MIDSCENE_MODEL_INIT_CONFIG_JSON instead. This is kept for backward compatibility.
+ */
+export const MIDSCENE_OPENAI_INIT_CONFIG_JSON =
+  'MIDSCENE_OPENAI_INIT_CONFIG_JSON';
+/**
+ * @deprecated Use MIDSCENE_MODEL_HTTP_PROXY instead. This is kept for backward compatibility.
+ */
+export const MIDSCENE_OPENAI_HTTP_PROXY = 'MIDSCENE_OPENAI_HTTP_PROXY';
+/**
+ * @deprecated Use MIDSCENE_MODEL_SOCKS_PROXY instead. This is kept for backward compatibility.
+ */
+export const MIDSCENE_OPENAI_SOCKS_PROXY = 'MIDSCENE_OPENAI_SOCKS_PROXY';
+/**
+ * @deprecated Use MIDSCENE_MODEL_MAX_TOKENS instead. This is kept for backward compatibility.
+ */
 export const OPENAI_MAX_TOKENS = 'OPENAI_MAX_TOKENS';
 
 export const MIDSCENE_ADB_PATH = 'MIDSCENE_ADB_PATH';
@@ -37,141 +69,46 @@ export const MIDSCENE_USE_DOUBAO_VISION = 'MIDSCENE_USE_DOUBAO_VISION';
 export const MIDSCENE_USE_GEMINI = 'MIDSCENE_USE_GEMINI';
 export const MIDSCENE_USE_VL_MODEL = 'MIDSCENE_USE_VL_MODEL';
 export const MATCH_BY_POSITION = 'MATCH_BY_POSITION';
-export const MIDSCENE_API_TYPE = 'MIDSCENE-API-TYPE';
 export const MIDSCENE_REPORT_TAG_NAME = 'MIDSCENE_REPORT_TAG_NAME';
 
-export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
-  'MIDSCENE_REPLANNING_CYCLE_LIMIT';
-
 export const MIDSCENE_PREFERRED_LANGUAGE = 'MIDSCENE_PREFERRED_LANGUAGE';
-
-export const MIDSCENE_USE_AZURE_OPENAI = 'MIDSCENE_USE_AZURE_OPENAI';
-export const MIDSCENE_AZURE_OPENAI_SCOPE = 'MIDSCENE_AZURE_OPENAI_SCOPE';
-export const MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON';
 
 export const MIDSCENE_CACHE_MAX_FILENAME_LENGTH =
   'MIDSCENE_CACHE_MAX_FILENAME_LENGTH';
 
-export const AZURE_OPENAI_ENDPOINT = 'AZURE_OPENAI_ENDPOINT';
-export const AZURE_OPENAI_KEY = 'AZURE_OPENAI_KEY';
-export const AZURE_OPENAI_API_VERSION = 'AZURE_OPENAI_API_VERSION';
-export const AZURE_OPENAI_DEPLOYMENT = 'AZURE_OPENAI_DEPLOYMENT';
-
-export const MIDSCENE_USE_ANTHROPIC_SDK = 'MIDSCENE_USE_ANTHROPIC_SDK';
-export const ANTHROPIC_API_KEY = 'ANTHROPIC_API_KEY';
+export const MIDSCENE_REPLANNING_CYCLE_LIMIT =
+  'MIDSCENE_REPLANNING_CYCLE_LIMIT';
 
 export const MIDSCENE_RUN_DIR = 'MIDSCENE_RUN_DIR';
 
-// default new
-export const MIDSCENE_OPENAI_BASE_URL = 'MIDSCENE_OPENAI_BASE_URL';
-export const MIDSCENE_OPENAI_API_KEY = 'MIDSCENE_OPENAI_API_KEY';
-export const MIDSCENE_OPENAI_USE_AZURE = 'MIDSCENE_OPENAI_USE_AZURE';
-export const MIDSCENE_AZURE_OPENAI_KEY = 'MIDSCENE_AZURE_OPENAI_KEY';
-export const MIDSCENE_AZURE_OPENAI_ENDPOINT = 'MIDSCENE_AZURE_OPENAI_ENDPOINT';
-export const MIDSCENE_AZURE_OPENAI_API_VERSION =
-  'MIDSCENE_AZURE_OPENAI_API_VERSION';
-export const MIDSCENE_AZURE_OPENAI_DEPLOYMENT =
-  'MIDSCENE_AZURE_OPENAI_DEPLOYMENT';
-export const MIDSCENE_ANTHROPIC_API_KEY = 'MIDSCENE_ANTHROPIC_API_KEY';
-export const MIDSCENE_VL_MODE = 'MIDSCENE_VL_MODE';
-
-// VQA
-export const MIDSCENE_VQA_MODEL_NAME = 'MIDSCENE_VQA_MODEL_NAME';
-export const MIDSCENE_VQA_OPENAI_SOCKS_PROXY =
-  'MIDSCENE_VQA_OPENAI_SOCKS_PROXY';
-export const MIDSCENE_VQA_OPENAI_HTTP_PROXY = 'MIDSCENE_VQA_OPENAI_HTTP_PROXY';
-export const MIDSCENE_VQA_OPENAI_BASE_URL = 'MIDSCENE_VQA_OPENAI_BASE_URL';
-export const MIDSCENE_VQA_OPENAI_API_KEY = 'MIDSCENE_VQA_OPENAI_API_KEY';
-export const MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON';
-export const MIDSCENE_VQA_OPENAI_USE_AZURE = 'MIDSCENE_VQA_OPENAI_USE_AZURE';
-export const MIDSCENE_VQA_USE_AZURE_OPENAI = 'MIDSCENE_VQA_USE_AZURE_OPENAI';
-export const MIDSCENE_VQA_AZURE_OPENAI_SCOPE =
-  'MIDSCENE_VQA_AZURE_OPENAI_SCOPE';
-export const MIDSCENE_VQA_AZURE_OPENAI_KEY = 'MIDSCENE_VQA_AZURE_OPENAI_KEY';
-export const MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT =
-  'MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT';
-export const MIDSCENE_VQA_AZURE_OPENAI_API_VERSION =
-  'MIDSCENE_VQA_AZURE_OPENAI_API_VERSION';
-export const MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT =
-  'MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT';
-export const MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON';
-export const MIDSCENE_VQA_USE_ANTHROPIC_SDK = 'MIDSCENE_VQA_USE_ANTHROPIC_SDK';
-export const MIDSCENE_VQA_ANTHROPIC_API_KEY = 'MIDSCENE_VQA_ANTHROPIC_API_KEY';
-export const MIDSCENE_VQA_VL_MODE = 'MIDSCENE_VQA_VL_MODE';
+// INSIGHT (unified VQA and Grounding)
+export const MIDSCENE_INSIGHT_MODEL_NAME = 'MIDSCENE_INSIGHT_MODEL_NAME';
+export const MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY =
+  'MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY';
+export const MIDSCENE_INSIGHT_MODEL_HTTP_PROXY =
+  'MIDSCENE_INSIGHT_MODEL_HTTP_PROXY';
+export const MIDSCENE_INSIGHT_MODEL_BASE_URL =
+  'MIDSCENE_INSIGHT_MODEL_BASE_URL';
+export const MIDSCENE_INSIGHT_MODEL_API_KEY = 'MIDSCENE_INSIGHT_MODEL_API_KEY';
+export const MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON =
+  'MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_INSIGHT_MODEL_TIMEOUT = 'MIDSCENE_INSIGHT_MODEL_TIMEOUT';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
-export const MIDSCENE_PLANNING_OPENAI_SOCKS_PROXY =
-  'MIDSCENE_PLANNING_OPENAI_SOCKS_PROXY';
-export const MIDSCENE_PLANNING_OPENAI_HTTP_PROXY =
-  'MIDSCENE_PLANNING_OPENAI_HTTP_PROXY';
-export const MIDSCENE_PLANNING_OPENAI_BASE_URL =
-  'MIDSCENE_PLANNING_OPENAI_BASE_URL';
-export const MIDSCENE_PLANNING_OPENAI_API_KEY =
-  'MIDSCENE_PLANNING_OPENAI_API_KEY';
-export const MIDSCENE_PLANNING_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_PLANNING_OPENAI_INIT_CONFIG_JSON';
-export const MIDSCENE_PLANNING_OPENAI_USE_AZURE =
-  'MIDSCENE_PLANNING_OPENAI_USE_AZURE';
-export const MIDSCENE_PLANNING_USE_AZURE_OPENAI =
-  'MIDSCENE_PLANNING_USE_AZURE_OPENAI';
-export const MIDSCENE_PLANNING_AZURE_OPENAI_SCOPE =
-  'MIDSCENE_PLANNING_AZURE_OPENAI_SCOPE';
-export const MIDSCENE_PLANNING_AZURE_OPENAI_KEY =
-  'MIDSCENE_PLANNING_AZURE_OPENAI_KEY';
-export const MIDSCENE_PLANNING_AZURE_OPENAI_ENDPOINT =
-  'MIDSCENE_PLANNING_AZURE_OPENAI_ENDPOINT';
-export const MIDSCENE_PLANNING_AZURE_OPENAI_API_VERSION =
-  'MIDSCENE_PLANNING_AZURE_OPENAI_API_VERSION';
-export const MIDSCENE_PLANNING_AZURE_OPENAI_DEPLOYMENT =
-  'MIDSCENE_PLANNING_AZURE_OPENAI_DEPLOYMENT';
-export const MIDSCENE_PLANNING_AZURE_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_PLANNING_AZURE_OPENAI_INIT_CONFIG_JSON';
-export const MIDSCENE_PLANNING_USE_ANTHROPIC_SDK =
-  'MIDSCENE_PLANNING_USE_ANTHROPIC_SDK';
-export const MIDSCENE_PLANNING_ANTHROPIC_API_KEY =
-  'MIDSCENE_PLANNING_ANTHROPIC_API_KEY';
-export const MIDSCENE_PLANNING_VL_MODE = 'MIDSCENE_PLANNING_VL_MODE';
-
-// GROUNDING
-export const MIDSCENE_GROUNDING_MODEL_NAME = 'MIDSCENE_GROUNDING_MODEL_NAME';
-export const MIDSCENE_GROUNDING_OPENAI_SOCKS_PROXY =
-  'MIDSCENE_GROUNDING_OPENAI_SOCKS_PROXY';
-export const MIDSCENE_GROUNDING_OPENAI_HTTP_PROXY =
-  'MIDSCENE_GROUNDING_OPENAI_HTTP_PROXY';
-export const MIDSCENE_GROUNDING_OPENAI_BASE_URL =
-  'MIDSCENE_GROUNDING_OPENAI_BASE_URL';
-export const MIDSCENE_GROUNDING_OPENAI_API_KEY =
-  'MIDSCENE_GROUNDING_OPENAI_API_KEY';
-export const MIDSCENE_GROUNDING_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_GROUNDING_OPENAI_INIT_CONFIG_JSON';
-export const MIDSCENE_GROUNDING_OPENAI_USE_AZURE =
-  'MIDSCENE_GROUNDING_OPENAI_USE_AZURE';
-export const MIDSCENE_GROUNDING_USE_AZURE_OPENAI =
-  'MIDSCENE_GROUNDING_USE_AZURE_OPENAI';
-export const MIDSCENE_GROUNDING_AZURE_OPENAI_SCOPE =
-  'MIDSCENE_GROUNDING_AZURE_OPENAI_SCOPE';
-export const MIDSCENE_GROUNDING_AZURE_OPENAI_KEY =
-  'MIDSCENE_GROUNDING_AZURE_OPENAI_KEY';
-export const MIDSCENE_GROUNDING_AZURE_OPENAI_ENDPOINT =
-  'MIDSCENE_GROUNDING_AZURE_OPENAI_ENDPOINT';
-export const MIDSCENE_GROUNDING_AZURE_OPENAI_API_VERSION =
-  'MIDSCENE_GROUNDING_AZURE_OPENAI_API_VERSION';
-export const MIDSCENE_GROUNDING_AZURE_OPENAI_DEPLOYMENT =
-  'MIDSCENE_GROUNDING_AZURE_OPENAI_DEPLOYMENT';
-export const MIDSCENE_GROUNDING_AZURE_OPENAI_INIT_CONFIG_JSON =
-  'MIDSCENE_GROUNDING_AZURE_OPENAI_INIT_CONFIG_JSON';
-export const MIDSCENE_GROUNDING_USE_ANTHROPIC_SDK =
-  'MIDSCENE_GROUNDING_USE_ANTHROPIC_SDK';
-export const MIDSCENE_GROUNDING_ANTHROPIC_API_KEY =
-  'MIDSCENE_GROUNDING_ANTHROPIC_API_KEY';
-export const MIDSCENE_GROUNDING_VL_MODE = 'MIDSCENE_GROUNDING_VL_MODE';
-
-// @deprecated
-export const OPENAI_USE_AZURE = 'OPENAI_USE_AZURE';
+export const MIDSCENE_PLANNING_MODEL_SOCKS_PROXY =
+  'MIDSCENE_PLANNING_MODEL_SOCKS_PROXY';
+export const MIDSCENE_PLANNING_MODEL_HTTP_PROXY =
+  'MIDSCENE_PLANNING_MODEL_HTTP_PROXY';
+export const MIDSCENE_PLANNING_MODEL_BASE_URL =
+  'MIDSCENE_PLANNING_MODEL_BASE_URL';
+export const MIDSCENE_PLANNING_MODEL_API_KEY =
+  'MIDSCENE_PLANNING_MODEL_API_KEY';
+export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
+  'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
+export const MIDSCENE_PLANNING_MODEL_TIMEOUT =
+  'MIDSCENE_PLANNING_MODEL_TIMEOUT';
+export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
  * env keys declared but unused
@@ -184,17 +121,18 @@ export const UNUSED_ENV_KEYS = [MIDSCENE_DANGEROUSLY_PRINT_ALL_CONFIG];
  */
 export const BASIC_ENV_KEYS = [
   MIDSCENE_DEBUG_MODE,
-  MIDSCENE_DEBUG_AI_PROFILE,
-  MIDSCENE_DEBUG_AI_RESPONSE,
+  MIDSCENE_DEBUG_MODEL_PROFILE,
+  MIDSCENE_DEBUG_MODEL_RESPONSE,
   MIDSCENE_RUN_DIR,
 ] as const;
 
 export const BOOLEAN_ENV_KEYS = [
   MIDSCENE_CACHE,
-  MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_FORCE_DEEP_THINK,
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   MIDSCENE_MCP_ANDROID_MODE,
+  MIDSCENE_LANGSMITH_DEBUG,
+  MIDSCENE_LANGFUSE_DEBUG,
 ] as const;
 
 export const NUMBER_ENV_KEYS = [
@@ -203,6 +141,7 @@ export const NUMBER_ENV_KEYS = [
 ] as const;
 
 export const STRING_ENV_KEYS = [
+  MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
   MIDSCENE_ADB_PATH,
   MIDSCENE_ADB_REMOTE_HOST,
@@ -236,91 +175,41 @@ export const GLOBAL_ENV_KEYS = [
 export const MODEL_ENV_KEYS = [
   // model default
   MIDSCENE_MODEL_NAME,
-  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_OPENAI_API_KEY,
-  MIDSCENE_OPENAI_BASE_URL,
-  MIDSCENE_OPENAI_USE_AZURE,
-  MIDSCENE_OPENAI_SOCKS_PROXY,
-  MIDSCENE_OPENAI_HTTP_PROXY,
-  MIDSCENE_USE_AZURE_OPENAI,
-  MIDSCENE_AZURE_OPENAI_SCOPE,
-  MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_USE_ANTHROPIC_SDK,
+  MIDSCENE_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_SOCKS_PROXY,
+  MIDSCENE_MODEL_HTTP_PROXY,
+  MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
   MIDSCENE_USE_DOUBAO_VISION,
   MIDSCENE_USE_GEMINI,
   MIDSCENE_USE_VL_MODEL,
-  ANTHROPIC_API_KEY,
-  MIDSCENE_AZURE_OPENAI_ENDPOINT,
-  MIDSCENE_AZURE_OPENAI_KEY,
-  MIDSCENE_AZURE_OPENAI_API_VERSION,
-  MIDSCENE_AZURE_OPENAI_DEPLOYMENT,
-  MIDSCENE_VL_MODE,
   // model default legacy
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
-  OPENAI_USE_AZURE,
-  ANTHROPIC_API_KEY,
-  AZURE_OPENAI_ENDPOINT,
-  AZURE_OPENAI_KEY,
-  AZURE_OPENAI_API_VERSION,
-  AZURE_OPENAI_DEPLOYMENT,
-  // VQA
-  MIDSCENE_VQA_MODEL_NAME,
-  MIDSCENE_VQA_OPENAI_SOCKS_PROXY,
-  MIDSCENE_VQA_OPENAI_HTTP_PROXY,
-  MIDSCENE_VQA_OPENAI_BASE_URL,
-  MIDSCENE_VQA_OPENAI_API_KEY,
-  MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_VQA_OPENAI_USE_AZURE,
-  MIDSCENE_VQA_USE_AZURE_OPENAI,
-  MIDSCENE_VQA_AZURE_OPENAI_SCOPE,
-  MIDSCENE_VQA_AZURE_OPENAI_KEY,
-  MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT,
-  MIDSCENE_VQA_AZURE_OPENAI_API_VERSION,
-  MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT,
-  MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_VQA_USE_ANTHROPIC_SDK,
-  MIDSCENE_VQA_ANTHROPIC_API_KEY,
-  MIDSCENE_VQA_VL_MODE,
+  MIDSCENE_OPENAI_INIT_CONFIG_JSON,
+  MIDSCENE_OPENAI_HTTP_PROXY,
+  MIDSCENE_OPENAI_SOCKS_PROXY,
+  // INSIGHT (unified VQA and Grounding)
+  MIDSCENE_INSIGHT_MODEL_NAME,
+  MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
+  MIDSCENE_INSIGHT_MODEL_HTTP_PROXY,
+  MIDSCENE_INSIGHT_MODEL_BASE_URL,
+  MIDSCENE_INSIGHT_MODEL_API_KEY,
+  MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
-  MIDSCENE_PLANNING_OPENAI_SOCKS_PROXY,
-  MIDSCENE_PLANNING_OPENAI_HTTP_PROXY,
-  MIDSCENE_PLANNING_OPENAI_BASE_URL,
-  MIDSCENE_PLANNING_OPENAI_API_KEY,
-  MIDSCENE_PLANNING_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_PLANNING_OPENAI_USE_AZURE,
-  MIDSCENE_PLANNING_USE_AZURE_OPENAI,
-  MIDSCENE_PLANNING_AZURE_OPENAI_SCOPE,
-  MIDSCENE_PLANNING_AZURE_OPENAI_KEY,
-  MIDSCENE_PLANNING_AZURE_OPENAI_ENDPOINT,
-  MIDSCENE_PLANNING_AZURE_OPENAI_API_VERSION,
-  MIDSCENE_PLANNING_AZURE_OPENAI_DEPLOYMENT,
-  MIDSCENE_PLANNING_AZURE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_PLANNING_USE_ANTHROPIC_SDK,
-  MIDSCENE_PLANNING_ANTHROPIC_API_KEY,
-  MIDSCENE_PLANNING_VL_MODE,
-  // GROUNDING
-  MIDSCENE_GROUNDING_MODEL_NAME,
-  MIDSCENE_GROUNDING_OPENAI_SOCKS_PROXY,
-  MIDSCENE_GROUNDING_OPENAI_HTTP_PROXY,
-  MIDSCENE_GROUNDING_OPENAI_BASE_URL,
-  MIDSCENE_GROUNDING_OPENAI_API_KEY,
-  MIDSCENE_GROUNDING_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_GROUNDING_OPENAI_USE_AZURE,
-  MIDSCENE_GROUNDING_USE_AZURE_OPENAI,
-  MIDSCENE_GROUNDING_AZURE_OPENAI_SCOPE,
-  MIDSCENE_GROUNDING_AZURE_OPENAI_KEY,
-  MIDSCENE_GROUNDING_AZURE_OPENAI_ENDPOINT,
-  MIDSCENE_GROUNDING_AZURE_OPENAI_API_VERSION,
-  MIDSCENE_GROUNDING_AZURE_OPENAI_DEPLOYMENT,
-  MIDSCENE_GROUNDING_AZURE_OPENAI_INIT_CONFIG_JSON,
-  MIDSCENE_GROUNDING_USE_ANTHROPIC_SDK,
-  MIDSCENE_GROUNDING_ANTHROPIC_API_KEY,
-  MIDSCENE_GROUNDING_VL_MODE,
+  MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
+  MIDSCENE_PLANNING_MODEL_HTTP_PROXY,
+  MIDSCENE_PLANNING_MODEL_BASE_URL,
+  MIDSCENE_PLANNING_MODEL_API_KEY,
+  MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
+  MIDSCENE_PLANNING_MODEL_TIMEOUT,
+  MIDSCENE_MODEL_FAMILY,
 ] as const;
 
 export const ALL_ENV_KEYS = [
@@ -334,7 +223,7 @@ export type TEnvKeys = (typeof ALL_ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
 export type TVlModeValues =
-  | 'qwen-vl'
+  | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
@@ -343,114 +232,91 @@ export type TVlModeValues =
   | 'vlm-ui-tars-doubao-1.5';
 
 export type TVlModeTypes =
-  | 'qwen-vl'
+  | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars';
 
-export interface IModelConfigForVQA {
+export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
+  'doubao-vision',
+  'gemini',
+  'qwen2.5-vl',
+  'qwen3-vl',
+  'vlm-ui-tars',
+  'vlm-ui-tars-doubao',
+  'vlm-ui-tars-doubao-1.5',
+];
+
+/**
+ * Model family values - unified model configuration approach
+ * Replaces the old MIDSCENE_USE_* environment variables
+ *
+ * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
+ * - 'qwen2.5-vl' is Qwen 2.5
+ * - 'qwen3-vl' is Qwen 3
+ */
+export type TModelFamily = TVlModeValues;
+
+export const MODEL_FAMILY_VALUES: TVlModeValues[] = [
+  ...VL_MODE_RAW_VALID_VALUES,
+];
+
+export interface IModelConfigForInsight {
   // model name
-  [MIDSCENE_VQA_MODEL_NAME]: string;
+  [MIDSCENE_INSIGHT_MODEL_NAME]: string;
   // proxy
-  [MIDSCENE_VQA_OPENAI_SOCKS_PROXY]?: string;
-  [MIDSCENE_VQA_OPENAI_HTTP_PROXY]?: string;
+  [MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_INSIGHT_MODEL_HTTP_PROXY]?: string;
   // OpenAI
-  [MIDSCENE_VQA_OPENAI_BASE_URL]?: string;
-  [MIDSCENE_VQA_OPENAI_API_KEY]?: string;
-  [MIDSCENE_VQA_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Azure
-  [MIDSCENE_VQA_OPENAI_USE_AZURE]?: string;
-  [MIDSCENE_VQA_USE_AZURE_OPENAI]?: string;
-  [MIDSCENE_VQA_AZURE_OPENAI_SCOPE]?: string;
-  [MIDSCENE_VQA_AZURE_OPENAI_KEY]?: string;
-  [MIDSCENE_VQA_AZURE_OPENAI_ENDPOINT]?: string;
-  [MIDSCENE_VQA_AZURE_OPENAI_API_VERSION]?: string;
-  [MIDSCENE_VQA_AZURE_OPENAI_DEPLOYMENT]?: string;
-  [MIDSCENE_VQA_AZURE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Anthropic
-  [MIDSCENE_VQA_USE_ANTHROPIC_SDK]?: string;
-  [MIDSCENE_VQA_ANTHROPIC_API_KEY]?: string;
-  // extra
-  [MIDSCENE_VQA_VL_MODE]?: TVlModeValues;
+  [MIDSCENE_INSIGHT_MODEL_BASE_URL]?: string;
+  [MIDSCENE_INSIGHT_MODEL_API_KEY]?: string;
+  [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
+  // timeout
+  [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
 }
 
 export interface IModelConfigForPlanning {
   // model name
   [MIDSCENE_PLANNING_MODEL_NAME]: string;
   // proxy
-  [MIDSCENE_PLANNING_OPENAI_SOCKS_PROXY]?: string;
-  [MIDSCENE_PLANNING_OPENAI_HTTP_PROXY]?: string;
+  [MIDSCENE_PLANNING_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_PLANNING_MODEL_HTTP_PROXY]?: string;
   // OpenAI
-  [MIDSCENE_PLANNING_OPENAI_BASE_URL]?: string;
-  [MIDSCENE_PLANNING_OPENAI_API_KEY]?: string;
-  [MIDSCENE_PLANNING_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Azure
-  [MIDSCENE_PLANNING_OPENAI_USE_AZURE]?: string;
-  [MIDSCENE_PLANNING_USE_AZURE_OPENAI]?: string;
-  [MIDSCENE_PLANNING_AZURE_OPENAI_SCOPE]?: string;
-  [MIDSCENE_PLANNING_AZURE_OPENAI_KEY]?: string;
-  [MIDSCENE_PLANNING_AZURE_OPENAI_ENDPOINT]?: string;
-  [MIDSCENE_PLANNING_AZURE_OPENAI_API_VERSION]?: string;
-  [MIDSCENE_PLANNING_AZURE_OPENAI_DEPLOYMENT]?: string;
-  [MIDSCENE_PLANNING_AZURE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Anthropic
-  [MIDSCENE_PLANNING_USE_ANTHROPIC_SDK]?: string;
-  [MIDSCENE_PLANNING_ANTHROPIC_API_KEY]?: string;
-  // extra
-  [MIDSCENE_PLANNING_VL_MODE]?: TVlModeValues;
+  [MIDSCENE_PLANNING_MODEL_BASE_URL]?: string;
+  [MIDSCENE_PLANNING_MODEL_API_KEY]?: string;
+  [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
+  // timeout
+  [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
 }
 
-export interface IModeConfigForGrounding {
-  // model name
-  [MIDSCENE_GROUNDING_MODEL_NAME]: string;
-  // proxy
-  [MIDSCENE_GROUNDING_OPENAI_SOCKS_PROXY]?: string;
-  [MIDSCENE_GROUNDING_OPENAI_HTTP_PROXY]?: string;
-  // OpenAI
-  [MIDSCENE_GROUNDING_OPENAI_BASE_URL]?: string;
-  [MIDSCENE_GROUNDING_OPENAI_API_KEY]?: string;
-  [MIDSCENE_GROUNDING_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Azure
-  [MIDSCENE_GROUNDING_OPENAI_USE_AZURE]?: string;
-  [MIDSCENE_GROUNDING_USE_AZURE_OPENAI]?: string;
-  [MIDSCENE_GROUNDING_AZURE_OPENAI_SCOPE]?: string;
-  [MIDSCENE_GROUNDING_AZURE_OPENAI_KEY]?: string;
-  [MIDSCENE_GROUNDING_AZURE_OPENAI_ENDPOINT]?: string;
-  [MIDSCENE_GROUNDING_AZURE_OPENAI_API_VERSION]?: string;
-  [MIDSCENE_GROUNDING_AZURE_OPENAI_DEPLOYMENT]?: string;
-  [MIDSCENE_GROUNDING_AZURE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Anthropic
-  [MIDSCENE_GROUNDING_USE_ANTHROPIC_SDK]?: string;
-  [MIDSCENE_GROUNDING_ANTHROPIC_API_KEY]?: string;
-  // extra
-  [MIDSCENE_GROUNDING_VL_MODE]?: TVlModeValues;
-}
-
+/**
+ * Model configuration for Planning intent.
+ *
+ * IMPORTANT: Planning MUST use a vision language model (VL mode).
+ * DOM-based planning is not supported.
+ *
+ * Required: MIDSCENE_MODEL_FAMILY must be set to one of:
+ *   - 'qwen2.5-vl'
+ *   - 'qwen3-vl'
+ *   - 'gemini'
+ *   - 'doubao-vision'
+ *   - 'vlm-ui-tars'
+ *   - 'vlm-ui-tars-doubao'
+ *   - 'vlm-ui-tars-doubao-1.5'
+ */
 export interface IModelConfigForDefault {
   // model name
   [MIDSCENE_MODEL_NAME]: string;
   // proxy
-  [MIDSCENE_OPENAI_SOCKS_PROXY]?: string;
-  [MIDSCENE_OPENAI_HTTP_PROXY]?: string;
+  [MIDSCENE_MODEL_SOCKS_PROXY]?: string;
+  [MIDSCENE_MODEL_HTTP_PROXY]?: string;
   // OpenAI
-  [MIDSCENE_OPENAI_BASE_URL]?: string;
-  [MIDSCENE_OPENAI_API_KEY]?: string;
-  [MIDSCENE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Azure
-  [MIDSCENE_OPENAI_USE_AZURE]?: string;
-  [MIDSCENE_USE_AZURE_OPENAI]?: string;
-  [MIDSCENE_AZURE_OPENAI_SCOPE]?: string;
-  [MIDSCENE_AZURE_OPENAI_KEY]?: string;
-  [MIDSCENE_AZURE_OPENAI_ENDPOINT]?: string;
-  [MIDSCENE_AZURE_OPENAI_API_VERSION]?: string;
-  [MIDSCENE_AZURE_OPENAI_DEPLOYMENT]?: string;
-  [MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Anthropic
-  [MIDSCENE_USE_ANTHROPIC_SDK]?: string;
-  [MIDSCENE_ANTHROPIC_API_KEY]?: string;
+  [MIDSCENE_MODEL_BASE_URL]?: string;
+  [MIDSCENE_MODEL_API_KEY]?: string;
+  [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_VL_MODE]?: TVlModeValues;
+  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -463,37 +329,20 @@ export interface IModelConfigForDefaultLegacy {
   [OPENAI_BASE_URL]?: string;
   [OPENAI_API_KEY]?: string;
   [MIDSCENE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Azure
-  [OPENAI_USE_AZURE]?: string;
-  [MIDSCENE_USE_AZURE_OPENAI]?: string;
-  [MIDSCENE_AZURE_OPENAI_SCOPE]?: string;
-  [AZURE_OPENAI_KEY]?: string;
-  [AZURE_OPENAI_ENDPOINT]?: string;
-  [AZURE_OPENAI_API_VERSION]?: string;
-  [AZURE_OPENAI_DEPLOYMENT]?: string;
-  [MIDSCENE_AZURE_OPENAI_INIT_CONFIG_JSON]?: string;
-  // Anthropic
-  [MIDSCENE_USE_ANTHROPIC_SDK]?: string;
-  [ANTHROPIC_API_KEY]?: string;
-  // extra
-  [MIDSCENE_VL_MODE]?: TVlModeValues;
 }
 
 /**
- * - VQA: Visual Question Answering
- * - grounding：short for Visual Grounding
+ * - insight: Visual Question Answering and Visual Grounding (unified)
  * - planning: planning
- * - default: all except VQA、grounding、planning
+ * - default: all except insight、planning
  */
-export type TIntent = 'VQA' | 'planning' | 'grounding' | 'default';
+export type TIntent = 'insight' | 'planning' | 'default';
 
-export type TModelConfigFn = (options: {
-  intent: TIntent;
-}) =>
-  | IModelConfigForVQA
-  | IModelConfigForPlanning
-  | IModeConfigForGrounding
-  | IModelConfigForDefault;
+/**
+ * Env-style model configuration map supplied directly to the agent.
+ * Numbers are allowed so callers can pass numeric env values (e.g. limits) without casting.
+ */
+export type TModelConfig = Record<string, string | number>;
 
 export enum UITarsModelVersion {
   V1_0 = '1.0',
@@ -502,15 +351,36 @@ export enum UITarsModelVersion {
   DOUBAO_1_5_20B = 'doubao-1.5-20B',
 }
 
-export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
-  'doubao-vision',
-  'gemini',
-  'qwen-vl',
-  'qwen3-vl',
-  'vlm-ui-tars',
-  'vlm-ui-tars-doubao',
-  'vlm-ui-tars-doubao-1.5',
-];
+/**
+ * Callback to create custom OpenAI client instance
+ * @param config - Resolved model configuration including apiKey, baseURL, modelName, intent, etc.
+ * @returns OpenAI client instance (can be wrapped with langsmith, langfuse, etc.)
+ *
+ * Note: Wrapper functions like langsmith's wrapOpenAI() return the same OpenAI instance
+ * with enhanced behavior, so the return type remains compatible with OpenAI.
+ *
+ * Note: The return type is `any` in the shared package to avoid requiring openai as a dependency.
+ * The actual implementation should return an OpenAI instance.
+ *
+ * @example
+ * ```typescript
+ * import OpenAI from 'openai';
+ * import { wrapOpenAI } from 'langsmith/wrappers';
+ *
+ * createOpenAIClient: async (openai, opts) => {
+ *   // Wrap with langsmith for planning tasks
+ *   if (opts.baseURL?.includes('planning')) {
+ *     return wrapOpenAI(openai, { metadata: { task: 'planning' } });
+ *   }
+ *
+ *   return openai;
+ * }
+ * ```
+ */
+export type CreateOpenAIClientFn = (
+  openAIInstance: any,
+  options: Record<string, unknown>,
+) => Promise<any>; // OpenAI instance, but typed as `any` to avoid dependency
 
 export interface IModelConfig {
   /**
@@ -529,32 +399,30 @@ export interface IModelConfig {
   openaiApiKey?: string;
   openaiExtraConfig?: Record<string, unknown>;
   /**
-   * Azure
+   * Timeout for API calls in milliseconds.
+   * If not set, uses OpenAI SDK default (10 minutes).
    */
-  openaiUseAzureDeprecated?: boolean;
-  useAzureOpenai?: boolean;
-  azureOpenaiScope?: string;
-  azureOpenaiKey?: string;
-  azureOpenaiEndpoint?: string;
-  azureOpenaiApiVersion?: string;
-  azureOpenaiDeployment?: string;
-  azureExtraConfig?: Record<string, unknown>;
+  timeout?: number;
   /**
-   * Anthropic
-   */
-  useAnthropicSdk?: boolean;
-  anthropicApiKey?: string;
-  /**
-   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
-   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen-vl', 'vlm-ui-tars'
+   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
+   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'
    */
   vlModeRaw?: string;
   vlMode?: TVlModeTypes;
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**
-   * for debug
+   * original intent from the config
    */
   intent: TIntent;
-  from: 'modelConfig' | 'env' | 'legacy-env';
+  /**
+   * Custom OpenAI client factory function
+   *
+   * If provided, this function will be called to create OpenAI client instances
+   * for each AI call, allowing you to:
+   * - Wrap clients with observability tools (langsmith, langfuse)
+   * - Use custom OpenAI-compatible clients
+   * - Apply different configurations based on intent
+   */
+  createOpenAIClient?: CreateOpenAIClientFn;
 }

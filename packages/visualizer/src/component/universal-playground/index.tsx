@@ -3,7 +3,7 @@ import Icon, {
   LoadingOutlined,
   ArrowDownOutlined,
 } from '@ant-design/icons';
-import { Button, Form, List, Tooltip, Typography, message } from 'antd';
+import { Alert, Button, Form, List, Typography, message } from 'antd';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePlaygroundExecution } from '../../hooks/usePlaygroundExecution';
 import { usePlaygroundState } from '../../hooks/usePlaygroundState';
@@ -14,7 +14,9 @@ import { EnvConfigReminder } from '../env-config-reminder';
 import { PlaygroundResultView } from '../playground-result';
 import './index.less';
 import PlaygroundIcon from '../../icons/avatar.svg';
+import { defaultMainButtons } from '../../utils/constants';
 import { PromptInput } from '../prompt-input';
+import ShinyText from '../shiny-text';
 import {
   createStorageProvider,
   detectBestStorageType,
@@ -24,6 +26,10 @@ const { Text } = Typography;
 
 // Function to get stable ID for SDK (adapter-driven)
 function getSDKId(sdk: any): string {
+  // Handle null/undefined SDK
+  if (!sdk) {
+    return 'playground-default';
+  }
   // Primary: Use adapter ID if available (works for both remote and local)
   if (sdk.id && typeof sdk.id === 'string') {
     return `agent-${sdk.id}`;
@@ -34,17 +40,14 @@ function getSDKId(sdk: any): string {
 
 function ErrorMessage({ error }: { error: string }) {
   if (!error) return null;
+  // Ensure only one "Error: " prefix and style it red
+  const cleanError = error.replace(/^(Error:\s*)+/, 'Error: ');
   return (
-    <Tooltip
-      title={
-        <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-          {error}
-        </span>
-      }
-      overlayStyle={{ maxWidth: '100vw' }}
-    >
-      Error: {error.split('\n')[0]}
-    </Tooltip>
+    <Alert
+      message={<span style={{ color: '#ff4d4f' }}>{cleanError}</span>}
+      type="error"
+      showIcon
+    />
   );
 }
 
@@ -61,6 +64,13 @@ export function UniversalPlayground({
   const [form] = Form.useForm();
   const { config } = useEnvConfig();
   const [sdkReady, setSdkReady] = useState(false);
+
+  // Initialize form with default type on mount
+  useEffect(() => {
+    form.setFieldsValue({
+      type: defaultMainButtons[0],
+    });
+  }, [form]);
 
   // Initialize SDK ID on mount for remote execution
   useEffect(() => {
@@ -140,7 +150,6 @@ export function UniversalPlayground({
     actionSpace,
     loading,
     setLoading,
-    infoList,
     setInfoList,
     replayCounter,
     setReplayCounter,
@@ -179,11 +188,20 @@ export function UniversalPlayground({
   // Get the currently selected type
   const selectedType = Form.useWatch('type', form);
 
+  // Determine service mode based on SDK adapter type
+  const serviceMode = useMemo(() => {
+    if (!playgroundSDK || typeof playgroundSDK.getServiceMode !== 'function') {
+      return 'Server'; // Default fallback
+    }
+    return playgroundSDK.getServiceMode();
+  }, [playgroundSDK]);
+
   // Apply configuration
   const finalShowContextPreview =
     showContextPreview && componentConfig.showContextPreview !== false;
   const layout = componentConfig.layout || 'vertical';
   const showVersionInfo = componentConfig.showVersionInfo !== false;
+  const deviceType = componentConfig.deviceType;
 
   return (
     <div className={`playground-container ${layout}-mode ${className}`.trim()}>
@@ -269,9 +287,11 @@ export function UniversalPlayground({
                             )}
                             {description && (
                               <div>
-                                <span className="progress-description">
-                                  {description}
-                                </span>
+                                <ShinyText
+                                  text={description}
+                                  className="progress-description"
+                                  disabled={!shouldShowLoading}
+                                />
                               </div>
                             )}
                             {item.result?.error && (
@@ -305,18 +325,12 @@ export function UniversalPlayground({
                       </div>
                       {(item.content || item.result) && (
                         <div className="system-message-content">
-                          {item.type === 'result' && item.result?.error && (
-                            <div className="error-message">
-                              <div className="divider" />
-                              <ErrorMessage error={item.result.error} />
-                            </div>
-                          )}
                           {item.type === 'result' ? (
                             <PlaygroundResultView
                               result={item.result || null}
                               loading={item.loading || false}
                               serverValid={true}
-                              serviceMode={'Server'}
+                              serviceMode={serviceMode}
                               replayScriptsInfo={item.replayScriptsInfo || null}
                               replayCounter={item.replayCounter || 0}
                               loadingProgressText={
@@ -324,6 +338,7 @@ export function UniversalPlayground({
                               }
                               verticalMode={item.verticalMode || false}
                               fitMode="width"
+                              actionType={item.actionType}
                             />
                           ) : (
                             <>
@@ -366,7 +381,7 @@ export function UniversalPlayground({
           <PromptInput
             runButtonEnabled={runButtonEnabled}
             form={form}
-            serviceMode={'Server'}
+            serviceMode={serviceMode}
             selectedType={selectedType}
             dryMode={dryMode}
             stoppable={canStop}
@@ -374,6 +389,7 @@ export function UniversalPlayground({
             onRun={handleFormRun}
             onStop={handleStop}
             actionSpace={actionSpace}
+            deviceType={deviceType}
           />
         </div>
 

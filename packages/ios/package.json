@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios",
-  "version": "0.30.10",
+  "version": "1.0.0",
   "description": "iOS automation library for Midscene",
   "keywords": [
     "iOS UI automation",
@@ -33,7 +33,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
-    "build:watch": "rslib build --watch",
+    "build:watch": "rslib build --watch --no-clean",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
@@ -49,12 +49,13 @@
   },
   "devDependencies": {
     "@midscene/playground": "workspace:*",
-    "@rslib/core": "^0.11.2",
+    "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
     "typescript": "^5.8.3",
     "tsx": "^4.19.2",
-    "vitest": "3.0.5"
+    "vitest": "3.0.5",
+    "zod": "3.24.3"
   },
   "license": "MIT"
 }

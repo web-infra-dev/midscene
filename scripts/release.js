@@ -222,6 +222,15 @@ async function publish(version) {
       releaseTag = 'rc';
     }
 
+    // Validate version: do not allow publishing 1.x stable releases (latest tag)
+    // Only allow beta versions (prepatch) for 1.x
+    const majorVersion = semver.major(version);
+    if (majorVersion === 1 && releaseTag === 'latest') {
+      const errorMsg = `Publishing 1.x stable releases (latest tag) is not allowed. Current version: ${version}. Only beta versions (prepatch) are allowed for 1.x.`;
+      console.error(chalk.red(errorMsg));
+      throw new Error(errorMsg);
+    }
+
     let publishArgs = [
       '-r',
       'publish',

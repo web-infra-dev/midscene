@@ -1,4 +1,3 @@
-import { getDebug } from '../logger';
 import { initDebugConfig } from './init-debug';
 import type { ModelConfigManager } from './model-config-manager';
 import {
@@ -62,14 +61,16 @@ export class GlobalConfigManager {
   getEnvConfigValue(key: (typeof STRING_ENV_KEYS)[number]) {
     const allConfig = this.getAllEnvConfig();
 
+    if (key === MATCH_BY_POSITION) {
+      throw new Error(
+        'MATCH_BY_POSITION is discarded, use MIDSCENE_MODEL_FAMILY instead',
+      );
+    }
+
     if (!STRING_ENV_KEYS.includes(key)) {
       throw new Error(`getEnvConfigValue with key ${key} is not supported.`);
     }
-    if (key === MATCH_BY_POSITION) {
-      throw new Error(
-        'MATCH_BY_POSITION is deprecated, use MIDSCENE_USE_VL_MODEL instead',
-      );
-    }
+
     const value = allConfig[key];
     this.keysHaveBeenRead[key] = true;
     if (typeof value === 'string') {
@@ -122,8 +123,7 @@ export class GlobalConfigManager {
   }
 
   /**
-   * for overrideAIConfig
-   * can only override keys in MODEL_ENV_KEYS
+   * @deprecated use the modelConfig param in Agent constructor instead
    */
   overrideAIConfig(
     newConfig: Partial<

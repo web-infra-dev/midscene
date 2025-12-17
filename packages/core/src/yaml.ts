@@ -1,19 +1,20 @@
-import type { TUserPrompt } from './ai-model/common';
-import type { AgentOpt, Rect } from './types';
-import type { BaseElement, UIContext } from './types';
+import type { TUserPrompt } from './common';
+import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
+import type { AgentOpt, LocateResultElement, Rect } from './types';
+import type { UIContext } from './types';
 
 export interface LocateOption {
   prompt?: TUserPrompt;
   deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
-  uiContext?: UIContext<BaseElement>;
+  uiContext?: UIContext;
 }
 
-export interface InsightExtractOption {
+export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
-  doNotThrowError?: boolean;
+  [key: string]: unknown;
 }
 
 export interface ReferenceImage {
@@ -26,11 +27,19 @@ export interface DetailedLocateParam extends LocateOption {
   referenceImage?: ReferenceImage;
 }
 
-export interface ScrollParam {
-  direction: 'down' | 'up' | 'right' | 'left';
-  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance?: null | number; // distance in px
-}
+export type ActionScrollParam = {
+  direction?: 'down' | 'up' | 'right' | 'left';
+  scrollType?:
+    | 'singleAction'
+    | 'scrollToBottom'
+    | 'scrollToTop'
+    | 'scrollToRight'
+    | 'scrollToLeft';
+  distance?: number | null;
+  locate?: LocateResultElement;
+};
+
+export type ScrollParam = Omit<ActionScrollParam, 'locate'>;
 
 export interface MidsceneYamlScript {
   // @deprecated
@@ -53,9 +62,41 @@ export interface MidsceneYamlTask {
   continueOnError?: boolean;
 }
 
+/**
+ * Agent configuration options that can be specified in YAML scripts.
+ *
+ * This type includes serializable fields from AgentOpt, excluding non-serializable
+ * fields like functions and complex objects. All fields are optional.
+ *
+ * @remarks
+ * - testId priority: CLI parameter > YAML agent.testId > filename
+ * - These settings apply to all platforms (Web, Android, iOS, Generic Interface)
+ * - modelConfig is configured through environment variables, not in YAML
+ *
+ * @example
+ * ```yaml
+ * agent:
+ *   testId: "checkout-test"
+ *   groupName: "E2E Test Suite"
+ *   generateReport: true
+ *   replanningCycleLimit: 30
+ *   cache:
+ *     id: "checkout-cache"
+ *     strategy: "read-write"
+ * ```
+ */
 export type MidsceneYamlScriptAgentOpt = Pick<
   AgentOpt,
-  'aiActionContext' | 'cache'
+  | 'testId'
+  | 'groupName'
+  | 'groupDescription'
+  | 'generateReport'
+  | 'autoPrintReportMsg'
+  | 'reportFileName'
+  | 'replanningCycleLimit'
+  | 'aiActContext'
+  | 'aiActionContext'
+  | 'cache'
 >;
 
 export interface MidsceneYamlScriptConfig {
@@ -90,12 +131,35 @@ export interface MidsceneYamlScriptWebEnv
   cookie?: string;
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
+  /**
+   * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
+   *
+   * Allows passing custom command-line arguments to Chrome/Chromium when launching the browser.
+   * This is useful for testing scenarios that require specific browser configurations.
+   *
+   * ⚠️ Security Warning: Some arguments (e.g., --no-sandbox, --disable-web-security) may
+   * reduce browser security. Use only in controlled testing environments.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   chromeArgs:
+   *     - '--disable-features=ThirdPartyCookiePhaseout'
+   *     - '--disable-features=SameSiteByDefaultCookies'
+   *     - '--window-size=1920,1080'
+   * ```
+   */
+  chromeArgs?: string[];
+
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
   closeNewTabsAfterDisconnect?: boolean;
 }
 
-export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
+export interface MidsceneYamlScriptAndroidEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<AndroidDeviceOpt, 'customActions'> {
   // The Android device ID to connect to, optional, will use the first device if not specified
   deviceId?: string;
 
@@ -103,14 +167,9 @@ export interface MidsceneYamlScriptAndroidEnv extends MidsceneYamlScriptConfig {
   launch?: string;
 }
 
-export interface MidsceneYamlScriptIOSEnv extends MidsceneYamlScriptConfig {
-  // WebDriverAgent configuration
-  wdaPort?: number;
-  wdaHost?: string;
-
-  // Keyboard behavior configuration
-  autoDismissKeyboard?: boolean;
-
+export interface MidsceneYamlScriptIOSEnv
+  extends MidsceneYamlScriptConfig,
+    Omit<IOSDeviceOpt, 'customActions'> {
   // The URL or app bundle ID to launch, optional, will use the current screen if not specified
   launch?: string;
 }
@@ -121,51 +180,27 @@ export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptIOSEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
-  ai?: string; // this is the shortcut for aiAction
+  // defined as aiAction for backward compatibility
   aiAction?: string;
+  ai?: string; // this is the shortcut for aiAct
+  aiAct?: string;
   aiActionProgressTips?: string[];
   cacheable?: boolean;
+  _deepThink?: boolean;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIAssert {
   aiAssert: string;
   errorMessage?: string;
   name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIQuery extends InsightExtractOption {
-  aiQuery: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAINumber extends InsightExtractOption {
-  aiNumber: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIString extends InsightExtractOption {
-  aiString: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIAsk extends InsightExtractOption {
-  aiAsk: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAIBoolean extends InsightExtractOption {
-  aiBoolean: string;
-  name?: string;
-}
-
-export interface MidsceneYamlFlowItemAILocate extends LocateOption {
-  aiLocate: string;
-  name?: string;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor {
   aiWaitFor: string;
   timeout?: number;
+  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {
@@ -179,14 +214,15 @@ export interface MidsceneYamlFlowItemSleep {
 
 export interface MidsceneYamlFlowItemLogScreenshot {
   logScreenshot?: string; // optional, the title of the screenshot
+  recordToReport?: string; // preferred key for record title
   content?: string;
 }
 
 export type MidsceneYamlFlowItem =
   | MidsceneYamlFlowItemAIAction
   | MidsceneYamlFlowItemAIAssert
-  | MidsceneYamlFlowItemAIQuery
   | MidsceneYamlFlowItemAIWaitFor
+  | MidsceneYamlFlowItemEvaluateJavaScript
   | MidsceneYamlFlowItemSleep
   | MidsceneYamlFlowItemLogScreenshot;
 

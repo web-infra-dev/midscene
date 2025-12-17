@@ -11,6 +11,7 @@ const mockPage = {
   mouse: {
     click: vi.fn(),
   },
+  actionSpace: vi.fn(() => []),
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
   size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
@@ -19,6 +20,12 @@ const mockPage = {
     return await WebPageContextParser(this, {});
   }),
 } as unknown as WebPage;
+
+const mockedModelConfig = {
+  MIDSCENE_MODEL_NAME: 'mock-model',
+  MIDSCENE_MODEL_API_KEY: 'mock-api-key',
+  MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
+};
 
 describe('PageAgent freeze/unfreeze page context', () => {
   let agent: PageAgent;
@@ -65,13 +72,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
     agent = new PageAgent(mockPage, {
       generateReport: false,
       autoPrintReportMsg: false,
-      modelConfig: () => {
-        return {
-          MIDSCENE_MODEL_NAME: 'mock-model',
-          MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-          MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
-        };
-      },
+      modelConfig: mockedModelConfig,
     });
 
     // Mock _snapshotContext method to return different contexts on successive calls
@@ -164,13 +165,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       const agent2 = new PageAgent(mockPage, {
         generateReport: false,
         autoPrintReportMsg: false,
-        modelConfig: () => {
-          return {
-            MIDSCENE_MODEL_NAME: 'mock-model',
-            MIDSCENE_OPENAI_API_KEY: 'mock-api-key',
-            MIDSCENE_OPENAI_BASE_URL: 'mock-base-url',
-          };
-        },
+        modelConfig: mockedModelConfig,
       });
 
       // Mock second agent's _snapshotContext

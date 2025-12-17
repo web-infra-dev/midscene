@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - "v1"
       
 permissions:
   contents: read
@@ -49,4 +50,3 @@ jobs:
 
     - name: Biome lint
       run: npx biome check . --diagnostic-level=warn --no-errors-on-unmatched
-

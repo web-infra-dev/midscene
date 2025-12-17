@@ -2,13 +2,13 @@ import { PlaygroundSDK } from '@midscene/playground';
 import {
   Logo,
   NavActions,
+  ScreenshotViewer,
   UniversalPlayground,
   globalThemeConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import ScreenshotViewer from './components/screenshot-viewer';
 import serverOfflineBackground from './icons/server-offline-background.svg';
 import serverOfflineForeground from './icons/server-offline-foreground.svg';
 
@@ -23,6 +23,9 @@ export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [deviceType, setDeviceType] = useState<'web' | 'android' | 'ios'>(
+    'web',
+  );
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
@@ -50,6 +53,21 @@ export default function App() {
       try {
         const online = await playgroundSDK.checkStatus();
         setServerOnline(online);
+
+        // Get device type from server if online
+        if (online) {
+          try {
+            const interfaceInfo = await playgroundSDK.getInterfaceInfo();
+            if (interfaceInfo?.type) {
+              const type = interfaceInfo.type.toLowerCase();
+              if (type === 'android' || type === 'ios' || type === 'web') {
+                setDeviceType(type as 'web' | 'android' | 'ios');
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to get interface info:', error);
+          }
+        }
       } catch (error) {
         console.error('Failed to check server status:', error);
         setServerOnline(false);
@@ -145,6 +163,7 @@ export default function App() {
                       enableScrollToBottom: true,
                       serverMode: true,
                       showEnvConfigReminder: true,
+                      deviceType,
                     }}
                     branding={{
                       title: 'Playground',
@@ -164,7 +183,8 @@ export default function App() {
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
                 <ScreenshotViewer
-                  playgroundSDK={playgroundSDK}
+                  getScreenshot={() => playgroundSDK.getScreenshot()}
+                  getInterfaceInfo={() => playgroundSDK.getInterfaceInfo()}
                   serverOnline={serverOnline}
                   isUserOperating={isUserOperating}
                 />

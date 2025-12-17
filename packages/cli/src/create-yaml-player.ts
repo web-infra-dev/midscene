@@ -6,8 +6,10 @@ import { createServer } from 'http-server';
 import assert from 'node:assert';
 import { agentFromAdbDevice } from '@midscene/android';
 import type {
+  AgentOpt,
   FreeFn,
   MidsceneYamlScript,
+  MidsceneYamlScriptAgentOpt,
   MidsceneYamlScriptEnv,
 } from '@midscene/core';
 import { createAgent } from '@midscene/core/agent';
@@ -41,6 +43,34 @@ export const launchServer = async (
   });
 };
 
+/**
+ * Resolves the testId with proper priority handling.
+ * Priority: CLI testId > YAML testId > fileName
+ */
+function resolveTestId(
+  cliTestId: string | undefined,
+  yamlTestId: string | undefined,
+  fileName: string,
+): string {
+  return cliTestId ?? yamlTestId ?? fileName;
+}
+
+/**
+ * Builds agent options by merging YAML agent config with processed cache and testId.
+ * Handles the spread of agent options and ensures proper cache configuration.
+ */
+function buildAgentOptions(
+  yamlAgent: MidsceneYamlScriptAgentOpt | undefined,
+  preferenceTestId: string,
+  fileName: string,
+): Partial<AgentOpt> {
+  return {
+    ...(yamlAgent || {}),
+    cache: processCacheConfig(yamlAgent?.cache, fileName),
+    testId: preferenceTestId,
+  };
+}
+
 export async function createYamlPlayer(
   file: string,
   script?: MidsceneYamlScript,
@@ -48,37 +78,50 @@ export async function createYamlPlayer(
     headed?: boolean;
     keepWindow?: boolean;
     browser?: Browser;
+    testId?: string;
   },
 ): Promise<ScriptPlayer<MidsceneYamlScriptEnv>> {
   const yamlScript =
     script || parseYamlScript(readFileSync(file, 'utf-8'), file);
+
+  // Deep clone the script to avoid mutation issues when the same file is executed multiple times
+  // This ensures each ScriptPlayer instance has its own independent copy of the YAML data
+  const clonedYamlScript = structuredClone(yamlScript);
+
   const fileName = basename(file, extname(file));
   const preference = {
     headed: options?.headed,
     keepWindow: options?.keepWindow,
-    testId: fileName,
+    // Priority: CLI testId > YAML testId > fileName
+    testId: resolveTestId(
+      options?.testId,
+      clonedYamlScript.agent?.testId,
+      fileName,
+    ),
   };
 
   const player = new ScriptPlayer(
-    yamlScript,
+    clonedYamlScript,
     async () => {
       const freeFn: FreeFn[] = [];
-      const webTarget = yamlScript.web || yamlScript.target;
+      const webTarget = clonedYamlScript.web || clonedYamlScript.target;
 
       // Validate that only one target type is specified
       const targetCount = [
         typeof webTarget !== 'undefined',
-        typeof yamlScript.android !== 'undefined',
-        typeof yamlScript.ios !== 'undefined',
-        typeof yamlScript.interface !== 'undefined',
+        typeof clonedYamlScript.android !== 'undefined',
+        typeof clonedYamlScript.ios !== 'undefined',
+        typeof clonedYamlScript.interface !== 'undefined',
       ].filter(Boolean).length;
 
       if (targetCount > 1) {
         const specifiedTargets = [
           typeof webTarget !== 'undefined' ? 'web' : null,
-          typeof yamlScript.android !== 'undefined' ? 'android' : null,
-          typeof yamlScript.ios !== 'undefined' ? 'ios' : null,
-          typeof yamlScript.interface !== 'undefined' ? 'interface' : null,
+          typeof clonedYamlScript.android !== 'undefined' ? 'android' : null,
+          typeof clonedYamlScript.ios !== 'undefined' ? 'ios' : null,
+          typeof clonedYamlScript.interface !== 'undefined'
+            ? 'interface'
+            : null,
         ].filter(Boolean);
 
         throw new Error(
@@ -88,7 +131,7 @@ export async function createYamlPlayer(
 
       // handle new web config
       if (typeof webTarget !== 'undefined') {
-        if (typeof yamlScript.target !== 'undefined') {
+        if (typeof clonedYamlScript.target !== 'undefined') {
           console.warn(
             'target is deprecated, please use web instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
           );
@@ -122,7 +165,11 @@ export async function createYamlPlayer(
             webTarget,
             {
               ...preference,
-              cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+              ...buildAgentOptions(
+                clonedYamlScript.agent,
+                preference.testId,
+                fileName,
+              ),
             },
             options?.browser,
           );
@@ -142,16 +189,21 @@ export async function createYamlPlayer(
           webTarget.viewportHeight ||
           webTarget.viewportScale ||
           webTarget.waitForNetworkIdle ||
-          webTarget.cookie
+          webTarget.cookie ||
+          webTarget.chromeArgs
         ) {
           console.warn(
-            'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie) are not supported in bridge mode. They will be ignored.',
+            'puppeteer options (userAgent, viewportWidth, viewportHeight, viewportScale, waitForNetworkIdle, cookie, chromeArgs) are not supported in bridge mode. They will be ignored.',
           );
         }
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+          ...buildAgentOptions(
+            clonedYamlScript.agent,
+            preference.testId,
+            fileName,
+          ),
         });
 
         if (webTarget.bridgeMode === 'newTabWithUrl') {
@@ -175,10 +227,15 @@ export async function createYamlPlayer(
       }
 
       // handle android
-      if (typeof yamlScript.android !== 'undefined') {
-        const androidTarget = yamlScript.android;
+      if (typeof clonedYamlScript.android !== 'undefined') {
+        const androidTarget = clonedYamlScript.android;
         const agent = await agentFromAdbDevice(androidTarget?.deviceId, {
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
+          ...androidTarget, // Pass all Android config options
+          ...buildAgentOptions(
+            clonedYamlScript.agent,
+            preference.testId,
+            fileName,
+          ),
         });
 
         if (androidTarget?.launch) {
@@ -194,11 +251,15 @@ export async function createYamlPlayer(
       }
 
       // handle iOS
-      if (typeof yamlScript.ios !== 'undefined') {
-        const iosTarget = yamlScript.ios;
+      if (typeof clonedYamlScript.ios !== 'undefined') {
+        const iosTarget = clonedYamlScript.ios;
         const agent = await agentFromWebDriverAgent({
-          wdaPort: iosTarget?.wdaPort,
-          wdaHost: iosTarget?.wdaHost,
+          ...iosTarget, // Pass all iOS config options
+          ...buildAgentOptions(
+            clonedYamlScript.agent,
+            preference.testId,
+            fileName,
+          ),
         });
 
         if (iosTarget?.launch) {
@@ -214,8 +275,8 @@ export async function createYamlPlayer(
       }
 
       // handle general interface
-      if (typeof yamlScript.interface !== 'undefined') {
-        const interfaceTarget = yamlScript.interface;
+      if (typeof clonedYamlScript.interface !== 'undefined') {
+        const interfaceTarget = clonedYamlScript.interface;
 
         const moduleSpecifier = interfaceTarget.module;
         let finalModuleSpecifier: string;
@@ -256,10 +317,14 @@ export async function createYamlPlayer(
 
         // create agent from device
         debug('creating agent from device', device);
-        const agent = createAgent(device, {
-          ...yamlScript.agent,
-          cache: processCacheConfig(yamlScript.agent?.cache, fileName),
-        });
+        const agent = createAgent(
+          device,
+          buildAgentOptions(
+            clonedYamlScript.agent,
+            preference.testId,
+            fileName,
+          ),
+        );
 
         freeFn.push({
           name: 'destroy_general_interface_agent',

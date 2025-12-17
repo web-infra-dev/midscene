@@ -1,21 +1,23 @@
 /* eslint-disable max-lines */
 'use client';
 import './index.less';
-import { timeStr } from '@midscene/visualizer';
 
-import { RadiusSettingOutlined } from '@ant-design/icons';
+import { FileImageOutlined, RadiusSettingOutlined } from '@ant-design/icons';
 import type {
-  BaseElement,
+  ExecutionTaskAction,
   ExecutionTaskInsightAssertion,
   ExecutionTaskPlanning,
+  ExecutionTaskPlanningApply,
+  LocateResultElement,
 } from '@midscene/core';
-import { paramStr, typeStr } from '@midscene/core/agent';
+import { extractInsightParam, paramStr, typeStr } from '@midscene/core/agent';
 import {
   highlightColorForType,
   timeCostStrElement,
 } from '@midscene/visualizer';
-import { Tag, Timeline, type TimelineItemProps, Tooltip } from 'antd';
-import { useExecutionDump } from '../store';
+import { Tag, Tooltip } from 'antd';
+import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
+import { isElementField, useExecutionDump } from '../store';
 
 const noop = () => {};
 const Card = (props: {
@@ -92,8 +94,99 @@ const Card = (props: {
   );
 };
 
+// Shared helper function to render element detail box
+const renderElementDetailBox = (_value: LocateResultElement) => {
+  const hasCenter = _value.center && Array.isArray(_value.center);
+  const hasRect = _value.rect;
+
+  // If it has center and rect, show detailed info
+  if (hasCenter && hasRect) {
+    const { center, rect } = _value;
+    const { left, top, width, height } = rect;
+
+    return (
+      <div className="element-detail-box">
+        <div className="element-detail-line">
+          {_value.description} (center=[{center[0]}, {center[1]}])
+        </div>
+        <div className="element-detail-line element-detail-coords">
+          left={Math.round(left)}, top={Math.round(top)}, width=
+          {Math.round(width)}, height={Math.round(height)}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback to simple tag
+  return (
+    <span>
+      <Tag bordered={false} color="orange" className="element-button">
+        Element
+      </Tag>
+    </span>
+  );
+};
+
+// Helper function to render content with element detection
+const renderMetaContent = (
+  content: string | JSX.Element,
+): string | JSX.Element => {
+  // If content is already JSX, return it
+  if (typeof content !== 'string') {
+    return content;
+  }
+
+  // Try to parse JSON string
+  try {
+    const parsed = JSON.parse(content);
+
+    // Check if it's a locate object with element inside
+    if (parsed.locate && isElementField(parsed.locate)) {
+      return (
+        <div>
+          <div style={{ marginBottom: '8px' }}>locate:</div>
+          {renderElementDetailBox(parsed.locate)}
+        </div>
+      );
+    }
+
+    // Check if it's directly an element
+    if (isElementField(parsed)) {
+      return renderElementDetailBox(parsed);
+    }
+  } catch (e) {
+    // Not JSON, return as is
+  }
+
+  return content;
+};
+
+// Helper function to extract images from task params
+const extractTaskImages = (
+  param: any,
+): Array<{ name: string; url: string }> | undefined => {
+  // For locate params (Planning and Action Space tasks)
+  if (param?.prompt?.images && Array.isArray(param.prompt.images)) {
+    return param.prompt.images;
+  }
+
+  // For nested locate params (Action Space tasks)
+  if (
+    param?.locate?.prompt?.images &&
+    Array.isArray(param.locate.prompt.images)
+  ) {
+    return param.locate.prompt.images;
+  }
+
+  return undefined;
+};
+
 const MetaKV = (props: {
-  data: { key: string; content: string | JSX.Element }[];
+  data: {
+    key: string;
+    content: string | JSX.Element;
+    images?: { name: string; url: string }[];
+  }[];
 }) => {
   return (
     <div className="meta-kv">
@@ -101,7 +194,23 @@ const MetaKV = (props: {
         return (
           <div className="meta" key={index}>
             <div className="meta-key">{item.key}</div>
-            <div className="meta-value">{item.content}</div>
+            <div className="meta-value">{renderMetaContent(item.content)}</div>
+            {item.images && item.images.length > 0 && (
+              <div className="meta-images">
+                {item.images.map((image, imgIndex) => (
+                  <div key={imgIndex} className="meta-image-item">
+                    <FileImageOutlined style={{ marginRight: '6px' }} />
+                    <a
+                      href={image.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {image.name}
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
@@ -109,38 +218,73 @@ const MetaKV = (props: {
   );
 };
 
-const objectWithoutKeys = (obj: Record<string, unknown>, keys: string[]) =>
-  Object.keys(obj).reduce((acc, key) => {
-    if (!keys.includes(key)) {
-      (acc as any)[key] = obj[key];
-    }
-    return acc;
-  }, {});
+const objectWithoutKeys = (
+  obj: Record<string, unknown>,
+  keys: string[],
+): Record<string, unknown> =>
+  Object.keys(obj).reduce(
+    (acc, key) => {
+      if (!keys.includes(key)) {
+        (acc as any)[key] = obj[key];
+      }
+      return acc;
+    },
+    {} as Record<string, unknown>,
+  );
 
 const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
-  const activeExecution = useExecutionDump((store) => store.activeExecution);
   const { matchedElement: elements } = dump || {};
 
-  // Get aiActionContext from activeExecution
-  const aiActionContextValue = activeExecution?.aiActionContext;
+  const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
+    ?.aiActContext;
+
+  // Helper functions for rendering element items
+  const elementEl = renderElementDetailBox;
 
   const kv = (data: Record<string, unknown>) => {
-    const isElementItem = (value: unknown): value is BaseElement =>
-      Boolean(value) &&
-      typeof value === 'object' &&
-      typeof (value as any).content !== 'undefined' &&
-      Boolean((value as any).center) &&
-      Boolean((value as any).rect);
+    // Recursively render value
+    const renderValue = (value: unknown): JSX.Element => {
+      // Check if it's an element first
+      if (isElementField(value)) {
+        return <>{elementEl(value)}</>;
+      }
 
-    const elementEl = (_value: BaseElement) => (
-      <span>
-        <Tag bordered={false} color="orange" className="element-button">
-          Element
-        </Tag>
-      </span>
-    );
+      // Check if it's an array
+      if (Array.isArray(value)) {
+        // Check if array contains elements
+        if (value.some((item) => isElementField(item))) {
+          return (
+            <>
+              {value.map((item, index) => (
+                <div key={index}>{renderValue(item)}</div>
+              ))}
+            </>
+          );
+        }
+        // Regular array
+        return <pre>{JSON.stringify(value, undefined, 2)}</pre>;
+      }
+
+      // Check if it's an object (and not null)
+      if (typeof value === 'object' && value !== null) {
+        // Recursively render nested object
+        const nestedKv = Object.keys(value).map((nestedKey) => {
+          const nestedValue = (value as any)[nestedKey];
+          return (
+            <div key={nestedKey} className="nested-kv">
+              <span className="nested-key">{nestedKey}: </span>
+              {renderValue(nestedValue)}
+            </div>
+          );
+        });
+        return <>{nestedKv}</>;
+      }
+
+      // Primitive value
+      return <pre>{JSON.stringify(value, undefined, 2)}</pre>;
+    };
 
     if (Array.isArray(data) || typeof data !== 'object') {
       return (
@@ -152,23 +296,9 @@ const DetailSide = (): JSX.Element => {
 
     return Object.keys(data).map((key) => {
       const value = data[key];
-      let content;
-      if (typeof value === 'object' && isElementItem(value)) {
-        content = elementEl(value);
-      } else if (
-        Array.isArray(value) &&
-        value.some((item) => isElementItem(item))
-      ) {
-        content = value.map((item, index) => (
-          <span key={index}>{elementEl(item)}</span>
-        ));
-      } else {
-        content = <pre>{JSON.stringify(value, undefined, 2)}</pre>;
-      }
-
       return (
         <pre className="description-content" key={key}>
-          {key} {content}
+          {key} {renderValue(value)}
         </pre>
       );
     });
@@ -177,26 +307,30 @@ const DetailSide = (): JSX.Element => {
   const metaKVElement = MetaKV({
     data: [
       {
+        key: 'type',
+        content: (task && typeStr(task)) || '',
+      },
+      {
         key: 'status',
         content: task?.status || '',
       },
       {
         key: 'start',
-        content: timeStr(task?.timing?.start),
+        content: fullTimeStrWithMilliseconds(task?.timing?.start),
       },
       {
         key: 'end',
-        content: timeStr(task?.timing?.end),
+        content: fullTimeStrWithMilliseconds(task?.timing?.end),
       },
       {
         key: 'total time',
         content: timeCostStrElement(task?.timing?.cost),
       },
-      ...(aiActionContextValue
+      ...(aiActContextValue
         ? [
             {
-              key: 'action context',
-              content: aiActionContextValue,
+              key: 'act context',
+              content: aiActContextValue,
             },
           ]
         : []),
@@ -212,15 +346,27 @@ const DetailSide = (): JSX.Element => {
         ? [
             {
               key: 'hitBy',
-              content: <pre>{JSON.stringify(task?.hitBy, undefined, 2)}</pre>,
-            },
-          ]
-        : []),
-      ...(task?.locate
-        ? [
-            {
-              key: 'locate',
-              content: <pre>{JSON.stringify(task.locate, undefined, 2)}</pre>,
+              content: (() => {
+                const hitBy = task.hitBy as any;
+                // Special handling for Cache with yamlString
+                if (hitBy.from === 'Cache' && hitBy.context?.yamlString) {
+                  return (
+                    <>
+                      <div>
+                        <strong>from:</strong> {hitBy.from}
+                      </div>
+                      <div>
+                        <strong>context:</strong>
+                      </div>
+                      <pre className="description-content yaml-content">
+                        {hitBy.context.yamlString}
+                      </pre>
+                    </>
+                  );
+                }
+                // Default JSON rendering
+                return <pre>{JSON.stringify(hitBy, undefined, 2)}</pre>;
+              })(),
             },
           ]
         : []),
@@ -249,13 +395,24 @@ const DetailSide = (): JSX.Element => {
   if (task?.type === 'Planning') {
     const planningTask = task as ExecutionTaskPlanning;
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
+
+    // Extract images from Planning/Locate tasks
+    const locateParam = (planningTask as any)?.param;
+    const images = extractTaskImages(locateParam);
+
     if (planningTask.param?.userInstruction) {
+      // Ensure userInstruction is a string
+      const instructionContent =
+        typeof planningTask.param.userInstruction === 'string'
+          ? planningTask.param.userInstruction
+          : JSON.stringify(planningTask.param.userInstruction);
+
       taskInput = MetaKV({
         data: [
-          { key: 'type', content: (task && typeStr(task)) || '' },
           {
             key: 'instruction',
-            content: planningTask.param.userInstruction,
+            content: instructionContent,
+            images: images,
           },
           ...(isPageContextFrozen
             ? [
@@ -268,12 +425,19 @@ const DetailSide = (): JSX.Element => {
         ],
       });
     } else {
+      // Ensure paramStr result is a string
+      const paramValue = paramStr(task);
+      const promptContent =
+        typeof paramValue === 'string'
+          ? paramValue
+          : JSON.stringify(paramValue);
+
       taskInput = MetaKV({
         data: [
-          { key: 'type', content: (task && typeStr(task)) || '' },
           {
             key: 'userPrompt',
-            content: paramStr(task) || '',
+            content: promptContent,
+            images: images,
           },
           ...(isPageContextFrozen
             ? [
@@ -288,14 +452,22 @@ const DetailSide = (): JSX.Element => {
     }
   } else if (task?.type === 'Insight') {
     const isPageContextFrozen = Boolean((task?.uiContext as any)?._isFrozen);
+
+    // Use extractInsightParam to get content and images
+    const taskParam = (task as any)?.param;
+    const { content: displayContent, images } = extractInsightParam(taskParam);
+
+    // Fallback to paramStr if no content extracted
+    const finalContent = displayContent || paramStr(task);
+
     taskInput = MetaKV({
       data: [
-        { key: 'type', content: (task && typeStr(task)) || '' },
-        ...(paramStr(task)
+        ...(finalContent
           ? [
               {
                 key: 'param',
-                content: paramStr(task) || '',
+                content: finalContent,
+                images: images,
               },
             ]
           : []),
@@ -317,16 +489,40 @@ const DetailSide = (): JSX.Element => {
           : []),
       ],
     });
-  } else if (task?.type === 'Action') {
-    taskInput = MetaKV({
-      data: [
-        { key: 'type', content: (task && typeStr(task)) || '' },
-        {
-          key: 'value',
-          content: paramStr(task) || '',
-        },
-      ],
-    });
+  } else if (task?.type === 'Action Space') {
+    const actionTask = task as ExecutionTaskAction;
+
+    // Helper to convert to string
+    const toContent = (value: any) =>
+      typeof value === 'string' ? value : JSON.stringify(value);
+
+    const images = extractTaskImages(actionTask?.param);
+    const data: {
+      key: string;
+      content: string;
+      images?: { name: string; url: string }[];
+    }[] = [];
+
+    if (actionTask?.param && typeof actionTask.param === 'object') {
+      Object.entries(actionTask.param).forEach(([key, value]) => {
+        data.push({
+          key,
+          content: toContent(value),
+          images: key === 'locate' ? images : undefined,
+        });
+      });
+    }
+
+    // Fallback to paramStr if param is not an object
+    if (data.length === 0) {
+      data.push({
+        key: 'value',
+        content: toContent(paramStr(task)),
+        images: images,
+      });
+    }
+
+    taskInput = MetaKV({ data });
   } else if (task?.type === 'Log') {
     taskInput = task.param?.content ? (
       <pre className="log-content">{task.param.content}</pre>
@@ -334,7 +530,7 @@ const DetailSide = (): JSX.Element => {
   }
 
   let outputDataContent = null;
-  const plans = (task as ExecutionTaskPlanning)?.output?.actions;
+  const actions = (task as ExecutionTaskPlanning)?.output?.actions;
 
   // Prepare error content separately (can coexist with elements)
   let errorContent: JSX.Element | null = null;
@@ -395,7 +591,11 @@ const DetailSide = (): JSX.Element => {
 
       return (
         <Card
-          title={element.content}
+          title={
+            'content' in element && typeof element.content === 'string'
+              ? element.content
+              : undefined
+          }
           highlightWithColor={highlightColor}
           subtitle=""
           content={elementKV}
@@ -443,7 +643,7 @@ const DetailSide = (): JSX.Element => {
         />
       </>
     );
-  } else if (plans) {
+  } else if (actions) {
     if (task?.subType === 'LoadYaml') {
       outputDataContent = (
         <Card
@@ -452,83 +652,139 @@ const DetailSide = (): JSX.Element => {
           onMouseEnter={noop}
           onMouseLeave={noop}
           content={
-            <pre className="description-content">
+            <pre className="description-content yaml-content">
               {(task as ExecutionTaskPlanning).output?.yamlString}
             </pre>
           }
         />
       );
     } else {
-      let timelineData: TimelineItemProps[] = [];
+      const planItems: JSX.Element[] = [];
 
+      // Add Thought if exists
       if ((task as ExecutionTaskPlanning).output?.log) {
-        timelineData.push({
-          children: (
-            <>
-              <p>
-                <b>Thought</b>
-              </p>
-              <p>{(task as ExecutionTaskPlanning).output?.log}</p>
-            </>
-          ),
-        });
+        planItems.push(
+          <Card
+            key="thought"
+            liteMode={true}
+            title="Thought"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                {(task as ExecutionTaskPlanning).output?.log}
+              </pre>
+            }
+          />,
+        );
       }
 
-      timelineData = timelineData.concat(
-        plans.map((item) => {
-          const paramToShow = item.param || {};
-          const paramStr = Object.keys(paramToShow).length
-            ? JSON.stringify(paramToShow, undefined, 2)
-            : null;
+      // Add each plan action
+      actions.forEach((action, index) => {
+        const paramToShow = action.param || {};
+        const actionType = action.type || '';
 
-          const locateStr =
-            item.type === 'Locate' && item.locate
-              ? JSON.stringify(item.locate, undefined, 2)
-              : null;
+        // Create a Card for each param key
+        if (Object.keys(paramToShow).length > 0) {
+          Object.keys(paramToShow).forEach((key) => {
+            const paramValue = paramToShow[key];
 
-          return {
-            children: (
-              <>
-                <p>
-                  <b>{typeStr(item as any)}</b>
-                </p>
-                <p>{item.thought}</p>
-                <p>
-                  <pre>{paramStr}</pre>
-                </p>
-                <p>
-                  <pre>{locateStr}</pre>
-                </p>
-              </>
-            ),
-          };
-        }),
-      );
+            // Render content based on value type
+            let content: JSX.Element;
+            if (isElementField(paramValue)) {
+              // Render as element
+              content = elementEl(paramValue);
+            } else if (Array.isArray(paramValue)) {
+              // Check if array contains elements
+              if (paramValue.some((item) => isElementField(item))) {
+                content = (
+                  <div>
+                    {paramValue.map((item, idx) => (
+                      <div key={idx}>
+                        {isElementField(item) ? (
+                          elementEl(item)
+                        ) : (
+                          <pre>{JSON.stringify(item, undefined, 2)}</pre>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              } else {
+                // Regular array
+                content = (
+                  <pre className="description-content">
+                    {JSON.stringify(paramValue, undefined, 2)}
+                  </pre>
+                );
+              }
+            } else if (typeof paramValue === 'object' && paramValue !== null) {
+              // Object
+              content = (
+                <pre className="description-content">
+                  {JSON.stringify(paramValue, undefined, 2)}
+                </pre>
+              );
+            } else {
+              // Primitive value
+              content = (
+                <pre className="description-content">{String(paramValue)}</pre>
+              );
+            }
 
+            planItems.push(
+              <Card
+                key={`plan-${index}-${key}`}
+                liteMode={true}
+                title={`${actionType}.${key}`}
+                subtitle={action.thought}
+                onMouseEnter={noop}
+                onMouseLeave={noop}
+                content={content}
+              />,
+            );
+          });
+        } else {
+          // If no params, still show the action
+          planItems.push(
+            <Card
+              key={`plan-${index}`}
+              liteMode={true}
+              title={typeStr(action as any)}
+              subtitle={action.thought}
+              onMouseEnter={noop}
+              onMouseLeave={noop}
+              content={null}
+            />,
+          );
+        }
+      });
+
+      // Add More actions needed if exists
       if (
         typeof (task as ExecutionTaskPlanning).output
           ?.more_actions_needed_by_instruction === 'boolean'
       ) {
-        timelineData.push({
-          children: (
-            <>
-              <p>
-                <b>More actions needed</b>
-              </p>
-              <p>
+        planItems.push(
+          <Card
+            key="more-actions"
+            liteMode={true}
+            title="More actions needed"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output
                   ?.more_actions_needed_by_instruction
                   ? 'true'
                   : 'false'}
-              </p>
-            </>
-          ),
-        });
+              </pre>
+            }
+          />,
+        );
       }
 
-      outputDataContent = (
-        <Timeline items={timelineData} className="detail-side-timeline" />
-      );
+      outputDataContent = planItems;
     }
   } else {
     let data;
@@ -542,32 +798,85 @@ const DetailSide = (): JSX.Element => {
     const thought = task?.thought;
 
     if (data !== undefined) {
-      outputDataContent = (
-        <>
-          {thought && (
+      const outputItems: JSX.Element[] = [];
+
+      // Add thought if exists
+      if (thought) {
+        outputItems.push(
+          <Card
+            key="thought"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre>{thought}</pre>}
+            title="thought"
+          />,
+        );
+      }
+
+      // Handle output data
+      if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+        // For object output, create a Card for each field
+        Object.entries(data).forEach(([key, value]) => {
+          let content: JSX.Element;
+
+          if (isElementField(value)) {
+            content = elementEl(value);
+          } else if (typeof value === 'object' && value !== null) {
+            // Check if it's a locate object
+            const valueAsAny = value as any;
+            if (valueAsAny.locate && isElementField(valueAsAny.locate)) {
+              content = (
+                <div>
+                  <div style={{ marginBottom: '8px' }}>locate:</div>
+                  {renderElementDetailBox(valueAsAny.locate)}
+                </div>
+              );
+            } else {
+              content = (
+                <pre className="description-content">
+                  {JSON.stringify(value, undefined, 2)}
+                </pre>
+              );
+            }
+          } else {
+            content = (
+              <pre className="description-content">{String(value)}</pre>
+            );
+          }
+
+          outputItems.push(
             <Card
+              key={key}
               liteMode={true}
               onMouseEnter={noop}
               onMouseLeave={noop}
-              content={<pre>{thought}</pre>}
-              title="thought"
-            />
-          )}
+              title={key}
+              content={content}
+            />,
+          );
+        });
+      } else {
+        // For non-object output, show as-is
+        outputItems.push(
           <Card
+            key="output"
             liteMode={true}
             onMouseEnter={noop}
             onMouseLeave={noop}
             title="output"
             content={
-              <pre>
-                {typeof data === 'object'
-                  ? JSON.stringify(data, undefined, 2)
-                  : String(data)}
+              <pre className="description-content">
+                {JSON.stringify(data, undefined, 2)}
               </pre>
             }
-          />
-        </>
-      );
+          />,
+        );
+      }
+
+      if (outputItems.length > 0) {
+        outputDataContent = outputItems;
+      }
     }
   }
 
@@ -578,16 +887,26 @@ const DetailSide = (): JSX.Element => {
       </div>
       <div className="info-content">
         <details open>
-          <summary>Task meta</summary>
-          {metaKVElement}
-        </details>
-        <details open>
-          <summary>Param</summary>
+          <summary>
+            <span className="summary-text">Param</span>
+          </summary>
           {taskInput}
         </details>
+        {outputDataContent && (
+          <details open>
+            <summary>
+              <span className="summary-text">
+                {task?.subType === 'Locate' ? 'Element' : 'Output'}
+              </span>
+            </summary>
+            <div className="item-list">{outputDataContent}</div>
+          </details>
+        )}
         <details open>
-          <summary>{task?.subType === 'Locate' ? 'Element' : 'Output'}</summary>
-          <div className="item-list">{outputDataContent}</div>
+          <summary>
+            <span className="summary-text">Meta</span>
+          </summary>
+          {metaKVElement}
         </details>
       </div>
     </div>

@@ -1,26 +1,28 @@
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export interface ConversationHistoryOptions {
-  maxUserImageMessages?: number;
   initialMessages?: ChatCompletionMessageParam[];
 }
 
 export class ConversationHistory {
-  private readonly maxUserImageMessages: number;
   private readonly messages: ChatCompletionMessageParam[] = [];
 
+  public pendingFeedbackMessage: string;
+
   constructor(options?: ConversationHistoryOptions) {
-    this.maxUserImageMessages = options?.maxUserImageMessages ?? 4;
     if (options?.initialMessages?.length) {
       this.seed(options.initialMessages);
+    }
+    this.pendingFeedbackMessage = '';
+  }
+
+  resetPendingFeedbackMessageIfExists() {
+    if (this.pendingFeedbackMessage) {
+      this.pendingFeedbackMessage = '';
     }
   }
 
   append(message: ChatCompletionMessageParam) {
-    if (message.role === 'user') {
-      this.pruneOldestUserMessageIfNecessary();
-    }
-
     this.messages.push(message);
   }
 
@@ -35,8 +37,46 @@ export class ConversationHistory {
     this.messages.length = 0;
   }
 
-  snapshot(): ChatCompletionMessageParam[] {
-    return [...this.messages];
+  /**
+   * Snapshot the conversation history, and replace the images with text if the number of images exceeds the limit.
+   * @param maxImages - The maximum number of images to include in the snapshot. Undefined means no limit.
+   * @returns The snapshot of the conversation history.
+   */
+  snapshot(maxImages?: number): ChatCompletionMessageParam[] {
+    if (maxImages === undefined) {
+      return [...this.messages];
+    }
+
+    const clonedMessages = structuredClone(this.messages);
+    let imageCount = 0;
+
+    // Traverse from the end to the beginning
+    for (let i = clonedMessages.length - 1; i >= 0; i--) {
+      const message = clonedMessages[i];
+      const content = message.content;
+
+      // Only process if content is an array
+      if (Array.isArray(content)) {
+        for (let j = 0; j < content.length; j++) {
+          const item = content[j];
+
+          // Check if this is an image
+          if (item.type === 'image_url') {
+            imageCount++;
+
+            // If we've exceeded the limit, replace with text
+            if (imageCount > maxImages) {
+              content[j] = {
+                type: 'text',
+                text: '(image ignored due to size optimization)',
+              };
+            }
+          }
+        }
+      }
+    }
+
+    return clonedMessages;
   }
 
   get length(): number {
@@ -49,20 +89,5 @@ export class ConversationHistory {
 
   toJSON(): ChatCompletionMessageParam[] {
     return this.snapshot();
-  }
-
-  private pruneOldestUserMessageIfNecessary() {
-    const userMessages = this.messages.filter((item) => item.role === 'user');
-    if (userMessages.length < this.maxUserImageMessages) {
-      return;
-    }
-
-    const firstUserMessageIndex = this.messages.findIndex(
-      (item) => item.role === 'user',
-    );
-
-    if (firstUserMessageIndex >= 0) {
-      this.messages.splice(firstUserMessageIndex, 1);
-    }
   }
 }

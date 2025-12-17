@@ -1,15 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { NodeType } from '@midscene/shared/constants';
-import type { TModelConfigFn } from '@midscene/shared/env';
+import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
   BaseElement,
-  ElementTreeNode,
+  LocateResultElement,
   Rect,
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
-import type { TUserPrompt } from './ai-model/common';
+import type { TUserPrompt } from './common';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
@@ -25,11 +25,14 @@ export type AIUsageInfo = Record<string, any> & {
   prompt_tokens: number | undefined;
   completion_tokens: number | undefined;
   total_tokens: number | undefined;
+  cached_input: number | undefined;
   time_cost: number | undefined;
   model_name: string | undefined;
   model_description: string | undefined;
   intent: string | undefined;
 };
+
+export type { LocateResultElement };
 
 /**
  * openai
@@ -58,27 +61,13 @@ export type AISingleElementResponseByPosition = {
 };
 
 export type AISingleElementResponse = AISingleElementResponseById;
-export interface AIElementLocatorResponse {
-  elements: {
-    id: string;
-    reason?: string;
-    text?: string;
-    xpaths?: string[];
-  }[];
-  bbox?: [number, number, number, number];
-  isOrderSensitive?: boolean;
-  errors?: string[];
-}
 
 export interface AIElementCoordinatesResponse {
   bbox: [number, number, number, number];
-  isOrderSensitive?: boolean;
   errors?: string[];
 }
 
-export type AIElementResponse =
-  | AIElementLocatorResponse
-  | AIElementCoordinatesResponse;
+export type AIElementResponse = AIElementCoordinatesResponse;
 
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
@@ -123,10 +112,8 @@ export interface AgentDescribeElementAtPointResult {
  * context
  */
 
-export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
+export abstract class UIContext {
   abstract screenshotBase64: string;
-
-  abstract tree: ElementTreeNode<ElementType>;
 
   abstract size: Size;
 
@@ -135,31 +122,20 @@ export abstract class UIContext<ElementType extends BaseElement = BaseElement> {
 
 export type EnsureObject<T> = { [K in keyof T]: any };
 
-export type InsightAction = 'locate' | 'extract' | 'assert' | 'describe';
+export type ServiceAction = 'locate' | 'extract' | 'assert' | 'describe';
 
-export type InsightExtractParam = string | Record<string, string>;
+export type ServiceExtractParam = string | Record<string, string>;
 
 export type ElementCacheFeature = Record<string, unknown>;
-
-export type LocateResultElement = {
-  center: [number, number];
-  rect: Rect;
-  id: string;
-  indexId?: number;
-  xpaths: string[];
-  attributes: {
-    nodeType: NodeType;
-    [key: string]: string;
-  };
-  isOrderSensitive?: boolean;
-};
 
 export interface LocateResult {
   element: LocateResultElement | null;
   rect?: Rect;
 }
 
-export interface InsightTaskInfo {
+export type ThinkingLevel = 'off' | 'medium' | 'high';
+
+export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;
   rawResponse?: string;
@@ -178,31 +154,51 @@ export interface ReportDumpWithAttributes {
   attributes?: Record<string, any>;
 }
 
-export interface InsightDump extends DumpMeta {
+export interface ServiceDump extends DumpMeta {
   type: 'locate' | 'extract' | 'assert';
   logId: string;
   userQuery: {
     element?: TUserPrompt;
-    dataDemand?: InsightExtractParam;
+    dataDemand?: ServiceExtractParam;
     assertion?: TUserPrompt;
   };
-  matchedElement: BaseElement[];
+  matchedElement: LocateResultElement[];
   matchedRect?: Rect;
   deepThink?: boolean;
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;
-  taskInfo: InsightTaskInfo;
+  taskInfo: ServiceTaskInfo;
   error?: string;
   output?: any;
 }
 
-export type PartialInsightDumpFromSDK = Omit<
-  InsightDump,
+export type PartialServiceDumpFromSDK = Omit<
+  ServiceDump,
   'logTime' | 'logId' | 'model_name'
 >;
 
-export type DumpSubscriber = (dump: InsightDump) => Promise<void> | void;
+export interface ServiceResultBase {
+  dump: ServiceDump;
+}
+
+export type LocateResultWithDump = LocateResult & ServiceResultBase;
+
+export interface ServiceExtractResult<T> extends ServiceResultBase {
+  data: T;
+  thought?: string;
+  usage?: AIUsageInfo;
+}
+
+export class ServiceError extends Error {
+  dump: ServiceDump;
+
+  constructor(message: string, dump: ServiceDump) {
+    super(message);
+    this.name = 'ServiceError';
+    this.dump = dump;
+  }
+}
 
 // intermediate variables to optimize the return value by AI
 export interface LiteUISection {
@@ -214,7 +210,7 @@ export interface LiteUISection {
 
 export type ElementById = (id: string) => BaseElement | null;
 
-export type InsightAssertionResponse = AIAssertionResponse & {
+export type ServiceAssertionResponse = AIAssertionResponse & {
   usage?: AIUsageInfo;
 };
 
@@ -227,6 +223,7 @@ export type OnTaskStartTip = (tip: string) => Promise<void> | void;
 export interface AgentWaitForOpt {
   checkIntervalMs?: number;
   timeoutMs?: number;
+  [key: string]: unknown;
 }
 
 export interface AgentAssertOpt {
@@ -239,7 +236,6 @@ export interface AgentAssertOpt {
  */
 
 export interface PlanningLocateParam extends DetailedLocateParam {
-  id?: string;
   bbox?: [number, number, number, number];
 }
 
@@ -247,29 +243,24 @@ export interface PlanningAction<ParamType = any> {
   thought?: string;
   type: string;
   param: ParamType;
-  locate?: PlanningLocateParam | null;
 }
 
-export interface PlanningAIResponse {
-  action?: PlanningAction; // this is the qwen mode
-  actions?: PlanningAction[];
+export interface RawResponsePlanningAIResponse {
+  action: PlanningAction;
   more_actions_needed_by_instruction: boolean;
   log: string;
   sleep?: number;
   error?: string;
+}
+
+export interface PlanningAIResponse
+  extends Omit<RawResponsePlanningAIResponse, 'action'> {
+  actions?: PlanningAction[];
   usage?: AIUsageInfo;
   rawResponse?: string;
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
-}
-
-export type PlanningActionParamTap = null;
-export type PlanningActionParamHover = null;
-export type PlanningActionParamRightClick = null;
-
-export interface PlanningActionParamInputOrKeyPress {
-  value: string;
-  autoDismissKeyboard?: boolean;
+  error?: string;
 }
 
 export interface PlanningActionParamSleep {
@@ -282,11 +273,11 @@ export interface PlanningActionParamError {
 
 export type PlanningActionParamWaitFor = AgentWaitForOpt & {};
 
-export interface AndroidLongPressParam {
+export interface LongPressParam {
   duration?: number;
 }
 
-export interface AndroidPullParam {
+export interface PullParam {
   direction: 'up' | 'down';
   distance?: number;
   duration?: number;
@@ -323,16 +314,12 @@ export interface ExecutionRecorderItem {
   timing?: string;
 }
 
-export type ExecutionTaskType =
-  | 'Planning'
-  | 'Insight'
-  | 'Action'
-  | 'Assertion'
-  | 'Log';
+export type ExecutionTaskType = 'Planning' | 'Insight' | 'Action Space' | 'Log';
 
 export interface ExecutorContext {
   task: ExecutionTask;
   element?: LocateResultElement | null;
+  uiContext?: UIContext;
 }
 
 export interface ExecutionTaskApply<
@@ -343,9 +330,9 @@ export interface ExecutionTaskApply<
 > {
   type: Type;
   subType?: string;
+  subTask?: boolean;
   param?: TaskParam;
   thought?: string;
-  locate?: PlanningLocateParam | null;
   uiContext?: UIContext;
   executor: (
     param: TaskParam,
@@ -400,11 +387,11 @@ export interface ExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
-  aiActionContext?: string;
+  aiActContext?: string;
 }
 
 /*
-task - insight-locate
+task - service-locate
 */
 export type ExecutionTaskInsightLocateParam = PlanningLocateParam;
 
@@ -412,7 +399,7 @@ export interface ExecutionTaskInsightLocateOutput {
   element: LocateResultElement | null;
 }
 
-export type ExecutionTaskInsightDump = InsightDump;
+export type ExecutionTaskInsightDump = ServiceDump;
 
 export type ExecutionTaskInsightLocateApply = ExecutionTaskApply<
   'Insight',
@@ -425,10 +412,10 @@ export type ExecutionTaskInsightLocate =
   ExecutionTask<ExecutionTaskInsightLocateApply>;
 
 /*
-task - insight-query
+task - service-query
 */
 export interface ExecutionTaskInsightQueryParam {
-  dataDemand: InsightExtractParam;
+  dataDemand: ServiceExtractParam;
 }
 
 export interface ExecutionTaskInsightQueryOutput {
@@ -455,7 +442,7 @@ export interface ExecutionTaskInsightAssertionParam {
 export type ExecutionTaskInsightAssertionApply = ExecutionTaskApply<
   'Insight',
   ExecutionTaskInsightAssertionParam,
-  InsightAssertionResponse,
+  ServiceAssertionResponse,
   ExecutionTaskInsightDump
 >;
 
@@ -466,7 +453,7 @@ export type ExecutionTaskInsightAssertion =
 task - action (i.e. interact) 
 */
 export type ExecutionTaskActionApply<ActionParam = any> = ExecutionTaskApply<
-  'Action',
+  'Action Space',
   ActionParam,
   void,
   void
@@ -494,11 +481,33 @@ export type ExecutionTaskPlanningApply = ExecutionTaskApply<
   'Planning',
   {
     userInstruction: string;
+    aiActContext?: string;
   },
   PlanningAIResponse
 >;
 
 export type ExecutionTaskPlanning = ExecutionTask<ExecutionTaskPlanningApply>;
+
+/*
+task - planning-locate
+*/
+export type ExecutionTaskPlanningLocateParam = PlanningLocateParam;
+
+export interface ExecutionTaskPlanningLocateOutput {
+  element: LocateResultElement | null;
+}
+
+export type ExecutionTaskPlanningDump = ServiceDump;
+
+export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
+  'Planning',
+  ExecutionTaskPlanningLocateParam,
+  ExecutionTaskPlanningLocateOutput,
+  ExecutionTaskPlanningDump
+>;
+
+export type ExecutionTaskPlanningLocate =
+  ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
 Grouped dump
@@ -554,13 +563,30 @@ export interface StreamingAIResponse {
   isStreamed: boolean;
 }
 
-export interface DeviceAction<T = any> {
+export interface DeviceAction<TParam = any, TReturn = any> {
   name: string;
   description?: string;
   interfaceAlias?: string;
-  paramSchema?: z.ZodType<T>;
-  call: (param: T, context: ExecutorContext) => Promise<void> | void;
+  paramSchema?: z.ZodType<TParam>;
+  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  delayAfterRunner?: number;
 }
+
+/**
+ * Type utilities for extracting types from DeviceAction definitions
+ */
+
+/**
+ * Extract parameter type from a DeviceAction
+ */
+export type ActionParam<Action extends DeviceAction<any, any>> =
+  Action extends DeviceAction<infer P, any> ? P : never;
+
+/**
+ * Extract return type from a DeviceAction
+ */
+export type ActionReturn<Action extends DeviceAction<any, any>> =
+  Action extends DeviceAction<any, infer R> ? R : never;
 
 /**
  * Web-specific types
@@ -573,7 +599,7 @@ export interface WebElementInfo extends BaseElement {
   };
 }
 
-export type WebUIContext = UIContext<WebElementInfo>;
+export type WebUIContext = UIContext;
 
 /**
  * Agent
@@ -600,12 +626,44 @@ export interface AgentOpt {
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
   onTaskStartTip?: OnTaskStartTip;
+  aiActContext?: string;
   aiActionContext?: string;
   /* custom report file name */
   reportFileName?: string;
-  modelConfig?: TModelConfigFn;
+  modelConfig?: TModelConfig;
   cache?: Cache;
+  /**
+   * Maximum number of replanning cycles for aiAct.
+   * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
+   * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
+   */
   replanningCycleLimit?: number;
+
+  /**
+   * Custom OpenAI client factory function
+   *
+   * If provided, this function will be called to create OpenAI client instances
+   * for each AI call, allowing you to:
+   * - Wrap clients with observability tools (langsmith, langfuse)
+   * - Use custom OpenAI-compatible clients
+   * - Apply different configurations based on intent
+   *
+   * @param config - Resolved model configuration
+   * @returns OpenAI client instance (original or wrapped)
+   *
+   * @example
+   * ```typescript
+   * createOpenAIClient: async (openai, opts) => {
+   *   // Wrap with langsmith for planning tasks
+   *   if (opts.baseURL?.includes('planning')) {
+   *     return wrapOpenAI(openai, { metadata: { task: 'planning' } });
+   *   }
+   *
+   *   return openai;
+   * }
+   * ```
+   */
+  createOpenAIClient?: CreateOpenAIClientFn;
 }
 
 export type TestStatus =

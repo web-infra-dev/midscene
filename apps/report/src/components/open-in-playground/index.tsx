@@ -1,6 +1,5 @@
 import { PlayCircleOutlined } from '@ant-design/icons';
 import type { UIContext } from '@midscene/core';
-import { PlaygroundSDK } from '@midscene/playground';
 import { staticAgentFromContext, useEnvConfig } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
 import {
@@ -12,18 +11,15 @@ import {
   Tooltip,
 } from 'antd';
 import { useEffect, useState } from 'react';
+import { getReportPlaygroundSDK } from '../../utils/report-playground-utils';
 import { StandardPlayground } from '../playground';
-
-declare const __VERSION__: string;
 
 // Create PlaygroundSDK instance for server communication
 const getPlaygroundSDK = () => {
-  return new PlaygroundSDK({
-    type: 'remote-execution',
-  });
+  return getReportPlaygroundSDK('Server');
 };
 
-const errorMessageNoContext = `No context info found. 
+const errorMessageNoContext = `No context info found.
 Try to select another task like 'Locate'
 `;
 

@@ -1,3 +1,5 @@
-.rspress-logo {
-  height: 2.6rem;
+header {
+  .rspress-logo {
+    height: 2.6rem;
+  }
 }

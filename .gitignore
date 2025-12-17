@@ -112,6 +112,7 @@ midscene_run/dump
 *.ignore.png
 extension_output
 .cursor
+apps/chrome-extension/web-ext-profile
 packages/android-playground/static/
 packages/ios-playground/static/
 packages/ios/static/
@@ -121,9 +122,10 @@ CLAUDE.md
 .claude
 **/.claude
 **/CLAUDE.md
-AGENTS.md
+
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 .gemini-clipboard
 tsconfig.build.tsbuildinfo
 .webx
+.mcp.json

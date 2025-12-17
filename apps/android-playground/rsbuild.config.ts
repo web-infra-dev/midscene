@@ -1,14 +1,23 @@
 import path from 'node:path';
-import { createPlaygroundCopyPlugin } from '@midscene/shared';
+import {
+  commonIgnoreWarnings,
+  createPlaygroundCopyPlugin,
+} from '@midscene/shared';
 import { defineConfig } from '@rsbuild/core';
 import { pluginLess } from '@rsbuild/plugin-less';
 import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { pluginTypeCheck } from '@rsbuild/plugin-type-check';
+import { pluginWorkspaceDev } from 'rsbuild-plugin-workspace-dev';
 import { version as playgroundVersion } from '../../packages/playground/package.json';
 
 export default defineConfig({
+  tools: {
+    rspack: {
+      ignoreWarnings: commonIgnoreWarnings,
+    },
+  },
   environments: {
     web: {
       source: {
@@ -61,5 +70,12 @@ export default defineConfig({
       path.join(__dirname, 'src', 'favicon.ico'),
     ),
     pluginTypeCheck(),
+    pluginWorkspaceDev({
+      projects: {
+        '@midscene/report': {
+          skip: true,
+        },
+      },
+    }),
   ],
 });

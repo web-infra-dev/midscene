@@ -14,6 +14,8 @@ import {
 import {
   type AbstractInterface,
   type ActionTapParam,
+  type AndroidDeviceInputOpt,
+  type AndroidDeviceOpt,
   defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
@@ -41,6 +43,12 @@ import { repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
 
+// Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
+export type {
+  AndroidDeviceOpt,
+  AndroidDeviceInputOpt,
+} from '@midscene/core/device';
+
 // only for Android, because it's impossible to scroll to the bottom, so we need to set a default scroll times
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
@@ -48,29 +56,8 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
-type ImeStrategy =
-  | typeof IME_STRATEGY_ALWAYS_YADB
-  | typeof IME_STRATEGY_YADB_FOR_NON_ASCII;
 
 const debugDevice = getDebug('android:device');
-
-export type AndroidDeviceInputOpt = {
-  autoDismissKeyboard?: boolean;
-  keyboardDismissStrategy?: 'esc-first' | 'back-first';
-};
-
-export type AndroidDeviceOpt = {
-  androidAdbPath?: string;
-  remoteAdbHost?: string;
-  remoteAdbPort?: number;
-  imeStrategy?: ImeStrategy;
-  displayId?: number;
-  usePhysicalDisplayIdForScreenshot?: boolean;
-  usePhysicalDisplayIdForDisplayLookup?: boolean;
-  customActions?: DeviceAction<any>[];
-  screenshotResizeScale?: number;
-  alwaysRefreshScreenInfo?: boolean; // If true, always fetch screen size and orientation from device on each call; if false (default), cache the first result
-} & AndroidDeviceInputOpt;
 
 export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
@@ -87,6 +74,7 @@ export class AndroidDevice implements AbstractInterface {
     override: string;
     physical: string;
     orientation: number;
+    isCurrentOrientation?: boolean;
   } | null = null;
   private cachedOrientation: number | null = null;
   interfaceType: InterfaceType = 'android';
@@ -165,15 +153,15 @@ export class AndroidDevice implements AbstractInterface {
             }
           : undefined;
         const scrollToEventName = param?.scrollType;
-        if (scrollToEventName === 'untilTop') {
+        if (scrollToEventName === 'scrollToTop') {
           await this.scrollUntilTop(startingPoint);
-        } else if (scrollToEventName === 'untilBottom') {
+        } else if (scrollToEventName === 'scrollToBottom') {
           await this.scrollUntilBottom(startingPoint);
-        } else if (scrollToEventName === 'untilRight') {
+        } else if (scrollToEventName === 'scrollToRight') {
           await this.scrollUntilRight(startingPoint);
-        } else if (scrollToEventName === 'untilLeft') {
+        } else if (scrollToEventName === 'scrollToLeft') {
           await this.scrollUntilLeft(startingPoint);
-        } else if (scrollToEventName === 'once' || !scrollToEventName) {
+        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           if (param?.direction === 'down' || !param || !param.direction) {
             await this.scrollDown(param?.distance || undefined, startingPoint);
           } else if (param.direction === 'up') {
@@ -213,31 +201,6 @@ export class AndroidDevice implements AbstractInterface {
       }),
       defineActionKeyboardPress(async (param) => {
         await this.keyboardPress(param.keyName);
-      }),
-      defineAction({
-        name: 'AndroidBackButton',
-        description: 'Trigger the system "back" operation on Android devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.back();
-        },
-      }),
-      defineAction({
-        name: 'AndroidHomeButton',
-        description: 'Trigger the system "home" operation on Android devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.home();
-        },
-      }),
-      defineAction({
-        name: 'AndroidRecentAppsButton',
-        description:
-          'Trigger the system "recent apps" operation on Android devices',
-        paramSchema: z.object({}),
-        call: async () => {
-          await this.recentApps();
-        },
       }),
       defineAction<
         z.ZodObject<{
@@ -326,8 +289,10 @@ export class AndroidDevice implements AbstractInterface {
       }),
     ];
 
+    const platformSpecificActions = Object.values(createPlatformActions(this));
+
     const customActions = this.customActions || [];
-    return [...defaultActions, ...customActions];
+    return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
   constructor(deviceId: string, options?: AndroidDeviceOpt) {
@@ -521,6 +486,7 @@ ${Object.keys(size)
     override: string;
     physical: string;
     orientation: number; // 0=portrait, 1=landscape, 2=reverse portrait, 3=reverse landscape
+    isCurrentOrientation?: boolean; // true if dimensions are in current orientation, false if in native orientation
   }> {
     // Return cached value if not always fetching and cache exists
     const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
@@ -566,6 +532,7 @@ ${Object.keys(size)
                   override: sizeStr,
                   physical: sizeStr,
                   orientation: rotation,
+                  isCurrentOrientation: true, // "real" size from dumpsys display is in current orientation
                 };
 
                 // Cache the result if caching is enabled
@@ -604,6 +571,7 @@ ${Object.keys(size)
                 override: sizeStr,
                 physical: sizeStr,
                 orientation: rotation,
+                isCurrentOrientation: true, // size from DisplayViewport is in current orientation
               };
 
               // Cache the result if caching is enabled
@@ -654,7 +622,7 @@ ${Object.keys(size)
     const orientation = await this.getDisplayOrientation();
 
     if (size.override || size.physical) {
-      const result = { ...size, orientation };
+      const result = { ...size, orientation, isCurrentOrientation: false }; // wm size is in native orientation
 
       // Cache the result if caching is enabled
       if (shouldCache) {
@@ -803,10 +771,13 @@ ${Object.keys(size)
       throw new Error(`Unable to parse screen size: ${screenSize}`);
     }
 
+    // Only swap dimensions if size is in native orientation (from wm size)
+    // If size is already in current orientation (from dumpsys display), no swap needed
     const isLandscape =
       screenSize.orientation === 1 || screenSize.orientation === 3;
-    const width = Number.parseInt(match[isLandscape ? 2 : 1], 10);
-    const height = Number.parseInt(match[isLandscape ? 1 : 2], 10);
+    const shouldSwap = screenSize.isCurrentOrientation !== true && isLandscape;
+    const width = Number.parseInt(match[shouldSwap ? 2 : 1], 10);
+    const height = Number.parseInt(match[shouldSwap ? 1 : 2], 10);
 
     // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
     // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
@@ -1443,7 +1414,7 @@ ${Object.keys(size)
     await adb.shell(`input${this.getDisplayArg()} keyevent 187`);
   }
 
-  async longPress(x: number, y: number, duration = 1000): Promise<void> {
+  async longPress(x: number, y: number, duration = 2000): Promise<void> {
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
@@ -1614,3 +1585,79 @@ ${Object.keys(size)
     return false;
   }
 }
+
+/**
+ * Platform-specific action definitions for Android
+ * Single source of truth for both runtime behavior and type definitions
+ */
+const runAdbShellParamSchema = z
+  .string()
+  .describe('ADB shell command to execute');
+
+const launchParamSchema = z
+  .string()
+  .describe('App package name or URL to launch');
+
+type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
+type LaunchParam = z.infer<typeof launchParamSchema>;
+
+export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
+export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+
+const createPlatformActions = (
+  device: AndroidDevice,
+): {
+  RunAdbShell: DeviceActionRunAdbShell;
+  Launch: DeviceActionLaunch;
+  AndroidBackButton: DeviceActionAndroidBackButton;
+  AndroidHomeButton: DeviceActionAndroidHomeButton;
+  AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
+} => {
+  return {
+    RunAdbShell: defineAction({
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command on Android device',
+      interfaceAlias: 'runAdbShell',
+      paramSchema: runAdbShellParamSchema,
+      call: async (param) => {
+        const adb = await device.getAdb();
+        return await adb.shell(param);
+      },
+    }),
+    Launch: defineAction({
+      name: 'Launch',
+      description: 'Launch an Android app or URL',
+      interfaceAlias: 'launch',
+      paramSchema: launchParamSchema,
+      call: async (param) => {
+        await device.launch(param);
+      },
+    }),
+    AndroidBackButton: defineAction({
+      name: 'AndroidBackButton',
+      description: 'Trigger the system "back" operation on Android devices',
+      call: async () => {
+        await device.back();
+      },
+    }),
+    AndroidHomeButton: defineAction({
+      name: 'AndroidHomeButton',
+      description: 'Trigger the system "home" operation on Android devices',
+      call: async () => {
+        await device.home();
+      },
+    }),
+    AndroidRecentAppsButton: defineAction({
+      name: 'AndroidRecentAppsButton',
+      description:
+        'Trigger the system "recent apps" operation on Android devices',
+      call: async () => {
+        await device.recentApps();
+      },
+    }),
+  } as const;
+};
+
+export type DeviceActionAndroidBackButton = DeviceAction<undefined, void>;
+export type DeviceActionAndroidHomeButton = DeviceAction<undefined, void>;
+export type DeviceActionAndroidRecentAppsButton = DeviceAction<undefined, void>;

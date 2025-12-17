@@ -1,0 +1,121 @@
+import PrepareIOS from './common/prepare-ios.mdx';
+import McpSharedTools from './common/mcp-shared-tools.mdx';
+import McpReport from './common/mcp-report.mdx';
+
+# 将设备暴露为 MCP 服务
+
+[MCP](https://modelcontextprotocol.io/introduction)（Model Context Protocol）是一套协议标准，让 AI 模型可以与外部工具和能力进行交互。
+
+Midscene 提供了 MCP 服务，可以将 Midscene Agent 中的原子化操作（即 Action Space 中的每个 Action）暴露为 MCP 工具，让上层 Agent 可以通过自然语言来查看界面、精准操作 UI 界面、执行自动化任务等，而无需理解复杂的底层实现。
+
+由于 Midscene Agent 依赖于视觉模型，因此你需要在 MCP 服务中配置 Midscene 所需的环境变量，而不是复用上层 Agent 的模型配置。
+
+## MCP 工具列表
+
+| 工具名称 | 功能描述 |
+|---------|---------|
+| 设备连接，如 `web_connect`、`ios_connect`、`android_connect` | 连接到目标设备，如浏览器、iOS 设备、Android 设备 |
+| `take_screenshot` | 获取最新截图 |
+| 设备操作 | 对应 Action Space 中的每个 Action，如 `Tap`、`Scroll` 等 |
+
+## 查看执行报告
+
+每次交互操作执行结束，都会生成一份 Midscene 任务报告。可直接在命令行打开：
+
+```bash
+open report_file_name.html
+```
+
+报告中包含了交互操作的详细信息，包括截图、操作日志、错误信息等，便于调试和问题排查。
+
+
+## 配置 MCP
+
+### 浏览器桥接模式
+
+`@midscene/web-bridge-mcp` 支持将 [Chrome 插件的桥接模式](./bridge-mode)发布为 MCP 服务。
+
+**环境准备**
+
+参考 [Chrome 桥接模式](./bridge-mode) ，确保浏览器插件可以启动，并且已经在桥接模式下点击了「允许连接」。
+
+**配置**
+
+在 MCP 客户端中添加 Midscene Web Bridge MCP 服务器 （ `@midscene/web-bridge-mcp` ）。其中模型配置的参数请参考 [模型策略](./model-strategy)。
+
+```json
+{
+  "mcpServers": {
+    "midscene-web": {
+      "command": "npx",
+      "args": ["-y", "@midscene/web-bridge-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "600000"
+      }
+    }
+  }
+}
+```
+
+### iOS MCP 服务
+
+**环境准备**
+
+- **AI 模型服务**：准备 OpenAI API Key 或其他支持的 AI 模型服务，更多信息参见 [模型策略](./model-strategy)。
+- **设备环境**：请按照 [iOS 快速开始](./ios-getting-started) 配置 WebDriverAgent、证书与设备连接，确保 WebDriverAgent 已正常运行。可以在 [iOS Playground](./ios-getting-started#试用-playground) 中验证截图和基础操作是否正常。
+
+**配置**
+
+在 MCP 客户端中添加 Midscene iOS MCP 服务器（ `@midscene/ios-mcp` ）。其中模型配置的参数请参考 [模型策略](./model-strategy)。
+
+```json
+{
+  "mcpServers": {
+    "midscene-ios": {
+      "command": "npx",
+      "args": ["-y", "@midscene/ios-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```
+
+
+### Android MCP 服务
+
+**环境准备**
+
+- **AI 模型服务**：准备 OpenAI API Key 或其他支持的 AI 模型服务，更多信息参见 [模型策略](./model-strategy)。
+- **设备环境**：请按照 [Android 快速开始](./android-getting-started) 配置 adb 工具与设备连接，确保 `adb devices` 可以识别目标设备。可以用 [Android Playground](./android-getting-started#试用-playground-零代码) 获取截图并执行简单操作来检验环境。
+
+**配置**
+
+在 MCP 客户端中添加 Midscene Android MCP 服务器（ `@midscene/android-mcp` ）。其中模型配置的参数请参考 [模型策略](./model-strategy)。
+
+```json
+{
+  "mcpServers": {
+    "midscene-android": {
+      "command": "npx",
+      "args": ["-y", "@midscene/android-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```

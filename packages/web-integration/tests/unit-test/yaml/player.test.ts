@@ -9,6 +9,7 @@ import type {
   GroupedActionDump,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
+import { actionTapParamSchema } from '@midscene/core/device';
 import { ScriptPlayer, buildYaml, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
@@ -880,6 +881,7 @@ tasks:
           {
             name: 'aiTap',
             interfaceAlias: 'aiTap',
+            paramSchema: actionTapParamSchema,
             call: vi.fn(),
           },
         ],
@@ -1295,5 +1297,49 @@ tasks:
         ],
       ]
     `);
+  });
+});
+
+describe('YAML Player - chromeArgs', () => {
+  test('should accept custom Chrome arguments', () => {
+    const yamlString = `
+web:
+  url: https://example.com
+  chromeArgs:
+    - '--disable-features=ThirdPartyCookiePhaseout'
+    - '--disable-features=SameSiteByDefaultCookies'
+tasks: []
+`;
+    const parsed = parseYamlScript(yamlString);
+    expect(parsed.web?.chromeArgs).toEqual([
+      '--disable-features=ThirdPartyCookiePhaseout',
+      '--disable-features=SameSiteByDefaultCookies',
+    ]);
+  });
+
+  test('should parse chromeArgs with various Chrome cookie-related flags', () => {
+    const yamlString = `
+web:
+  url: https://example.com
+  chromeArgs:
+    - '--disable-features=CookiesWithoutSameSiteMustBeSecure'
+    - '--disable-features=TrackingProtection3pcd'
+tasks: []
+`;
+    const parsed = parseYamlScript(yamlString);
+    expect(parsed.web?.chromeArgs).toEqual([
+      '--disable-features=CookiesWithoutSameSiteMustBeSecure',
+      '--disable-features=TrackingProtection3pcd',
+    ]);
+  });
+
+  test('should work without chromeArgs (backward compatibility)', () => {
+    const yamlString = `
+web:
+  url: https://example.com
+tasks: []
+`;
+    const parsed = parseYamlScript(yamlString);
+    expect(parsed.web?.chromeArgs).toBeUndefined();
   });
 });

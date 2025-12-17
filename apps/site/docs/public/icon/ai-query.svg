@@ -1,0 +1,20 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="32" cy="32" r="28" fill="#9333EA" opacity="0.1"/>
+
+  <!-- Document icon -->
+  <path d="M20 14C18.895 14 18 14.895 18 16V48C18 49.105 18.895 50 20 50H44C45.105 50 46 49.105 46 48V22L38 14H20Z" fill="#9333EA"/>
+  <path d="M38 14V22H46" fill="white" opacity="0.3"/>
+
+  <!-- Data extraction icon - sparkle/star indicating AI -->
+  <path d="M32 26L33.5 30.5L38 32L33.5 33.5L32 38L30.5 33.5L26 32L30.5 30.5L32 26Z" fill="white"/>
+
+  <!-- Code/data lines -->
+  <rect x="22" y="34" width="20" height="2" rx="1" fill="white" opacity="0.8"/>
+  <rect x="22" y="38" width="16" height="2" rx="1" fill="white" opacity="0.8"/>
+  <rect x="22" y="42" width="18" height="2" rx="1" fill="white" opacity="0.8"/>
+
+  <!-- Query arrow -->
+  <path d="M50 30L54 34L50 38" stroke="#9333EA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46 34H54" stroke="#9333EA" stroke-width="2" stroke-linecap="round"/>
+</svg>

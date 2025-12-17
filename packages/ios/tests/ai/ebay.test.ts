@@ -1,6 +1,10 @@
 import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, it, vi } from 'vitest';
-import { agentFromWebDriverAgent, checkIOSEnvironment } from '../../src';
+import {
+  type IOSAgent,
+  agentFromWebDriverAgent,
+  checkIOSEnvironment,
+} from '../../src';
 
 vi.setConfig({
   testTimeout: 240 * 1000,
@@ -8,7 +12,7 @@ vi.setConfig({
 });
 
 describe('Test eBay search', () => {
-  let agent: any;
+  let agent: IOSAgent | null = null;
 
   beforeAll(async () => {
     try {

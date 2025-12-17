@@ -77,6 +77,7 @@ export default function PlaygroundPanel() {
             enableScrollToBottom: true,
             serverMode: true,
             showEnvConfigReminder: true,
+            deviceType: 'android',
           }}
           branding={{
             title: 'Android Playground',

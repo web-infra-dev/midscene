@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 
 # 集成到 Puppeteer
 
@@ -7,18 +8,22 @@ import { PackageManagerTabs } from '@theme';
 [Puppeteer](https://pptr.dev/) 是一个 Node.js 库，它通过 DevTools 协议或 WebDriver BiDi 提供控制 Chrome 或 Firefox 的高级 API。Puppeteer 默认在无界面模式（headless）下运行，但可以配置为在可见的浏览器模式（headed）中运行。
 
 :::info 样例项目
+
 你可以在这里看到向 Puppeteer 集成的样例项目：[https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
 
 这里还有一个 Puppeteer 和 Vitest 结合的样例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo)
+
 :::
 
 <SetupEnv />
 
-## 第一步：安装依赖
+## 集成 Midscene Agent
+
+### 第一步：安装依赖
 
 <PackageManagerTabs command="install @midscene/web puppeteer tsx --save-dev" />
 
-## 第二步：编写脚本
+### 第二步：编写脚本
 
 编写下方代码，保存为 `./demo.ts`
 
@@ -48,7 +53,7 @@ Promise.resolve(
 
     // 👀 执行搜索
     // 注：尽管这是一个英文页面，你也可以用中文指令控制它
-    await agent.aiAction('在搜索框输入 "Headphones" ，敲回车');
+    await agent.aiAct('在搜索框输入 "Headphones" ，敲回车');
     await sleep(5000);
 
     // 👀 理解页面，提取数据
@@ -65,7 +70,7 @@ Promise.resolve(
 );
 ```
 
-## 第三步：运行
+### 第三步：运行
 
 使用 `tsx` 来运行，你会看到命令行打印出了耳机的商品信息：
 
@@ -86,22 +91,78 @@ npx tsx demo.ts
 # ]
 ```
 
-更多 Agent 的 API 讲解请参考 [API 参考](./api.mdx)。
+更多 Agent 的 API 讲解请参考 [API 参考](./api#interaction-methods)。
 
-## 第四步：查看运行报告
+### 第四步：查看运行报告
 
 当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
 
-## PuppeteerAgent 构造函数的更多选项
+<a id="puppeteeragent"></a>
 
-### 限制弹窗在当前页面
+## Advanced
 
-如果你想要限制页面在当前 tab 打开（比如点击一个带有 `target="_blank"` 属性的链接），你可以设置 `forceSameTabNavigation` 选项为 `true`：
+### 关于在新标签页打开
+
+每个 Agent 实例都与对应的页面唯一绑定，为了方便开发者调试，Midscene 默认拦截了新 tab 的页面（如点击一个带有 `target="_blank"` 属性的链接），将其改为在当前页面打开。
+
+如果你想恢复在新标签页打开的行为，你可以设置 `forceSameTabNavigation` 选项为 `false`，但相应的，你需要为新标签页创建一个 Agent 实例。
 
 ```typescript
 const mid = new PuppeteerAgent(page, {
-  forceSameTabNavigation: true,
+  forceSameTabNavigation: false,
 });
+```
+
+### 连接远程 Puppeteer 浏览器并接入 Midscene Agent
+
+:::info 示例项目
+
+你可以在这里找到远程 Puppeteer 集成的示例项目：[https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-puppeteer-demo)
+
+:::
+
+当你想复用已有的远程浏览器（例如云端常驻的 worker、第三方浏览器网格或本地内网桌面）时，可以通过此流程把 Midscene 接到远程 Puppeteer 实例上。这样做能让浏览器靠近目标环境、降低重复启动成本，并统一管理浏览器资源，同时保持一致的 AI 自动化能力。
+
+实践中你需要手动：
+1. 从远程浏览器服务获取 CDP WebSocket URL
+2. 使用 Puppeteer 连接到远程浏览器
+3. 创建 Midscene Agent 进行 AI 驱动的自动化
+
+#### 前置依赖
+
+<PackageManagerTabs command="install puppeteer @midscene/web --save-dev" />
+
+<GetCdpUrl />
+
+#### 基础示例
+
+```typescript
+import puppeteer from 'puppeteer';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+
+// 假设你已经有了一个 CDP WebSocket URL
+const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
+
+// 连接到远程浏览器
+const browser = await puppeteer.connect({
+  browserWSEndpoint: cdpWsUrl
+});
+
+// 获取或创建页面
+const pages = await browser.pages();
+const page = pages[0] || await browser.newPage();
+
+// 创建 Midscene Agent
+const agent = new PuppeteerAgent(page);
+
+// 使用 AI 方法
+await agent.aiAction('跳转到 https://example.com');
+await agent.aiAction('点击登录按钮');
+const result = await agent.aiQuery('获取页面标题: {title: string}');
+
+// 清理
+await agent.destroy();
+await browser.disconnect();
 ```
 
 ### 提供自定义动作
@@ -135,12 +196,15 @@ const agent = new PuppeteerAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('点击红色按钮五次');
+await agent.aiAct('点击红色按钮五次');
 ```
 
 更多关于自定义动作的细节，请参考 [集成到任意界面](./integrate-with-any-interface)。
 
 ## 更多
 
-* 更多 Agent 上的 API 接口请参考 [API 参考](./api.mdx)。
-* 更多关于提示词的技巧请参考 [提示词技巧](./prompting-tips)
+- 更多 Agent 的 API 文档请参考 [API 参考](./api#interaction-methods)。
+- Puppeteer 的 API 文档请参考 [Puppeteer Agent API](http://localhost:3000/web-api-reference.html#puppeteer-agent)。
+- 样例项目
+  - Puppeteer：[https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo](https://github.com/web-infra-dev/midscene-example/blob/main/puppeteer-demo)
+  - Puppeteer + Vitest：[https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/puppeteer-with-vitest-demo)

@@ -81,7 +81,7 @@ export const VALIDATION_CONSTANTS = {
     LOCATION: 'midscene_location_field_flag',
   },
   DEFAULT_VALUES: {
-    ACTION_TYPE: 'aiAction',
+    ACTION_TYPE: 'aiAct',
     TIMEOUT_MS: 15000,
     CHECK_INTERVAL_MS: 3000,
   },
@@ -222,13 +222,17 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   return undefined;
 };
 
-import type { GroupedActionDump, WebUIContext } from '@midscene/core';
+import type {
+  ExecutionDump,
+  GroupedActionDump,
+  WebUIContext,
+} from '@midscene/core';
 import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {
   result: any;
-  dump?: GroupedActionDump | null;
+  dump?: ExecutionDump | null;
   reportHTML?: string | null;
   error: string | null;
 }
@@ -249,9 +253,12 @@ export interface StaticPlaygroundProps {
 // service mode type
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
+// device type
+export type DeviceType = 'web' | 'android' | 'ios';
+
 // run type
 export type RunType =
-  | 'aiAction'
+  | 'aiAct'
   | 'aiQuery'
   | 'aiAssert'
   | 'aiTap'
@@ -302,9 +309,17 @@ export interface PlaygroundSDKLike {
   ): Promise<unknown>;
   getActionSpace(context?: any): Promise<DeviceAction<unknown>[]>;
   onProgressUpdate?: (callback: ProgressCallback) => void;
+  onDumpUpdate?: (
+    callback: (dump: string, executionDump?: ExecutionDump) => void,
+  ) => void;
   cancelExecution?(requestId: string): Promise<void>;
+  getCurrentExecutionData?(): Promise<{
+    dump: ExecutionDump | null;
+    reportHTML: string | null;
+  }>;
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
+  getServiceMode?(): 'In-Browser-Extension' | 'Server';
   id?: string; // unique ID for SDK instances
 }
 
@@ -334,6 +349,7 @@ export interface InfoListItem {
   replayCounter?: number;
   loadingProgressText?: string;
   verticalMode?: boolean;
+  actionType?: string; // Track which action type was executed
 }
 
 // main component config interface
@@ -345,6 +361,7 @@ export interface UniversalPlaygroundConfig {
   enableScrollToBottom?: boolean;
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
+  deviceType?: DeviceType;
 }
 
 // branding interface

@@ -1,0 +1,164 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
+# 常用模型配置
+
+## 配置环境变量的方式
+
+请将所有模型配置项放置在系统环境变量中，Midscene 会自动读取这些环境变量。
+
+以下介绍一些常见方法，你也可以使用自己项目中的其他配置方案。
+
+### 方法一：在系统中设置环境变量
+
+> 在 Midscene Chrome 插件中，你也可以使用这种 `export KEY="value"` 配置格式
+
+```bash
+# 替换为你自己的 API Key
+export MIDSCENE_MODEL_API_KEY="sk-abcde..."
+export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="......"
+export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+```
+
+### 方法二：编写 `.env` 文件（适用于命令行工具）
+
+在项目的运行路径下创建一个 `.env` 文件，并添加以下内容，Midscene 的命令行工具默认会读取这个文件。
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+请注意：
+1. 这里不需要在每一行前添加 `export`
+2. 只有 Midscene 命令行工具会默认读取这个文件，如果是 Javascript SDK ，请参考下一条自行手动加载
+
+### 方法三：引用 dotenv 库配置环境变量
+
+[Dotenv](https://www.npmjs.com/package/dotenv) 是一个零依赖的 npm 包，用于将环境变量从 `.env` 文件加载到 node.js 的环境变量参数 `process.env` 中。
+
+我们的 [demo 项目](https://github.com/web-infra-dev/midscene-example) 使用了这种方式。
+
+```bash
+# 安装 dotenv
+npm install dotenv --save
+```
+
+在项目根目录下创建一个 `.env` 文件，并添加以下内容。注意这里不需要在每一行前添加 `export`。
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+在脚本中导入 dotenv 模块，导入后它会自动读取 `.env` 文件中的环境变量。
+
+```typescript
+import 'dotenv/config';
+```
+
+
+## 常用模型配置
+
+### 豆包 Seed 视觉模型 {#doubao-seed-vision}
+
+从 [火山引擎](https://volcengine.com) 获取 API 密钥，然后补充以下环境变量：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
+MIDSCENE_MODEL_FAMILY="doubao-vision"
+```
+
+### 千问 Qwen3-VL {#qwen3-vl}
+
+以阿里云 `qwen3-vl-plus` 模型为例，它的环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
+```
+
+### 千问 Qwen2.5-VL {#qwen25-vl}
+
+以阿里云 `qwen-vl-max-latest` 模型为例，它的环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
+```
+
+### Gemini-3-Pro {#gemini-3-pro}
+
+在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-3.0-pro" # 替换为你使用的 Gemini 3 Pro 具体模型名
+MIDSCENE_MODEL_FAMILY="gemini"
+```
+
+### UI-TARS {#ui-tars}
+
+你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # 来自火山引擎的推理接入点 ID 或模型名称
+MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
+```
+
+**关于 `MIDSCENE_MODEL_FAMILY` 配置**
+
+`MIDSCENE_MODEL_FAMILY` 用于指定 UI-TARS 版本，使用以下值之一：
+- `vlm-ui-tars` - 用于模型版本 `1.0`
+- `vlm-ui-tars-doubao` - 用于在火山引擎上部署的模型版本 `1.5`（与 `vlm-ui-tars-doubao-1.5` 等效）
+- `vlm-ui-tars-doubao-1.5` - 用于在火山引擎上部署的模型版本 `1.5`
+
+:::tip
+
+旧版本使用 `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` 或 `MIDSCENE_USE_VLM_UI_TARS=1.5` 配置，该配置仍然兼容但已废弃，建议迁移到 `MIDSCENE_MODEL_FAMILY`。
+
+迁移对应关系：
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
+
+:::
+
+### ~~GPT-4o~~
+
+从 1.0 版本开始，Midscene 不再支持使用 GPT-4o 作为 UI 操作的规划模型。详见：[模型策略](./model-strategy)。
+
+## 多模型示例：GPT-5.1 用于 Planning/Insight，Qwen3-VL 负责视觉 {#gpt51-planning-insight-qwen3}
+
+使用 GPT-5.1 处理重度推理（Planning 和/或 Insight），让 Qwen3-VL 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
+
+```bash
+# 默认视觉模型：Qwen3-VL
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen3-VL 接口地址
+export MIDSCENE_MODEL_API_KEY="..."                # 你的 Qwen3-VL API Key
+export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3-vl"
+
+# Planning 模型：GPT-5.1
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # 你的 GPT-5.1 API Key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..."
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.1"
+
+# Insight 模型：GPT-5.1
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # 你的 GPT-5.1 API Key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.1"
+```
+
+## 更多
+
+更多高阶配置请查看 [模型配置](./model-config) 文档。
+
+<TroubleshootingLLMConnectivity />

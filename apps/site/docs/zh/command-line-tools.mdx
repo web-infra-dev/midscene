@@ -1,0 +1,264 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# 命令行工具
+
+Midscene 定义了一种 Yaml 格式的脚本，方便开发者快速编写自动化脚本，并提供了对应的命令行工具来快速执行这些脚本。
+
+举例来说，你可以编写如下 Yaml 格式脚本示例：
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+并通过一条命令来执行它：
+
+```bash
+midscene ./bing-search.yaml
+```
+
+命令行会输出执行进度，并在完成后生成可视化报告。整个运行过程大幅简化了开发者做环境配置的复杂度。
+
+本文将介绍如何使用 Midscene 的命令行工具。关于更多 Yaml 格式脚本的内容，可以参考 [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)。
+
+## 使用 `.env` 配置环境变量
+
+Midscene 命令行工具使用 [dotenv](https://www.npmjs.com/package/dotenv) 来加载 `.env` 文件。你可以在工具运行目录下创建一个 `.env` 文件，并添加以下配置：
+
+```ini filename=.env
+MIDSCENE_MODEL_BASE_URL="https://替换为你的模型服务地址/v1"
+MIDSCENE_MODEL_API_KEY="替换为你的 API Key"
+MIDSCENE_MODEL_NAME="替换为你的模型名称"
+MIDSCENE_MODEL_FAMILY="替换为你的模型系列"
+```
+
+更多配置信息请参考[模型策略](./model-strategy)文档。
+
+请注意：
+
+* 这个文件不是必须的，你也可以通过全局环境变量的形式来配置
+* 请注意这里没有 `export` 前缀，这是 dotenv 库的约定
+* `.env` 文件必须放置在**工具运行目录**下，而与 Yaml 文件所在的目录无关。
+* 这些变量默认是**不覆盖**全局环境变量中已经的同名变量的，如需修改这个策略，请参考后文“--dotenv-override” 参数
+* 如需调试此部分环境变量的逻辑，可使用 `--dotenv-debug` 参数
+
+
+## 开始使用
+
+### 安装命令行工具
+
+全局安装 `@midscene/cli` （推荐新手使用）：
+
+```bash
+npm i -g @midscene/cli
+```
+
+或在项目中按需安装
+
+```bash
+npm i @midscene/cli --save-dev
+```
+
+### 编写第一个脚本
+
+编写一个名为 `bing-search.yaml` 的文件来驱动 Web 浏览器：
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+驱动 已连接 adb 的 Android 设备：
+
+```yaml
+android:
+  # launch: https://www.bing.com
+  deviceId: s4ey59 # device id 可以在 adb 命令行中通过 `adb devices` 命令获取
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 打开浏览器并访问 bing.com
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+或者驱动配置好 WebDriverAgent 的 iOS 设备：
+
+```yaml
+ios:
+  # launch: com.apple.mobilesafari
+  wdaPort: 8100
+
+tasks:
+  - name: 搜索天气
+    flow:
+      - ai: 打开浏览器并访问 bing.com
+      - ai: 搜索 "今日天气"
+      - sleep: 3000
+      - aiAssert: 结果显示天气信息
+```
+
+### 运行脚本
+
+```bash
+midscene ./bing-search.yaml
+# 如果在项目中安装了 Midscene
+npx midscene ./bing-search.yaml
+```
+
+命令行会输出执行进度，并在完成后生成可视化报告。
+
+## 命令行工具的高级用法
+
+### 在 `.yaml` 中使用环境变量来填入动态值
+
+脚本中可以通过 `${variable-name}` 引用环境变量。
+
+```ini filename=.env
+topic=weather today
+```
+
+```yaml
+# ...
+- ai: 在输入框中输入 ${topic}
+# ...
+```
+
+### 运行多个脚本
+
+`@midscene/cli` 支持使用通配符匹配多个脚本来批量执行脚本，这相当于 `--files` 参数的简写。
+
+```bash
+# 运行单个脚本
+midscene ./bing-search.yaml
+
+# 使用通配符模式运行所有匹配的脚本
+midscene './scripts/**/*.yaml'
+```
+
+### 分析命令行运行结果
+
+执行完成后，输出目录会包含：
+
+- `--summary` 指定的 JSON 报告（默认 `index.json`），记录所有脚本的执行状态与统计数据。
+- 每个 YAML 文件对应的独立执行结果（JSON 格式）。
+- 每个脚本生成的可视化报告（HTML 格式）。
+
+
+### 运行在可视化（Headed）模式
+
+> 仅适用于 `web` 场景
+
+Headed 模式会打开浏览器窗口。默认情况下脚本在无头模式运行。
+
+```bash
+# 运行在 headed 模式
+midscene /path/to/yaml --headed
+
+# 运行在 headed 模式并在结束后保留窗口
+midscene /path/to/yaml --keep-window
+```
+
+### 使用桥接模式
+
+> 仅适用于 `web` 场景
+
+使用桥接模式可以让 YAML 脚本驱动现有的桌面浏览器，便于复用 Cookies、插件或已有状态。先安装 Chrome 扩展，然后在 `web` 配置中加入：
+
+```diff
+web:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+```
+
+更多细节请参阅 [通过 Chrome 插件桥接模式](./bridge-mode)。
+
+### 使用 JavaScript 运行 YAML 脚本
+
+调用 Agent 的 [`runYaml`](./api.html#runyaml) 方法同样可以在 JavaScript 中执行 YAML，注意该方法只会运行脚本中的 `tasks` 部分。
+
+## 命令行参数
+
+命令行工具提供了多项参数，用于控制脚本的执行行为：
+
+- `--files <file1> <file2> ...`：指定脚本文件列表。默认按顺序执行（`--concurrent` 为 `1`），可通过 `--concurrent` 设置并发数量。支持 [glob](https://www.npmjs.com/package/glob) 通配符语法。
+- `--concurrent <number>`：设置并发执行的数量，默认 `1`。
+- `--continue-on-error`：启用后，即使某个脚本失败也会继续执行后续脚本。默认关闭。
+- `--share-browser-context`：在多个脚本之间共享浏览器上下文（Cookies、`localStorage` 等），适合需要连续登录态的场景。默认关闭。
+- `--summary <filename>`：指定生成的 JSON 总结报告路径。
+- `--headed`：在带界面的浏览器中运行脚本，而非默认的无头模式。
+- `--keep-window`：脚本执行完成后保持浏览器窗口，会自动开启 `--headed` 模式。
+- `--config <filename>`：指定配置文件，文件中的参数会作为命令行参数的默认值。
+- `--web.userAgent <ua>`：设置浏览器 UA，覆盖所有脚本中的 `web.userAgent`。
+- `--web.viewportWidth <width>`：设置浏览器视口宽度，覆盖所有脚本中的 `web.viewportWidth`。
+- `--web.viewportHeight <height>`：设置浏览器视口高度，覆盖所有脚本中的 `web.viewportHeight`。
+- `--android.deviceId <device-id>`：设置安卓设备 ID，覆盖所有脚本中的 `android.deviceId`。
+- `--ios.wdaPort <port>`：设置 WebDriverAgent 端口，覆盖所有脚本中的 `ios.wdaPort`。
+- `--ios.wdaHost <host>`：设置 WebDriverAgent 主机地址，覆盖所有脚本中的 `ios.wdaHost`。
+- `--dotenv-debug`：开启 dotenv 的调试日志，默认关闭。
+- `--dotenv-override`：允许 dotenv 覆盖同名的全局环境变量，默认关闭。
+
+示例：
+
+使用 `--files` 指定执行顺序：
+
+```bash
+midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
+```
+
+以 4 个并发执行所有脚本，并在出错时继续运行：
+
+```bash
+midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+### 通过文件编写命令行参数
+
+可以把参数写到 YAML 配置文件中，并通过 `--config` 引用。命令行传入的参数优先级高于配置文件。
+
+```yaml
+files:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml'
+
+concurrent: 4
+continueOnError: true
+shareBrowserContext: true
+```
+
+运行方式：
+
+```bash
+midscene --config ./config.yaml
+```
+
+## 常见问题
+
+**如何导出 JSON 格式的 Cookies？**
+
+可以借助 [Chrome 扩展](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) 导出 Cookies。
+
+**如何查看 dotenv 的调试日志？**
+
+使用 `--dotenv-debug` 参数即可：
+
+```bash
+midscene /path/to/yaml --dotenv-debug=true
+```

@@ -2,55 +2,55 @@
 
 ### Install Node.js
 
-Install [Node.js 18 or above](https://nodejs.org/en/download/) globally.
+Install [Node.js 18 or higher](https://nodejs.org/en/download/).
 
-### Prepare an API key
+### Prepare API Key
 
-Prepare an API key from a visual-language (VL) model. You will use it later.
+Prepare an API Key for a Vision Language (VL) model.
 
-You can check the supported models in [Choose a model](../choose-a-model)
+You can check the models and configurations supported by Midscene.js in the [Model Strategy](../model-strategy) documentation.
 
 ### Install adb
 
-`adb` is a command-line tool that allows you to communicate with an Android device. There are two ways to install `adb`:
+`adb` is a command-line tool that allows you to communicate with Android devices. There are two ways to install `adb`:
 
-- way 1: use [Android Studio](https://developer.android.com/studio) to install
-- way 2: use [Android command-line tools](https://developer.android.com/studio#command-line-tools-only) to install
+- Method 1: Install using [Android Studio](https://developer.android.com/studio)
+- Method 2: Install using [Android Command Line Tools](https://developer.android.com/studio#command-line-tools-only)
 
-Verify adb is installed successfully:
+Verify that `adb` is installed successfully:
 
 ```bash
 adb --version
 ```
 
-When you see the following output, adb is installed successfully:
+When you see the following output, it means `adb` is installed successfully:
 
 ```log
 Android Debug Bridge version 1.0.41
 Version 34.0.4-10411341
 Installed as /usr/local/bin//adb
-Running on Darwin 24.3.0 (arm64)
+Running on Darwin 24.3.0 (arm64) 
 ```
 
-### Set environment variable `ANDROID_HOME`
+### Set the `ANDROID_HOME` environment variable
 
-Reference [Android environment variables](https://developer.android.com/tools/variables), set the environment variable `ANDROID_HOME`.
+Refer to [Android Environment Variables](https://developer.android.com/tools/variables) to set the `ANDROID_HOME` environment variable.
 
-Verify the `ANDROID_HOME` variable is set successfully:
+Verify that the `ANDROID_HOME` variable is set successfully:
 
 ```bash
 echo $ANDROID_HOME
 ```
 
-When the command has any output, the `ANDROID_HOME` variable is set successfully:
+When the above command has output, it means the `ANDROID_HOME` variable is set successfully:
 
 ```log
 /Users/your_username/Library/Android/sdk
 ```
 
-### Connect Android device with adb
+### Connect Android Device
 
-In the developer options of the system settings, enable the 'USB debugging' of the Android device, if the 'USB debugging (secure settings)' exists, also enable it, then connect the Android device with a USB cable
+In the developer options of your Android device, enable 'USB debugging'. If 'USB debugging (Security settings)' exists, enable it as well. Then connect your Android device using a USB cable.
 
 <p align="center">
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400"/>
@@ -62,7 +62,7 @@ Verify the connection:
 adb devices -l
 ```
 
-When you see the following output, the connection is successful:
+When you see the following output, it means the connection is successful:
 
 ```log
 List of devices attached

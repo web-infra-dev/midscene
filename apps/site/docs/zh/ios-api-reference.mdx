@@ -1,0 +1,224 @@
+# API 参考（iOS）
+
+当你需要自定义 iOS 设备行为、将 Midscene 接入依赖 WebDriverAgent 的工作流，或排查 WDA 请求问题时，请查阅本节。关于通用构造函数（报告、Hook、缓存等），请参考平台无关的 [API 参考](./api)。
+
+## Action Space（动作空间）
+
+`IOSDevice` 使用以下动作空间，Midscene Agent 在规划任务时可以使用这些操作：
+
+- `Tap` —— 点击元素。
+- `DoubleClick` —— 双击元素。
+- `Input` —— 输入文本，支持 `replace`/`append`/`clear` 模式，可选 `autoDismissKeyboard`。
+- `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `KeyboardPress` —— 按下指定键位。
+- `IOSLongPress` —— 长按目标元素，可选自定义时长。
+- `ClearInput` —— 清空输入框内容。
+- `Launch` —— 打开网页、Bundle ID 或 URL Scheme。
+- `RunWdaRequest` —— 直接调用 WebDriverAgent REST 接口。
+- `IOSHomeButton` —— 执行 iOS 系统 Home 操作。
+- `IOSAppSwitcher` —— 打开 iOS 多任务视图。
+
+## IOSDevice {#iosdevice}
+
+创建一个由 WebDriverAgent 支撑、供 IOSAgent 驱动的设备连接。
+
+### 导入
+
+```ts
+import { IOSDevice } from '@midscene/ios';
+```
+
+### 构造函数
+
+```ts
+const device = new IOSDevice({
+  // 设备参数...
+});
+```
+
+### 设备选项
+
+- `wdaPort?: number` —— WebDriverAgent 端口，默认 `8100`。
+- `wdaHost?: string` —— WebDriverAgent host，默认 `'localhost'`。
+- `autoDismissKeyboard?: boolean` —— 文本输入后自动隐藏键盘，默认 `true`。
+- `customActions?: DeviceAction<any>[]` —— 向 Agent 暴露的额外设备动作。
+
+
+### 使用说明
+
+- 请确认已开启开发者模式且 WDA 能访问设备；真机转发端口时可借助 `iproxy`。
+- 通过 `wdaHost`/`wdaPort` 可指向远程设备或自建的 WDA。
+- 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
+### 示例
+
+#### 快速开始
+
+```ts
+import { IOSAgent, IOSDevice } from '@midscene/ios';
+
+const device = new IOSDevice({ wdaHost: 'localhost', wdaPort: 8100 });
+await device.connect();
+
+const agent = new IOSAgent(device, {
+  aiActionContext: 'If any permission dialog appears, accept it.',
+});
+
+await agent.launch('https://ebay.com');
+await agent.aiAct('Search for \"Headphones\"');
+const items = await agent.aiQuery(
+  '{itemTitle: string, price: Number}[], list headphone products',
+);
+console.log(items);
+```
+
+#### 自定义 Host 与端口
+
+```ts
+const device = new IOSDevice({
+  wdaHost: '192.168.1.100',
+  wdaPort: 8300,
+});
+await device.connect();
+```
+
+## IOSAgent {#iosagent}
+
+将 Midscene 的 AI 规划能力绑定到 IOSDevice，通过 WebDriverAgent 实现 UI 自动化。
+
+### 导入
+
+```ts
+import { IOSAgent } from '@midscene/ios';
+```
+
+### 构造函数
+
+```ts
+const agent = new IOSAgent(device, {
+  // 通用 Agent 参数...
+});
+```
+
+### iOS 特有选项
+
+- `customActions?: DeviceAction<any>[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
+
+### 使用说明
+
+:::info
+
+- 一个设备连接对应一个 Agent。
+- `launch`、`runWdaRequest` 等 iOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [iOS 平台特定动作](./automate-with-scripts-in-yaml#the-ios-part)。
+- 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
+:::
+
+### iOS 特有方法
+
+#### `agent.launch()`
+
+打开网页、原生应用或自定义 Scheme。
+
+```ts
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 目标地址（网页 URL、Bundle Identifier、URL scheme、tel/mailto 等）。
+
+```ts
+await agent.launch('https://www.apple.com');
+await agent.launch('com.apple.Preferences');
+await agent.launch('myapp://profile/user/123');
+await agent.launch('tel:+1234567890');
+```
+
+#### `agent.runWdaRequest()`
+
+当你需要更底层的控制能力时，执行原始的 WebDriverAgent REST 请求。
+
+```ts
+function runWdaRequest(
+  method: string,
+  endpoint: string,
+  data?: Record<string, any>,
+): Promise<any>;
+```
+
+- `method: string` —— HTTP 动词（`GET`、`POST`、`DELETE` 等）。
+- `endpoint: string` —— WebDriverAgent 接口路径。
+- `data?: Record<string, any>` —— 可选的 JSON 请求体。
+
+```ts
+const screen = await agent.runWdaRequest('GET', '/wda/screen');
+await agent.runWdaRequest('POST', '/session/test/wda/pressButton', { name: 'home' });
+```
+
+#### 应用间导航
+
+- `agent.home(): Promise<void>` —— 回到主屏。
+- `agent.appSwitcher(): Promise<void>` —— 打开多任务视图。
+
+### 辅助工具
+
+#### `agentFromWebDriverAgent()` {#agentfromwebdriveragent}
+
+连接 WebDriverAgent 并返回可用的 IOSAgent。
+
+```ts
+function agentFromWebDriverAgent(
+  opts?: PageAgentOpt & IOSDeviceOpt,
+): Promise<IOSAgent>;
+```
+
+- `opts?: PageAgentOpt & IOSDeviceOpt` —— 在一个对象中同时传入通用 Agent 选项与 [`IOSDevice`](#iosdevice) 的配置。
+
+```ts
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const agent = await agentFromWebDriverAgent({
+  wdaHost: 'localhost',
+  wdaPort: 8100,
+  aiActionContext: 'Accept permission dialogs automatically.',
+});
+```
+
+### 扩展自定义交互动作
+
+通过 `defineAction` 创建处理器并传入 `customActions`，即可扩展 Agent 的动作空间。这些动作会追加在内置动作之后，可在规划阶段被调用。
+
+```ts
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { agentFromWebDriverAgent } from '@midscene/ios';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call({ locate, count }) {
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const agent = await agentFromWebDriverAgent({
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('Click the red button five times');
+```
+
+### 相关阅读
+
+- [iOS 快速开始](./ios-getting-started) 获取搭建与脚本示例。
+- [与任意界面集成](./integrate-with-any-interface) 查看自定义动作与 Schema 细节。

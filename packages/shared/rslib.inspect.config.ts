@@ -27,6 +27,10 @@ export default defineConfig({
               name: 'midscene_element_inspector',
             },
           },
+          optimization: {
+            runtimeChunk: false,
+            splitChunks: false,
+          },
         },
         bundlerChain: (chain, { CHAIN_ID }) => {
           chain.optimization.minimizer(CHAIN_ID.MINIMIZER.JS).tap((options) => {

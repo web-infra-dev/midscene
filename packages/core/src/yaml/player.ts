@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { assert, ifInBrowser, ifInWorker } from '@midscene/shared/utils';
+import { type ZodTypeAny, z } from 'zod';
 
 // previous defined yaml flow, as a helper
 interface MidsceneYamlFlowItemAIInput extends LocateOption {
@@ -27,19 +28,13 @@ interface MidsceneYamlFlowItemAIScroll extends LocateOption, ScrollParam {
 }
 
 import type { Agent } from '@/agent/agent';
-import type { TUserPrompt } from '@/ai-model/common';
+import type { TUserPrompt } from '@/common';
 import type {
   DeviceAction,
   FreeFn,
   LocateOption,
   MidsceneYamlFlowItemAIAction,
-  MidsceneYamlFlowItemAIAsk,
   MidsceneYamlFlowItemAIAssert,
-  MidsceneYamlFlowItemAIBoolean,
-  MidsceneYamlFlowItemAILocate,
-  MidsceneYamlFlowItemAINumber,
-  MidsceneYamlFlowItemAIQuery,
-  MidsceneYamlFlowItemAIString,
   MidsceneYamlFlowItemAIWaitFor,
   MidsceneYamlFlowItemEvaluateJavaScript,
   MidsceneYamlFlowItemLogScreenshot,
@@ -58,6 +53,52 @@ import {
 } from './utils';
 
 const debug = getDebug('yaml-player');
+const aiTaskHandlerMap = {
+  aiQuery: 'aiQuery',
+  aiNumber: 'aiNumber',
+  aiString: 'aiString',
+  aiBoolean: 'aiBoolean',
+  aiAsk: 'aiAsk',
+  aiLocate: 'aiLocate',
+} as const;
+
+type AISimpleTaskKey = keyof typeof aiTaskHandlerMap;
+
+const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
+  if (!schema) {
+    return false;
+  }
+
+  const schemaDef = (schema as any)?._def;
+  if (!schemaDef?.typeName) {
+    return false;
+  }
+
+  switch (schemaDef.typeName) {
+    case z.ZodFirstPartyTypeKind.ZodString:
+    case z.ZodFirstPartyTypeKind.ZodEnum:
+    case z.ZodFirstPartyTypeKind.ZodNativeEnum:
+      return true;
+    case z.ZodFirstPartyTypeKind.ZodLiteral:
+      return typeof schemaDef.value === 'string';
+    case z.ZodFirstPartyTypeKind.ZodOptional:
+    case z.ZodFirstPartyTypeKind.ZodNullable:
+    case z.ZodFirstPartyTypeKind.ZodDefault:
+      return isStringParamSchema(schemaDef.innerType);
+    case z.ZodFirstPartyTypeKind.ZodEffects:
+      return isStringParamSchema(schemaDef.schema);
+    case z.ZodFirstPartyTypeKind.ZodPipeline:
+      return isStringParamSchema(schemaDef.out);
+    case z.ZodFirstPartyTypeKind.ZodUnion: {
+      const options = schemaDef.options as ZodTypeAny[] | undefined;
+      return Array.isArray(options)
+        ? options.every((option) => isStringParamSchema(option))
+        : false;
+    }
+    default:
+      return false;
+  }
+};
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
@@ -84,6 +125,22 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   ) {
     this.scriptPath = scriptPath;
     this.result = {};
+    const resolvedAiActContext =
+      script.agent?.aiActContext ?? script.agent?.aiActionContext;
+
+    if (resolvedAiActContext !== undefined && script.agent) {
+      if (
+        script.agent.aiActContext === undefined &&
+        script.agent.aiActionContext !== undefined
+      ) {
+        console.warn(
+          'agent.aiActionContext is deprecated, please use agent.aiActContext instead. The legacy name is still accepted for backward compatibility.',
+        );
+      }
+
+      script.agent.aiActContext = resolvedAiActContext;
+    }
+
     this.target =
       script.target ||
       script.web ||
@@ -210,16 +267,19 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       debug(
         `playing step ${flowItemIndex}, flowItem=${JSON.stringify(flowItem)}`,
       );
+      const simpleAIKey = (
+        Object.keys(aiTaskHandlerMap) as AISimpleTaskKey[]
+      ).find((key) => Object.prototype.hasOwnProperty.call(flowItem, key));
       if (
+        'aiAct' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'aiAction' in (flowItem as MidsceneYamlFlowItemAIAction) ||
         'ai' in (flowItem as MidsceneYamlFlowItemAIAction)
       ) {
         const actionTask = flowItem as MidsceneYamlFlowItemAIAction;
-        const prompt = actionTask.aiAction || actionTask.ai;
-        assert(prompt, 'missing prompt for ai (aiAction)');
-        await agent.aiAction(prompt, {
-          cacheable: actionTask.cacheable,
-        });
+        const { aiAct, aiAction, ai, ...actionOptions } = actionTask;
+        const prompt = aiAct || aiAction || ai;
+        assert(prompt, 'missing prompt for ai (aiAct)');
+        await agent.aiAct(prompt, actionOptions);
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
         const prompt = assertTask.aiAssert;
@@ -239,64 +299,30 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         if (!pass) {
           throw new Error(message);
         }
-      } else if ('aiQuery' in (flowItem as MidsceneYamlFlowItemAIQuery)) {
-        const queryTask = flowItem as MidsceneYamlFlowItemAIQuery;
-        const prompt = queryTask.aiQuery;
-        const options = {
-          domIncluded: queryTask.domIncluded,
-          screenshotIncluded: queryTask.screenshotIncluded,
-        };
-        assert(prompt, 'missing prompt for aiQuery');
-        const queryResult = await agent.aiQuery(prompt, options);
-        this.setResult(queryTask.name, queryResult);
-      } else if ('aiNumber' in (flowItem as MidsceneYamlFlowItemAINumber)) {
-        const numberTask = flowItem as MidsceneYamlFlowItemAINumber;
-        const prompt = numberTask.aiNumber;
-        const options = {
-          domIncluded: numberTask.domIncluded,
-          screenshotIncluded: numberTask.screenshotIncluded,
-        };
-        assert(prompt, 'missing prompt for aiNumber');
-        const numberResult = await agent.aiNumber(prompt, options);
-        this.setResult(numberTask.name, numberResult);
-      } else if ('aiString' in (flowItem as MidsceneYamlFlowItemAIString)) {
-        const stringTask = flowItem as MidsceneYamlFlowItemAIString;
-        const prompt = stringTask.aiString;
-        const options = {
-          domIncluded: stringTask.domIncluded,
-          screenshotIncluded: stringTask.screenshotIncluded,
-        };
-        assert(prompt, 'missing prompt for aiString');
-        const stringResult = await agent.aiString(prompt, options);
-        this.setResult(stringTask.name, stringResult);
-      } else if ('aiBoolean' in (flowItem as MidsceneYamlFlowItemAIBoolean)) {
-        const booleanTask = flowItem as MidsceneYamlFlowItemAIBoolean;
-        const prompt = booleanTask.aiBoolean;
-        const options = {
-          domIncluded: booleanTask.domIncluded,
-          screenshotIncluded: booleanTask.screenshotIncluded,
-        };
-        assert(prompt, 'missing prompt for aiBoolean');
-        const booleanResult = await agent.aiBoolean(prompt, options);
-        this.setResult(booleanTask.name, booleanResult);
-      } else if ('aiAsk' in (flowItem as MidsceneYamlFlowItemAIAsk)) {
-        const askTask = flowItem as MidsceneYamlFlowItemAIAsk;
-        const prompt = askTask.aiAsk;
-        assert(prompt, 'missing prompt for aiAsk');
-        const askResult = await agent.aiAsk(prompt);
-        this.setResult(askTask.name, askResult);
-      } else if ('aiLocate' in (flowItem as MidsceneYamlFlowItemAILocate)) {
-        const locateTask = flowItem as MidsceneYamlFlowItemAILocate;
-        const prompt = locateTask.aiLocate;
-        assert(prompt, 'missing prompt for aiLocate');
-        const locateResult = await agent.aiLocate(prompt, locateTask);
-        this.setResult(locateTask.name, locateResult);
+      } else if (simpleAIKey) {
+        const {
+          [simpleAIKey]: prompt,
+          name,
+          ...options
+        } = flowItem as Record<string, any>;
+        assert(prompt, `missing prompt for ${simpleAIKey}`);
+        const agentMethod = (agent as any)[aiTaskHandlerMap[simpleAIKey]];
+        assert(
+          typeof agentMethod === 'function',
+          `missing agent method for ${simpleAIKey}`,
+        );
+        const aiResult = await agentMethod.call(agent, prompt, options);
+        this.setResult(name, aiResult);
       } else if ('aiWaitFor' in (flowItem as MidsceneYamlFlowItemAIWaitFor)) {
         const waitForTask = flowItem as MidsceneYamlFlowItemAIWaitFor;
-        const prompt = waitForTask.aiWaitFor;
+        const { aiWaitFor, timeout, ...restWaitForOpts } = waitForTask;
+        const prompt = aiWaitFor;
         assert(prompt, 'missing prompt for aiWaitFor');
-        const timeout = waitForTask.timeout;
-        await agent.aiWaitFor(prompt, { timeoutMs: timeout });
+        const waitForOptions = {
+          ...restWaitForOpts,
+          ...(timeout !== undefined ? { timeout, timeoutMs: timeout } : {}),
+        };
+        await agent.aiWaitFor(prompt, waitForOptions);
       } else if ('sleep' in (flowItem as MidsceneYamlFlowItemSleep)) {
         const sleepTask = flowItem as MidsceneYamlFlowItemSleep;
         const ms = sleepTask.sleep;
@@ -320,16 +346,21 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         );
         this.setResult(evaluateJavaScriptTask.name, result);
       } else if (
-        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
+        'logScreenshot' in (flowItem as MidsceneYamlFlowItemLogScreenshot) ||
+        'recordToReport' in (flowItem as MidsceneYamlFlowItemLogScreenshot)
       ) {
-        const logScreenshotTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
-        await agent.logScreenshot(logScreenshotTask.logScreenshot, {
-          content: logScreenshotTask.content || '',
-        });
+        const recordTask = flowItem as MidsceneYamlFlowItemLogScreenshot;
+        const title =
+          recordTask.recordToReport ?? recordTask.logScreenshot ?? 'untitled';
+        const content = recordTask.content || '';
+        await agent.recordToReport(title, { content });
       } else if ('aiInput' in (flowItem as MidsceneYamlFlowItemAIInput)) {
         // may be input empty string ''
-        const { aiInput, ...inputTask } =
-          flowItem as MidsceneYamlFlowItemAIInput;
+        const {
+          aiInput,
+          value: rawValue,
+          ...inputTask
+        } = flowItem as MidsceneYamlFlowItemAIInput;
 
         // Compatibility with previous version:
         // Old format: { aiInput: string (value), locate: TUserPrompt }
@@ -339,14 +370,16 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         let value: string | number | undefined;
         if ((inputTask as any).locate) {
           // Old format - aiInput is the value, locate is the prompt
-          value = (aiInput as string) || inputTask.value;
+          // Keep backward compatibility: empty string is treated as no value
+          value = (aiInput as string | number) || rawValue;
           locatePrompt = (inputTask as any).locate;
         } else {
           // New format - aiInput is the prompt, value is the value
           locatePrompt = aiInput || '';
-          value = inputTask.value;
+          value = rawValue;
         }
 
+        // Convert value to string for Input action
         await agent.callActionInActionSpace('Input', {
           ...inputTask,
           ...(value !== undefined ? { value: String(value) } : {}),
@@ -432,15 +465,18 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         const actionSpace = this.actionSpace;
         let locatePromptShortcut: string | undefined;
+        let actionParamForMatchedAction: unknown;
         const matchedAction = actionSpace.find((action) => {
           const actionInterfaceAlias = action.interfaceAlias;
           if (
             actionInterfaceAlias &&
             Object.prototype.hasOwnProperty.call(flowItem, actionInterfaceAlias)
           ) {
-            locatePromptShortcut = flowItem[
-              actionInterfaceAlias as keyof typeof flowItem
-            ] as string;
+            actionParamForMatchedAction =
+              flowItem[actionInterfaceAlias as keyof typeof flowItem];
+            if (typeof actionParamForMatchedAction === 'string') {
+              locatePromptShortcut = actionParamForMatchedAction;
+            }
             return true;
           }
 
@@ -451,9 +487,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               keyOfActionInActionSpace,
             )
           ) {
-            locatePromptShortcut = flowItem[
-              keyOfActionInActionSpace as keyof typeof flowItem
-            ] as string;
+            actionParamForMatchedAction =
+              flowItem[keyOfActionInActionSpace as keyof typeof flowItem];
+            if (typeof actionParamForMatchedAction === 'string') {
+              locatePromptShortcut = actionParamForMatchedAction;
+            }
             return true;
           }
 
@@ -465,35 +503,90 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           `unknown flowItem in yaml: ${JSON.stringify(flowItem)}`,
         );
 
-        assert(
-          !((flowItem as any).prompt && locatePromptShortcut),
-          `conflict locate prompt for item: ${JSON.stringify(flowItem)}`,
+        const schemaIsStringParam = isStringParamSchema(
+          matchedAction.paramSchema,
         );
-
-        if (locatePromptShortcut) {
-          (flowItem as any).prompt = locatePromptShortcut;
+        let stringParamToCall: string | undefined;
+        if (
+          typeof actionParamForMatchedAction === 'string' &&
+          schemaIsStringParam
+        ) {
+          if (matchedAction.paramSchema) {
+            const parseResult = matchedAction.paramSchema.safeParse(
+              actionParamForMatchedAction,
+            );
+            if (parseResult.success && typeof parseResult.data === 'string') {
+              stringParamToCall = parseResult.data;
+            } else if (!parseResult.success) {
+              debug(
+                `parse failed for action ${matchedAction.name} with string param`,
+                parseResult.error,
+              );
+              stringParamToCall = actionParamForMatchedAction;
+            }
+          } else {
+            stringParamToCall = actionParamForMatchedAction;
+          }
         }
 
-        const { locateParam, restParams } =
-          buildDetailedLocateParamAndRestParams(
-            locatePromptShortcut || '',
-            flowItem as LocateOption,
-            [
-              matchedAction.name,
-              matchedAction.interfaceAlias || '_never_mind_',
-            ],
+        if (stringParamToCall !== undefined) {
+          debug(
+            `matchedAction: ${matchedAction.name}`,
+            `flowParams: ${JSON.stringify(stringParamToCall)}`,
+          );
+          const result = await agent.callActionInActionSpace(
+            matchedAction.name,
+            stringParamToCall,
           );
 
-        const flowParams = {
-          ...restParams,
-          locate: locateParam,
-        };
+          // Store result if there's a name property in flowItem
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+        } else {
+          // Determine the source for parameter extraction:
+          // - If we have a locatePromptShortcut, use the flowItem (for actions like aiTap with prompt)
+          // - Otherwise, use actionParamForMatchedAction (for actions like runWdaRequest with structured params)
+          const sourceForParams =
+            locatePromptShortcut &&
+            typeof actionParamForMatchedAction === 'string'
+              ? { ...flowItem, prompt: locatePromptShortcut }
+              : typeof actionParamForMatchedAction === 'object' &&
+                  actionParamForMatchedAction !== null
+                ? actionParamForMatchedAction
+                : flowItem;
 
-        debug(
-          `matchedAction: ${matchedAction.name}`,
-          `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
-        );
-        await agent.callActionInActionSpace(matchedAction.name, flowParams);
+          const { locateParam, restParams } =
+            buildDetailedLocateParamAndRestParams(
+              locatePromptShortcut || '',
+              sourceForParams as LocateOption,
+              [
+                matchedAction.name,
+                matchedAction.interfaceAlias || '_never_mind_',
+              ],
+            );
+
+          const flowParams = {
+            ...restParams,
+            locate: locateParam,
+          };
+
+          debug(
+            `matchedAction: ${matchedAction.name}`,
+            `flowParams: ${JSON.stringify(flowParams, null, 2)}`,
+          );
+          const result = await agent.callActionInActionSpace(
+            matchedAction.name,
+            flowParams,
+          );
+
+          // Store result if there's a name property in flowItem
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+        }
       }
     }
     this.reportFile = agent.reportFile;

@@ -1,8 +1,10 @@
 import assert from 'node:assert';
 import type { Point } from '@midscene/core';
+import { z } from '@midscene/core';
 import {
   AbstractInterface,
   type DeviceAction,
+  defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
@@ -371,6 +373,10 @@ export interface ChromePageDestroyOptions {
 }
 
 export abstract class AbstractWebPage extends AbstractInterface {
+  navigate?(url: string): Promise<void>;
+  reload?(): Promise<void>;
+  goBack?(): Promise<void>;
+
   get mouse(): MouseAction {
     return {
       click: async (
@@ -418,6 +424,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
 
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   page: T,
+  includeTouchEvents = false,
 ): DeviceAction<any>[] => [
   defineActionTap(async (param) => {
     const element = param.locate;
@@ -485,15 +492,15 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
         }
       : undefined;
     const scrollToEventName = param?.scrollType;
-    if (scrollToEventName === 'untilTop') {
+    if (scrollToEventName === 'scrollToTop') {
       await page.scrollUntilTop(startingPoint);
-    } else if (scrollToEventName === 'untilBottom') {
+    } else if (scrollToEventName === 'scrollToBottom') {
       await page.scrollUntilBottom(startingPoint);
-    } else if (scrollToEventName === 'untilRight') {
+    } else if (scrollToEventName === 'scrollToRight') {
       await page.scrollUntilRight(startingPoint);
-    } else if (scrollToEventName === 'untilLeft') {
+    } else if (scrollToEventName === 'scrollToLeft') {
       await page.scrollUntilLeft(startingPoint);
-    } else if (scrollToEventName === 'once' || !scrollToEventName) {
+    } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
       if (param?.direction === 'down' || !param || !param.direction) {
         await page.scrollDown(param?.distance || undefined, startingPoint);
       } else if (param.direction === 'up') {
@@ -539,79 +546,122 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     await page.longPress(element.center[0], element.center[1], duration);
   }),
 
-  defineActionSwipe(async (param) => {
-    const { width, height } = await page.size();
-    const { start, end } = param;
+  ...(includeTouchEvents
+    ? [
+        defineActionSwipe(async (param) => {
+          const { width, height } = await page.size();
+          const { start, end } = param;
 
-    const startPoint = start
-      ? {
-          x: start.center[0],
-          y: start.center[1],
-        }
-      : {
-          x: width / 2,
-          y: height / 2,
-        };
+          const startPoint = start
+            ? {
+                x: start.center[0],
+                y: start.center[1],
+              }
+            : {
+                x: width / 2,
+                y: height / 2,
+              };
 
-    let endPoint: {
-      x: number;
-      y: number;
-    };
+          let endPoint: {
+            x: number;
+            y: number;
+          };
 
-    if (end) {
-      endPoint = {
-        x: end.center[0],
-        y: end.center[1],
-      };
-    } else if (param.distance) {
-      const direction = param.direction;
-      if (!direction) {
-        throw new Error('direction is required for swipe gesture');
-      }
+          if (end) {
+            endPoint = {
+              x: end.center[0],
+              y: end.center[1],
+            };
+          } else if (param.distance) {
+            const direction = param.direction;
+            if (!direction) {
+              throw new Error('direction is required for swipe gesture');
+            }
 
-      endPoint = {
-        x:
-          startPoint.x +
-          (direction === 'right'
-            ? param.distance
-            : direction === 'left'
-              ? -param.distance
-              : 0),
-        y:
-          startPoint.y +
-          (direction === 'down'
-            ? param.distance
-            : direction === 'up'
-              ? -param.distance
-              : 0),
-      };
-    } else {
-      throw new Error(
-        'Either end or distance must be specified for swipe gesture',
-      );
-    }
+            endPoint = {
+              x:
+                startPoint.x +
+                (direction === 'right'
+                  ? param.distance
+                  : direction === 'left'
+                    ? -param.distance
+                    : 0),
+              y:
+                startPoint.y +
+                (direction === 'down'
+                  ? param.distance
+                  : direction === 'up'
+                    ? -param.distance
+                    : 0),
+            };
+          } else {
+            throw new Error(
+              'Either end or distance must be specified for swipe gesture',
+            );
+          }
 
-    // Ensure end coordinates are within bounds
-    endPoint.x = Math.max(0, Math.min(endPoint.x, width));
-    endPoint.y = Math.max(0, Math.min(endPoint.y, height));
+          // Ensure end coordinates are within bounds
+          endPoint.x = Math.max(0, Math.min(endPoint.x, width));
+          endPoint.y = Math.max(0, Math.min(endPoint.y, height));
 
-    const duration = param.duration;
+          const duration = param.duration;
 
-    debug(
-      `swipe from ${startPoint.x}, ${startPoint.y} to ${endPoint.x}, ${endPoint.y} with duration ${duration}ms, repeat is set to ${param.repeat}`,
-    );
-    let repeat = typeof param.repeat === 'number' ? param.repeat : 1;
-    if (repeat === 0) {
-      repeat = 10; // 10 times is enough for infinite swipe
-    }
-    for (let i = 0; i < repeat; i++) {
-      await page.swipe(startPoint, endPoint, duration);
-    }
-  }),
+          debug(
+            `swipe from ${startPoint.x}, ${startPoint.y} to ${endPoint.x}, ${endPoint.y} with duration ${duration}ms, repeat is set to ${param.repeat}`,
+          );
+          let repeat = typeof param.repeat === 'number' ? param.repeat : 1;
+          if (repeat === 0) {
+            repeat = 10; // 10 times is enough for infinite swipe
+          }
+          for (let i = 0; i < repeat; i++) {
+            await page.swipe(startPoint, endPoint, duration);
+          }
+        }),
+      ]
+    : []),
 
   defineActionClearInput(async (param) => {
     const element = param.locate;
     assert(element, 'Element not found, cannot clear input');
     await page.clearInput(element as unknown as ElementInfo);
+  }),
+
+  defineAction({
+    name: 'Navigate',
+    description:
+      'Navigate the browser to a specified URL. Opens the URL in the current tab.',
+    paramSchema: z.object({
+      url: z.string().describe('The URL to navigate to'),
+    }),
+    call: async (param) => {
+      if (!page.navigate) {
+        throw new Error(
+          'Navigate operation is not supported on this page type',
+        );
+      }
+      await page.navigate(param.url);
+    },
+  }),
+
+  defineAction({
+    name: 'Reload',
+    description: 'Reload the current page',
+    call: async () => {
+      if (!page.reload) {
+        throw new Error('Reload operation is not supported on this page type');
+      }
+      await page.reload();
+    },
+  }),
+
+  defineAction({
+    name: 'GoBack',
+    description: 'Navigate back in browser history',
+    call: async () => {
+      if (!page.goBack) {
+        throw new Error('GoBack operation is not supported on this page type');
+      }
+      await page.goBack();
+    },
   }),
 ];

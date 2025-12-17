@@ -253,46 +253,6 @@ describe('PlaygroundSDK', () => {
     });
   });
 
-  describe('getTaskProgress', () => {
-    it('should delegate to LocalExecutionAdapter getTaskProgress', async () => {
-      const mockGetTaskProgress = vi
-        .fn()
-        .mockResolvedValue({ tip: 'local tip' });
-      const MockAdapter = vi.mocked(LocalExecutionAdapter);
-      MockAdapter.prototype.getTaskProgress = mockGetTaskProgress;
-
-      const config: PlaygroundConfig = {
-        type: 'local-execution',
-        agent: {},
-      };
-
-      const sdk = new PlaygroundSDK(config);
-      const result = await sdk.getTaskProgress('request-123');
-
-      expect(result).toEqual({ tip: 'local tip' });
-      expect(mockGetTaskProgress).toHaveBeenCalledWith('request-123');
-    });
-
-    it('should delegate to RemoteExecutionAdapter getTaskProgress', async () => {
-      const mockGetTaskProgress = vi
-        .fn()
-        .mockResolvedValue({ tip: 'remote tip' });
-      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
-      MockAdapter.prototype.getTaskProgress = mockGetTaskProgress;
-
-      const config: PlaygroundConfig = {
-        type: 'remote-execution',
-        serverUrl: 'http://localhost:3000',
-      };
-
-      const sdk = new PlaygroundSDK(config);
-      const result = await sdk.getTaskProgress('request-123');
-
-      expect(result).toEqual({ tip: 'remote tip' });
-      expect(mockGetTaskProgress).toHaveBeenCalledWith('request-123');
-    });
-  });
-
   describe('cancelTask', () => {
     it('should return error message for LocalExecutionAdapter', async () => {
       const config: PlaygroundConfig = {

@@ -55,12 +55,6 @@ export class PlaygroundSDK {
     options: ExecutionOptions,
   ): Promise<unknown> {
     const result = await this.adapter.executeAction(actionType, value, options);
-
-    // Stop any active polling for this request after execution completes
-    if (options.requestId) {
-      this.stopProgressPolling(options.requestId);
-    }
-
     return result;
   }
 
@@ -119,64 +113,44 @@ export class PlaygroundSDK {
     // For local execution, this is a no-op
   }
 
-  async getTaskProgress(requestId: string): Promise<{ tip?: string }> {
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getTaskProgress(requestId);
-    }
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getTaskProgress(requestId);
-    }
-    return { tip: undefined }; // Fallback
-  }
-
   // Cancel task (for remote execution)
   async cancelTask(requestId: string): Promise<any> {
-    // Stop progress polling for this request
-    this.stopProgressPolling(requestId);
-
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.cancelTask(requestId);
     }
     return { error: 'Cancel task not supported in local execution mode' };
   }
 
-  // Progress callback management
-  onProgressUpdate(callback: (tip: string) => void): void {
-    // Pass the callback to the adapter if it supports it
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      this.adapter.setProgressCallback(callback);
-    } else if (this.adapter instanceof LocalExecutionAdapter) {
-      this.adapter.setProgressCallback(callback);
+  // Dump update callback management
+  onDumpUpdate(callback: (dump: string, executionDump?: any) => void): void {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      this.adapter.onDumpUpdate(callback);
     }
-  }
-
-  // Start progress polling for remote execution (deprecated - now handled by adapter)
-  startProgressPolling(requestId: string): void {
-    // This method is now handled by the RemoteExecutionAdapter automatically
-    // when executeAction is called with a requestId
-    console.warn(
-      'startProgressPolling is deprecated - polling is now automatic',
-    );
-  }
-
-  // Stop progress polling for a specific request (deprecated - now handled by adapter)
-  stopProgressPolling(requestId: string): void {
-    // This method is now handled by the RemoteExecutionAdapter automatically
-    console.warn(
-      'stopProgressPolling is deprecated - polling cleanup is now automatic',
-    );
   }
 
   // Cancel execution - supports both remote and local
   async cancelExecution(requestId: string): Promise<void> {
-    this.stopProgressPolling(requestId);
-
     if (this.adapter instanceof RemoteExecutionAdapter) {
       await this.adapter.cancelTask(requestId);
     } else if (this.adapter instanceof LocalExecutionAdapter) {
       // For local execution, we might need to implement agent cancellation
       console.warn('Local execution cancellation not fully implemented');
     }
+  }
+
+  // Get current execution data (dump and report)
+  async getCurrentExecutionData(): Promise<{
+    dump: any | null;
+    reportHTML: string | null;
+  }> {
+    if (
+      this.adapter instanceof LocalExecutionAdapter &&
+      this.adapter.getCurrentExecutionData
+    ) {
+      return await this.adapter.getCurrentExecutionData();
+    }
+    // For remote execution or if method not available, return empty data
+    return { dump: null, reportHTML: null };
   }
 
   // Screenshot method for remote execution
@@ -202,5 +176,13 @@ export class PlaygroundSDK {
       return this.adapter.getInterfaceInfo();
     }
     return null;
+  }
+
+  // Get service mode based on adapter type
+  getServiceMode(): 'In-Browser-Extension' | 'Server' {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return 'In-Browser-Extension';
+    }
+    return 'Server';
   }
 }

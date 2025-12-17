@@ -1,0 +1,162 @@
+import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connectivity.mdx';
+
+# Common Model Configuration
+
+## Ways to set environment variables
+
+Midscene reads all model configuration from environment variables. Below are common approaches, but feel free to adopt any method used in your project.
+
+### Method 1: Set variables in the system
+
+> The Midscene Chrome extension also accepts this `export KEY="value"` format.
+
+```bash
+# Replace with your own API key
+export MIDSCENE_MODEL_API_KEY="sk-abcde..."
+export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
+export MIDSCENE_MODEL_API_KEY="......"
+export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+```
+
+### Method 2: Create a `.env` file (for CLI tools)
+
+Create a `.env` file in the directory where you run the project. Midscene CLI tools load this file automatically.
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+Keep in mind:
+1. You do **not** need to prefix each line with `export`.
+2. Only the Midscene CLI automatically reads this file. For the JavaScript SDK, load it manually as shown below.
+
+### Method 3: Load variables via dotenv
+
+[Dotenv](https://www.npmjs.com/package/dotenv) is a zero-dependency npm package that loads variables from `.env` into Node.js `process.env`.
+
+Our [demo project](https://github.com/web-infra-dev/midscene-example) uses this method.
+
+```bash
+# install dotenv
+npm install dotenv --save
+```
+
+Create a `.env` file in the project root and add (no `export` prefix):
+
+```bash
+MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+```
+
+Import dotenv in your script; it will read `.env` automatically:
+
+```typescript
+import 'dotenv/config';
+```
+
+## Common model configurations
+
+### Doubao Seed vision models {#doubao-seed-vision}
+
+Obtain an API key from [Volcano Engine](https://volcengine.com) and set:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_MODEL_FAMILY="doubao-vision"
+```
+
+### Qwen3-VL {#qwen3-vl}
+
+Using Alibaba Cloud's `qwen3-vl-plus` as an example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
+```
+
+### Qwen2.5-VL {#qwen25-vl}
+
+Using Alibaba Cloud's `qwen-vl-max-latest` as an example:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
+MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
+```
+
+### Gemini-3-Pro {#gemini-3-pro}
+
+After requesting an API key from [Google Gemini](https://gemini.google.com/), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai/"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="gemini-3.0-pro-preview" # Replace with the specific Gemini 3 Pro release name you are using
+MIDSCENE_MODEL_FAMILY="gemini"
+```
+
+### UI-TARS {#ui-tars}
+
+Use the deployed `doubao-1.5-ui-tars` on [Volcano Engine](https://volcengine.com):
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
+MIDSCENE_MODEL_API_KEY="...."
+MIDSCENE_MODEL_NAME="ep-2025..." # Inference endpoint ID or model name from Volcano Engine
+MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
+```
+
+**About `MIDSCENE_MODEL_FAMILY`**
+
+This variable selects the UI-TARS version. Supported values:
+- `vlm-ui-tars` – for the 1.0 release
+- `vlm-ui-tars-doubao` – for the 1.5 release deployed on Volcano Engine (equivalent to `vlm-ui-tars-doubao-1.5`)
+- `vlm-ui-tars-doubao-1.5` – for the 1.5 release deployed on Volcano Engine
+
+:::tip
+
+The legacy configurations `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` or `MIDSCENE_USE_VLM_UI_TARS=1.5` are still supported but deprecated. Please migrate to `MIDSCENE_MODEL_FAMILY`.
+
+Migration mapping:
+- `MIDSCENE_USE_VLM_UI_TARS=1.0` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars"`
+- `MIDSCENE_USE_VLM_UI_TARS=1.5` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"`
+- `MIDSCENE_USE_VLM_UI_TARS=DOUBAO` → `MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao"`
+
+:::
+
+### ~~GPT-4o~~
+
+Starting with version 1.0, Midscene no longer supports gpt series models as the default model. See [Model strategy](./model-strategy) for details.
+
+## Multi-model example: GPT-5.1 planning/insight + Qwen3-VL for vision {#gpt51-planning-insight-qwen3}
+
+Use GPT-5.1 for Planning and/or Insight to handle heavy reasoning, while Qwen3-VL focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
+
+```bash
+# Default vision model: Qwen3-VL
+export MIDSCENE_MODEL_BASE_URL="https://..."       # Qwen3-VL endpoint
+export MIDSCENE_MODEL_API_KEY="..."                # Your Qwen3-VL API key
+export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3-vl"
+
+# Planning model: GPT-5.1
+export MIDSCENE_PLANNING_MODEL_API_KEY="sk-..."    # Your GPT-5.1 API key
+export MIDSCENE_PLANNING_MODEL_BASE_URL="https://..." 
+export MIDSCENE_PLANNING_MODEL_NAME="gpt-5.1"
+
+# Insight model: GPT-5.1
+export MIDSCENE_INSIGHT_MODEL_API_KEY="sk-..."     # Your GPT-5.1 API key
+export MIDSCENE_INSIGHT_MODEL_BASE_URL="https://..."
+export MIDSCENE_INSIGHT_MODEL_NAME="gpt-5.1"
+```
+
+## More
+
+For additional, advanced model settings, see [Model configuration](./model-config).
+
+
+<TroubleshootingLLMConnectivity />

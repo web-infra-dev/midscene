@@ -51,9 +51,7 @@ export async function buildContext(
       context: {
         ...baseContext,
         describer: async () => {
-          return describeUserPage(baseContext, {
-            vlMode,
-          });
+          return describeUserPage(baseContext);
         },
       },
       snapshotJson: '',
@@ -83,9 +81,7 @@ export async function buildContext(
     context: {
       ...baseContext,
       describer: async () => {
-        return describeUserPage(baseContext, {
-          vlMode,
-        });
+        return describeUserPage(baseContext);
       },
     },
     snapshotJson,

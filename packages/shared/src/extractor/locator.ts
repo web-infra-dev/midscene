@@ -1,7 +1,6 @@
 import type { ElementInfo } from '.';
 import type { Point } from '../types';
 import { isSvgElement } from './dom-util';
-import { getNodeFromCacheList } from './util';
 import { getRect, isElementPartiallyInViewport } from './util';
 import { collectElementInfo } from './web-extractor';
 
@@ -105,17 +104,6 @@ export const getElementXpath = (
   return buildCurrentElementXpath(el, isOrderSensitive, isLeafElement);
 };
 
-export function getXpathsById(id: string): string[] | null {
-  const node = getNodeFromCacheList(id);
-
-  if (!node) {
-    return null;
-  }
-
-  const fullXPath = getElementXpath(node, false, true);
-  return [fullXPath];
-}
-
 export function getXpathsByPoint(
   point: Point,
   isOrderSensitive: boolean,
@@ -140,6 +128,9 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
   );
 
   if (xpathResult.snapshotLength !== 1) {
+    console.warn(
+      `[midscene:warning] Received XPath "${xpath}" but it matched ${xpathResult.snapshotLength} elements. Discarding this result.`,
+    );
     return null;
   }
 

@@ -23,12 +23,20 @@ export interface ServerResponse {
   error?: string;
 }
 
+export interface DeviceOptions {
+  imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  autoDismissKeyboard?: boolean;
+  keyboardDismissStrategy?: 'esc-first' | 'back-first';
+  alwaysRefreshScreenInfo?: boolean;
+}
+
 export interface ExecutionOptions {
   deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
   context?: any;
   requestId?: string;
+  deviceOptions?: DeviceOptions;
 }
 
 // Extended web types for playground
@@ -45,6 +53,25 @@ export interface PlaygroundConfig {
   type: ExecutionType;
   serverUrl?: string; // For remote-execution protocol
   agent?: PlaygroundAgent; // For local-execution
+}
+
+/**
+ * Progress message for UI display
+ * Generated from ExecutionTask to provide user-friendly progress updates
+ */
+export interface ProgressMessage {
+  /** Unique identifier for this progress message */
+  id: string;
+  /** Corresponding task ID from ExecutionTask */
+  taskId: string;
+  /** Task type display name (e.g., "Plan", "Action", "Query") */
+  action: string;
+  /** Human-readable description of what the task does */
+  description: string;
+  /** Task execution status */
+  status: 'pending' | 'running' | 'finished' | 'failed';
+  /** Unix timestamp when this message was generated */
+  timestamp: number;
 }
 
 export interface PlaygroundAdapter {

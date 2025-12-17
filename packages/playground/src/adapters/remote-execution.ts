@@ -5,8 +5,6 @@ import { BasePlaygroundAdapter } from './base';
 
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   private serverUrl?: string;
-  private progressPolling = new Map<string, NodeJS.Timeout>();
-  private progressCallback?: (tip: string) => void;
   private _id?: string;
 
   constructor(serverUrl: string) {
@@ -139,11 +137,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       payload.context = options.context;
     }
 
-    // Start progress polling if callback is set and requestId exists
-    if (options.requestId && this.progressCallback) {
-      this.startProgressPolling(options.requestId, this.progressCallback);
-    }
-
     try {
       const response = await fetch(`${this.serverUrl}/execute`, {
         method: 'POST',
@@ -162,17 +155,8 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
       const result = await response.json();
 
-      // Stop progress polling when execution completes
-      if (options.requestId) {
-        this.stopProgressPolling(options.requestId);
-      }
-
       return result;
     } catch (error) {
-      // Stop progress polling on error
-      if (options.requestId) {
-        this.stopProgressPolling(options.requestId);
-      }
       console.error('Execute via server failed:', error);
       throw error;
     }
@@ -191,6 +175,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       { key: 'deepThink', value: options.deepThink },
       { key: 'screenshotIncluded', value: options.screenshotIncluded },
       { key: 'domIncluded', value: options.domIncluded },
+      { key: 'deviceOptions', value: options.deviceOptions },
       { key: 'params', value: value.params },
     ] as const;
 
@@ -232,7 +217,11 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     if (context && typeof context === 'object' && 'actionSpace' in context) {
       try {
         const actionSpaceMethod = (
-          context as { actionSpace: () => Promise<DeviceAction<unknown>[]> }
+          context as {
+            actionSpace: () =>
+              | DeviceAction<unknown>[]
+              | Promise<DeviceAction<unknown>[]>;
+          }
         ).actionSpace;
         const result = await actionSpaceMethod();
         return Array.isArray(result) ? result : [];
@@ -330,9 +319,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   async cancelTask(
     requestId: string,
   ): Promise<{ error?: string; success?: boolean }> {
-    // Stop progress polling
-    this.stopProgressPolling(requestId);
-
     if (!this.serverUrl) {
       return { error: 'No server URL configured' };
     }
@@ -358,47 +344,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     } catch (error) {
       console.error('Failed to cancel task:', error);
       return { error: 'Failed to cancel task' };
-    }
-  }
-
-  // Progress callback management
-  setProgressCallback(callback: (tip: string) => void): void {
-    this.progressCallback = callback;
-  }
-
-  // Start progress polling
-  private startProgressPolling(
-    requestId: string,
-    callback: (tip: string) => void,
-  ): void {
-    // Don't start multiple polling for the same request
-    if (this.progressPolling.has(requestId)) {
-      return;
-    }
-
-    let lastTip = '';
-    const interval = setInterval(async () => {
-      try {
-        const progress = await this.getTaskProgress(requestId);
-        if (progress?.tip?.trim?.() && progress.tip !== lastTip) {
-          lastTip = progress.tip;
-          callback(progress.tip);
-        }
-      } catch (error) {
-        // Silently ignore progress polling errors to avoid spam
-        console.debug('Progress polling error:', error);
-      }
-    }, 500); // Poll every 500ms
-
-    this.progressPolling.set(requestId, interval);
-  }
-
-  // Stop progress polling
-  private stopProgressPolling(requestId: string): void {
-    const interval = this.progressPolling.get(requestId);
-    if (interval) {
-      clearInterval(interval);
-      this.progressPolling.delete(requestId);
     }
   }
 

@@ -33,7 +33,6 @@ vi.mock('@/common/utils', async () => {
   return {
     ...actual,
     WebPageContextParser: vi.fn().mockResolvedValue({}),
-    trimContextByViewport: vi.fn((execution) => execution),
     printReportMsg: vi.fn(),
   };
 });
@@ -60,12 +59,12 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot-base64'),
       url: vi.fn().mockResolvedValue('https://example.com'),
       title: vi.fn().mockResolvedValue('Test Page'),
+      actionSpace: vi.fn(() => []),
     };
 
     // Create mock insight with extract method
     mockInsight = {
       extract: vi.fn(),
-      onceDumpUpdatedFn: null,
       contextRetrieverFn: vi.fn().mockResolvedValue({
         screenshotBase64: 'mock-screenshot-base64',
         size: { width: 1024, height: 768, dpr: 1 },
@@ -79,6 +78,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
 
     taskExecutor = new TaskExecutor(mockPage, mockInsight, {
       onTaskStart: vi.fn(),
+      actionSpace: mockPage.actionSpace(),
     });
   });
 
@@ -104,12 +104,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     };
     createTypeQueryTaskSpy.mockResolvedValue(mockTask);
 
-    // Mock the prependExecutorWithScreenshot method to return the task as-is
-    vi.spyOn(
-      taskExecutor as any,
-      'prependExecutorWithScreenshot',
-    ).mockImplementation((task) => task);
-
     // Call waitFor method directly
     const result = await taskExecutor.waitFor(
       'test assertion',
@@ -125,14 +119,12 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       'WaitFor',
       'test assertion',
       mockedModelConfig,
-      {
-        doNotThrowError: true,
-      },
+      undefined,
       undefined,
     );
 
-    // Verify the result structure
-    expect(result.executor).toBeDefined();
+    // Verify the result structure - waitFor returns runner, not executor
+    expect(result.runner).toBeDefined();
     expect(result.output).toBeUndefined(); // waitFor returns undefined output on success
   });
 
@@ -164,12 +156,6 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     };
     createTypeQueryTaskSpy.mockResolvedValue(mockTask);
 
-    // Mock the prependExecutorWithScreenshot method
-    vi.spyOn(
-      taskExecutor as any,
-      'prependExecutorWithScreenshot',
-    ).mockImplementation((task) => task);
-
     // Call waitFor method with short timeouts to test the retry mechanism
     const result = await taskExecutor.waitFor(
       'test assertion',
@@ -185,9 +171,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       'WaitFor',
       'test assertion',
       mockedModelConfig,
-      {
-        doNotThrowError: true,
-      },
+      undefined,
       undefined,
     );
 
@@ -195,81 +179,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
     expect(createTypeQueryTaskSpy).toHaveBeenCalledTimes(2);
 
     // Verify the result
-    expect(result.executor).toBeDefined();
-    expect(result.output).toBeUndefined();
-  });
-
-  it('should timeout and return error plan when assertion never succeeds', async () => {
-    // Spy on the private createTypeQueryTask method and appendErrorPlan
-    const createTypeQueryTaskSpy = vi.spyOn(
-      taskExecutor as any,
-      'createTypeQueryTask',
-    );
-    const appendErrorPlanSpy = vi.spyOn(taskExecutor as any, 'appendErrorPlan');
-
-    // Mock createTypeQueryTask to always return false (assertion never passes)
-    const mockTask = {
-      type: 'Insight',
-      subType: 'Assert',
-      locate: null,
-      param: {
-        dataDemand: { result: 'Boolean, test assertion' },
-      },
-      executor: vi.fn().mockResolvedValue({
-        output: false,
-        thought: 'Assertion failed - element not found',
-      }),
-    };
-    createTypeQueryTaskSpy.mockResolvedValue(mockTask);
-
-    // Mock appendErrorPlan to return a proper result
-    const mockErrorResult = {
-      output: undefined,
-      executor: {
-        dump: () => ({ name: 'waitFor timeout', tasks: [] }),
-        isInErrorState: () => true,
-      },
-    };
-    appendErrorPlanSpy.mockResolvedValue(mockErrorResult);
-
-    // Mock the prependExecutorWithScreenshot method
-    vi.spyOn(
-      taskExecutor as any,
-      'prependExecutorWithScreenshot',
-    ).mockImplementation((task) => task);
-
-    // Call waitFor method with very short timeout to trigger timeout quickly
-    const result = await taskExecutor.waitFor(
-      'test assertion',
-      {
-        timeoutMs: 100, // Very short timeout
-        checkIntervalMs: 50,
-      },
-      mockedModelConfig,
-    );
-
-    // Verify that createTypeQueryTask was called with doNotThrowError: true
-    expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
-      'WaitFor',
-      'test assertion',
-      mockedModelConfig,
-      {
-        doNotThrowError: true,
-      },
-      undefined,
-    );
-
-    // Verify that appendErrorPlan was called when timeout occurred
-    expect(appendErrorPlanSpy).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.stringMatching(
-        /waitFor timeout.*Assertion failed - element not found/,
-      ),
-      mockedModelConfig,
-    );
-
-    // Verify the result
-    expect(result.executor).toBeDefined();
+    expect(result.runner).toBeDefined();
     expect(result.output).toBeUndefined();
   });
 });

@@ -1,34 +1,23 @@
 import { AIResponseFormat, type AIUsageInfo } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
-import { Anthropic } from '@anthropic-ai/sdk';
-import {
-  DefaultAzureCredential,
-  getBearerTokenProvider,
-} from '@azure/identity';
 import {
   type IModelConfig,
-  MIDSCENE_API_TYPE,
+  MIDSCENE_LANGFUSE_DEBUG,
   MIDSCENE_LANGSMITH_DEBUG,
+  MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
   type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
 } from '@midscene/shared/env';
 
-import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
-import { ifInBrowser } from '@midscene/shared/utils';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
-import OpenAI, { AzureOpenAI } from 'openai';
+import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import { SocksProxyAgent } from 'socks-proxy-agent';
-import { AIActionType, type AIArgs } from '../common';
-import { assertSchema } from '../prompt/assertion';
-import { locatorSchema } from '../prompt/llm-locator';
-import { planSchema } from '../prompt/llm-planning';
+import type { AIActionType, AIArgs } from '../../common';
 
 async function createChatClient({
   AIActionTypeValue,
@@ -38,7 +27,6 @@ async function createChatClient({
   modelConfig: IModelConfig;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
-  style: 'openai' | 'anthropic';
   modelName: string;
   modelDescription: string;
   uiTarsVersion?: UITarsModelVersion;
@@ -51,89 +39,119 @@ async function createChatClient({
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig,
-    openaiUseAzureDeprecated,
-    useAzureOpenai,
-    azureOpenaiScope,
-    azureOpenaiKey,
-    azureOpenaiEndpoint,
-    azureOpenaiApiVersion,
-    azureOpenaiDeployment,
-    azureExtraConfig,
-    useAnthropicSdk,
-    anthropicApiKey,
     modelDescription,
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
+    createOpenAIClient,
+    timeout,
   } = modelConfig;
 
-  let openai: OpenAI | AzureOpenAI | undefined;
-
-  let proxyAgent = undefined;
+  let proxyAgent: any = undefined;
   const debugProxy = getDebug('ai:call:proxy');
+
+  // Helper function to sanitize proxy URL for logging (remove credentials)
+  // Uses URL API instead of regex to avoid ReDoS vulnerabilities
+  const sanitizeProxyUrl = (url: string): string => {
+    try {
+      const parsed = new URL(url);
+      if (parsed.username) {
+        // Keep username for debugging, hide password for security
+        parsed.password = '****';
+        return parsed.href;
+      }
+      return url;
+    } catch {
+      // If URL parsing fails, return original URL (will be caught later)
+      return url;
+    }
+  };
+
   if (httpProxy) {
-    debugProxy('using http proxy', httpProxy);
-    proxyAgent = new HttpsProxyAgent(httpProxy);
-  } else if (socksProxy) {
-    debugProxy('using socks proxy', socksProxy);
-    proxyAgent = new SocksProxyAgent(socksProxy);
-  }
-
-  if (openaiUseAzureDeprecated) {
-    // this is deprecated
-    openai = new AzureOpenAI({
-      baseURL: openaiBaseURL,
-      apiKey: openaiApiKey,
-      httpAgent: proxyAgent,
-      ...openaiExtraConfig,
-      dangerouslyAllowBrowser: true,
-    }) as OpenAI;
-  } else if (useAzureOpenai) {
-    // https://learn.microsoft.com/en-us/azure/ai-services/openai/chatgpt-quickstart?tabs=bash%2Cjavascript-key%2Ctypescript-keyless%2Cpython&pivots=programming-language-javascript#rest-api
-    // keyless authentication
-    let tokenProvider: any = undefined;
-    if (azureOpenaiScope) {
-      assert(
-        !ifInBrowser,
-        'Azure OpenAI is not supported in browser with Midscene.',
+    debugProxy('using http proxy', sanitizeProxyUrl(httpProxy));
+    if (ifInBrowser) {
+      console.warn(
+        'HTTP proxy is configured but not supported in browser environment',
       );
-      const credential = new DefaultAzureCredential();
-
-      tokenProvider = getBearerTokenProvider(credential, azureOpenaiScope);
-
-      openai = new AzureOpenAI({
-        azureADTokenProvider: tokenProvider,
-        endpoint: azureOpenaiEndpoint,
-        apiVersion: azureOpenaiApiVersion,
-        deployment: azureOpenaiDeployment,
-        ...openaiExtraConfig,
-        ...azureExtraConfig,
-      });
     } else {
-      // endpoint, apiKey, apiVersion, deployment
-      openai = new AzureOpenAI({
-        apiKey: azureOpenaiKey,
-        endpoint: azureOpenaiEndpoint,
-        apiVersion: azureOpenaiApiVersion,
-        deployment: azureOpenaiDeployment,
-        dangerouslyAllowBrowser: true,
-        ...openaiExtraConfig,
-        ...azureExtraConfig,
+      // Dynamic import with variable to avoid bundler static analysis
+      const moduleName = 'undici';
+      const { ProxyAgent } = await import(moduleName);
+      proxyAgent = new ProxyAgent({
+        uri: httpProxy,
+        // Note: authentication is handled via the URI (e.g., http://user:pass@proxy.com:8080)
       });
     }
-  } else if (!useAnthropicSdk) {
-    openai = new OpenAI({
-      baseURL: openaiBaseURL,
-      apiKey: openaiApiKey,
-      httpAgent: proxyAgent,
-      ...openaiExtraConfig,
-      defaultHeaders: {
-        ...(openaiExtraConfig?.defaultHeaders || {}),
-        [MIDSCENE_API_TYPE]: AIActionTypeValue.toString(),
-      },
-      dangerouslyAllowBrowser: true,
-    });
+  } else if (socksProxy) {
+    debugProxy('using socks proxy', sanitizeProxyUrl(socksProxy));
+    if (ifInBrowser) {
+      console.warn(
+        'SOCKS proxy is configured but not supported in browser environment',
+      );
+    } else {
+      try {
+        // Dynamic import with variable to avoid bundler static analysis
+        const moduleName = 'fetch-socks';
+        const { socksDispatcher } = await import(moduleName);
+        // Parse SOCKS proxy URL (e.g., socks5://127.0.0.1:1080)
+        const proxyUrl = new URL(socksProxy);
+
+        // Validate hostname
+        if (!proxyUrl.hostname) {
+          throw new Error('SOCKS proxy URL must include a valid hostname');
+        }
+
+        // Validate and parse port
+        const port = Number.parseInt(proxyUrl.port, 10);
+        if (!proxyUrl.port || Number.isNaN(port)) {
+          throw new Error('SOCKS proxy URL must include a valid port');
+        }
+
+        // Parse SOCKS version from protocol
+        const protocol = proxyUrl.protocol.replace(':', '');
+        const socksType =
+          protocol === 'socks4' ? 4 : protocol === 'socks5' ? 5 : 5;
+
+        proxyAgent = socksDispatcher({
+          type: socksType,
+          host: proxyUrl.hostname,
+          port,
+          ...(proxyUrl.username
+            ? {
+                userId: decodeURIComponent(proxyUrl.username),
+                password: decodeURIComponent(proxyUrl.password || ''),
+              }
+            : {}),
+        });
+        debugProxy('socks proxy configured successfully', {
+          type: socksType,
+          host: proxyUrl.hostname,
+          port: port,
+        });
+      } catch (error) {
+        console.error('Failed to configure SOCKS proxy:', error);
+        throw new Error(
+          `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks4://host:port, socks5://host:port, or with authentication: socks5://user:pass@host:port`,
+        );
+      }
+    }
   }
 
+  const openAIOptions = {
+    baseURL: openaiBaseURL,
+    apiKey: openaiApiKey,
+    // Use fetchOptions.dispatcher for fetch-based SDK instead of httpAgent
+    // Note: Type assertion needed due to undici version mismatch between dependencies
+    ...(proxyAgent ? { fetchOptions: { dispatcher: proxyAgent as any } } : {}),
+    ...openaiExtraConfig,
+    ...(typeof timeout === 'number' ? { timeout } : {}),
+    dangerouslyAllowBrowser: true,
+  };
+
+  const baseOpenAI = new OpenAI(openAIOptions);
+
+  let openai: OpenAI = baseOpenAI;
+
+  // LangSmith wrapper
   if (
     openai &&
     globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGSMITH_DEBUG)
@@ -142,42 +160,42 @@ async function createChatClient({
       throw new Error('langsmith is not supported in browser');
     }
     console.log('DEBUGGING MODE: langsmith wrapper enabled');
-    const { wrapOpenAI } = await import('langsmith/wrappers');
+    // Use variable to prevent static analysis by bundlers
+    const langsmithModule = 'langsmith/wrappers';
+    const { wrapOpenAI } = await import(langsmithModule);
     openai = wrapOpenAI(openai);
   }
 
-  if (typeof openai !== 'undefined') {
-    return {
-      completion: openai.chat.completions,
-      style: 'openai',
-      modelName,
-      modelDescription,
-      uiTarsVersion,
-      vlMode,
-    };
+  // Langfuse wrapper
+  if (
+    openai &&
+    globalConfigManager.getEnvConfigInBoolean(MIDSCENE_LANGFUSE_DEBUG)
+  ) {
+    if (ifInBrowser) {
+      throw new Error('langfuse is not supported in browser');
+    }
+    console.log('DEBUGGING MODE: langfuse wrapper enabled');
+    // Use variable to prevent static analysis by bundlers
+    const langfuseModule = 'langfuse';
+    const { observeOpenAI } = await import(langfuseModule);
+    openai = observeOpenAI(openai);
   }
 
-  // Anthropic
-  if (useAnthropicSdk) {
-    openai = new Anthropic({
-      apiKey: anthropicApiKey,
-      httpAgent: proxyAgent,
-      dangerouslyAllowBrowser: true,
-    }) as any;
+  if (createOpenAIClient) {
+    const wrappedClient = await createOpenAIClient(baseOpenAI, openAIOptions);
+
+    if (wrappedClient) {
+      openai = wrappedClient as OpenAI;
+    }
   }
 
-  if (typeof openai !== 'undefined' && (openai as any).messages) {
-    return {
-      completion: (openai as any).messages,
-      style: 'anthropic',
-      modelName,
-      modelDescription,
-      uiTarsVersion,
-      vlMode,
-    };
-  }
-
-  throw new Error('Openai SDK or Anthropic SDK is not initialized');
+  return {
+    completion: openai.chat.completions,
+    modelName,
+    modelDescription,
+    uiTarsVersion,
+    vlMode,
+  };
 }
 
 export async function callAI(
@@ -189,21 +207,15 @@ export async function callAI(
     onChunk?: StreamingCallback;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
-  const {
-    completion,
-    style,
-    modelName,
-    modelDescription,
-    uiTarsVersion,
-    vlMode,
-  } = await createChatClient({
-    AIActionTypeValue,
-    modelConfig,
-  });
+  const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
+    await createChatClient({
+      AIActionTypeValue,
+      modelConfig,
+    });
 
-  const responseFormat = getResponseFormat(modelName, AIActionTypeValue);
-
-  const maxTokens = globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
+  const maxTokens =
+    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_MAX_TOKENS) ??
+    globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -216,14 +228,30 @@ export async function callAI(
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
 
+  const buildUsageInfo = (usageData?: OpenAI.CompletionUsage) => {
+    if (!usageData) return undefined;
+
+    const cachedInputTokens = (
+      usageData as { prompt_tokens_details?: { cached_tokens?: number } }
+    )?.prompt_tokens_details?.cached_tokens;
+
+    return {
+      prompt_tokens: usageData.prompt_tokens ?? 0,
+      completion_tokens: usageData.completion_tokens ?? 0,
+      total_tokens: usageData.total_tokens ?? 0,
+      cached_input: cachedInputTokens ?? 0,
+      time_cost: timeCost ?? 0,
+      model_name: modelName,
+      model_description: modelDescription,
+      intent: modelConfig.intent,
+    } satisfies AIUsageInfo;
+  };
+
   const commonConfig = {
-    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : 0.1,
+    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
     stream: !!isStreaming,
-    max_tokens:
-      typeof maxTokens === 'number'
-        ? maxTokens
-        : Number.parseInt(maxTokens || '2048', 10),
-    ...(vlMode === 'qwen-vl' || vlMode === 'qwen3-vl' // qwen specific config
+    max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
+    ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,
         }
@@ -231,213 +259,105 @@ export async function callAI(
   };
 
   try {
-    if (style === 'openai') {
-      debugCall(
-        `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
-      );
+    debugCall(
+      `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
+    );
 
-      if (isStreaming) {
-        const stream = (await completion.create(
-          {
-            model: modelName,
-            messages,
-            response_format: responseFormat,
-            ...commonConfig,
-          },
-          {
-            stream: true,
-          },
-        )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
-          _request_id?: string | null;
-        };
-
-        for await (const chunk of stream) {
-          const content = chunk.choices?.[0]?.delta?.content || '';
-          const reasoning_content =
-            (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
-
-          // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
-          if (chunk.usage) {
-            usage = chunk.usage;
-          }
-
-          if (content || reasoning_content) {
-            accumulated += content;
-            const chunkData: CodeGenerationChunk = {
-              content,
-              reasoning_content,
-              accumulated,
-              isComplete: false,
-              usage: undefined,
-            };
-            options.onChunk!(chunkData);
-          }
-
-          // Check if stream is complete
-          if (chunk.choices?.[0]?.finish_reason) {
-            timeCost = Date.now() - startTime;
-
-            // If usage is not available from the stream, provide a basic usage info
-            if (!usage) {
-              // Estimate token counts based on content length (rough approximation)
-              const estimatedTokens = Math.max(
-                1,
-                Math.floor(accumulated.length / 4),
-              );
-              usage = {
-                prompt_tokens: estimatedTokens,
-                completion_tokens: estimatedTokens,
-                total_tokens: estimatedTokens * 2,
-              };
-            }
-
-            // Send final chunk
-            const finalChunk: CodeGenerationChunk = {
-              content: '',
-              accumulated,
-              reasoning_content: '',
-              isComplete: true,
-              usage: {
-                prompt_tokens: usage.prompt_tokens ?? 0,
-                completion_tokens: usage.completion_tokens ?? 0,
-                total_tokens: usage.total_tokens ?? 0,
-                time_cost: timeCost ?? 0,
-                model_name: modelName,
-                model_description: modelDescription,
-                intent: modelConfig.intent,
-              },
-            };
-            options.onChunk!(finalChunk);
-            break;
-          }
-        }
-        content = accumulated;
-        debugProfileStats(
-          `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
-        );
-      } else {
-        const result = await completion.create({
+    if (isStreaming) {
+      const stream = (await completion.create(
+        {
           model: modelName,
           messages,
-          response_format: responseFormat,
           ...commonConfig,
-        } as any);
-        timeCost = Date.now() - startTime;
-
-        debugProfileStats(
-          `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
-        );
-
-        debugProfileDetail(
-          `model usage detail: ${JSON.stringify(result.usage)}`,
-        );
-
-        assert(
-          result.choices,
-          `invalid response from LLM service: ${JSON.stringify(result)}`,
-        );
-        content = result.choices[0].message.content!;
-        usage = result.usage;
-      }
-
-      debugCall(`response: ${content}`);
-      assert(content, 'empty content');
-    } else if (style === 'anthropic') {
-      const convertImageContent = (content: any) => {
-        if (content.type === 'image_url') {
-          const imgBase64 = content.image_url.url;
-          assert(imgBase64, 'image_url is required');
-          const { mimeType, body } = parseBase64(content.image_url.url);
-          return {
-            source: {
-              type: 'base64',
-              media_type: mimeType,
-              data: body,
-            },
-            type: 'image',
-          };
-        }
-        return content;
+        },
+        {
+          stream: true,
+        },
+      )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
+        _request_id?: string | null;
       };
 
-      if (isStreaming) {
-        const stream = (await completion.create({
-          model: modelName,
-          system: 'You are a versatile professional in software UI automation',
-          messages: messages.map((m) => ({
-            role: 'user',
-            content: Array.isArray(m.content)
-              ? (m.content as any).map(convertImageContent)
-              : m.content,
-          })),
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any)) as any;
+      for await (const chunk of stream) {
+        const content = chunk.choices?.[0]?.delta?.content || '';
+        const reasoning_content =
+          (chunk.choices?.[0]?.delta as any)?.reasoning_content || '';
 
-        for await (const chunk of stream) {
-          const content = chunk.delta?.text || '';
-          if (content) {
-            accumulated += content;
-            const chunkData: CodeGenerationChunk = {
-              content,
-              accumulated,
-              reasoning_content: '',
-              isComplete: false,
-              usage: undefined,
-            };
-            options.onChunk!(chunkData);
-          }
-
-          // Check if stream is complete
-          if (chunk.type === 'message_stop') {
-            timeCost = Date.now() - startTime;
-            const anthropicUsage = chunk.usage;
-
-            // Send final chunk
-            const finalChunk: CodeGenerationChunk = {
-              content: '',
-              accumulated,
-              reasoning_content: '',
-              isComplete: true,
-              usage: anthropicUsage
-                ? {
-                    prompt_tokens: anthropicUsage.input_tokens ?? 0,
-                    completion_tokens: anthropicUsage.output_tokens ?? 0,
-                    total_tokens:
-                      (anthropicUsage.input_tokens ?? 0) +
-                      (anthropicUsage.output_tokens ?? 0),
-                    time_cost: timeCost ?? 0,
-                    model_name: modelName,
-                    model_description: modelDescription,
-                    intent: modelConfig.intent,
-                  }
-                : undefined,
-            };
-            options.onChunk!(finalChunk);
-            break;
-          }
+        // Check for usage info in any chunk (OpenAI provides usage in separate chunks)
+        if (chunk.usage) {
+          usage = chunk.usage;
         }
-        content = accumulated;
-      } else {
-        const result = await completion.create({
-          model: modelName,
-          system: 'You are a versatile professional in software UI automation',
-          messages: messages.map((m) => ({
-            role: 'user',
-            content: Array.isArray(m.content)
-              ? (m.content as any).map(convertImageContent)
-              : m.content,
-          })),
-          response_format: responseFormat,
-          ...commonConfig,
-        } as any);
-        timeCost = Date.now() - startTime;
-        content = (result as any).content[0].text as string;
-        usage = result.usage;
-      }
 
-      assert(content, 'empty content');
+        if (content || reasoning_content) {
+          accumulated += content;
+          const chunkData: CodeGenerationChunk = {
+            content,
+            reasoning_content,
+            accumulated,
+            isComplete: false,
+            usage: undefined,
+          };
+          options.onChunk!(chunkData);
+        }
+
+        // Check if stream is complete
+        if (chunk.choices?.[0]?.finish_reason) {
+          timeCost = Date.now() - startTime;
+
+          // If usage is not available from the stream, provide a basic usage info
+          if (!usage) {
+            // Estimate token counts based on content length (rough approximation)
+            const estimatedTokens = Math.max(
+              1,
+              Math.floor(accumulated.length / 4),
+            );
+            usage = {
+              prompt_tokens: estimatedTokens,
+              completion_tokens: estimatedTokens,
+              total_tokens: estimatedTokens * 2,
+            };
+          }
+
+          // Send final chunk
+          const finalChunk: CodeGenerationChunk = {
+            content: '',
+            accumulated,
+            reasoning_content: '',
+            isComplete: true,
+            usage: buildUsageInfo(usage),
+          };
+          options.onChunk!(finalChunk);
+          break;
+        }
+      }
+      content = accumulated;
+      debugProfileStats(
+        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
+      );
+    } else {
+      const result = await completion.create({
+        model: modelName,
+        messages,
+        ...commonConfig,
+      } as any);
+      timeCost = Date.now() - startTime;
+
+      debugProfileStats(
+        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+      );
+
+      debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
+
+      assert(
+        result.choices,
+        `invalid response from LLM service: ${JSON.stringify(result)}`,
+      );
+      content = result.choices[0].message.content!;
+      usage = result.usage;
     }
+
+    debugCall(`response: ${content}`);
+    assert(content, 'empty content');
+
     // Ensure we always have usage info for streaming responses
     if (isStreaming && !usage) {
       // Estimate token counts based on content length (rough approximation)
@@ -449,22 +369,12 @@ export async function callAI(
         prompt_tokens: estimatedTokens,
         completion_tokens: estimatedTokens,
         total_tokens: estimatedTokens * 2,
-      };
+      } as OpenAI.CompletionUsage;
     }
 
     return {
       content: content || '',
-      usage: usage
-        ? {
-            prompt_tokens: usage.prompt_tokens ?? 0,
-            completion_tokens: usage.completion_tokens ?? 0,
-            total_tokens: usage.total_tokens ?? 0,
-            time_cost: timeCost ?? 0,
-            model_name: modelName,
-            model_description: modelDescription,
-            intent: modelConfig.intent,
-          }
-        : undefined,
+      usage: buildUsageInfo(usage),
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
@@ -479,61 +389,20 @@ export async function callAI(
   }
 }
 
-export const getResponseFormat = (
-  modelName: string,
-  AIActionTypeValue: AIActionType,
-):
-  | OpenAI.ChatCompletionCreateParams['response_format']
-  | OpenAI.ResponseFormatJSONObject => {
-  let responseFormat:
-    | OpenAI.ChatCompletionCreateParams['response_format']
-    | OpenAI.ResponseFormatJSONObject
-    | undefined;
-
-  if (modelName.includes('gpt-4')) {
-    switch (AIActionTypeValue) {
-      case AIActionType.ASSERT:
-        responseFormat = assertSchema;
-        break;
-      case AIActionType.INSPECT_ELEMENT:
-        responseFormat = locatorSchema;
-        break;
-      case AIActionType.PLAN:
-        responseFormat = planSchema;
-        break;
-      case AIActionType.EXTRACT_DATA:
-      case AIActionType.DESCRIBE_ELEMENT:
-        responseFormat = { type: AIResponseFormat.JSON };
-        break;
-      case AIActionType.TEXT:
-        // No response format for plain text - return as-is
-        responseFormat = undefined;
-        break;
-    }
-  }
-
-  // gpt-4o-2024-05-13 only supports json_object response format
-  // Skip for plain text to allow string output
-  if (
-    modelName === 'gpt-4o-2024-05-13' &&
-    AIActionTypeValue !== AIActionType.TEXT
-  ) {
-    responseFormat = { type: AIResponseFormat.JSON };
-  }
-
-  return responseFormat;
-};
-
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
-): Promise<{ content: T; usage?: AIUsageInfo }> {
+): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
   const response = await callAI(messages, AIActionTypeValue, modelConfig);
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
-  return { content: jsonContent, usage: response.usage };
+  return {
+    content: jsonContent,
+    contentString: response.content,
+    usage: response.usage,
+  };
 }
 
 export async function callAIWithStringResponse(
@@ -581,6 +450,54 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
+/**
+ * Normalize a parsed JSON object by trimming whitespace from:
+ * 1. All object keys (e.g., " prompt " -> "prompt")
+ * 2. All string values (e.g., " Tap " -> "Tap")
+ * This handles LLM output that may include leading/trailing spaces.
+ */
+function normalizeJsonObject(obj: any): any {
+  // Handle null and undefined
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Handle arrays - recursively normalize each element
+  if (Array.isArray(obj)) {
+    return obj.map((item) => normalizeJsonObject(item));
+  }
+
+  // Handle objects
+  if (typeof obj === 'object') {
+    const normalized: any = {};
+
+    for (const [key, value] of Object.entries(obj)) {
+      // Trim the key to remove leading/trailing spaces
+      const trimmedKey = key.trim();
+
+      // Recursively normalize the value
+      let normalizedValue = normalizeJsonObject(value);
+
+      // Trim all string values
+      if (typeof normalizedValue === 'string') {
+        normalizedValue = normalizedValue.trim();
+      }
+
+      normalized[trimmedKey] = normalizedValue;
+    }
+
+    return normalized;
+  }
+
+  // Handle primitive strings
+  if (typeof obj === 'string') {
+    return obj.trim();
+  }
+
+  // Return other primitives as-is
+  return obj;
+}
+
 export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
@@ -590,16 +507,21 @@ export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
       ?.slice(1)
       .map(Number);
   }
+
+  let parsed: any;
   try {
-    return JSON.parse(cleanJsonString);
+    parsed = JSON.parse(cleanJsonString);
+    return normalizeJsonObject(parsed);
   } catch {}
   try {
-    return JSON.parse(jsonrepair(cleanJsonString));
+    parsed = JSON.parse(jsonrepair(cleanJsonString));
+    return normalizeJsonObject(parsed);
   } catch (e) {}
 
   if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    return JSON.parse(jsonrepair(jsonString));
+    parsed = JSON.parse(jsonrepair(jsonString));
+    return normalizeJsonObject(parsed);
   }
   throw Error(`failed to parse json response: ${input}`);
 }

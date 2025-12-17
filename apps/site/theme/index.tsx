@@ -1,9 +1,10 @@
-import { getCustomMDXComponent as basicGetCustomMDXComponent } from '@rspress/core/theme';
+import { getCustomMDXComponent as basicGetCustomMDXComponent } from '@rspress/core/theme-original';
 import {
   LlmsContainer,
   LlmsCopyButton,
   LlmsViewOptions,
 } from '@rspress/plugin-llms/runtime';
+import { HomeLayout } from './pages';
 
 function getCustomMDXComponent() {
   const { h1: H1, ...components } = basicGetCustomMDXComponent();
@@ -25,5 +26,5 @@ function getCustomMDXComponent() {
   };
 }
 
-export { getCustomMDXComponent };
-export * from '@rspress/core/theme';
+export { getCustomMDXComponent, HomeLayout };
+export * from '@rspress/core/theme-original';

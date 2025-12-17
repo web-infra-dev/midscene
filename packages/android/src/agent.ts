@@ -1,21 +1,83 @@
+import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
-import { AndroidDevice, type AndroidDeviceOpt } from './device';
+import {
+  AndroidDevice,
+  type AndroidDeviceOpt,
+  type DeviceActionAndroidBackButton,
+  type DeviceActionAndroidHomeButton,
+  type DeviceActionAndroidRecentAppsButton,
+  type DeviceActionLaunch,
+  type DeviceActionRunAdbShell,
+} from './device';
 import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
-type AndroidAgentOpt = AgentOpt;
+export type AndroidAgentOpt = AgentOpt;
+
+type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
+  ? []
+  : [ActionParam<T>];
+
+/**
+ * Helper type to convert DeviceAction to wrapped method signature
+ */
+type WrappedAction<T extends DeviceAction> = (
+  ...args: ActionArgs<T>
+) => Promise<ActionReturn<T>>;
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
-  async launch(uri: string): Promise<void> {
-    const device = this.page;
-    await device.launch(uri);
+  /**
+   * Launch an Android app or URL
+   */
+  launch!: WrappedAction<DeviceActionLaunch>;
+
+  /**
+   * Execute ADB shell command on Android device
+   */
+  runAdbShell!: WrappedAction<DeviceActionRunAdbShell>;
+
+  /**
+   * Trigger the system back operation on Android devices
+   */
+  back!: WrappedAction<DeviceActionAndroidBackButton>;
+
+  /**
+   * Trigger the system home operation on Android devices
+   */
+  home!: WrappedAction<DeviceActionAndroidHomeButton>;
+
+  /**
+   * Trigger the system recent apps operation on Android devices
+   */
+  recentApps!: WrappedAction<DeviceActionAndroidRecentAppsButton>;
+
+  constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
+    super(device, opts);
+    this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
+    this.runAdbShell =
+      this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');
+    this.back =
+      this.createActionWrapper<DeviceActionAndroidBackButton>(
+        'AndroidBackButton',
+      );
+    this.home =
+      this.createActionWrapper<DeviceActionAndroidHomeButton>(
+        'AndroidHomeButton',
+      );
+    this.recentApps =
+      this.createActionWrapper<DeviceActionAndroidRecentAppsButton>(
+        'AndroidRecentAppsButton',
+      );
   }
 
-  async runAdbShell(command: string): Promise<string> {
-    const adb = await this.page.getAdb();
-    return await adb.shell(command);
+  private createActionWrapper<T extends DeviceAction>(
+    name: string,
+  ): WrappedAction<T> {
+    const action = this.wrapActionInActionSpace<T>(name);
+    return ((...args: ActionArgs<T>) =>
+      action(args[0] as ActionParam<T>)) as WrappedAction<T>;
   }
 }
 
@@ -26,6 +88,12 @@ export async function agentFromAdbDevice(
   if (!deviceId) {
     const devices = await getConnectedDevices();
 
+    if (devices.length === 0) {
+      throw new Error(
+        'No Android devices found. Please connect an Android device and ensure ADB is properly configured. Run `adb devices` to verify device connection.',
+      );
+    }
+
     deviceId = devices[0].udid;
 
     debugAgent(
@@ -34,19 +102,8 @@ export async function agentFromAdbDevice(
     );
   }
 
-  const device = new AndroidDevice(deviceId, {
-    autoDismissKeyboard: opts?.autoDismissKeyboard,
-    androidAdbPath: opts?.androidAdbPath,
-    remoteAdbHost: opts?.remoteAdbHost,
-    remoteAdbPort: opts?.remoteAdbPort,
-    imeStrategy: opts?.imeStrategy,
-    displayId: opts?.displayId,
-    usePhysicalDisplayIdForScreenshot: opts?.usePhysicalDisplayIdForScreenshot,
-    usePhysicalDisplayIdForDisplayLookup:
-      opts?.usePhysicalDisplayIdForDisplayLookup,
-    screenshotResizeScale: opts?.screenshotResizeScale,
-    alwaysRefreshScreenInfo: opts?.alwaysRefreshScreenInfo,
-  });
+  // Pass all device options to AndroidDevice constructor, ensuring we pass an empty object if opts is undefined
+  const device = new AndroidDevice(deviceId, opts || {});
 
   await device.connect();
 

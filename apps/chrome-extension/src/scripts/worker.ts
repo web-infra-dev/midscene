@@ -122,3 +122,48 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Return true to indicate we will send a response asynchronously
   return true;
 });
+
+// Reload all tabs after extension is installed or updated (development only)
+// This ensures content scripts are properly injected during development
+chrome.runtime.onInstalled.addListener(async (details) => {
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  if (
+    isDevelopment &&
+    (details.reason === 'install' || details.reason === 'update')
+  ) {
+    try {
+      const tabs = await chrome.tabs.query({});
+      const restrictedProtocols = [
+        'chrome:',
+        'chrome-extension:',
+        'about:',
+        'edge:',
+        'devtools:',
+      ];
+
+      for (const tab of tabs) {
+        if (
+          tab.id &&
+          tab.url &&
+          !restrictedProtocols.some((protocol) => tab.url?.startsWith(protocol))
+        ) {
+          try {
+            await chrome.tabs.reload(tab.id);
+            console.log('[ServiceWorker] Reloaded tab:', tab.id);
+          } catch (error) {
+            console.error(
+              '[ServiceWorker] Failed to reload tab:',
+              tab.id,
+              error,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      console.error(
+        '[ServiceWorker] Error reloading tabs after extension update:',
+        error,
+      );
+    }
+  }
+});

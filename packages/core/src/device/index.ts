@@ -1,6 +1,12 @@
-import { getMidsceneLocationSchema } from '@/ai-model';
-import type { DeviceAction, LocateResultElement } from '@/types';
+import { getMidsceneLocationSchema } from '@/common';
+import type {
+  ActionScrollParam,
+  DeviceAction,
+  LocateResultElement,
+} from '@/types';
+import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementNode } from '@midscene/shared/extractor';
+import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
@@ -10,11 +16,14 @@ export abstract class AbstractInterface {
 
   abstract screenshotBase64(): Promise<string>;
   abstract size(): Promise<Size>;
-  abstract actionSpace(): DeviceAction[] | Promise<DeviceAction[]>;
+  abstract actionSpace(): DeviceAction[];
 
   abstract cacheFeatureForRect?(
     rect: Rect,
-    opt?: { _orderSensitive: boolean },
+    options?: {
+      targetDescription?: string;
+      modelConfig?: IModelConfig;
+    },
   ): Promise<ElementCacheFeature>;
   abstract rectMatchesCacheFeature?(
     feature: ElementCacheFeature,
@@ -41,23 +50,25 @@ export abstract class AbstractInterface {
 
 // Generic function to define actions with proper type inference
 // TRuntime allows specifying a different type for the runtime parameter (after location resolution)
+// TReturn allows specifying the return type of the action
 export const defineAction = <
-  TSchema extends z.ZodType,
-  TRuntime = z.infer<TSchema>,
+  TSchema extends z.ZodType | undefined = undefined,
+  TRuntime = TSchema extends z.ZodType ? z.infer<TSchema> : undefined,
+  TReturn = any,
 >(
   config: {
     name: string;
     description: string;
     interfaceAlias?: string;
-    paramSchema: TSchema;
-    call: (param: TRuntime) => Promise<void>;
+    paramSchema?: TSchema;
+    call: (param: TRuntime) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<
-      DeviceAction<TRuntime>,
+      DeviceAction<TRuntime, TReturn>,
       'name' | 'description' | 'interfaceAlias' | 'paramSchema' | 'call'
     >
   >,
-): DeviceAction<TRuntime> => {
+): DeviceAction<TRuntime, TReturn> => {
   return config as any; // Type assertion needed because schema validation type differs from runtime type
 };
 
@@ -153,6 +164,8 @@ export const defineActionHover = (
 };
 
 // Input
+const inputLocateDescription =
+  'the position of the placeholder or text content in the target input field. If there is no content, locate the center of the input field.';
 export const actionInputParamSchema = z.object({
   value: z
     .union([z.string(), z.number()])
@@ -161,7 +174,7 @@ export const actionInputParamSchema = z.object({
       'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
     ),
   locate: getMidsceneLocationSchema()
-    .describe('The element to be input')
+    .describe(inputLocateDescription)
     .optional(),
   mode: z
     .enum(['replace', 'clear', 'append'])
@@ -228,9 +241,17 @@ export const actionScrollParamSchema = z.object({
     .default('down')
     .describe('The direction to scroll'),
   scrollType: z
-    .enum(['once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft'])
-    .default('once')
-    .describe('The scroll type'),
+    .enum([
+      'singleAction',
+      'scrollToBottom',
+      'scrollToTop',
+      'scrollToRight',
+      'scrollToLeft',
+    ])
+    .default('singleAction')
+    .describe(
+      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+    ),
   distance: z
     .number()
     .nullable()
@@ -238,14 +259,8 @@ export const actionScrollParamSchema = z.object({
     .describe('The distance in pixels to scroll'),
   locate: getMidsceneLocationSchema()
     .optional()
-    .describe('The element to be scrolled'),
+    .describe('The target element to be scrolled'),
 });
-export type ActionScrollParam = {
-  direction?: 'down' | 'up' | 'right' | 'left';
-  scrollType?: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft';
-  distance?: number | null;
-  locate?: LocateResultElement;
-};
 
 export const defineActionScroll = (
   call: (param: ActionScrollParam) => Promise<void>,
@@ -278,7 +293,8 @@ export const defineActionDragAndDrop = (
     ActionDragAndDropParam
   >({
     name: 'DragAndDrop',
-    description: 'Drag and drop the element',
+    description:
+      'Drag and drop (hold the mouse or finger down and move the mouse) ',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
     call,
@@ -381,11 +397,58 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
-    description: 'Clear the text content of an input field',
+    description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
     call,
   });
 };
 
+// Assert
+export const actionAssertParamSchema = z.object({
+  condition: z.string().describe('The condition of the assertion'),
+  thought: z
+    .string()
+    .describe(
+      'The thought of the assertion, like "I can see there are A, B, C elements on the page, which means ... , so the assertion is true"',
+    ),
+  result: z.boolean().describe('The result of the assertion, true or false'),
+});
+export type ActionAssertParam = {
+  condition: string;
+  thought: string;
+  result: boolean;
+};
+
+export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
+  return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
+    name: 'Print_Assert_Result',
+    description: 'Print the result of the assertion',
+    paramSchema: actionAssertParamSchema,
+    call: async (param) => {
+      if (typeof param?.result !== 'boolean') {
+        throw new Error(
+          `The result of the assertion must be a boolean, but got: ${typeof param?.result}. ${param.thought || '(no thought)'}`,
+        );
+      }
+
+      getDebug('device:common-action')(
+        `Assert: ${param.condition}, Thought: ${param.thought}, Result: ${param.result}`,
+      );
+
+      if (!param.result) {
+        throw new Error(
+          `Assertion failed: ${param.thought || '(no thought)'} (Assertion = ${param.condition})`,
+        );
+      }
+    },
+  });
+};
+
 export type { DeviceAction } from '../types';
+export type {
+  AndroidDeviceOpt,
+  AndroidDeviceInputOpt,
+  IOSDeviceOpt,
+  IOSDeviceInputOpt,
+} from './device-options';

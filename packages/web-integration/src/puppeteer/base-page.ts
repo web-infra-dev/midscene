@@ -8,6 +8,10 @@ import type {
   Size,
   UIContext,
 } from '@midscene/core';
+import {
+  AiJudgeOrderSensitive,
+  callAIWithObjectResponse,
+} from '@midscene/core/ai-model';
 import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
@@ -15,6 +19,7 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
+import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -60,11 +65,14 @@ export class Page<
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
-
+  private enableTouchEventsInActionSpace: boolean;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
-    const defaultActions = commonWebActionsForWebPage(this);
+    const defaultActions = commonWebActionsForWebPage(
+      this,
+      this.enableTouchEventsInActionSpace,
+    );
     const customActions = this.customActions || [];
     return [...defaultActions, ...customActions];
   }
@@ -104,6 +112,8 @@ export class Page<
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
     this.customActions = opts?.customActions;
+    this.enableTouchEventsInActionSpace =
+      opts?.enableTouchEventsInActionSpace ?? false;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -173,15 +183,7 @@ export class Page<
     return treeToList(tree);
   }
 
-  async getXpathsById(id: string) {
-    const elementInfosScriptContent = getElementInfosScriptContent();
-
-    return this.evaluateJavaScript(
-      `${elementInfosScriptContent}midscene_element_inspector.getXpathsById(${JSON.stringify(id)})`,
-    );
-  }
-
-  async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
+  private async getXpathsByPoint(point: Point, isOrderSensitive: boolean) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
@@ -189,7 +191,7 @@ export class Page<
     );
   }
 
-  async getElementInfoByXpath(xpath: string) {
+  private async getElementInfoByXpath(xpath: string) {
     const elementInfosScriptContent = getElementInfosScriptContent();
 
     return this.evaluateJavaScript(
@@ -199,7 +201,10 @@ export class Page<
 
   async cacheFeatureForRect(
     rect: Rect,
-    opt?: { _orderSensitive: boolean },
+    options?: {
+      targetDescription?: string;
+      modelConfig?: IModelConfig;
+    },
   ): Promise<ElementCacheFeature> {
     const center: Point = {
       left: Math.floor(rect.left + rect.width / 2),
@@ -207,8 +212,28 @@ export class Page<
     };
 
     try {
-      const orderSensitive = opt?._orderSensitive ?? false;
-      const xpaths = await this.getXpathsByPoint(center, orderSensitive);
+      // Determine isOrderSensitive
+      let isOrderSensitive = false;
+      if (options?.targetDescription && options?.modelConfig) {
+        try {
+          const judgeResult = await AiJudgeOrderSensitive(
+            options.targetDescription,
+            callAIWithObjectResponse,
+            options.modelConfig,
+          );
+          isOrderSensitive = judgeResult.isOrderSensitive;
+          debugPage(
+            'judged isOrderSensitive=%s for description: %s',
+            isOrderSensitive,
+            options.targetDescription,
+          );
+        } catch (error) {
+          debugPage('Failed to judge isOrderSensitive: %s', error);
+          // Fall back to false on error
+        }
+      }
+
+      const xpaths = await this.getXpathsByPoint(center, isOrderSensitive);
       const sanitized = sanitizeXpaths(xpaths);
       if (!sanitized.length) {
         debugPage('cacheFeatureForRect: no xpath found at rect %o', rect);
@@ -391,7 +416,9 @@ export class Page<
         await sleep(200);
         await (this.underlyingPage as PlaywrightPage).mouse.down();
         await sleep(300);
-        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y);
+        await (this.underlyingPage as PlaywrightPage).mouse.move(to.x, to.y, {
+          steps: 20,
+        });
         await sleep(500);
         await (this.underlyingPage as PlaywrightPage).mouse.up();
         await sleep(200);
@@ -543,15 +570,37 @@ export class Page<
     }
   }
 
+  async reload(): Promise<void> {
+    debugPage('reload page');
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).reload();
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).reload();
+    } else {
+      throw new Error('Unsupported page type for reload');
+    }
+  }
+
+  async goBack(): Promise<void> {
+    debugPage('go back');
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).goBack();
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).goBack();
+    } else {
+      throw new Error('Unsupported page type for go back');
+    }
+  }
+
   async beforeInvokeAction(name: string, param: any): Promise<void> {
-    await Promise.all([this.waitForNavigation(), this.waitForNetworkIdle()]);
     if (this.onBeforeInvokeAction) {
       await this.onBeforeInvokeAction(name, param);
     }
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {
-    await Promise.all([this.waitForNavigation(), this.waitForNetworkIdle()]);
+    await this.waitForNavigation();
+    await this.waitForNetworkIdle();
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
@@ -669,5 +718,60 @@ export function forceClosePopup(
     } else {
       debugProfile(`page is already closed, skip goto ${url}`);
     }
+  });
+}
+
+/**
+ * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
+ * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
+ *
+ * Reference: https://developer.chrome.com/blog/a-customizable-select
+ *
+ * Adds a style tag with CSS rules to make all select elements use base-select appearance.
+ */
+export function forceChromeSelectRendering(
+  page: PuppeteerPage | PlaywrightPage,
+): void {
+  // Force Chrome to render select elements using base-select appearance
+  // Reference: https://developer.chrome.com/blog/a-customizable-select
+  const styleContent = `
+/* Add by Midscene because of forceChromeSelectRendering is enabled*/
+select {
+  &, &::picker(select) {
+    appearance: base-select !important;
+  }
+}`;
+  const styleId = 'midscene-force-select-rendering';
+
+  const injectStyle = async () => {
+    try {
+      await (page as PuppeteerPage & PlaywrightPage).evaluate(
+        (id, content) => {
+          if (document.getElementById(id)) return;
+          const style = document.createElement('style');
+          style.id = id;
+          style.textContent = content;
+          document.head.appendChild(style);
+        },
+        styleId,
+        styleContent,
+      );
+      console.log(
+        'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',
+      );
+    } catch (err) {
+      console.log(
+        'Midscene - Failed to add base-select appearance style:',
+        err,
+      );
+    }
+  };
+
+  // Inject immediately for the current document
+  void injectStyle();
+
+  // Ensure the style is reapplied on future navigations/new documents
+  (page as PuppeteerPage & PlaywrightPage).on('load', () => {
+    void injectStyle();
   });
 }

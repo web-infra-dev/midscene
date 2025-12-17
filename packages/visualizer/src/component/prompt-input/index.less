@@ -431,3 +431,249 @@
     }
   }
 }
+
+// Dropdown menu styling with scroll support
+.more-apis-dropdown {
+  .ant-dropdown-menu {
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+
+      &:hover {
+        background: #a8a8a8;
+      }
+    }
+  }
+}
+
+// Dark mode styles
+[data-theme='dark'] {
+  .prompt-input-wrapper {
+    .mode-radio-group-wrapper {
+      .mode-radio-group {
+        .ant-radio-button-wrapper {
+          background-color: rgba(255, 255, 255, 0.08) !important;
+          color: #f8fafd !important;
+
+          &.ant-radio-button-wrapper-checked {
+            background-color: #2b83ff !important;
+            border-color: #2b83ff !important;
+            color: white !important;
+          }
+        }
+
+        .more-apis-button {
+          background-color: rgba(255, 255, 255, 0.08) !important;
+          color: #f8fafd !important;
+
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.12) !important;
+          }
+
+          &.selected-from-dropdown {
+            background-color: #2b83ff !important;
+            color: #fff !important;
+          }
+        }
+      }
+
+      .action-icons {
+        background: linear-gradient(
+          to right,
+          transparent 0%,
+          rgba(31, 31, 31, 0.5) 20%,
+          rgba(31, 31, 31, 0.8) 40%,
+          rgba(31, 31, 31, 0.95) 60%,
+          #1f1f1f 70%
+        ) !important;
+      }
+    }
+
+    .main-side-console-input {
+      .main-side-console-input-textarea {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: #f8fafd !important;
+
+        &:focus-within {
+          border: 1px solid transparent !important;
+          background:
+            linear-gradient(rgba(31, 31, 31, 1), rgba(31, 31, 31, 1))
+              padding-box,
+            linear-gradient(
+                135deg,
+                #4285f4 0%,
+                #0066ff 25%,
+                #7b02c5 50%,
+                #ea4335 75%,
+                #ff7043 100%
+              )
+              border-box !important;
+        }
+      }
+
+      &.loading .main-side-console-input-textarea {
+        border: 1px solid transparent !important;
+        background:
+          linear-gradient(rgba(31, 31, 31, 1), rgba(31, 31, 31, 1)) padding-box,
+          linear-gradient(
+              135deg,
+              #4285f4 0%,
+              #0066ff 25%,
+              #7b02c5 50%,
+              #ea4335 75%,
+              #ff7043 100%
+            )
+            border-box !important;
+      }
+    }
+
+    .ant-form-item-control-input-content {
+      .ant-input,
+      textarea.ant-input {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: #f8fafd !important;
+      }
+
+      .ant-btn {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        color: #f8fafd !important;
+
+        &.ant-btn-primary {
+          background-color: #2b83ff !important;
+          border-color: #2b83ff !important;
+          color: #fff !important;
+        }
+      }
+    }
+
+    .form-controller-wrapper {
+      background-color: rgba(31, 31, 31, 1) !important;
+    }
+
+    .structured-params-container {
+      background:
+        linear-gradient(rgba(31, 31, 31, 1), rgba(31, 31, 31, 1)) padding-box,
+        linear-gradient(
+            135deg,
+            #4285f4 0%,
+            #0066ff 25%,
+            #7b02c5 50%,
+            #ea4335 75%,
+            #ff7043 100%
+          )
+          border-box !important;
+
+      .structured-params {
+        .ant-form-item-label > label {
+          color: #f8fafd !important;
+        }
+
+        .ant-input,
+        .ant-input-number,
+        .ant-select {
+          background-color: rgba(255, 255, 255, 0.04) !important;
+          border-color: rgba(255, 255, 255, 0.12) !important;
+          color: #f8fafd !important;
+        }
+
+        .ant-radio-group {
+          .ant-radio-button-wrapper {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            color: #f8fafd !important;
+
+            &.ant-radio-button-wrapper-checked {
+              background-color: #2b83ff !important;
+              border-color: #2b83ff !important;
+              color: white !important;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .prompt-input {
+    .tip-button {
+      background-color: rgba(255, 255, 255, 0.08);
+
+      &.active {
+        background-color: #2b83ff;
+        color: #fff;
+      }
+    }
+
+    .prompt-textarea-wrapper {
+      background-color: rgba(255, 255, 255, 0.04);
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+
+      &.focused {
+        background-color: rgba(255, 255, 255, 0.08);
+      }
+    }
+
+    .btn-wrapper {
+      .btn-item {
+        background-color: #2b83ff;
+        color: #fff;
+
+        &:hover {
+          background-color: #2b83ff;
+        }
+      }
+    }
+
+    .dropdown-content {
+      background-color: #1f1f1f;
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .param-label {
+      color: #f8fafd;
+    }
+
+    .error-message {
+      color: #ff4d4f;
+    }
+
+    .send-button-text {
+      color: #2b83ff;
+    }
+  }
+
+  // Dark mode dropdown scroll
+  .more-apis-dropdown {
+    .ant-dropdown-menu {
+      &::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.3);
+        }
+      }
+    }
+  }
+}

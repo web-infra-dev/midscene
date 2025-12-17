@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
@@ -46,6 +46,9 @@ const groupAndCaseForTest = (testInfo: TestInfo) => {
 
 const midsceneAgentKeyId = '_midsceneAgentId';
 export const midsceneDumpAnnotationId = 'MIDSCENE_DUMP_ANNOTATION';
+
+// Track temporary dump files per page for cleanup
+const pageTempFiles = new Map<string, string>();
 
 type PlaywrightCacheConfig = {
   strategy?: 'read-only' | 'read-write' | 'write-only';
@@ -100,11 +103,20 @@ export const PlaywrightAiFixture = (options?: {
       });
 
       pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-        updateDumpAnnotation(testInfo, dump);
+        updateDumpAnnotation(testInfo, dump, idForPage);
       };
 
       page.on('close', () => {
         debugPage('page closed');
+
+        // Note: We don't clean up temp files here because the reporter
+        // needs to read them in onTestEnd. The reporter will clean them up
+        // after reading. If the test is interrupted (Ctrl+C), the process
+        // exit handlers will clean up remaining temp files.
+
+        // However, we do clean up the pageTempFiles Map entry to avoid memory leaks
+        pageTempFiles.delete(idForPage);
+
         pageAgentMap[idForPage].destroy();
         delete pageAgentMap[idForPage];
       });
@@ -119,6 +131,7 @@ export const PlaywrightAiFixture = (options?: {
     use: any;
     aiActionType:
       | 'ai'
+      | 'aiAct'
       | 'aiAction'
       | 'aiHover'
       | 'aiInput'
@@ -138,6 +151,7 @@ export const PlaywrightAiFixture = (options?: {
       | 'runYaml'
       | 'setAIActionContext'
       | 'evaluateJavaScript'
+      | 'recordToReport'
       | 'logScreenshot'
       | 'freezePageContext'
       | 'unfreezePageContext';
@@ -166,10 +180,9 @@ export const PlaywrightAiFixture = (options?: {
               prompt: string,
               ...restArgs: any[]
             ) => Promise<any>;
-            const result = await (agent[aiActionType] as AgentMethod)(
-              taskPrompt,
-              ...(args || []),
-            );
+            const result = await (agent[aiActionType] as AgentMethod).bind(
+              agent,
+            )(taskPrompt, ...args);
             resolve(result);
           } catch (error) {
             reject(error);
@@ -179,26 +192,53 @@ export const PlaywrightAiFixture = (options?: {
     });
   }
 
-  const updateDumpAnnotation = (test: TestInfo, dump: string) => {
-    // Write dump to temporary file
-    const tempFileName = `midscene-dump-${test.testId || uuid()}-${Date.now()}.json`;
+  const updateDumpAnnotation = (
+    test: TestInfo,
+    dump: string,
+    pageId: string,
+  ) => {
+    // 1. First, clean up the old temp file if it exists
+    const oldTempFilePath = pageTempFiles.get(pageId);
+    if (oldTempFilePath) {
+      try {
+        rmSync(oldTempFilePath, { force: true });
+      } catch (error) {
+        // Silently ignore if old file is already cleaned up
+      }
+    }
+
+    // 2. Create new temp file with predictable name using pageId
+    const tempFileName = `midscene-dump-${test.testId || uuid()}-${pageId}.json`;
     const tempFilePath = join(tmpdir(), tempFileName);
 
-    writeFileSync(tempFilePath, dump, 'utf-8');
-    debugPage(`Dump written to temp file: ${tempFilePath}`);
+    // 3. Write dump to the new temporary file
+    try {
+      writeFileSync(tempFilePath, dump, 'utf-8');
+      debugPage(`Dump written to temp file: ${tempFilePath}`);
 
-    // Store only the file path in annotation
-    const currentAnnotation = test.annotations.find((item) => {
-      return item.type === midsceneDumpAnnotationId;
-    });
-    if (currentAnnotation) {
-      // Store file path instead of dump content
-      currentAnnotation.description = tempFilePath;
-    } else {
-      test.annotations.push({
-        type: midsceneDumpAnnotationId,
-        description: tempFilePath,
+      // 4. Track the new temp file (only if write succeeded)
+      pageTempFiles.set(pageId, tempFilePath);
+
+      // Store only the file path in annotation (only if write succeeded)
+      const currentAnnotation = test.annotations.find((item) => {
+        return item.type === midsceneDumpAnnotationId;
       });
+      if (currentAnnotation) {
+        // Store file path instead of dump content
+        currentAnnotation.description = tempFilePath;
+      } else {
+        test.annotations.push({
+          type: midsceneDumpAnnotationId,
+          description: tempFilePath,
+        });
+      }
+    } catch (error) {
+      // If write fails (e.g., disk full), don't track the file or add annotation
+      // This prevents reporter from trying to read a non-existent file
+      debugPage(
+        `Failed to write temp file: ${tempFilePath}. Skipping annotation.`,
+        error,
+      );
     }
   };
 
@@ -260,6 +300,21 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'ai',
       });
     },
+    aiAct: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiAct',
+      });
+    },
+    /**
+     * @deprecated Use {@link PlaywrightAiFixture.aiAct} instead.
+     */
     aiAction: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
@@ -488,6 +543,18 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'evaluateJavaScript',
       });
     },
+    recordToReport: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'recordToReport',
+      });
+    },
     logScreenshot: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
@@ -532,8 +599,16 @@ export type PlayWrightAiFixtureType = {
     page?: any,
     opts?: any,
   ) => Promise<PageAgent<PlaywrightWebPage>>;
-  ai: <T = any>(prompt: string) => Promise<T>;
-  aiAction: (taskPrompt: string) => ReturnType<PageAgent['aiAction']>;
+  ai: <T = any>(...args: Parameters<PageAgent['ai']>) => Promise<T>;
+  aiAct: (
+    ...args: Parameters<PageAgent['aiAct']>
+  ) => ReturnType<PageAgent['aiAct']>;
+  /**
+   * @deprecated Use {@link PlayWrightAiFixtureType.aiAct} instead.
+   */
+  aiAction: (
+    ...args: Parameters<PageAgent['aiAction']>
+  ) => ReturnType<PageAgent['aiAction']>;
   aiTap: (
     ...args: Parameters<PageAgent['aiTap']>
   ) => ReturnType<PageAgent['aiTap']>;
@@ -584,6 +659,9 @@ export type PlayWrightAiFixtureType = {
   evaluateJavaScript: (
     ...args: Parameters<PageAgent['evaluateJavaScript']>
   ) => ReturnType<PageAgent['evaluateJavaScript']>;
+  recordToReport: (
+    ...args: Parameters<PageAgent['recordToReport']>
+  ) => ReturnType<PageAgent['recordToReport']>;
   logScreenshot: (
     ...args: Parameters<PageAgent['logScreenshot']>
   ) => ReturnType<PageAgent['logScreenshot']>;

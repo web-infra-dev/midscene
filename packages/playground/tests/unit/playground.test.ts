@@ -56,7 +56,7 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => '{}',
+        dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
@@ -213,35 +213,13 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => '{}',
+        dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
       };
 
       adapter = new LocalExecutionAdapter(mockAgent);
-    });
-
-    it('should track task progress', async () => {
-      const value: FormValue = { type: 'aiQuery', prompt: 'test action' };
-      const options: ExecutionOptions = { requestId: 'test-request-123' };
-
-      // Mock executeAction to simulate task start tip
-      const originalExecuteAction = (adapter as any).agent
-        .callActionInActionSpace;
-      (adapter as any).agent.callActionInActionSpace = async () => {
-        // Simulate task tip during execution
-        if (mockAgent.onTaskStartTip) {
-          mockAgent.onTaskStartTip('Starting task...');
-        }
-        return 'success';
-      };
-
-      await adapter.executeAction('aiQuery', value, options);
-
-      // Progress should be cleaned up after execution
-      const progress = await adapter.getTaskProgress('test-request-123');
-      expect(progress.tip).toBeUndefined();
     });
 
     it('should handle task cancellation', async () => {

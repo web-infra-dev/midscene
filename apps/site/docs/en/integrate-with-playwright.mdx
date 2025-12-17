@@ -1,4 +1,5 @@
 import SetupEnv from './common/setup-env.mdx';
+import GetCdpUrl from './common/get-cdp-url.mdx';
 import { PackageManagerTabs } from '@theme';
 
 # Integrate with Playwright
@@ -15,7 +16,9 @@ There are two ways to integrate with Playwright:
 ## Direct integration with Midscene agent
 
 :::info Example Project
+
 You can find an example project of direct Playwright integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+
 :::
 
 ### Step 1: Install dependencies
@@ -50,7 +53,7 @@ Promise.resolve(
     const agent = new PlaywrightAgent(page);
 
     // 👀 type keywords, perform a search
-    await agent.aiAction('type "Headphones" in search box, hit Enter');
+    await agent.aiAct('type "Headphones" in search box, hit Enter');
 
     // 👀 wait for the loading
     await agent.aiWaitFor('there is at least one headphone item on page');
@@ -94,7 +97,7 @@ Promise.resolve(
 );
 ```
 
-For more Agent API details, please refer to [API Reference](./api.mdx).
+For more Agent API details, please refer to [API Reference](./api#interaction-methods).
 
 ### Step 3: Run the script
 
@@ -121,22 +124,14 @@ npx tsx demo.ts
 
 After the above command executes successfully, it will output: `Midscene - report file updated: /path/to/report/some_id.html`. Open this file in your browser to view the report.
 
-### How to force navigation in the current tab
-
-If you want to force the page to open in the current tab (for example, clicking a link with `target="_blank"`), you can set the `forceSameTabNavigation` option to `true`:
-
-```typescript
-const mid = new PlaywrightAgent(page, {
-  forceSameTabNavigation: true,
-});
-```
-
 ## Integration in Playwright test cases
 
 Here we assume you already have a repository with Playwright integration.
 
 :::info Example Project
+
 You can find an example project of Playwright test integration here: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
+
 :::
 
 ### Step 1: Add dependencies and update configuration
@@ -175,43 +170,13 @@ export const test = base.extend<PlayWrightAiFixtureType>(
 
 ### Step 3: Write test cases
 
-#### Basic AI operation APIs
-
-- `ai` or `aiAction` - General AI interaction
-- `aiTap` - Click operation
-- `aiHover` - Hover operation
-- `aiInput` - Input operation
-- `aiKeyboardPress` - Keyboard operation
-- `aiScroll` - Scroll operation
-- `aiRightClick` - Right-click operation
-
-#### Query
-
-- `aiAsk` - Ask AI Model anything about the current page
-- `aiQuery` - Extract structured data from current page
-- `aiNumber` - Extract number from current page
-- `aiString` - Extract string from current page
-- `aiBoolean` - Extract boolean from current page
-
-#### More APIs
-
-- `aiAssert` - AI Assertion
-- `aiWaitFor` - AI Wait
-- `aiLocate` - Locate Element
-- `runYaml` - Execute YAML automation script
-- `setAIActionContext` - Set AI action context, send background knowledge to AI model when calling `agent.aiAction()`
-- `evaluateJavaScript` - Execute JavaScript in page context
-- `logScreenshot` - Log screenshot with description in report file
-- `freezePageContext` - Freeze page context
-- `unfreezePageContext` - Unfreeze page context
-
-Besides the exposed shortcut methods, if you need to call other [API](./api.mdx) provided by the agent, you can use `agentForPage` to get the `PageAgent` instance, and use `PageAgent` to call the API for interaction:
+Review the full catalog of action, query, and utility methods in the [Agent API reference](./api#interaction-methods). When you need lower-level control, you can use `agentForPage` to obtain the underlying `PageAgent` instance and call any API directly:
 
 ```typescript
 test('case demo', async ({ agentForPage, page }) => {
   const agent = await agentForPage(page);
 
-  await agent.logScreenshot();
+  await agent.recordToReport();
   const logContent = agent._unstableLogContent();
   console.log(logContent);
 });
@@ -238,7 +203,7 @@ test('search headphone on ebay', async ({
   aiScroll,
   aiWaitFor,
   aiRightClick,
-  logScreenshot,
+  recordToReport,
 }) => {
   // Use aiInput to enter search keyword
   await aiInput('Headphones', 'search box');
@@ -269,14 +234,14 @@ test('search headphone on ebay', async ({
   // Use aiAssert to verify filter functionality
   await aiAssert('category filter exists on the left side');
 
-  // Use logScreenshot to capture the current state
-  await logScreenshot('Search Results', {
+  // Use recordToReport to capture the current state
+  await recordToReport('Search Results', {
     content: 'Final search results for headphones',
   });
 });
 ```
 
-For more Agent API details, please refer to [API Reference](./api.mdx).
+For more Agent API details, please refer to [API Reference](./api#interaction-methods).
 
 ### Step 4. Run test cases
 
@@ -288,8 +253,66 @@ npx playwright test ./e2e/ebay-search.spec.ts
 
 After the command executes successfully, it will output: `Midscene - report file updated: ./current_cwd/midscene_run/report/some_id.html`. Open this file in your browser to view the report.
 
+## Advanced
 
-## Provide custom actions
+### About opening in a new tab
+
+Each Agent instance is bound to a single page. To make debugging easier, Midscene intercepts new tabs by default (for example, links with `target="_blank"`) and opens them in the current page.
+
+If you want to restore opening in a new tab, set `forceSameTabNavigation` to `false`—but you’ll need to create a new Agent instance for each new tab.
+
+```typescript
+const mid = new PlaywrightAgent(page, {
+  forceSameTabNavigation: false,
+});
+```
+
+### Connect Midscene Agent to a Remote Playwright Browser
+
+:::info Example Project
+
+You can find an example project of remote Playwright integration here: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)
+
+:::
+
+Connect to a remote Playwright browser when you already run browsers in your own infra or vendor grid. This keeps the browser close to the target environment, avoids repeated launches, and still lets Midscene drive it with the same AI APIs.
+
+#### Prerequisites
+
+<PackageManagerTabs command="install playwright @playwright/test @midscene/web --save-dev" />
+
+<GetCdpUrl />
+
+#### Code example
+
+```typescript
+import { chromium } from 'playwright';
+import { PlaywrightAgent } from '@midscene/web/playwright';
+
+// CDP WebSocket URL from your remote browser service
+const cdpWsUrl = 'ws://your-remote-browser.com/devtools/browser/your-session-id';
+
+// Connect and pick a page
+const browser = await chromium.connectOverCDP(cdpWsUrl);
+const context = browser.contexts()[0];
+const page = context.pages()[0] || await context.newPage();
+
+// Create Midscene agent (usage matches any Playwright agent)
+const agent = new PlaywrightAgent(page);
+
+// Use AI methods as usual
+await agent.aiAct('navigate to https://example.com');
+await agent.aiAct('click the login button');
+const result = await agent.aiQuery('get page title: {title: string}');
+
+// Cleanup
+await agent.destroy();
+await browser.close();
+```
+
+Once connected, keep using `PlaywrightAgent` the same way you would with a locally launched browser.
+
+### Provide custom actions
 
 Use the `customActions` option to extend the agent's action space with your own actions defined via `defineAction`. When provided, these actions will be appended to the built-in ones so the agent can call them during planning.
 
@@ -320,12 +343,16 @@ const agent = new PlaywrightAgent(page, {
   customActions: [ContinuousClick],
 });
 
-await agent.aiAction('click the red button five times');
+await agent.aiAct('click the red button five times');
 ```
 
 Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
 
 ## More
 
-- For all the methods on the Agent, please refer to [API Reference](./api.mdx).
-- For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+- For all the methods on the Agent, please refer to [API Reference](./api#interaction-methods).
+- For the Playwright API reference, see [Playwright Agent API](http://localhost:3000/web-api-reference.html#playwright-agent).
+- Demo projects
+  - Direct integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-demo)
+  - Playwright test integration: [https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo](https://github.com/web-infra-dev/midscene-example/blob/main/playwright-testing-demo)
+  - Remote Playwright integration: [https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo](https://github.com/web-infra-dev/midscene-example/tree/main/remote-playwright-demo)

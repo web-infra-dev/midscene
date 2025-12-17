@@ -5,7 +5,7 @@
 
   .selector-header {
     padding: 0 12px;
-    background: #F2F4F7;
+    background: #f2f4f7;
     border-radius: 8px;
     border: 1px solid transparent;
     cursor: pointer;
@@ -48,7 +48,7 @@
 
   &.expanded .selector-header {
     border-radius: 6px;
-    border: 1px solid #2B83FF;
+    border: 1px solid #2b83ff;
     background: #ffffff;
   }
 
@@ -76,7 +76,6 @@
         background: white;
         position: relative;
         height: 32px;
-
 
         &:focus-within::before,
         &.has-content::before {
@@ -206,6 +205,110 @@
 
         &:last-child {
           border-bottom: none;
+        }
+      }
+    }
+  }
+}
+// Dark mode styles
+[data-theme='dark'] {
+  .modern-playwright-selector {
+    .selector-header {
+      background: rgba(255, 255, 255, 0.08);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .header-content {
+        .check-icon {
+          color: #52c41a;
+        }
+
+        .header-text {
+          color: #f8fafd;
+        }
+      }
+
+      .arrow-icon {
+        color: #f8fafd;
+      }
+    }
+
+    &.expanded .selector-header {
+      border-color: #2b83ff;
+      background: #1f1f1f;
+    }
+
+    .selector-content {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: #1f1f1f;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+
+      .filter-controls {
+        .search-container {
+          border-color: rgba(255, 255, 255, 0.12);
+          background: rgba(255, 255, 255, 0.04);
+
+          .ant-select {
+            border-right-color: rgba(255, 255, 255, 0.12);
+
+            .ant-select-selector {
+              background: transparent;
+            }
+
+            .ant-select-selection-item {
+              color: #f8fafd;
+            }
+
+            .ant-select-arrow {
+              color: #f8fafd;
+            }
+          }
+
+          .search-input-container {
+            .ant-input {
+              background: transparent;
+              color: #f8fafd;
+
+              &::placeholder {
+                color: rgba(255, 255, 255, 0.45);
+              }
+            }
+
+            .ant-input-suffix {
+              color: rgba(255, 255, 255, 0.45);
+            }
+          }
+        }
+      }
+
+      .options-list {
+        .option-item {
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+          }
+
+          &.selected {
+            background: rgba(24, 144, 255, 0.2);
+
+            .option-check {
+              color: #52c41a;
+            }
+          }
+
+          .option-check {
+            color: #52c41a;
+          }
+
+          .option-content {
+            color: #f8fafd;
+
+            .cost-str {
+              color: rgba(255, 255, 255, 0.45);
+            }
+          }
         }
       }
     }
