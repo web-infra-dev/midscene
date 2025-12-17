@@ -27,6 +27,13 @@
   </a>
 </p>
 
+## 📣 v1.0 Beta 公告
+
+> **我们正在准备发布 v1.0 版本。**目前已在 npm 的 `@beta` 标签上发布。  
+> 最新文档与代码请查看 [https://midscenejs.com/](https://midscenejs.com/) 以及 `main` 分支。  
+> 历史文档请访问 [https://v0.midscenejs.com/](https://v0.midscenejs.com/)。  
+> v1.0 变更记录: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
+
 ## 案例
 
 | 指令  | 视频 |
@@ -65,12 +72,13 @@
 
 ## ✨ 视觉语言模型驱动
 
-Midscene.js 支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-3-pro` 和 `UI-TARS`。
+Midscene.js 在 UI 操作上采用纯视觉（pure-vision）路线：元素定位和交互只基于截图完成。支持视觉语言模型，例如 `Qwen3-VL`、`Doubao-1.6-vision`、`gemini-3-pro` 和 `UI-TARS`。在数据提取和页面理解场景中，需要时仍可选择附带 DOM 信息。
 
-* 只需提供截图即可定位并理解页面上的目标元素。
-* 无需依赖 DOM 或语义标注。
-* 相比通用 LLM 模型，Token 使用量更少、成本更低。
-* 支持开源模型。
+* UI 操作采用纯视觉定位，不再提供 DOM 提取兼容模式。
+* 适用于 Web、移动端、桌面应用，甚至 `<canvas>` 场景。
+* UI 操作无需 DOM，Token 更少、成本更低、运行更快。
+* 数据提取和页面理解可按需附带 DOM 信息。
+* 支持开源模型，方便自托管。
 
 更多信息请阅读 [模型策略](https://midscenejs.com/zh/model-strategy)。
 
