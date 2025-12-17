@@ -46,3 +46,6 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, createAgent } from './agent';
+
+// Internal utilities
+export { reportHTMLContent as _reportHTMLContent } from './utils';
