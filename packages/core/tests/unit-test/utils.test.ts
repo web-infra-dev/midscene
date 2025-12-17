@@ -675,12 +675,12 @@ describe('search area', () => {
         undefined,
       );
 
-      // For undefined vlMode, minEdgeSize = 300, padding = 100 each side
+      // For all vlMode, minEdgeSize = 500, padding = 200 each side
       expect(result).toEqual({
-        left: 0, // 100 - 100 = 0
-        top: 0, // 100 - 100 = 0
-        width: 300, // guaranteed minimum
-        height: 300, // guaranteed minimum
+        left: 0, // 100 - 200 = -100, clamped to 0
+        top: 0, // 100 - 200 = -100, clamped to 0
+        width: 500, // guaranteed minimum
+        height: 500, // guaranteed minimum
       });
     });
 
@@ -723,12 +723,12 @@ describe('search area', () => {
         undefined,
       );
 
-      // minEdgeSize = 300, padding = 125 each side
+      // minEdgeSize = 500, padding = 225 each side
       expect(result).toEqual({
-        left: 0, // max(0, 10 - 125) = 0
-        top: 0, // max(0, 100 - 125) = 0
-        width: 300, // minimum size
-        height: 300, // minimum size
+        left: 0, // max(0, 10 - 225) = 0
+        top: 0, // max(0, 100 - 225) = 0
+        width: 500, // minimum size
+        height: 500, // minimum size
       });
     });
 
@@ -740,10 +740,10 @@ describe('search area', () => {
       );
 
       expect(result).toEqual({
-        left: 0, // max(0, 100 - 125) = 0
-        top: 0, // max(0, 10 - 125) = 0
-        width: 300, // minimum size
-        height: 300, // minimum size
+        left: 0, // max(0, 100 - 225) = 0
+        top: 0, // max(0, 10 - 225) = 0
+        width: 500, // minimum size
+        height: 500, // minimum size
       });
     });
 
@@ -754,13 +754,13 @@ describe('search area', () => {
         undefined,
       );
 
-      // Original position would be: left: 950 - 125 = 825, width: 300
-      // But 825 + 300 = 1125 > 1000, so shift left to 700
+      // Original position would be: left: 950 - 225 = 725, width: 500
+      // But 725 + 500 = 1225 > 1000, so shift left to 500
       expect(result).toEqual({
-        left: 700, // 1000 - 300 = 700
-        top: 0, // max(0, 100 - 125) = 0
-        width: 300, // minimum size maintained
-        height: 300, // minimum size
+        left: 500, // 1000 - 500 = 500
+        top: 0, // max(0, 100 - 225) = 0
+        width: 500, // minimum size maintained
+        height: 500, // minimum size
       });
     });
 
@@ -771,13 +771,13 @@ describe('search area', () => {
         undefined,
       );
 
-      // Original position would be: top: 950 - 125 = 825, height: 300
-      // But 825 + 300 = 1125 > 1000, so shift up to 700
+      // Original position would be: top: 950 - 225 = 725, height: 500
+      // But 725 + 500 = 1225 > 1000, so shift up to 500
       expect(result).toEqual({
-        left: 0, // max(0, 100 - 125) = 0
-        top: 700, // 1000 - 300 = 700
-        width: 300, // minimum size
-        height: 300, // minimum size maintained
+        left: 0, // max(0, 100 - 225) = 0
+        top: 500, // 1000 - 500 = 500
+        width: 500, // minimum size
+        height: 500, // minimum size maintained
       });
     });
 
@@ -789,10 +789,10 @@ describe('search area', () => {
       );
 
       expect(result).toEqual({
-        left: 700, // 1000 - 300 = 700
-        top: 700, // 1000 - 300 = 700
-        width: 300, // minimum size maintained
-        height: 300, // minimum size maintained
+        left: 500, // 1000 - 500 = 500
+        top: 500, // 1000 - 500 = 500
+        width: 500, // minimum size maintained
+        height: 500, // minimum size maintained
       });
     });
 
@@ -868,10 +868,10 @@ describe('search area', () => {
 
       expect(result).toMatchInlineSnapshot(`
         {
-          "height": 301,
+          "height": 501,
           "left": 0,
-          "top": 615,
-          "width": 301,
+          "top": 415,
+          "width": 501,
         }
       `);
     });
