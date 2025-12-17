@@ -17,6 +17,15 @@ export function Banner() {
           <div className="flex items-center justify-center">
             <span className="font-sans font-medium text-[10px] md:text-xs text-black/85 dark:text-white/85">
               {t('newBadge')}
+              <span className="mx-1 text-black/40 dark:text-white/40">|</span>
+              <a
+                className="text-black/60 hover:underline dark:text-white/60"
+                href="https://v0.midscenejs.com/"
+                rel="noreferrer"
+                target="_blank"
+              >
+                {t('newBadgeLegacyLink')}
+              </a>
             </span>
           </div>
         </div>

@@ -4,24 +4,24 @@ Driving all platforms UI automation with vision-based model
 
 ## Features
 
-### Write automation with natural language
+### Write Automation with Natural Language
 - Describe your goals and steps, and Midscene will plan and operate the user interface for you.
 - Use Javascript SDK or YAML to write your automation script.
 
-### Web or mobile app
+### Web & Mobile App & Any Interface
 - **Web Automation**: Either [integrate with Puppeteer](./integrate-with-puppeteer), [with Playwright](./integrate-with-playwright) or use [Bridge Mode](./bridge-mode) to control your desktop browser.
 - **Android Automation**: Use [Javascript SDK](./android-getting-started) with adb to control your local Android device.
-- **iOS Automation**: Use [Javascript SDK](./ios-getting-started) with WebDriverAgent to control your local iOS device.
+- **iOS Automation**: Use [Javascript SDK](./ios-getting-started) with WebDriverAgent to control your local iOS devices and simulators.
+- **Any Interface Automation**: Use [Javascript SDK](./integrate-with-any-interface) to control your own interface.
 
-### Tools
-- **Visual Reports for Debugging**: Through our test reports and Playground, you can easily understand, replay and debug the entire process.
+### For Developers
+- **Three kinds of APIs**:
+  - [Interaction API](./api#interaction-methods): interact with the user interface.
+  - [Data Extraction API](./api#data-extraction): extract data from the user interface and dom.
+  - [Utility API](./api#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+- **MCP**: Midscene provides MCP services that expose atomic Midscene Agent actions as MCP tools so upper-layer agents can inspect and operate UIs with natural language. [Docs](./mcp)
 - [**Caching for Efficiency**](./caching): Replay your script with cache and get the result faster.
-- **MCP**: Allows other MCP Clients to directly use Midscene's capabilities across web bridge mode and Android. Read the [MCP server guide](./mcp) for both setups.
-
-### Three kinds of APIs
-- [Interaction API](./api#interaction-methods): interact with the user interface.
-- [Data Extraction API](./api#data-extraction): extract data from the user interface and dom.
-- [Utility API](./api#more-apis): utility functions like `aiAssert()`, `aiLocate()`, `aiWaitFor()`.
+- **Debugging Experience**: Midscene.js offers a visualized replay back report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need.
 
 
 ## Showcases
@@ -47,15 +47,17 @@ We've prepared some showcases for you to learn the use of Midscene.js.
 - **[Android Playground](./android-getting-started#try-playground-no-code)**: There is also a built-in Android playground to control your local Android device.
 - **[iOS Playground](./ios-getting-started#try-playground)**: There is also a built-in iOS playground to control your local iOS device.
 
-## Model choices
+## ✨ Driven by Visual Language Model
 
-Midscene recommends using vision models for UI automation to improve task success rates and speed up debugging.
+Midscene.js is all-in on the pure-vision route for UI actions: element localization and interactions are based on screenshots only. It supports visual-language models like `Qwen3-VL`, `Doubao-1.6-vision`, `gemini-3-pro`, and `UI-TARS`. For data extraction and page understanding, you can still opt in to include DOM when needed.
 
-- **Vision-first**: Prioritize vision models with strong UI understanding to achieve more accurate targeting and actions.
-- **Supported models**: Doubao Seed (vision model), Qwen3-VL, Gemini-3-Pro, etc.
-- **Multi-model combo**: Configure different models for task planning and interaction phases. You can mix commercial and open-source models to further improve completion rates. See [Multi-model setup](./model-strategy#advanced-combining-multiple-models) for details.
+* Pure-vision localization for UI actions; the DOM extraction mode is removed.
+* Works across web, mobile, desktop, and even `<canvas>` surfaces.
+* Far fewer tokens by skipping DOM for actions, which cuts cost and speeds up runs.
+* DOM can still be included for data extraction and page understanding when needed.
+* Strong open-source options for self-hosting.
 
-Please read [Model strategy](./model-strategy) to learn more about model selection.
+Read more about [Model Strategy](./model-strategy)
 
 ## Two styles of automation
 
@@ -82,17 +84,6 @@ for (const record of recordList) {
 ```
 
 > For more details about the workflow style, please refer to [Use JavaScript to Optimize the AI Automation Code](./use-javascript-to-optimize-ai-automation-code)
-
-
-## Comparing to other projects
-
-There are so many UI automation tools out there, and each one seems to be all-powerful. What's special about Midscene.js?
-
-* **Debugging Experience**: When you start using UI automation, you'll find debugging and maintaining automation scripts is the real pain point. No matter how powerful the model is, you still need to invest in debugging to keep it stable. Midscene.js offers a visualized report file, a built-in playground, and a Chrome Extension to simplify the debugging process. These are the tools most developers truly need, and we're continually working to improve the debugging experience.
-
-* **Open Source, Free, Deploy as you want**: Midscene.js is an open-source project. It's decoupled from any cloud service and model provider, you can choose either public or private deployment. There is always a suitable plan for your business.
-
-* **Integrate with Javascript**: You can always bet on Javascript 😎
 
 ## Resources
 
