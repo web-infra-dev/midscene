@@ -2,6 +2,8 @@
 
 .prompt-input-wrapper {
   width: 100%;
+  padding: 0 4px; /* Add horizontal padding to prevent box-shadow from being clipped */
+  box-sizing: border-box; /* Ensure padding is included in width */
 
   /* top operation button area */
   .mode-radio-group-wrapper {
@@ -160,35 +162,55 @@
   .main-side-console-input {
     position: relative;
     margin-top: 10px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(white, white) padding-box,
+      linear-gradient(
+          135deg,
+          #4285f4 0%,
+          #0066ff 25%,
+          #7b02c5 50%,
+          #ea4335 75%,
+          #ff7043 100%
+        )
+        border-box;
+    padding-bottom: 56px;
+    z-index: 1;
 
-    .main-side-console-input-textarea {
-      border-radius: 12px;
-      border: 1px solid #f2f4f7;
-      background: white;
-
-      @keyframes hue-shift {
-        0% {
-          filter: hue-rotate(0deg);
-        }
-
-        100% {
-          filter: hue-rotate(360deg);
-        }
+    @keyframes hue-shift {
+      0% {
+        filter: hue-rotate(0deg);
       }
 
-      &:focus-within {
-        border: 1px solid transparent;
-        background:
-          linear-gradient(white, white) padding-box,
-          linear-gradient(
-              135deg,
-              #4285f4 0%,
-              #0066ff 25%,
-              #7b02c5 50%,
-              #ea4335 75%,
-              #ff7043 100%
-            )
-            border-box;
+      100% {
+        filter: hue-rotate(360deg);
+      }
+    }
+
+    &:focus-within {
+      box-shadow: 0 0 0 3px rgba(43, 131, 255, 0.16);
+      z-index: 10;
+    }
+
+    .main-side-console-input-textarea {
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      min-height: 120px;
+      position: relative;
+      outline: none;
+      resize: none; /* Disable resize handler */
+
+      &:focus,
+      &:focus-visible {
+        outline: none;
+        border: none;
+        box-shadow: none;
+      }
+
+      &::after {
+        display: none;
       }
 
       padding: 12px 16px;
@@ -209,7 +231,7 @@
       }
     }
 
-    &.loading .main-side-console-input-textarea {
+    &.loading {
       border: 1px solid transparent;
       background:
         linear-gradient(white, white) padding-box,
@@ -225,16 +247,6 @@
       animation: hue-shift 5s linear infinite;
     }
 
-    .ant-form-item-control-input-content {
-      border: 3px solid transparent;
-      border-radius: 14px;
-      z-index: 999;
-    }
-
-    &:focus-within .ant-form-item-control-input-content {
-      border-color: rgba(43, 131, 255, 0.16);
-    }
-
     &.disabled {
       .form-controller-wrapper {
         background-color: transparent;
@@ -243,7 +255,7 @@
   }
 
   .ant-form-item-with-help + .form-controller-wrapper {
-    bottom: 22px; /* Move up to make space for the validation message */
+    bottom: 14px; /* Move up to make space for the validation message */
   }
 
   .ant-input {
@@ -261,12 +273,13 @@
     gap: 8px;
     background-color: transparent;
     left: 16px;
-    bottom: 8px;
+    bottom: 0;
     padding: 12px 0;
     line-height: 32px;
     transition: background-color 0.2s ease;
     z-index: 1000;
     pointer-events: none;
+    height: 56px;
 
     > * {
       pointer-events: auto;
@@ -284,9 +297,6 @@
     color: #2b83ff;
     cursor: pointer;
     transition: opacity 0.2s ease;
-    background-color: #fff;
-    padding: 2px 4px;
-    border-radius: 4px;
 
     &:hover {
       opacity: 0.8;
@@ -385,12 +395,6 @@
 
         &:hover {
           border-color: #40a9ff;
-        }
-
-        &:focus,
-        &:focus-within {
-          border-color: #40a9ff;
-          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
         }
       }
 
@@ -535,29 +539,29 @@
     }
 
     .main-side-console-input {
-      .main-side-console-input-textarea {
-        background: rgba(255, 255, 255, 0.04) !important;
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        color: #f8fafd !important;
+      background: rgba(31, 31, 31, 1) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
 
-        &:focus-within {
-          border: 1px solid transparent !important;
-          background:
-            linear-gradient(rgba(31, 31, 31, 1), rgba(31, 31, 31, 1))
-              padding-box,
-            linear-gradient(
-                135deg,
-                #4285f4 0%,
-                #0066ff 25%,
-                #7b02c5 50%,
-                #ea4335 75%,
-                #ff7043 100%
-              )
-              border-box !important;
-        }
+      &:focus-within {
+        border: 1px solid transparent !important;
+        background:
+          linear-gradient(rgba(31, 31, 31, 1), rgba(31, 31, 31, 1)) padding-box,
+          linear-gradient(
+              135deg,
+              #4285f4 0%,
+              #0066ff 25%,
+              #7b02c5 50%,
+              #ea4335 75%,
+              #ff7043 100%
+            )
+            border-box !important;
       }
 
-      &.loading .main-side-console-input-textarea {
+      .main-side-console-input-textarea {
+        color: #f8fafd !important;
+      }
+
+      &.loading {
         border: 1px solid transparent !important;
         background:
           linear-gradient(rgba(31, 31, 31, 1), rgba(31, 31, 31, 1)) padding-box,
@@ -600,7 +604,6 @@
 
     .planning-strategy-selector {
       color: #2b83ff !important;
-      background-color: rgba(31, 31, 31, 1) !important;
 
       &:hover {
         opacity: 0.8;
