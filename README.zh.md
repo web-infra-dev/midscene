@@ -7,6 +7,8 @@
 
 [English](./README.md) | 简体中文
 
+<strong>官网</strong>: <a href="https://midscenejs.com/">https://midscenejs.com/</a>
+
 <a href="https://trendshift.io/repositories/12524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12524" alt="web-infra-dev%2Fmidscene | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 </div>
@@ -30,8 +32,8 @@
 ## 📣 v1.0 Beta 公告
 
 > **我们正在准备发布 v1.0 版本。**目前已在 npm 的 `@beta` 标签上发布。  
-> 最新文档与代码请查看 [https://midscenejs.com/](https://midscenejs.com/) 以及 `main` 分支。  
-> 历史文档请访问 [https://v0.midscenejs.com/](https://v0.midscenejs.com/)。  
+> v1.0 文档与代码请查看 [https://midscenejs.com/](https://midscenejs.com/) 以及 `main` 分支。  
+> v0.x 文档与代码请查看 [https://v0.midscenejs.com/](https://v0.midscenejs.com/) 以及 `v0` 分支。  
 > v1.0 变更记录: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
 
 ## 案例
@@ -94,7 +96,8 @@ Midscene.js 在 UI 操作上采用纯视觉（pure-vision）路线：元素定�
 
 ## 📄 资源 
 
-* 官网和文档: [https://midscenejs.com](https://midscenejs.com/zh)
+* 官网: [https://midscenejs.com](https://midscenejs.com/)
+* 文档: [https://midscenejs.com/zh](https://midscenejs.com/zh)
 * 示例项目: [https://github.com/web-infra-dev/midscene-example](https://github.com/web-infra-dev/midscene-example)
 * API 文档: [https://midscenejs.com/zh/api](https://midscenejs.com/zh/api)
 * GitHub: [https://github.com/web-infra-dev/midscene](https://github.com/web-infra-dev/midscene)
