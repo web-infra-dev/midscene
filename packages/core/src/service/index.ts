@@ -98,7 +98,7 @@ export default class Service {
 
     if (searchAreaPrompt && !vlMode) {
       console.warn(
-        'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/choose-a-model',
+        'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
       );
       searchAreaPrompt = undefined;
     }

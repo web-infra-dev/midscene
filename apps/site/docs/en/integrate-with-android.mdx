@@ -1,0 +1,347 @@
+import PrepareAndroid from './common/prepare-android.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
+# Integrate with Android (adb)
+
+After connecting the Android device with adb, you can use Midscene javascript SDK to control Android devices.
+
+import { PackageManagerTabs } from '@theme';
+
+:::info Demo Projects
+Control Android devices with javascript: [https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/android/javascript-sdk-demo)
+
+Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/android/vitest-demo)
+:::
+
+:::info Showcases
+
+[More showcases](./android-introduction.mdx)
+
+<p align="center">
+  <img src="/android.png" alt="android" width="400" />
+</p>
+
+:::
+
+
+<PrepareAndroid />
+
+<SetupEnv />
+
+## Integrate Midscene
+
+### Step 1: Install dependencies
+
+<PackageManagerTabs command="install @midscene/android --save-dev" />
+
+### Step 2: Write scripts
+
+Let's take a simple example: search for headphones on eBay using the browser in the Android device. （Of course, you can also use any other apps on the Android device.）
+
+Write the following code, and save it as `./demo.ts`
+
+```typescript title="./demo.ts"
+import {
+  AndroidAgent,
+  AndroidDevice,
+  getConnectedDevices,
+} from '@midscene/android';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const device = new AndroidDevice(devices[0].udid);
+
+    // 👀 init Midscene agent
+    const agent = new AndroidAgent(device, {
+      aiActionContext:
+        'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+    });
+    await device.connect();
+
+    // 👀 open browser and navigate to ebay.com (Please ensure that the current page has a browser app)
+    await agent.aiAction('open browser and navigate to ebay.com');
+
+    await sleep(5000);
+
+    // 👀 type keywords, perform a search
+    await agent.aiAction('type "Headphones" in search box, hit Enter');
+
+    // 👀 wait for loading completed
+    await agent.aiWaitFor('There is at least one headphone product');
+    // or you can use a normal sleep:
+    // await sleep(5000);
+
+    // 👀 understand the page content, extract data
+    const items = await agent.aiQuery(
+      '{itemTitle: string, price: Number}[], find item in list and corresponding price',
+    );
+    console.log('headphones in stock', items);
+
+    // 👀 assert by AI
+    await agent.aiAssert('There is a category filter on the left');
+  })(),
+);
+```
+
+### Step 3: Run
+
+Using `tsx` to run
+
+```bash
+# run
+npx tsx demo.ts
+```
+
+After a while, you will see the following output:
+
+```log
+[
+{
+  itemTitle: 'Beats by Dr. Dre Studio Buds Totally Wireless Noise Cancelling In Ear + OPEN BOX',
+  price: 505.15
+},
+{
+  itemTitle: 'Skullcandy Indy Truly Wireless Earbuds-Headphones Green Mint',
+  price: 186.69
+}
+]
+```
+
+### Step 4: View the report
+
+After the above command executes successfully, the console will output: `Midscene - report file updated: /path/to/report/some_id.html`. You can open this file in a browser to view the report.
+
+## Constructor and Interface
+
+### `AndroidDevice` Constructor
+
+The AndroidDevice constructor supports the following parameters:
+
+- `deviceId: string` - The device id
+- `opts?: AndroidDeviceOpt` - Optional, the options for the AndroidDevice
+  - `autoDismissKeyboard?: boolean` - Optional, whether to dismiss the keyboard after inputting. (Default: true)
+  - `keyboardDismissStrategy?: 'esc-first' | 'back-first'` - Optional, the strategy to dismiss the keyboard. 'esc-first' tries ESC key first, then back key if needed. 'back-first' tries back key first, then ESC key if needed. (Default: 'esc-first')
+  - `androidAdbPath?: string` - Optional, the path to the adb executable.
+  - `remoteAdbHost?: string` - Optional, the remote adb host.
+  - `remoteAdbPort?: number` - Optional, the remote adb port.
+  - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - Optional, when should Midscene invoke [yadb](https://github.com/ysbing/YADB) to input texts. `'yadb-for-non-ascii'` uses yadb only when handling non-ASCII words, while `'always-yadb'` forces yadb for every input task. Try switching between these strategies if the default configuration fails to input texts. (Default: 'yadb-for-non-ascii')
+  - `displayId?: number` - Optional, the display id to use. (Default: undefined, means use the current display)
+  - `screenshotResizeScale?: number` - Optional, controls the size of the screenshot Midscene sends to the AI model. Default is `1 / devicePixelRatio`, so a 1200×800 display with a device pixel ratio of 3 sends an image of roughly 400×267 to the model. Adjusting this value manually is not recommended.
+  - `alwaysRefreshScreenInfo?: boolean` - Optional, whether to re-fetch screen size and orientation information every time. Default is false (uses cache for better performance). Set to true if the device may rotate or you need real-time screen information.
+
+### Additional Android Agent Interfaces
+
+Except the common agent interfaces in [API Reference](./api.mdx), AndroidAgent also provides some other interfaces:
+
+#### `agent.launch()`
+
+Launch a webpage or native page.
+
+- Type
+
+```typescript
+function launch(uri: string): Promise<void>;
+```
+
+- Parameters:
+
+  - `uri: string` - The uri to open, can be a webpage url or a native app's package name or activity name, if the activity name exists, it should be separated by / (e.g. com.android.settings/.Settings).
+
+- Return Value:
+
+  - Returns a Promise that resolves to void when the page is opened.
+
+- Examples:
+
+```typescript
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const device = new AndroidDevice('s4ey59');
+const agent = new AndroidAgent(device);
+
+await agent.launch('https://www.ebay.com'); // open a webpage
+await agent.launch('com.android.settings'); // open a native page
+await agent.launch('com.android.settings/.Settings'); // open a native page
+```
+
+#### `agent.runAdbShell()`
+
+Execute a command through `adb shell` on the connected device.
+
+> Note: This method wraps `adb shell` and forwards the command directly to the device.
+
+- Type
+
+```typescript
+function runAdbShell(command: string): Promise<string>;
+```
+
+- Parameters:
+
+  - `command: string` - The adb shell command to execute.
+
+- Return Value:
+
+  - `Promise<string>` - Returns a Promise that resolves to the command output.
+
+- Examples:
+
+```typescript
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const device = new AndroidDevice('s4ey59');
+const agent = new AndroidAgent(device);
+await device.connect();
+
+const result = await agent.runAdbShell('dumpsys battery');
+// Equivalent to running `adb shell dumpsys battery`
+console.log(result);
+```
+
+#### `agentFromAdbDevice()`
+
+Create a AndroidAgent from a connected adb device.
+
+- Type
+
+```typescript
+function agentFromAdbDevice(
+  deviceId?: string,
+  opts?: PageAgentOpt,
+): Promise<AndroidAgent>;
+```
+
+- Parameters:
+
+  - `deviceId?: string` - Optional, the adb device id to connect. If not provided, the first connected device will be used.
+  - `opts?: PageAgentOpt & AndroidDeviceOpt` - Optional, the options for the AndroidAgent, PageAgentOpt refer to [constructor](./api.mdx), AndroidDeviceOpt refer to [AndroidDevice constructor](./integrate-with-android#androiddevice-constructor).
+
+- Return Value:
+
+  - `Promise<AndroidAgent>` Returns a Promise that resolves to an AndroidAgent.
+
+- Examples:
+
+```typescript
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice('s4ey59'); // create a AndroidAgent from a specific adb device
+const agent = await agentFromAdbDevice(); // no deviceId, use the first connected device
+```
+
+#### `getConnectedDevices()`
+
+Get all connected Android devices.
+
+- Type
+
+```typescript
+function getConnectedDevices(): Promise<Device[]>;
+interface Device {
+  /**
+   * The device udid.
+   */
+  udid: string;
+  /**
+   * Current device state, as it is visible in
+   * _adb devices -l_ output.
+   */
+  state: string;
+  port?: number;
+}
+```
+
+- Return Value:
+
+  - `Promise<Device[]>` Returns a Promise that resolves to an array of Device.
+
+- Examples:
+
+```typescript
+import { agentFromAdbDevice, getConnectedDevices } from '@midscene/android';
+
+const devices = await getConnectedDevices();
+console.log(devices);
+const agent = await agentFromAdbDevice(devices[0].udid);
+```
+
+## Extending Custom Interaction Actions
+
+Use the `customActions` option to extend the agent's action space with your own actions defined via `defineAction`. When provided, these actions will be appended to the built-in ones so the agent can call them during planning.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { AndroidAgent, AndroidDevice } from '@midscene/android';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z
+      .number()
+      .int()
+      .positive()
+      .describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+    // carry out your clicking logic using locate + count
+  },
+});
+
+const device = new AndroidDevice('your-device-id', {
+  customActions: [ContinuousClick],
+});
+const agent = new AndroidAgent(device);
+
+await agent.aiAction('click the red button five times');
+```
+
+Check [Integrate with any interface](./integrate-with-any-interface#define-a-custom-action) for more details about defining custom actions.
+
+## More
+
+- For all the APIs on the Agent, please refer to [API Reference](./api.mdx).
+- For more details about prompting, please refer to [Prompting Tips](./prompting-tips)
+
+## FAQ
+
+### Why can't I control the device even though I've connected it?
+A typical error message is:
+```
+Error:
+Exception occurred while executing 'tap':
+java.lang.SecurityException: Injecting input events requires the caller (or the source of the instrumentation, if any) to have the INJECT_EVENTS permission.
+```
+
+Please check if the device is unlocked in the developer options of the system settings.
+
+<p align="center">
+  <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
+</p>
+
+### How to use a custom adb path, remote adb host and port?
+
+You can use the `MIDSCENE_ADB_PATH` environment variable to specify the path to the adb executable, `MIDSCENE_ADB_REMOTE_HOST` environment variable to specify the remote adb host, `MIDSCENE_ADB_REMOTE_PORT` environment variable to specify the remote adb port.
+
+```bash
+export MIDSCENE_ADB_PATH=/path/to/adb
+export MIDSCENE_ADB_REMOTE_HOST=192.168.1.100
+export MIDSCENE_ADB_REMOTE_PORT=5037
+```
+
+Additionally, you can also specify the adb path, remote adb host and port through the AndroidDevice constructor.
+
+```typescript
+const device = new AndroidDevice('s4ey59', {
+  androidAdbPath: '/path/to/adb',
+  remoteAdbHost: '192.168.1.100',
+  remoteAdbPort: 5037,
+});
+```
