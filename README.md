@@ -7,7 +7,7 @@
 
 English | [简体中文](./README.zh.md)
 
-<strong>官网 / Official Website</strong>: <a href="https://midscenejs.com/">https://midscenejs.com/</a>
+<strong>Official Website</strong>: <a href="https://midscenejs.com/">https://midscenejs.com/</a>
 
 <a href="https://trendshift.io/repositories/12524" target="_blank"><img src="https://trendshift.io/api/badge/repositories/12524" alt="web-infra-dev%2Fmidscene | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
