@@ -14,6 +14,10 @@
     "./server": {
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
+    },
+    "./launcher": {
+      "types": "./dist/launcher.d.ts",
+      "default": "./dist/launcher.js"
     }
   },
   "scripts": {

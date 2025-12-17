@@ -22,6 +22,23 @@ export interface HttpLaunchOptions {
   host?: string;
 }
 
+export interface LaunchMCPServerResult {
+  /**
+   * The MCP server port (for HTTP mode)
+   */
+  port?: number;
+
+  /**
+   * The server host (for HTTP mode)
+   */
+  host?: string;
+
+  /**
+   * Function to gracefully shutdown the MCP server
+   */
+  close: () => Promise<void>;
+}
+
 interface SessionData {
   transport: StreamableHTTPServerTransport;
   createdAt: Date;
@@ -50,7 +67,7 @@ export interface CLIArgs {
 export function launchMCPServer(
   server: BaseMCPServer,
   args: CLIArgs,
-): Promise<void> {
+): Promise<LaunchMCPServerResult> {
   if (args.mode === 'http') {
     return server.launchHttp({
       port: Number.parseInt(args.port || '3000', 10),
@@ -72,18 +89,21 @@ export abstract class BaseMCPServer {
   protected mcpServer: McpServer;
   protected toolsManager?: IMidsceneTools;
   protected config: BaseMCPServerConfig;
+  protected providedToolsManager?: IMidsceneTools;
 
-  constructor(config: BaseMCPServerConfig) {
+  constructor(config: BaseMCPServerConfig, toolsManager?: IMidsceneTools) {
     this.config = config;
     this.mcpServer = new McpServer({
       name: config.name,
       version: config.version,
       description: config.description,
     });
+    this.providedToolsManager = toolsManager;
   }
 
   /**
    * Platform-specific: create tools manager instance
+   * This is only called if no tools manager was provided in constructor
    */
   protected abstract createToolsManager(): IMidsceneTools;
 
@@ -92,7 +112,9 @@ export abstract class BaseMCPServer {
    */
   private async initializeToolsManager(): Promise<void> {
     setIsMcp(true);
-    this.toolsManager = this.createToolsManager();
+
+    // Use provided tools manager if available, otherwise create new one
+    this.toolsManager = this.providedToolsManager || this.createToolsManager();
 
     try {
       await this.toolsManager.initTools();
@@ -117,7 +139,7 @@ export abstract class BaseMCPServer {
   /**
    * Initialize and launch the MCP server with stdio transport
    */
-  public async launch(): Promise<void> {
+  public async launch(): Promise<LaunchMCPServerResult> {
     // Hijack stdout-based console methods to stderr for stdio mode
     // This prevents them from breaking MCP JSON-RPC protocol on stdout
     // Note: console.warn and console.error already output to stderr
@@ -170,13 +192,21 @@ export abstract class BaseMCPServer {
 
     process.once('SIGINT', cleanup);
     process.once('SIGTERM', cleanup);
+
+    return {
+      close: async () => {
+        this.performCleanup();
+      },
+    };
   }
 
   /**
    * Launch MCP server with HTTP transport
    * Supports stateful sessions for web applications and service integration
    */
-  public async launchHttp(options: HttpLaunchOptions): Promise<void> {
+  public async launchHttp(
+    options: HttpLaunchOptions,
+  ): Promise<LaunchMCPServerResult> {
     // Validate port number
     if (
       !Number.isInteger(options.port) ||
@@ -286,6 +316,36 @@ export abstract class BaseMCPServer {
 
     const cleanupInterval = this.startSessionCleanup(sessions);
     this.setupHttpShutdownHandlers(server, sessions, cleanupInterval);
+
+    return {
+      port: options.port,
+      host,
+      close: async () => {
+        clearInterval(cleanupInterval);
+        for (const session of sessions.values()) {
+          try {
+            await session.transport.close();
+          } catch (error: unknown) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            console.error(
+              `Failed to close session ${session.transport.sessionId}: ${message}`,
+            );
+          }
+        }
+        sessions.clear();
+
+        return new Promise<void>((resolve) => {
+          server.close((err) => {
+            if (err) {
+              console.error('Error closing HTTP server:', err);
+            }
+            this.performCleanup();
+            resolve();
+          });
+        });
+      },
+    };
   }
 
   /**
