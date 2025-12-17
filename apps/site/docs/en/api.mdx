@@ -748,12 +748,17 @@ Execute an automation script written in YAML. Only the `tasks` part of the scrip
 - Type
 
 ```typescript
-function runYaml(yamlScriptContent: string): Promise<{ result: any }>;
+function runYaml(
+  yamlScriptContent: string,
+  opt?: { interpolateProcessEnv?: boolean },
+): Promise<{ result: any }>;
 ```
 
 - Parameters:
 
   - `yamlScriptContent: string` - The YAML-formatted script content.
+  - `opt?: object` - Optional configuration.
+    - `interpolateProcessEnv?: boolean` - Whether to replace `${ENV_VAR}` placeholders with `process.env` values (defaults to `true`).
 
 - Return Value:
 
