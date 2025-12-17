@@ -80,11 +80,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         <pre>{JSON.stringify(result?.result, null, 2)}</pre>
       );
 
-    const reportContent =
-      (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server') &&
-      result?.reportHTML
-        ? result?.reportHTML
-        : null;
+    const reportContent = result?.reportHTML || null;
 
     resultDataToShow = (
       <div
@@ -115,11 +111,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     );
   } else if (replayScriptsInfo) {
     // Has replay scripts (non-noReplayAPI) - show Player with replay and report
-    const reportContent =
-      (serviceMode === 'In-Browser-Extension' || serviceMode === 'Server') &&
-      result?.reportHTML
-        ? result?.reportHTML
-        : null;
+    const reportContent = result?.reportHTML || null;
 
     resultDataToShow = (
       <Player

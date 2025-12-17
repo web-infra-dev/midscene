@@ -76,7 +76,9 @@ export function usePlaygroundExecution(
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
 ) {
   // Get execution options from environment config
-  const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
+  const { deepThink, screenshotIncluded, domIncluded, planningStrategy } =
+    useEnvConfig();
+
   // Handle form submission and execution
   const handleRun = useCallback(
     async (value: FormValue) => {
@@ -177,6 +179,7 @@ export function usePlaygroundExecution(
         result.result = await playgroundSDK.executeAction(actionType, value, {
           requestId: thisRunningId.toString(),
           deepThink,
+          planningStrategy,
           screenshotIncluded,
           domIncluded,
         });
@@ -290,6 +293,7 @@ export function usePlaygroundExecution(
       currentRunningIdRef,
       interruptedFlagRef,
       deepThink,
+      planningStrategy,
       screenshotIncluded,
       domIncluded,
     ],
