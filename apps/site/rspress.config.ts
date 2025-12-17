@@ -443,103 +443,103 @@ export default defineConfig({
     pluginClientRedirects({
       redirects: [
         {
-          from: '^/integrate-with-android/?$',
+          from: '^/integrate-with-android(?:\\.html)?/?$',
           to: '/android-getting-started',
         },
         {
-          from: '^/android-playground/?$',
+          from: '^/android-playground(?:\\.html)?/?$',
           to: '/android-introduction',
         },
         {
-          from: '^/ios-playground/?$',
+          from: '^/ios-playground(?:\\.html)?/?$',
           to: '/ios-getting-started',
         },
         {
-          from: '^/choose-a-model/?$',
+          from: '^/choose-a-model(?:\\.html)?/?$',
           to: '/model-strategy',
         },
         {
-          from: '^/model-provider/?$',
-          to: '/model-config',
+          from: '^/model-provider(?:\\.html)?/?$',
+          to: '/model-common-config.html',
         },
         {
-          from: '^/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          from: '^/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
           to: '/use-javascript-to-optimize-ai-automation-code',
         },
         {
-          from: '^/bridge-mode-by-chrome-extension/?$',
+          from: '^/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
           to: '/bridge-mode',
         },
         {
-          from: '^/web-mcp/?$',
+          from: '^/web-mcp(?:\\.html)?/?$',
           to: '/mcp',
         },
         {
-          from: '^/mcp-android/?$',
+          from: '^/mcp-android(?:\\.html)?/?$',
           to: '/mcp',
         },
         {
-          from: '^/blog-support-android-automation/?$',
+          from: '^/blog-support-android-automation(?:\\.html)?/?$',
           to: '/android-introduction',
         },
         {
-          from: '^/blog-support-ios-automation/?$',
+          from: '^/blog-support-ios-automation(?:\\.html)?/?$',
           to: '/ios-introduction',
         },
         {
-          from: '^/quick-experience-with-android/?$',
+          from: '^/quick-experience-with-android(?:\\.html)?/?$',
           to: '/android-getting-started',
         },
         {
-          from: '^/quick-experience-with-ios/?$',
+          from: '^/quick-experience-with-ios(?:\\.html)?/?$',
           to: '/ios-getting-started',
         },
         {
-          from: '^/zh/web-mcp/?$',
+          from: '^/zh/web-mcp(?:\\.html)?/?$',
           to: '/zh/mcp',
         },
         {
-          from: '^/zh/mcp-android/?$',
+          from: '^/zh/mcp-android(?:\\.html)?/?$',
           to: '/zh/mcp',
         },
         {
-          from: '^/zh/blog-support-android-automation/?$',
+          from: '^/zh/blog-support-android-automation(?:\\.html)?/?$',
           to: '/zh/android-introduction',
         },
         {
-          from: '^/zh/blog-support-ios-automation/?$',
+          from: '^/zh/blog-support-ios-automation(?:\\.html)?/?$',
           to: '/zh/ios-introduction',
         },
         {
-          from: '^/zh/quick-experience-with-android/?$',
+          from: '^/zh/quick-experience-with-android(?:\\.html)?/?$',
           to: '/zh/android-getting-started',
         },
         {
-          from: '^/zh/quick-experience-with-ios/?$',
+          from: '^/zh/quick-experience-with-ios(?:\\.html)?/?$',
           to: '/zh/ios-getting-started',
         },
         {
-          from: '^/zh/choose-a-model/?$',
+          from: '^/zh/choose-a-model(?:\\.html)?/?$',
           to: '/zh/model-strategy',
         },
         {
-          from: '^/zh/model-provider/?$',
-          to: '/zh/model-config',
+          from: '^/zh/model-provider(?:\\.html)?/?$',
+          to: '/zh/model-common-config.html',
         },
         {
-          from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code/?$',
+          from: '^/zh/blog-use-javascript-to-optimize-ai-automation-code(?:\\.html)?/?$',
           to: '/zh/use-javascript-to-optimize-ai-automation-code',
         },
         {
-          from: '^/zh/bridge-mode-by-chrome-extension/?$',
+          from: '^/zh/bridge-mode-by-chrome-extension(?:\\.html)?/?$',
           to: '/zh/bridge-mode',
         },
         {
-          from: '^/zh/android-playground/?$',
+          from: '^/zh/android-playground(?:\\.html)?/?$',
           to: '/zh/android-introduction',
         },
         {
-          from: '^/zh/ios-playground/?$',
+          from: '^/zh/ios-playground(?:\\.html)?/?$',
           to: '/zh/ios-getting-started',
         },
       ],
