@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release Version(minor,patch,preminor,prepatch)'
+        description: 'Release Version(major,minor,patch,preminor,prepatch)'
         required: true
         default: 'prepatch'
       branch:
