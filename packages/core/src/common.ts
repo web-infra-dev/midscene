@@ -331,10 +331,8 @@ export function expandSearchArea(
   let minEdgeSize = 500;
   if (vlMode === 'qwen3-vl') {
     minEdgeSize = 700;
-  } else if (vlMode === 'doubao-vision') {
-    minEdgeSize = 500;
   } else {
-    minEdgeSize = 300;
+    minEdgeSize = 500;
   }
   const defaultPadding = 160;
 
