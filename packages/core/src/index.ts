@@ -45,4 +45,4 @@ export type {
   DetailedLocateParam,
 } from './yaml';
 
-export { Agent, type AgentOpt, createAgent } from './agent';
+export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
