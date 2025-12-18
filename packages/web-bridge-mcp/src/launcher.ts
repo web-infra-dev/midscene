@@ -1,6 +1,7 @@
-import type { Agent } from '@midscene/core/agent';
-import { createMCPServerLauncher } from '@midscene/shared/mcp';
-import type { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+import {
+  type GenericAgent,
+  createMCPServerLauncher,
+} from '@midscene/shared/mcp';
 import { WebMCPServer } from './server';
 import { WebMidsceneTools } from './web-tools';
 
@@ -29,8 +30,8 @@ import { WebMidsceneTools } from './web-tools';
  * await server.close();
  * ```
  */
-export function mcpServerForAgent(agent: Agent | AgentOverChromeBridge) {
-  return createMCPServerLauncher({
+export function mcpServerForAgent<TAgent extends GenericAgent>(agent: TAgent) {
+  return createMCPServerLauncher<TAgent, WebMidsceneTools>({
     agent,
     platformName: 'Web',
     ToolsManagerClass: WebMidsceneTools,

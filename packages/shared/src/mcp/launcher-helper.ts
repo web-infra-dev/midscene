@@ -13,19 +13,27 @@ export interface LaunchMCPServerOptions extends HttpLaunchOptions {
 /**
  * Generic agent type (avoid importing from @midscene/core to prevent circular deps)
  */
-export interface GenericAgent {
-  interface: any;
+export interface GenericAgent<TDevice = any> {
+  interface: TDevice;
   constructor: { name: string };
 }
 
+/**
+ * Additional information for logging server startup
+ */
+export interface StartupInfo {
+  port?: number;
+  host?: string;
+}
+
 export interface MCPServerLauncherConfig<
-  TAgent extends GenericAgent = GenericAgent,
-  TToolsManager extends IMidsceneTools = IMidsceneTools,
+  AgentType extends GenericAgent = GenericAgent,
+  ToolsManagerType extends IMidsceneTools = IMidsceneTools,
 > {
-  agent: TAgent;
+  agent: AgentType;
   platformName: string;
-  ToolsManagerClass: new (...args: any[]) => TToolsManager;
-  MCPServerClass: new (toolsManager?: TToolsManager) => BaseMCPServer;
+  ToolsManagerClass: new (...args: any[]) => ToolsManagerType;
+  MCPServerClass: new (toolsManager?: ToolsManagerType) => BaseMCPServer;
 }
 
 /**
@@ -79,9 +87,9 @@ export interface MCPServerLauncherConfig<
  * @internal
  */
 export function createMCPServerLauncher<
-  TAgent extends GenericAgent,
-  TToolsManager extends IMidsceneTools,
->(config: MCPServerLauncherConfig<TAgent, TToolsManager>) {
+  AgentType extends GenericAgent,
+  ToolsManagerType extends IMidsceneTools,
+>(config: MCPServerLauncherConfig<AgentType, ToolsManagerType>) {
   const { agent, platformName, ToolsManagerClass, MCPServerClass } = config;
 
   /**
@@ -92,7 +100,10 @@ export function createMCPServerLauncher<
     const device = agent.interface;
     if (!device) {
       throw new Error(
-        `Agent must have an 'interface' property that references the underlying device. Please ensure your agent instance is properly initialized with a device interface. Expected: agent.interface to be defined, but got: ${typeof device}`,
+        `Agent must have an 'interface' property that references the underlying device.
+Please ensure your agent instance is properly initialized with a device interface.
+Expected: agent.interface to be defined, but got: ${typeof device}
+Solution: Check that your agent constructor properly sets the interface property.`,
       );
     }
   }
@@ -101,11 +112,13 @@ export function createMCPServerLauncher<
    * Create and configure a tools manager with the agent
    * @returns Configured tools manager instance
    */
-  function createToolsManager(): TToolsManager {
+  function createToolsManager(): ToolsManagerType {
     const toolsManager = new ToolsManagerClass();
-    // Type-safe agent injection: cast to unknown first, then to the intersection type
-    (toolsManager as unknown as IMidsceneTools & { agent: TAgent }).agent =
-      agent;
+    // Type-safe agent injection: define explicit interface for tools manager with agent
+    interface ToolsManagerWithAgent extends IMidsceneTools {
+      agent: AgentType;
+    }
+    (toolsManager as unknown as ToolsManagerWithAgent).agent = agent;
     return toolsManager;
   }
 
@@ -116,18 +129,18 @@ export function createMCPServerLauncher<
    */
   function logStartupInfo(
     mode: 'stdio' | 'HTTP',
-    additionalInfo?: { port?: number; host?: string },
+    additionalInfo?: StartupInfo,
   ): void {
     const device = agent.interface;
-    console.log(`🚀 Starting Midscene ${platformName} MCP Server (${mode})...`);
-    console.log(`📱 Agent: ${agent.constructor.name}`);
-    console.log(`🖥️ Device: ${device.constructor.name}`);
+    console.log(`Starting Midscene ${platformName} MCP Server (${mode})...`);
+    console.log(`Agent: ${agent.constructor.name}`);
+    console.log(`Device: ${device.constructor.name}`);
 
     if (additionalInfo?.port !== undefined) {
-      console.log(`🌐 Port: ${additionalInfo.port}`);
+      console.log(`Port: ${additionalInfo.port}`);
     }
     if (additionalInfo?.host) {
-      console.log(`🏠 Host: ${additionalInfo.host}`);
+      console.log(`Host: ${additionalInfo.host}`);
     }
   }
 
@@ -151,7 +164,7 @@ export function createMCPServerLauncher<
       const result = await server.launch();
 
       if (verbose) {
-        console.log(`✅ ${platformName} MCP Server started (stdio mode)`);
+        console.log(`${platformName} MCP Server started (stdio mode)`);
       }
 
       return result;
@@ -177,7 +190,7 @@ export function createMCPServerLauncher<
 
       if (verbose) {
         console.log(
-          `✅ ${platformName} MCP Server started on http://${result.host}:${result.port}/mcp`,
+          `${platformName} MCP Server started on http://${result.host}:${result.port}/mcp`,
         );
       }
 
