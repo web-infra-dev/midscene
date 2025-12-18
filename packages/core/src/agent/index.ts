@@ -20,3 +20,4 @@ export { TaskExecutor } from './tasks';
 export { getCurrentExecutionFile } from './utils';
 
 export type { AgentOpt } from '../types';
+export type { AiActOptions } from './agent';

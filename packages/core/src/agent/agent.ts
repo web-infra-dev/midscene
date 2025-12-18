@@ -136,7 +136,7 @@ const normalizeScrollType = (
 const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
 
-type AiActOptions = {
+export type AiActOptions = {
   cacheable?: boolean;
   planningStrategy?: 'fast' | 'standard' | 'max';
 };
