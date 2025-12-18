@@ -8,7 +8,7 @@ If you want to try Midscene right away, pick a model and follow its configuratio
 * [Doubao Seed vision models](./model-common-config#doubao-seed-vision)
 * [Qwen3-VL](./model-common-config#qwen3-vl)
 * [Qwen2.5-VL](./model-common-config#qwen25-vl)
-* [Gemini-3-Pro](./model-common-config#gemini-3-pro)
+* [Gemini-3-Pro / Gemini-3-Flash](./model-common-config#gemini-3-pro)
 * [UI-TARS](./model-common-config#ui-tars)
 
 :::
@@ -38,7 +38,7 @@ Given these advantages, **Midscene 1.0 and later only support the pure-vision ap
 
 ## Recommended vision models
 
-Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen VL, Gemini-3-Pro, and UI-TARS.
+Based on extensive real-world usage, we recommend these defaults for Midscene: Doubao Seed, Qwen VL, Gemini-3 (Pro/Flash), and UI-TARS.
 
 They offer strong element-localization skills and solid performance in planning and screen understanding.
 
@@ -49,7 +49,7 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 | Doubao Seed vision models<br />[Quick setup](./model-common-config#doubao-seed-vision) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br/>[Doubao-1.5-thinking-vision-pro](https://www.volcengine.com/docs/82379/1536428) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
 | Qwen3-VL<br />[Quick setup](./model-common-config#qwen3-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama (open-source)](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
 | Qwen2.5-VL<br />[Quick setup](./model-common-config#qwen25-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
-| Gemini-3-Pro<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Price is higher than Doubao and Qwen |
+| Gemini-3-Pro / Gemini-3-Flash<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Gemini-3-Flash is supported<br />Price is higher than Doubao and Qwen |
 | UI-TARS<br />[Quick setup](./model-common-config#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
 
 :::info Why not use multimodal models like gpt-5 as the default?
