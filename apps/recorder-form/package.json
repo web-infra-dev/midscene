@@ -1,6 +1,6 @@
 {
   "name": "recorder-form",
-  "version": "0.30.10",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
