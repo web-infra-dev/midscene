@@ -328,7 +328,14 @@ export function expandSearchArea(
   screenSize: Size,
   vlMode: TVlModeTypes | undefined,
 ) {
-  const minEdgeSize = 500; // vlMode === 'doubao-vision' ? 500 : 300;
+  let minEdgeSize = 500;
+  if (vlMode === 'qwen3-vl') {
+    minEdgeSize = 700;
+  } else if (vlMode === 'doubao-vision') {
+    minEdgeSize = 500;
+  } else {
+    minEdgeSize = 300;
+  }
   const defaultPadding = 160;
 
   // Calculate padding needed to reach minimum edge size
