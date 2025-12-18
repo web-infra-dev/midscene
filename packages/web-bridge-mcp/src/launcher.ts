@@ -31,7 +31,7 @@ import { WebMidsceneTools } from './web-tools';
  */
 export function mcpServerForAgent(agent: Agent | AgentOverChromeBridge) {
   return createMCPServerLauncher({
-    agent: agent,
+    agent,
     platformName: 'Web',
     ToolsManagerClass: WebMidsceneTools,
     MCPServerClass: WebMCPServer,
