@@ -13,7 +13,7 @@ A curated list of community projects that extend Midscene.js capabilities across
 - **[midscene-pc](https://github.com/Mofangbao/midscene-pc)** - PC operation device for Windows, macOS, and Linux
   - Enables automated testing and interaction with desktop applications across all major platforms
   - Supports both local and remote operation capabilities
-- **[midscene-pc-docker](https://github.com/Mofangbao/midscene-pc-docker)** - Docker container image with MidScene-PC server pre-installed
+- **[midscene-pc-docker](https://github.com/Mofangbao/midscene-pc-docker)** - Docker container image with Midscene-PC server pre-installed
   - Based on Ubuntu 20 with GNOME desktop for maximum application compatibility
   - Includes built-in VNC service for browser-based desktop monitoring
   - Deploy automation client directly on standard servers with a single command
