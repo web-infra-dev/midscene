@@ -139,6 +139,16 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it('planning - qwen - cot without bbox', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      vlMode: 'qwen2.5-vl',
+      includeBbox: false,
+    });
+
+    expect(prompt).toMatchSnapshot();
+  });
+
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
