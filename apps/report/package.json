@@ -1,6 +1,6 @@
 {
   "name": "@midscene/report",
-  "version": "0.13.1",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "rsbuild dev",

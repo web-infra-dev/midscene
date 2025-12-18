@@ -1,7 +1,7 @@
 {
   "name": "android-playground",
   "private": true,
-  "version": "0.12.4",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "build": "rsbuild build",
