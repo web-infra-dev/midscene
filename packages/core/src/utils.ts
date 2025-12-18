@@ -346,6 +346,8 @@ export function uploadTestInfoToServer({
   testUrl,
   serverUrl,
 }: { testUrl: string; serverUrl?: string }) {
+  if (!serverUrl) return;
+
   let repoUrl = '';
   let userEmail = '';
 
@@ -361,10 +363,7 @@ export function uploadTestInfoToServer({
   // 2. Either:
   //    - We have a repo URL that's different from last reported one (to avoid duplicate reports)
   //    - OR we don't have a repo URL but have a test URL (for non-git environments)
-  if (
-    serverUrl &&
-    ((repoUrl && repoUrl !== lastReportedRepoUrl) || (!repoUrl && testUrl))
-  ) {
+  if (repoUrl ? repoUrl !== lastReportedRepoUrl : !!testUrl) {
     debugLog('Uploading test info to server', {
       serverUrl,
       repoUrl,
