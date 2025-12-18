@@ -11,6 +11,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     dump: string,
     executionDump?: ExecutionDump,
   ) => void;
+  private progressCallback?: (tip: string) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
@@ -32,6 +33,12 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     this.dumpUpdateCallback = undefined;
     // Set the new callback
     this.dumpUpdateCallback = callback;
+  }
+
+  // Set progress callback for monitoring operation status
+  setProgressCallback(callback: (tip: string) => void): void {
+    this.progressCallback = undefined;
+    this.progressCallback = callback;
   }
 
   async parseStructuredParams(

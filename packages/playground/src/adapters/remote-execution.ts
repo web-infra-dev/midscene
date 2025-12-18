@@ -6,10 +6,16 @@ import { BasePlaygroundAdapter } from './base';
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   private serverUrl?: string;
   private _id?: string;
+  private progressCallback?: (tip: string) => void;
 
   constructor(serverUrl: string) {
     super();
     this.serverUrl = serverUrl;
+  }
+
+  // Set progress callback for monitoring operation status
+  setProgressCallback(callback: (tip: string) => void): void {
+    this.progressCallback = callback;
   }
 
   // Get adapter ID (cached after first status check for remote)
