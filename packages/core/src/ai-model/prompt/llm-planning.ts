@@ -185,7 +185,7 @@ For example, if the instruction is to login and the form has already been filled
     "type": "Tap",
     "param": {
       "locate": { 
-        "prompt": "The login button"${vlMode ? `, "bbox": [100, 200, 300, 400]` : ''}
+        "prompt": "The login button"${vlMode && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
       }
     }
   }
