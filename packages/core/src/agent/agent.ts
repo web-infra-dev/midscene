@@ -138,7 +138,6 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
-  planningStrategy?: 'fast' | 'standard' | 'max';
 };
 
 export class Agent<
@@ -852,25 +851,8 @@ export class Agent<
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
 
-    let planningStrategyToUse = opt?.planningStrategy || 'standard';
-    if (this.aiActContext && planningStrategyToUse === 'fast') {
-      console.warn(
-        'using fast planning strategy with aiActContext is not recommended',
-      );
-    }
-
-    if ((this.opts as any)?._deepThink) {
-      debug('using deep think planning strategy');
-      planningStrategyToUse = 'max';
-    }
-
-    // should include bbox in planning if
-    // 1. the planning model is the same as the default intent model
-    // and
-    // 2. the planning strategy is fast
     const includeBboxInPlanning =
-      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
-      planningStrategyToUse === 'fast';
+      modelConfigForPlanning.modelName !== defaultIntentModelConfig.modelName;
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
@@ -901,12 +883,13 @@ export class Agent<
 
     // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
-    let imagesIncludeCount: number | undefined = 1;
-    if (planningStrategyToUse === 'standard') {
-      imagesIncludeCount = 2;
-    } else if (planningStrategyToUse === 'max') {
-      imagesIncludeCount = undefined; // unlimited images
+    const useDeepThink = (this.opts as any)?._deepThink;
+    if (useDeepThink) {
+      debug('using deep think planning settings');
     }
+    const imagesIncludeCount: number | undefined = useDeepThink
+      ? undefined
+      : 2;
     const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfigForPlanning,
