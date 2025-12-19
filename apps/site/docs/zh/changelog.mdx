@@ -835,7 +835,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 * 针对 pagepass 通过 Midscene 执行过程中出现的闪烁行为，提供了优化方案
 
 ```javascript
-// 目前 pagepagepsss 依赖的 puppeteer 版本太低，截图可能会导致界面闪动、光标丢失，通过下面方式可以解决
+// 目前 pagepass 依赖的 puppeteer 版本太低，截图可能会导致界面闪动、光标丢失，通过下面方式可以解决
 const originScreenshot = puppeteerPage.screenshot;
 puppeteerPage.screenshot = async (options) => {
   return await originScreenshot.call(puppeteerPage, {
@@ -861,7 +861,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
   --query '{serviceName: string, status: string}[], github 页面的服务状态，返回服务名称'
 ```
 
-* 支持 AI 执行等待能力，让 AI 等到到某个时候继续后续任务执行
+* 支持 AI 执行等待能力，让 AI 等到某个时候继续后续任务执行
 
 * Playwright AI 任务报告展示整体耗时，并按测试组进行聚合 AI 任务
 
