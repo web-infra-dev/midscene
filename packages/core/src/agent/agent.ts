@@ -887,9 +887,7 @@ export class Agent<
     if (useDeepThink) {
       debug('using deep think planning settings');
     }
-    const imagesIncludeCount: number | undefined = useDeepThink
-      ? undefined
-      : 2;
+    const imagesIncludeCount: number | undefined = useDeepThink ? undefined : 2;
     const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfigForPlanning,
