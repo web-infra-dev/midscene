@@ -90,7 +90,7 @@ export const generateAIDescription = async (
     let lastError;
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const modelConfig = globalModelConfigManager.getModelConfig('insight');
+        const modelConfig = globalModelConfigManager.getModelConfig('default');
         return await service.describe(rect, modelConfig);
       } catch (err) {
         lastError = err;
