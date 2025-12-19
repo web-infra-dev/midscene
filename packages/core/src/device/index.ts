@@ -247,12 +247,6 @@ export const actionScrollParamSchema = z.object({
       'scrollToTop',
       'scrollToRight',
       'scrollToLeft',
-      // Legacy aliases kept for backward compatibility
-      'once',
-      'untilBottom',
-      'untilTop',
-      'untilRight',
-      'untilLeft',
     ])
     .default('singleAction')
     .describe(
