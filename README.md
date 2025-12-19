@@ -29,9 +29,9 @@ English | [简体中文](./README.zh.md)
   </a>
 </p>
 
-## 📣 v1.0 Beta Notice
+## 📣 v1.0 Release Notice
 
-> **We are preparing the v1.0 release.** It is currently published under the npm `@beta` tag.  
+> **We have released v1.0.** It is currently published on npm.  
 > The v1.0 docs and code are on [https://midscenejs.com/](https://midscenejs.com/) and the `main` branch.  
 > The v0.x docs and code are on [https://v0.midscenejs.com/](https://v0.midscenejs.com/) and the `v0` branch.  
 > The v1.0 changelog: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
