@@ -673,7 +673,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             <Form.Item name={['params', key]} style={{ margin: 0 }}>
               <Input.TextArea
                 className="main-side-console-input-textarea"
-                rows={4}
+                rows={3}
                 placeholder={placeholderText}
                 autoFocus
                 onKeyDown={handleStructuredKeyDown}
@@ -1064,7 +1064,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <TextArea
                 className="main-side-console-input-textarea"
                 disabled={!runButtonEnabled}
-                rows={4}
+                rows={3}
                 placeholder={placeholder}
                 autoFocus
                 onKeyDown={handleKeyDown}
