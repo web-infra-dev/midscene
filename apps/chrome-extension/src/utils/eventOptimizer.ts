@@ -83,7 +83,7 @@ export const generateAIDescription = async (
 
   // New addition: describe call with retry
   async function describeWithRetry(
-    insight: Insight,
+    service: Service,
     rect: Rect | [number, number],
     maxRetries = 3,
   ) {
@@ -91,7 +91,7 @@ export const generateAIDescription = async (
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         const modelConfig = globalModelConfigManager.getModelConfig('default');
-        return await insight.describe(rect, modelConfig);
+        return await service.describe(rect, modelConfig);
       } catch (err) {
         lastError = err;
         if (attempt < maxRetries) {
@@ -122,7 +122,7 @@ export const generateAIDescription = async (
             };
 
       // Modify it to a call with retry
-      const { description } = await describeWithRetry(insight, rect, 3);
+      const { description } = await describeWithRetry(service, rect, 3);
       addToCache(descriptionCache, hashId, description);
       return description;
     } catch (error) {
