@@ -852,7 +852,9 @@ export class Agent<
       this.modelConfigManager.getModelConfig('default');
 
     const includeBboxInPlanning =
-      modelConfigForPlanning.modelName !== defaultIntentModelConfig.modelName;
+      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
+      modelConfigForPlanning.openaiBaseURL ===
+        defaultIntentModelConfig.openaiBaseURL;
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
