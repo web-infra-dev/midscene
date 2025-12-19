@@ -2,9 +2,9 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 命令行工具
 
-Midscene 定义了一种 Yaml 格式的脚本，方便开发者快速编写自动化脚本，并提供了对应的命令行工具来快速执行这些脚本。
+Midscene 定义了一种 YAML 格式的脚本，方便开发者快速编写自动化脚本，并提供了对应的命令行工具来快速执行这些脚本。
 
-举例来说，你可以编写如下 Yaml 格式脚本示例：
+举例来说，你可以编写如下 YAML 格式脚本示例：
 
 ```yaml
 web:
@@ -26,7 +26,7 @@ midscene ./bing-search.yaml
 
 命令行会输出执行进度，并在完成后生成可视化报告。整个运行过程大幅简化了开发者做环境配置的复杂度。
 
-本文将介绍如何使用 Midscene 的命令行工具。关于更多 Yaml 格式脚本的内容，可以参考 [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)。
+本文将介绍如何使用 Midscene 的命令行工具。关于更多 YAML 格式脚本的内容，可以参考 [使用 YAML 格式的自动化脚本](./automate-with-scripts-in-yaml)。
 
 ## 使用 `.env` 配置环境变量
 
@@ -45,7 +45,7 @@ MIDSCENE_MODEL_FAMILY="替换为你的模型系列"
 
 * 这个文件不是必须的，你也可以通过全局环境变量的形式来配置
 * 请注意这里没有 `export` 前缀，这是 dotenv 库的约定
-* `.env` 文件必须放置在**工具运行目录**下，而与 Yaml 文件所在的目录无关。
+* `.env` 文件必须放置在**工具运行目录**下，而与 YAML 文件所在的目录无关。
 * 这些变量默认是**不覆盖**全局环境变量中已经的同名变量的，如需修改这个策略，请参考后文“--dotenv-override” 参数
 * 如需调试此部分环境变量的逻辑，可使用 `--dotenv-debug` 参数
 

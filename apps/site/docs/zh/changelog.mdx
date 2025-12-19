@@ -196,7 +196,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 
 ### Web 集成优化
 - 支持冻结页面上下文（[freezePageContext](./api.mdx#agentfreezepagecontext)/[unfreezePageContext](./api.mdx#agentunfreezepagecontext)），使后续所有的操作都复用同一个页面快照，避免多次重复获取页面状态
-- 为 Playwright fixture 补全所有 agent api ，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
+- 为 Playwright fixture 补全所有 agent api，简化测试脚本编写，解决使用 agentForPage 无法生成报告的问题
 
 ### Android 自动化增强
 - 新增隐藏键盘策略（[keyboardDismissStrategy](./integrate-with-android.html#androiddevice-的构造函数)），允许指定自动隐藏键盘的方式
@@ -277,7 +277,7 @@ v0.28 版本推出了与任意界面集成的功能。定义符合 `AbstractInte
 ### YAML 脚本能力增强
 
 #### 支持多 YAML 文件批量执行
-- 新增配置模式，支持配置 Yaml 文件运行顺序、浏览器复用策略、并行度
+- 新增配置模式，支持配置 YAML 文件运行顺序、浏览器复用策略、并行度
 - 支持获取 JSON 格式的运行结果
 
 ![](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Tuji_20250722_161353.338.png)
@@ -630,7 +630,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
 ### ** UI-TARS 模型支持缓存**
 
-* 通过文档开启缓存 👉 ： [开启缓存](./caching.mdx)
+* 通过文档开启缓存 👉: [开启缓存](./caching.mdx)
 
 * 开启效果
 
@@ -648,7 +648,7 @@ APIs: `aiBoolean`, `aiNumber`, `aiString`, `aiLocate`
 
 ## v0.10.0 - UI-TARS 模型上线
 
-UI-TARS 是由 **Seed** 团队开源的 Native GUI agent 模型。UI-TARS 起名源之[星际穿越](https://zh.wikipedia.org/zh-cn/%E6%98%9F%E9%99%85%E7%A9%BF%E8%B6%8A)电影中的 [TARS 机器人](https://interstellarfilm.fandom.com/wiki/TARS)，它具备高度的智能和自主思考能力。 UI-TARS **将图片和人类指令作为输入信息**，可以正确的感知下一步的行动，从而逐渐接近人类指令的目标，在 GUI 自动化任务的各项基准测试中均领先于各类开源模型、闭源商业模型。
+UI-TARS 是由 **Seed** 团队开源的 Native GUI agent 模型。UI-TARS 起名源之[星际穿越](https://zh.wikipedia.org/zh-cn/%E6%98%9F%E9%99%85%E7%A9%BF%E8%B6%8A)电影中的 [TARS 机器人](https://interstellarfilm.fandom.com/wiki/TARS)，它具备高度的智能和自主思考能力。UI-TARS **将图片和人类指令作为输入信息**，可以正确的感知下一步的行动，从而逐渐接近人类指令的目标，在 GUI 自动化任务的各项基准测试中均领先于各类开源模型、闭源商业模型。
 
 ![](/blog/0.10.0.png)
 
@@ -683,7 +683,7 @@ UI-TARS 模型在 GUI 任务中有以下优势：
 
 相比于之前各种 CI 环境调试，优势在于：
 
-1. 可以复用桌面浏览器，尤其是 Cookie、登录态、前置界面状态等 ，即刻开启自动化，而不用操心环境搭建
+1. 可以复用桌面浏览器，尤其是 Cookie、登录态、前置界面状态等，即刻开启自动化，而不用操心环境搭建
 
 2. 支持人工与脚本配合操作界面，提升自动化工具的灵活性
 
@@ -731,7 +731,7 @@ MIDSCENE_MODEL_TEXT_ONLY='true'
 
 * 目前豆包只有纯文本模型，也就是“看”不到图片。在纯粹通过界面文本进行推理的场景中表现尚可。
 
-* 如果用例需要结合分析界面 UI ，它完全不可用
+* 如果用例需要结合分析界面 UI，它完全不可用
 
 
 
@@ -761,7 +761,7 @@ Midscene 现已支持命中 GPT-4o prompt caching 特性，待公司 GPT 平台�
 
 
 
-### 提速：合并执行流程， 响应提速 30%
+### 提速：合并执行流程，响应提速 30%
 
 新版本中，我们将 Plan 和 Locate 操作在 prompt 执行上进行一定程度合并，使得 AI 响应速度提升  30%
 
