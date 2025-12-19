@@ -14,10 +14,10 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 ```bash
 # 替换为你自己的 API Key
-export MIDSCENE_MODEL_API_KEY="sk-abcde..."
 export MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
-export MIDSCENE_MODEL_API_KEY="......"
+export MIDSCENE_MODEL_API_KEY="sk-abcde..."
 export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+export MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
 
 ### 方法二：编写 `.env` 文件（适用于命令行工具）
@@ -25,7 +25,10 @@ export MIDSCENE_MODEL_NAME="qwen3-vl-plus"
 在项目的运行路径下创建一个 `.env` 文件，并添加以下内容，Midscene 的命令行工具默认会读取这个文件。
 
 ```bash
+MIDSCENE_MODEL_BASE_URL="https://.../compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="sk-abcdefghijklmnopqrstuvwxyz"
+MIDSCENE_MODEL_NAME="qwen3-vl-plus"
+MIDSCENE_MODEL_FAMILY="qwen3-vl"
 ```
 
 请注意：
@@ -58,7 +61,7 @@ import 'dotenv/config';
 
 ## 常用模型配置
 
-### 豆包 Seed 视觉模型 {#doubao-seed-vision}
+### 豆包 Seed 模型 {#doubao-seed-model}
 
 从 [火山引擎](https://volcengine.com) 获取 API 密钥，然后补充以下环境变量：
 
