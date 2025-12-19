@@ -1,6 +1,6 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 is coming - now in beta',
+  newBadge: 'Midscene 1.0 is released',
   newBadgeLegacyLink: 'Go to v0.x docs',
 
   // Banner - Title
