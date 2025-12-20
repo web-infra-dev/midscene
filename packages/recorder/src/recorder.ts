@@ -196,8 +196,6 @@ export class EventRecorder {
   private handleMutations = (mutations: MutationRecord[]): void => {
     if (!this.isRecording) return;
 
-    console.log('mutations')
-
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (node instanceof HTMLElement) {
