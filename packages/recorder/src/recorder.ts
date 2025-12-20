@@ -19,7 +19,7 @@ function generateHashId(
   const rectStr = elementRect
     ? `${elementRect.left}_${elementRect.top}_${elementRect.width}_${elementRect.height}${elementRect.x !== undefined ? `_${elementRect.x}` : ''}${elementRect.y !== undefined ? `_${elementRect.y}` : ''}`
     : 'no_rect';
-  const combined = `${type}_${rectStr}`;
+  const combined = `${type}_${rectStr}_${Date.now()}`;
 
   // Simple hash function
   let hash = 0;
