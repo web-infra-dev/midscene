@@ -17,25 +17,26 @@ Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliv
 
 See our updated [Model strategy](./model-strategy) for details.
 
-### 🚀 Better results on complex or long-running tasks
+### 🚀 Better results by multiple model combinations
 
-For complex and long-running scenarios, Midscene adds:
-- Multi-model combinations
-  - Per-task model configuration lets Insight and Planning use stronger comprehension models (e.g., GPT-5.1 for planning plus Doubao for interaction) to achieve the best results
+Beyond the default interaction intent, Midscene defines Planning and Insight intents, and developers can enable dedicated models for each. For example, you can use a GPT model for planning while using the default Qwen3-VL model for element localization.
+
+Multi-model combinations let you scale up handling of complex requirements as needed.
 
 ### 🚀 Runtime architecture optimization
 
 * Reuse portions of context to reduce device-info calls and improve runtime performance
 * Optimize Action Space combinations for Web and mobile environments to provide models with a more useful toolset
 
-### 🚀 Report polish
+### 🚀 Report improvements
 
-* More professional: right-side visualized interaction parameters, cleaner left-side flow, and a timeline view that helps pinpoint issues quickly
-* Better aesthetics: dark mode, element highlighting, and clearer presentation of model decisions
+* Parameter view: mark interaction parameter locations, merge screenshot context, and identify model planning results faster
+* Style updates: dark mode report rendering for better readability
+* Token usage display: summarize token consumption by model to analyze cost across scenarios
 
 ### 🚀 MCP architecture redesign
 
-We redesigned the MCP architecture to expose Action Spaces in iOS, Android, and Web as MCP services, giving upstream Agents stable UI operation capabilities and helping developers build higher-level Agents. See [MCP architecture](./mcp).
+We redefined Midscene MCP services around vision-driven UI operations. Each Action in the iOS / Android / Web Action Space is exposed as an MCP tool, providing atomic operations so developers can focus on higher-level Agents without worrying about UI operation details, while keeping success rates high. See [MCP architecture](./mcp).
 
 ### 🚀 Mobile automation
 
@@ -51,6 +52,28 @@ We redesigned the MCP architecture to expose Action Spaces in iOS, Android, and 
 
 #### Cross-platform
 - Expose system operation helpers on the Agent instance, including Home, Back, RecentApp, and more
+
+### 🚧 API changes
+
+Method renames (backward compatible)
+- Renamed `aiAction()` → `aiAct()` (old method kept with deprecation warning)
+- Renamed `logScreenshot()` → `recordToReport()` (old method kept with deprecation warning)
+
+Environment variable renames (backward compatible)
+- Renamed `OPENAI_API_KEY` → `MODEL_API_KEY` (new variable preferred, old variable as fallback)
+- Renamed `OPENAI_BASE_URL` → `MODEL_BASE_URL` (new variable preferred, old variable as fallback)
+
+### ⬆️ Upgrade to the latest version
+
+Upgrade only the packages you use. For example:
+
+`npm install @midscene/web@latest`
+`npm install @midscene/android@latest`
+`npm install @midscene/ios@latest`
+
+If you use the CLI installed globally:
+
+`npm i -g @midscene/cli`
 
 ## v0.30 - Cache management upgrade and mobile experience optimization
 
