@@ -134,26 +134,38 @@ export class PlaygroundSDK {
   onDumpUpdate(callback: (dump: string, executionDump?: any) => void): void {
     if (this.adapter instanceof LocalExecutionAdapter) {
       this.adapter.onDumpUpdate(callback);
+    } else if (this.adapter instanceof RemoteExecutionAdapter) {
+      this.adapter.onDumpUpdate(callback);
     }
   }
 
   // Progress update callback management
   onProgressUpdate(callback: (tip: string) => void): void {
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      this.adapter.setProgressCallback(callback);
-    } else if (this.adapter instanceof LocalExecutionAdapter) {
+    if (this.adapter instanceof LocalExecutionAdapter) {
       this.adapter.setProgressCallback(callback);
     }
+    // RemoteExecutionAdapter uses polling mechanism via onDumpUpdate, no separate progress callback needed
   }
 
   // Cancel execution - supports both remote and local
-  async cancelExecution(requestId: string): Promise<void> {
+  async cancelExecution(requestId: string): Promise<{
+    dump: any | null;
+    reportHTML: string | null;
+  } | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
-      await this.adapter.cancelTask(requestId);
+      const result = await this.adapter.cancelTask(requestId);
+      // Return dump and reportHTML if available from cancellation
+      if (result.success) {
+        return {
+          dump: (result as any).dump || null,
+          reportHTML: (result as any).reportHTML || null,
+        };
+      }
     } else if (this.adapter instanceof LocalExecutionAdapter) {
       // For local execution, we might need to implement agent cancellation
       console.warn('Local execution cancellation not fully implemented');
     }
+    return null;
   }
 
   // Get current execution data (dump and report)

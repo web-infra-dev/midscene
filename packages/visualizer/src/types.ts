@@ -312,7 +312,10 @@ export interface PlaygroundSDKLike {
   onDumpUpdate?: (
     callback: (dump: string, executionDump?: ExecutionDump) => void,
   ) => void;
-  cancelExecution?(requestId: string): Promise<void>;
+  cancelExecution?(requestId: string): Promise<{
+    dump: ExecutionDump | null;
+    reportHTML: string | null;
+  } | null>;
   getCurrentExecutionData?(): Promise<{
     dump: ExecutionDump | null;
     reportHTML: string | null;

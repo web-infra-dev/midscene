@@ -437,7 +437,14 @@ class PlaygroundServer {
       }
 
       try {
-        response.dump = JSON.parse(this.agent.dumpDataString());
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump = JSON.parse(dumpString);
+          // Extract first execution from grouped dump, matching local execution adapter behavior
+          response.dump = groupedDump.executions?.[0] || null;
+        } else {
+          response.dump = null;
+        }
         response.reportHTML = this.agent.reportHTMLString() || null;
 
         this.agent.writeOutActionDumps();
@@ -495,6 +502,23 @@ class PlaygroundServer {
 
           console.log(`Cancelling task: ${requestId}`);
 
+          // Get current execution data before cancelling (dump and reportHTML)
+          let dump: any = null;
+          let reportHTML: string | null = null;
+
+          try {
+            const dumpString = this.agent.dumpDataString?.();
+            if (dumpString) {
+              const groupedDump = JSON.parse(dumpString);
+              // Extract first execution from grouped dump
+              dump = groupedDump.executions?.[0] || null;
+            }
+
+            reportHTML = this.agent.reportHTMLString?.() || null;
+          } catch (error: unknown) {
+            console.warn('Failed to get execution data before cancel:', error);
+          }
+
           // Recreate agent to cancel the current task
           await this.recreateAgent();
 
@@ -504,7 +528,9 @@ class PlaygroundServer {
 
           res.json({
             status: 'cancelled',
-            message: 'Task cancelled successfully by recreating agent',
+            message: 'Task cancelled successfully',
+            dump,
+            reportHTML,
           });
         } catch (error: unknown) {
           const errorMessage =
