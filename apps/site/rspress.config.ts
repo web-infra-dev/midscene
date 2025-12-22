@@ -78,6 +78,10 @@ export default defineConfig({
               text: 'Common model configuration 🔥',
               link: '/model-common-config',
             },
+            {
+              text: 'Showcases',
+              link: '/showcases',
+            },
           ],
         },
         {
@@ -227,6 +231,10 @@ export default defineConfig({
             {
               text: '常用模型配置 🔥',
               link: '/zh/model-common-config',
+            },
+            {
+              text: '案例展示',
+              link: '/zh/showcases',
             },
           ],
         },
