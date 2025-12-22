@@ -1370,6 +1370,9 @@ importers:
       bufferutil:
         specifier: 4.0.9
         version: 4.0.9
+      playwright:
+        specifier: ^1.52.0
+        version: 1.57.0
       sharp:
         specifier: ^0.34.3
         version: 0.34.3
@@ -1407,9 +1410,6 @@ importers:
       dotenv:
         specifier: ^16.4.5
         version: 16.4.7
-      playwright:
-        specifier: ^1.52.0
-        version: 1.57.0
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

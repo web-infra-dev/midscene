@@ -21,6 +21,7 @@
     "dev": "npm run build:watch",
     "build:watch": "rslib build --watch --no-clean",
     "mcp-playground": "npx @modelcontextprotocol/inspector node ./dist/index.js",
+    "run": "node ./dist/index.js --mode http --port 3000",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -34,7 +35,6 @@
     "@rspack/core": "1.6.6",
     "@types/node": "^18.0.0",
     "dotenv": "^16.4.5",
-    "playwright": "^1.52.0",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
@@ -42,6 +42,7 @@
     "@silvia-odwyer/photon": "0.3.3",
     "@silvia-odwyer/photon-node": "0.3.3",
     "bufferutil": "4.0.9",
+    "playwright": "^1.52.0",
     "sharp": "^0.34.3",
     "utf-8-validate": "6.0.5"
   },

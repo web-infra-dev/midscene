@@ -28,6 +28,7 @@ export default defineConfig({
       '@silvia-odwyer/photon-node',
       '@modelcontextprotocol/sdk',
       'playwright',
+      'playwright-core',
     ],
   },
   plugins: [injectReportHtmlFromCore(__dirname)],
