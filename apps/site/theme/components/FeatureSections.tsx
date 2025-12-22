@@ -1,3 +1,4 @@
+import { TiltCard } from './TiltCard';
 import { useI18n, useI18nUrl } from '../i18n';
 
 const GradientIcon = () => (
@@ -61,15 +62,15 @@ export function FeatureSections() {
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Web Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformWebLink'))}
-                className="w-full md:w-[381px] md:h-[383px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformWeb')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[279px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
                       style={{
@@ -103,18 +104,18 @@ export function FeatureSections() {
                     {t('platformWebDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* iOS Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformIOSLink'))}
-                className="w-full md:w-[381px] md:h-[383px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('platformIOS')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[279px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
                       style={{
@@ -148,21 +149,21 @@ export function FeatureSections() {
                     {t('platformIOSDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Android Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformAndroidLink'))}
-                className="w-full md:w-[381px] md:h-[383px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAndroid')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[279px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
                       style={{
@@ -196,18 +197,18 @@ export function FeatureSections() {
                     {t('platformAndroidDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Any Interface Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformAnyInterfaceLink'))}
-                className="w-full md:w-[381px] md:h-[383px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAnyInterface')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[279px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
                       style={{
@@ -241,7 +242,7 @@ export function FeatureSections() {
                     {t('platformAnyInterfaceDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
           </div>
         </div>
@@ -299,7 +300,7 @@ export function FeatureSections() {
             {/* Top row - Seed and Qwen */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Model 1 - Seed */}
-              <a
+              <TiltCard
                 href={tUrl('/model-config#doubao-seed-vision')}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -328,10 +329,10 @@ export function FeatureSections() {
                     {t('modelSeedDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Model 2 - Qwen */}
-              <a
+              <TiltCard
                 href={tUrl('/model-config#qwen3-vl')}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -360,13 +361,13 @@ export function FeatureSections() {
                     {t('modelQwenDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* Bottom row - Gemini and UI-TARS */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Model 3 - Gemini */}
-              <a
+              <TiltCard
                 href={tUrl('/model-config#gemini-3-pro')}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -395,10 +396,10 @@ export function FeatureSections() {
                     {t('modelGeminiDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Model 4 - Multi-model combo */}
-              <a
+              <TiltCard
                 href={tUrl(t('multiModelStrategyLink'))}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -440,7 +441,7 @@ export function FeatureSections() {
                     {t('modelMultiModelDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
           </div>
         </div>
@@ -498,7 +499,7 @@ export function FeatureSections() {
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Rich APIs Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureRichAPIsLink'))}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -540,10 +541,10 @@ export function FeatureSections() {
                     {t('featureRichAPIsDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* MCP Server Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureMCPServerLink'))}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -585,13 +586,13 @@ export function FeatureSections() {
                     {t('featureMCPServerDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Reports & Playground Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureReportsPlaygroundLink'))}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -633,10 +634,10 @@ export function FeatureSections() {
                     {t('featureReportsPlaygroundDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Flexible Integration Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureFlexibleIntegrationLink'))}
                 className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
@@ -678,7 +679,7 @@ export function FeatureSections() {
                     {t('featureFlexibleIntegrationDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* View All APIs row */}
@@ -689,7 +690,7 @@ export function FeatureSections() {
                   {/* Empty placeholder to align with other cards */}.
                 </div>
                 <div className="flex flex-col gap-[17px]">
-                  <a
+                  <TiltCard
                     href="/zh/api"
                     className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
                   >
@@ -761,7 +762,7 @@ export function FeatureSections() {
                         aiAct, aiLocate, aiAssert...
                       </div>
                     </div>
-                  </a>
+                  </TiltCard>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('apiMoreDesc')}
                   </div>
