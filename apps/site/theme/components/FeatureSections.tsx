@@ -1,4 +1,4 @@
-import { AppWindow, Apple, Bot, Grid2x2 } from 'lucide-react';
+import { TiltCard } from './TiltCard';
 import { useI18n, useI18nUrl } from '../i18n';
 
 const GradientIcon = () => (
@@ -30,14 +30,14 @@ export function FeatureSections() {
       <div className="w-full flex flex-col items-center justify-center py-20">
         <div className="flex flex-col lg:flex-row items-start px-5 md:px-10 gap-8 lg:gap-[278px] max-w-[1440px] mx-auto w-full">
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[405px] flex flex-col items-start gap-y-4 md:gap-y-8">
+          <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base leading-6 bg-gradient-to-r from-[#80A8FF] to-[#0555FF] bg-clip-text text-transparent">
               {t('clientsTitle')}
             </div>
             <h2 className="font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
               {t('clientsHeading')}
             </h2>
-            <div className="w-full lg:w-[405px] flex flex-col gap-y-3">
+            <div className="w-full lg:w-[360px] flex flex-col gap-y-3">
               <div className="flex flex-row gap-x-3">
                 <div className="w-3 pt-1.5">
                   <GradientIcon />
@@ -58,91 +58,191 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Cards */}
-          <div className="w-full lg:w-[677px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Web Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformWebLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformWeb')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#0555FF] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
-                      <AppWindow className="h-6 w-6 md:h-8 md:w-8 text-white" />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/web-light.png"
+                        alt="Web"
+                        className="w-[240px] h-[150px]"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/web-dark.png"
+                        alt="Web"
+                        className="w-[240px] h-[150px]"
+                      />
                     </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformWebDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* iOS Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformIOSLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('platformIOS')}
                 </p>
                 <div className="flex flex-col gap-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <div className="w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-[0px_4px_4px_rgba(0,0,0,0.05)] bg-gray-800 dark:bg-black">
-                      <Apple className="text-white w-6 h-6 md:w-8 md:h-8" />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/ios-light.png"
+                        alt="iOS"
+                        className="w-[90px] h-[186px]"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/ios-dark.png"
+                        alt="iOS"
+                        className="w-[90px] h-[186px]"
+                      />
                     </div>
                   </div>
                   <div className="text-sm md:text-base font-normal font-sans leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformIOSDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Android Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformAndroidLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAndroid')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#1FA679] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
-                      <Bot className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/android-light.png"
+                        alt="Android"
+                        className="w-[90px] h-[186px]"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/android-dark.png"
+                        alt="Android"
+                        className="w-[90px] h-[186px]"
+                      />
                     </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformAndroidDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Any Interface Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('platformAnyInterfaceLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAnyInterface')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <div className="w-12 h-12 md:w-16 md:h-16 flex items-center justify-center rounded-2xl bg-[#FA884B] shadow-[0_4px_4px_rgba(0,0,0,0.05)]">
-                      <Grid2x2 className="w-6 h-6 md:w-8 md:h-8 text-white" />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/any-interface-light.png"
+                        alt="Any Interface"
+                        className="w-[240px] h-[139px]"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gradient-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/images/platforms/any-interface-dark.png"
+                        alt="Any Interface"
+                        className="w-[240px] h-[139px]"
+                      />
                     </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformAnyInterfaceDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
           </div>
         </div>
@@ -160,14 +260,14 @@ export function FeatureSections() {
       <div className="w-full flex items-center justify-center py-20">
         <div className="flex flex-col lg:flex-row px-5 md:px-10 gap-8 lg:gap-x-[278px] max-w-[1440px] mx-auto w-full">
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[405px] flex flex-col items-start gap-4 md:gap-8">
+          <div className="w-full lg:w-[360px] flex flex-col items-start gap-4 md:gap-8">
             <span className="font-mono font-medium text-sm md:text-base uppercase leading-6 bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent">
               {t('modelsTitle')}
             </span>
             <h2 className="font-sans text-left font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white whitespace-pre-line">
               {t('modelsHeading')}
             </h2>
-            <div className="w-full lg:w-[405px] flex flex-col gap-y-3">
+            <div className="w-full lg:w-[360px] flex flex-col gap-y-3">
               <div className="flex flex-row gap-x-3">
                 <div className="w-3 pt-1.5">
                   <GradientIcon />
@@ -196,99 +296,152 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Model cards */}
-          <div className="w-full lg:w-[677px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row - Seed and Qwen */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Model 1 - Seed */}
-              <a
+              <TiltCard
                 href={tUrl('/model-config#doubao-seed-vision')}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('modelSeedName')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/doubao-color.svg"
-                      alt="Doubao Seed"
-                      className="w-12 h-12 md:w-16 md:h-16"
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage: 'url(/images/backgrounds/doubao.svg)',
+                      }}
+                    />
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/doubao-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
                     />
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelSeedDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Model 2 - Qwen */}
-              <a
+              <TiltCard
                 href={tUrl('/model-config#qwen3-vl')}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('modelQwenName')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/qwen-color.svg"
-                      alt="Qwen3-VL"
-                      className="w-12 h-12 md:w-16 md:h-16"
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage: 'url(/images/backgrounds/qwen.svg)',
+                      }}
+                    />
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/qwen-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
                     />
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelQwenDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* Bottom row - Gemini and UI-TARS */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Model 3 - Gemini */}
-              <a
+              <TiltCard
                 href={tUrl('/model-config#gemini-3-pro')}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('modelGeminiName')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/gemini-color.svg"
-                      alt="Gemini-3-Pro"
-                      className="w-12 h-12 md:w-16 md:h-16"
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage: 'url(/images/backgrounds/gemini.svg)',
+                      }}
+                    />
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/gemini-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
                     />
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelGeminiDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Model 4 - Multi-model combo */}
-              <a
+              <TiltCard
                 href={tUrl(t('multiModelStrategyLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <span className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('modelMultiModelName')}
                 </span>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex items-center justify-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/multi-model.svg"
-                      alt="Multi-model combo"
-                      className="w-12 h-12 md:w-16 md:h-16"
-                    />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/icon/multi-model.svg"
+                        alt="Multi-model combo"
+                        className="w-[120px] h-[105px]"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/icon/multi-model-dark.png"
+                        alt="Multi-model combo"
+                        className="w-[150px] h-auto"
+                      />
+                    </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelMultiModelDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
           </div>
         </div>
@@ -306,14 +459,14 @@ export function FeatureSections() {
       <div className="w-full flex items-center justify-center py-20">
         <div className="flex flex-col lg:flex-row px-5 md:px-10 gap-8 lg:gap-x-[278px] max-w-[1440px] mx-auto w-full">
           {/* Left side - Text content */}
-          <div className="w-full lg:w-[405px] flex flex-col items-start gap-y-4 md:gap-y-8">
+          <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
               {t('debuggingTitle')}
             </div>
             <h2 className="font-sans font-semibold text-[28px] md:text-[40px] leading-[32px] md:leading-[48px] text-black dark:text-white">
               {t('debuggingHeading')}
             </h2>
-            <div className="w-full lg:w-[405px] flex flex-col gap-y-3">
+            <div className="w-full lg:w-[360px] flex flex-col gap-y-3">
               <div className="flex flex-row gap-x-3">
                 <div className="w-3 pt-1.5">
                   <GradientIcon />
@@ -342,139 +495,274 @@ export function FeatureSections() {
           </div>
 
           {/* Right side - Feature cards */}
-          <div className="w-full lg:w-[677px] flex flex-col gap-y-6 md:gap-y-10">
+          <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Rich APIs Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureRichAPIsLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('featureRichAPIs')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/ai-action.svg"
-                      alt="Rich APIs"
-                      className="w-12 h-12 md:w-16 md:h-16"
-                    />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/icon/ai-action.svg"
+                        alt="Rich APIs"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/icon/ai-action.svg"
+                        alt="Rich APIs"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureRichAPIsDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* MCP Server Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureMCPServerLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('featureMCPServer')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/ai-tap.svg"
-                      alt="MCP Server"
-                      className="w-12 h-12 md:w-16 md:h-16"
-                    />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/icon/ai-tap.svg"
+                        alt="MCP Server"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/icon/ai-tap.svg"
+                        alt="MCP Server"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureMCPServerDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* Reports & Playground Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureReportsPlaygroundLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('featureReportsPlayground')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/playback-report.svg"
-                      alt="Reports & Playground"
-                      className="w-12 h-12 md:w-16 md:h-16"
-                    />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/icon/playback-report.svg"
+                        alt="Reports & Playground"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/icon/playback-report.svg"
+                        alt="Reports & Playground"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureReportsPlaygroundDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
 
               {/* Flexible Integration Card */}
-              <a
+              <TiltCard
                 href={tUrl(t('featureFlexibleIntegrationLink'))}
-                className="w-full md:w-[318px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
               >
                 <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
                   {t('featureFlexibleIntegration')}
                 </p>
                 <div className="flex flex-col gap-y-[17px]">
-                  <div className="rounded-2xl w-full h-[120px] md:h-[160px] flex justify-center items-center bg-gray-100 dark:bg-[#1c1c1c] group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF]">
-                    <img
-                      src="/icon/ai-query.svg"
-                      alt="Flexible Integration"
-                      className="w-12 h-12 md:w-16 md:h-16"
-                    />
+                  <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
+                    <div
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <img
+                        src="/icon/ai-query.svg"
+                        alt="Flexible Integration"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
+                    <div
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <img
+                        src="/icon/ai-query.svg"
+                        alt="Flexible Integration"
+                        className="w-12 h-12 md:w-16 md:h-16"
+                      />
+                    </div>
                   </div>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureFlexibleIntegrationDesc')}
                   </div>
                 </div>
-              </a>
+              </TiltCard>
             </div>
 
             {/* View All APIs row */}
             <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
               {/* View All APIs Link Card */}
-              <div className="w-full md:w-[318px] flex flex-col gap-y-4 md:gap-y-6">
+              <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
                 <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
                   {/* Empty placeholder to align with other cards */}.
                 </div>
                 <div className="flex flex-col gap-[17px]">
-                  <a
+                  <TiltCard
                     href="/zh/api"
-                    className="rounded-2xl w-full h-[120px] md:h-[160px] flex flex-col justify-center items-center bg-gray-100 dark:bg-[#1C1C1C] hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF]"
+                    className="rounded-2xl w-full h-[120px] md:h-[185px] flex flex-col justify-center items-center hover:bg-gray-200 dark:hover:bg-[#252525] transition-all duration-200 cursor-pointer group border-2 border-transparent hover:border-[#0555FF] overflow-hidden"
                   >
-                    <div className="flex items-center gap-2 font-sans font-semibold text-lg text-black dark:text-white mb-2">
-                      {t('apiMoreLink')}
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="transition-transform group-hover:translate-x-1"
-                        role="img"
-                        aria-label="Arrow right"
-                      >
-                        <title>Arrow right</title>
-                        <path
-                          d="M7.5 15L12.5 10L7.5 5"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                    <div
+                      className="dark:hidden w-full h-full flex flex-col justify-center items-center bg-cover bg-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-light.svg)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 font-sans font-semibold text-lg text-black dark:text-white mb-2">
+                        {t('apiMoreLink')}
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="transition-transform group-hover:translate-x-1"
+                          role="img"
+                          aria-label="Arrow right"
+                        >
+                          <title>Arrow right</title>
+                          <path
+                            d="M7.5 15L12.5 10L7.5 5"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div className="font-sans text-sm text-black/60 dark:text-white/60">
+                        aiAct, aiLocate, aiAssert...
+                      </div>
                     </div>
-                    <div className="font-sans text-sm text-black/60 dark:text-white/60">
-                      aiAct, aiLocate, aiAssert...
+                    <div
+                      className="hidden dark:flex w-full h-full flex-col justify-center items-center rounded-2xl"
+                      style={{
+                        backgroundImage:
+                          'url(/images/backgrounds/grid-dark.svg)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <div className="flex items-center gap-2 font-sans font-semibold text-lg text-black dark:text-white mb-2">
+                        {t('apiMoreLink')}
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="transition-transform group-hover:translate-x-1"
+                          role="img"
+                          aria-label="Arrow right"
+                        >
+                          <title>Arrow right</title>
+                          <path
+                            d="M7.5 15L12.5 10L7.5 5"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </div>
+                      <div className="font-sans text-sm text-black/60 dark:text-white/60">
+                        aiAct, aiLocate, aiAssert...
+                      </div>
                     </div>
-                  </a>
+                  </TiltCard>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('apiMoreDesc')}
                   </div>
