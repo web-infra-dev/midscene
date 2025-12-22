@@ -38,11 +38,11 @@
 
 ## 案例
 
-| 指令  | 视频 |
-| :---:  | :---: |
-| 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
-| 控制地图 App 在 Android 上导航到目的地   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
-|  使用 midscene mcp 的方法，浏览页面（ https://www.saucedemo.com/ ），进行登录，添加商品、下单商品最终根据 mcp 执行的步骤和 playwright example 生成最终的测试用例   | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
+> aiAct: ....
+
+<video src="https://..." height="300" controls />
+
+查看更多案例：[案例展示](https://midscenejs.com/zh/showcases)
 
 ## 💡 特性
 
