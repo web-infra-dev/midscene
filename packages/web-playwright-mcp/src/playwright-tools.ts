@@ -22,10 +22,7 @@ export class PlaywrightMidsceneTools extends BaseMidsceneTools<PlaywrightAgent> 
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
     const { StaticPage } = require('@midscene/web/static');
-    return new StaticPage({
-      screenshotBase64: '',
-      size: { width: 1920, height: 1080 },
-    });
+    return new StaticPage();
   }
 
   protected async ensureAgent(url?: string): Promise<PlaywrightAgent> {
@@ -67,9 +64,7 @@ export class PlaywrightMidsceneTools extends BaseMidsceneTools<PlaywrightAgent> 
     });
 
     // Create browser context
-    this.context = await this.browser.newContext({
-      viewport: { width: 1920, height: 1080 },
-    });
+    this.context = await this.browser.newContext();
 
     // Create page and navigate
     const page: PlaywrightPage = await this.context.newPage();
