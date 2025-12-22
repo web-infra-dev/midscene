@@ -53,6 +53,28 @@ We redefined Midscene MCP services around vision-driven UI operations. Each Acti
 #### Cross-platform
 - Expose system operation helpers on the Agent instance, including Home, Back, RecentApp, and more
 
+### 🚧 API changes
+
+Method renames (backward compatible)
+- Renamed `aiAction()` → `aiAct()` (old method kept with deprecation warning)
+- Renamed `logScreenshot()` → `recordToReport()` (old method kept with deprecation warning)
+
+Environment variable renames (backward compatible)
+- Renamed `OPENAI_API_KEY` → `MODEL_API_KEY` (new variable preferred, old variable as fallback)
+- Renamed `OPENAI_BASE_URL` → `MODEL_BASE_URL` (new variable preferred, old variable as fallback)
+
+### ⬆️ Upgrade to the latest version
+
+Upgrade only the packages you use. For example:
+
+`npm install @midscene/web@latest`
+`npm install @midscene/android@latest`
+`npm install @midscene/ios@latest`
+
+If you use the CLI installed globally:
+
+`npm i -g @midscene/cli`
+
 ## v0.30 - Cache management upgrade and mobile experience optimization
 
 ### More flexible cache strategy

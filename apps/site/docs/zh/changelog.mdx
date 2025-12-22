@@ -63,6 +63,28 @@ Midscene v1.0 已发布！欢迎体验，看看它如何帮助你自动化你的
 #### 跨平台
 - 在 Agent 实例上暴露系统操作接口，包括 Home、Back、RecentApp 等
 
+### 🚧 API 变更
+
+方法重命名（向后兼容）
+- 改名 `aiAction()` → `aiAct()`（旧方法保留，有弃用警告）
+- 改名 `logScreenshot()` → `recordToReport()`（旧方法保留，有弃用警告）
+
+环境变量重命名（向后兼容）
+- 改名 `OPENAI_API_KEY` → `MODEL_API_KEY`（新变量优先，旧变量作为备选）
+- 改名 `OPENAI_BASE_URL` → `MODEL_BASE_URL`（新变量优先，旧变量作为备选）
+
+### ⬆️ 升级到最新版
+
+升级项目中的依赖，例如：
+
+`npm install @midscene/web@latest --save-dev`
+`npm install @midscene/android@latest --save-dev`
+`npm install @midscene/ios@latest --save-dev`
+
+如果使用全局安装的命令行版本：
+
+`npm i -g @midscene/cli`
+
 ## V0.30 - 缓存管理升级与移动端体验优化
 
 ### 更灵活的缓存策略
