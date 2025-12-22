@@ -279,6 +279,19 @@ export function generateToolsFromActionSpace(
             }
           }
 
+          // Wait for network idle after action to ensure page stability
+          // This is especially important for actions that may trigger navigation (e.g., clicking links)
+          if (agent.waitForNetworkIdle) {
+            try {
+              await agent.waitForNetworkIdle();
+            } catch (error: unknown) {
+              // Network idle timeout is not critical, continue to take screenshot
+              console.warn(
+                `[midscene:warning] waitForNetworkIdle timed out after action "${action.name}", continuing execution`,
+              );
+            }
+          }
+
           return await captureScreenshotResult(agent, action.name);
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);

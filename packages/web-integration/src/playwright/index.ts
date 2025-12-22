@@ -55,7 +55,7 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
     }
   }
 
-  async waitForNetworkIdle(timeout = 1000) {
+  async waitForNetworkIdle(timeout?: number) {
     await this.page.underlyingPage.waitForLoadState('networkidle', { timeout });
   }
 }
