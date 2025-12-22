@@ -256,9 +256,6 @@ export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 // device type
 export type DeviceType = 'web' | 'android' | 'ios';
 
-// planning strategy type
-export type PlanningStrategyType = 'fast' | 'standard';
-
 // run type
 export type RunType =
   | 'aiAct'

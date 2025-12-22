@@ -19,7 +19,7 @@ function generateHashId(
   const rectStr = elementRect
     ? `${elementRect.left}_${elementRect.top}_${elementRect.width}_${elementRect.height}${elementRect.x !== undefined ? `_${elementRect.x}` : ''}${elementRect.y !== undefined ? `_${elementRect.y}` : ''}`
     : 'no_rect';
-  const combined = `${type}_${rectStr}`;
+  const combined = `${type}_${rectStr}_${Date.now()}`;
 
   // Simple hash function
   let hash = 0;
@@ -108,21 +108,26 @@ const getLastLabelClick = (
   return undefined;
 };
 
+// Check if a single element is scrollable
+function isElementScrollable(el: HTMLElement): boolean {
+  const style = window.getComputedStyle(el);
+  const overflowY = style.overflowY;
+  const overflowX = style.overflowX;
+  const isScrollableY =
+    (overflowY === 'auto' || overflowY === 'scroll') &&
+    el.scrollHeight > el.clientHeight;
+  const isScrollableX =
+    (overflowX === 'auto' || overflowX === 'scroll') &&
+    el.scrollWidth > el.clientWidth;
+  return isScrollableY || isScrollableX;
+}
+
 // Get all scrollable elements
 function getAllScrollableElements(): HTMLElement[] {
   const elements: HTMLElement[] = [];
   const all = document.querySelectorAll<HTMLElement>('body *');
   all.forEach((el) => {
-    const style = window.getComputedStyle(el);
-    const overflowY = style.overflowY;
-    const overflowX = style.overflowX;
-    const isScrollableY =
-      (overflowY === 'auto' || overflowY === 'scroll') &&
-      el.scrollHeight > el.clientHeight;
-    const isScrollableX =
-      (overflowX === 'auto' || overflowX === 'scroll') &&
-      el.scrollWidth > el.clientWidth;
-    if (isScrollableY || isScrollableX) {
+    if (isElementScrollable(el)) {
       elements.push(el);
     }
   });
@@ -140,6 +145,7 @@ export class EventRecorder {
   private lastViewportScroll: { x: number; y: number } | null = null;
   private scrollTargets: HTMLElement[] = [];
   private sessionId: string;
+  private mutationObserver: MutationObserver | null = null;
 
   constructor(eventCallback: EventCallback, sessionId: string) {
     this.eventCallback = eventCallback;
@@ -160,6 +166,44 @@ export class EventRecorder {
       hashId: `navigation_${Date.now()}`,
     };
   }
+
+  // Check and add scroll listeners to newly added elements
+  private checkAndAddScrollListeners(element: HTMLElement): void {
+    // Check if the element itself is scrollable
+    if (isElementScrollable(element) && !this.scrollTargets.includes(element)) {
+      element.addEventListener('scroll', this.handleScroll, { passive: true });
+      this.scrollTargets.push(element);
+      debugLog('Added scroll listener to dynamic element:', element);
+    }
+
+    // Check all descendant elements
+    const descendants = element.querySelectorAll<HTMLElement>('*');
+    descendants.forEach((descendant) => {
+      if (
+        isElementScrollable(descendant) &&
+        !this.scrollTargets.includes(descendant)
+      ) {
+        descendant.addEventListener('scroll', this.handleScroll, {
+          passive: true,
+        });
+        this.scrollTargets.push(descendant);
+        debugLog('Added scroll listener to dynamic descendant:', descendant);
+      }
+    });
+  }
+
+  // Handle DOM mutations to detect newly added scrollable elements
+  private handleMutations = (mutations: MutationRecord[]): void => {
+    if (!this.isRecording) return;
+
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof HTMLElement) {
+          this.checkAndAddScrollListeners(node);
+        }
+      });
+    });
+  };
 
   // Start recording
   start(): void {
@@ -203,6 +247,14 @@ export class EventRecorder {
     this.scrollTargets.forEach((target) => {
       target.addEventListener('scroll', this.handleScroll, { passive: true });
     });
+
+    // Start MutationObserver to detect dynamically added scrollable elements
+    this.mutationObserver = new MutationObserver(this.handleMutations);
+    this.mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+    debugLog('MutationObserver started to detect dynamic scrollable elements');
   }
 
   // Stop recording
@@ -228,6 +280,13 @@ export class EventRecorder {
     this.scrollTargets.forEach((target) => {
       target.removeEventListener('scroll', this.handleScroll);
     });
+
+    // Stop MutationObserver
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+      debugLog('MutationObserver stopped');
+    }
 
     debugLog('Removed all event listeners');
   }

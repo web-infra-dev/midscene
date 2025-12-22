@@ -398,6 +398,10 @@ export async function callAIWithObjectResponse<T>(
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
+  assert(
+    typeof jsonContent === 'object',
+    `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+  );
   return {
     content: jsonContent,
     contentString: response.content,

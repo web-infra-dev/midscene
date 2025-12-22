@@ -46,7 +46,7 @@ Midscene 早期同时兼容上述两种技术路线，交由开发者自行选�
 
 |模型系列|部署|Midscene 评价|
 |---|---|---|
-|豆包 Seed 模型<br />[快速配置](./model-common-config#doubao-seed-model)|火山引擎版本：<br />[Doubao-seed-1.8](https://www.volcengine.com/docs/82379/2123228)<br/>[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
+|豆包 Seed 模型<br />[快速配置](./model-common-config#doubao-seed-model)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
 |千问 Qwen3-VL<br />[快速配置](./model-common-config#qwen3-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama(开源)](https://ollama.com/library/qwen3-vl)|⭐⭐⭐⭐<br />复杂场景断言能力不够稳定 <br/>性能超群，操作准确<br />有开源版本（[HuggingFace](https://huggingface.co/Qwen) / [Github](https://github.com/QwenLM/)）|
 |千问 Qwen2.5-VL<br />[快速配置](./model-common-config#qwen25-vl)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐<br/>综合效果不如 Qwen3-VL |
 |Gemini-3-Pro / Gemini-3-Flash<br />[快速配置](./model-common-config#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br />支持 Gemini-3-Flash<br />价格高于豆包和千问|
@@ -99,8 +99,7 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 0. 查看 Midscene 的回放报告，确保任务执行的时序是正常的，没有进入错误的页面或逻辑分支
 1. 使用最优质的、更新的、更大尺寸的模型版本，这会大幅改善 UI 自动化的成功率。比如 Qwen3-VL 的效果会优于 Qwen2.5-VL，同一个模型的 72B 版本准确性会优于 30B 版本
 2. 确保模型的 `MIDSCENE_MODEL_FAMILY` 环境变量配置正确，否则定位结果会出现明显偏移
-3. 调整 `aiAct` 的规划模式 `planningStrategy`，提升思考深度
-4. 尝试使用不同的模型，或尝试多模型组合，解决理解能力不足的问题
+3. 尝试使用不同的模型，或尝试多模型组合，解决理解能力不足的问题
 
 ## 更多
 
