@@ -168,8 +168,7 @@ const inputLocateDescription =
   'the position of the placeholder or text content in the target input field. If there is no content, locate the center of the input field.';
 export const actionInputParamSchema = z.object({
   value: z
-    .union([z.string(), z.number()])
-    .transform((val) => String(val))
+    .string()
     .describe(
       'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
     ),
