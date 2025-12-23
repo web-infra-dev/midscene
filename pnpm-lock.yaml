@@ -519,6 +519,9 @@ importers:
         specifier: workspace:*
         version: link:../../packages/android
     devDependencies:
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.118

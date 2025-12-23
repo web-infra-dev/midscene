@@ -7,13 +7,16 @@
     "benchmark",
     "Android World"
   ],
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
   "scripts": {
-    "dev": "npm run build:watch"
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@midscene/android": "workspace:*"
   },
   "devDependencies": {
+    "@midscene/shared": "workspace:*",
     "@types/node": "^18.0.0",
     "typescript": "^5.8.3"
   },
