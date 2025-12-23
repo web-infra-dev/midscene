@@ -1,0 +1,16 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2021"],
+    "noEmit": true,
+    "useDefineForClassFields": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../web-integration" },
+    { "path": "../core" },
+    { "path": "../shared" }
+  ]
+}

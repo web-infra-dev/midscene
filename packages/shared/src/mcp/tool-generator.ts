@@ -279,6 +279,19 @@ export function generateToolsFromActionSpace(
             }
           }
 
+          // Wait for network idle after action to ensure page stability
+          // This is especially important for actions that may trigger navigation (e.g., clicking links)
+          if (agent.waitForNetworkIdle) {
+            try {
+              await agent.waitForNetworkIdle();
+            } catch (error: unknown) {
+              // Network idle timeout is not critical, continue to take screenshot
+              console.warn(
+                `[midscene:warning] waitForNetworkIdle timed out after action "${action.name}", continuing execution`,
+              );
+            }
+          }
+
           return await captureScreenshotResult(agent, action.name);
         } catch (error: unknown) {
           const errorMessage = getErrorMessage(error);
@@ -294,8 +307,8 @@ export function generateToolsFromActionSpace(
 }
 
 /**
- * Generate common tools (screenshot, waitFor)
- * SIMPLIFIED: Only keep essential helper tools, removed assert
+ * Generate common tools (screenshot, navigation, page info)
+ * These are direct browser commands that don't need AI reasoning
  */
 export function generateCommonTools(
   getAgent: () => Promise<BaseAgent>,
@@ -322,6 +335,142 @@ export function generateCommonTools(
           return createErrorResult(
             `Failed to capture screenshot: ${errorMessage}`,
           );
+        }
+      },
+      autoDestroy: true,
+    },
+    {
+      name: 'navigate',
+      description:
+        'Navigate the browser to a specified URL. Opens the URL in the current tab.',
+      schema: {
+        url: z.string().describe('The URL to navigate to'),
+      },
+      handler: async (args): Promise<ToolResult> => {
+        try {
+          const { url } = args as { url: string };
+          const agent = await getAgent();
+          if (!agent.page?.navigate) {
+            return createErrorResult(
+              'Navigate operation is not supported on this page type',
+            );
+          }
+          await agent.page.navigate(url);
+          return await captureScreenshotResult(agent, 'navigate');
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          return createErrorResult(`Failed to navigate: ${errorMessage}`);
+        }
+      },
+      autoDestroy: true,
+    },
+    {
+      name: 'reload',
+      description: 'Reload the current page',
+      schema: {},
+      handler: async (): Promise<ToolResult> => {
+        try {
+          const agent = await getAgent();
+          if (!agent.page?.reload) {
+            return createErrorResult(
+              'Reload operation is not supported on this page type',
+            );
+          }
+          await agent.page.reload();
+          return await captureScreenshotResult(agent, 'reload');
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          return createErrorResult(`Failed to reload: ${errorMessage}`);
+        }
+      },
+      autoDestroy: true,
+    },
+    {
+      name: 'go_back',
+      description: 'Navigate back in browser history',
+      schema: {},
+      handler: async (): Promise<ToolResult> => {
+        try {
+          const agent = await getAgent();
+          if (!agent.page?.goBack) {
+            return createErrorResult(
+              'GoBack operation is not supported on this page type',
+            );
+          }
+          await agent.page.goBack();
+          return await captureScreenshotResult(agent, 'go_back');
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          return createErrorResult(`Failed to go back: ${errorMessage}`);
+        }
+      },
+      autoDestroy: true,
+    },
+    {
+      name: 'go_forward',
+      description: 'Navigate forward in browser history',
+      schema: {},
+      handler: async (): Promise<ToolResult> => {
+        try {
+          const agent = await getAgent();
+          if (!agent.page?.goForward) {
+            return createErrorResult(
+              'GoForward operation is not supported on this page type',
+            );
+          }
+          await agent.page.goForward();
+          return await captureScreenshotResult(agent, 'go_forward');
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          return createErrorResult(`Failed to go forward: ${errorMessage}`);
+        }
+      },
+      autoDestroy: true,
+    },
+    {
+      name: 'get_url',
+      description: 'Get the current URL of the page',
+      schema: {},
+      handler: async (): Promise<ToolResult> => {
+        try {
+          const agent = await getAgent();
+          if (!agent.page?.getCurrentUrl) {
+            return createErrorResult(
+              'GetCurrentUrl operation is not supported on this page type',
+            );
+          }
+          const url = agent.page.getCurrentUrl();
+          return {
+            content: [{ type: 'text', text: `Current URL: ${url}` }],
+          };
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          return createErrorResult(
+            `Failed to get current URL: ${errorMessage}`,
+          );
+        }
+      },
+      autoDestroy: true,
+    },
+    {
+      name: 'get_title',
+      description: 'Get the title of the current page',
+      schema: {},
+      handler: async (): Promise<ToolResult> => {
+        try {
+          const agent = await getAgent();
+          if (!agent.page?.getPageTitle) {
+            return createErrorResult(
+              'GetPageTitle operation is not supported on this page type',
+            );
+          }
+          const title = await agent.page.getPageTitle();
+          return {
+            content: [{ type: 'text', text: `Page title: ${title}` }],
+          };
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          return createErrorResult(`Failed to get page title: ${errorMessage}`);
         }
       },
       autoDestroy: true,

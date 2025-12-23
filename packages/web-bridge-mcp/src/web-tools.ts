@@ -89,6 +89,25 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         },
         autoDestroy: false,
       },
+      {
+        name: 'web_close',
+        description:
+          'Close the browser connection and end the automation session.',
+        schema: {},
+        handler: async () => {
+          await this.closeBrowser();
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Browser connection closed successfully.',
+              },
+            ],
+          };
+        },
+        autoDestroy: false,
+      },
     ];
   }
 }

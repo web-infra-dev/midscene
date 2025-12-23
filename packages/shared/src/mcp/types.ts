@@ -79,6 +79,13 @@ export interface BaseAgent {
   destroy?(): Promise<void>;
   page?: {
     screenshotBase64(): Promise<string>;
+    // Navigation methods - available on web pages
+    navigate?(url: string): Promise<void>;
+    reload?(): Promise<void>;
+    goBack?(): Promise<void>;
+    goForward?(): Promise<void>;
+    getCurrentUrl?(): string;
+    getPageTitle?(): Promise<string>;
   };
   aiAction?: (
     description: string,
@@ -88,6 +95,11 @@ export interface BaseAgent {
     assertion: string,
     options: Record<string, unknown>,
   ) => Promise<unknown>;
+  /**
+   * Wait for network idle after actions (e.g., after clicking a link that triggers navigation)
+   * This helps ensure consistent screenshots after navigation-triggering actions
+   */
+  waitForNetworkIdle?: (timeout?: number) => Promise<void>;
 }
 
 /**
