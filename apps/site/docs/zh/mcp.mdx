@@ -66,7 +66,7 @@ open report_file_name.html
 **环境准备**
 
 - **AI 模型服务**：准备 OpenAI API Key 或其他支持的 AI 模型服务，更多信息参见 [模型策略](./model-strategy)。
-- **设备环境**：请按照 [iOS 快速开始](./ios-getting-started) 配置 WebDriverAgent、证书与设备连接，确保 WebDriverAgent 已正常运行。可以在 [iOS Playground](./ios-getting-started#试用-playground) 中验证截图和基础操作是否正常。
+- **设备环境**：请按照 [iOS 快速开始](./ios-getting-started) 配置 WebDriverAgent、证书与设备连接，确保 WebDriverAgent 已正常运行。
 
 **配置**
 
@@ -96,7 +96,7 @@ open report_file_name.html
 **环境准备**
 
 - **AI 模型服务**：准备 OpenAI API Key 或其他支持的 AI 模型服务，更多信息参见 [模型策略](./model-strategy)。
-- **设备环境**：请按照 [Android 快速开始](./android-getting-started) 配置 adb 工具与设备连接，确保 `adb devices` 可以识别目标设备。可以用 [Android Playground](./android-getting-started#试用-playground-零代码) 获取截图并执行简单操作来检验环境。
+- **设备环境**：请按照 [Android 快速开始](./android-getting-started) 配置 adb 工具与设备连接，确保 `adb devices` 可以识别目标设备。
 
 **配置**
 
@@ -119,3 +119,276 @@ open report_file_name.html
   }
 }
 ```
+
+## 其他配置方式
+
+### 使用 HTTP 模式
+
+以上配置使用的是 MCP 的 stdio 模式(标准输入输出),适合通过 MCP 客户端(如 Claude Desktop)连接。如果你需要通过 HTTP 接口访问 MCP 服务,可以使用 HTTP 模式启动。
+
+所有 MCP 服务都支持 HTTP 模式,使用命令行参数启动:
+
+**浏览器桥接模式 HTTP 服务**
+
+```bash
+npx -y @midscene/web-bridge-mcp --mode=http --port=3000 --host=localhost
+```
+
+**iOS MCP HTTP 服务**
+
+```bash
+npx -y @midscene/ios-mcp --mode=http --port=3001 --host=localhost
+```
+
+**Android MCP HTTP 服务**
+
+```bash
+npx -y @midscene/android-mcp --mode=http --port=3002 --host=localhost
+```
+
+### 参数说明
+
+- `--mode=http`: 启用 HTTP 模式(默认为 `stdio`)
+- `--port=<端口号>`: 指定 HTTP 服务端口(默认为 `3000`)
+- `--host=<主机地址>`: 指定 HTTP 服务主机地址(默认为 `localhost`)
+
+HTTP 模式下仍需要配置模型相关的环境变量,可以在启动命令前设置:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="你的模型服务地址" \
+MIDSCENE_MODEL_API_KEY="你的 API Key" \
+MIDSCENE_MODEL_NAME="你的模型名称" \
+MIDSCENE_MODEL_FAMILY="你的模型系列" \
+npx -y @midscene/web-bridge-mcp --mode=http --port=3000
+```
+
+HTTP 模式启动后,MCP 服务将在以下地址提供服务:
+
+```
+http://{host}:{port}/mcp
+```
+
+例如,使用默认配置时的访问地址为:
+
+```
+http://localhost:3000/mcp
+```
+
+### 注意事项
+
+1. **端口占用**:确保指定的端口未被其他服务占用
+2. **权限限制**:使用 1024 以下的端口需要管理员权限
+3. **会话管理**:HTTP 模式支持多个并发会话,每个会话独立管理状态
+4. **超时设置**:非活动会话将在 30 分钟后自动清理
+5. **安全性**:默认绑定 `localhost` ,如需外部访问请谨慎配置 `--host` 参数
+
+### 使用编程方式启动
+
+除了通过 MCP 客户端配置或命令行启动,你还可以在自己的 Node.js 应用中编程方式启动 MCP 服务。这适用于以下场景:
+
+- **服务集成**: 将 MCP 服务嵌入到现有的应用或微服务中
+- **自定义启动逻辑**: 在服务启动前后执行额外的初始化或清理
+- **动态配置**: 根据运行时条件动态选择启动模式
+- **测试环境**: 在测试代码中启动 MCP 服务进行集成测试
+
+所有 MCP 服务包都导出了对应的服务器类,支持 stdio 和 HTTP 两种模式:
+
+**Web Bridge MCP**
+
+```typescript
+import { WebMCPServer } from '@midscene/web-bridge-mcp/server';
+
+// 创建服务器实例
+const server = new WebMCPServer();
+
+// 方式一:启动 stdio 模式(用于 MCP 客户端通过标准输入输出通信)
+await server.launch();
+
+// 方式二:启动 HTTP 模式(用于 HTTP 客户端访问)
+await server.launchHttp({
+  port: 3000,
+  host: 'localhost'
+});
+```
+
+**iOS MCP**
+
+```typescript
+import { IOSMCPServer } from '@midscene/ios-mcp/server';
+
+const server = new IOSMCPServer();
+
+// stdio 模式
+await server.launch();
+
+// HTTP 模式
+await server.launchHttp({
+  port: 3001,
+  host: 'localhost'
+});
+```
+
+**Android MCP**
+
+```typescript
+import { AndroidMCPServer } from '@midscene/android-mcp/server';
+
+const server = new AndroidMCPServer();
+
+// stdio 模式
+await server.launch();
+
+// HTTP 模式
+await server.launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**环境变量配置**
+
+编程方式启动时,需要在代码中设置环境变量:
+
+```typescript
+// 在启动服务前设置环境变量
+process.env.MIDSCENE_MODEL_BASE_URL = '你的模型服务地址';
+process.env.MIDSCENE_MODEL_API_KEY = '你的 API Key';
+process.env.MIDSCENE_MODEL_NAME = '你的模型名称';
+process.env.MIDSCENE_MODEL_FAMILY = '你的模型系列';
+
+const server = new AndroidMCPServer();
+await server.launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**集成到 Express 应用示例**
+
+以下示例展示如何将 MCP 服务集成到现有的 Express 应用中:
+
+```typescript
+import express from 'express';
+import { AndroidMCPServer } from '@midscene/android-mcp/server';
+
+// 配置环境变量
+process.env.MIDSCENE_MODEL_BASE_URL = '你的模型服务地址';
+process.env.MIDSCENE_MODEL_API_KEY = '你的 API Key';
+process.env.MIDSCENE_MODEL_NAME = '你的模型名称';
+process.env.MIDSCENE_MODEL_FAMILY = '你的模型系列';
+
+const app = express();
+
+// 业务路由
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// 启动业务服务
+app.listen(8080, () => {
+  console.log('业务服务运行在 http://localhost:8080');
+});
+
+// 启动 MCP 服务(HTTP 模式)
+const mcpServer = new AndroidMCPServer();
+await mcpServer.launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+
+console.log('MCP 服务运行在 http://localhost:3002/mcp');
+```
+
+### 使用简化的启动器 API
+
+为了更方便地启动 MCP 服务器，每个平台都提供了 `mcpServerForAgent` 函数，它会自动处理 agent、工具管理器和 MCP 服务器之间的连接。
+
+**Web Bridge MCP**
+
+```typescript
+import { mcpServerForAgent } from '@midscene/web-bridge-mcp';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge();
+await agent.connectCurrentTab();
+
+// 启动 stdio 模式 MCP 服务器
+const stdioServer = await mcpServerForAgent(agent).launch();
+
+// 或启动 HTTP 模式 MCP 服务器
+const httpServer = await mcpServerForAgent(agent).launchHttp({
+  port: 3000,
+  host: 'localhost'
+});
+```
+
+**iOS MCP**
+
+```typescript
+import { mcpServerForAgent } from '@midscene/ios-mcp';
+import { agentFromWdaDevice } from '@midscene/ios';
+
+const agent = await agentFromWdaDevice();
+
+// 启动 stdio 模式
+const stdioServer = await mcpServerForAgent(agent).launch();
+
+// 或启动 HTTP 模式
+const httpServer = await mcpServerForAgent(agent).launchHttp({
+  port: 3001,
+  host: 'localhost'
+});
+```
+
+**Android MCP**
+
+```typescript
+import { mcpServerForAgent } from '@midscene/android-mcp';
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+// 启动 stdio 模式
+const stdioServer = await mcpServerForAgent(agent).launch();
+
+// 或启动 HTTP 模式
+const httpServer = await mcpServerForAgent(agent).launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**环境变量配置**
+
+使用启动器 API 时，你仍然需要在启动服务前设置环境变量：
+
+```typescript
+// 在启动服务前设置环境变量
+process.env.MIDSCENE_MODEL_BASE_URL = '你的模型服务地址';
+process.env.MIDSCENE_MODEL_API_KEY = '你的 API Key';
+process.env.MIDSCENE_MODEL_NAME = '你的模型名称';
+process.env.MIDSCENE_MODEL_FAMILY = '你的模型系列';
+
+const agent = await agentFromAdbDevice();
+const server = await mcpServerForAgent(agent).launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**API 说明**
+
+所有 MCP 服务器类都继承自 `BaseMCPServer`,提供以下方法:
+
+**`launch(): Promise<void>`**
+
+启动 stdio 模式的 MCP 服务,适用于通过标准输入输出与 MCP 客户端通信。
+
+**`launchHttp(options: HttpLaunchOptions): Promise<void>`**
+
+启动 HTTP 模式的 MCP 服务。
+
+参数:
+- `options.port`: HTTP 服务端口(必需,范围 1-65535)
+- `options.host`: HTTP 服务主机地址(可选,默认 `localhost`)
+
