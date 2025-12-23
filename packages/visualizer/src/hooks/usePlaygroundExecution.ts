@@ -301,13 +301,20 @@ export function usePlaygroundExecution(
     const thisRunningId = currentRunningIdRef.current;
     if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
       try {
-        // Get current execution data before stopping
+        // Cancel execution - may return execution data directly
+        const cancelResult = await playgroundSDK.cancelExecution(
+          thisRunningId.toString(),
+        );
+
+        // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
         let executionData: {
           dump: ExecutionDump | null;
           reportHTML: string | null;
         } | null = null;
 
-        if (playgroundSDK.getCurrentExecutionData) {
+        if (cancelResult) {
+          executionData = cancelResult;
+        } else if (playgroundSDK.getCurrentExecutionData) {
           try {
             executionData = await playgroundSDK.getCurrentExecutionData();
           } catch (error) {
@@ -315,8 +322,6 @@ export function usePlaygroundExecution(
           }
         }
 
-        // Cancel execution
-        await playgroundSDK.cancelExecution(thisRunningId.toString());
         interruptedFlagRef.current[thisRunningId] = true;
         setLoading(false);
 

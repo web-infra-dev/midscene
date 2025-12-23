@@ -118,6 +118,7 @@ export default function OpenInPlayground(props?: { context?: UIContext }) {
         dryMode={true}
         hideLogo={true}
         key={contextLoadingCounter}
+        canDownloadReport={false}
       />
     );
   } else if (activeTab === tabKeys.ELEMENT_DESCRIBER) {
