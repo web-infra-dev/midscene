@@ -66,7 +66,7 @@ Add the Midscene Web Bridge MCP server (`@midscene/web-bridge-mcp`) in your MCP 
 **Environment preparation**
 
 - **AI model service**: Prepare an OpenAI API Key or another supported AI model service. See [Model strategy](./model-strategy) for more details.
-- **Device setup**: Follow [iOS Getting Started](./ios-getting-started) to configure WebDriverAgent, certificates, and device connections, and make sure WebDriverAgent is running. You can verify screenshots and basic operations in [iOS Playground](./ios-getting-started#try-playground).
+- **Device setup**: Follow [iOS Getting Started](./ios-getting-started) to configure WebDriverAgent, certificates, and device connections, and make sure WebDriverAgent is running.
 
 **Configuration**
 
@@ -96,7 +96,7 @@ Add the Midscene iOS MCP server (`@midscene/ios-mcp`) in your MCP client. For mo
 **Environment preparation**
 
 - **AI model service**: Prepare an OpenAI API Key or another supported AI model service. See [Model strategy](./model-strategy) for more details.
-- **Device setup**: Follow [Android Getting Started](./android-getting-started) to configure adb and connect your device. Ensure `adb devices` can recognize the target device. Use [Android Playground](./android-getting-started#try-playground-no-code) to verify screenshots and basic operations.
+- **Device setup**: Follow [Android Getting Started](./android-getting-started) to configure adb and connect your device. Ensure `adb devices` can recognize the target device.
 
 **Configuration**
 
@@ -119,3 +119,275 @@ Add the Midscene Android MCP server (`@midscene/android-mcp`) in your MCP client
   }
 }
 ```
+
+## Alternative configuration methods
+
+### Using HTTP mode
+
+The above configurations use MCP's stdio mode (standard input/output), suitable for connecting through MCP clients (like Claude Desktop). If you need to access MCP services through HTTP interface, you can start them in HTTP mode.
+
+All MCP services support HTTP mode, using command-line arguments:
+
+**Web Bridge MCP HTTP service**
+
+```bash
+npx -y @midscene/web-bridge-mcp --mode=http --port=3000 --host=localhost
+```
+
+**iOS MCP HTTP service**
+
+```bash
+npx -y @midscene/ios-mcp --mode=http --port=3001 --host=localhost
+```
+
+**Android MCP HTTP service**
+
+```bash
+npx -y @midscene/android-mcp --mode=http --port=3002 --host=localhost
+```
+
+### Parameter description
+
+- `--mode=http`: Enable HTTP mode (default is `stdio`)
+- `--port=<port_number>`: Specify HTTP service port (default is `3000`)
+- `--host=<host_address>`: Specify HTTP service host address (default is `localhost`)
+
+HTTP mode still requires configuring model-related environment variables, which can be set before the startup command:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="your model service URL" \
+MIDSCENE_MODEL_API_KEY="your API Key" \
+MIDSCENE_MODEL_NAME="your model name" \
+MIDSCENE_MODEL_FAMILY="your model family" \
+npx -y @midscene/web-bridge-mcp --mode=http --port=3000
+```
+
+After starting in HTTP mode, the MCP service will be available at:
+
+```
+http://{host}:{port}/mcp
+```
+
+For example, with default configuration, the access URL is:
+
+```
+http://localhost:3000/mcp
+```
+
+### Notes
+
+1. **Port conflict**: Ensure the specified port is not already in use
+2. **Permission restrictions**: Using ports below 1024 requires administrator privileges
+3. **Session management**: HTTP mode supports multiple concurrent sessions, each managing state independently
+4. **Timeout settings**: Inactive sessions are automatically cleaned up after 30 minutes
+5. **Security**: Defaults to binding `localhost`; configure `--host` parameter carefully for external access
+
+### Using programmatic startup
+
+In addition to configuring through MCP clients or starting via command line, you can also start MCP services programmatically in your own Node.js applications. This is suitable for scenarios like:
+
+- **Service integration**: Embed MCP services into existing applications or microservices
+- **Custom startup logic**: Execute additional initialization or cleanup before/after service startup
+- **Dynamic configuration**: Dynamically choose startup mode based on runtime conditions
+- **Testing environment**: Start MCP services in test code for integration testing
+
+All MCP service packages export corresponding server classes that support both stdio and HTTP modes:
+
+**Web Bridge MCP**
+
+```typescript
+import { WebMCPServer } from '@midscene/web-bridge-mcp/server';
+
+// Create server instance
+const server = new WebMCPServer();
+
+// Option 1: Start stdio mode (for MCP client communication via standard I/O)
+await server.launch();
+
+// Option 2: Start HTTP mode (for HTTP client access)
+await server.launchHttp({
+  port: 3000,
+  host: 'localhost'
+});
+```
+
+**iOS MCP**
+
+```typescript
+import { IOSMCPServer } from '@midscene/ios-mcp/server';
+
+const server = new IOSMCPServer();
+
+// stdio mode
+await server.launch();
+
+// HTTP mode
+await server.launchHttp({
+  port: 3001,
+  host: 'localhost'
+});
+```
+
+**Android MCP**
+
+```typescript
+import { AndroidMCPServer } from '@midscene/android-mcp/server';
+
+const server = new AndroidMCPServer();
+
+// stdio mode
+await server.launch();
+
+// HTTP mode
+await server.launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**Environment variable configuration**
+
+When starting programmatically, you need to set environment variables in your code:
+
+```typescript
+// Set environment variables before starting the service
+process.env.MIDSCENE_MODEL_BASE_URL = 'your model service URL';
+process.env.MIDSCENE_MODEL_API_KEY = 'your API Key';
+process.env.MIDSCENE_MODEL_NAME = 'your model name';
+process.env.MIDSCENE_MODEL_FAMILY = 'your model family';
+
+const server = new AndroidMCPServer();
+await server.launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**Express application integration example**
+
+The following example shows how to integrate MCP services into an existing Express application:
+
+```typescript
+import express from 'express';
+import { AndroidMCPServer } from '@midscene/android-mcp/server';
+
+// Configure environment variables
+process.env.MIDSCENE_MODEL_BASE_URL = 'your model service URL';
+process.env.MIDSCENE_MODEL_API_KEY = 'your API Key';
+process.env.MIDSCENE_MODEL_NAME = 'your model name';
+process.env.MIDSCENE_MODEL_FAMILY = 'your model family';
+
+const app = express();
+
+// Business routes
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
+// Start business service
+app.listen(8080, () => {
+  console.log('Business service running at http://localhost:8080');
+});
+
+// Start MCP service (HTTP mode)
+const mcpServer = new AndroidMCPServer();
+await mcpServer.launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+
+console.log('MCP service running at http://localhost:3002/mcp');
+```
+
+### Using the simplified launcher API
+
+For a more convenient way to start MCP servers, each platform provides a `mcpServerForAgent` function that handles the wiring between agents, tools managers, and MCP servers automatically.
+
+**Web Bridge MCP**
+
+```typescript
+import { mcpServerForAgent } from '@midscene/web-bridge-mcp';
+import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
+
+const agent = new AgentOverChromeBridge();
+await agent.connectCurrentTab();
+
+// Launch stdio mode MCP server
+const stdioServer = await mcpServerForAgent(agent).launch();
+
+// Or launch HTTP mode MCP server
+const httpServer = await mcpServerForAgent(agent).launchHttp({
+  port: 3000,
+  host: 'localhost'
+});
+```
+
+**iOS MCP**
+
+```typescript
+import { mcpServerForAgent } from '@midscene/ios-mcp';
+import { agentFromWdaDevice } from '@midscene/ios';
+
+const agent = await agentFromWdaDevice();
+
+// Launch stdio mode
+const stdioServer = await mcpServerForAgent(agent).launch();
+
+// Or launch HTTP mode
+const httpServer = await mcpServerForAgent(agent).launchHttp({
+  port: 3001,
+  host: 'localhost'
+});
+```
+
+**Android MCP**
+
+```typescript
+import { mcpServerForAgent } from '@midscene/android-mcp';
+import { agentFromAdbDevice } from '@midscene/android';
+
+const agent = await agentFromAdbDevice();
+
+// Launch stdio mode
+const stdioServer = await mcpServerForAgent(agent).launch();
+
+// Or launch HTTP mode
+const httpServer = await mcpServerForAgent(agent).launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**Environment variable configuration**
+
+When using the launcher API, you still need to set environment variables before starting the service:
+
+```typescript
+// Set environment variables before starting the service
+process.env.MIDSCENE_MODEL_BASE_URL = 'your model service URL';
+process.env.MIDSCENE_MODEL_API_KEY = 'your API Key';
+process.env.MIDSCENE_MODEL_NAME = 'your model name';
+process.env.MIDSCENE_MODEL_FAMILY = 'your model family';
+
+const agent = await agentFromAdbDevice();
+const server = await mcpServerForAgent(agent).launchHttp({
+  port: 3002,
+  host: 'localhost'
+});
+```
+
+**API description**
+
+All MCP server classes inherit from `BaseMCPServer` and provide the following methods:
+
+**`launch(): Promise<void>`**
+
+Start the MCP service in stdio mode, suitable for communication with MCP clients through standard input/output.
+
+**`launchHttp(options: HttpLaunchOptions): Promise<void>`**
+
+Start the MCP service in HTTP mode.
+
+Parameters:
+- `options.port`: HTTP service port (required, range 1-65535)
+- `options.host`: HTTP service host address (optional, defaults to `localhost`)
