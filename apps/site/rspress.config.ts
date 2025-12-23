@@ -64,302 +64,270 @@ export default defineConfig({
     sidebar: {
       '/': [
         {
+          sectionHeaderText: 'Getting started',
+        },
+        {
+          text: 'Introduction',
+          link: '/introduction',
+        },
+        {
+          text: 'Model strategy',
+          link: '/model-strategy',
+        },
+        {
+          text: 'Common model configuration 🔥',
+          link: '/model-common-config',
+        },
+        {
+          sectionHeaderText: 'Web browser',
+        },
+        {
+          text: 'Quick experience by Chrome extension',
+          link: '/quick-experience',
+        },
+        {
+          text: 'Integrate with Playwright',
+          link: '/integrate-with-playwright',
+        },
+        {
+          text: 'Integrate with Puppeteer',
+          link: '/integrate-with-puppeteer',
+        },
+        {
+          text: 'Bridge to the desktop Chrome',
+          link: '/bridge-mode',
+        },
+        {
+          text: 'API reference (web browser)',
+          link: '/web-api-reference',
+        },
+        {
+          sectionHeaderText: 'Android',
+        },
+        {
+          text: 'Introduction',
+          link: '/android-introduction',
+        },
+        {
           text: 'Getting started',
-          items: [
-            {
-              text: 'Introduction',
-              link: '/introduction',
-            },
-            {
-              text: 'Model strategy',
-              link: '/model-strategy',
-            },
-            {
-              text: 'Common model configuration 🔥',
-              link: '/model-common-config',
-            },
-          ],
+          link: '/android-getting-started',
         },
         {
-          text: 'Web browser',
-          items: [
-            {
-              text: 'Quick experience by Chrome extension',
-              link: '/quick-experience',
-            },
-            {
-              text: 'Integrate with Playwright',
-              link: '/integrate-with-playwright',
-            },
-            {
-              text: 'Integrate with Puppeteer',
-              link: '/integrate-with-puppeteer',
-            },
-            {
-              text: 'Bridge to the desktop Chrome',
-              link: '/bridge-mode',
-            },
-            {
-              text: 'API reference (web browser)',
-              link: '/web-api-reference',
-            },
-          ],
+          text: 'API reference (Android)',
+          link: '/android-api-reference',
         },
         {
-          text: 'Android',
-          items: [
-            {
-              text: 'Introduction',
-              link: '/android-introduction',
-            },
-            {
-              text: 'Getting started',
-              link: '/android-getting-started',
-            },
-            {
-              text: 'API reference (Android)',
-              link: '/android-api-reference',
-            },
-          ],
+          sectionHeaderText: 'iOS',
         },
         {
-          text: 'iOS',
-          items: [
-            {
-              text: 'Introduction',
-              link: '/ios-introduction',
-            },
-            {
-              text: 'Getting started',
-              link: '/ios-getting-started',
-            },
-            {
-              text: 'API reference (iOS)',
-              link: '/ios-api-reference',
-            },
-          ],
+          text: 'Introduction',
+          link: '/ios-introduction',
         },
         {
-          text: 'More features',
-          items: [
-            {
-              text: 'Command line tools',
-              link: '/command-line-tools',
-            },
-            {
-              text: 'Workflow in YAML format',
-              link: '/automate-with-scripts-in-yaml',
-            },
-            {
-              text: 'Caching AI planning & locate',
-              link: '/caching',
-            },
-            {
-              text: 'Integrate Midscene with any interface',
-              link: '/integrate-with-any-interface',
-            },
-            {
-              text: 'Expose agent as MCP server',
-              link: '/mcp',
-            },
-          ],
+          text: 'Getting started',
+          link: '/ios-getting-started',
         },
         {
-          text: 'API and config',
-          items: [
-            {
-              text: 'API reference (Common)',
-              link: '/api',
-            },
-            {
-              text: 'Model configuration',
-              link: '/model-config',
-            },
-          ],
+          text: 'API reference (iOS)',
+          link: '/ios-api-reference',
         },
         {
-          text: 'Advanced',
-          items: [
-            {
-              text: 'FAQ',
-              link: '/faq',
-            },
-            {
-              text: 'Use JavaScript to optimize your workflow',
-              link: '/use-javascript-to-optimize-ai-automation-code',
-            },
-          ],
+          sectionHeaderText: 'More features',
         },
         {
-          text: 'More',
-          items: [
-            {
-              text: 'Changelog',
-              link: '/changelog',
-            },
-            {
-              text: 'Awesome Midscene',
-              link: '/awesome-midscene',
-            },
-            {
-              text: 'LLMs.txt',
-              link: '/llm-txt',
-            },
-            {
-              text: 'Data privacy',
-              link: '/data-privacy',
-            },
-          ],
+          text: 'Command line tools',
+          link: '/command-line-tools',
+        },
+        {
+          text: 'Workflow in YAML format',
+          link: '/automate-with-scripts-in-yaml',
+        },
+        {
+          text: 'Caching AI planning & locate',
+          link: '/caching',
+        },
+        {
+          text: 'Integrate Midscene with any interface',
+          link: '/integrate-with-any-interface',
+        },
+        {
+          text: 'Expose agent as MCP server',
+          link: '/mcp',
+        },
+        {
+          sectionHeaderText: 'API and config',
+        },
+        {
+          text: 'API reference (Common)',
+          link: '/api',
+        },
+        {
+          text: 'Model configuration',
+          link: '/model-config',
+        },
+        {
+          sectionHeaderText: 'Advanced',
+        },
+        {
+          text: 'FAQ',
+          link: '/faq',
+        },
+        {
+          text: 'Use JavaScript to optimize your workflow',
+          link: '/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          sectionHeaderText: 'More',
+        },
+        {
+          text: 'Changelog',
+          link: '/changelog',
+        },
+        {
+          text: 'Awesome Midscene',
+          link: '/awesome-midscene',
+        },
+        {
+          text: 'LLMs.txt',
+          link: '/llm-txt',
+        },
+        {
+          text: 'Data privacy',
+          link: '/data-privacy',
         },
       ],
       '/zh': [
         {
-          text: '快速开始',
-          items: [
-            {
-              text: '介绍',
-              link: '/zh/introduction',
-            },
-            {
-              text: '模型策略',
-              link: '/zh/model-strategy',
-            },
-            {
-              text: '常用模型配置 🔥',
-              link: '/zh/model-common-config',
-            },
-          ],
+          sectionHeaderText: '快速开始',
         },
         {
-          text: 'Web 浏览器',
-          items: [
-            {
-              text: '通过 Chrome 插件快速体验',
-              link: '/zh/quick-experience',
-            },
-            {
-              text: '集成到 Playwright',
-              link: '/zh/integrate-with-playwright',
-            },
-            {
-              text: '集成到 Puppeteer',
-              link: '/zh/integrate-with-puppeteer',
-            },
-            {
-              text: '桥接到桌面 Chrome',
-              link: '/zh/bridge-mode',
-            },
-            {
-              text: 'API 参考（Web 浏览器）',
-              link: '/zh/web-api-reference',
-            },
-          ],
+          text: '介绍',
+          link: '/zh/introduction',
         },
         {
-          text: 'Android',
-          items: [
-            {
-              text: '介绍',
-              link: '/zh/android-introduction',
-            },
-            {
-              text: '开始使用',
-              link: '/zh/android-getting-started',
-            },
-            {
-              text: 'API 参考（Android）',
-              link: '/zh/android-api-reference',
-            },
-          ],
+          text: '模型策略',
+          link: '/zh/model-strategy',
         },
         {
-          text: 'iOS',
-          items: [
-            {
-              text: '介绍',
-              link: '/zh/ios-introduction',
-            },
-            {
-              text: '开始使用',
-              link: '/zh/ios-getting-started',
-            },
-            {
-              text: 'API 参考（iOS）',
-              link: '/zh/ios-api-reference',
-            },
-          ],
+          text: '常用模型配置 🔥',
+          link: '/zh/model-common-config',
         },
         {
-          text: '更多特性',
-          items: [
-            {
-              text: '命令行工具',
-              link: '/zh/command-line-tools',
-            },
-            {
-              text: 'YAML 格式的工作流',
-              link: '/zh/automate-with-scripts-in-yaml',
-            },
-            {
-              text: '缓存 AI 规划和定位',
-              link: '/zh/caching',
-            },
-            {
-              text: '将 Midscene 集成到任意界面',
-              link: '/zh/integrate-with-any-interface',
-            },
-            {
-              text: '将设备操作暴露为 MCP',
-              link: '/zh/mcp',
-            },
-          ],
+          sectionHeaderText: 'Web 浏览器',
         },
         {
-          text: 'API 与配置',
-          items: [
-            {
-              text: 'JavaScript API 参考',
-              link: '/zh/api',
-            },
-            {
-              text: '模型配置',
-              link: '/zh/model-config',
-            },
-          ],
+          text: '通过 Chrome 插件快速体验',
+          link: '/zh/quick-experience',
         },
         {
-          text: '进阶',
-          items: [
-            {
-              text: '常见问题 FAQ',
-              link: '/zh/faq',
-            },
-            {
-              text: '使用 JavaScript 优化工作流',
-              link: '/zh/use-javascript-to-optimize-ai-automation-code',
-            },
-          ],
+          text: '集成到 Playwright',
+          link: '/zh/integrate-with-playwright',
         },
         {
-          text: '更多',
-          items: [
-            {
-              text: '更新日志',
-              link: '/zh/changelog',
-            },
-            {
-              text: 'Awesome Midscene',
-              link: '/zh/awesome-midscene',
-            },
-            {
-              text: 'LLMs.txt',
-              link: '/zh/llm-txt',
-            },
-            {
-              text: '数据隐私',
-              link: '/zh/data-privacy',
-            },
-          ],
+          text: '集成到 Puppeteer',
+          link: '/zh/integrate-with-puppeteer',
+        },
+        {
+          text: '桥接到桌面 Chrome',
+          link: '/zh/bridge-mode',
+        },
+        {
+          text: 'API 参考（Web 浏览器）',
+          link: '/zh/web-api-reference',
+        },
+        {
+          sectionHeaderText: 'Android',
+        },
+        {
+          text: '介绍',
+          link: '/zh/android-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/android-getting-started',
+        },
+        {
+          text: 'API 参考（Android）',
+          link: '/zh/android-api-reference',
+        },
+        {
+          sectionHeaderText: 'iOS',
+        },
+        {
+          text: '介绍',
+          link: '/zh/ios-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/ios-getting-started',
+        },
+        {
+          text: 'API 参考（iOS）',
+          link: '/zh/ios-api-reference',
+        },
+        {
+          sectionHeaderText: '更多特性',
+        },
+        {
+          text: '命令行工具',
+          link: '/zh/command-line-tools',
+        },
+        {
+          text: 'YAML 格式的工作流',
+          link: '/zh/automate-with-scripts-in-yaml',
+        },
+        {
+          text: '缓存 AI 规划和定位',
+          link: '/zh/caching',
+        },
+        {
+          text: '将 Midscene 集成到任意界面',
+          link: '/zh/integrate-with-any-interface',
+        },
+        {
+          text: '将设备操作暴露为 MCP',
+          link: '/zh/mcp',
+        },
+        {
+          sectionHeaderText: 'API 与配置',
+        },
+        {
+          text: 'JavaScript API 参考',
+          link: '/zh/api',
+        },
+        {
+          text: '模型配置',
+          link: '/zh/model-config',
+        },
+        {
+          sectionHeaderText: '进阶',
+        },
+        {
+          text: '常见问题 FAQ',
+          link: '/zh/faq',
+        },
+        {
+          text: '使用 JavaScript 优化工作流',
+          link: '/zh/use-javascript-to-optimize-ai-automation-code',
+        },
+        {
+          sectionHeaderText: '更多',
+        },
+        {
+          text: '更新日志',
+          link: '/zh/changelog',
+        },
+        {
+          text: 'Awesome Midscene',
+          link: '/zh/awesome-midscene',
+        },
+        {
+          text: 'LLMs.txt',
+          link: '/zh/llm-txt',
+        },
+        {
+          text: '数据隐私',
+          link: '/zh/data-privacy',
         },
       ],
     },
@@ -387,13 +355,6 @@ export default defineConfig({
     },
     source: {
       preEntry: ['./theme/tailwind.css'],
-    },
-    tools: {
-      rspack: {
-        watchOptions: {
-          ignored: /node_modules/,
-        },
-      },
     },
     html: {
       tags: [
