@@ -301,7 +301,8 @@ console.log('MCP service running at http://localhost:3002/mcp');
 
 ### Using the simplified launcher API
 
-For a more convenient way to start MCP servers, each platform provides a `mcpServerForAgent` function that handles the wiring between agents, tools managers, and MCP servers automatically.
+To provide a more flexible and extensible way to start MCP servers, each platform exposes a `mcpServerForAgent` function.
+This helper takes care of wiring agents, tools managers, and MCP servers together and initializing them, reducing boilerplate and making it easier to extend platform-specific startup behavior.
 
 **Web Bridge MCP**
 

@@ -301,7 +301,8 @@ console.log('MCP 服务运行在 http://localhost:3002/mcp');
 
 ### 使用简化的启动器 API
 
-为了更方便地启动 MCP 服务器，每个平台都提供了 `mcpServerForAgent` 函数，它会自动处理 agent、工具管理器和 MCP 服务器之间的连接。
+为了提供更灵活、可扩展的启动方式，每个平台都提供了 `mcpServerForAgent` 函数，
+它会负责将 agent、工具管理器与 MCP 服务器进行连接和初始化，降低重复配置并便于扩展不同平台的启动逻辑。
 
 **Web Bridge MCP**
 
