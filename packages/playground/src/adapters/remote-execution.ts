@@ -310,16 +310,15 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   async getTaskProgress(requestId: string): Promise<{
-    tip?: string;
     executionDump?: ExecutionDump;
   }> {
     if (!this.serverUrl) {
-      return { tip: undefined };
+      return {};
     }
 
     if (!requestId?.trim()) {
       console.warn('Invalid requestId provided for task progress');
-      return { tip: undefined };
+      return {};
     }
 
     try {
@@ -329,13 +328,13 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
       if (!response.ok) {
         console.warn(`Task progress request failed: ${response.statusText}`);
-        return { tip: undefined };
+        return {};
       }
 
       return await response.json();
     } catch (error) {
       console.error('Failed to poll task progress:', error);
-      return { tip: undefined };
+      return {};
     }
   }
 

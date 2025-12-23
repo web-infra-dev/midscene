@@ -114,12 +114,12 @@ export class PlaygroundSDK {
   }
 
   // Get task progress (for remote execution)
-  async getTaskProgress(requestId: string): Promise<{ tip?: string }> {
+  async getTaskProgress(requestId: string): Promise<{ executionDump?: any }> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getTaskProgress(requestId);
     }
-    // For local execution, progress is handled via onTaskStartTip callback
-    return { tip: undefined };
+    // For local execution, progress is handled via onDumpUpdate callback
+    return {};
   }
 
   // Cancel task (for remote execution)

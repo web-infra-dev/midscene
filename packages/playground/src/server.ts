@@ -4,14 +4,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
-import { paramStr, typeStr } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
-import type { ProgressMessage } from './types';
 
 import 'dotenv/config';
 
@@ -220,18 +218,8 @@ class PlaygroundServer {
         const { requestId } = req.params;
         const executionDump = this.taskExecutionDumps[requestId] || null;
 
-        // For backward compatibility, provide a tip string from the last task
-        let tip = '';
-        if (executionDump?.tasks && executionDump.tasks.length > 0) {
-          const lastTask = executionDump.tasks[executionDump.tasks.length - 1];
-          const action = typeStr(lastTask);
-          const description = paramStr(lastTask) || '';
-          tip = description ? `${action} - ${description}` : action;
-        }
-
         res.json({
-          tip,
-          executionDump, // Provide full execution dump directly
+          executionDump,
         });
       },
     );
