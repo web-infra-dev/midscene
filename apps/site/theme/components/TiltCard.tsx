@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from 'react';
+import { type MouseEvent, useRef, useState } from 'react';
 
 interface TiltCardProps {
   children: React.ReactNode;
@@ -15,8 +15,8 @@ export const TiltCard = ({ children, className, href }: TiltCardProps) => {
     const { left, top, width, height } = ref.current.getBoundingClientRect();
 
     // Calculate position relative to center
-    const x = (e.clientX - left - width / 2);
-    const y = (e.clientY - top - height / 2);
+    const x = e.clientX - left - width / 2;
+    const y = e.clientY - top - height / 2;
 
     // Rotation intensity
     const xRot = y / 60; // Rotate around X axis based on Y position
@@ -31,7 +31,8 @@ export const TiltCard = ({ children, className, href }: TiltCardProps) => {
 
   const handleMouseLeave = () => {
     setStyle({
-      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+      transform:
+        'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
       transition: 'transform 0.5s ease-out',
       willChange: 'transform',
     });

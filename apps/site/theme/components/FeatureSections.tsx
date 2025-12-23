@@ -1,5 +1,5 @@
-import { TiltCard } from './TiltCard';
 import { useI18n, useI18nUrl } from '../i18n';
+import { TiltCard } from './TiltCard';
 
 const GradientIcon = () => (
   <svg
