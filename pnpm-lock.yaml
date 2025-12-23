@@ -513,6 +513,19 @@ importers:
         specifier: 4.1.11
         version: 4.1.11
 
+  benchmarks/android-world:
+    dependencies:
+      '@midscene/android':
+        specifier: workspace:*
+        version: link:../../packages/android
+    devDependencies:
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.118
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   packages/android:
     dependencies:
       '@midscene/core':
@@ -4300,9 +4313,6 @@ packages:
 
   '@types/node@18.19.62':
     resolution: {integrity: sha512-UOGhw+yZV/icyM0qohQVh3ktpY40Sp7tdTW7HxG3pTd7AiMrlFlAJNUrGK9t5mdW0+ViQcFV74zCSIx9ZJpncA==}
-
-  '@types/node@24.10.1':
-    resolution: {integrity: sha512-GNWcUTRBgIRJD5zj+Tq0fKOJ5XZajIiBroOF0yvj2bSU1WvNdYS/dn9UxwsujGW4JX06dnHyjV2y9rRaybH0iQ==}
 
   '@types/node@24.10.2':
     resolution: {integrity: sha512-WOhQTZ4G8xZ1tjJTvKOpyEVSGgOTvJAfDK3FNFgELyaTpzhdgHVHeqW8V+UJvzF5BT+/B54T/1S2K6gd9c7bbA==}
@@ -14407,7 +14417,7 @@ snapshots:
 
   '@types/conventional-commits-parser@5.0.2':
     dependencies:
-      '@types/node': 24.10.1
+      '@types/node': 18.19.118
 
   '@types/cookie@0.4.1': {}
 
@@ -14533,10 +14543,6 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@24.10.1':
-    dependencies:
-      undici-types: 7.16.0
-
   '@types/node@24.10.2':
     dependencies:
       undici-types: 7.16.0
@@ -14604,7 +14610,7 @@ snapshots:
 
   '@types/yauzl@2.10.3':
     dependencies:
-      '@types/node': 24.10.2
+      '@types/node': 18.19.118
 
   '@ui-tars/action-parser@1.2.3':
     dependencies:
@@ -15675,7 +15681,7 @@ snapshots:
 
   chrome-launcher@1.2.0:
     dependencies:
-      '@types/node': 24.10.2
+      '@types/node': 18.19.118
       escape-string-regexp: 4.0.0
       is-wsl: 2.2.0
       lighthouse-logger: 2.0.2

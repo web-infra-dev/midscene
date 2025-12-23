@@ -1,0 +1,21 @@
+{
+  "name": "android-world",
+  "private": true,
+  "version": "1.0.2",
+  "description": "The AndroidWorld benchmark for Midscene",
+  "keywords": [
+    "benchmark",
+    "Android World"
+  ],
+  "scripts": {
+    "dev": "npm run build:watch"
+  },
+  "dependencies": {
+    "@midscene/android": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3"
+  },
+  "license": "MIT"
+}
