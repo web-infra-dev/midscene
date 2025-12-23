@@ -475,6 +475,29 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     await this.waitUntilNetworkIdle();
   }
 
+  async goForward(): Promise<void> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    await chrome.tabs.goForward(tabId);
+    // Wait for navigation to complete
+    await this.waitUntilNetworkIdle();
+  }
+
+  getCurrentUrl(): string {
+    // Note: This is a sync method but we may not have the URL cached.
+    // For chrome extension, use getPageInfo for async URL retrieval.
+    // This returns empty string as chrome.tabs.get is async.
+    // Consider using evaluate to get window.location.href if needed.
+    throw new Error(
+      'getCurrentUrl is not supported in chrome extension mode. Use evaluate to get window.location.href instead.',
+    );
+  }
+
+  async getPageTitle(): Promise<string> {
+    const tabId = await this.getTabIdOrConnectToCurrentTab();
+    const tab = await chrome.tabs.get(tabId);
+    return tab.title || '';
+  }
+
   async scrollUntilTop(startingPoint?: Point) {
     if (startingPoint) {
       await this.mouse.move(startingPoint.left, startingPoint.top);

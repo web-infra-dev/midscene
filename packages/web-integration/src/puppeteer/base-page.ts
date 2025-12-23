@@ -592,6 +592,25 @@ export class Page<
     }
   }
 
+  async goForward(): Promise<void> {
+    debugPage('go forward');
+    if (this.interfaceType === 'puppeteer') {
+      await (this.underlyingPage as PuppeteerPage).goForward();
+    } else if (this.interfaceType === 'playwright') {
+      await (this.underlyingPage as PlaywrightPage).goForward();
+    } else {
+      throw new Error('Unsupported page type for go forward');
+    }
+  }
+
+  getCurrentUrl(): string {
+    return this.underlyingPage.url();
+  }
+
+  async getPageTitle(): Promise<string> {
+    return await this.underlyingPage.title();
+  }
+
   async beforeInvokeAction(name: string, param: any): Promise<void> {
     if (this.onBeforeInvokeAction) {
       await this.onBeforeInvokeAction(name, param);

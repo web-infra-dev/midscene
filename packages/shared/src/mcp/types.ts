@@ -79,6 +79,13 @@ export interface BaseAgent {
   destroy?(): Promise<void>;
   page?: {
     screenshotBase64(): Promise<string>;
+    // Navigation methods - available on web pages
+    navigate?(url: string): Promise<void>;
+    reload?(): Promise<void>;
+    goBack?(): Promise<void>;
+    goForward?(): Promise<void>;
+    getCurrentUrl?(): string;
+    getPageTitle?(): Promise<string>;
   };
   aiAction?: (
     description: string,

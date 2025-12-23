@@ -1,8 +1,8 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
-import type { Browser, BrowserContext } from 'playwright';
 import type { PlaywrightAgent } from '@midscene/web/playwright';
+import type { Browser, BrowserContext } from 'playwright';
 
 const debug = getDebug('mcp:playwright-tools');
 
@@ -141,6 +141,24 @@ export class PlaywrightMidsceneTools extends BaseMidsceneTools<PlaywrightAgent> 
           };
         },
         autoDestroy: false, // Keep browser alive for subsequent operations
+      },
+      {
+        name: 'web_close',
+        description: 'Close the browser and end the automation session.',
+        schema: {},
+        handler: async () => {
+          await this.closeBrowser();
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Browser closed successfully.',
+              },
+            ],
+          };
+        },
+        autoDestroy: false,
       },
     ];
   }
