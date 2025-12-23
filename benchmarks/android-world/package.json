@@ -10,7 +10,8 @@
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "clean:dist": "rm -rf dist",
+    "build": "npm run clean:dist && tsc -p tsconfig.json"
   },
   "dependencies": {
     "@midscene/android": "workspace:*"

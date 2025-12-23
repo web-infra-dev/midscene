@@ -1,10 +1,12 @@
 {
-  "extends": "@midscene/shared/tsconfig.base.json",
+  "extends": "../../packages/shared/tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
     "module": "ES2020",
-    "declarationDir": "dist/types",
-    "types": ["node"]
+    "types": ["node"],
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": false
   },
   "include": ["src"]
 }
