@@ -1,11 +1,6 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { parseStructuredParams } from '../common';
-import type {
-  ExecutionOptions,
-  FormValue,
-  ProgressMessage,
-  ValidationResult,
-} from '../types';
+import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
@@ -316,7 +311,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
   async getTaskProgress(requestId: string): Promise<{
     tip?: string;
-    progressMessages?: ProgressMessage[];
+    executionDump?: ExecutionDump;
   }> {
     if (!this.serverUrl) {
       return { tip: undefined };
@@ -345,43 +340,6 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   /**
-   * Convert ProgressMessage[] to ExecutionDump format
-   * This allows remote execution to provide the same dump format as local execution
-   */
-  private convertProgressMessagesToExecutionDump(
-    progressMessages: ProgressMessage[],
-  ): ExecutionDump {
-    // Convert ProgressMessage[] to ExecutionTask[] format
-    // We need to construct tasks in a way that typeStr() and paramStr() can extract correctly
-    const tasks = progressMessages.map((msg) => {
-      // For typeStr() to work: it returns task.subType || task.type
-      // For paramStr() to work: we use Planning type which checks output.log or param.userInstruction
-      const task: any = {
-        type: 'Planning',
-        subType: msg.action, // This will be returned by typeStr()
-        param: {
-          userInstruction: msg.description, // This will be returned by paramStr()
-        },
-        status: msg.status,
-        timing: {
-          start: msg.timestamp,
-          end:
-            msg.status === 'finished' || msg.status === 'failed'
-              ? msg.timestamp
-              : undefined,
-        },
-      };
-      return task;
-    });
-
-    return {
-      name: 'Remote Execution',
-      tasks: tasks as any[], // Type assertion needed due to ExecutionTask complexity
-      logTime: Date.now(),
-    };
-  }
-
-  /**
    * Start polling for task progress and invoke dump update callback
    */
   private startProgressPolling(requestId: string): void {
@@ -393,18 +351,10 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       try {
         const progressData = await this.getTaskProgress(requestId);
 
-        if (
-          progressData.progressMessages &&
-          progressData.progressMessages.length > 0
-        ) {
-          // Convert progress messages to ExecutionDump format
-          const executionDump = this.convertProgressMessagesToExecutionDump(
-            progressData.progressMessages,
-          );
-
+        if (progressData.executionDump) {
           // Invoke dump update callback if set
           if (this.dumpUpdateCallback) {
-            this.dumpUpdateCallback('', executionDump);
+            this.dumpUpdateCallback('', progressData.executionDump);
           }
         }
       } catch (error) {

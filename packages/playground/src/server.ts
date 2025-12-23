@@ -43,7 +43,7 @@ class PlaygroundServer {
   port?: number | null;
   agent: PageAgent;
   staticPath: string;
-  taskProgressMessages: Record<string, ProgressMessage[]>; // Store full progress messages array
+  taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
 
   private _initialized = false;
@@ -62,7 +62,7 @@ class PlaygroundServer {
     this._app = express();
     this.tmpDir = getTmpDir()!;
     this.staticPath = staticPath;
-    this.taskProgressMessages = {}; // Initialize as empty object
+    this.taskExecutionDumps = {}; // Initialize as empty object
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
 
@@ -218,19 +218,20 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
-        const progressMessages = this.taskProgressMessages[requestId] || [];
-        // For backward compatibility, also provide a tip string from the last message
-        const lastMessage =
-          progressMessages.length > 0
-            ? progressMessages[progressMessages.length - 1]
-            : undefined;
-        const tip =
-          lastMessage && typeof lastMessage.action === 'string'
-            ? `${lastMessage.action} - ${lastMessage.description || ''}`
-            : '';
+        const executionDump = this.taskExecutionDumps[requestId] || null;
+
+        // For backward compatibility, provide a tip string from the last task
+        let tip = '';
+        if (executionDump?.tasks && executionDump.tasks.length > 0) {
+          const lastTask = executionDump.tasks[executionDump.tasks.length - 1];
+          const action = typeStr(lastTask);
+          const description = paramStr(lastTask) || '';
+          tip = description ? `${action} - ${description}` : action;
+        }
+
         res.json({
           tip,
-          progressMessages, // Provide full progress messages array
+          executionDump, // Provide full execution dump directly
         });
       },
     );
@@ -361,35 +362,16 @@ class PlaygroundServer {
       // Lock this task
       if (requestId) {
         this.currentTaskId = requestId;
-        this.taskProgressMessages[requestId] = [];
+        this.taskExecutionDumps[requestId] = null;
 
-        // Use onDumpUpdate to receive executionDump and transform tasks to progress messages
+        // Use onDumpUpdate to receive and store executionDump directly
         this.agent.onDumpUpdate = (
           _dump: string,
           executionDump?: ExecutionDump,
         ) => {
-          if (executionDump?.tasks) {
-            // Transform executionDump.tasks to ProgressMessage[] for API compatibility
-            this.taskProgressMessages[requestId] = executionDump.tasks.map(
-              (task, index) => {
-                const action = typeStr(task);
-                const description = paramStr(task) || '';
-
-                // Map task status
-                const taskStatus = task.status;
-                const status: 'pending' | 'running' | 'finished' | 'failed' =
-                  taskStatus === 'cancelled' ? 'failed' : taskStatus;
-
-                return {
-                  id: `progress-task-${index}`,
-                  taskId: `task-${index}`,
-                  action,
-                  description,
-                  status,
-                  timestamp: task.timing?.start || Date.now(),
-                };
-              },
-            );
+          if (executionDump) {
+            // Store the execution dump directly without transformation
+            this.taskExecutionDumps[requestId] = executionDump;
           }
         };
       }
@@ -470,9 +452,9 @@ class PlaygroundServer {
         );
       }
 
-      // Clean up task progress messages and unlock after execution completes
+      // Clean up task execution dumps and unlock after execution completes
       if (requestId) {
-        delete this.taskProgressMessages[requestId];
+        delete this.taskExecutionDumps[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -523,7 +505,7 @@ class PlaygroundServer {
           await this.recreateAgent();
 
           // Clean up
-          delete this.taskProgressMessages[requestId];
+          delete this.taskExecutionDumps[requestId];
           this.currentTaskId = null;
 
           res.json({
@@ -710,7 +692,7 @@ class PlaygroundServer {
         } catch (error) {
           console.warn('Failed to destroy agent:', error);
         }
-        this.taskProgressMessages = {};
+        this.taskExecutionDumps = {};
 
         // Close the server
         this.server.close((error) => {
