@@ -18,6 +18,7 @@ export class Pixel6Device extends BenchDevice {
   }
 
   async setup(): Promise<boolean> {
+    this.configureEnvironment();
     const avdName = PIXEL6_AVD_NAME;
 
     try {
@@ -60,13 +61,28 @@ export class Pixel6Device extends BenchDevice {
 
     try {
       const { stdout: avdList } = await execAsync('emulator -list-avds');
+
       if (!avdList.includes(avdName)) {
         this.logger.info(`AVD ${avdName} not found. Creating...`);
-        // Attempt to create AVD using a standard image
-        await this.spawnAsync(
-          `avdmanager create avd -n ${avdName} -k "system-images;android-33;google_apis;arm64-v8a" --device "pixel_6" --force --sdk_root ${this.getAndroidSdkRoot()}`,
-        );
 
+        const systemImage = 'system-images;android-33;google_apis;arm64-v8a';
+
+        try {
+          this.logger.info(`Installing system image: ${systemImage}`);
+          // Accept licenses automatically
+          await execAsync(`echo "y" | sdkmanager "${systemImage}"`);
+        } catch (e) {
+          this.logger.error(
+            `Failed to install system image ${systemImage}.`,
+            e,
+          );
+          throw e;
+        }
+
+        // Attempt to create AVD using a standard image
+        await execAsync(
+          `avdmanager --clear-cache --verbose create avd -n ${avdName} -k "${systemImage}" --device "pixel_6" --force`,
+        );
         this.logger.info(`AVD ${avdName} created.`);
       }
     } catch (e) {
@@ -89,6 +105,7 @@ export class Pixel6Device extends BenchDevice {
     }
 
     this.deviceId = `emulator-${port}`;
+
     this.logger.info(
       `Starting emulator ${avdName} on port ${port} (ID: ${this.deviceId})...`,
     );
@@ -123,6 +140,72 @@ export class Pixel6Device extends BenchDevice {
     } catch (e) {
       this.logger.warn(`Failed to kill emulator ${this.deviceId}`, e);
       return false;
+    }
+  }
+
+  private configureEnvironment() {
+    try {
+      const sdkRoot = this.getAndroidSdkRoot();
+      this.logger.info(`Using Android SDK Root: ${sdkRoot}`);
+
+      process.env.ANDROID_HOME = sdkRoot;
+      process.env.ANDROID_SDK_ROOT = sdkRoot;
+
+      // Try to set JAVA_HOME if not valid, primarily using Android Studio's bundled JDK
+      if (
+        !process.env.JAVA_HOME ||
+        !fs.existsSync(process.env.JAVA_HOME) ||
+        !fs.statSync(process.env.JAVA_HOME).isDirectory()
+      ) {
+        const potentialJavaHomes = [
+          '/Applications/Android Studio.app/Contents/jbr/Contents/Home', // macOS Android Studio
+          '/usr/lib/jvm/java-17-openjdk', // Linux common
+          '/usr/lib/jvm/default-java', // Linux default
+        ];
+
+        if (os.platform() === 'darwin') {
+          try {
+            const childProcess = require('child_process');
+            const output = childProcess
+              .execSync('/usr/libexec/java_home -v 17', { encoding: 'utf8' })
+              .trim();
+            if (output && fs.existsSync(output)) {
+              potentialJavaHomes.push(output);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+
+        for (const home of potentialJavaHomes) {
+          if (fs.existsSync(home)) {
+            process.env.JAVA_HOME = home;
+            this.logger.info(`Set JAVA_HOME to: ${home}`);
+            break;
+          }
+        }
+      }
+
+      const binPaths = [
+        path.join(sdkRoot, 'cmdline-tools', 'latest', 'bin'), // Prefer latest cmdline-tools
+        path.join(sdkRoot, 'emulator'),
+        path.join(sdkRoot, 'tools'),
+        path.join(sdkRoot, 'tools', 'bin'),
+        path.join(sdkRoot, 'platform-tools'),
+      ];
+
+      const newPaths = binPaths.filter((p) => fs.existsSync(p));
+      if (newPaths.length > 0) {
+        process.env.PATH =
+          newPaths.join(path.delimiter) +
+          path.delimiter +
+          (process.env.PATH || '');
+      }
+    } catch (e) {
+      this.logger.warn(
+        'Could not configure Android SDK environment automatically',
+        e,
+      );
     }
   }
 
