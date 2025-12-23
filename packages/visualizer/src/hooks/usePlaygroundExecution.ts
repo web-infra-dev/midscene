@@ -9,9 +9,23 @@ import type {
   StorageProvider,
 } from '../types';
 
-import { noReplayAPIs } from '@midscene/playground';
 import { BLANK_RESULT } from '../utils/constants';
 import { allScriptsFromDump } from '../utils/replay-scripts';
+
+/**
+ * Format error object to string
+ */
+function formatError(error: any): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (error?.dump?.error) return error.dump.error;
+  if (error.message) return String(error.message);
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
 
 /**
  * Build progress content string from task information
@@ -139,7 +153,7 @@ export function usePlaygroundExecution(
                   content: buildProgressContent(task),
                   timestamp: new Date(task.timing?.start || Date.now()),
                   result: task.error
-                    ? { error: String(task.error), result: null }
+                    ? { error: formatError(task.error), result: null }
                     : undefined,
                 }),
               );
@@ -189,7 +203,7 @@ export function usePlaygroundExecution(
             result.dump = resultObj.dump;
           }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
-          if (resultObj.error) result.error = resultObj.error;
+          if (resultObj.error) result.error = formatError(resultObj.error);
 
           // If result was wrapped, extract the actual result
           if (resultObj.result !== undefined) {
@@ -197,7 +211,7 @@ export function usePlaygroundExecution(
           }
         }
       } catch (e: any) {
-        result.error = e?.message || String(e);
+        result.error = formatError(e);
         console.error('Playground execution error:', e);
 
         // Try to extract dump and reportHTML from error object
