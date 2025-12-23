@@ -68,7 +68,50 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
     );
   } else if (result?.error) {
     // Show errors first
-    resultDataToShow = <pre>{result?.error}</pre>;
+    const errorNode = (
+      <pre style={{ color: '#ff4d4f', whiteSpace: 'pre-wrap' }}>
+        {result?.error}
+      </pre>
+    );
+
+    if (result.reportHTML || replayScriptsInfo) {
+      resultDataToShow = (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            height: '100%',
+          }}
+        >
+          <div style={{ flex: '0 0 auto', maxHeight: '40%', overflow: 'auto' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+              Error:
+            </div>
+            {errorNode}
+          </div>
+          <div style={{ flex: '1 1 auto', minHeight: 0 }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+              Report:
+            </div>
+            <Player
+              key={replayCounter}
+              replayScripts={replayScriptsInfo?.scripts}
+              imageWidth={replayScriptsInfo?.width}
+              imageHeight={replayScriptsInfo?.height}
+              reportFileContent={result.reportHTML || null}
+              fitMode={fitMode}
+              autoZoom={autoZoom}
+              canDownloadReport={
+                canDownloadReport ?? serviceMode !== 'In-Browser'
+              }
+            />
+          </div>
+        </div>
+      );
+    } else {
+      resultDataToShow = errorNode;
+    }
   } else if (
     shouldPrioritizeResult &&
     result?.result !== undefined &&
@@ -107,7 +150,9 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             reportFileContent={reportContent}
             fitMode={fitMode}
             autoZoom={autoZoom}
-            canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
+            canDownloadReport={
+              canDownloadReport ?? serviceMode !== 'In-Browser'
+            }
           />
         </div>
       </div>
@@ -161,7 +206,9 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             reportFileContent={result.reportHTML}
             fitMode={fitMode}
             autoZoom={autoZoom}
-            canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
+            canDownloadReport={
+              canDownloadReport ?? serviceMode !== 'In-Browser'
+            }
           />
         </div>
       </div>

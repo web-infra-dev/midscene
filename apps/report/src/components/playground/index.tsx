@@ -20,8 +20,8 @@ import { Form, message } from 'antd';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
-  getReportPlaygroundSDK,
   type ServiceModeType,
+  getReportPlaygroundSDK,
 } from '../../utils/report-playground-utils';
 
 // Constants
