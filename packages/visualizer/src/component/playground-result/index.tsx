@@ -23,6 +23,7 @@ interface PlaygroundResultProps {
   fitMode?: 'width' | 'height';
   autoZoom?: boolean;
   actionType?: string; // The action type that was executed
+  canDownloadReport?: boolean;
 }
 
 export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
@@ -38,6 +39,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
   fitMode,
   autoZoom,
   actionType,
+  canDownloadReport,
 }) => {
   let resultWrapperClassName = 'result-wrapper';
   if (verticalMode) {
@@ -105,6 +107,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             reportFileContent={reportContent}
             fitMode={fitMode}
             autoZoom={autoZoom}
+            canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
           />
         </div>
       </div>
@@ -122,6 +125,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         reportFileContent={reportContent}
         fitMode={fitMode}
         autoZoom={autoZoom}
+        canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
       />
     );
   } else if (
@@ -157,6 +161,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
             reportFileContent={result.reportHTML}
             fitMode={fitMode}
             autoZoom={autoZoom}
+            canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
           />
         </div>
       </div>
@@ -177,6 +182,7 @@ export const PlaygroundResultView: React.FC<PlaygroundResultProps> = ({
         reportFileContent={result.reportHTML}
         fitMode={fitMode}
         autoZoom={autoZoom}
+        canDownloadReport={canDownloadReport ?? serviceMode !== 'In-Browser'}
       />
     );
   } else if (result?.result !== undefined) {

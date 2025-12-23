@@ -52,6 +52,7 @@ interface PlaygroundProps {
   hideLogo?: boolean;
   showContextPreview?: boolean;
   dryMode?: boolean;
+  canDownloadReport?: boolean;
 }
 
 // Standard Playground Component (In-Browser and Server modes)
@@ -60,6 +61,7 @@ export function StandardPlayground({
   hideLogo = false,
   showContextPreview = true,
   dryMode = false,
+  canDownloadReport,
 }: PlaygroundProps) {
   const { serviceMode } = useEnvConfig();
   // State management
@@ -488,6 +490,7 @@ export function StandardPlayground({
               replayScriptsInfo={replayScriptsInfo}
               replayCounter={replayCounter}
               loadingProgressText={loadingProgressText}
+              canDownloadReport={canDownloadReport}
             />
           </div>
         </Panel>
