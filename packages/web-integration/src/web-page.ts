@@ -631,7 +631,11 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     description:
       'Navigate the browser to a specified URL. Opens the URL in the current tab.',
     paramSchema: z.object({
-      url: z.string().describe('The URL to navigate to'),
+      url: z
+        .string()
+        .describe(
+          'The URL to navigate to. Must start with https://, file://, or a similar protocol.',
+        ),
     }),
     call: async (param) => {
       if (!page.navigate) {

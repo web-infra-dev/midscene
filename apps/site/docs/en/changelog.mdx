@@ -329,12 +329,12 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Support recording click, input, scroll and other common operations, greatly reducing the threshold for writing automation scripts
 - The recorded operations can be directly played back and debugged in the Playground
 
-#### 2⃣ Upgrade to IndexedDB for storage
+#### Upgrade to IndexedDB for storage
 - Chrome extension's Playground and Bridge now use IndexedDB for data storage
 - Compared to the previous storage scheme, it provides larger storage capacity and better performance
 - Support storing more complex data structures, laying the foundation for future feature extensions
 
-#### 3⃣ Customize replanning cycle limit
+#### Customize replanning cycle limit
 - Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAct).
 - The default value is 10. When the AI needs to re-plan more than this limit, an error will be thrown and suggest splitting the task.
 - Provide more flexible task execution control, adapting to different automation scenarios
@@ -359,17 +359,17 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4" controls/>
 
-#### 2⃣ Flexible timeout configuration
+#### Flexible timeout configuration
 
 - Supports overriding timeout settings from test fixture, providing more flexible timeout control
 - Applicable scenarios: Different test cases require different timeout settings
 
-#### 3⃣ Unified Puppeteer and Playwright configuration
+#### Unified Puppeteer and Playwright configuration
 
 - New `waitForNavigationTimeout` and `waitForNetworkIdleTimeout` parameters for Playwright
 - Unified timeout options configuration for Puppeteer and Playwright, providing consistent API experience, reducing learning costs
 
-#### 4⃣ New data export callback mechanism
+#### New data export callback mechanism
 
 - New `agent.onDumpUpdate` callback function, can get real-time notification when data is exported
 - Refactored the post-task processing flow to ensure the correct execution of asynchronous operations
@@ -658,7 +658,7 @@ Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.m
 
 ## v0.11.0 - UI-TARS model caching
 
-### ** UI-TARS model support caching**
+### UI-TARS model support caching
 
 * Enable caching by document 👉 : [Enable Caching](./caching.mdx)
 
@@ -668,7 +668,7 @@ Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.m
 
 ![](/blog/0.11.0.png)
 
-### ** Optimize DOM tree extraction strategy**
+### Optimize DOM tree extraction strategy
 
 * Optimize the information ability of the dom tree, accelerate the inference process of models like GPT 4o
 
@@ -721,7 +721,7 @@ Documentation: [Use Chrome Extension to Experience Midscene](./bridge-mode.mdx)
 
 ## v0.8.0 - Chrome extension
 
-### ** New Chrome extension, run Midscene anywhere**
+### New Chrome extension, run Midscene anywhere
 
 Through the Midscene browser extension, you can run Midscene on any page, without writing any code.
 
@@ -733,7 +733,7 @@ Experience it now 👉: [Use Chrome Extension to Experience Midscene](./quick-ex
 
 ## v0.7.0 - Playground ability
 
-### ** Playground ability, debug anytime**
+### Playground ability, debug anytime
 
 Now you don't have to keep re-running scripts to debug prompts!
 
@@ -744,7 +744,7 @@ On the new test report page, you can debug the AI execution results at any time,
 
 ## v0.6.0 - Doubao model support
 
-### ** Doubao model support**
+### Doubao model support
 
 * Support for calling Doubao models, reference the environment variables below to experience.
 
@@ -769,19 +769,19 @@ Example:
 
 ❌ The left-bottom play button (requires image understanding, failed)
 
-### ** Support for GPT-4o structured output, cost reduction**
+### Support for GPT-4o structured output, cost reduction
 
 By using the gpt-4o-2024-08-06 model, Midscene now supports structured output (structured-output) features, ensuring enhanced stability and reduced costs by 40%+.
 
 Midscene now supports hitting GPT-4o prompt caching features, and the cost of AI calls will continue to decrease as the company's GPT platform is deployed.
 
-### ** Test report: support animation playback**
+### Test report: support animation playback
 
 Now you can view the animation playback of each step in the test report, quickly debug your running script
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-play-all.mp4" controls/>
 
-### ** Speed up: merge plan and locate operations, response speed increased by 30%**
+### Speed up: merge plan and locate operations, response speed increased by 30%
 
 In the new version, we have merged the Plan and Locate operations in the prompt execution to a certain extent, which increases the response speed of AI by 30%.
 
@@ -793,7 +793,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ![](/blog/0.6.0-2.png)
 
-### ** Test report: the accuracy of different models**
+### Test report: the accuracy of different models
 
 * GPT 4o series models, 100% correct rate
 
@@ -818,7 +818,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ## v0.5.0 - Support GPT-4o structured output
 
-### ** New features**
+### New features
 
 * Support for gpt-4o-2024-08-06 model to provide 100% JSON format limit, reducing Midscene task planning hallucination behavior
 
@@ -863,7 +863,7 @@ puppeteerPage.screenshot = async (options) => {
 
 ## v0.4.0 - Support CLI usage
 
-### ** New features**
+### New features
 
 * Support for Cli usage, reducing the usage threshold of Midscene
 
@@ -888,7 +888,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.3.0 - Support AI report HTML
 
-### ** New features**
+### New features
 
 * Generate html format AI report, aggregate AI tasks by test group, facilitate test report distribution
 
@@ -898,7 +898,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.2.0 - Control Puppeteer by natural language
 
-### ** New features**
+### New features
 
 * Support for using natural language to control puppeteer to implement page automation 🗣️💻
 
@@ -910,7 +910,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.1.0 - Control Playwright by natural language
 
-### ** New features**
+### New features
 
 * Support for using natural language to control puppeteer to implement page automation 🗣️💻
 

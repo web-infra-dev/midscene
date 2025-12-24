@@ -1,4 +1,4 @@
-import type { DeviceAction } from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { parseStructuredParams } from '../common';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
@@ -6,16 +6,23 @@ import { BasePlaygroundAdapter } from './base';
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   private serverUrl?: string;
   private _id?: string;
-  private progressCallback?: (tip: string) => void;
+  private dumpUpdateCallback?: (
+    dump: string,
+    executionDump?: ExecutionDump,
+  ) => void;
+  private pollingIntervalId?: ReturnType<typeof setInterval>;
 
   constructor(serverUrl: string) {
     super();
     this.serverUrl = serverUrl;
   }
 
-  // Set progress callback for monitoring operation status
-  setProgressCallback(callback: (tip: string) => void): void {
-    this.progressCallback = callback;
+  // Set dump update callback
+  onDumpUpdate(
+    callback: (dump: string, executionDump?: ExecutionDump) => void,
+  ): void {
+    this.dumpUpdateCallback = undefined;
+    this.dumpUpdateCallback = callback;
   }
 
   // Get adapter ID (cached after first status check for remote)
@@ -143,6 +150,11 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       payload.context = options.context;
     }
 
+    // Start polling if requestId is provided and dumpUpdateCallback is set
+    if (options.requestId && this.dumpUpdateCallback) {
+      this.startProgressPolling(options.requestId);
+    }
+
     try {
       const response = await fetch(`${this.serverUrl}/execute`, {
         method: 'POST',
@@ -165,6 +177,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     } catch (error) {
       console.error('Execute via server failed:', error);
       throw error;
+    } finally {
+      // Stop polling when execution completes (success or error)
+      this.stopProgressPolling();
     }
   }
 
@@ -294,14 +309,16 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  async getTaskProgress(requestId: string): Promise<{ tip?: string }> {
+  async getTaskProgress(requestId: string): Promise<{
+    executionDump?: ExecutionDump;
+  }> {
     if (!this.serverUrl) {
-      return { tip: undefined };
+      return {};
     }
 
     if (!requestId?.trim()) {
       console.warn('Invalid requestId provided for task progress');
-      return { tip: undefined };
+      return {};
     }
 
     try {
@@ -311,13 +328,47 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
 
       if (!response.ok) {
         console.warn(`Task progress request failed: ${response.statusText}`);
-        return { tip: undefined };
+        return {};
       }
 
       return await response.json();
     } catch (error) {
       console.error('Failed to poll task progress:', error);
-      return { tip: undefined };
+      return {};
+    }
+  }
+
+  /**
+   * Start polling for task progress and invoke dump update callback
+   */
+  private startProgressPolling(requestId: string): void {
+    // Clear any existing polling
+    this.stopProgressPolling();
+
+    // Poll every 500ms for progress updates
+    this.pollingIntervalId = setInterval(async () => {
+      try {
+        const progressData = await this.getTaskProgress(requestId);
+
+        if (progressData.executionDump) {
+          // Invoke dump update callback if set
+          if (this.dumpUpdateCallback) {
+            this.dumpUpdateCallback('', progressData.executionDump);
+          }
+        }
+      } catch (error) {
+        console.error('Error polling task progress:', error);
+      }
+    }, 500); // Poll every 500ms
+  }
+
+  /**
+   * Stop polling for task progress
+   */
+  private stopProgressPolling(): void {
+    if (this.pollingIntervalId) {
+      clearInterval(this.pollingIntervalId);
+      this.pollingIntervalId = undefined;
     }
   }
 
