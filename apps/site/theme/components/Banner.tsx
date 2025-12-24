@@ -5,7 +5,7 @@ export function Banner() {
   const t = useI18n();
 
   return (
-    <div className="flex justify-center items-center w-full min-h-[400px] md:min-h-[664px] bg-transparent">
+    <div className="flex justify-center items-center w-full min-h-[400px] md:min-h-[760px] bg-transparent">
       <div className="w-full max-w-[1200px] px-5 lg:px-0 py-10 md:py-20 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
         <div className="flex flex-col items-start">
           {/* New Badge */}
@@ -21,7 +21,7 @@ export function Banner() {
                 <span className="mx-1 text-black/40 dark:text-white/40">|</span>
                 <a
                   className="text-black/60 hover:underline dark:text-white/60"
-                  href="/changelog"
+                  href="./changelog"
                 >
                   {t('changelogLink')}
                 </a>
