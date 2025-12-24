@@ -34,7 +34,7 @@
 > **我们已发布 v1.0 版本。** 目前已在 npm 发布。  
 > v1.0 文档与代码请查看 [https://midscenejs.com/](https://midscenejs.com/) 以及 `main` 分支。  
 > v0.x 文档与代码请查看 [https://v0.midscenejs.com/](https://v0.midscenejs.com/) 以及 `v0` 分支。  
-> v1.0 变更记录: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
+> v1.0 变更记录: [https://midscenejs.com/zh/changelog](https://midscenejs.com/zh/changelog)
 
 ## 案例
 
