@@ -38,9 +38,18 @@ English | [简体中文](./README.zh.md)
 
 ## Showcases
 
+autonomously register the GitHub form in a web browser and pass all field validations.
+
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
 
-View more showcases: [showcases](https://midscenejs.com/showcases)
+Plus these real-world showcases:
+* [iOS Automation - Meituan coffee order](https://midscenejs.com/showcases#ios)
+* [iOS Automation - Auto-like the first @midscene_ai tweet](https://midscenejs.com/showcases#ios)
+* [Android Automation - DCar: Xiaomi SU7 specs](https://midscenejs.com/showcases#android)
+* [Android Automation - Booking a hotel for Christmas](https://midscenejs.com/showcases#android)
+* [MCP Integration - Midscene MCP UI prepatch release](https://midscenejs.com/showcases#mcp)
+
+See more real-world showcases — click to explore: [showcases](https://midscenejs.com/showcases)
 
 ## 💡 Features
 

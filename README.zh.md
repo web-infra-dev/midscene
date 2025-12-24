@@ -38,9 +38,18 @@
 
 ## 案例
 
+在 Web 浏览器中自主注册 Github 表单，并通过所有字段校验。
+
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
 
-查看更多案例：[案例展示](https://midscenejs.com/zh/showcases)
+此外还有这些实战案例：
+* [iOS 自动化 - 美团下单咖啡](https://midscenejs.com/zh/showcases#ios)
+* [iOS 自动化 - Twitter 自动点赞 @midscene_ai 首条推文](https://midscenejs.com/zh/showcases#ios)
+* [Android 自动化 - 懂车帝查看小米 SU7 参数](https://midscenejs.com/zh/showcases#android)
+* [Android 自动化 - Booking 预订圣诞酒店](https://midscenejs.com/zh/showcases#android)
+* [MCP 集成 - Midscene MCP 操作界面发布 prepatch 版本](https://midscenejs.com/zh/showcases#mcp)
+
+更多实战案例请点击查看：[案例展示](https://midscenejs.com/zh/showcases)
 
 ## 💡 特性
 

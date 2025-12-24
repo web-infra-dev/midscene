@@ -42,7 +42,7 @@ export function Banner() {
         <div className="mt-8 md:mt-12 flex flex-row gap-x-8 md:gap-x-16">
           <div className="flex flex-col gap-1 md:gap-1.5">
             <div className="font-sans text-[28px] md:text-[40px] font-semibold leading-[32px] md:leading-[48px] tracking-[-1px] md:tracking-[-1.6px] text-black dark:text-white">
-              10k+
+              11k+
             </div>
             <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/50 dark:text-white/50">
               {t('githubStars')}
