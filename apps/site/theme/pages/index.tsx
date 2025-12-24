@@ -23,7 +23,22 @@ export function HomeLayout() {
   return (
     <>
       {/* For transparent nav at top */}
-      <HomeBackground style={{ background: 'none' }} />
+      <HomeBackground
+        className="block dark:hidden"
+        style={{
+          backgroundImage: 'url(/midscene-light-bg.png)',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+        }}
+      />
+      <HomeBackground
+        className="hidden dark:block"
+        style={{
+          backgroundImage: 'url(/midscene-dark-bg.png)',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'contain',
+        }}
+      />
 
       {/* Banner Section */}
       <Banner />
