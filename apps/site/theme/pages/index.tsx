@@ -28,7 +28,6 @@ export function HomeLayout() {
         style={{
           backgroundImage: 'url(/midscene-light-bg.png)',
           backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
         }}
       />
       <HomeBackground
@@ -36,7 +35,6 @@ export function HomeLayout() {
         style={{
           backgroundImage: 'url(/midscene-dark-bg.png)',
           backgroundRepeat: 'no-repeat',
-          backgroundSize: 'contain',
         }}
       />
 
@@ -48,7 +46,7 @@ export function HomeLayout() {
 
       {/* Bottom CTA Section */}
       <div className="w-full bg-white dark:bg-[#121212] py-12 md:py-20">
-        <div className="max-w-[1440px] mx-auto px-5 md:px-10 flex justify-center">
+        <div className="max-w-[1200px] mx-auto px-5 md:px-10 flex justify-center">
           <CTAButtons />
         </div>
       </div>

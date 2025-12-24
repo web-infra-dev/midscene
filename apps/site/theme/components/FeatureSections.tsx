@@ -28,7 +28,7 @@ export function FeatureSections() {
     <div className="flex flex-col w-full bg-white dark:bg-[#121212]">
       {/* Section 1: CLIENTS */}
       <div className="w-full flex flex-col items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row items-start px-5 md:px-10 gap-8 lg:gap-[278px] max-w-[1440px] mx-auto w-full">
+        <div className="flex flex-col lg:flex-row items-start lg:justify-around px-0 md:px-0 gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
           {/* Left side - Text content */}
           <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base leading-6 bg-gradient-to-r from-[#80A8FF] to-[#0555FF] bg-clip-text text-transparent">
@@ -60,11 +60,11 @@ export function FeatureSections() {
           {/* Right side - Cards */}
           <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Web Card */}
               <TiltCard
                 href={tUrl(t('platformWebLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 justify-between group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformWeb')}
@@ -153,11 +153,11 @@ export function FeatureSections() {
             </div>
 
             {/* Bottom row */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Android Card */}
               <TiltCard
                 href={tUrl(t('platformAndroidLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 justify-between group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAndroid')}
@@ -202,7 +202,7 @@ export function FeatureSections() {
               {/* Any Interface Card */}
               <TiltCard
                 href={tUrl(t('platformAnyInterfaceLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 md:gap-y-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 justify-between group cursor-pointer"
               >
                 <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
                   {t('platformAnyInterface')}
@@ -258,7 +258,7 @@ export function FeatureSections() {
 
       {/* Section 2: MODELS */}
       <div className="w-full flex items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row px-5 md:px-10 gap-8 lg:gap-x-[278px] max-w-[1440px] mx-auto w-full">
+        <div className="flex flex-col lg:flex-row items-start lg:justify-around gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
           {/* Left side - Text content */}
           <div className="w-full lg:w-[360px] flex flex-col items-start gap-4 md:gap-8">
             <span className="font-mono font-medium text-sm md:text-base uppercase leading-6 bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent">
@@ -298,7 +298,7 @@ export function FeatureSections() {
           {/* Right side - Model cards */}
           <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row - Seed and Qwen */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Model 1 - Seed */}
               <TiltCard
                 href={tUrl('/model-config#doubao-seed-vision')}
@@ -365,7 +365,7 @@ export function FeatureSections() {
             </div>
 
             {/* Bottom row - Gemini and UI-TARS */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Model 3 - Gemini */}
               <TiltCard
                 href={tUrl('/model-config#gemini-3-pro')}
@@ -457,7 +457,7 @@ export function FeatureSections() {
 
       {/* Section 3: DEBUGGING */}
       <div className="w-full flex items-center justify-center py-20">
-        <div className="flex flex-col lg:flex-row px-5 md:px-10 gap-8 lg:gap-x-[278px] max-w-[1440px] mx-auto w-full">
+        <div className="flex flex-col lg:flex-row items-start lg:justify-around gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
           {/* Left side - Text content */}
           <div className="w-full lg:w-[360px] flex flex-col items-start gap-y-4 md:gap-y-8">
             <div className="font-mono font-medium text-sm md:text-base uppercase bg-gradient-to-r from-[#80a8ff] to-[#0555ff] bg-clip-text text-transparent leading-6">
@@ -497,7 +497,7 @@ export function FeatureSections() {
           {/* Right side - Feature cards */}
           <div className="w-full lg:w-[802px] flex flex-col gap-y-6 md:gap-y-10">
             {/* Top row */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Rich APIs Card */}
               <TiltCard
                 href={tUrl(t('featureRichAPIsLink'))}
@@ -590,7 +590,7 @@ export function FeatureSections() {
             </div>
 
             {/* Bottom row */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Reports & Playground Card */}
               <TiltCard
                 href={tUrl(t('featureReportsPlaygroundLink'))}
@@ -683,7 +683,7 @@ export function FeatureSections() {
             </div>
 
             {/* View All APIs row */}
-            <div className="flex flex-col md:flex-row gap-6 md:gap-x-10">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* View All APIs Link Card */}
               <div className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-y-4 md:gap-y-6">
                 <div className="font-sans font-medium text-xl md:text-2xl leading-6 text-transparent">
