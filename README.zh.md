@@ -38,11 +38,18 @@
 
 ## 案例
 
-| 指令  | 视频 |
-| :---:  | :---: |
-| 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
-| 控制地图 App 在 Android 上导航到目的地   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
-|  使用 midscene mcp 的方法，浏览页面（ https://www.saucedemo.com/ ），进行登录，添加商品、下单商品最终根据 mcp 执行的步骤和 playwright example 生成最终的测试用例   | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
+在 Web 浏览器中自主注册 Github 表单，并通过所有字段校验。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+
+此外还有这些实战案例：
+* [iOS 自动化 - 美团下单咖啡](https://midscenejs.com/zh/showcases#ios)
+* [iOS 自动化 - Twitter 自动点赞 @midscene_ai 首条推文](https://midscenejs.com/zh/showcases#ios)
+* [Android 自动化 - 懂车帝查看小米 SU7 参数](https://midscenejs.com/zh/showcases#android)
+* [Android 自动化 - Booking 预订圣诞酒店](https://midscenejs.com/zh/showcases#android)
+* [MCP 集成 - Midscene MCP 操作界面发布 prepatch 版本](https://midscenejs.com/zh/showcases#mcp)
+
+更多实战案例请点击查看：[案例展示](https://midscenejs.com/zh/showcases)
 
 ## 💡 特性
 
