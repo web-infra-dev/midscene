@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import fs, { promises as fsPromises } from 'node:fs';
+import fs, { unlink } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
@@ -946,8 +946,11 @@ ${Object.keys(size)
       screenshotBuffer.toString('base64'),
     );
     if (localScreenshotPath) {
-      void fsPromises.unlink(localScreenshotPath).catch((unlinkError) => {
-        debugDevice(`Failed to delete screenshot: ${unlinkError}`);
+      debugDevice(`Deleting local screenshot: ${localScreenshotPath}`);
+      unlink(localScreenshotPath, (unlinkError) => {
+        if (unlinkError) {
+          debugDevice(`Failed to delete screenshot: ${unlinkError}`);
+        }
       });
     }
     debugDevice('screenshotBase64 end');
