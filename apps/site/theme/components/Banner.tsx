@@ -6,7 +6,7 @@ export function Banner() {
 
   return (
     <div className="flex justify-center items-center w-full min-h-[400px] md:min-h-[664px] bg-transparent">
-      <div className="w-full max-w-[1200px] px-0 md:px-0 py-10 md:py-20 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
+      <div className="w-full max-w-[1200px] px-5 lg:px-0 py-10 md:py-20 grid grid-cols-1 lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
         <div className="flex flex-col items-start">
           {/* New Badge */}
           <div className="backdrop-blur-[48px] rounded-[37px] flex flex-row items-center pl-[5px] pr-3 md:pr-4 py-1.5 gap-x-2 dark:bg-[rgba(255,255,255,0.08)] border border-[rgba(17,17,19,0.12)]">
@@ -67,12 +67,12 @@ export function Banner() {
         </div>
 
         {/* Right Image */}
-        <div className="w-[786px] flex justify-center lg:justify-end">
+        <div className="w-full lg:w-[786px] flex justify-center lg:justify-end">
           <div className="dark:hidden w-full h-full flex items-center justify-center">
             <img
               src="/banner-light.png"
               alt="Midscene banner"
-              className="w-full"
+              className="w-full max-w-[780px]"
               loading="lazy"
             />
           </div>
@@ -80,7 +80,7 @@ export function Banner() {
             <img
               src="/banner-dark.png"
               alt="Midscene banner"
-              className="w-full"
+              className="w-full max-w-[780px]"
               loading="lazy"
             />
           </div>

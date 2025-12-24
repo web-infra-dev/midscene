@@ -25,7 +25,7 @@ export function FeatureSections() {
   const tUrl = useI18nUrl();
 
   return (
-    <div className="flex flex-col w-full bg-white dark:bg-[#121212]">
+    <div className="flex flex-col w-full bg-white dark:bg-[#121212] px-5 md:px-10 lg:px-0">
       {/* Section 1: CLIENTS */}
       <div className="w-full flex flex-col items-center justify-center py-20">
         <div className="flex flex-col lg:flex-row items-start lg:justify-around px-0 md:px-0 gap-8 lg:gap-14 max-w-[1200px] mx-auto w-full">
