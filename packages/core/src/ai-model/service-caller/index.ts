@@ -221,8 +221,7 @@ export async function callAI(
   const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
-  const temperature =
-    modelConfig.temperature ?? (vlMode === 'vlm-ui-tars' ? 0.0 : undefined);
+  const temperature = modelConfig.temperature ?? 0;
 
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
