@@ -38,7 +38,7 @@
 
 ## 案例
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github.mp4" height="300" controls />
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
 
 查看更多案例：[案例展示](https://midscenejs.com/zh/showcases)
 

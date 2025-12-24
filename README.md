@@ -38,7 +38,7 @@ English | [简体中文](./README.zh.md)
 
 ## Showcases
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github.mp4" height="300" controls />
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
 
 View more showcases: [showcases](https://midscenejs.com/showcases)
 
