@@ -3,7 +3,7 @@ import type { EN_US } from './enUS';
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - New Badge
   newBadge: 'Midscene 1.0 正式发布',
-  newBadgeLegacyLink: '返回 v0.x 文档',
+  changelogLink: '查看最新特性',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
@@ -15,7 +15,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - CTA Buttons
   introduction: '使用文档',
-  whatsNew: '查看新特性',
+  whatsNew: '案例展示',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',

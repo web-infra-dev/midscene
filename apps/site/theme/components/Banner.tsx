@@ -20,11 +20,9 @@ export function Banner() {
               <span className="mx-1 text-black/40 dark:text-white/40">|</span>
               <a
                 className="text-black/60 hover:underline dark:text-white/60"
-                href="https://v0.midscenejs.com/"
-                rel="noreferrer"
-                target="_blank"
+                href="/changelog"
               >
-                {t('newBadgeLegacyLink')}
+                {t('changelogLink')}
               </a>
             </span>
           </div>
