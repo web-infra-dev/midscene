@@ -876,6 +876,7 @@ ${Object.keys(size)
     debugDevice('screenshotBase64 begin');
     const adb = await this.getAdb();
     let screenshotBuffer;
+    let localScreenshotPath: string | null = null;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
@@ -910,6 +911,7 @@ ${Object.keys(size)
         `Taking screenshot via adb.takeScreenshot failed or was skipped: ${error}`,
       );
       const screenshotPath = getTmpFile('png')!;
+      localScreenshotPath = screenshotPath;
 
       try {
         debugDevice('Fallback: taking screenshot via shell screencap');
@@ -943,6 +945,11 @@ ${Object.keys(size)
       'png',
       screenshotBuffer.toString('base64'),
     );
+    if (localScreenshotPath) {
+      void fs.promises.unlink(localScreenshotPath).catch((unlinkError) => {
+        debugDevice(`Failed to delete screenshot: ${unlinkError}`);
+      });
+    }
     debugDevice('screenshotBase64 end');
     return result;
   }
