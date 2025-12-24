@@ -79,6 +79,10 @@ export default defineConfig({
           link: '/model-common-config',
         },
         {
+          text: 'Showcases',
+          link: '/showcases',
+        },
+        {
           sectionHeaderText: 'Web browser',
         },
         {
@@ -110,24 +114,6 @@ export default defineConfig({
         },
         {
           text: 'Getting started',
-          items: [
-            {
-              text: 'Introduction',
-              link: '/introduction',
-            },
-            {
-              text: 'Model strategy',
-              link: '/model-strategy',
-            },
-            {
-              text: 'Common model configuration 🔥',
-              link: '/model-common-config',
-            },
-            {
-              text: 'Showcases',
-              link: '/showcases',
-            },
-          ],
           link: '/android-getting-started',
         },
         {
@@ -217,24 +203,6 @@ export default defineConfig({
       '/zh': [
         {
           text: '快速开始',
-          items: [
-            {
-              text: '介绍',
-              link: '/zh/introduction',
-            },
-            {
-              text: '模型策略',
-              link: '/zh/model-strategy',
-            },
-            {
-              text: '常用模型配置 🔥',
-              link: '/zh/model-common-config',
-            },
-            {
-              text: '案例展示',
-              link: '/zh/showcases',
-            },
-          ],
           sectionHeaderText: '快速开始',
         },
         {
@@ -248,6 +216,10 @@ export default defineConfig({
         {
           text: '常用模型配置 🔥',
           link: '/zh/model-common-config',
+        },
+        {
+          text: '案例展示',
+          link: '/zh/showcases',
         },
         {
           sectionHeaderText: 'Web 浏览器',

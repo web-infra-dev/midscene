@@ -50,6 +50,7 @@
 * [MCP 集成 - Midscene MCP 操作界面发布 prepatch 版本](https://midscenejs.com/zh/showcases#mcp)
 
 更多实战案例请点击查看：[案例展示](https://midscenejs.com/zh/showcases)
+社区案例： [车机大屏测试中的机械臂 + 视觉 + 语音方案](https://midscenejs.com/zh/showcases#社区案例)
 
 ## 💡 特性
 

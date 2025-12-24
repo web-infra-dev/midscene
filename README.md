@@ -50,6 +50,7 @@ Plus these real-world showcases:
 * [MCP Integration - Midscene MCP UI prepatch release](https://midscenejs.com/showcases#mcp)
 
 See more real-world showcases — click to explore: [showcases](https://midscenejs.com/showcases)
+Community showcase: [robotic arm + vision + voice for in-vehicle testing](https://midscenejs.com/showcases#community-showcases)
 
 ## 💡 Features
 
