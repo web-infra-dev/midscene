@@ -181,7 +181,7 @@ export const parseOpenaiSdkConfig = ({
   );
   const temperature = provider[keys.temperature]
     ? Number(provider[keys.temperature])
-    : undefined;
+    : 0;
 
   const { vlMode, uiTarsVersion } = modelFamilyToVLConfig(
     modelFamilyRaw as unknown as TModelFamily,
