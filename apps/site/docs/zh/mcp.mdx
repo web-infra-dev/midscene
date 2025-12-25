@@ -196,7 +196,7 @@ http://localhost:3000/mcp
 **Web Bridge MCP**
 
 ```typescript
-import { WebMCPServer } from '@midscene/web-bridge-mcp/server';
+import { WebMCPServer } from '@midscene/web/mcp-server';
 
 // 创建服务器实例
 const server = new WebMCPServer();
@@ -214,7 +214,7 @@ await server.launchHttp({
 **iOS MCP**
 
 ```typescript
-import { IOSMCPServer } from '@midscene/ios-mcp/server';
+import { IOSMCPServer } from '@midscene/ios/mcp-server';
 
 const server = new IOSMCPServer();
 
@@ -231,7 +231,7 @@ await server.launchHttp({
 **Android MCP**
 
 ```typescript
-import { AndroidMCPServer } from '@midscene/android-mcp/server';
+import { AndroidMCPServer } from '@midscene/android/mcp-server';
 
 const server = new AndroidMCPServer();
 
@@ -269,7 +269,7 @@ await server.launchHttp({
 
 ```typescript
 import express from 'express';
-import { AndroidMCPServer } from '@midscene/android-mcp/server';
+import { AndroidMCPServer } from '@midscene/android/mcp-server';
 
 // 配置环境变量
 process.env.MIDSCENE_MODEL_BASE_URL = '你的模型服务地址';
@@ -307,7 +307,7 @@ console.log('MCP 服务运行在 http://localhost:3002/mcp');
 **Web Bridge MCP**
 
 ```typescript
-import { mcpServerForAgent } from '@midscene/web-bridge-mcp';
+import { mcpServerForAgent } from '@midscene/web/mcp-server';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 
 const agent = new AgentOverChromeBridge();
@@ -326,10 +326,10 @@ const httpServer = await mcpServerForAgent(agent).launchHttp({
 **iOS MCP**
 
 ```typescript
-import { mcpServerForAgent } from '@midscene/ios-mcp';
-import { agentFromWdaDevice } from '@midscene/ios';
+import { mcpServerForAgent } from '@midscene/ios/mcp-server';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
-const agent = await agentFromWdaDevice();
+const agent = await agentFromWebDriverAgent();
 
 // 启动 stdio 模式
 const stdioServer = await mcpServerForAgent(agent).launch();
@@ -344,7 +344,7 @@ const httpServer = await mcpServerForAgent(agent).launchHttp({
 **Android MCP**
 
 ```typescript
-import { mcpServerForAgent } from '@midscene/android-mcp';
+import { mcpServerForAgent } from '@midscene/android/mcp-server';
 import { agentFromAdbDevice } from '@midscene/android';
 
 const agent = await agentFromAdbDevice();
@@ -392,4 +392,3 @@ const server = await mcpServerForAgent(agent).launchHttp({
 参数:
 - `options.port`: HTTP 服务端口(必需,范围 1-65535)
 - `options.host`: HTTP 服务主机地址(可选,默认 `localhost`)
-
