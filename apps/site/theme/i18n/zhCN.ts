@@ -19,7 +19,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
-  clientsHeading: `Web, iOS, Android
+  clientsHeading: `Web、iOS、Android
 等多端支持`,
   clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
   clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',

@@ -1,5 +1,5 @@
+import { IOSMCPServer } from '@midscene/ios/mcp-server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { IOSMCPServer } from '../src/server.js';
 
 describe('IOSMCPServer HTTP mode', () => {
   let server: IOSMCPServer;
