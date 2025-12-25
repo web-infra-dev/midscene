@@ -1,7 +1,7 @@
-import { type AndroidAgent, agentFromAdbDevice } from '@midscene/android';
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import { type AndroidAgent, agentFromAdbDevice } from './agent';
 
 const debug = getDebug('mcp:android-tools');
 
@@ -11,8 +11,8 @@ const debug = getDebug('mcp:android-tools');
  */
 export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
   protected createTemporaryDevice() {
-    // Use require to avoid circular dependency with @midscene/android
-    const { AndroidDevice } = require('@midscene/android');
+    // Use require to avoid circular dependency with direct imports
+    const { AndroidDevice } = require('./device');
     // Create minimal temporary instance without connecting to device
     // The constructor doesn't establish ADB connection
     return new AndroidDevice('temp-for-action-space', {});
