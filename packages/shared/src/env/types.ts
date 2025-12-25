@@ -26,6 +26,7 @@ export const MIDSCENE_MODEL_API_KEY = 'MIDSCENE_MODEL_API_KEY';
 export const MIDSCENE_MODEL_BASE_URL = 'MIDSCENE_MODEL_BASE_URL';
 export const MIDSCENE_MODEL_MAX_TOKENS = 'MIDSCENE_MODEL_MAX_TOKENS';
 export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
+export const MIDSCENE_MODEL_TEMPERATURE = 'MIDSCENE_MODEL_TEMPERATURE';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -93,6 +94,8 @@ export const MIDSCENE_INSIGHT_MODEL_API_KEY = 'MIDSCENE_INSIGHT_MODEL_API_KEY';
 export const MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_INSIGHT_MODEL_TIMEOUT = 'MIDSCENE_INSIGHT_MODEL_TIMEOUT';
+export const MIDSCENE_INSIGHT_MODEL_TEMPERATURE =
+  'MIDSCENE_INSIGHT_MODEL_TEMPERATURE';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -108,6 +111,8 @@ export const MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON =
   'MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON';
 export const MIDSCENE_PLANNING_MODEL_TIMEOUT =
   'MIDSCENE_PLANNING_MODEL_TIMEOUT';
+export const MIDSCENE_PLANNING_MODEL_TEMPERATURE =
+  'MIDSCENE_PLANNING_MODEL_TEMPERATURE';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -181,6 +186,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_SOCKS_PROXY,
   MIDSCENE_MODEL_HTTP_PROXY,
   MIDSCENE_MODEL_TIMEOUT,
+  MIDSCENE_MODEL_TEMPERATURE,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -201,6 +207,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
+  MIDSCENE_INSIGHT_MODEL_TEMPERATURE,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -209,6 +216,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_MODEL_TIMEOUT,
+  MIDSCENE_PLANNING_MODEL_TEMPERATURE,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -274,6 +282,8 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON]?: string;
   // timeout
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
+  // temperature
+  [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
 }
 
 export interface IModelConfigForPlanning {
@@ -288,6 +298,8 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON]?: string;
   // timeout
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
+  // temperature
+  [MIDSCENE_PLANNING_MODEL_TEMPERATURE]?: string;
 }
 
 /**
@@ -317,6 +329,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
   [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
+  // temperature
+  [MIDSCENE_MODEL_TEMPERATURE]?: string;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -403,6 +417,10 @@ export interface IModelConfig {
    * If not set, uses OpenAI SDK default (10 minutes).
    */
   timeout?: number;
+  /**
+   * Temperature for model sampling.
+   */
+  temperature?: number;
   /**
    * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
    * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'

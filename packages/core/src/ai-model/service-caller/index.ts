@@ -221,6 +221,7 @@ export async function callAI(
   const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
+  const temperature = modelConfig.temperature ?? 0;
 
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
@@ -248,7 +249,7 @@ export async function callAI(
   };
 
   const commonConfig = {
-    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
+    temperature,
     stream: !!isStreaming,
     max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
     ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
@@ -331,7 +332,7 @@ export async function callAI(
       }
       content = accumulated;
       debugProfileStats(
-        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
+        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
       );
     } else {
       const result = await completion.create({
@@ -342,7 +343,7 @@ export async function callAI(
       timeCost = Date.now() - startTime;
 
       debugProfileStats(
-        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
       );
 
       debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);

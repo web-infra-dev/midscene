@@ -179,6 +179,9 @@ export const parseOpenaiSdkConfig = ({
     keys.openaiExtraConfig,
     openaiExtraConfigStr || legacyOpenaiExtraConfig,
   );
+  const temperature = provider[keys.temperature]
+    ? Number(provider[keys.temperature])
+    : 0;
 
   const { vlMode, uiTarsVersion } = modelFamilyToVLConfig(
     modelFamilyRaw as unknown as TModelFamily,
@@ -214,6 +217,7 @@ export const parseOpenaiSdkConfig = ({
     timeout: provider[keys.timeout]
       ? Number(provider[keys.timeout])
       : undefined,
+    temperature,
   };
 };
 
