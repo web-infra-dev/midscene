@@ -200,6 +200,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     return total > 0 ? total : '-';
   };
 
+  const typeColumnMinWidth = 160;
+
   // Calculate dynamic column widths based on content
   const dynamicWidths = useMemo(() => {
     if (!groupedDump) {
@@ -320,6 +322,13 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         key: 'type',
         className: 'column-type',
         align: 'left',
+        width: typeColumnMinWidth,
+        onHeaderCell: () => ({
+          style: { minWidth: typeColumnMinWidth },
+        }),
+        onCell: () => ({
+          style: { minWidth: typeColumnMinWidth },
+        }),
         // Let Type column take remaining space
         ellipsis: true,
         render: (_: any, record: TableRowData) => {
