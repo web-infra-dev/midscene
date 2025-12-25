@@ -196,7 +196,7 @@ All MCP service packages export corresponding server classes that support both s
 **Web Bridge MCP**
 
 ```typescript
-import { WebMCPServer } from '@midscene/web-bridge-mcp/server';
+import { WebMCPServer } from '@midscene/web/mcp-server';
 
 // Create server instance
 const server = new WebMCPServer();
@@ -214,7 +214,7 @@ await server.launchHttp({
 **iOS MCP**
 
 ```typescript
-import { IOSMCPServer } from '@midscene/ios-mcp/server';
+import { IOSMCPServer } from '@midscene/ios/mcp-server';
 
 const server = new IOSMCPServer();
 
@@ -231,7 +231,7 @@ await server.launchHttp({
 **Android MCP**
 
 ```typescript
-import { AndroidMCPServer } from '@midscene/android-mcp/server';
+import { AndroidMCPServer } from '@midscene/android/mcp-server';
 
 const server = new AndroidMCPServer();
 
@@ -269,7 +269,7 @@ The following example shows how to integrate MCP services into an existing Expre
 
 ```typescript
 import express from 'express';
-import { AndroidMCPServer } from '@midscene/android-mcp/server';
+import { AndroidMCPServer } from '@midscene/android/mcp-server';
 
 // Configure environment variables
 process.env.MIDSCENE_MODEL_BASE_URL = 'your model service URL';
@@ -307,7 +307,7 @@ This helper takes care of wiring agents, tools managers, and MCP servers togethe
 **Web Bridge MCP**
 
 ```typescript
-import { mcpServerForAgent } from '@midscene/web-bridge-mcp';
+import { mcpServerForAgent } from '@midscene/web/mcp-server';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 
 const agent = new AgentOverChromeBridge();
@@ -326,10 +326,10 @@ const httpServer = await mcpServerForAgent(agent).launchHttp({
 **iOS MCP**
 
 ```typescript
-import { mcpServerForAgent } from '@midscene/ios-mcp';
-import { agentFromWdaDevice } from '@midscene/ios';
+import { mcpServerForAgent } from '@midscene/ios/mcp-server';
+import { agentFromWebDriverAgent } from '@midscene/ios';
 
-const agent = await agentFromWdaDevice();
+const agent = await agentFromWebDriverAgent();
 
 // Launch stdio mode
 const stdioServer = await mcpServerForAgent(agent).launch();
@@ -344,7 +344,7 @@ const httpServer = await mcpServerForAgent(agent).launchHttp({
 **Android MCP**
 
 ```typescript
-import { mcpServerForAgent } from '@midscene/android-mcp';
+import { mcpServerForAgent } from '@midscene/android/mcp-server';
 import { agentFromAdbDevice } from '@midscene/android';
 
 const agent = await agentFromAdbDevice();
