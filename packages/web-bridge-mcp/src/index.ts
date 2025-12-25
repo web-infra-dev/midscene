@@ -1,6 +1,6 @@
 import { parseArgs } from 'node:util';
 import { type CLIArgs, CLI_ARGS_CONFIG } from '@midscene/shared/mcp';
-import { WebMCPServer } from './server.js';
+import { WebMCPServer } from '@midscene/web/mcp-server';
 
 const { values } = parseArgs({ options: CLI_ARGS_CONFIG });
 const args = values as CLIArgs;

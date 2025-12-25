@@ -84,6 +84,11 @@
       "types": "./dist/types/static/index.d.ts",
       "require": "./dist/lib/static/index.js",
       "import": "./dist/es/static/index.mjs"
+    },
+    "./mcp-server": {
+      "types": "./dist/types/mcp-server.d.ts",
+      "import": "./dist/es/mcp-server.mjs",
+      "require": "./dist/lib/mcp-server.js"
     }
   },
   "scripts": {
