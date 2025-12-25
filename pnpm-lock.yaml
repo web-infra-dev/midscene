@@ -1066,6 +1066,9 @@ importers:
 
   packages/shared:
     dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: 1.10.2
+        version: 1.10.2
       '@silvia-odwyer/photon':
         specifier: 0.3.3
         version: 0.3.3
@@ -1091,9 +1094,6 @@ importers:
         specifier: 11.1.0
         version: 11.1.0
     devDependencies:
-      '@modelcontextprotocol/sdk':
-        specifier: 1.10.2
-        version: 1.10.2
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)

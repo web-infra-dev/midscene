@@ -85,6 +85,7 @@
     "test:u": "vitest --run -u"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "1.10.2",
     "@silvia-odwyer/photon": "0.3.3",
     "@silvia-odwyer/photon-node": "0.3.3",
     "debug": "4.4.0",
@@ -96,7 +97,6 @@
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
-    "@modelcontextprotocol/sdk": "1.10.2",
     "@types/debug": "4.1.12",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
