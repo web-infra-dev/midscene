@@ -1,0 +1,32 @@
+{
+  "name": "bench-infra",
+  "private": true,
+  "version": "1.0.2",
+  "description": "The benchmark infrastructure for Midscene",
+  "keywords": [
+    "benchmark",
+    "infra",
+    "infrasturcture",
+    "Midscene"
+  ],
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "test": "node tests/index.mjs"
+  },
+  "dependencies": {
+    "@midscene/android": "workspace:*",
+    "jayson": "4.3.0"
+  },
+  "devDependencies": {
+    "@midscene/shared": "workspace:*",
+    "@rslib/core": "^0.18.3",
+    "@types/node": "^18.0.0",
+    "dotenv": "^16.4.5",
+    "typescript": "^5.8.3"
+  },
+  "license": "MIT"
+}
