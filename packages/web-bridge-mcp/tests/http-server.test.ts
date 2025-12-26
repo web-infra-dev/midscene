@@ -1,10 +1,10 @@
 import type { Server } from 'node:http';
+import { WebMCPServer } from '@midscene/web/mcp-server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { WebMCPServer } from '../src/server.js';
 
 describe('WebMCPServer HTTP mode', () => {
   let server: WebMCPServer;
-  const httpServer: Server | null = null;
+  let httpServer: Server | null = null;
   const testPort = 13579; // Use a non-standard port for testing
   const testHost = '127.0.0.1'; // Use IPv4 explicitly to avoid IPv6 issues in CI
 
@@ -15,9 +15,16 @@ describe('WebMCPServer HTTP mode', () => {
   afterAll(async () => {
     // Close the HTTP server
     if (httpServer) {
-      await new Promise<void>((resolve) => {
-        httpServer!.close(() => resolve());
-      });
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          httpServer!.close((err?: Error) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        }),
+        // Safety timeout to avoid hanging the hook
+        new Promise<void>((resolve) => setTimeout(resolve, 2_000)),
+      ]);
     }
   });
 
@@ -28,22 +35,21 @@ describe('WebMCPServer HTTP mode', () => {
     }) as any);
 
     try {
-      // Start server in background
-      const serverPromise = server.launchHttp({
+      // Start server and retain instance for cleanup
+      httpServer = (await server.launchHttp({
         port: testPort,
         host: testHost,
-      });
-
-      // Give server time to start
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      })) as unknown as Server;
 
       // Simply verify the server is listening by trying to connect
+      const controller = new AbortController();
       const response = await fetch(`http://${testHost}:${testPort}/mcp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json, text/event-stream',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           jsonrpc: '2.0',
           method: 'initialize',
@@ -69,6 +75,18 @@ describe('WebMCPServer HTTP mode', () => {
         contentType?.includes('text/event-stream') ||
           contentType?.includes('application/json'),
       ).toBe(true);
+
+      // Close the streaming response to avoid hanging server.close
+      try {
+        controller.abort();
+      } catch (_) {
+        // ignore abort errors
+      }
+      try {
+        await response.body?.cancel();
+      } catch (_) {
+        // ignore cancellation errors
+      }
 
       console.log('✓ Server started and responding successfully');
     } finally {

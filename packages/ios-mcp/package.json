@@ -10,10 +10,6 @@
     ".": {
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
-    },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "default": "./dist/server.js"
     }
   },
   "scripts": {

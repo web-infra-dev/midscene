@@ -28,6 +28,11 @@
       "import": "./dist/es/bin.mjs",
       "require": "./dist/lib/bin.js"
     },
+    "./mcp-server": {
+      "types": "./dist/types/mcp-server.d.ts",
+      "import": "./dist/es/mcp-server.mjs",
+      "require": "./dist/lib/mcp-server.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

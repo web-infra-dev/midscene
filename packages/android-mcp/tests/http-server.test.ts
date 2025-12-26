@@ -1,5 +1,5 @@
+import { AndroidMCPServer } from '@midscene/android/mcp-server';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { AndroidMCPServer } from '../src/server.js';
 
 describe('AndroidMCPServer HTTP mode', () => {
   let server: AndroidMCPServer;

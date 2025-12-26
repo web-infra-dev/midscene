@@ -28,6 +28,7 @@ export default defineConfig({
   source: {
     entry: {
       index: './src/index.ts',
+      'mcp-server': './src/mcp-server.ts',
     },
   },
 });
