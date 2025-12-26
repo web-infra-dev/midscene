@@ -189,5 +189,6 @@ For example, if the instruction is to login and the form has already been filled
       }
     }
   }
+}
 `;
 }
