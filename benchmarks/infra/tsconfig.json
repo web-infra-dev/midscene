@@ -1,0 +1,12 @@
+{
+  "extends": "../../packages/shared/tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "module": "ES2020",
+    "types": ["node"],
+    "outDir": "dist",
+    "declaration": true,
+    "emitDeclarationOnly": false
+  },
+  "include": ["src"]
+}
