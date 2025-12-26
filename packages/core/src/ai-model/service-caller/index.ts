@@ -514,19 +514,32 @@ export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   }
 
   let parsed: any;
+  let lastError: unknown;
   try {
     parsed = JSON.parse(cleanJsonString);
     return normalizeJsonObject(parsed);
-  } catch {}
+  } catch (error) {
+    lastError = error;
+  }
   try {
     parsed = JSON.parse(jsonrepair(cleanJsonString));
     return normalizeJsonObject(parsed);
-  } catch (e) {}
+  } catch (error) {
+    lastError = error;
+  }
 
   if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    parsed = JSON.parse(jsonrepair(jsonString));
-    return normalizeJsonObject(parsed);
+    try {
+      parsed = JSON.parse(jsonrepair(jsonString));
+      return normalizeJsonObject(parsed);
+    } catch (error) {
+      lastError = error;
+    }
   }
-  throw Error(`failed to parse json response: ${input}`);
+  throw Error(
+    `failed to parse LLM response into JSON. Error - ${String(
+      lastError ?? 'unknown error',
+    )}. Response - \n ${input}`,
+  );
 }
