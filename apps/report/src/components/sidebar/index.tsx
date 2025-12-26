@@ -315,6 +315,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   // Define columns
   const columns = useMemo<ColumnsType<TableRowData>>(() => {
     const columnCount = proModeEnabled ? (hasCachedInput ? 7 : 6) : 2;
+    const typeColumnWidth = proModeEnabled ? typeColumnMinWidth : undefined;
     const baseColumns: ColumnsType<TableRowData> = [
       {
         title: 'Type',
@@ -322,15 +323,15 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         key: 'type',
         className: 'column-type',
         align: 'left',
-        width: typeColumnMinWidth,
+        width: typeColumnWidth,
         onHeaderCell: () => ({
-          style: { minWidth: typeColumnMinWidth },
+          style: { minWidth: typeColumnMinWidth, width: typeColumnWidth },
         }),
         onCell: () => ({
-          style: { minWidth: typeColumnMinWidth },
+          style: { minWidth: typeColumnMinWidth, width: typeColumnWidth },
         }),
         // Let Type column take remaining space
-        ellipsis: true,
+        ellipsis: proModeEnabled,
         render: (_: any, record: TableRowData) => {
           if (record.isGroupHeader) {
             return {
@@ -653,6 +654,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           showHeader={true}
           rowKey="key"
           className="tasks-table"
+          tableLayout={proModeEnabled ? 'fixed' : 'auto'}
           sticky
           rowClassName={(record) => {
             if (record.isGroupHeader) {
