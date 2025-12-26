@@ -6,7 +6,9 @@
   justify-content: space-between;
   width: 100%;
   height: 100%;
-  overflow: hidden;
+  min-width: 270px;
+  overflow-x: auto;
+  overflow-y: hidden;
   box-sizing: border-box;
   border-radius: 16px;
   background: #fff;
@@ -82,8 +84,9 @@
       font-weight: 500;
       color: #808080;
       text-align: left;
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
-        'Fira Mono', 'Roboto Mono', monospace;
+      font-family:
+        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+        'Roboto Mono', monospace;
       white-space: nowrap;
     }
 
@@ -94,8 +97,9 @@
       line-height: 1.2;
       min-width: 70px;
       text-align: right;
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
-        'Fira Mono', 'Roboto Mono', monospace;
+      font-family:
+        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+        'Roboto Mono', monospace;
       white-space: nowrap;
       display: inline-block;
     }
@@ -129,165 +133,139 @@
     white-space: normal;
   }
 
-  // Table styles
+  // Flex Table styles
   .tasks-table {
     padding: 0 12px;
-    table-layout: auto;
+    display: flex;
+    flex-direction: column;
 
-    // Remove all antd default borders and spacing
-    &.ant-table-wrapper .ant-table {
-      background: transparent;
-    }
-
-    .ant-table {
-      background: transparent;
-      table-layout: auto;
-    }
-
-    .ant-table-thead > tr > th {
-      background: transparent;
-      border-bottom: none;
-      padding: 0 8px !important;
+    // Header
+    .table-header {
+      display: flex;
       height: 28px;
+      align-items: center;
       font-size: 12px;
       color: #808080;
       font-weight: 500;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 1;
 
-      &:before {
-        display: none;
-      }
+      .header-cell {
+        padding: 0 8px;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
 
-      &.column-type {
-        text-align: left;
-      }
+        &.column-type {
+          justify-content: flex-start;
+        }
 
-      &.column-time,
-      &.column-intent,
-      &.column-model,
-      &.column-prompt,
-      &.column-completion {
-        text-align: right;
+        &.column-time,
+        &.column-intent,
+        &.column-model,
+        &.column-prompt,
+        &.column-cached,
+        &.column-completion {
+          justify-content: flex-end;
+        }
       }
     }
 
-    // Sticky header background
-    .ant-table-thead > tr > th.ant-table-cell-fix-sticky {
-      background: transparent;
-    }
+    // Body
+    .table-body {
+      display: flex;
+      flex-direction: column;
 
-    .ant-table-tbody {
-      background: transparent;
+      .group-header-row {
+        padding: 8px 0 0 0;
+        cursor: default;
 
-      > tr {
-        background: transparent;
+        .side-sub-title {
+          padding: 8px 8px 6px 8px;
+        }
+      }
 
-        > td {
-          border-bottom: none;
-          padding: 0 8px !important;
-          background: transparent;
+      .task-row {
+        display: flex;
+        cursor: pointer;
+        transition: background 0.1s;
+        border-radius: 8px;
+        height: 32px;
+        align-items: center;
+
+        &:hover {
+          background: @hover-bg;
+        }
+
+        &.selected {
+          background: @selected-bg;
+        }
+
+        .task-cell {
+          padding: 0 8px;
+          display: flex;
+          align-items: center;
+          box-sizing: border-box;
+          overflow: hidden;
 
           &.column-type {
-            text-align: left;
+            justify-content: flex-start;
           }
 
           &.column-time,
           &.column-intent,
           &.column-model,
           &.column-prompt,
+          &.column-cached,
           &.column-completion {
-            text-align: right;
-          }
-        }
-
-        &.group-header-row {
-          cursor: default;
-
-          > td {
-            padding: 8px 0 0 0 !important;
-          }
-        }
-
-        &.task-row {
-          cursor: pointer;
-          transition: background 0.1s;
-          border-radius: 8px;
-
-          > td {
-            height: 32px;
-            padding: 0 8px !important;
-
-            &:first-child {
-              border-top-left-radius: 8px;
-              border-bottom-left-radius: 8px;
-            }
-
-            &:last-child {
-              border-top-right-radius: 8px;
-              border-bottom-right-radius: 8px;
-            }
-          }
-
-          &:hover {
-            background: @hover-bg;
-
-            > td {
-              background: @hover-bg;
-            }
-          }
-
-          &.selected {
-            background: @selected-bg;
-
-            > td {
-              background: @selected-bg;
-            }
+            justify-content: flex-end;
           }
         }
       }
     }
 
-    .ant-table-summary {
-      background: transparent;
+    // Summary
+    .table-summary {
+      display: flex;
+      flex-direction: column;
 
-      .summary-separator-row > td {
-        padding: 0 !important;
-        height: auto;
-      }
-
-      .summary-row > td {
-        border-top: none;
-        padding: 0 8px !important;
+      .summary-row {
+        display: flex;
         height: 44px;
-        background: transparent;
-        text-align: right;
-        white-space: nowrap;
+        align-items: center;
 
-        &:first-child {
-          text-align: left;
-        }
+        .summary-cell {
+          padding: 0 8px;
+          display: flex;
+          align-items: center;
+          box-sizing: border-box;
 
-        // Ensure number columns have minimum width
-        &:nth-child(2),
-        &:nth-child(3),
-        &:nth-child(4) {
-          min-width: 80px;
+          &.column-type {
+            justify-content: flex-start;
+          }
+
+          &.column-time,
+          &.column-intent,
+          &.column-model,
+          &.column-prompt,
+          &.column-cached,
+          &.column-completion {
+            justify-content: flex-end;
+          }
         }
       }
     }
 
     // Column styles
     .column-type {
-      max-width: 100%;
-
       .title {
         display: flex;
         align-items: center;
         overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
         color: #595959;
-        text-align: left;
-        max-width: 100%;
+        width: 100%;
 
         .status-icon {
           display: inline-flex;
@@ -300,18 +278,16 @@
         }
 
         > span {
-          flex-shrink: 0; // Protect main text from shrinking
           white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         // Allow tags to shrink
         .cache-tag,
         .deepthink-tag {
-          flex-shrink: 1;
-          min-width: 0;
-          max-width: 100px; // Limit max width
-          overflow: hidden;
-          text-overflow: ellipsis;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
       }
     }
@@ -320,12 +296,13 @@
     .column-intent,
     .column-model,
     .column-prompt,
-    .column-cached-input,
+    .column-cached,
     .column-completion {
       color: #595959;
       font-size: 14px;
-      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code',
-        'Fira Mono', 'Roboto Mono', monospace;
+      font-family:
+        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+        'Roboto Mono', monospace;
       white-space: nowrap;
     }
   }
@@ -462,33 +439,18 @@
     }
 
     .tasks-table {
-      .ant-table-thead > tr > th {
+      .table-header {
+        background: #1f1f1f;
         color: rgba(255, 255, 255, 0.45);
-        background: #1f1f1f;
       }
 
-      // Sticky header background for dark mode
-      .ant-table-thead > tr > th.ant-table-cell-fix-sticky {
-        background: #1f1f1f;
-      }
+      .table-body .task-row {
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+        }
 
-      .ant-table-tbody > tr {
-        &.task-row {
-          &:hover {
-            background: rgba(255, 255, 255, 0.08);
-
-            > td {
-              background: rgba(255, 255, 255, 0.08);
-            }
-          }
-
-          &.selected {
-            background: rgba(255, 255, 255, 0.16);
-
-            > td {
-              background: rgba(255, 255, 255, 0.16);
-            }
-          }
+        &.selected {
+          background: rgba(255, 255, 255, 0.16);
         }
       }
 
@@ -504,7 +466,7 @@
       .column-intent,
       .column-model,
       .column-prompt,
-      .column-cached-input,
+      .column-cached,
       .column-completion {
         color: #f8fafd;
       }

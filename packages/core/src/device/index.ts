@@ -259,7 +259,9 @@ export const actionScrollParamSchema = z.object({
     .describe('The distance in pixels to scroll'),
   locate: getMidsceneLocationSchema()
     .optional()
-    .describe('The target element to be scrolled'),
+    .describe(
+      'The target element to be scrolled on, like "the table" or "the list" or "the content area" or "the scrollable area"',
+    ),
 });
 
 export const defineActionScroll = (
