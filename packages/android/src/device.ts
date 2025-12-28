@@ -936,7 +936,11 @@ ${Object.keys(size)
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
-        await adb.shell(`rm ${androidScreenshotPath}`);
+        try {
+          await adb.shell(`rm ${androidScreenshotPath}`);
+        } catch (error) {
+          debugDevice(`Failed to delete remote screenshot: ${error}`);
+        }
       }
     }
 
