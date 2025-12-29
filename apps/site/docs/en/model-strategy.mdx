@@ -78,7 +78,17 @@ Return the actual field values you filled.
 
 This sounds simple, but the model must understand per-field rules, identify each control, operate a multi-step region selector, paginate and trigger validation, and still locate every element. Default models often cannot satisfy all of these at once, so success rates drop.
 
-In these situations, configure separate models for *Planning* and *Insight*, and use the default model purely as a “visual localizer” to reduce reasoning burden. Multi-model setups are the most practical and effective way to lift UI automation success, at a small cost in latency and tokens.
+In these situations, configure separate models for *Planning* and *Insight*, while **keeping the default model** as your baseline. This is not “only Planning and Insight”—it is **default model + (optional) Planning/Insight**. Multi-model setups are the most practical and effective way to lift UI automation success, at a small cost in latency and tokens.
+
+### Model responsibility overview
+
+By default, the system follows these rules (unset intents fall back to the default model):
+
+- **Default model**: handles **element localization** (Locate), plus anything not explicitly assigned to Planning/Insight.
+- **Planning model (optional)**: handles **task planning** (Planning in `aiAct` / `ai`).
+- **Insight model (optional)**: handles **data extraction, assertions, and UI understanding** (`aiQuery` / `aiAsk` / `aiAssert`).
+
+In short: **Planning goes to the Planning model, localization stays on the default model, and extraction/assertion goes to Insight** when configured.
 
 For a ready-to-use environment snippet, including an Insight model, see the [multi-model example](./model-common-config#gpt51-planning-insight-qwen3).
 
