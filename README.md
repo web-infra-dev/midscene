@@ -106,7 +106,7 @@ Read more about [Model Strategy](https://midscenejs.com/model-strategy)
 
 * [Discord](https://discord.gg/2JyBHxszE4)
 * [Follow us on X](https://x.com/midscene_ai)
-* [Lark Group(飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+* [Lark Group(飞书交流群)](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
 
 ## 🌟 Awesome Midscene
 
