@@ -879,8 +879,16 @@ export class Agent<
       );
 
       debug('matched cache, will call .runYaml to run the action');
-      const yaml = matchedCache.cacheContent.yamlWorkflow;
-      return this.runYaml(yaml);
+      const yamlContent = matchedCache.cacheContent.yamlWorkflow;
+      try {
+        return await this.runYaml(yamlContent);
+      } catch (cacheError) {
+        // Cache execution failed, fall back to normal AI planning
+        debug(
+          'cache execution failed, falling back to AI planning:',
+          cacheError instanceof Error ? cacheError.message : String(cacheError),
+        );
+      }
     }
 
     // If cache matched but yamlWorkflow is empty, fall through to normal execution
