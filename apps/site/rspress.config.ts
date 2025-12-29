@@ -301,7 +301,7 @@ export default defineConfig({
           sectionHeaderText: 'API 与配置',
         },
         {
-          text: 'JavaScript API 参考',
+          text: 'API 参考（公共）',
           link: '/zh/api',
         },
         {
