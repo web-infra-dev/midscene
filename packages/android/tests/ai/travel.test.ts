@@ -22,20 +22,20 @@ describe('Test todo list', () => {
   it(
     'travel',
     async () => {
-      await agent.aiAction('open Weather app');
-      await agent.aiAction(
+      await agent.aiAct('open Weather app');
+      await agent.aiAct(
         'click plus create button on the left top corner, enter search page, search "Hangzhou"',
       );
-      await agent.aiAction(
+      await agent.aiAct(
         'if there is one day without rain on screen, click Android System Button "Home" to return to Home Screen',
       );
-      await agent.aiAction(
+      await agent.aiAct(
         'open Maps app, search "West Lake", click the search button',
       );
-      await agent.aiAction(
+      await agent.aiAct(
         'click "Directions" button, enter the route planning page',
       );
-      await agent.aiAction('click "Start" button to start navigation');
+      await agent.aiAct('click "Start" button to start navigation');
     },
     720 * 1000,
   );

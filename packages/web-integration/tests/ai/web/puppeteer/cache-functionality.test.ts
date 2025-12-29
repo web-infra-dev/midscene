@@ -36,7 +36,7 @@ describe('Cache Configuration Tests', () => {
     expect(agent.taskCache?.readOnlyMode).toBe(false);
 
     // Perform an action that should be cached
-    await agent.aiAction('click the title');
+    await agent.aiAct('click the title');
 
     // Verify cache file path is set correctly
     const cacheFilePath = agent.taskCache?.cacheFilePath;
@@ -59,7 +59,7 @@ describe('Cache Configuration Tests', () => {
     expect(agent.taskCache).toBeUndefined();
 
     // Perform an action that should be cached
-    await agent.aiAction('click the title');
+    await agent.aiAct('click the title');
 
     // Verify cache file path is set correctly
     const cacheFilePath = agent.taskCache?.cacheFilePath;
@@ -86,7 +86,7 @@ describe('Cache Configuration Tests', () => {
     expect(agent.taskCache?.readOnlyMode).toBe(true);
 
     // Perform an action that should be cached
-    await agent.aiAction('click the title');
+    await agent.aiAct('click the title');
 
     // Verify cache file path is set correctly
     const cacheFilePath = agent.taskCache?.cacheFilePath;
@@ -115,7 +115,7 @@ describe('Cache Configuration Tests', () => {
     expect(agent.taskCache?.readOnlyMode).toBe(false);
     expect(agent.taskCache?.writeOnlyMode).toBe(true);
 
-    await agent.aiAction('click the title');
+    await agent.aiAct('click the title');
 
     const cacheFilePath = agent.taskCache?.cacheFilePath;
     expect(cacheFilePath).toBeDefined();
@@ -134,7 +134,7 @@ describe('Cache Configuration Tests', () => {
     });
 
     // Perform an action that should be cached
-    await agent.aiAction('click the title');
+    await agent.aiAct('click the title');
 
     // Verify new cache config takes priority
     expect(agent.taskCache).toBeDefined();
@@ -157,7 +157,7 @@ describe('Cache Configuration Tests', () => {
       });
 
       // Perform an action that should be cached
-      await agent.aiAction('click the title');
+      await agent.aiAct('click the title');
 
       // Verify legacy cache works
       expect(agent.taskCache).toBeDefined();
@@ -192,7 +192,7 @@ describe('Cache Configuration Tests', () => {
       // Also perform an aiAction to generate planning cache
       try {
         // Perform an action that should be cached
-        await agent.aiAction('click the title');
+        await agent.aiAct('click the title');
       } catch (error) {
         // If aiAction fails due to AI parsing, that's ok for this test
         console.log(

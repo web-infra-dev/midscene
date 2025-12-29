@@ -23,7 +23,7 @@ describe('puppeteer integration', () => {
       cacheId: 'input-related-test',
     });
 
-    await agent.aiAction('Enter "happy birthday" in search input box');
+    await agent.aiAct('Enter "happy birthday" in search input box');
     await agent.aiAssert(
       'the text in the input box starts with "happy birthday"',
     );
@@ -161,7 +161,7 @@ describe('puppeteer integration', () => {
       cacheId: 'test-drag-and-drop',
     });
 
-    await agent.aiAction('drag the element A to B');
+    await agent.aiAct('drag the element A to B');
     await agent.aiAssert('the element A is on the right of the element B');
   });
 });

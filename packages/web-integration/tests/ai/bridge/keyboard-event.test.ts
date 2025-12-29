@@ -21,7 +21,7 @@ describeIf(
       const agent = new AgentOverChromeBridge();
       await agent.connectNewTabWithUrl('https://www.baidu.com');
 
-      await agent.aiAction('type "midscene" and hit Enter and scroll down');
+      await agent.aiAct('type "midscene" and hit Enter and scroll down');
       // sleep 3s
       await sleep(3000);
 
@@ -32,7 +32,7 @@ describeIf(
       const agent = new AgentOverChromeBridge();
       await agent.connectNewTabWithUrl('https://www.baidu.com');
 
-      await agent.aiAction('type "Midscene" and hit Enter and select all text');
+      await agent.aiAct('type "Midscene" and hit Enter and select all text');
       // sleep 3s
       await sleep(3000);
 

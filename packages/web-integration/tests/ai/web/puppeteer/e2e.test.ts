@@ -80,7 +80,7 @@ describe(
       });
 
       await expect(async () => {
-        await agent.aiAction(
+        await agent.aiAct(
           'type "standard_user" in user name input, type "secret_sauce" in password',
         );
       }).rejects.toThrowError();
@@ -188,13 +188,13 @@ describe(
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
-      // await agent.aiAction('If pop-ups are displayed click seven days out alert');
+      // await agent.aiAct('If pop-ups are displayed click seven days out alert');
       await sleep(8000);
-      await agent.aiAction(
+      await agent.aiAct(
         'Click the password input in the demo section on page, type "abc"',
       );
 
-      await agent.aiAction(
+      await agent.aiAct(
         'click the "icon" on the categories on the left, sleep 5s, in the newly loaded page, type "pause" in the icon search box(it shows "search icon here")',
       );
 
@@ -252,8 +252,8 @@ describe(
         const { originPage, reset } = await launchPage('https://www.bing.com/');
         resetFn = reset;
         const agent = new PuppeteerAgent(originPage);
-        await agent.aiAction('type "AI 101" in search box');
-        await agent.aiAction(
+        await agent.aiAct('type "AI 101" in search box');
+        await agent.aiAct(
           'type "Hello world" in search box, hit Enter, wait 2s',
         );
 
@@ -298,7 +298,7 @@ describe(
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
-      await agent.aiAction(
+      await agent.aiAct(
         'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
       );
       await agent.aiAssert(
@@ -339,7 +339,7 @@ describe(
         customActions: [UploadFile],
       });
 
-      await agent.aiAction(
+      await agent.aiAct(
         'Upload a local file to current page, which path is /tmp/demo.txt',
       );
 
@@ -354,7 +354,7 @@ describe(
       const agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: false,
       });
-      await agent.aiAction('Tap hao123 in the navigation bar');
+      await agent.aiAct('Tap hao123 in the navigation bar');
       await sleep(6000);
 
       await expect(async () => {
@@ -369,7 +369,7 @@ describe(
       const agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: true,
       });
-      await agent.aiAction('Tap hao123 in the navigation bar');
+      await agent.aiAct('Tap hao123 in the navigation bar');
 
       await agent.aiWaitFor('There is a weather forecast in the page');
     });
@@ -417,28 +417,25 @@ describe(
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
-      // await agent.aiAction('Close the cookie prompt');
-      await agent.aiAction(
+      // await agent.aiAct('Close the cookie prompt');
+      await agent.aiAct(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
     });
 
-    it.only('swipe', async () => {
+    it('swipe', async () => {
       const htmlPath = path.join(__dirname, 'local-search.html');
-      const { originPage, reset } = await launchPage(
-        `file://${htmlPath}`,
-        {
-          viewport: {
-            width: 393,
-            height: 808,
-          },
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
+        viewport: {
+          width: 393,
+          height: 808,
         },
-      );
+      });
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
       const screenshot1 = await agent.page.screenshotBase64();
       await sleep(2000);
-      await agent.aiAction('Swipe right one screen');
+      await agent.aiAct('Swipe right one screen');
 
       await agent.aiAssert({
         prompt: 'The content of the page is different from the reference',
@@ -451,7 +448,7 @@ describe(
       });
 
       const screenshot2 = await agent.page.screenshotBase64();
-      await agent.aiAction('Swipe left one screen');
+      await agent.aiAct('Swipe left one screen');
       await sleep(2000);
       await agent.aiAssert({
         prompt: 'The content of the page is different from the reference',
@@ -466,18 +463,15 @@ describe(
 
     it('longPress', async () => {
       const htmlPath = path.join(__dirname, 'local-search.html');
-      const { originPage, reset } = await launchPage(
-        `file://${htmlPath}`,
-        {
-          viewport: {
-            width: 393,
-            height: 808,
-          },
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
+        viewport: {
+          width: 393,
+          height: 808,
         },
-      );
+      });
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
-      await agent.aiAction('Long press the search button');
+      await agent.aiAct('Long press the search button');
     });
 
     it('double click', async () => {
@@ -486,7 +480,7 @@ describe(
       );
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
-      await agent.aiAction('double click the "Click Me" button');
+      await agent.aiAct('double click the "Click Me" button');
 
       await agent.aiAssert(
         'the "Double" field in the "Left" section shows Double:1 instead of Double:0',

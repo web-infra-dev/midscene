@@ -18,7 +18,7 @@ describe(
         usePhysicalDisplayIdForScreenshot: true,
       });
 
-      await agent.aiAction('Take a photo');
+      await agent.aiAct('Take a photo');
     });
     await it('Android settings page demo for scroll', async () => {
       const devices = await getConnectedDevices();
@@ -30,7 +30,7 @@ describe(
         usePhysicalDisplayIdForScreenshot: true,
       });
 
-      await agent.aiAction('Click the top left icon');
+      await agent.aiAct('Click the top left icon');
     });
   },
   360 * 1000,

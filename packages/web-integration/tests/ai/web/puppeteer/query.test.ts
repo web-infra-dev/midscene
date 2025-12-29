@@ -30,7 +30,7 @@ describe(
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
-      await agent.aiAction(
+      await agent.aiAct(
         'type "standard_user" in user name input, type "secret_sauce" in password, click login',
       );
 

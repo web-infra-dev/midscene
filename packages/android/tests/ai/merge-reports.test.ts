@@ -68,8 +68,8 @@ describe('Test Setting', () => {
     await sleep(1000);
     await adb.shell('am start -n com.android.settings/.Settings');
     await sleep(1000);
-    await agent.aiAction('find and enter WLAN setting');
-    await agent.aiAction(
+    await agent.aiAct('find and enter WLAN setting');
+    await agent.aiAct(
       'toggle WLAN status *once*, if WLAN is off pls turn it on, otherwise turn it off.',
     );
   });
@@ -80,8 +80,8 @@ describe('Test Setting', () => {
     await sleep(1000);
     await adb.shell('am start -n com.android.settings/.Settings');
     await sleep(1000);
-    await agent.aiAction('find and enter bluetooth setting');
-    await agent.aiAction(
+    await agent.aiAct('find and enter bluetooth setting');
+    await agent.aiAct(
       'toggle bluetooth status *once*, if bluetooth is off pls turn it on, otherwise turn it off.',
     );
   });
