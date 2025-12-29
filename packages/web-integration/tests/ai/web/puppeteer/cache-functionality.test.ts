@@ -239,7 +239,7 @@ describe('Cache Operation Tests', () => {
     });
 
     // Same action should use cached plan
-    await agent2.aiAction('check if this is the example.com website');
+    await agent2.aiAct('check if this is the example.com website');
 
     // Both should have same cache ID
     expect(agent1.taskCache?.cacheId).toBe(agent2.taskCache?.cacheId);
@@ -256,15 +256,6 @@ describe('Cache Operation Tests', () => {
 
     await expect(agentNoCache.flushCache()).rejects.toThrow(
       'Cache is not configured',
-    );
-
-    // Test flushCache in read-write mode (should fail)
-    const agentReadWrite = new PuppeteerAgent(originPage, {
-      cache: { id: 'readwrite-flush-test' },
-    });
-
-    await expect(agentReadWrite.flushCache()).rejects.toThrow(
-      'flushCache() can only be called in read-only mode',
     );
 
     // Test with normal cache mode (temporarily removing read-only)

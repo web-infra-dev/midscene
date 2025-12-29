@@ -36,7 +36,6 @@ export default defineConfig({
     include: testFiles,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI, // showcase.test.ts is not stable
-    reporters: ['verbose'],
   },
   define: {
     // must greater than 0.16.0, otherwise will cause warning "You are using an old version of Midscene cache file"
