@@ -1,5 +1,18 @@
 import { Agent } from '@/agent';
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import {
+  MIDSCENE_MODEL_API_KEY,
+  MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_FAMILY,
+  MIDSCENE_MODEL_NAME,
+} from '@midscene/shared/env';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const defaultModelConfig = {
+  [MIDSCENE_MODEL_NAME]: 'qwen2.5-vl-max',
+  [MIDSCENE_MODEL_API_KEY]: 'test-key',
+  [MIDSCENE_MODEL_BASE_URL]: 'https://api.sample.com/v1',
+  [MIDSCENE_MODEL_FAMILY]: 'qwen2.5-vl' as const,
+};
 
 const createMockInterface = () =>
   ({
@@ -12,6 +25,7 @@ describe('Agent cache fallback', () => {
 
   beforeEach(() => {
     vi.mock('openai');
+    Object.assign(process.env, defaultModelConfig);
     agent = new Agent(createMockInterface());
   });
 
@@ -23,30 +37,45 @@ describe('Agent cache fallback', () => {
     // Mock cache with yaml workflow
     const mockCache = {
       cacheContent: {
-        yamlWorkflow: 'invalid-yaml-content',
+        yamlWorkflow: 'tasks:\n  - name: test\n    flow: invalid',
       },
     };
 
     // Mock taskCache to return cache match
+    const matchPlanCacheSpy = vi.fn().mockReturnValue(mockCache);
     agent.taskCache = {
       isCacheResultUsed: true,
-      findCache: vi.fn().mockResolvedValue(mockCache),
+      matchPlanCache: matchPlanCacheSpy,
     } as any;
 
     // Mock runYaml to throw error (simulating cache execution failure)
-    const runYamlSpy = vi.spyOn(agent, 'runYaml').mockRejectedValue(new Error('YAML execution failed'));
+    const runYamlSpy = vi
+      .spyOn(agent, 'runYaml')
+      .mockRejectedValue(new Error('YAML execution failed'));
 
-    // Mock taskExecutor methods
+    // Mock taskExecutor methods - make loadYamlFlowAsPlanning async
     agent.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn(),
-      action: vi.fn().mockResolvedValue({ output: { result: { success: true } } }),
+      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
+      action: vi
+        .fn()
+        .mockResolvedValue({ output: { result: { success: true } } }),
     } as any;
+
+    // Mock model config manager to return non-vlm-ui-tars config
+    agent.modelConfigManager = {
+      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
+    } as any;
+
+    // Mock resolveReplanningCycleLimit
+    vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
 
     const result = await agent.aiAct('test task');
 
     // Verify runYaml was called and failed
-    expect(runYamlSpy).toHaveBeenCalledWith('invalid-yaml-content');
-    
+    expect(runYamlSpy).toHaveBeenCalledWith(
+      'tasks:\n  - name: test\n    flow: invalid',
+    );
+
     // Verify fallback to normal execution
     expect(agent.taskExecutor.action).toHaveBeenCalled();
   });
