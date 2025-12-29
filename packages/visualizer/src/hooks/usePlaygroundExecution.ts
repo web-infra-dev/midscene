@@ -9,9 +9,23 @@ import type {
   StorageProvider,
 } from '../types';
 
-import { noReplayAPIs } from '@midscene/playground';
 import { BLANK_RESULT } from '../utils/constants';
 import { allScriptsFromDump } from '../utils/replay-scripts';
+
+/**
+ * Format error object to string
+ */
+function formatError(error: any): string {
+  if (!error) return '';
+  if (typeof error === 'string') return error;
+  if (error?.dump?.error) return error.dump.error;
+  if (error.message) return String(error.message);
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
 
 /**
  * Build progress content string from task information
@@ -76,8 +90,7 @@ export function usePlaygroundExecution(
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
 ) {
   // Get execution options from environment config
-  const { deepThink, screenshotIncluded, domIncluded, planningStrategy } =
-    useEnvConfig();
+  const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
 
   // Handle form submission and execution
   const handleRun = useCallback(
@@ -140,7 +153,7 @@ export function usePlaygroundExecution(
                   content: buildProgressContent(task),
                   timestamp: new Date(task.timing?.start || Date.now()),
                   result: task.error
-                    ? { error: String(task.error), result: null }
+                    ? { error: formatError(task.error), result: null }
                     : undefined,
                 }),
               );
@@ -179,7 +192,6 @@ export function usePlaygroundExecution(
         result.result = await playgroundSDK.executeAction(actionType, value, {
           requestId: thisRunningId.toString(),
           deepThink,
-          planningStrategy,
           screenshotIncluded,
           domIncluded,
         });
@@ -191,7 +203,7 @@ export function usePlaygroundExecution(
             result.dump = resultObj.dump;
           }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
-          if (resultObj.error) result.error = resultObj.error;
+          if (resultObj.error) result.error = formatError(resultObj.error);
 
           // If result was wrapped, extract the actual result
           if (resultObj.result !== undefined) {
@@ -199,7 +211,7 @@ export function usePlaygroundExecution(
           }
         }
       } catch (e: any) {
-        result.error = e?.message || String(e);
+        result.error = formatError(e);
         console.error('Playground execution error:', e);
 
         // Try to extract dump and reportHTML from error object
@@ -293,7 +305,6 @@ export function usePlaygroundExecution(
       currentRunningIdRef,
       interruptedFlagRef,
       deepThink,
-      planningStrategy,
       screenshotIncluded,
       domIncluded,
     ],
@@ -304,13 +315,20 @@ export function usePlaygroundExecution(
     const thisRunningId = currentRunningIdRef.current;
     if (thisRunningId && playgroundSDK && playgroundSDK.cancelExecution) {
       try {
-        // Get current execution data before stopping
+        // Cancel execution - may return execution data directly
+        const cancelResult = await playgroundSDK.cancelExecution(
+          thisRunningId.toString(),
+        );
+
+        // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
         let executionData: {
           dump: ExecutionDump | null;
           reportHTML: string | null;
         } | null = null;
 
-        if (playgroundSDK.getCurrentExecutionData) {
+        if (cancelResult) {
+          executionData = cancelResult;
+        } else if (playgroundSDK.getCurrentExecutionData) {
           try {
             executionData = await playgroundSDK.getCurrentExecutionData();
           } catch (error) {
@@ -318,8 +336,6 @@ export function usePlaygroundExecution(
           }
         }
 
-        // Cancel execution
-        await playgroundSDK.cancelExecution(thisRunningId.toString());
         interruptedFlagRef.current[thisRunningId] = true;
         setLoading(false);
 

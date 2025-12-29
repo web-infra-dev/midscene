@@ -2,8 +2,8 @@ import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 即将到来 - 现在 Beta 阶段',
-  newBadgeLegacyLink: '返回 v0.x 文档',
+  newBadge: 'Midscene 1.0 正式发布',
+  changelogLink: '查看最新特性',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
@@ -15,11 +15,11 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Banner - CTA Buttons
   introduction: '使用文档',
-  whatsNew: '查看新特性',
+  whatsNew: '案例展示',
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
-  clientsHeading: `Web、iOS、Android
+  clientsHeading: `Web, iOS, Android
 等多端支持`,
   clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
   clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',

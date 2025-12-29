@@ -73,6 +73,7 @@ const modelConfigCalcByMockedModelConfig = {
   openaiBaseURL: 'mock-base-url',
   openaiExtraConfig: undefined,
   socksProxy: undefined,
+  temperature: 0,
   uiTarsModelVersion: undefined,
   vlMode: 'qwen3-vl',
   vlModeRaw: 'qwen3-vl',

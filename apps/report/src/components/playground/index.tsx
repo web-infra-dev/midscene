@@ -1,4 +1,5 @@
-import type { DeviceAction, UIContext } from '@midscene/core';
+import type { DeviceAction, ExecutionDump, UIContext } from '@midscene/core';
+import { paramStr, typeStr } from '@midscene/core/agent';
 import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
 import {
@@ -24,7 +25,6 @@ import {
 } from '../../utils/report-playground-utils';
 
 // Constants
-const PROGRESS_POLL_INTERVAL = 500;
 const DEFAULT_AGENT_ERROR = 'PlaygroundSDK not initialized';
 
 const blankResult = {
@@ -52,6 +52,7 @@ interface PlaygroundProps {
   hideLogo?: boolean;
   showContextPreview?: boolean;
   dryMode?: boolean;
+  canDownloadReport?: boolean;
 }
 
 // Standard Playground Component (In-Browser and Server modes)
@@ -60,6 +61,7 @@ export function StandardPlayground({
   hideLogo = false,
   showContextPreview = true,
   dryMode = false,
+  canDownloadReport,
 }: PlaygroundProps) {
   const { serviceMode } = useEnvConfig();
   // State management
@@ -225,7 +227,6 @@ export function StandardPlayground({
     const thisRunningId = Date.now().toString();
 
     const actionType = value.type;
-    let progressInterval: NodeJS.Timeout | null = null;
 
     try {
       if (!activeAgent) {
@@ -245,31 +246,28 @@ export function StandardPlayground({
         setLoadingProgressText(tip);
       };
 
-      // Set up progress polling for PlaygroundSDK execution
-      const pollProgress = () => {
-        if (
-          playgroundSDK.current &&
-          !interruptedFlagRef.current[thisRunningId]
-        ) {
-          playgroundSDK.current
-            .getTaskProgress(thisRunningId)
-            .then((progressInfo) => {
-              if (
-                progressInfo.tip &&
-                !interruptedFlagRef.current[thisRunningId]
-              ) {
-                setLoadingProgressText(progressInfo.tip);
-              }
-            })
-            .catch(() => {
-              // Ignore progress polling errors
-            });
-        }
-      };
+      // Set up dump update callback for PlaygroundSDK execution
+      if (playgroundSDK.current?.onDumpUpdate) {
+        playgroundSDK.current.onDumpUpdate(
+          (_: string, executionDump?: ExecutionDump) => {
+            if (
+              interruptedFlagRef.current[thisRunningId] ||
+              !executionDump?.tasks?.length
+            ) {
+              return;
+            }
 
-      // Start progress polling if using PlaygroundSDK
-      if (playgroundSDK.current) {
-        progressInterval = setInterval(pollProgress, PROGRESS_POLL_INTERVAL);
+            // Get the last task to show its progress
+            const lastTask =
+              executionDump.tasks[executionDump.tasks.length - 1];
+            const action = typeStr(lastTask);
+            const description = paramStr(lastTask) || '';
+            const progressText = description
+              ? `${action} - ${description}`
+              : action;
+            setLoadingProgressText(progressText);
+          },
+        );
       }
 
       if (serviceMode === 'Server' && playgroundSDK.current) {
@@ -312,11 +310,7 @@ export function StandardPlayground({
         // Use optimized SDK getter to prevent unnecessary recreation
         const sdk = getOrCreatePlaygroundSDK(activeAgent);
 
-        if (!sdk) {
-          throw new Error('Failed to create PlaygroundSDK');
-        }
-
-        result.result = await sdk.executeAction(
+        const response = await sdk.executeAction(
           actionType,
           { type: actionType, prompt: value.prompt, params: value.params },
           {
@@ -326,6 +320,14 @@ export function StandardPlayground({
             requestId: thisRunningId,
           },
         );
+        if (response && typeof response === 'object' && 'result' in response) {
+          const serverResponse = response as ServerResponse;
+          result.result = serverResponse.result;
+          result.dump = serverResponse.dump;
+          result.reportHTML = serverResponse.reportHTML;
+        } else {
+          result.result = response;
+        }
       }
     } catch (e: any) {
       const errorMessage = playgroundSDK.current
@@ -338,16 +340,6 @@ export function StandardPlayground({
         requestId: thisRunningId,
         serviceMode,
       });
-
-      // Clear progress polling interval on error
-      if (progressInterval) {
-        clearInterval(progressInterval);
-      }
-    }
-
-    // Clear progress polling interval
-    if (progressInterval) {
-      clearInterval(progressInterval);
     }
 
     if (interruptedFlagRef.current[thisRunningId]) {
@@ -358,10 +350,15 @@ export function StandardPlayground({
     try {
       if (serviceMode === 'In-Browser') {
         // For In-Browser mode, get dump and reportHTML from agent after execution (even if there was an error)
-        result.dump = activeAgent?.dumpDataString()
-          ? JSON.parse(activeAgent.dumpDataString())
-          : null;
-        result.reportHTML = activeAgent?.reportHTMLString() || null;
+        // Only override if not already set by PlaygroundSDK response
+        if (!result.dump) {
+          result.dump = activeAgent?.dumpDataString()
+            ? JSON.parse(activeAgent.dumpDataString())
+            : null;
+        }
+        if (!result.reportHTML) {
+          result.reportHTML = activeAgent?.reportHTMLString() || null;
+        }
       }
     } catch (e) {
       console.error('Error getting dump/reportHTML:', e);
@@ -376,6 +373,12 @@ export function StandardPlayground({
     }
 
     currentAgentRef.current = null;
+
+    // For noReplayAPIs (data extraction/validation), only keep the result, not dump/reportHTML
+    if (noReplayAPIs.includes(actionType)) {
+      result.dump = null;
+      result.reportHTML = null;
+    }
 
     setResult(result);
     setLoading(false);
@@ -468,7 +471,9 @@ export function StandardPlayground({
             className="playground-result-view-container"
             style={
               result
-                ? {}
+                ? {
+                    height: '90vh',
+                  }
                 : {
                     border: '1px solid #0000001f',
                     borderRadius: '8px',
@@ -485,6 +490,7 @@ export function StandardPlayground({
               replayScriptsInfo={replayScriptsInfo}
               replayCounter={replayCounter}
               loadingProgressText={loadingProgressText}
+              canDownloadReport={canDownloadReport}
             />
           </div>
         </Panel>

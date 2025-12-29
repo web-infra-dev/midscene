@@ -53,7 +53,7 @@ Promise.resolve(
 
     // 👀 执行搜索
     // 注：尽管这是一个英文页面，你也可以用中文指令控制它
-    await agent.aiAct('在搜索框输入 "Headphones" ，敲回车');
+    await agent.aiAct('在搜索框输入 "Headphones"，敲回车');
     await sleep(5000);
 
     // 👀 理解页面，提取数据
@@ -95,7 +95,7 @@ npx tsx demo.ts
 
 ### 第四步：查看运行报告
 
-当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
 <a id="puppeteeragent"></a>
 

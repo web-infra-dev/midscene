@@ -154,7 +154,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           }
         }}
       >
-        <Panel maxSize={95} defaultSize={25}>
+        <Panel maxSize={95} defaultSize={25} minSize={15}>
           <div className="page-side">
             <Sidebar
               dumps={dumps}

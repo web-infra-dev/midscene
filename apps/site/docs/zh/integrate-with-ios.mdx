@@ -2,13 +2,13 @@ import SetupEnv from './common/setup-env.mdx';
 
 # 与 iOS(WebDriverAgent) 集成
 
-在使用 WebDriverAgent 连接 iOS 设备后，你可以使用 Midscene javascript SDK 来控制 iOS 设备。
+在使用 WebDriverAgent 连接 iOS 设备后，你可以使用 Midscene JavaScript SDK 来控制 iOS 设备。
 
 import { PackageManagerTabs } from '@theme';
 
 :::info 样例项目
 
-使用 javascript SDK 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
+使用 JavaScript SDK 控制 iOS 设备：[https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/ios/javascript-sdk-demo)
 
 与 Vitest 集成和测试：[https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/ios/vitest-demo)
 
@@ -142,7 +142,7 @@ Promise.resolve(
     await sleep(3000);
 
     // 👀 输入关键词，执行搜索
-    await agent.aiAct('在搜索框输入 "Headphones" ，敲回车');
+    await agent.aiAct('在搜索框输入 "Headphones"，敲回车');
 
     // 👀 等待加载完成
     await agent.aiWaitFor('页面中至少有一个耳机商品');
@@ -189,7 +189,7 @@ npx tsx demo.ts
 
 ### 第四步：查看运行报告
 
-当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`， 通过浏览器打开该文件即可看到报告。
+当上面的命令执行成功后，会在控制台输出：`Midscene - report file updated: /path/to/report/some_id.html`，通过浏览器打开该文件即可看到报告。
 
 ## 构造函数与接口
 

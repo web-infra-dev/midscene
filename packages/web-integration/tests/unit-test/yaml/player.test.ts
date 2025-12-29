@@ -663,34 +663,6 @@ tasks:
           },
         ],
         [
-          "Scroll",
-          {
-            "direction": "down",
-            "distance": 100,
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "scrollable area A",
-              "xpath": undefined,
-            },
-            "scrollType": "once",
-          },
-        ],
-        [
-          "Scroll",
-          {
-            "direction": "up",
-            "distance": 100,
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "scrollable area B",
-              "xpath": undefined,
-            },
-            "scrollType": "once",
-          },
-        ],
-        [
           "KeyboardPress",
           {
             "keyName": "Enter",
@@ -821,7 +793,7 @@ tasks:
 
     expect(
       (mockAgent.agent.aiScroll as MockedFunction<any>).mock.calls,
-    ).toHaveLength(0);
+    ).toHaveLength(2);
 
     expect(
       (mockAgent.agent.aiKeyboardPress as MockedFunction<any>).mock.calls,

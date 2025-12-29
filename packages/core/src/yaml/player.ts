@@ -431,21 +431,10 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         // Old format: { aiScroll: null, locate?: TUserPrompt, direction, scrollType, distance? }
         // New format - 1: { aiScroll: TUserPrompt, direction, scrollType, distance? }
         // New format - 2: { aiScroll: undefined, locate: TUserPrompt, direction, scrollType, distance? }
-        let locatePrompt: TUserPrompt | undefined;
-        if ((scrollTask as any).locate) {
-          // Old format - locate is the prompt, aiScroll is null/ignored
-          locatePrompt = (scrollTask as any).locate;
-        } else {
-          // New format - aiScroll is the prompt, or no prompt for global scroll
-          locatePrompt = aiScroll;
-        }
+        const { locate, ...scrollOptions } = scrollTask as any;
+        const locatePrompt: TUserPrompt | undefined = locate ?? aiScroll;
 
-        await agent.callActionInActionSpace('Scroll', {
-          ...scrollTask,
-          ...(locatePrompt
-            ? { locate: buildDetailedLocateParam(locatePrompt, scrollTask) }
-            : {}),
-        });
+        await agent.aiScroll(locatePrompt, scrollOptions);
       } else {
         // generic action, find the action in actionSpace
 

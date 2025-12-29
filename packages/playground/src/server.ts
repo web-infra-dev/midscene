@@ -4,14 +4,12 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
-import { paramStr, typeStr } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
-import type { ProgressMessage } from './types';
 
 import 'dotenv/config';
 
@@ -43,7 +41,7 @@ class PlaygroundServer {
   port?: number | null;
   agent: PageAgent;
   staticPath: string;
-  taskProgressMessages: Record<string, ProgressMessage[]>; // Store full progress messages array
+  taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
 
   private _initialized = false;
@@ -62,7 +60,7 @@ class PlaygroundServer {
     this._app = express();
     this.tmpDir = getTmpDir()!;
     this.staticPath = staticPath;
-    this.taskProgressMessages = {}; // Initialize as empty object
+    this.taskExecutionDumps = {}; // Initialize as empty object
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
 
@@ -218,19 +216,10 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
-        const progressMessages = this.taskProgressMessages[requestId] || [];
-        // For backward compatibility, also provide a tip string from the last message
-        const lastMessage =
-          progressMessages.length > 0
-            ? progressMessages[progressMessages.length - 1]
-            : undefined;
-        const tip =
-          lastMessage && typeof lastMessage.action === 'string'
-            ? `${lastMessage.action} - ${lastMessage.description || ''}`
-            : '';
+        const executionDump = this.taskExecutionDumps[requestId] || null;
+
         res.json({
-          tip,
-          progressMessages, // Provide full progress messages array
+          executionDump,
         });
       },
     );
@@ -361,35 +350,16 @@ class PlaygroundServer {
       // Lock this task
       if (requestId) {
         this.currentTaskId = requestId;
-        this.taskProgressMessages[requestId] = [];
+        this.taskExecutionDumps[requestId] = null;
 
-        // Use onDumpUpdate to receive executionDump and transform tasks to progress messages
+        // Use onDumpUpdate to receive and store executionDump directly
         this.agent.onDumpUpdate = (
           _dump: string,
           executionDump?: ExecutionDump,
         ) => {
-          if (executionDump?.tasks) {
-            // Transform executionDump.tasks to ProgressMessage[] for API compatibility
-            this.taskProgressMessages[requestId] = executionDump.tasks.map(
-              (task, index) => {
-                const action = typeStr(task);
-                const description = paramStr(task) || '';
-
-                // Map task status
-                const taskStatus = task.status;
-                const status: 'pending' | 'running' | 'finished' | 'failed' =
-                  taskStatus === 'cancelled' ? 'failed' : taskStatus;
-
-                return {
-                  id: `progress-task-${index}`,
-                  taskId: `task-${index}`,
-                  action,
-                  description,
-                  status,
-                  timestamp: task.timing?.start || Date.now(),
-                };
-              },
-            );
+          if (executionDump) {
+            // Store the execution dump directly without transformation
+            this.taskExecutionDumps[requestId] = executionDump;
           }
         };
       }
@@ -437,7 +407,14 @@ class PlaygroundServer {
       }
 
       try {
-        response.dump = JSON.parse(this.agent.dumpDataString());
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump = JSON.parse(dumpString);
+          // Extract first execution from grouped dump, matching local execution adapter behavior
+          response.dump = groupedDump.executions?.[0] || null;
+        } else {
+          response.dump = null;
+        }
         response.reportHTML = this.agent.reportHTMLString() || null;
 
         this.agent.writeOutActionDumps();
@@ -463,9 +440,9 @@ class PlaygroundServer {
         );
       }
 
-      // Clean up task progress messages and unlock after execution completes
+      // Clean up task execution dumps and unlock after execution completes
       if (requestId) {
-        delete this.taskProgressMessages[requestId];
+        delete this.taskExecutionDumps[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -495,16 +472,35 @@ class PlaygroundServer {
 
           console.log(`Cancelling task: ${requestId}`);
 
+          // Get current execution data before cancelling (dump and reportHTML)
+          let dump: any = null;
+          let reportHTML: string | null = null;
+
+          try {
+            const dumpString = this.agent.dumpDataString?.();
+            if (dumpString) {
+              const groupedDump = JSON.parse(dumpString);
+              // Extract first execution from grouped dump
+              dump = groupedDump.executions?.[0] || null;
+            }
+
+            reportHTML = this.agent.reportHTMLString?.() || null;
+          } catch (error: unknown) {
+            console.warn('Failed to get execution data before cancel:', error);
+          }
+
           // Recreate agent to cancel the current task
           await this.recreateAgent();
 
           // Clean up
-          delete this.taskProgressMessages[requestId];
+          delete this.taskExecutionDumps[requestId];
           this.currentTaskId = null;
 
           res.json({
             status: 'cancelled',
-            message: 'Task cancelled successfully by recreating agent',
+            message: 'Task cancelled successfully',
+            dump,
+            reportHTML,
           });
         } catch (error: unknown) {
           const errorMessage =
@@ -684,7 +680,7 @@ class PlaygroundServer {
         } catch (error) {
           console.warn('Failed to destroy agent:', error);
         }
-        this.taskProgressMessages = {};
+        this.taskExecutionDumps = {};
 
         // Close the server
         this.server.close((error) => {
