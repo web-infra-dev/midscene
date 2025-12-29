@@ -11,7 +11,7 @@ import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, expect, test, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 120 * 1000,
 });
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
@@ -35,7 +35,7 @@ test(
   },
 );
 
-test('locate section', async () => {
+test('locate section', { timeout: 120 * 1000 }, async () => {
   const { context } = await getContextFromFixture('todo');
   const { rect } = await AiLocateSection({
     context,

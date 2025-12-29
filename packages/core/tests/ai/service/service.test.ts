@@ -62,10 +62,6 @@ describe.skipIf(!modelConfig.vlMode)('service locate with deep think', () => {
   });
 });
 
-vi.setConfig({
-  testTimeout: 60 * 1000,
-});
-
 test.skip('service locate with search area', async () => {
   const { context } = await getContextFromFixture('image-only');
 

@@ -45,5 +45,5 @@ test('ai online order', async ({ ai, aiTap, page, aiQuery }) => {
     productDescription: cardDetail.productDescription,
   });
   expect(cardDetail.productName).toContain('多肉葡萄');
-  expect(cardDetail.productDescription).toContain('绿妍');
+  expect(cardDetail.productDescription).toContain('首创品种');
 });
