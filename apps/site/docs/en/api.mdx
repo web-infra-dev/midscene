@@ -328,8 +328,8 @@ function aiScroll(
 - Parameters:
 
   - `scrollParam: PlanningActionParamScroll` - The scroll parameter
-    - `direction?: 'down' | 'up' | 'right' | 'left'` - The direction to scroll. Defaults to `down`. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - The scroll behavior. Defaults to `singleAction`.
+    - `direction?: 'down' | 'up' | 'right' | 'left'` - The direction to scroll. Defaults to `down`. Only effective when `scrollType` is `singleAction`. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
     - `distance?: number | null` - Optional, the distance to scroll in px. Use `null` to allow Midscene to decide automatically.
   - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
   - `options?: Object` - Optional, a configuration object containing:
@@ -345,7 +345,7 @@ function aiScroll(
 
 ```typescript
 await agent.aiScroll(
-  { direction: 'up', distance: 100, scrollType: 'singleAction' },
+  { scrollType: 'singleAction', direction: 'up', distance: 100 },
   'The form panel',
 );
 ```

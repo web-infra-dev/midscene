@@ -417,8 +417,8 @@ tasks:
 
       # Scroll globally or on an element described by a prompt.
       - aiScroll:
-        direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'.
         scrollType: 'singleAction' # or 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'. Defaults to 'singleAction'.
+        direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'. Only effective when scrollType is singleAction.
         distance: <number> # Optional, the scroll distance in pixels. Use null to let Midscene decide automatically.
         locate: <prompt> # Optional, the element to scroll on.
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
