@@ -135,7 +135,12 @@ tasks:
     const result = JSON.parse(readFileSync(output!, 'utf-8'));
     expect(result.items.length).toBeGreaterThanOrEqual(2);
     expect(result.items[0].imageUrl).toContain('/static/media/');
-    expect(result.items).toMatchSnapshot();
+    // Normalize imageUrl to avoid hash changes breaking snapshots
+    const normalizedItems = result.items.map((item: any) => ({
+      ...item,
+      imageUrl: item.imageUrl?.replace(/\.[a-f0-9]+\.jpg$/, '.jpg'),
+    }));
+    expect(normalizedItems).toMatchSnapshot();
     expect(result['page-title']).toMatchSnapshot();
     expect(result['price-assert'].thought).toBeTruthy();
     expect(result['price-assert'].pass).toBeTruthy();
