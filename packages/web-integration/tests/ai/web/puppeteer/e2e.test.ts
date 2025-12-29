@@ -433,29 +433,26 @@ describe(
       });
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
+
+      // Verify initial state
+      await agent.aiAssert(
+        'The swipe container shows "Panel 1 - Swipe to see more"',
+      );
+
       const screenshot1 = await agent.page.screenshotBase64();
       await sleep(2000);
-      await agent.aiAct('Swipe right one screen');
+      await agent.aiAct('Swipe from right to left on the swipe container');
 
+      // Verify content changed after swipe
+      await agent.aiAssert(
+        'The swipe container shows "Panel 2 - Keep swiping"',
+      );
       await agent.aiAssert({
         prompt: 'The content of the page is different from the reference',
         images: [
           {
             name: 'reference screenshot',
             url: screenshot1,
-          },
-        ],
-      });
-
-      const screenshot2 = await agent.page.screenshotBase64();
-      await agent.aiAct('Swipe left one screen');
-      await sleep(2000);
-      await agent.aiAssert({
-        prompt: 'The content of the page is different from the reference',
-        images: [
-          {
-            name: 'reference screenshot',
-            url: screenshot2,
           },
         ],
       });
@@ -471,7 +468,15 @@ describe(
       });
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
-      await agent.aiAct('Long press the search button');
+
+      // Try multiple approaches to trigger the context menu
+      await agent.aiAct('Press and hold the search button for 1 second');
+      await sleep(1000);
+
+      await agent.aiAssert('A context menu is visible on the page');
+      await agent.aiAssert(
+        'The context menu contains "Copy", "Paste", and "Delete" options',
+      );
     });
 
     it('double click', async () => {

@@ -118,6 +118,67 @@
         .search-settings:hover {
             background: #f0f0f0;
         }
+        .context-menu {
+            display: none;
+            position: fixed;
+            background: white;
+            border: 2px solid #ff0000;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 1001;
+            min-width: 150px;
+            font-size: 16px;
+        }
+        .context-menu-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+        }
+        .context-menu-item:hover {
+            background: #f0f0f0;
+        }
+        .context-menu-item:last-child {
+            border-bottom: none;
+        }
+        .longpress-indicator {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ff0000;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            display: none;
+        }
+        .swipe-container {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            position: relative;
+            border: 1px solid #ddd;
+            margin: 20px 0;
+        }
+        .swipe-content {
+            display: flex;
+            width: 300%;
+            height: 100%;
+            transition: transform 0.3s ease;
+        }
+        .swipe-panel {
+            width: 33.33%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .panel-1 { background: #e3f2fd; color: #1976d2; }
+        .panel-2 { background: #f3e5f5; color: #7b1fa2; }
+        .panel-3 { background: #e8f5e8; color: #388e3c; }
     </style>
 </head>
 <body>
@@ -127,7 +188,10 @@
         <div class="logo">LocalSearch</div>
         <div class="search-container">
             <input type="text" class="search-input" placeholder="Search" id="searchInput">
-            <button class="search-button" onclick="performSearch()">Search</button>
+            <button class="search-button" onclick="performSearch()" id="searchBtn">
+                Search
+                <div class="longpress-indicator" id="longpressIndicator">Long pressing...</div>
+            </button>
         </div>
         <div class="nav-links">
             <a href="#" onclick="navigateToHao123()">hao123</a>
@@ -135,6 +199,14 @@
             <a href="#">Images</a>
             <a href="#">Videos</a>
             <a href="#">Maps</a>
+        </div>
+        
+        <div class="swipe-container" id="swipeContainer">
+            <div class="swipe-content" id="swipeContent">
+                <div class="swipe-panel panel-1">Panel 1 - Swipe to see more</div>
+                <div class="swipe-panel panel-2">Panel 2 - Keep swiping</div>
+                <div class="swipe-panel panel-3">Panel 3 - End of content</div>
+            </div>
         </div>
     </div>
 
@@ -146,7 +218,19 @@
         </div>
     </div>
 
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" onclick="contextMenuAction('copy')">Copy</div>
+        <div class="context-menu-item" onclick="contextMenuAction('paste')">Paste</div>
+        <div class="context-menu-item" onclick="contextMenuAction('delete')">Delete</div>
+    </div>
+
     <script>
+        let currentPanel = 0;
+        let longPressTimer = null;
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+
         function performSearch() {
             const input = document.getElementById('searchInput');
             if (input.value.trim()) {
@@ -206,6 +290,179 @@
         document.getElementById('searchInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 performSearch();
+            }
+        });
+
+        // Long press functionality
+        let longPressActive = false;
+        
+        function startLongPress(e) {
+            const indicator = document.getElementById('longpressIndicator');
+            indicator.style.display = 'block';
+            longPressActive = true;
+            
+            longPressTimer = setTimeout(() => {
+                indicator.style.display = 'none';
+                showContextMenu();
+            }, 300);
+        }
+
+        function showContextMenu() {
+            const menu = document.getElementById('contextMenu');
+            const button = document.getElementById('searchBtn');
+            const rect = button.getBoundingClientRect();
+            
+            menu.style.display = 'block';
+            menu.style.left = rect.left + 'px';
+            menu.style.top = (rect.bottom + 5) + 'px';
+        }
+
+        function hideContextMenu() {
+            document.getElementById('contextMenu').style.display = 'none';
+        }
+
+        function contextMenuAction(action) {
+            alert(`Context menu action: ${action}`);
+            hideContextMenu();
+        }
+
+        // Add long press to search button
+        const searchButton = document.getElementById('searchBtn');
+        
+        searchButton.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                e.preventDefault();
+                startLongPress(e);
+            }
+        });
+        
+        searchButton.addEventListener('mouseup', (e) => {
+            const indicator = document.getElementById('longpressIndicator');
+            indicator.style.display = 'none';
+            
+            if (longPressTimer && longPressActive) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            longPressActive = false;
+            // Never hide the menu here
+        });
+        
+        searchButton.addEventListener('mouseleave', (e) => {
+            const indicator = document.getElementById('longpressIndicator');
+            indicator.style.display = 'none';
+            
+            if (longPressTimer && longPressActive) {
+                clearTimeout(longPressTimer);
+                longPressTimer = null;
+            }
+            longPressActive = false;
+            // Never hide the menu here
+        });
+        
+        searchButton.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showContextMenu();
+        });
+
+        // Swipe functionality
+        const swipeContainer = document.getElementById('swipeContainer');
+        const swipeContent = document.getElementById('swipeContent');
+
+        function updateSwipePosition() {
+            const translateX = -currentPanel * (100 / 3);
+            swipeContent.style.transform = `translateX(${translateX}%)`;
+        }
+
+        // Touch events for swipe
+        swipeContainer.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        swipeContainer.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            currentX = e.touches[0].clientX;
+            const diffX = startX - currentX;
+            const translateX = -currentPanel * (100 / 3) - (diffX / swipeContainer.offsetWidth) * (100 / 3);
+            swipeContent.style.transform = `translateX(${translateX}%)`;
+        });
+
+        swipeContainer.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            isDragging = false;
+            const diffX = startX - currentX;
+            const threshold = 50;
+
+            if (Math.abs(diffX) > threshold) {
+                if (diffX > 0 && currentPanel < 2) {
+                    currentPanel++;
+                } else if (diffX < 0 && currentPanel > 0) {
+                    currentPanel--;
+                }
+            }
+            updateSwipePosition();
+        });
+
+        // Mouse events for swipe (for desktop testing)
+        swipeContainer.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        swipeContainer.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            currentX = e.clientX;
+            const diffX = startX - currentX;
+            const translateX = -currentPanel * (100 / 3) - (diffX / swipeContainer.offsetWidth) * (100 / 3);
+            swipeContent.style.transform = `translateX(${translateX}%)`;
+        });
+
+        swipeContainer.addEventListener('mouseup', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            const diffX = startX - currentX;
+            const threshold = 50;
+
+            if (Math.abs(diffX) > threshold) {
+                if (diffX > 0 && currentPanel < 2) {
+                    currentPanel++;
+                } else if (diffX < 0 && currentPanel > 0) {
+                    currentPanel--;
+                }
+            }
+            updateSwipePosition();
+        });
+
+        swipeContainer.addEventListener('mouseleave', (e) => {
+            if (isDragging) {
+                isDragging = false;
+                updateSwipePosition();
+            }
+        });
+
+        // Hide context menu when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('contextMenu');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            // Don't hide if clicking on the menu itself or the search button
+            if (!e.target.closest('.context-menu') && e.target !== searchBtn) {
+                hideContextMenu();
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            const menu = document.getElementById('contextMenu');
+            const searchBtn = document.getElementById('searchBtn');
+            
+            // Don't hide if clicking on the menu itself or the search button
+            if (!e.target.closest('.context-menu') && e.target !== searchBtn) {
+                hideContextMenu();
             }
         });
     </script>
