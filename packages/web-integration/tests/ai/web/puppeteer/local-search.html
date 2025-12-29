@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Search Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 48px;
+            color: #4285f4;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            height: 44px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            padding: 0 45px 0 16px;
+            font-size: 16px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .search-input:focus {
+            border-color: #4285f4;
+            box-shadow: 0 2px 5px 1px rgba(64,60,67,.16);
+        }
+        .search-button {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 18px;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .search-button:hover {
+            background: #3367d6;
+        }
+        .nav-links {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-links a {
+            color: #1a0dab;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 14px;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .settings-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .popup-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 300px;
+        }
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .search-settings {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .search-settings:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <button class="settings-button" onclick="showSettings()">Settings</button>
+    
+    <div class="header">
+        <div class="logo">LocalSearch</div>
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="Search" id="searchInput">
+            <button class="search-button" onclick="performSearch()">Search</button>
+        </div>
+        <div class="nav-links">
+            <a href="#" onclick="navigateToHao123()">hao123</a>
+            <a href="#">News</a>
+            <a href="#">Images</a>
+            <a href="#">Videos</a>
+            <a href="#">Maps</a>
+        </div>
+    </div>
+
+    <div class="popup" id="settingsPopup">
+        <div class="popup-content">
+            <button class="close-button" onclick="closeSettings()">&times;</button>
+            <h3>Settings</h3>
+            <div class="search-settings" onclick="showSearchSettings()">Search Settings</div>
+        </div>
+    </div>
+
+    <script>
+        function performSearch() {
+            const input = document.getElementById('searchInput');
+            if (input.value.trim()) {
+                // Simulate search results page
+                document.body.innerHTML = `
+                    <div style="padding: 20px;">
+                        <h2>Search results for: "${input.value}"</h2>
+                        <div style="margin: 20px 0;">
+                            <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd;">
+                                <h3><a href="#" style="color: #1a0dab;">AI 101 - Artificial Intelligence Tutorial</a></h3>
+                                <p>This is a comprehensive tutorial about artificial intelligence basics...</p>
+                            </div>
+                            <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd;">
+                                <h3><a href="#" style="color: #1a0dab;">Hello World - Programming Introduction</a></h3>
+                                <p>Hello World is the first step in learning programming...</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function showSettings() {
+            document.getElementById('settingsPopup').style.display = 'block';
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsPopup').style.display = 'none';
+        }
+
+        function showSearchSettings() {
+            alert('Search settings opened');
+            closeSettings();
+        }
+
+        function navigateToHao123() {
+            // Simulate hao123 page with weather forecast
+            document.body.innerHTML = `
+                <div style="padding: 20px;">
+                    <h1>hao123 Navigation</h1>
+                    <div style="margin: 20px 0; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+                        <h3>Weather Forecast</h3>
+                        <p>Today: Sunny, 15-25°C</p>
+                        <p>Tomorrow: Cloudy, 12-22°C</p>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px;">
+                        <a href="#" style="padding: 10px; text-align: center; border: 1px solid #ddd; text-decoration: none;">Sina</a>
+                        <a href="#" style="padding: 10px; text-align: center; border: 1px solid #ddd; text-decoration: none;">Tencent</a>
+                        <a href="#" style="padding: 10px; text-align: center; border: 1px solid #ddd; text-decoration: none;">NetEase</a>
+                        <a href="#" style="padding: 10px; text-align: center; border: 1px solid #ddd; text-decoration: none;">Sohu</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Handle Enter key in search input
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    </script>
+</body>
+</html>
