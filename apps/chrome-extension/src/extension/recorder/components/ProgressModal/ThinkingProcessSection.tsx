@@ -62,7 +62,7 @@ export const ThinkingProcessSection: React.FC<ThinkingProcessSectionProps> = ({
           className={' text-sm font-medium '}
           style={{ color: 'rgba(0, 0, 0, 0.85)' }}
         >
-          🤔 AI Thingking Process
+          🤔 AI Thinking Process
         </div>
         <div
           className={`transform transition-transform ml-auto mr-1 ${showThinking ? 'rotate-180' : ''}`}
