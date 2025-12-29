@@ -4,7 +4,6 @@ import { z } from '@midscene/core';
 import { defineAction } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { wrapOpenAI } from 'langsmith/wrappers/openai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -126,11 +125,11 @@ describe(
       });
 
       // Legacy scroll param compatibility: ensure old scrollType values still work
-      await agent.aiScroll({
+      await agent.aiScroll('', {
         direction: 'down',
         scrollType: 'once',
       } as any);
-      await agent.aiScroll({
+      await agent.aiScroll('', {
         direct55ion: 'up',
         scrollType: 'once',
       } as any);
@@ -213,12 +212,14 @@ describe(
       resetFn = reset;
       const agent = new PuppeteerAgent(originPage);
 
-      await agent.aiInput('AI 101', 'the search bar input');
+      await agent.aiInput('the search bar input', {
+        value: 'AI 101',
+      });
       await agent.aiTap('the search button');
 
       await sleep(3000);
 
-      await agent.aiScroll({
+      await agent.aiScroll('', {
         direction: 'down',
         scrollType: 'scrollToBottom',
       });
