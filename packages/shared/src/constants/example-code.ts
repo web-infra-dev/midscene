@@ -5,15 +5,22 @@ export const PLAYWRIGHT_EXAMPLE_CODE = `
 IMPORTANT: Follow these exact type signatures for AI functions:
 
 // Type signatures for AI functions:
-aiInput(value: string, locator: string): Promise<void>
-aiTap(locator: string): Promise<void>
-aiDoubleClick(locator: string): Promise<void>
-aiScroll(scrollParam: {
-  direction: 'up' | 'down' | 'left' | 'right',
-  scrollType: 'once' | 'untilBottom' | 'untilTop' | 'untilRight' | 'untilLeft',
-  distance: number - scroll distance, px is the unit
+aiAct(prompt: string, options?: { cacheable?: boolean }): Promise<void>
+aiInput(text: string, locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiTap(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiHover(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiDoubleClick(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiKeyboardPress(key: string, locate?: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiScroll(locate: string | undefined, options: {
+  direction?: 'up' | 'down' | 'left' | 'right',
+  scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft',
+  distance?: number | null,
+  deepThink?: boolean,
+  xpath?: string,
+  cacheable?: boolean
 }): Promise<void>
-aiAssert(assertion: string): Promise<void>
+aiAssert(assertion: string, options?: { errorMessage?: string }): Promise<void>
+aiWaitFor(prompt: string, options?: { timeout?: number }): Promise<void>
 aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
 
 // examples:
@@ -35,12 +42,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('ai shop', async ({
+  aiAct,
   aiInput,
   aiAssert,
   aiQuery,
   aiKeyboardPress,
   aiHover,
   aiTap,
+  aiWaitFor,
   agentForPage,
   page,
 }) => {
@@ -87,7 +96,7 @@ tasks:
         locate: 'input field description'
       - aiScroll:
         direction: down/up
-        scrollType: untilBottom/untilTop/page
+        scrollType: scrollToBottom/scrollToTop/singleAction
       - aiAssert: "expected state"
       - sleep: milliseconds
 
@@ -160,7 +169,7 @@ tasks:
       # Scroll globally or on an element described by a prompt.
       - aiScroll:
         direction: 'up' # or 'down' | 'left' | 'right'
-        scrollType: 'once' # or 'untilTop' | 'untilBottom' | 'untilLeft' | 'untilRight'
+        scrollType: 'singleAction' # or 'scrollToTop' | 'scrollToBottom' | 'scrollToLeft' | 'scrollToRight'
         distance: <number> # Optional, the scroll distance in pixels.
         locate: <prompt> # Optional, the element to scroll on.
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
