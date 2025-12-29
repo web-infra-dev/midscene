@@ -236,10 +236,6 @@ export const defineActionKeyboardPress = (
 
 // Scroll
 export const actionScrollParamSchema = z.object({
-  direction: z
-    .enum(['down', 'up', 'right', 'left'])
-    .default('down')
-    .describe('The direction to scroll'),
   scrollType: z
     .enum([
       'singleAction',
@@ -251,6 +247,12 @@ export const actionScrollParamSchema = z.object({
     .default('singleAction')
     .describe(
       'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+    ),
+  direction: z
+    .enum(['down', 'up', 'right', 'left'])
+    .default('down')
+    .describe(
+      'The direction to scroll. Only effective when scrollType is "singleAction".',
     ),
   distance: z
     .number()

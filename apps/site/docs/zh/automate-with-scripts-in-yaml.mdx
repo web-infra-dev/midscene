@@ -423,8 +423,8 @@ tasks:
 
       # 全局滚动，或滚动 prompt 描述的元素
       - aiScroll:
-        direction: 'down' # 或 'up' | 'left' | 'right'，默认值为 'down'
         scrollType: 'singleAction' # 或 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'，默认值为 'singleAction'
+        direction: 'down' # 或 'up' | 'left' | 'right'，默认值为 'down'。仅在 scrollType 为 singleAction 时生效
         distance: <number> # 可选，滚动距离，单位为像素。设置为 null 表示由 Midscene 自动决定。
         locate: <prompt> # 可选，执行滚动的元素
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False

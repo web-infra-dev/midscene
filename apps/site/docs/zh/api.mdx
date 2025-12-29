@@ -322,8 +322,8 @@ function aiScroll(
 - 参数：
 
   - `scrollParam: PlanningActionParamScroll` - 滚动参数
-    - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - 滚动类型，默认值为 `singleAction`。
+    - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。仅在 `scrollType` 为 `singleAction` 时生效。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
   - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。
   - `options?: Object` - 可选，一个配置对象，包含：
@@ -339,7 +339,7 @@ function aiScroll(
 
 ```typescript
 await agent.aiScroll(
-  { direction: 'up', distance: 100, scrollType: 'singleAction' },
+  { scrollType: 'singleAction', direction: 'up', distance: 100 },
   '表单区域',
 );
 ```
