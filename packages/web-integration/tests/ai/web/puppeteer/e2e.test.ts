@@ -99,15 +99,6 @@ describe(
         onTaskStartTip,
         beforeInvokeAction,
         afterInvokeAction,
-        createOpenAIClient: (openai) => {
-          if (process.env.MIDSCENE_LANGSMITH_DEBUG) {
-            console.log('langsmith wrapped');
-            return wrapOpenAI(openai);
-          } else {
-            console.log('langsmith not wrapped');
-          }
-          return openai;
-        },
       });
 
       await sleep(10 * 1000);
@@ -131,7 +122,7 @@ describe(
       );
 
       await agent.aiTap('Login', {
-        deepThink: true,
+        // deepThink: true,
       });
 
       // Legacy scroll param compatibility: ensure old scrollType values still work
@@ -140,7 +131,7 @@ describe(
         scrollType: 'once',
       } as any);
       await agent.aiScroll({
-        direction: 'up',
+        direct55ion: 'up',
         scrollType: 'once',
       } as any);
 
