@@ -1,4 +1,4 @@
-import { plan } from '@/ai-model';
+import { ConversationHistory, plan } from '@/ai-model';
 import {
   globalConfigManager,
   globalModelConfigManager,
@@ -25,6 +25,8 @@ describe.skipIf(modelConfig.vlMode)('automation - llm planning', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       },
     );
     expect(actions).toBeTruthy();
@@ -46,6 +48,8 @@ describe.skipIf(modelConfig.vlMode)('automation - llm planning', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       },
     );
     expect(actions).toBeTruthy();
@@ -96,6 +100,8 @@ describe('planning', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       });
       expect(actions).toBeTruthy();
       // console.log(actions);
@@ -116,6 +122,8 @@ describe('planning', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       },
     );
     expect(actions).toBeTruthy();
@@ -133,6 +141,8 @@ describe('planning', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       },
     );
 
@@ -149,6 +159,8 @@ describe('planning', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       },
     );
 

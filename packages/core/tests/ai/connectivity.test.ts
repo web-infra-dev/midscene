@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { AIActionType } from '@/ai-model/common';
+import { AIActionType } from '@/ai-model';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import { globalModelConfigManager } from '@midscene/shared/env';

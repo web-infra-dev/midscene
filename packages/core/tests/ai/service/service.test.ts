@@ -9,7 +9,7 @@ import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 120 * 1000,
 });
 
 const modelConfig = globalModelConfigManager.getModelConfig('insight');

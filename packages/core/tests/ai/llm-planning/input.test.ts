@@ -1,4 +1,4 @@
-import { plan } from '@/ai-model';
+import { ConversationHistory, plan } from '@/ai-model';
 import type { DeviceAction } from '@/types';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
@@ -36,6 +36,8 @@ describe('automation - planning input', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig: defaultModelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
@@ -56,6 +58,8 @@ describe('automation - planning input', () => {
         actionSpace: mockActionSpace,
         interfaceType: 'puppeteer',
         modelConfig: defaultModelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
       });
       expect(actions).toBeDefined();
       expect(actions?.length).toBeGreaterThan(0);
