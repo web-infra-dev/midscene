@@ -4,6 +4,7 @@ import {
   type Tool,
   createMCPServerLauncher,
 } from '@midscene/shared/mcp';
+import type { AgentOverChromeBridge } from './bridge-mode';
 import { WebMidsceneTools } from './mcp-tools';
 
 declare const __VERSION__: string;
@@ -31,8 +32,8 @@ export class WebMCPServer extends BaseMCPServer {
 /**
  * Create an MCP server launcher for a specific Agent
  */
-export function mcpServerForAgent<TAgent extends GenericAgent>(agent: TAgent) {
-  return createMCPServerLauncher<TAgent, WebMidsceneTools>({
+export function mcpServerForAgent(agent: GenericAgent) {
+  return createMCPServerLauncher({
     agent,
     platformName: 'Web',
     ToolsManagerClass: WebMidsceneTools,
@@ -43,14 +44,15 @@ export function mcpServerForAgent<TAgent extends GenericAgent>(agent: TAgent) {
 /**
  * Create MCP kit for a specific Agent
  */
-export async function mcpKitForAgent<TAgent extends GenericAgent>(
-  agent: TAgent,
-): Promise<{
+export async function mcpKitForAgent(agent: GenericAgent): Promise<{
   description: string;
   tools: Tool[];
 }> {
   const toolsManager = new WebMidsceneTools();
-  toolsManager.setAgent(agent);
+
+  // Convert to AgentOverChromeBridge for Web tools manager
+  const webAgent = agent as AgentOverChromeBridge;
+  toolsManager.setAgent(webAgent);
   await toolsManager.initTools();
 
   return {
