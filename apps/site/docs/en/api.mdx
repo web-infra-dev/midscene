@@ -130,6 +130,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
+    qwen3_vl_enable_thinking?: boolean;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -140,6 +141,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `qwen3_vl_enable_thinking?: boolean` - Whether to enable the thinking feature when using Qwen3-VL models. Defaults to false.
 
 - Return Value:
 

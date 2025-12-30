@@ -132,6 +132,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
+    qwen3_vl_enable_thinking?: boolean;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
@@ -142,6 +143,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
   - `prompt: string` - 用自然语言描述的操作内容
   - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
+    - `qwen3_vl_enable_thinking?: boolean` - 是否在 qwen3-vl 模型下打开 thinking（思考）特性，默认值为 false
 
 - 返回值：
 
