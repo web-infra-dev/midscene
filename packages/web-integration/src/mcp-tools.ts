@@ -1,6 +1,7 @@
 import { z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from './bridge-mode';
+import { StaticPage } from './static';
 
 /**
  * Tools manager for Web bridge-mode MCP
@@ -9,7 +10,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
-    const { StaticPage } = require('@midscene/web/static');
     return new StaticPage({
       screenshotBase64: '',
       size: { width: 1920, height: 1080 },
