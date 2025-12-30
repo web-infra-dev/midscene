@@ -138,6 +138,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
+  qwen3_vl_enable_thinking?: boolean;
 };
 
 export class Agent<
@@ -858,6 +859,7 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
+    const qwen3_vl_enable_thinking = opt?.qwen3_vl_enable_thinking ?? false;
     const replanningCycleLimit = this.resolveReplanningCycleLimit(
       modelConfigForPlanning,
     );
@@ -899,6 +901,7 @@ export class Agent<
       cacheable,
       replanningCycleLimit,
       imagesIncludeCount,
+      qwen3_vl_enable_thinking,
     );
 
     // update cache

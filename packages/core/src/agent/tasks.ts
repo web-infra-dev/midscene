@@ -208,6 +208,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
+    qwen3_vl_enable_thinking?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -278,6 +279,9 @@ export class TaskExecutor {
               conversationHistory: this.conversationHistory,
               includeBbox: includeBboxInPlanning,
               imagesIncludeCount,
+              qwen3_vl_enable_thinking:
+                modelConfigForPlanning.vlMode === 'qwen3-vl' &&
+                qwen3_vl_enable_thinking,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
 

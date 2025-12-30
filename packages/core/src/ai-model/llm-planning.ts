@@ -33,6 +33,7 @@ export async function plan(
     conversationHistory: ConversationHistory;
     includeBbox: boolean;
     imagesIncludeCount?: number;
+    qwen3_vl_enable_thinking?: boolean;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -132,6 +133,9 @@ export async function plan(
     msgs,
     AIActionType.PLAN,
     modelConfig,
+    {
+      qwen3_vl_enable_thinking: opts.qwen3_vl_enable_thinking,
+    },
   );
 
   const actions = planFromAI.action ? [planFromAI.action] : [];

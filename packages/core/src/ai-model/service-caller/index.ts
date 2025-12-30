@@ -205,6 +205,7 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
+    qwen3_vl_enable_thinking?: boolean;
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
   const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
@@ -257,7 +258,7 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
-    // enable_thinking: true,
+    ...(options?.qwen3_vl_enable_thinking ? { enable_thinking: true } : {}),
   };
 
   try {
@@ -395,8 +396,13 @@ export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
+  options?: {
+    qwen3_vl_enable_thinking?: boolean;
+  },
 ): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
-  const response = await callAI(messages, AIActionTypeValue, modelConfig);
+  const response = await callAI(messages, AIActionTypeValue, modelConfig, {
+    qwen3_vl_enable_thinking: options?.qwen3_vl_enable_thinking,
+  });
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
