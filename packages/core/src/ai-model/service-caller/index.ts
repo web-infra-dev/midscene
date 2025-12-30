@@ -208,7 +208,12 @@ export async function callAI(
     qwen3_vl_enable_thinking?: boolean;
     doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
   },
-): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
+): Promise<{
+  content: string;
+  reasoning_content?: string;
+  usage?: AIUsageInfo;
+  isStreamed: boolean;
+}> {
   const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
     await createChatClient({
       AIActionTypeValue,
@@ -228,6 +233,7 @@ export async function callAI(
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
   let accumulated = '';
+  let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
 
@@ -299,6 +305,7 @@ export async function callAI(
 
         if (content || reasoning_content) {
           accumulated += content;
+          accumulatedReasoning += reasoning_content;
           const chunkData: CodeGenerationChunk = {
             content,
             reasoning_content,
@@ -362,10 +369,14 @@ export async function callAI(
         `invalid response from LLM service: ${JSON.stringify(result)}`,
       );
       content = result.choices[0].message.content!;
+      accumulatedReasoning =
+        (result.choices[0].message as any)?.reasoning_content || '';
       usage = result.usage;
+      debugCall(`response: ${JSON.stringify(result, null, 2)}`);
     }
 
-    debugCall(`response: ${content}`);
+    debugCall(`response reasoning content: ${accumulatedReasoning}`);
+    debugCall(`response content: ${content}`);
     assert(content, 'empty content');
 
     // Ensure we always have usage info for streaming responses
@@ -384,6 +395,7 @@ export async function callAI(
 
     return {
       content: content || '',
+      reasoning_content: accumulatedReasoning || undefined,
       usage: buildUsageInfo(usage),
       isStreamed: !!isStreaming,
     };
