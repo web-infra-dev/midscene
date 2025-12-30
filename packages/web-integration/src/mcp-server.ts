@@ -18,7 +18,7 @@ export class WebMCPServer extends BaseMCPServer {
       {
         name: '@midscene/web-bridge-mcp',
         version: __VERSION__,
-        description: 'Midscene MCP Server for Web automation (Bridge mode)',
+        description: 'Control the browser using natural language commands',
       },
       toolsManager,
     );

@@ -132,10 +132,10 @@ import { mcpKitForAgent } from '@midscene/web/mcp-server';
 import { Agent } from '@midscene/core/agent';
 
 const agent = new Agent();
-const kit = await mcpKitForAgent(agent);
+const { description, tools } = await mcpKitForAgent(agent);
 
-// kit.description - "Midscene MCP Kit for Web automation (Bridge mode)"
-// kit.tools - Tool[] - array of tool definitions
+// description - "Control the browser / device using natural language commands"
+// tools - Tool[] - array of tool definitions
 ```
 
 ### Platform support
@@ -166,15 +166,15 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { mcpKitForAgent } from '@midscene/web/mcp-server';
 
 const agent = new Agent();
-const kit = await mcpKitForAgent(agent);
+const { description, tools } = await mcpKitForAgent(agent);
 const server = new McpServer({
   name: 'my-custom-mcp',
   version: '1.0.0',
-  description: kit.description
+  description
 });
 
 // Register Midscene tools to your MCP service
-for (const tool of kit.tools) {
+for (const tool of tools) {
   server.tool(tool.name, tool.description, tool.schema, tool.handler);
 }
 ```

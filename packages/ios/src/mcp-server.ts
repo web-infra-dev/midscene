@@ -19,8 +19,7 @@ export class IOSMCPServer extends BaseMCPServer {
       {
         name: '@midscene/ios-mcp',
         version: __VERSION__,
-        description:
-          'Midscene iOS MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, screenshots waitFor, and achieving goals.',
+        description: 'Control the iOS device using natural language commands',
       },
       toolsManager,
     );
