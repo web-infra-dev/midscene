@@ -174,6 +174,34 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
+  const getXPathTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    if (task.hitBy?.from !== 'User expected path') {
+      return null;
+    }
+
+    const xpath = task.hitBy?.context?.xpath;
+    const tooltipTitle = xpath
+      ? `Located by user-provided XPath: ${xpath}`
+      : 'Located by user-provided XPath instead of AI model';
+
+    return (
+      <Tooltip title={tooltipTitle}>
+        <Tag
+          className="xpath-tag"
+          style={{
+            padding: '0 4px',
+            marginLeft: '4px',
+            marginRight: 0,
+            lineHeight: '16px',
+          }}
+          bordered={false}
+        >
+          XPath
+        </Tag>
+      </Tooltip>
+    );
+  };
+
   const getStatusText = (task: ExecutionTaskWithSearchAreaUsage) => {
     if (typeof task.timing?.cost === 'number') {
       return timeCostStrElement(task.timing.cost);
@@ -466,6 +494,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getXPathTag(task)}
             {getDeepThinkTag(task)}
           </div>
         );
