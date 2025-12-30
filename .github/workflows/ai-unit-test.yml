@@ -54,7 +54,7 @@ jobs:
         npx puppeteer browsers install chrome
     
     - name: Run tests
-      run: pnpm run test:ai
+      run: pnpm run test:ai --reporter=verbose --maxConcurrency=1
       id: test-ai
       continue-on-error: true
 
