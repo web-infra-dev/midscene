@@ -80,7 +80,8 @@ const frameKit = (): {
       }
       requestAnimationFrame(() => {
         if (cancelFlag) {
-          throw new Error(ERROR_FRAME_CANCEL);
+          // Don't throw in requestAnimationFrame callback - just return silently
+          return;
         }
         callback(performance.now());
       });
@@ -91,7 +92,8 @@ const frameKit = (): {
       }
       setTimeout(() => {
         if (cancelFlag) {
-          throw new Error(ERROR_FRAME_CANCEL);
+          // Don't throw in setTimeout callback - just return silently
+          return;
         }
         callback();
       }, ms);
