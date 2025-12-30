@@ -518,13 +518,13 @@ importers:
       '@midscene/android':
         specifier: workspace:*
         version: link:../../packages/android
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       jayson:
         specifier: 4.3.0
         version: 4.3.0(bufferutil@4.0.9)
     devDependencies:
-      '@midscene/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
