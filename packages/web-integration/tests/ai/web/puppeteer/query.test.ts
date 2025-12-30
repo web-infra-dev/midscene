@@ -6,7 +6,15 @@ describe(
   'puppeteer integration - query',
   () => {
     let resetFn: () => Promise<void>;
+    let agent: PuppeteerAgent;
     afterEach(async () => {
+      if (agent) {
+        try {
+          await agent.destroy();
+        } catch (e) {
+          console.warn('agent destroy error', e);
+        }
+      }
       if (resetFn) {
         try {
           await resetFn();
@@ -28,7 +36,7 @@ describe(
         },
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       await agent.aiAct(
         'type "standard_user" in user name input, type "secret_sauce" in password, click login',

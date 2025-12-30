@@ -10,7 +10,15 @@ vi.setConfig({
 
 describe('puppeteer integration', () => {
   let resetFn: () => Promise<void>;
+  let agent: PuppeteerAgent;
   afterEach(async () => {
+    if (agent) {
+      try {
+        await agent.destroy();
+      } catch (e) {
+        console.warn('agent destroy error', e);
+      }
+    }
     if (resetFn) {
       await resetFn();
     }
@@ -19,7 +27,7 @@ describe('puppeteer integration', () => {
   it('input and clear text', async () => {
     const { originPage, reset } = await launchPage('https://www.google.com/');
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'input-related-test',
     });
 
@@ -28,7 +36,9 @@ describe('puppeteer integration', () => {
       'the text in the input box starts with "happy birthday"',
     );
 
-    await agent.aiInput('Jay Chou', 'search input box');
+    await agent.aiInput('search input box', {
+      value: 'Jay Chou',
+    });
     await agent.aiAssert('the text in the input box contains "Jay Chou"');
 
     await agent.aiInput('search input box', {
@@ -58,7 +68,7 @@ describe('puppeteer integration', () => {
   it('agent with yaml script', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-agent-with-yaml-script',
     });
     await sleep(3000);
@@ -83,21 +93,23 @@ describe('puppeteer integration', () => {
   it('multiple style of aiInput', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-multiple-style-of-aiInput',
     });
     await agent.aiInput('input box', {
       value: 'weather today',
     });
     await agent.aiAssert('the text in the input box is "weather today"');
-    await agent.aiInput('food service', 'input box for search');
+    await agent.aiInput('input box for search', {
+      value: 'food service',
+    });
     await agent.aiAssert('the text in the input box is "food service"');
   });
 
   it('assertion failed', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-assertion-failed',
     });
     let errorMsg = '';
@@ -125,7 +137,7 @@ describe('puppeteer integration', () => {
         : 'https://www.bing.com/',
     );
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-allow-error-in-flow',
     });
     const { result } = await agent.runYaml(
@@ -157,7 +169,7 @@ describe('puppeteer integration', () => {
       'https://the-internet.herokuapp.com/drag_and_drop',
     );
     resetFn = reset;
-    const agent = new PuppeteerAgent(originPage, {
+    agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-drag-and-drop',
     });
 

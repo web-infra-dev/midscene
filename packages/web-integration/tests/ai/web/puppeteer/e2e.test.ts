@@ -11,7 +11,15 @@ describe(
   'puppeteer integration',
   () => {
     let resetFn: () => Promise<void>;
+    let agent: PuppeteerAgent;
     afterEach(async () => {
+      if (agent) {
+        try {
+          await agent.destroy();
+        } catch (e) {
+          console.warn('agent destroy error', e);
+        }
+      }
       if (resetFn) {
         try {
           await resetFn();
@@ -32,7 +40,7 @@ describe(
           },
         );
         resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
+        agent = new PuppeteerAgent(originPage);
 
         await sleep(10 * 1000);
 
@@ -54,7 +62,7 @@ describe(
           },
         );
         resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
+        agent = new PuppeteerAgent(originPage);
 
         await sleep(10 * 1000);
 
@@ -72,7 +80,7 @@ describe(
         'https://www.saucedemo.com/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         beforeInvokeAction: () => {
           throw new Error('this is an error in beforeInvokeAction');
         },
@@ -93,7 +101,7 @@ describe(
       const onTaskStartTip = vi.fn();
       const beforeInvokeAction = vi.fn();
       const afterInvokeAction = vi.fn();
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
         onTaskStartTip,
         beforeInvokeAction,
@@ -130,7 +138,7 @@ describe(
         scrollType: 'once',
       } as any);
       await agent.aiScroll('', {
-        direct55ion: 'up',
+        direction: 'up',
         scrollType: 'once',
       } as any);
 
@@ -165,7 +173,7 @@ describe(
         'https://www.githubstatus.com/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const result = await agent.aiQuery(
         'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
@@ -185,7 +193,7 @@ describe(
         'https://ant.design/components/form/', // will be banned by the website on CI
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       // await agent.aiAct('If pop-ups are displayed click seven days out alert');
       await sleep(8000);
@@ -210,7 +218,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       await agent.aiInput('the search bar input', {
         value: 'AI 101',
@@ -252,7 +260,7 @@ describe(
       async () => {
         const { originPage, reset } = await launchPage('https://www.bing.com/');
         resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
+        agent = new PuppeteerAgent(originPage);
         await agent.aiAct('type "AI 101" in search box');
         await agent.aiAct(
           'type "Hello world" in search box, hit Enter, wait 2s',
@@ -269,7 +277,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center);
@@ -282,7 +290,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center, {
@@ -298,7 +306,7 @@ describe(
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
       await agent.aiAct(
         'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
       );
@@ -311,7 +319,7 @@ describe(
       const htmlPath = path.join(__dirname, 'select.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         forceChromeSelectRendering: true,
       });
       await agent.aiAct(
@@ -336,7 +344,7 @@ describe(
         },
       });
 
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         customActions: [UploadFile],
       });
 
@@ -352,7 +360,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: false,
       });
       await agent.aiAct('Tap hao123 in the navigation bar');
@@ -367,7 +375,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: true,
       });
       await agent.aiAct('Tap hao123 in the navigation bar');
@@ -377,7 +385,7 @@ describe(
 
     it('input xss content', async () => {
       const { originPage, reset } = await launchPage('https://www.google.com/');
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
       await agent.aiInput(
         '<html>hello world</html><script>alert("xss")</script><button>click me</button>',
         'the search box',
@@ -396,7 +404,7 @@ describe(
         'https://www.saucedemo.com/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
       });
 
@@ -417,7 +425,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
       // await agent.aiAct('Close the cookie prompt');
       await agent.aiAct(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
@@ -433,7 +441,7 @@ describe(
         },
       });
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       // Verify initial state
       await agent.aiAssert(
@@ -468,7 +476,7 @@ describe(
         },
       });
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       // Try multiple approaches to trigger the context menu
       await agent.aiAct('Press and hold the search button for 1 second');
@@ -485,7 +493,7 @@ describe(
         'https://cpstest.us/double-click-test/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
       await agent.aiAct('double click the "Click Me" button');
 
       await agent.aiAssert(
@@ -497,7 +505,7 @@ describe(
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const element = await agent.aiLocate('the "Search" button');
       const { rect } = element;
