@@ -34,6 +34,7 @@ export async function plan(
     includeBbox: boolean;
     imagesIncludeCount?: number;
     qwen3_vl_enable_thinking?: boolean;
+    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -135,6 +136,7 @@ export async function plan(
     modelConfig,
     {
       qwen3_vl_enable_thinking: opts.qwen3_vl_enable_thinking,
+      doubao_enable_thinking: opts.doubao_enable_thinking,
     },
   );
 
