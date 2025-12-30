@@ -206,6 +206,7 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     qwen3_vl_enable_thinking?: boolean;
+    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
   },
 ): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
   const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
@@ -258,7 +259,13 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
-    ...(options?.qwen3_vl_enable_thinking ? { enable_thinking: true } : {}),
+    ...(options?.qwen3_vl_enable_thinking !== undefined
+      ? { enable_thinking: options.qwen3_vl_enable_thinking }
+      : {}),
+    ...((vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') &&
+    options?.doubao_enable_thinking
+      ? { thinking: { type: options.doubao_enable_thinking } }
+      : {}),
   };
 
   try {
@@ -398,10 +405,12 @@ export async function callAIWithObjectResponse<T>(
   modelConfig: IModelConfig,
   options?: {
     qwen3_vl_enable_thinking?: boolean;
+    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
   },
 ): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
   const response = await callAI(messages, AIActionTypeValue, modelConfig, {
     qwen3_vl_enable_thinking: options?.qwen3_vl_enable_thinking,
+    doubao_enable_thinking: options?.doubao_enable_thinking,
   });
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;

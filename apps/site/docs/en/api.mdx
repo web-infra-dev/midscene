@@ -131,6 +131,7 @@ function aiAct(
   options?: {
     cacheable?: boolean;
     qwen3_vl_enable_thinking?: boolean;
+    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -141,7 +142,8 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `qwen3_vl_enable_thinking?: boolean` - Whether to enable the thinking feature when using Qwen3-VL models. Defaults to false.
+    - `qwen3_vl_enable_thinking?: boolean` - Whether to enable the thinking feature when using Qwen3-VL models. If omitted, the provider's default applies (see the model provider documentation).
+    - `doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto'` - Whether to enable the thinking feature for Doubao models. If omitted, the provider's default applies (see the model provider documentation).
 
 - Return Value:
 
