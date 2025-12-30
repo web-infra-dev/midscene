@@ -59,6 +59,11 @@ export interface ToolDefinition<T = Record<string, unknown>> {
 }
 
 /**
+ * Tool type for mcpKitForAgent return value
+ */
+export type Tool = ToolDefinition;
+
+/**
  * Action space item definition
  * Note: Intentionally no index signature to maintain compatibility with DeviceAction
  */

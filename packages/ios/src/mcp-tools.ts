@@ -1,6 +1,7 @@
-import { type IOSAgent, agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import { type IOSAgent, agentFromWebDriverAgent } from './agent';
+import { IOSDevice } from './device';
 
 const debug = getDebug('mcp:ios-tools');
 
@@ -10,8 +11,6 @@ const debug = getDebug('mcp:ios-tools');
  */
 export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
   protected createTemporaryDevice() {
-    // Use require to avoid circular dependency with @midscene/ios
-    const { IOSDevice } = require('@midscene/ios');
     // Create minimal temporary instance without connecting to WebDriverAgent
     // The constructor only initializes WDA backend, doesn't establish connection
     return new IOSDevice({});

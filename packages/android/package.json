@@ -19,6 +19,11 @@
       "import": "./dist/es/index.mjs",
       "require": "./dist/lib/index.js"
     },
+    "./mcp-server": {
+      "types": "./dist/types/mcp-server.d.ts",
+      "import": "./dist/es/mcp-server.mjs",
+      "require": "./dist/lib/mcp-server.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {

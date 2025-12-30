@@ -28,7 +28,6 @@ open report_file_name.html
 
 报告中包含了交互操作的详细信息，包括截图、操作日志、错误信息等，便于调试和问题排查。
 
-
 ## 配置 MCP
 
 ### 浏览器桥接模式
@@ -117,5 +116,66 @@ open report_file_name.html
       }
     }
   }
+}
+```
+
+
+## 实现自己的 MCP
+
+如果你想在自己的 MCP 服务中集成 Midscene 工具，可以使用 `mcpKitForAgent` 函数来获取工具定义，而不需要启动完整的 MCP 服务器。
+
+### 使用 mcpKitForAgent
+
+`mcpKitForAgent` 函数接受一个 Agent 实例，返回包含描述和工具列表的对象：
+
+```typescript
+import { mcpKitForAgent } from '@midscene/web/mcp-server';
+import { Agent } from '@midscene/core/agent';
+
+const agent = new Agent();
+const { description, tools } = await mcpKitForAgent(agent);
+
+// description - "Control the browser / device using natural language commands"
+// tools - Tool[] - 工具定义数组
+```
+
+### 平台支持
+
+每个平台都提供了对应的 `mcpKitForAgent` 函数：
+
+**Web 平台**
+```typescript
+import { mcpKitForAgent } from '@midscene/web/mcp-server';
+```
+
+**iOS 平台**
+```typescript
+import { mcpKitForAgent } from '@midscene/ios/mcp-server';
+```
+
+**Android 平台**
+```typescript
+import { mcpKitForAgent } from '@midscene/android/mcp-server';
+```
+
+### 集成到自定义 MCP 服务
+
+你可以将获取的工具集成到自己的 MCP 服务中：
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { mcpKitForAgent } from '@midscene/web/mcp-server';
+
+const agent = new Agent();
+const { description, tools } = await mcpKitForAgent(agent);
+const server = new McpServer({
+  name: 'my-custom-mcp',
+  version: '1.0.0',
+  description
+});
+
+// 注册 Midscene 工具到你的 MCP 服务
+for (const tool of tools) {
+  server.tool(tool.name, tool.description, tool.schema, tool.handler);
 }
 ```

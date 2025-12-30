@@ -28,7 +28,6 @@ open report_file_name.html
 
 The report includes detailed interaction information such as screenshots, operation logs, and error details to help with debugging and troubleshooting.
 
-
 ## Configure MCP
 
 ### Browser Bridge Mode
@@ -117,5 +116,65 @@ Add the Midscene Android MCP server (`@midscene/android-mcp`) in your MCP client
       }
     }
   }
+}
+```
+
+## Implement your own MCP
+
+If you want to integrate Midscene tools into your own MCP service, you can use the `mcpKitForAgent` function to get tool definitions without starting a full MCP server.
+
+### Using mcpKitForAgent
+
+The `mcpKitForAgent` function takes an Agent instance and returns an object containing description and tools list:
+
+```typescript
+import { mcpKitForAgent } from '@midscene/web/mcp-server';
+import { Agent } from '@midscene/core/agent';
+
+const agent = new Agent();
+const { description, tools } = await mcpKitForAgent(agent);
+
+// description - "Control the browser / device using natural language commands"
+// tools - Tool[] - array of tool definitions
+```
+
+### Platform support
+
+Each platform provides its corresponding `mcpKitForAgent` function:
+
+**Web platform**
+```typescript
+import { mcpKitForAgent } from '@midscene/web/mcp-server';
+```
+
+**iOS platform**
+```typescript
+import { mcpKitForAgent } from '@midscene/ios/mcp-server';
+```
+
+**Android platform**
+```typescript
+import { mcpKitForAgent } from '@midscene/android/mcp-server';
+```
+
+### Integrate into custom MCP service
+
+You can integrate the obtained tools into your own MCP service:
+
+```typescript
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { mcpKitForAgent } from '@midscene/web/mcp-server';
+
+const agent = new Agent();
+const { description, tools } = await mcpKitForAgent(agent);
+const server = new McpServer({
+  name: 'my-custom-mcp',
+  version: '1.0.0',
+  description
+});
+
+// Register Midscene tools to your MCP service
+for (const tool of tools) {
+  server.tool(tool.name, tool.description, tool.schema, tool.handler);
 }
 ```
