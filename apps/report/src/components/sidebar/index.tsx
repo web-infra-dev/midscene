@@ -49,6 +49,9 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     setReplayAllMode,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
+  const playwrightAttributes = useExecutionDump(
+    (store) => store.playwrightAttributes,
+  );
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const setHoverTask = useExecutionDump((store) => store.setHoverTask);
@@ -433,6 +436,28 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     0,
   );
 
+  // Calculate total time cost
+  // Prefer playwright_test_duration if available (from Playwright test framework)
+  // Otherwise, sum up all task timing costs
+  const totalTimeCost = useMemo(() => {
+    // Use Playwright test duration if available
+    if (playwrightAttributes?.playwright_test_duration) {
+      return playwrightAttributes.playwright_test_duration;
+    }
+
+    // Fallback: sum up all task timing costs
+    if (!groupedDump) return 0;
+
+    return groupedDump.executions.reduce((sum, execution) => {
+      return (
+        sum +
+        execution.tasks.reduce((taskSum, task) => {
+          return taskSum + (task.timing?.cost || 0);
+        }, 0)
+      );
+    }, 0);
+  }, [groupedDump, playwrightAttributes]);
+
   // Keyboard navigation
   useEffect(() => {
     // all tasks
@@ -614,122 +639,175 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
           </div>
 
           {/* Summary */}
-          {proModeEnabled && (
-            <div className="table-summary">
-              <div className="side-seperator side-seperator-line side-seperator-space-up" />
-              {(() => {
-                const modelEntries = Array.from(tokensByModel.entries());
-                const hasMultipleModels = modelEntries.length > 1;
-
-                return hasMultipleModels
-                  ? modelEntries.map(([modelName, stats]) => (
-                      <div key={modelName} className="summary-row">
-                        <div
-                          className="summary-cell column-type"
-                          style={{
-                            minWidth: typeColumnMinWidth,
-                            flex: 1,
-                          }}
-                        >
-                          <div className="token-total-label">
-                            {modelName}
-                            <Tag bordered={false} style={{ marginLeft: '8px' }}>
-                              Total
-                            </Tag>
-                          </div>
-                        </div>
-                        <div
-                          className="summary-cell column-time"
-                          style={{ width: dynamicWidths.time }}
-                        />
-                        <div
-                          className="summary-cell column-intent"
-                          style={{ width: dynamicWidths.intent }}
-                        />
-                        <div
-                          className="summary-cell column-model"
-                          style={{ width: dynamicWidths.model }}
-                        />
-                        <div
-                          className="summary-cell column-prompt"
-                          style={{ width: dynamicWidths.prompt }}
-                        >
-                          <span className="token-value">{stats.prompt}</span>
-                        </div>
-                        {hasCachedInput && (
-                          <div
-                            className="summary-cell column-cached"
-                            style={{ width: dynamicWidths.cached }}
-                          >
-                            <span className="token-value">
-                              {stats.cachedInput}
-                            </span>
-                          </div>
-                        )}
-                        <div
-                          className="summary-cell column-completion"
-                          style={{ width: dynamicWidths.completion }}
-                        >
-                          <span className="token-value">
-                            {stats.completion}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  : [
-                      <div key="total" className="summary-row">
-                        <div
-                          className="summary-cell column-type"
-                          style={{
-                            minWidth: typeColumnMinWidth,
-                            flex: 1,
-                          }}
-                        >
-                          <div className="token-total-label">Total</div>
-                        </div>
-                        <div
-                          className="summary-cell column-time"
-                          style={{ width: dynamicWidths.time }}
-                        />
-                        <div
-                          className="summary-cell column-intent"
-                          style={{ width: dynamicWidths.intent }}
-                        />
-                        <div
-                          className="summary-cell column-model"
-                          style={{ width: dynamicWidths.model }}
-                        />
-                        <div
-                          className="summary-cell column-prompt"
-                          style={{ width: dynamicWidths.prompt }}
-                        >
-                          <span className="token-value">
-                            {totalPromptTokens}
-                          </span>
-                        </div>
-                        {hasCachedInput && (
-                          <div
-                            className="summary-cell column-cached"
-                            style={{ width: dynamicWidths.cached }}
-                          >
-                            <span className="token-value">
-                              {totalCachedInputTokens}
-                            </span>
-                          </div>
-                        )}
-                        <div
-                          className="summary-cell column-completion"
-                          style={{ width: dynamicWidths.completion }}
-                        >
-                          <span className="token-value">
-                            {totalCompletionTokens}
-                          </span>
-                        </div>
-                      </div>,
-                    ];
-              })()}
+          <div className="table-summary">
+            <div className="side-seperator side-seperator-line side-seperator-space-up" />
+            {/* Total time row - always visible */}
+            <div className="summary-row">
+              <div
+                className="summary-cell column-type"
+                style={{
+                  minWidth: typeColumnMinWidth,
+                  flex: 1,
+                }}
+              >
+                <div className="token-total-label">Total Time</div>
+              </div>
+              <div
+                className="summary-cell column-time"
+                style={{ width: dynamicWidths.time }}
+              >
+                <span className="token-value">
+                  {timeCostStrElement(totalTimeCost)}
+                </span>
+              </div>
+              {proModeEnabled && (
+                <>
+                  <div
+                    className="summary-cell column-intent"
+                    style={{ width: dynamicWidths.intent }}
+                  />
+                  <div
+                    className="summary-cell column-model"
+                    style={{ width: dynamicWidths.model }}
+                  />
+                  <div
+                    className="summary-cell column-prompt"
+                    style={{ width: dynamicWidths.prompt }}
+                  />
+                  {hasCachedInput && (
+                    <div
+                      className="summary-cell column-cached"
+                      style={{ width: dynamicWidths.cached }}
+                    />
+                  )}
+                  <div
+                    className="summary-cell column-completion"
+                    style={{ width: dynamicWidths.completion }}
+                  />
+                </>
+              )}
             </div>
-          )}
+
+            {/* Token usage rows - only in pro mode */}
+            {proModeEnabled && (
+              <>
+                {(() => {
+                  const modelEntries = Array.from(tokensByModel.entries());
+                  const hasMultipleModels = modelEntries.length > 1;
+
+                  return hasMultipleModels
+                    ? modelEntries.map(([modelName, stats]) => (
+                        <div key={modelName} className="summary-row">
+                          <div
+                            className="summary-cell column-type"
+                            style={{
+                              minWidth: typeColumnMinWidth,
+                              flex: 1,
+                            }}
+                          >
+                            <div className="token-total-label">
+                              {modelName}
+                              <Tag
+                                bordered={false}
+                                style={{ marginLeft: '8px' }}
+                              >
+                                Total
+                              </Tag>
+                            </div>
+                          </div>
+                          <div
+                            className="summary-cell column-time"
+                            style={{ width: dynamicWidths.time }}
+                          />
+                          <div
+                            className="summary-cell column-intent"
+                            style={{ width: dynamicWidths.intent }}
+                          />
+                          <div
+                            className="summary-cell column-model"
+                            style={{ width: dynamicWidths.model }}
+                          />
+                          <div
+                            className="summary-cell column-prompt"
+                            style={{ width: dynamicWidths.prompt }}
+                          >
+                            <span className="token-value">{stats.prompt}</span>
+                          </div>
+                          {hasCachedInput && (
+                            <div
+                              className="summary-cell column-cached"
+                              style={{ width: dynamicWidths.cached }}
+                            >
+                              <span className="token-value">
+                                {stats.cachedInput}
+                              </span>
+                            </div>
+                          )}
+                          <div
+                            className="summary-cell column-completion"
+                            style={{ width: dynamicWidths.completion }}
+                          >
+                            <span className="token-value">
+                              {stats.completion}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    : [
+                        <div key="total-tokens" className="summary-row">
+                          <div
+                            className="summary-cell column-type"
+                            style={{
+                              minWidth: typeColumnMinWidth,
+                              flex: 1,
+                            }}
+                          >
+                            <div className="token-total-label">Total</div>
+                          </div>
+                          <div
+                            className="summary-cell column-time"
+                            style={{ width: dynamicWidths.time }}
+                          />
+                          <div
+                            className="summary-cell column-intent"
+                            style={{ width: dynamicWidths.intent }}
+                          />
+                          <div
+                            className="summary-cell column-model"
+                            style={{ width: dynamicWidths.model }}
+                          />
+                          <div
+                            className="summary-cell column-prompt"
+                            style={{ width: dynamicWidths.prompt }}
+                          >
+                            <span className="token-value">
+                              {totalPromptTokens}
+                            </span>
+                          </div>
+                          {hasCachedInput && (
+                            <div
+                              className="summary-cell column-cached"
+                              style={{ width: dynamicWidths.cached }}
+                            >
+                              <span className="token-value">
+                                {totalCachedInputTokens}
+                              </span>
+                            </div>
+                          )}
+                          <div
+                            className="summary-cell column-completion"
+                            style={{ width: dynamicWidths.completion }}
+                          >
+                            <span className="token-value">
+                              {totalCompletionTokens}
+                            </span>
+                          </div>
+                        </div>,
+                      ];
+                })()}
+              </>
+            )}
+          </div>
         </div>
         <div className="executions-tip">
           <span className="tip-icon">?</span>
