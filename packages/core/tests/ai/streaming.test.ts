@@ -1,4 +1,4 @@
-import { AIActionType } from '@/ai-model/common';
+import { AIActionType } from '@/ai-model';
 import { callAI } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import type { CodeGenerationChunk } from '@/types';

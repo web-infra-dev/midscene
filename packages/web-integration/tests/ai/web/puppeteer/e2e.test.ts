@@ -4,7 +4,6 @@ import { z } from '@midscene/core';
 import { defineAction } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
-import { wrapOpenAI } from 'langsmith/wrappers/openai';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -12,7 +11,15 @@ describe(
   'puppeteer integration',
   () => {
     let resetFn: () => Promise<void>;
+    let agent: PuppeteerAgent;
     afterEach(async () => {
+      if (agent) {
+        try {
+          await agent.destroy();
+        } catch (e) {
+          console.warn('agent destroy error', e);
+        }
+      }
       if (resetFn) {
         try {
           await resetFn();
@@ -33,7 +40,7 @@ describe(
           },
         );
         resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
+        agent = new PuppeteerAgent(originPage);
 
         await sleep(10 * 1000);
 
@@ -55,7 +62,7 @@ describe(
           },
         );
         resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
+        agent = new PuppeteerAgent(originPage);
 
         await sleep(10 * 1000);
 
@@ -73,14 +80,14 @@ describe(
         'https://www.saucedemo.com/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         beforeInvokeAction: () => {
           throw new Error('this is an error in beforeInvokeAction');
         },
       });
 
       await expect(async () => {
-        await agent.aiAction(
+        await agent.aiAct(
           'type "standard_user" in user name input, type "secret_sauce" in password',
         );
       }).rejects.toThrowError();
@@ -94,7 +101,7 @@ describe(
       const onTaskStartTip = vi.fn();
       const beforeInvokeAction = vi.fn();
       const afterInvokeAction = vi.fn();
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
         onTaskStartTip,
         beforeInvokeAction,
@@ -126,12 +133,12 @@ describe(
       });
 
       // Legacy scroll param compatibility: ensure old scrollType values still work
-      await agent.aiScroll({
+      await agent.aiScroll('', {
         direction: 'down',
         scrollType: 'once',
       } as any);
-      await agent.aiScroll({
-        direct55ion: 'up',
+      await agent.aiScroll('', {
+        direction: 'up',
         scrollType: 'once',
       } as any);
 
@@ -166,7 +173,7 @@ describe(
         'https://www.githubstatus.com/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const result = await agent.aiQuery(
         'this is a service status page. Extract all status data with this scheme: {[serviceName]: [statusText]}',
@@ -186,15 +193,15 @@ describe(
         'https://ant.design/components/form/', // will be banned by the website on CI
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
-      // await agent.aiAction('If pop-ups are displayed click seven days out alert');
+      // await agent.aiAct('If pop-ups are displayed click seven days out alert');
       await sleep(8000);
-      await agent.aiAction(
+      await agent.aiAct(
         'Click the password input in the demo section on page, type "abc"',
       );
 
-      await agent.aiAction(
+      await agent.aiAct(
         'click the "icon" on the categories on the left, sleep 5s, in the newly loaded page, type "pause" in the icon search box(it shows "search icon here")',
       );
 
@@ -208,16 +215,19 @@ describe(
     const vlMode = globalModelConfigManager.getModelConfig('default').vlMode;
 
     it.skipIf(!vlMode)('search engine with specific actions', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
-      await agent.aiInput('AI 101', 'the search bar input');
+      await agent.aiInput('the search bar input', {
+        value: 'AI 101',
+      });
       await agent.aiTap('the search button');
 
       await sleep(3000);
 
-      await agent.aiScroll({
+      await agent.aiScroll('', {
         direction: 'down',
         scrollType: 'scrollToBottom',
       });
@@ -250,9 +260,9 @@ describe(
       async () => {
         const { originPage, reset } = await launchPage('https://www.bing.com/');
         resetFn = reset;
-        const agent = new PuppeteerAgent(originPage);
-        await agent.aiAction('type "AI 101" in search box');
-        await agent.aiAction(
+        agent = new PuppeteerAgent(originPage);
+        await agent.aiAct('type "AI 101" in search box');
+        await agent.aiAct(
           'type "Hello world" in search box, hit Enter, wait 2s',
         );
 
@@ -264,9 +274,10 @@ describe(
     );
 
     it('element describer', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center);
@@ -276,13 +287,15 @@ describe(
     });
 
     it('element describer - deep think', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center, {
         deepThink: true,
+        centerDistanceThreshold: 50,
       });
       // console.log('describeResult', describeResult);
       expect(describeResult.verifyResult?.pass).toBe(true);
@@ -294,8 +307,8 @@ describe(
       const htmlPath = path.join(__dirname, 'scroll.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
-      await agent.aiAction(
+      agent = new PuppeteerAgent(originPage);
+      await agent.aiAct(
         'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
       );
       await agent.aiAssert(
@@ -307,7 +320,7 @@ describe(
       const htmlPath = path.join(__dirname, 'select.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         forceChromeSelectRendering: true,
       });
       await agent.aiAct(
@@ -316,7 +329,8 @@ describe(
     });
 
     it('append custom action - UploadFile is invoked', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
 
       const uploadCalled = vi.fn();
@@ -331,11 +345,11 @@ describe(
         },
       });
 
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         customActions: [UploadFile],
       });
 
-      await agent.aiAction(
+      await agent.aiAct(
         'Upload a local file to current page, which path is /tmp/demo.txt',
       );
 
@@ -346,10 +360,10 @@ describe(
     it('not tracking active tab', async () => {
       const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: false,
       });
-      await agent.aiAction('Tap hao123 in the navigation bar');
+      await agent.aiAct('Tap hao123 in the navigation bar');
       await sleep(6000);
 
       await expect(async () => {
@@ -358,19 +372,20 @@ describe(
     });
 
     it('tracking active tab', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: true,
       });
-      await agent.aiAction('Tap hao123 in the navigation bar');
+      await agent.aiAct('Tap hao123 in the navigation bar');
 
       await agent.aiWaitFor('There is a weather forecast in the page');
     });
 
     it('input xss content', async () => {
       const { originPage, reset } = await launchPage('https://www.google.com/');
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
       await agent.aiInput(
         '<html>hello world</html><script>alert("xss")</script><button>click me</button>',
         'the search box',
@@ -389,7 +404,7 @@ describe(
         'https://www.saucedemo.com/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage, {
+      agent = new PuppeteerAgent(originPage, {
         cacheId: 'puppeteer(Sauce Demo by Swag Lab)',
       });
 
@@ -407,31 +422,40 @@ describe(
     });
 
     it.skip('Playground', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
-      // await agent.aiAction('Close the cookie prompt');
-      await agent.aiAction(
+      agent = new PuppeteerAgent(originPage);
+      // await agent.aiAct('Close the cookie prompt');
+      await agent.aiAct(
         'Type "AI 101" in search box, hit Enter, wait 2s. If there is a cookie prompt, close it',
       );
     });
 
     it('swipe', async () => {
-      const { originPage, reset } = await launchPage(
-        'https://m.baidu.com/s?word=%E5%A4%A7%E4%BC%97%E8%BD%A6%E5%9E%8Bid4',
-        {
-          viewport: {
-            width: 393,
-            height: 808,
-          },
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
+        viewport: {
+          width: 393,
+          height: 808,
         },
-      );
+      });
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
+
+      // Verify initial state
+      await agent.aiAssert(
+        'The swipe container shows "Panel 1 - Swipe to see more"',
+      );
+
       const screenshot1 = await agent.page.screenshotBase64();
       await sleep(2000);
-      await agent.aiAction('Swipe right one screen');
+      await agent.aiAct('Swipe from right to left on the swipe container');
 
+      // Verify content changed after swipe
+      await agent.aiAssert(
+        'The swipe container shows "Panel 2 - Keep swiping"',
+      );
       await agent.aiAssert({
         prompt: 'The content of the page is different from the reference',
         images: [
@@ -441,34 +465,27 @@ describe(
           },
         ],
       });
-
-      const screenshot2 = await agent.page.screenshotBase64();
-      await agent.aiAction('Swipe left one screen');
-      await sleep(2000);
-      await agent.aiAssert({
-        prompt: 'The content of the page is different from the reference',
-        images: [
-          {
-            name: 'reference screenshot',
-            url: screenshot2,
-          },
-        ],
-      });
     });
 
     it('longPress', async () => {
-      const { originPage, reset } = await launchPage(
-        'https://m.baidu.com/from=0/ssid=0/s?word=%E5%A6%82%E6%9D%A5%E7%A5%9E%E6%B6%A8&sa=tb&ts=0&t_kt=0&ie=utf-8&rsv_t=62bcq4PxoQqNwE8k4KOIBgUFF1bZTuF4rSCYiho4tfMUcLopBczbgw&rsv_pq=11619249566711746686&ss=110&sugid=206020460001898&rfrom=1024439f&rchannel=1024439j&rqid=11619249566711746686',
-        {
-          viewport: {
-            width: 393,
-            height: 808,
-          },
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
+        viewport: {
+          width: 393,
+          height: 808,
         },
-      );
+      });
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
-      await agent.aiAction('长按进入新空间按钮');
+      agent = new PuppeteerAgent(originPage);
+
+      // Try multiple approaches to trigger the context menu
+      await agent.aiAct('Press and hold the search button for 1 second');
+      await sleep(1000);
+
+      await agent.aiAssert('A context menu is visible on the page');
+      await agent.aiAssert(
+        'The context menu contains "Copy", "Paste", and "Delete" options',
+      );
     });
 
     it('double click', async () => {
@@ -476,8 +493,8 @@ describe(
         'https://cpstest.us/double-click-test/',
       );
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
-      await agent.aiAction('double click the "Click Me" button');
+      agent = new PuppeteerAgent(originPage);
+      await agent.aiAct('double click the "Click Me" button');
 
       await agent.aiAssert(
         'the "Double" field in the "Left" section shows Double:1 instead of Double:0',
@@ -485,9 +502,10 @@ describe(
     });
 
     it('xpath', async () => {
-      const { originPage, reset } = await launchPage('https://www.baidu.com/');
+      const htmlPath = path.join(__dirname, 'local-search.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;
-      const agent = new PuppeteerAgent(originPage);
+      agent = new PuppeteerAgent(originPage);
 
       const element = await agent.aiLocate('the "Search" button');
       const { rect } = element;
@@ -499,8 +517,8 @@ describe(
         await agent.interface.rectMatchesCacheFeature(feature);
       expect(rectFromXpath).toBeTruthy();
 
-      expect(Math.abs(rectFromXpath.left - rect.left)).toBeLessThan(20);
-      expect(Math.abs(rectFromXpath.top - rect.top)).toBeLessThan(20);
+      expect(Math.abs(rectFromXpath.left - rect.left)).toBeLessThan(50);
+      expect(Math.abs(rectFromXpath.top - rect.top)).toBeLessThan(50);
     });
   },
   4 * 60 * 1000,

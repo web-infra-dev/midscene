@@ -37,22 +37,20 @@ describe('Test todo list', () => {
         return;
       }
 
-      await agent.aiAction(
+      await agent.aiAct(
         "type 'Study JS today' in the task box input and press the Enter key",
       );
-      await agent.aiAction(
+      await agent.aiAct(
         "type 'Study Rust tomorrow' in the task box input and press the Enter key",
       );
-      await agent.aiAction(
+      await agent.aiAct(
         "type 'Study AI the day after tomorrow' in the task box input and press the Enter key",
       );
-      await agent.aiAction(
+      await agent.aiAct(
         'tap the delete button on the right of the second task',
       );
-      await agent.aiAction(
-        'tap the check button on the left of the second task',
-      );
-      await agent.aiAction(
+      await agent.aiAct('tap the check button on the left of the second task');
+      await agent.aiAct(
         "tap the 'completed' status button below the task list",
       );
 

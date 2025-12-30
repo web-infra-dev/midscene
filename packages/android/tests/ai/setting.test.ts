@@ -16,20 +16,20 @@ describe(
       });
 
       await agent.launch('com.android.settings/.Settings');
-      await agent.aiAction('pull down to refresh');
-      await agent.aiAction('long press chat list first chat');
-      await agent.aiAction('click recent apps button');
-      await agent.aiAction('click android home button');
-      await agent.aiAction('scroll list to bottom');
-      await agent.aiAction('open "More settings"');
-      await agent.aiAction('scroll left until left edge');
-      await agent.aiAction('scroll right until right edge');
-      await agent.aiAction('scroll list to top');
-      await agent.aiAction('scroll list to bottom');
-      await agent.aiAction('scroll down one screen');
-      await agent.aiAction('scroll up one screen');
-      await agent.aiAction('scroll right one screen');
-      await agent.aiAction('scroll left one screen');
+      await agent.aiAct('pull down to refresh');
+      await agent.aiAct('long press chat list first chat');
+      await agent.aiAct('click recent apps button');
+      await agent.aiAct('click android home button');
+      await agent.aiAct('scroll list to bottom');
+      await agent.aiAct('open "More settings"');
+      await agent.aiAct('scroll left until left edge');
+      await agent.aiAct('scroll right until right edge');
+      await agent.aiAct('scroll list to top');
+      await agent.aiAct('scroll list to bottom');
+      await agent.aiAct('scroll down one screen');
+      await agent.aiAct('scroll up one screen');
+      await agent.aiAct('scroll right one screen');
+      await agent.aiAct('scroll left one screen');
     });
   },
   360 * 1000,

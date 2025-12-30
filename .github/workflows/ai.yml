@@ -22,10 +22,10 @@ jobs:
         node-version: [18.19.0]
 
     env:
-      OPENAI_API_KEY: ${{ secrets.DOUBAO_TOKEN }}
-      OPENAI_BASE_URL: ${{ secrets.DOUBAO_BASE_URL }}
-      MIDSCENE_MODEL_NAME: 'doubao-1-5-thinking-vision-pro-250428'
-      MIDSCENE_USE_DOUBAO_VISION: 1
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: 'ep-20251229145157-rx894'
+      MIDSCENE_MODEL_FAMILY: 'doubao-vision'
       CI: 1
       # MIDSCENE_DEBUG_AI_PROFILE: 1
 

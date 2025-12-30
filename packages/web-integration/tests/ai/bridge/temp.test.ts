@@ -20,7 +20,7 @@ describeIf('drag event', () => {
 
     await sleep(2000);
 
-    await agent.aiAction(
+    await agent.aiAct(
       'Use the test data to complete the form,Comply with the following restrictions: 1. The Captcha code is not required 2. No need to click the register button',
     );
 

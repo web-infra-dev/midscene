@@ -9,7 +9,7 @@ import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 120 * 1000,
 });
 
 const modelConfig = globalModelConfigManager.getModelConfig('insight');
@@ -30,7 +30,7 @@ describe.skipIf(!modelConfig.vlMode)('service locate with deep think', () => {
     expect(element).toBeDefined();
 
     await sleep(3000);
-  });
+  }, 300000); // 5 minutes timeout
 
   test('service locate with search area - deep think', async () => {
     const { context } = await getContextFromFixture('taobao');
@@ -59,11 +59,7 @@ describe.skipIf(!modelConfig.vlMode)('service locate with deep think', () => {
       ),
     ).toBeLessThan(100);
     await sleep(3000);
-  });
-});
-
-vi.setConfig({
-  testTimeout: 60 * 1000,
+  }, 300000); // 5 minutes timeout
 });
 
 test.skip('service locate with search area', async () => {

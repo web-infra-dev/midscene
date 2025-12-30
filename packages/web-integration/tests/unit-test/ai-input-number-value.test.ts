@@ -226,6 +226,10 @@ describe('PageAgent aiInput with number value', () => {
     mockTaskExecutor.runPlans.mockResolvedValue(mockExecutorResult);
 
     // Test legacy signature: aiInput(value, locatePrompt) with number value
-    await expect(agent.aiInput(88888, 'input field')).resolves.not.toThrow();
+    await expect(
+      agent.aiInput('input field', {
+        value: 88888,
+      }),
+    ).resolves.not.toThrow();
   });
 });

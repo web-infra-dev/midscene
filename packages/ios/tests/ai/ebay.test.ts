@@ -45,9 +45,7 @@ describe('Test eBay search', () => {
       }
 
       // 👀 type keywords, perform a search
-      await agent.aiAction(
-        'type "Headphones" in search box, click search button',
-      );
+      await agent.aiAct('type "Headphones" in search box, click search button');
 
       // 👀 wait for the loading
       await agent.aiWaitFor('there is at least one headphone item on page');
