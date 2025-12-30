@@ -1,6 +1,10 @@
 import type { Agent } from '@midscene/core/agent';
-import { BaseMCPServer, createMCPServerLauncher } from '@midscene/shared/mcp';
-import type { AndroidAgent } from './agent';
+import {
+  BaseMCPServer,
+  type Tool,
+  createMCPServerLauncher,
+} from '@midscene/shared/mcp';
+import { AndroidAgent } from './agent';
 import { AndroidMidsceneTools } from './mcp-tools.js';
 
 declare const __VERSION__: string;
@@ -36,4 +40,25 @@ export function mcpServerForAgent(agent: Agent | AndroidAgent) {
     ToolsManagerClass: AndroidMidsceneTools,
     MCPServerClass: AndroidMCPServer,
   });
+}
+
+/**
+ * Create MCP kit for a specific Android Agent
+ */
+export async function mcpKitForAgent(agent: Agent | AndroidAgent): Promise<{
+  description: string;
+  tools: Tool[];
+}> {
+  const toolsManager = new AndroidMidsceneTools();
+
+  // Convert Agent to AndroidAgent if needed
+  const androidAgent =
+    agent instanceof AndroidAgent ? agent : (agent as AndroidAgent);
+  toolsManager.setAgent(androidAgent);
+  await toolsManager.initTools();
+
+  return {
+    description: 'Midscene MCP Kit for Android automation',
+    tools: toolsManager.getToolDefinitions(),
+  };
 }

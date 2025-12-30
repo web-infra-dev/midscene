@@ -1,6 +1,10 @@
 import type { Agent } from '@midscene/core/agent';
-import { BaseMCPServer, createMCPServerLauncher } from '@midscene/shared/mcp';
-import type { IOSAgent } from './agent';
+import {
+  BaseMCPServer,
+  type Tool,
+  createMCPServerLauncher,
+} from '@midscene/shared/mcp';
+import { IOSAgent } from './agent';
 import { IOSMidsceneTools } from './mcp-tools.js';
 
 declare const __VERSION__: string;
@@ -36,4 +40,24 @@ export function mcpServerForAgent(agent: Agent | IOSAgent) {
     ToolsManagerClass: IOSMidsceneTools,
     MCPServerClass: IOSMCPServer,
   });
+}
+
+/**
+ * Create MCP kit for a specific iOS Agent
+ */
+export async function mcpKitForAgent(agent: Agent | IOSAgent): Promise<{
+  description: string;
+  tools: Tool[];
+}> {
+  const toolsManager = new IOSMidsceneTools();
+
+  // Convert Agent to IOSAgent if needed
+  const iosAgent = agent instanceof IOSAgent ? agent : (agent as IOSAgent);
+  toolsManager.setAgent(iosAgent);
+  await toolsManager.initTools();
+
+  return {
+    description: 'Midscene MCP Kit for iOS automation',
+    tools: toolsManager.getToolDefinitions(),
+  };
 }

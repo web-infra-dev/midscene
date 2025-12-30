@@ -181,6 +181,20 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
   }
 
   /**
+   * Get tool definitions
+   */
+  public getToolDefinitions(): ToolDefinition[] {
+    return this.toolDefinitions;
+  }
+
+  /**
+   * Set agent for the tools manager
+   */
+  public setAgent(agent: TAgent): void {
+    this.agent = agent;
+  }
+
+  /**
    * Helper: Convert base64 screenshot to image content array
    */
   protected buildScreenshotContent(screenshot: string) {

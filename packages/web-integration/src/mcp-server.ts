@@ -1,5 +1,9 @@
 import type { GenericAgent } from '@midscene/shared/mcp';
-import { BaseMCPServer, createMCPServerLauncher } from '@midscene/shared/mcp';
+import {
+  BaseMCPServer,
+  type Tool,
+  createMCPServerLauncher,
+} from '@midscene/shared/mcp';
 import { WebMidsceneTools } from './mcp-tools';
 
 declare const __VERSION__: string;
@@ -34,4 +38,23 @@ export function mcpServerForAgent<TAgent extends GenericAgent>(agent: TAgent) {
     ToolsManagerClass: WebMidsceneTools,
     MCPServerClass: WebMCPServer,
   });
+}
+
+/**
+ * Create MCP kit for a specific Agent
+ */
+export async function mcpKitForAgent<TAgent extends GenericAgent>(
+  agent: TAgent,
+): Promise<{
+  description: string;
+  tools: Tool[];
+}> {
+  const toolsManager = new WebMidsceneTools();
+  toolsManager.setAgent(agent);
+  await toolsManager.initTools();
+
+  return {
+    description: 'Midscene MCP Kit for Web automation (Bridge mode)',
+    tools: toolsManager.getToolDefinitions(),
+  };
 }
