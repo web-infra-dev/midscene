@@ -19,7 +19,8 @@ export class AndroidMCPServer extends BaseMCPServer {
       {
         name: '@midscene/android-mcp',
         version: __VERSION__,
-        description: 'Midscene MCP Server for Android automation',
+        description:
+          'Midscene Android MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, screenshots waitFor, and achieving goals.',
       },
       toolsManager,
     );

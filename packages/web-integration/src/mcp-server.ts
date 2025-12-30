@@ -56,7 +56,8 @@ export async function mcpKitForAgent(agent: GenericAgent): Promise<{
   await toolsManager.initTools();
 
   return {
-    description: 'Midscene MCP Kit for Web automation (Bridge mode)',
+    description:
+      'Midscene Bridge MCP Server: Control the browser using natural language commands for navigation, clicking, input, hovering, screenshots waitFor, and achieving goals.',
     tools: toolsManager.getToolDefinitions(),
   };
 }
