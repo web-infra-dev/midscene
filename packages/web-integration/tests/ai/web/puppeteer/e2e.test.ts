@@ -295,6 +295,7 @@ describe(
       const { center } = await agent.aiLocate('the input field for search');
       const describeResult = await agent.describeElementAtPoint(center, {
         deepThink: true,
+        centerDistanceThreshold: 50,
       });
       // console.log('describeResult', describeResult);
       expect(describeResult.verifyResult?.pass).toBe(true);
@@ -357,8 +358,7 @@ describe(
     });
 
     it('not tracking active tab', async () => {
-      const htmlPath = path.join(__dirname, 'local-search.html');
-      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
+      const { originPage, reset } = await launchPage('https://www.baidu.com/');
       resetFn = reset;
       agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: false,
