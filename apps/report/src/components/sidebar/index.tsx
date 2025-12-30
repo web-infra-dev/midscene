@@ -690,8 +690,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
             {/* Token usage rows - only in pro mode */}
             {proModeEnabled && (
-              <>
-                {(() => {
+              (() => {
                   const modelEntries = Array.from(tokensByModel.entries());
                   const hasMultipleModels = modelEntries.length > 1;
 
@@ -804,8 +803,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                           </div>
                         </div>,
                       ];
-                })()}
-              </>
+                })()
             )}
           </div>
         </div>
