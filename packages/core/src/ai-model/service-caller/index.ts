@@ -257,6 +257,7 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
+    // enable_thinking: true,
   };
 
   try {
