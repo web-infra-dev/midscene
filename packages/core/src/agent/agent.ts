@@ -1136,6 +1136,7 @@ export class Agent<
       screenshotIncluded:
         opt?.screenshotIncluded ??
         defaultServiceExtractOption.screenshotIncluded,
+      ...(opt?.deepThink !== undefined ? { deepThink: opt.deepThink } : {}),
     };
 
     const { textPrompt, multimodalPrompt } = parsePrompt(assertion);

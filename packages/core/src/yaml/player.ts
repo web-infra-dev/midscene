@@ -282,15 +282,16 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.aiAct(prompt, actionOptions);
       } else if ('aiAssert' in (flowItem as MidsceneYamlFlowItemAIAssert)) {
         const assertTask = flowItem as MidsceneYamlFlowItemAIAssert;
-        const prompt = assertTask.aiAssert;
-        const msg = assertTask.errorMessage;
+        const { aiAssert: prompt, errorMessage: msg, name, ...assertOptions } =
+          assertTask;
         assert(prompt, 'missing prompt for aiAssert');
         const { pass, thought, message } =
           (await agent.aiAssert(prompt, msg, {
             keepRawResponse: true,
+            ...assertOptions,
           })) || {};
 
-        this.setResult(assertTask.name, {
+        this.setResult(name, {
           pass,
           thought,
           message,

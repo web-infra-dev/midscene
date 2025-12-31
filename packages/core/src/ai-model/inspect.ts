@@ -438,6 +438,9 @@ export async function AiExtractElementInfo<T>(options: {
     msgs,
     AIActionType.EXTRACT_DATA,
     modelConfig,
+    extractOption?.deepThink !== undefined
+      ? { deepThink: extractOption.deepThink }
+      : undefined,
   );
   return {
     parseResult: result.content,

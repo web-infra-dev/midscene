@@ -14,6 +14,7 @@ export interface LocateOption {
 export interface ServiceExtractOption {
   domIncluded?: boolean | 'visible-only';
   screenshotIncluded?: boolean;
+  deepThink?: boolean;
   [key: string]: unknown;
 }
 

@@ -19,9 +19,11 @@ aiScroll(locate: string | undefined, options: {
   xpath?: string,
   cacheable?: boolean
 }): Promise<void>
-aiAssert(assertion: string, options?: { errorMessage?: string }): Promise<void>
+aiAssert(assertion: string, options?: { errorMessage?: string, deepThink?: boolean, domIncluded?: boolean | 'visible-only', screenshotIncluded?: boolean }): Promise<void>
 aiWaitFor(prompt: string, options?: { timeout?: number }): Promise<void>
-aiQuery<T>(queryObject: Record<string, string>): Promise<T> // Extracts data from page based on descriptions
+aiQuery<T>(queryObject: Record<string, string>, options?: { deepThink?: boolean, domIncluded?: boolean | 'visible-only', screenshotIncluded?: boolean }): Promise<T> // Extracts data from page based on descriptions
+aiString(prompt: string, options?: { deepThink?: boolean, domIncluded?: boolean | 'visible-only', screenshotIncluded?: boolean }): Promise<string>
+aiAsk(prompt: string, options?: { deepThink?: boolean, domIncluded?: boolean | 'visible-only', screenshotIncluded?: boolean }): Promise<string>
 
 // examples:
 // Reference the following code to generate Midscene test cases
@@ -186,6 +188,7 @@ tasks:
       # Perform a query that returns a JSON object.
       - aiQuery: <prompt> # Remember to describe the format of the result in the prompt.
         name: <name> # The key for the query result in the JSON output.
+        deepThink: <boolean> # Optional, whether to enable deepThink for this query. Defaults to False.
 
       # More APIs
       # ----------------
@@ -197,6 +200,7 @@ tasks:
       # Perform an assertion.
       - aiAssert: <prompt>
         errorMessage: <error-message> # Optional, the error message to print if the assertion fails.
+        deepThink: <boolean> # Optional, whether to enable deepThink for this assertion. Defaults to False.
 
       # Wait for a specified amount of time.
       - sleep: <ms>
