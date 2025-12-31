@@ -45,8 +45,14 @@ Promise.resolve(
     let config;
 
     if (configFile) {
-      config = await createConfig(configFile, configOptions);
-      console.log(`   Config file: ${configFile}`);
+      if (cmdFiles && cmdFiles.length > 0) {
+        config = await createConfig(configFile, configOptions, cmdFiles);
+        console.log(`   Config file: ${configFile}`);
+        console.log('   Executing YAML files from --files argument...');
+      } else {
+        config = await createConfig(configFile, configOptions);
+        console.log(`   Config file: ${configFile}`);
+      }
     } else if (cmdFiles && cmdFiles.length > 0) {
       console.log('   Executing YAML files from --files argument...');
       config = await createFilesConfig(cmdFiles, configOptions);

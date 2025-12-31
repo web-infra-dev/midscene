@@ -255,6 +255,39 @@ concurrent: 2
       expect(result.summary).toBe('from-cmd.json');
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
     });
+
+    test('should override config file patterns with --files patterns', async () => {
+      const mockYamlContent = `
+files:
+  - from-config.yml
+concurrent: 2
+`;
+      const mockParsedYaml = {
+        files: ['from-config.yml'],
+        concurrent: 2,
+        continueOnError: false,
+        headed: false,
+        keepWindow: false,
+        dotenvOverride: false,
+        dotenvDebug: false,
+        summary: 'parsed.json',
+        shareBrowserContext: false,
+      };
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      vi.mocked(matchYamlFiles)
+        .mockResolvedValueOnce(['from-config.yml'])
+        .mockResolvedValueOnce(['override.yml']);
+
+      const result = await createConfig('/test/index.yml', undefined, [
+        'override.yml',
+      ]);
+
+      expect(result.files).toEqual(['override.yml']);
+      expect(matchYamlFiles).toHaveBeenCalledWith('override.yml', {
+        cwd: process.cwd(),
+      });
+    });
   });
 
   describe('createFilesConfig', async () => {

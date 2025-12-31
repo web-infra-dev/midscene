@@ -134,8 +134,17 @@ export async function parseConfigYaml(
 export async function createConfig(
   configYamlPath: string,
   options?: ConfigFactoryOptions,
+  overrideFiles?: string[],
 ): Promise<BatchRunnerConfig> {
   const parsedConfig = await parseConfigYaml(configYamlPath);
+  let files = parsedConfig.files;
+  if (overrideFiles && overrideFiles.length > 0) {
+    const overrideExpanded = await expandFilePatterns(overrideFiles, cwd());
+    if (overrideExpanded.length === 0) {
+      throw new Error('No YAML files found matching the patterns in "--files"');
+    }
+    files = overrideExpanded;
+  }
   const globalConfig = merge(
     {
       web: parsedConfig.web,
@@ -158,7 +167,7 @@ export async function createConfig(
   const finalHeaded = keepWindow || headed;
 
   return {
-    files: parsedConfig.files,
+    files,
     concurrent: options?.concurrent ?? parsedConfig.concurrent,
     continueOnError: options?.continueOnError ?? parsedConfig.continueOnError,
     summary: options?.summary ?? parsedConfig.summary,
