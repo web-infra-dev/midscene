@@ -200,6 +200,7 @@ export function Player(props?: {
   key?: string | number;
   fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
   autoZoom?: boolean; // enable auto zoom when playing, default to true
+  canDownloadReport?: boolean; // enable download report, default to true
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
@@ -1046,7 +1047,7 @@ export function Player(props?: {
               </div>
             )}
 
-            {props?.reportFileContent ? (
+            {props?.reportFileContent && props?.canDownloadReport !== false ? (
               <Tooltip title="Download Report">
                 <div
                   className="status-icon"

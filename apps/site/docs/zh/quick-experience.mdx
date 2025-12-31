@@ -1,6 +1,7 @@
 import SetupEnv from './common/setup-env.mdx';
 import PrepareKeyForFurtherUse from './common/prepare-key-for-further-use.mdx';
 import StartExperience from './common/start-experience.mdx';
+import ShowcaseWeb from './showcases-web.mdx';
 
 # 通过 Chrome 插件快速体验
 
@@ -8,11 +9,7 @@ import StartExperience from './common/start-experience.mdx';
 
 该扩展与 npm `@midscene/web` 包共享了相同的代码，因此你可以将其视为 Midscene 的一个 Playground 或调试工具。
 
-<video
-  src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4"
-  controls
-/>
-
+<ShowcaseWeb />
 
 ## 安装 Chrome 扩展
 
@@ -41,5 +38,5 @@ import StartExperience from './common/start-experience.mdx';
 找到可疑插件：
 
 1. 打开页面的调试器，找到被其他插件注入的 `<iframe />` 或 `<script />`，一般 URL 是 `chrome-extension://{这串就是ID}/...` 格式，复制其 ID。
-2. 打开 `chrome://extensions/` ，用 cmd+f 找到相同 ID 的插件，禁用它。
+2. 打开 `chrome://extensions/`，用 cmd+f 找到相同 ID 的插件，禁用它。
 3. 刷新页面，再次尝试。

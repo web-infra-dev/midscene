@@ -23,7 +23,20 @@ export function HomeLayout() {
   return (
     <>
       {/* For transparent nav at top */}
-      <HomeBackground style={{ background: 'none' }} />
+      <HomeBackground
+        className="block dark:hidden"
+        style={{
+          backgroundImage: 'url(/midscene-light-bg.png)',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+      <HomeBackground
+        className="hidden dark:block"
+        style={{
+          backgroundImage: 'url(/midscene-dark-bg.png)',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
 
       {/* Banner Section */}
       <Banner />
@@ -33,7 +46,7 @@ export function HomeLayout() {
 
       {/* Bottom CTA Section */}
       <div className="w-full bg-white dark:bg-[#121212] py-12 md:py-20">
-        <div className="max-w-[1440px] mx-auto px-5 md:px-10 flex justify-center">
+        <div className="max-w-[1200px] mx-auto px-5 md:px-10 flex justify-center">
           <CTAButtons />
         </div>
       </div>

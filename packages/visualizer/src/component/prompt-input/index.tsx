@@ -1,7 +1,8 @@
-import { BorderOutlined, DownOutlined, SendOutlined } from '@ant-design/icons';
+import { BorderOutlined, SendOutlined } from '@ant-design/icons';
 import './index.less';
+import { DownOutlined } from '@ant-design/icons';
 import type { z } from '@midscene/core';
-import { Button, Dropdown, Form, Input, Radio, Space, Tooltip } from 'antd';
+import { Button, Dropdown, Form, Input, Radio, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import React, {
   useCallback,
@@ -12,7 +13,6 @@ import React, {
 } from 'react';
 import type { HistoryItem } from '../../store/history';
 import { useHistoryStore } from '../../store/history';
-import { useEnvConfig } from '../../store/store';
 import type { DeviceType, RunType } from '../../types';
 import type { ServiceModeType } from '../../types';
 import {
@@ -90,10 +90,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const addHistory = useHistoryStore((state) => state.addHistory);
   const setLastSelectedType = useHistoryStore(
     (state) => state.setLastSelectedType,
-  );
-  const planningStrategy = useEnvConfig((state) => state.planningStrategy);
-  const setPlanningStrategy = useEnvConfig(
-    (state) => state.setPlanningStrategy,
   );
   const historyForSelectedType = useMemo(
     () => history[selectedType] || [],
@@ -677,7 +673,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             <Form.Item name={['params', key]} style={{ margin: 0 }}>
               <Input.TextArea
                 className="main-side-console-input-textarea"
-                rows={4}
+                rows={3}
                 placeholder={placeholderText}
                 autoFocus
                 onKeyDown={handleStructuredKeyDown}
@@ -1068,7 +1064,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <TextArea
                 className="main-side-console-input-textarea"
                 disabled={!runButtonEnabled}
-                rows={4}
+                rows={3}
                 placeholder={placeholder}
                 autoFocus
                 onKeyDown={handleKeyDown}
@@ -1092,41 +1088,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           </div>
         )}
 
-        <div
-          className={`form-controller-wrapper ${selectedType === 'aiAct' ? 'with-strategy' : ''}`}
-        >
-          {selectedType === 'aiAct' && (
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'standard',
-                    label: 'Standard',
-                    onClick: () => setPlanningStrategy('standard'),
-                  },
-                  {
-                    key: 'fast',
-                    label: 'Fast',
-                    onClick: () => setPlanningStrategy('fast'),
-                  },
-                ],
-                selectedKeys: [planningStrategy],
-              }}
-              trigger={['click']}
-            >
-              <a
-                onClick={(e) => e.preventDefault()}
-                className="planning-strategy-selector"
-              >
-                <Space size={4}>
-                  {planningStrategy === 'fast' ? 'Fast' : 'Standard'}
-                  <DownOutlined style={{ fontSize: 10 }} />
-                </Space>
-              </a>
-            </Dropdown>
-          )}
-          {renderActionButton()}
-        </div>
+        <div className="form-controller-wrapper">{renderActionButton()}</div>
       </div>
     </div>
   );

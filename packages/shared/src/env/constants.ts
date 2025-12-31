@@ -5,6 +5,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY,
+  MIDSCENE_INSIGHT_MODEL_TEMPERATURE,
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
@@ -13,6 +14,7 @@ import {
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_MODEL_SOCKS_PROXY,
+  MIDSCENE_MODEL_TEMPERATURE,
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_OPENAI_HTTP_PROXY,
   MIDSCENE_OPENAI_INIT_CONFIG_JSON,
@@ -23,6 +25,7 @@ import {
   MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
+  MIDSCENE_PLANNING_MODEL_TEMPERATURE,
   MIDSCENE_PLANNING_MODEL_TIMEOUT,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
@@ -49,6 +52,10 @@ interface IModelConfigKeys {
    * Timeout
    */
   timeout: string;
+  /**
+   * Temperature
+   */
+  temperature: string;
 }
 
 export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -72,6 +79,10 @@ export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    * Timeout
    */
   timeout: MIDSCENE_INSIGHT_MODEL_TIMEOUT,
+  /**
+   * Temperature
+   */
+  temperature: MIDSCENE_INSIGHT_MODEL_TEMPERATURE,
 } as const;
 
 export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -95,6 +106,10 @@ export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    * Timeout
    */
   timeout: MIDSCENE_PLANNING_MODEL_TIMEOUT,
+  /**
+   * Temperature
+   */
+  temperature: MIDSCENE_PLANNING_MODEL_TEMPERATURE,
 } as const;
 
 // modelConfig return default
@@ -119,6 +134,10 @@ export const DEFAULT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    * Timeout
    */
   timeout: MIDSCENE_MODEL_TIMEOUT,
+  /**
+   * Temperature
+   */
+  temperature: MIDSCENE_MODEL_TEMPERATURE,
 } as const;
 
 // read from process.env
@@ -143,4 +162,8 @@ export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
    * Timeout - use the new key for legacy mode too
    */
   timeout: MIDSCENE_MODEL_TIMEOUT,
+  /**
+   * Temperature - use the new key for legacy mode too
+   */
+  temperature: MIDSCENE_MODEL_TEMPERATURE,
 } as const;

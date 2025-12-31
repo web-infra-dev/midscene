@@ -4,6 +4,23 @@
 
 Midscene v1.0 is here! Try it out today and see how it can help you automate your workflows.
 
+### See our new [Showcases](./showcases) page for real-world examples
+
+Register the GitHub form autonomously in a web browser and pass all field validations:
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+
+Plus these real-world showcases:
+* [iOS Automation - Meituan coffee order](./showcases#ios)
+* [iOS Automation - Auto-like the first @midscene_ai tweet](./showcases#ios)
+* [Android Automation - DCar: Xiaomi SU7 specs](./showcases#android)
+* [Android Automation - Booking a hotel for Christmas](./showcases#android)
+* [MCP Integration - Midscene MCP UI prepatch release](./showcases#mcp)
+
+Some community developers have successfully built on Midscene's capability to [integrate with any interface](./integrate-with-any-interface), extending it with a robotic arm plus vision and voice models for in-vehicle large-screen testing scenarios. See the video below.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/AI_Vision_Powered_Robotic_Arm.mp4" height="300" controls />
+
 ### 🚀 Pure vision path
 
 Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliver more stable UI automation. Visual models provide:
@@ -17,29 +34,26 @@ Starting in v1.0, Midscene fully adopts a visual-understanding approach to deliv
 
 See our updated [Model strategy](./model-strategy) for details.
 
-### 🚀 Better results on complex or long-running tasks
+### 🚀 Better results by multiple model combinations
 
-For complex and long-running scenarios, Midscene adds:
-- New `aiAct` planning strategy `planningStrategy`
-  - `fast` mode merges planning and localization in the vision model for quicker runs
-  - `standard` mode (v1.0 default) separates planning and targeting and shares the previous step’s screenshot to improve long-task success rates; token usage is slightly higher than `fast`
-  - If you want to keep the lower token usage from 0.x, switch to `fast` manually
-- Multi-model combinations
-  - Per-task model configuration lets Insight and Planning use stronger comprehension models (e.g., GPT-5.1 for planning plus Doubao for interaction) to achieve the best results
+Beyond the default interaction intent, Midscene defines Planning and Insight intents, and developers can enable dedicated models for each. For example, you can use a GPT model for planning while using the default Qwen3-VL model for element localization.
+
+Multi-model combinations let you scale up handling of complex requirements as needed.
 
 ### 🚀 Runtime architecture optimization
 
 * Reuse portions of context to reduce device-info calls and improve runtime performance
 * Optimize Action Space combinations for Web and mobile environments to provide models with a more useful toolset
 
-### 🚀 Report polish
+### 🚀 Report improvements
 
-* More professional: right-side visualized interaction parameters, cleaner left-side flow, and a timeline view that helps pinpoint issues quickly
-* Better aesthetics: dark mode, element highlighting, and clearer presentation of model decisions
+* Parameter view: mark interaction parameter locations, merge screenshot context, and identify model planning results faster
+* Style updates: dark mode report rendering for better readability
+* Token usage display: summarize token consumption by model to analyze cost across scenarios
 
 ### 🚀 MCP architecture redesign
 
-We redesigned the MCP architecture to expose Action Spaces in iOS, Android, and Web as MCP services, giving upstream Agents stable UI operation capabilities and helping developers build higher-level Agents. See [MCP architecture](./mcp).
+We redefined Midscene MCP services around vision-driven UI operations. Each Action in the iOS / Android / Web Action Space is exposed as an MCP tool, providing atomic operations so developers can focus on higher-level Agents without worrying about UI operation details, while keeping success rates high. See [MCP architecture](./mcp).
 
 ### 🚀 Mobile automation
 
@@ -55,6 +69,28 @@ We redesigned the MCP architecture to expose Action Spaces in iOS, Android, and 
 
 #### Cross-platform
 - Expose system operation helpers on the Agent instance, including Home, Back, RecentApp, and more
+
+### 🚧 API changes
+
+Method renames (backward compatible)
+- Renamed `aiAction()` → `aiAct()` (old method kept with deprecation warning)
+- Renamed `logScreenshot()` → `recordToReport()` (old method kept with deprecation warning)
+
+Environment variable renames (backward compatible)
+- Renamed `OPENAI_API_KEY` → `MIDSCENE_MODEL_API_KEY` (new variable preferred, old variable as fallback)
+- Renamed `OPENAI_BASE_URL` → `MIDSCENE_MODEL_BASE_URL` (new variable preferred, old variable as fallback)
+
+### ⬆️ Upgrade to the latest version
+
+Upgrade only the packages you use. For example:
+
+`npm install @midscene/web@latest`
+`npm install @midscene/android@latest`
+`npm install @midscene/ios@latest`
+
+If you use the CLI installed globally:
+
+`npm i -g @midscene/cli`
 
 ## v0.30 - Cache management upgrade and mobile experience optimization
 
@@ -296,12 +332,12 @@ Based on the introduction of [Rslib](https://github.com/web-infra-dev/rslib) in 
 - Support recording click, input, scroll and other common operations, greatly reducing the threshold for writing automation scripts
 - The recorded operations can be directly played back and debugged in the Playground
 
-#### 2⃣ Upgrade to IndexedDB for storage
+#### Upgrade to IndexedDB for storage
 - Chrome extension's Playground and Bridge now use IndexedDB for data storage
 - Compared to the previous storage scheme, it provides larger storage capacity and better performance
 - Support storing more complex data structures, laying the foundation for future feature extensions
 
-#### 3⃣ Customize replanning cycle limit
+#### Customize replanning cycle limit
 - Set the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable to customize the maximum number of re-planning cycles allowed when executing operations (aiAct).
 - The default value is 10. When the AI needs to re-plan more than this limit, an error will be thrown and suggest splitting the task.
 - Provide more flexible task execution control, adapting to different automation scenarios
@@ -326,17 +362,17 @@ export MIDSCENE_REPLANNING_CYCLE_LIMIT=10 # default value is 10
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/recording_2025-07-07_08-16-16.mp4" controls/>
 
-#### 2⃣ Flexible timeout configuration
+#### Flexible timeout configuration
 
 - Supports overriding timeout settings from test fixture, providing more flexible timeout control
 - Applicable scenarios: Different test cases require different timeout settings
 
-#### 3⃣ Unified Puppeteer and Playwright configuration
+#### Unified Puppeteer and Playwright configuration
 
 - New `waitForNavigationTimeout` and `waitForNetworkIdleTimeout` parameters for Playwright
 - Unified timeout options configuration for Puppeteer and Playwright, providing consistent API experience, reducing learning costs
 
-#### 4⃣ New data export callback mechanism
+#### New data export callback mechanism
 
 - New `agent.onDumpUpdate` callback function, can get real-time notification when data is exported
 - Refactored the post-task processing flow to ensure the correct execution of asynchronous operations
@@ -625,9 +661,9 @@ Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.m
 
 ## v0.11.0 - UI-TARS model caching
 
-### ** UI-TARS model support caching**
+### UI-TARS model support caching
 
-* Enable caching by document 👉 ： [Enable Caching](./caching.mdx)
+* Enable caching by document 👉 : [Enable Caching](./caching.mdx)
 
 * Enable effect
 
@@ -635,7 +671,7 @@ Read more: [Instant Actions](./blog-introducing-instant-actions-and-deep-think.m
 
 ![](/blog/0.11.0.png)
 
-### ** Optimize DOM tree extraction strategy**
+### Optimize DOM tree extraction strategy
 
 * Optimize the information ability of the dom tree, accelerate the inference process of models like GPT 4o
 
@@ -688,11 +724,11 @@ Documentation: [Use Chrome Extension to Experience Midscene](./bridge-mode.mdx)
 
 ## v0.8.0 - Chrome extension
 
-### ** New Chrome extension, run Midscene anywhere**
+### New Chrome extension, run Midscene anywhere
 
 Through the Midscene browser extension, you can run Midscene on any page, without writing any code.
 
-Experience it now 👉：[Use Chrome Extension to Experience Midscene](./quick-experience.mdx)
+Experience it now 👉: [Use Chrome Extension to Experience Midscene](./quick-experience.mdx)
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/Midscene_extension.mov" controls/>
 
@@ -700,7 +736,7 @@ Experience it now 👉：[Use Chrome Extension to Experience Midscene](./quick-e
 
 ## v0.7.0 - Playground ability
 
-### ** Playground ability, debug anytime**
+### Playground ability, debug anytime
 
 Now you don't have to keep re-running scripts to debug prompts!
 
@@ -711,7 +747,7 @@ On the new test report page, you can debug the AI execution results at any time,
 
 ## v0.6.0 - Doubao model support
 
-### ** Doubao model support**
+### Doubao model support
 
 * Support for calling Doubao models, reference the environment variables below to experience.
 
@@ -736,19 +772,19 @@ Example:
 
 ❌ The left-bottom play button (requires image understanding, failed)
 
-### ** Support for GPT-4o structured output, cost reduction**
+### Support for GPT-4o structured output, cost reduction
 
 By using the gpt-4o-2024-08-06 model, Midscene now supports structured output (structured-output) features, ensuring enhanced stability and reduced costs by 40%+.
 
 Midscene now supports hitting GPT-4o prompt caching features, and the cost of AI calls will continue to decrease as the company's GPT platform is deployed.
 
-### ** Test report: support animation playback**
+### Test report: support animation playback
 
 Now you can view the animation playback of each step in the test report, quickly debug your running script
 
 <video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-play-all.mp4" controls/>
 
-### ** Speed up: merge plan and locate operations, response speed increased by 30%**
+### Speed up: merge plan and locate operations, response speed increased by 30%
 
 In the new version, we have merged the Plan and Locate operations in the prompt execution to a certain extent, which increases the response speed of AI by 30%.
 
@@ -760,7 +796,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ![](/blog/0.6.0-2.png)
 
-### ** Test report: the accuracy of different models**
+### Test report: the accuracy of different models
 
 * GPT 4o series models, 100% correct rate
 
@@ -785,7 +821,7 @@ In the new version, we have merged the Plan and Locate operations in the prompt 
 
 ## v0.5.0 - Support GPT-4o structured output
 
-### ** New features**
+### New features
 
 * Support for gpt-4o-2024-08-06 model to provide 100% JSON format limit, reducing Midscene task planning hallucination behavior
 
@@ -830,7 +866,7 @@ puppeteerPage.screenshot = async (options) => {
 
 ## v0.4.0 - Support CLI usage
 
-### ** New features**
+### New features
 
 * Support for Cli usage, reducing the usage threshold of Midscene
 
@@ -855,7 +891,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.3.0 - Support AI report HTML
 
-### ** New features**
+### New features
 
 * Generate html format AI report, aggregate AI tasks by test group, facilitate test report distribution
 
@@ -865,7 +901,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.2.0 - Control Puppeteer by natural language
 
-### ** New features**
+### New features
 
 * Support for using natural language to control puppeteer to implement page automation 🗣️💻
 
@@ -877,7 +913,7 @@ npx @midscene/cli --url https://www.githubstatus.com/ \
 
 ## v0.1.0 - Control Playwright by natural language
 
-### ** New features**
+### New features
 
 * Support for using natural language to control puppeteer to implement page automation 🗣️💻
 

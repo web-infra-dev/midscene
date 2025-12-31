@@ -27,14 +27,22 @@ export interface DetailedLocateParam extends LocateOption {
   referenceImage?: ReferenceImage;
 }
 
+export type ScrollType =
+  | 'singleAction'
+  | 'scrollToBottom'
+  | 'scrollToTop'
+  | 'scrollToRight'
+  | 'scrollToLeft'
+  // Legacy aliases kept for backward compatibility
+  | 'once'
+  | 'untilBottom'
+  | 'untilTop'
+  | 'untilRight'
+  | 'untilLeft';
+
 export type ActionScrollParam = {
   direction?: 'down' | 'up' | 'right' | 'left';
-  scrollType?:
-    | 'singleAction'
-    | 'scrollToBottom'
-    | 'scrollToTop'
-    | 'scrollToRight'
-    | 'scrollToLeft';
+  scrollType?: ScrollType;
   distance?: number | null;
   locate?: LocateResultElement;
 };

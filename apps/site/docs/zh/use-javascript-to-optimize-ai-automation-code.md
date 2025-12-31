@@ -16,7 +16,7 @@ Midscene 提供了结构化 API 方法，如 `aiBoolean` `aiString` `aiNumber`�
 逐条点击所有记录，如果一个记录包含“已完成”，则跳过
 ```
 
-通过组装结构化 API ，你可以将原始提示词转换为更可靠、更易于维护的代码：
+通过组装结构化 API，你可以将原始提示词转换为更可靠、更易于维护的代码：
 
 ```javascript
 const recordList = await agent.aiQuery('string[], the record list')

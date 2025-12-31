@@ -29,20 +29,28 @@
   </a>
 </p>
 
-## 📣 v1.0 Beta 公告
+## 📣 v1.0 正式发布公告
 
-> **我们正在准备发布 v1.0 版本。**目前已在 npm 的 `@beta` 标签上发布。  
+> **我们已发布 v1.0 版本。** 目前已在 npm 发布。  
 > v1.0 文档与代码请查看 [https://midscenejs.com/](https://midscenejs.com/) 以及 `main` 分支。  
 > v0.x 文档与代码请查看 [https://v0.midscenejs.com/](https://v0.midscenejs.com/) 以及 `v0` 分支。  
-> v1.0 变更记录: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
+> v1.0 变更记录: [https://midscenejs.com/zh/changelog](https://midscenejs.com/zh/changelog)
 
 ## 案例
 
-| 指令  | 视频 |
-| :---:  | :---: |
-| 用 JS 代码驱动编排任务，搜集周杰伦演唱会的信息，并写入 Google Docs   | <video src="https://github.com/user-attachments/assets/75474138-f51f-4c54-b3cf-46d61d059999" height="300" />        |
-| 控制地图 App 在 Android 上导航到目的地   | <video src="https://github.com/user-attachments/assets/1f5bab0e-4c28-44e1-b378-a38809b05a00" height="300" />        |
-|  使用 midscene mcp 的方法，浏览页面（ https://www.saucedemo.com/ ），进行登录，添加商品、下单商品最终根据 mcp 执行的步骤和 playwright example 生成最终的测试用例   | <video src="https://github.com/user-attachments/assets/5cab578d-feb3-4250-8c7e-6793fe38a5be" height="300" />        |
+在 Web 浏览器中自主注册 Github 表单，并通过所有字段校验。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+
+此外还有这些实战案例：
+* [iOS 自动化 - 美团下单咖啡](https://midscenejs.com/zh/showcases#ios)
+* [iOS 自动化 - Twitter 自动点赞 @midscene_ai 首条推文](https://midscenejs.com/zh/showcases#ios)
+* [Android 自动化 - 懂车帝查看小米 SU7 参数](https://midscenejs.com/zh/showcases#android)
+* [Android 自动化 - Booking 预订圣诞酒店](https://midscenejs.com/zh/showcases#android)
+* [MCP 集成 - Midscene MCP 操作界面发布 prepatch 版本](https://midscenejs.com/zh/showcases#mcp)
+
+更多实战案例请点击查看：[案例展示](https://midscenejs.com/zh/showcases)
+社区案例： [车机大屏测试中的机械臂 + 视觉 + 语音方案](https://midscenejs.com/zh/showcases#社区案例)
 
 ## 💡 特性
 
@@ -105,7 +113,7 @@ Midscene.js 在 UI 操作上采用纯视觉（pure-vision）路线：元素定�
 ## 🤝 社区
 
 * [Web Infra 团队微信公众号](https://lf3-static.bytednsdoc.com/obj/eden-cn/vhaeh7vhabf/web-infra-wechat.jpg)
-* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=291q2b25-e913-411a-8c51-191e59aab14d)
+* [飞书交流群](https://applink.larkoffice.com/client/chat/chatter/add_by_link?link_token=693v0991-a6bb-4b44-b2e1-365ca0d199ba)
 * [Discord](https://discord.gg/2JyBHxszE4)
 * [Follow us on X](https://x.com/midscene_ai)
 

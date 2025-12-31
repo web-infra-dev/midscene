@@ -1,0 +1,5 @@
+**Prompt** : Open the Booking App, search for a hotel in Tokyo for four adults on Christmas, with a score of 8 or above.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking2.mp4" poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.png" height="300" controls />
+
+View the full report of this task: [report.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/booking.html)

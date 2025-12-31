@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import fs from 'node:fs';
+import fs, { unlink } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import {
@@ -876,6 +876,7 @@ ${Object.keys(size)
     debugDevice('screenshotBase64 begin');
     const adb = await this.getAdb();
     let screenshotBuffer;
+    let localScreenshotPath: string | null = null;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
@@ -910,6 +911,7 @@ ${Object.keys(size)
         `Taking screenshot via adb.takeScreenshot failed or was skipped: ${error}`,
       );
       const screenshotPath = getTmpFile('png')!;
+      localScreenshotPath = screenshotPath;
 
       try {
         debugDevice('Fallback: taking screenshot via shell screencap');
@@ -934,7 +936,11 @@ ${Object.keys(size)
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
       } finally {
-        await adb.shell(`rm ${androidScreenshotPath}`);
+        try {
+          await adb.shell(`rm ${androidScreenshotPath}`);
+        } catch (error) {
+          debugDevice(`Failed to delete remote screenshot: ${error}`);
+        }
       }
     }
 
@@ -943,6 +949,14 @@ ${Object.keys(size)
       'png',
       screenshotBuffer.toString('base64'),
     );
+    if (localScreenshotPath) {
+      debugDevice(`Deleting local screenshot: ${localScreenshotPath}`);
+      unlink(localScreenshotPath, (unlinkError) => {
+        if (unlinkError) {
+          debugDevice(`Failed to delete screenshot: ${unlinkError}`);
+        }
+      });
+    }
     debugDevice('screenshotBase64 end');
     return result;
   }

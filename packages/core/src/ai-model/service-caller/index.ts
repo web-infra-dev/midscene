@@ -221,6 +221,7 @@ export async function callAI(
   const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
+  const temperature = modelConfig.temperature ?? 0;
 
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
@@ -248,7 +249,7 @@ export async function callAI(
   };
 
   const commonConfig = {
-    temperature: vlMode === 'vlm-ui-tars' ? 0.0 : undefined,
+    temperature,
     stream: !!isStreaming,
     max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
     ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
@@ -331,7 +332,7 @@ export async function callAI(
       }
       content = accumulated;
       debugProfileStats(
-        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}`,
+        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
       );
     } else {
       const result = await completion.create({
@@ -342,7 +343,7 @@ export async function callAI(
       timeCost = Date.now() - startTime;
 
       debugProfileStats(
-        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}`,
+        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
       );
 
       debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
@@ -380,7 +381,7 @@ export async function callAI(
   } catch (e: any) {
     console.error(' call AI error', e);
     const newError = new Error(
-      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}. Trouble shooting: https://midscenejs.com/model-provider.html`,
+      `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {
         cause: e,
       },
@@ -398,6 +399,10 @@ export async function callAIWithObjectResponse<T>(
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
+  assert(
+    typeof jsonContent === 'object',
+    `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+  );
   return {
     content: jsonContent,
     contentString: response.content,
@@ -509,19 +514,32 @@ export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
   }
 
   let parsed: any;
+  let lastError: unknown;
   try {
     parsed = JSON.parse(cleanJsonString);
     return normalizeJsonObject(parsed);
-  } catch {}
+  } catch (error) {
+    lastError = error;
+  }
   try {
     parsed = JSON.parse(jsonrepair(cleanJsonString));
     return normalizeJsonObject(parsed);
-  } catch (e) {}
+  } catch (error) {
+    lastError = error;
+  }
 
   if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
-    parsed = JSON.parse(jsonrepair(jsonString));
-    return normalizeJsonObject(parsed);
+    try {
+      parsed = JSON.parse(jsonrepair(jsonString));
+      return normalizeJsonObject(parsed);
+    } catch (error) {
+      lastError = error;
+    }
   }
-  throw Error(`failed to parse json response: ${input}`);
+  throw Error(
+    `failed to parse LLM response into JSON. Error - ${String(
+      lastError ?? 'unknown error',
+    )}. Response - \n ${input}`,
+  );
 }

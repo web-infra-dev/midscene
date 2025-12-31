@@ -1,7 +1,7 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 is coming - now in beta',
-  newBadgeLegacyLink: 'Go to v0.x docs',
+  newBadge: 'Midscene 1.0 is released',
+  changelogLink: "See what's new",
 
   // Banner - Title
   heroTitle: 'Midscene.js',
@@ -13,7 +13,7 @@ export const EN_US = {
 
   // Banner - CTA Buttons
   introduction: 'Documentation',
-  whatsNew: "What's New",
+  whatsNew: 'Showcases',
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',

@@ -40,9 +40,6 @@ describe(
         await agent.aiAct(
           '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
           // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
-          {
-            planningStrategy: 'fast',
-          },
         );
       },
       15 * 60 * 1000,
@@ -66,9 +63,6 @@ describe(
           // '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
           // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
           '按住“dragMe”元素，往右拖动300像素',
-          {
-            planningStrategy: 'max',
-          },
         );
       },
       15 * 60 * 1000,
@@ -105,15 +99,6 @@ describe(
         onTaskStartTip,
         beforeInvokeAction,
         afterInvokeAction,
-        createOpenAIClient: (openai) => {
-          if (process.env.MIDSCENE_LANGSMITH_DEBUG) {
-            console.log('langsmith wrapped');
-            return wrapOpenAI(openai);
-          } else {
-            console.log('langsmith not wrapped');
-          }
-          return openai;
-        },
       });
 
       await sleep(10 * 1000);
@@ -137,7 +122,7 @@ describe(
       );
 
       await agent.aiTap('Login', {
-        deepThink: true,
+        // deepThink: true,
       });
 
       // Legacy scroll param compatibility: ensure old scrollType values still work
@@ -146,7 +131,7 @@ describe(
         scrollType: 'once',
       } as any);
       await agent.aiScroll({
-        direction: 'up',
+        direct55ion: 'up',
         scrollType: 'once',
       } as any);
 
