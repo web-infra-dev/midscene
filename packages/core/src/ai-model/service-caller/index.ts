@@ -419,7 +419,12 @@ export async function callAIWithObjectResponse<T>(
     qwen3_vl_enable_thinking?: boolean;
     doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
   },
-): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
+): Promise<{
+  content: T;
+  contentString: string;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+}> {
   const response = await callAI(messages, AIActionTypeValue, modelConfig, {
     qwen3_vl_enable_thinking: options?.qwen3_vl_enable_thinking,
     doubao_enable_thinking: options?.doubao_enable_thinking,
@@ -435,6 +440,7 @@ export async function callAIWithObjectResponse<T>(
     content: jsonContent,
     contentString: response.content,
     usage: response.usage,
+    reasoning_content: response.reasoning_content,
   };
 }
 

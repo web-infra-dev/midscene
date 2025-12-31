@@ -143,6 +143,7 @@ export interface ServiceTaskInfo {
   searchArea?: Rect;
   searchAreaRawResponse?: string;
   searchAreaUsage?: AIUsageInfo;
+  reasoning_content?: string;
 }
 
 export interface DumpMeta {
@@ -188,6 +189,7 @@ export interface ServiceExtractResult<T> extends ServiceResultBase {
   data: T;
   thought?: string;
   usage?: AIUsageInfo;
+  reasoning_content?: string;
 }
 
 export class ServiceError extends Error {
@@ -261,6 +263,7 @@ export interface PlanningAIResponse
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
+  reasoning_content?: string;
 }
 
 export interface PlanningActionParamSleep {
@@ -381,6 +384,7 @@ export type ExecutionTask<
     };
     usage?: AIUsageInfo;
     searchAreaUsage?: AIUsageInfo;
+    reasoning_content?: string;
   };
 
 export interface ExecutionDump extends DumpMeta {

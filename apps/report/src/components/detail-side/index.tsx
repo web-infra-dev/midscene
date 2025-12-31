@@ -236,6 +236,7 @@ const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
   const { matchedElement: elements } = dump || {};
+  const reasoningContent = task?.reasoning_content;
 
   const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
     ?.aiActContext;
@@ -629,6 +630,17 @@ const DetailSide = (): JSX.Element => {
             content={<pre className="description-content">{thought}</pre>}
           />
         )}
+        {reasoningContent && (
+          <Card
+            liteMode={true}
+            title="reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+          />
+        )}
 
         <Card
           liteMode={true}
@@ -674,6 +686,20 @@ const DetailSide = (): JSX.Element => {
               <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output?.log}
               </pre>
+            }
+          />,
+        );
+      }
+      if (reasoningContent) {
+        planItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            title="reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
             }
           />,
         );
@@ -810,6 +836,18 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             content={<pre>{thought}</pre>}
             title="thought"
+          />,
+        );
+      }
+      if (reasoningContent) {
+        outputItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre>{reasoningContent}</pre>}
+            title="reasoning"
           />,
         );
       }
