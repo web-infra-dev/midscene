@@ -1,7 +1,7 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import { UniversalPlayground } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
 import './index.less';
 
@@ -28,9 +28,22 @@ export function BrowserExtensionPlayground({
   const { config } = useEnvConfig();
   const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
-  // Create SDK when needed - only use agentFactory, let SDK manage agent lifecycle
+  // Track active tab to trigger SDK recreation on tab change
+  const [activeTabId, setActiveTabId] = useState<number | null>(null);
+  useEffect(() => {
+    const updateActiveTab = () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        setActiveTabId(tabs[0]?.id ?? null);
+      });
+    };
+    updateActiveTab();
+    chrome.tabs.onActivated.addListener(updateActiveTab);
+    return () => chrome.tabs.onActivated.removeListener(updateActiveTab);
+  }, []);
+
+  // Create SDK when needed - recreate on tab change
   const playgroundSDK = useMemo(() => {
-    if (!runEnabled) {
+    if (!runEnabled || activeTabId === null) {
       return null;
     }
 
@@ -43,7 +56,7 @@ export function BrowserExtensionPlayground({
       console.error('Failed to initialize PlaygroundSDK:', error);
       return null;
     }
-  }, [runEnabled, getAgent, forceSameTabNavigation]);
+  }, [runEnabled, getAgent, forceSameTabNavigation, activeTabId]);
 
   // Progress callback handling is now managed in usePlaygroundExecution hook
   // No need to override onProgressUpdate here
