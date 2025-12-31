@@ -1,5 +1,5 @@
 /**
- * 验证目录报告格式功能的测试用例
+ * Verify directory report format functionality test cases
  */
 
 import * as fs from 'node:fs';
@@ -29,12 +29,12 @@ describe('Directory Report Format', () => {
       autoPrintReportMsg: false,
     });
 
-    // 导航到测试页面
+    // nav to test page
     await page.goto(
       'data:text/html,<html><body><h1>Test Page</h1><button>Click Me</button></body></html>',
     );
 
-    // 记录多个截图
+    // record multiple screenshots
     await agent.recordToReport('Initial-State', {
       content: 'Page loaded successfully',
     });
@@ -43,23 +43,23 @@ describe('Directory Report Format', () => {
       content: 'Performed some action',
     });
 
-    // 验证报告文件生成
+    // verify report file generation
     expect(agent.reportFile).toBeTruthy();
     expect(agent.reportFile).toMatch(/index\.html$/);
 
-    // 验证目录结构
+    // verify directory structure
     const reportDir = path.dirname(agent.reportFile!);
     const screenshotsDir = path.join(reportDir, 'screenshots');
 
     expect(fs.existsSync(agent.reportFile!)).toBe(true);
     expect(fs.existsSync(screenshotsDir)).toBe(true);
 
-    // 验证截图文件
+    // verify screenshot files
     const screenshots = fs.readdirSync(screenshotsDir);
     expect(screenshots.length).toBeGreaterThan(0);
     expect(screenshots.every((file) => file.endsWith('.png'))).toBe(true);
 
-    // 验证 HTML 内容包含相对路径
+    // verify HTML content contains relative paths
     const htmlContent = fs.readFileSync(agent.reportFile!, 'utf-8');
     expect(htmlContent).toContain('./screenshots/');
 
@@ -82,12 +82,12 @@ describe('Directory Report Format', () => {
       content: 'Traditional format test',
     });
 
-    // 验证生成单个 HTML 文件
+    // verify single HTML file generation
     expect(agent.reportFile).toBeTruthy();
     expect(agent.reportFile).toMatch(/\.html$/);
     expect(agent.reportFile).not.toMatch(/index\.html$/);
 
-    // 验证是单个文件，不是目录
+    // verify it is a single file, not a directory
     const reportPath = agent.reportFile!;
     expect(fs.existsSync(reportPath)).toBe(true);
     expect(fs.statSync(reportPath).isFile()).toBe(true);
