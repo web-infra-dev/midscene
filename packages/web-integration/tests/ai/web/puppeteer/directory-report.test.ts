@@ -2,11 +2,11 @@
  * 验证目录报告格式功能的测试用例
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import puppeteer, { type Browser, type Page } from 'puppeteer';
-import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { PuppeteerAgent } from '@midscene/web/puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 describe('Directory Report Format', () => {
   let browser: Browser;
