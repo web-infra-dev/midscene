@@ -527,13 +527,14 @@ export class Agent<
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
-    const { generateReport, autoPrintReportMsg } = this.opts;
+    const { generateReport, autoPrintReportMsg, useDirectoryReport } = this.opts;
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
       fileContent: this.dumpDataString(),
       type: 'dump',
       generateReport,
+      useDirectoryReport,
     });
     debug('writeOutActionDumps', this.reportFile);
     if (generateReport && autoPrintReportMsg && this.reportFile) {
