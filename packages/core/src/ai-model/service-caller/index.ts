@@ -506,22 +506,22 @@ export function resolveDeepThinkConfig({
   debugMessage?: string;
   warningMessage?: string;
 } {
-  if (!deepThink) {
+  if (deepThink === undefined) {
     return { config: {}, debugMessage: undefined };
   }
 
   if (vlMode === 'qwen3-vl') {
     return {
-      config: { enable_thinking: true },
-      debugMessage: 'deepThink enabled: mapped to enable_thinking for qwen3-vl',
+      config: { enable_thinking: deepThink },
+      debugMessage: `deepThink mapped to enable_thinking=${deepThink} for qwen3-vl`,
     };
   }
 
   if (vlMode === 'doubao-vision') {
     return {
-      config: { thinking: { type: 'enabled' } },
+      config: { thinking: { type: deepThink ? 'enabled' : 'disabled' } },
       debugMessage:
-        'deepThink enabled: mapped to thinking.type=enabled for doubao-vision',
+        `deepThink mapped to thinking.type=${deepThink ? 'enabled' : 'disabled'} for doubao-vision`,
     };
   }
 
