@@ -365,6 +365,20 @@ export function usePlaygroundExecution(
 
         // Add result item if we have execution data
         if (executionData && (executionData.dump || executionData.reportHTML)) {
+          // Generate replayScriptsInfo from dump, just like in handleRun
+          let replayInfo = null;
+          let counter = replayCounter;
+
+          if (
+            executionData.dump?.tasks &&
+            Array.isArray(executionData.dump.tasks)
+          ) {
+            const groupedDump = wrapExecutionDumpForReplay(executionData.dump);
+            replayInfo = allScriptsFromDump(groupedDump);
+            setReplayCounter((c) => c + 1);
+            counter = replayCounter + 1;
+          }
+
           const resultItem: InfoListItem = {
             id: `stop-result-${thisRunningId}`,
             type: 'result',
@@ -378,7 +392,8 @@ export function usePlaygroundExecution(
             },
             loading: false,
             verticalMode,
-            replayCounter,
+            replayScriptsInfo: replayInfo,
+            replayCounter: counter,
           };
           setInfoList((prev) => [...prev, resultItem]);
         } else {

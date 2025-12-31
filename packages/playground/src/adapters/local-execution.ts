@@ -200,6 +200,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           : null,
       };
 
+      // Get dump data - separate try-catch to ensure dump is retrieved even if reportHTML fails
       try {
         if (this.agent.dumpDataString) {
           const dumpString = this.agent.dumpDataString();
@@ -208,18 +209,27 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
             response.dump = groupedDump.executions?.[0] || null;
           }
         }
+      } catch (error: unknown) {
+        console.warn('Failed to get dump from agent:', error);
+      }
 
-        // Always generate reportHTML for all APIs (including noReplayAPIs)
+      // Try to get reportHTML - may fail in browser environment (fs not available)
+      try {
         if (this.agent.reportHTMLString) {
           response.reportHTML = this.agent.reportHTMLString() || null;
         }
+      } catch (error: unknown) {
+        // reportHTMLString may throw in browser environment
+        // This is expected in chrome-extension, continue without reportHTML
+      }
 
-        // Write out action dumps
+      // Write out action dumps - may also fail in browser environment
+      try {
         if (this.agent.writeOutActionDumps) {
           this.agent.writeOutActionDumps();
         }
       } catch (error: unknown) {
-        console.error('Failed to get dump/reportHTML from agent:', error);
+        // writeOutActionDumps may fail in browser environment
       }
 
       // Don't throw the error - return it in response so caller can access dump/reportHTML
@@ -255,23 +265,74 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  // Local execution task cancellation - minimal implementation
-  async cancelTask(
-    _requestId: string,
-  ): Promise<{ error?: string; success?: boolean }> {
+  // Local execution task cancellation - returns dump and reportHTML before destroying
+  async cancelTask(_requestId: string): Promise<{
+    error?: string;
+    success?: boolean;
+    dump?: ExecutionDump | null;
+    reportHTML?: string | null;
+  }> {
     if (!this.agent) {
       return { error: 'No active agent found for this requestId' };
     }
 
+    // Get execution data BEFORE destroying the agent
+    let dump: ExecutionDump | null = null;
+    let reportHTML: string | null = null;
+
+    // Get dump data separately - don't let reportHTML errors affect dump retrieval
+    try {
+      if (typeof this.agent.dumpDataString === 'function') {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump = JSON.parse(dumpString);
+          // Get the first execution, or the entire groupedDump if it has tasks
+          if (groupedDump.executions?.length > 0) {
+            dump = groupedDump.executions[0];
+          } else if (groupedDump.tasks?.length > 0) {
+            dump = groupedDump;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[LocalExecutionAdapter] Failed to get dump data before cancel:',
+        error,
+      );
+    }
+
+    // Try to get reportHTML separately - this may fail in browser environment
+    // where fs.readFileSync is not available
+    try {
+      if (typeof this.agent.reportHTMLString === 'function') {
+        const html = this.agent.reportHTMLString();
+        if (
+          html &&
+          typeof html === 'string' &&
+          !html.includes('REPLACE_ME_WITH_REPORT_HTML')
+        ) {
+          reportHTML = html;
+        }
+      }
+    } catch (error) {
+      // reportHTMLString may throw in browser environment (fs not available)
+      // This is expected, just continue with dump data only
+      console.warn(
+        '[LocalExecutionAdapter] reportHTMLString not available in this environment',
+      );
+    }
+
     try {
       await this.agent.destroy?.();
-      this.isAgentDestroyed = true; // Mark agent as destroyed
-      return { success: true };
+      this.isAgentDestroyed = true;
+      return { success: true, dump, reportHTML };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      console.error(`Failed to cancel agent: ${errorMessage}`);
-      return { error: `Failed to cancel: ${errorMessage}` };
+      console.error(
+        `[LocalExecutionAdapter] Failed to cancel agent: ${errorMessage}`,
+      );
+      return { error: `Failed to cancel: ${errorMessage}`, dump, reportHTML };
     }
   }
 
