@@ -45,13 +45,28 @@ describe('PlaygroundSDK', () => {
       );
     });
 
-    it('should throw error for local-execution without agent', () => {
+    it('should throw error for local-execution without agent or agentFactory', () => {
       const config: PlaygroundConfig = {
         type: 'local-execution',
       };
 
       expect(() => new PlaygroundSDK(config)).toThrow(
-        'Agent is required for local execution',
+        'Agent or agentFactory is required for local execution',
+      );
+    });
+
+    it('should create LocalExecutionAdapter with only agentFactory', () => {
+      const mockAgentFactory = vi.fn();
+      const config: PlaygroundConfig = {
+        type: 'local-execution',
+        agentFactory: mockAgentFactory,
+      };
+
+      const sdk = new PlaygroundSDK(config);
+      expect(sdk).toBeDefined();
+      expect(LocalExecutionAdapter).toHaveBeenCalledWith(
+        undefined,
+        mockAgentFactory,
       );
     });
 

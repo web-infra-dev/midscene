@@ -11,7 +11,7 @@ import type {
 import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
-  private agent: PlaygroundAgent;
+  private agent: PlaygroundAgent | null;
   private agentFactory?: AgentFactory; // Factory function for recreating agent
   private isAgentDestroyed = false; // Track if agent has been destroyed
   private dumpUpdateCallback?: (
@@ -22,11 +22,15 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
-  constructor(agent: PlaygroundAgent, agentFactory?: AgentFactory) {
+  constructor(agent?: PlaygroundAgent, agentFactory?: AgentFactory) {
     super();
-    this.agent = agent;
+    this.agent = agent ?? null;
     this.agentFactory = agentFactory;
     this._id = uuid(); // Generate unique ID for local adapter
+    // If no agent provided but factory exists, mark as needing creation
+    if (!agent && agentFactory) {
+      this.isAgentDestroyed = true;
+    }
   }
 
   // Get adapter ID
@@ -133,10 +137,13 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
-    // Recreate agent if it was destroyed (e.g., after cancellation)
-    if (this.isAgentDestroyed) {
+    // Recreate agent if it was destroyed or not yet created
+    if (this.isAgentDestroyed || !this.agent) {
       await this.recreateAgent();
     }
+
+    // Agent must exist after recreation
+    const agent = this.agent!;
 
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
@@ -144,18 +151,18 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     // Reset dump at the start of execution to ensure clean state
     try {
-      this.agent.resetDump?.();
+      agent.resetDump?.();
     } catch (error: unknown) {
       console.warn('Failed to reset dump before execution:', error);
     }
 
     // Setup dump update tracking if requestId is provided
-    if (options.requestId && this.agent) {
+    if (options.requestId) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
 
       // Add listener and save remove function
-      removeListener = this.agent.addDumpUpdateListener(
+      removeListener = agent.addDumpUpdateListener(
         (dump: string, executionDump?: ExecutionDump) => {
           // Only process if this is still the current request
           if (this.currentRequestId !== options.requestId) {
@@ -177,7 +184,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       try {
         // Call the base implementation with the original signature
         result = await executeAction(
-          this.agent,
+          agent,
           actionType,
           actionSpace,
           value,
@@ -202,8 +209,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Get dump data - separate try-catch to ensure dump is retrieved even if reportHTML fails
       try {
-        if (this.agent.dumpDataString) {
-          const dumpString = this.agent.dumpDataString();
+        if (agent.dumpDataString) {
+          const dumpString = agent.dumpDataString();
           if (dumpString) {
             const groupedDump = JSON.parse(dumpString);
             response.dump = groupedDump.executions?.[0] || null;
@@ -215,8 +222,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Try to get reportHTML - may fail in browser environment (fs not available)
       try {
-        if (this.agent.reportHTMLString) {
-          response.reportHTML = this.agent.reportHTMLString() || null;
+        if (agent.reportHTMLString) {
+          response.reportHTML = agent.reportHTMLString() || null;
         }
       } catch (error: unknown) {
         // reportHTMLString may throw in browser environment
@@ -225,8 +232,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Write out action dumps - may also fail in browser environment
       try {
-        if (this.agent.writeOutActionDumps) {
-          this.agent.writeOutActionDumps();
+        if (agent.writeOutActionDumps) {
+          agent.writeOutActionDumps();
         }
       } catch (error: unknown) {
         // writeOutActionDumps may fail in browser environment
@@ -351,7 +358,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       // Get dump data
-      if (this.agent.dumpDataString) {
+      if (this.agent?.dumpDataString) {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
           const groupedDump = JSON.parse(dumpString);
@@ -360,7 +367,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       }
 
       // Get report HTML
-      if (this.agent.reportHTMLString) {
+      if (this.agent?.reportHTMLString) {
         response.reportHTML = this.agent.reportHTMLString() || null;
       }
     } catch (error: unknown) {

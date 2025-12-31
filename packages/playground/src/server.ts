@@ -158,16 +158,9 @@ class PlaygroundServer {
    */
   private async recreateAgent(): Promise<void> {
     if (!this.agentFactory) {
-      console.warn(
+      throw new Error(
         'Cannot recreate agent: factory function not provided. Attempting to destroy existing agent only.',
       );
-      // Even without a factory, destroy the current agent to stop ongoing work
-      try {
-        await this.agent?.destroy?.();
-      } catch (error) {
-        console.warn('Failed to destroy agent without factory:', error);
-      }
-      return;
     }
 
     console.log('Recreating agent to cancel current task...');

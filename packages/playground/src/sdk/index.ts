@@ -32,8 +32,10 @@ export class PlaygroundSDK {
   ): BasePlaygroundAdapter {
     switch (type) {
       case 'local-execution':
-        if (!agent) {
-          throw new Error('Agent is required for local execution');
+        if (!agent && !agentFactory) {
+          throw new Error(
+            'Agent or agentFactory is required for local execution',
+          );
         }
         return new LocalExecutionAdapter(agent, agentFactory);
       case 'remote-execution': {

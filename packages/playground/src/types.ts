@@ -57,9 +57,11 @@ export type AgentFactory =
 
 export interface PlaygroundConfig {
   type: ExecutionType;
-  serverUrl?: string; // For remote-execution protocol
-  agent?: PlaygroundAgent; // For local-execution (instance mode)
-  agentFactory?: AgentFactory; // For local-execution (factory mode - supports agent recreation after destroy)
+  serverUrl?: string; // For remote-execution
+  agent?: PlaygroundAgent; // For local-execution: initial agent (optional if agentFactory provided)
+  agentFactory?: AgentFactory; // For local-execution: factory for creating/recreating agent
+  // Note: For local-execution, at least one of agent or agentFactory must be provided.
+  // If only agentFactory is provided, the agent will be created lazily on first use.
 }
 
 /**
