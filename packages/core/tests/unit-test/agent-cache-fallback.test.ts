@@ -119,7 +119,12 @@ Please continue from Step 3 and avoid repeating the successful steps.`,
         { index: 1, name: 'Enter username' },
       ],
       failedTasksDetailed: [
-        { index: 2, name: 'Enter password', error: new Error('Element not found'), totalSteps: 1 },
+        {
+          index: 2,
+          name: 'Enter password',
+          error: new Error('Element not found'),
+          totalSteps: 1,
+        },
       ],
       pendingTasks: [],
     };
@@ -156,7 +161,9 @@ Please continue from Step 3 and avoid repeating the successful steps.`,
     const actionCall = (agent.taskExecutor.action as any).mock.calls[0];
     const contextParam = actionCall[4]; // 5th parameter is aiActContext
 
-    expect(contextParam).toContain('Previous cached workflow execution failed at step 3/3');
+    expect(contextParam).toContain(
+      'Previous cached workflow execution failed at step 3/3',
+    );
     expect(contextParam).toContain('Step 1/3:');
     expect(contextParam).toContain('Step 2/3:');
     expect(contextParam).toContain('Step 3/3:');
@@ -191,7 +198,9 @@ Please continue from Step 3 and avoid repeating the successful steps.`,
     const mockError = new Error('YAML execution failed');
     (mockError as any).executionContext = {
       successfulTasks: ['Click login'],
-      failedTasks: [{ name: 'Enter username', error: new Error('Field not found') }],
+      failedTasks: [
+        { name: 'Enter username', error: new Error('Field not found') },
+      ],
       totalTasks: 2,
       fallbackContext: `Previous cached workflow execution failed at step 2/2:
 
@@ -204,7 +213,14 @@ Failed:
 
 Please continue from Step 2 and avoid repeating the successful steps.`,
       completedTasks: [{ index: 0, name: 'Click login' }],
-      failedTasksDetailed: [{ index: 1, name: 'Enter username', error: new Error('Field not found'), totalSteps: 1 }],
+      failedTasksDetailed: [
+        {
+          index: 1,
+          name: 'Enter username',
+          error: new Error('Field not found'),
+          totalSteps: 1,
+        },
+      ],
       pendingTasks: [],
     };
 
@@ -236,7 +252,9 @@ Please continue from Step 2 and avoid repeating the successful steps.`,
 
     expect(contextParam).toContain('User is on login page');
     expect(contextParam).toContain('--- Cache Execution Failed ---');
-    expect(contextParam).toContain('Previous cached workflow execution failed at step 2/2');
+    expect(contextParam).toContain(
+      'Previous cached workflow execution failed at step 2/2',
+    );
     expect(contextParam).toContain('✓ Step 1/2: "Click login"');
     expect(contextParam).toContain('✗ Step 2/2: "Enter username"');
   });
