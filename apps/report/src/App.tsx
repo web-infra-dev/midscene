@@ -24,6 +24,10 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+import {
+  loadImageMap,
+  restoreImageReferences,
+} from './utils/image-restoration';
 
 let globalRenderCount = 1;
 
@@ -258,6 +262,15 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
 export function App() {
   function getDumpElements(): PlaywrightTasks[] {
+    // Load image map once at the start (images extracted from dump JSON)
+    const imageMap = loadImageMap();
+    const hasImages = Object.keys(imageMap).length > 0;
+    if (hasImages) {
+      console.log(
+        `Loaded ${Object.keys(imageMap).length} images from script tags`,
+      );
+    }
+
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
@@ -302,6 +315,17 @@ export function App() {
                 console.time('parse_dump');
                 const content = antiEscapeScriptTag(el.textContent || '');
                 cachedJsonContent = JSON.parse(content);
+
+                // Restore image references from separate script tags
+                if (hasImages) {
+                  console.time('restore_images');
+                  cachedJsonContent = restoreImageReferences(
+                    cachedJsonContent,
+                    imageMap,
+                  );
+                  console.timeEnd('restore_images');
+                }
+
                 console.timeEnd('parse_dump');
                 cachedJsonContent.attributes = attributes;
                 isParsed = true;

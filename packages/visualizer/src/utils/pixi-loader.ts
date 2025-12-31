@@ -7,9 +7,7 @@ const globalTextureMap = new Map<string, PIXI.Texture>();
  * Check if we're in a file:// context where fetch() won't work for relative paths
  */
 const isFileProtocol = (): boolean => {
-  return (
-    typeof window !== 'undefined' && window.location.protocol === 'file:'
-  );
+  return typeof window !== 'undefined' && window.location.protocol === 'file:';
 };
 
 /**
