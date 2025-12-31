@@ -867,6 +867,10 @@ export class Agent<
       isVlmUiTars || cacheable === false
         ? undefined
         : this.taskCache?.matchPlanCache(taskPrompt);
+
+    // Use local variable for context to avoid modifying instance state
+    let contextForPlanning = this.aiActContext;
+
     if (
       matchedCache &&
       this.taskCache?.isCacheResultUsed &&
@@ -888,6 +892,58 @@ export class Agent<
           'cache execution failed, falling back to AI planning:',
           cacheError instanceof Error ? cacheError.message : String(cacheError),
         );
+
+        // Build failure context for intelligent fallback
+        const executionContext = (cacheError as any)?.executionContext;
+        let fallbackContext: string;
+
+        if (executionContext) {
+          // Detailed execution context available
+          const { successfulTasks, failedTasks, totalTasks } = executionContext;
+
+          const parts = [
+            `Previous cached workflow execution failed (${failedTasks.length}/${totalTasks} tasks failed).`,
+          ];
+
+          if (successfulTasks.length > 0) {
+            parts.push(
+              `Successfully completed steps: ${successfulTasks.join(', ')}`,
+            );
+          } else {
+            parts.push('No steps were completed successfully.');
+          }
+
+          parts.push(
+            `Failed at: ${failedTasks
+              .map(
+                (t: any) =>
+                  `"${t.name}" (${t.error?.message || 'unknown error'})`,
+              )
+              .join('; ')}`,
+          );
+
+          parts.push(
+            'Please continue from the failed step and avoid repeating the successful steps.',
+          );
+
+          fallbackContext = parts.join('\n');
+        } else {
+          // No detailed context, use basic error message
+          const errorMessage =
+            cacheError instanceof Error
+              ? cacheError.message
+              : String(cacheError);
+          fallbackContext = [
+            'Previous cached workflow execution failed.',
+            `Error: ${errorMessage}`,
+            'Please retry with a different approach.',
+          ].join('\n');
+        }
+
+        // Append failure context to original aiActContext using local variable
+        contextForPlanning = this.aiActContext
+          ? `${this.aiActContext}\n\n--- Cache Execution Failed ---\n${fallbackContext}`
+          : fallbackContext;
       }
     }
 
@@ -903,7 +959,7 @@ export class Agent<
       modelConfigForPlanning,
       defaultIntentModelConfig,
       includeBboxInPlanning,
-      this.aiActContext,
+      contextForPlanning,
       cacheable,
       replanningCycleLimit,
       imagesIncludeCount,
@@ -1235,13 +1291,37 @@ export class Agent<
     await player.run();
 
     if (player.status === 'error') {
-      const errors = player.taskStatusList
+      // Collect successful tasks
+      const successfulTasks = player.taskStatusList
+        .filter((task) => task.status === 'done')
+        .map((task) => task.name);
+
+      // Collect failed tasks with detailed information
+      const failedTasks = player.taskStatusList
         .filter((task) => task.status === 'error')
-        .map((task) => {
-          return `task - ${task.name}: ${task.error?.message}`;
-        })
+        .map((task) => ({
+          name: task.name,
+          error: task.error,
+        }));
+
+      // Generate error message
+      const errors = failedTasks
+        .map((task) => `task - ${task.name}: ${task.error?.message}`)
         .join('\n');
-      throw new Error(`Error(s) occurred in running yaml script:\n${errors}`);
+
+      // Create enhanced error object
+      const error = new Error(
+        `Error(s) occurred in running yaml script:\n${errors}`,
+      );
+
+      // Attach execution context metadata for intelligent fallback
+      (error as any).executionContext = {
+        successfulTasks,
+        failedTasks,
+        totalTasks: player.taskStatusList.length,
+      };
+
+      throw error;
     }
 
     return {
