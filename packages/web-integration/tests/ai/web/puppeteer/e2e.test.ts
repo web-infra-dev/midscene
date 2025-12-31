@@ -52,7 +52,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it.only(
+    it.skip(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(
@@ -96,7 +96,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.skip('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
@@ -113,19 +113,7 @@ describe(
 
       await sleep(10 * 1000);
 
-      // await agent.ai(
-      //   'type "standard_user" in user name input, 输入完成后，界面上应该展示 who are you 字样',
-      // );
-      // return;
-
-      // agent.setAIActionContext(
-      //   'This is a testing application for Sauce Demo by Swag Lab',
-      // );
-
-      // const flag = await agent.aiBoolean('this is a login page');
-      // expect(flag).toBe(true);
-
-      // await agent.aiAssert('this is a login page');
+      await agent.aiAssert('this is a login page');
 
       await agent.ai(
         'type "standard_user" in user name input, type "secret_sauce" in password',

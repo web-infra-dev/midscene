@@ -130,7 +130,13 @@ For example, on mobile UI automation, if you have a component tree plus full a11
 
 See [Model configuration](./model-config).
 
-### API style
+### About the `deepThink` option in `aiAct`
+
+If your model provider offers reasoning-related parameters, you can use `deepThink` to explicitly control whether to enable it. If you don't configure this parameter, the strategy will be determined by the model provider (not necessarily disabled).
+
+Currently, Midscene has adapted this parameter for the `qwen3-vl` and `doubao-seed-1.6` model families. Once the reasoning feature is enabled, you can see the `Reasoning` section on the right side of the report. Planning will take longer but produce more accurate results.
+
+### API style for model service provider
 
 Midscene expects providers to expose an OpenAI-compatible API (this does **not** mean you must use OpenAI models).
 
