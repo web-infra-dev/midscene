@@ -182,6 +182,144 @@ export function reportHTMLContent(
   return tpl + dumpContent;
 }
 
+// Persistent screenshot counter map to prevent file overwriting during append operations
+const screenshotCounterMap = new Map<string, number>();
+
+export function writeDirectoryReport(
+  fileName: string,
+  dumpData: string | ReportDumpWithAttributes,
+  appendReport?: boolean,
+): string | null {
+  if (ifInBrowser || ifInWorker) {
+    console.log('will not write directory report in browser');
+    return null;
+  }
+
+  const reportDir = path.join(getMidsceneRunSubDir('report'), fileName);
+  const screenshotsDir = path.join(reportDir, 'screenshots');
+  const indexPath = path.join(reportDir, 'index.html');
+
+  try {
+    // Create directories if they don't exist
+    if (!existsSync(reportDir)) {
+      mkdirSync(reportDir, { recursive: true });
+    }
+    if (!existsSync(screenshotsDir)) {
+      mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Process data and extract screenshots
+    const processedData = extractAndSaveScreenshots(dumpData, screenshotsDir);
+
+    // Generate HTML report
+    reportHTMLContent(processedData, indexPath, appendReport);
+
+    return indexPath;
+  } catch (error) {
+    console.error('Failed to write directory report:', error);
+    return null;
+  }
+}
+
+interface ScreenshotData {
+  [key: string]: unknown;
+  screenshot?: string;
+}
+
+function extractAndSaveScreenshots(
+  dumpData: string | ReportDumpWithAttributes,
+  screenshotsDir: string,
+): string | ReportDumpWithAttributes {
+  let data: ScreenshotData;
+  let attributes: Record<string, string> | undefined;
+
+  try {
+    if (typeof dumpData === 'string') {
+      data = JSON.parse(dumpData) as ScreenshotData;
+    } else {
+      data = JSON.parse(dumpData.dumpString) as ScreenshotData;
+      attributes = dumpData.attributes;
+    }
+  } catch (error) {
+    console.error('Failed to parse dump data:', error);
+    throw error;
+  }
+
+  // Get or initialize screenshot counter for this directory
+  let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
+
+  // Recursively process all screenshots
+  function processScreenshots(obj: unknown): unknown {
+    if (typeof obj !== 'object' || obj === null) {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(processScreenshots);
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Match both 'screenshot' and 'screenshotBase64' fields
+      if (
+        (key === 'screenshot' || key === 'screenshotBase64') &&
+        typeof value === 'string' &&
+        value.startsWith('data:image/')
+      ) {
+        try {
+          // Extract and save screenshot
+          const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
+          const screenshotPath = path.join(screenshotsDir, screenshotFileName);
+
+          // Validate and extract base64 data
+          const parts = value.split(',');
+          if (parts.length !== 2 || !parts[1]) {
+            console.error(
+              `Invalid base64 image format for screenshot: ${screenshotFileName}`,
+            );
+            result[key] = value; // Keep original if invalid
+            continue;
+          }
+
+          const base64Data = parts[1];
+
+          // Write screenshot file
+          writeFileSync(screenshotPath, Buffer.from(base64Data, 'base64'));
+
+          // Replace with relative path
+          result[key] = `./screenshots/${screenshotFileName}`;
+        } catch (error) {
+          console.error(
+            `Failed to save screenshot ${screenshotCounter}:`,
+            error,
+          );
+          // Keep original base64 data if save fails
+          result[key] = value;
+        }
+      } else {
+        result[key] = processScreenshots(value);
+      }
+    }
+    return result;
+  }
+
+  const processedData = processScreenshots(data);
+
+  // Update the persistent counter
+  screenshotCounterMap.set(screenshotsDir, screenshotCounter);
+
+  const processedDumpString = JSON.stringify(processedData);
+
+  if (attributes) {
+    return {
+      dumpString: processedDumpString,
+      attributes,
+    };
+  }
+
+  return processedDumpString;
+}
+
 export function writeDumpReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes,
@@ -226,6 +364,7 @@ export function writeLogFile(opts: {
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
+  useDirectoryReport?: boolean;
 }) {
   if (ifInBrowser || ifInWorker) {
     return '/mock/report.html';
@@ -268,6 +407,9 @@ export function writeLogFile(opts: {
   }
 
   if (opts?.generateReport) {
+    if (opts.useDirectoryReport) {
+      return writeDirectoryReport(fileName, fileContent, opts.appendReport);
+    }
     return writeDumpReport(fileName, fileContent, opts.appendReport);
   }
 
