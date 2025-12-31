@@ -265,11 +265,14 @@ export async function callAI(
         }
       : {}),
   };
-  const { config: deepThinkConfig, debugMessage, warningMessage } =
-    resolveDeepThinkConfig({
-      deepThink: options?.deepThink,
-      vlMode,
-    });
+  const {
+    config: deepThinkConfig,
+    debugMessage,
+    warningMessage,
+  } = resolveDeepThinkConfig({
+    deepThink: options?.deepThink,
+    vlMode,
+  });
   if (debugMessage) {
     debugCall(debugMessage);
   }

@@ -1,4 +1,7 @@
-import { resolveDeepThinkConfig, safeParseJson } from '@/ai-model/service-caller';
+import {
+  resolveDeepThinkConfig,
+  safeParseJson,
+} from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
