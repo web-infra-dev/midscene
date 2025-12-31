@@ -127,6 +127,7 @@ export function reportHTMLContent(
   reportPath?: string,
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
+  extractImages = true, // whether to extract base64 images to separate script tags
 ): string {
   let tpl = '';
   if (withTpl) {
@@ -139,18 +140,39 @@ export function reportHTMLContent(
   }
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
+
+  // Extract base64 images to separate script tags if enabled
+  let processedDumpString: string;
+  let imageScriptTags = '';
+  let attributes: Record<string, string> | undefined;
+
+  if (extractImages) {
+    const extractionResult = extractBase64ToScriptTags(dumpData, reportPath);
+    processedDumpString = extractionResult.processedDumpString;
+    imageScriptTags = extractionResult.imageScriptTags;
+    attributes = extractionResult.attributes;
+  } else {
+    // No extraction, use original data
+    if (typeof dumpData === 'string') {
+      processedDumpString = dumpData;
+    } else {
+      processedDumpString = dumpData.dumpString;
+      attributes = dumpData.attributes;
+    }
+  }
+
+  // Generate dump script tag
   let dumpContent = '';
 
-  if (typeof dumpData === 'string') {
+  if (!attributes) {
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
       '<script type="midscene_web_dump" type="application/json">\n' +
-      escapeScriptTag(dumpData) +
+      escapeScriptTag(processedDumpString) +
       '\n</script>';
   } else {
-    const { dumpString, attributes } = dumpData;
-    const attributesArr = Object.keys(attributes || {}).map((key) => {
+    const attributesArr = Object.keys(attributes).map((key) => {
       return `${key}="${encodeURIComponent(attributes![key])}"`;
     });
 
@@ -160,13 +182,22 @@ export function reportHTMLContent(
       '<script type="midscene_web_dump" type="application/json" ' +
       attributesArr.join(' ') +
       '>\n' +
-      escapeScriptTag(dumpString) +
+      escapeScriptTag(processedDumpString) +
       '\n</script>';
+  }
+
+  // Combine image script tags and dump content
+  let allScriptContent: string;
+  if (imageScriptTags) {
+    // biome-ignore lint/style/useTemplate: avoid bundle error
+    allScriptContent = imageScriptTags + '\n' + dumpContent;
+  } else {
+    allScriptContent = dumpContent;
   }
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
+      writeFileSync(reportPath!, tpl + allScriptContent, { flag: 'w' });
       return reportPath!;
     }
 
@@ -175,15 +206,118 @@ export function reportHTMLContent(
       reportInitializedMap.set(reportPath!, true);
     }
 
-    insertScriptBeforeClosingHtml(reportPath!, dumpContent);
+    insertScriptBeforeClosingHtml(reportPath!, allScriptContent);
     return reportPath!;
   }
 
-  return tpl + dumpContent;
+  return tpl + allScriptContent;
 }
 
 // Persistent screenshot counter map to prevent file overwriting during append operations
 const screenshotCounterMap = new Map<string, number>();
+
+// Constants for image script tag extraction
+const IMAGE_REF_PREFIX = '#midscene-img:';
+const IMAGE_SCRIPT_TYPE = 'midscene-image';
+
+// Persistent image ID counter map to prevent ID conflicts during append operations
+const imageIdCounterMap = new Map<string, number>();
+
+interface ImageExtractionResult {
+  processedDumpString: string;
+  imageScriptTags: string;
+  attributes?: Record<string, string>;
+}
+
+/**
+ * Extract base64 images from dump data and generate script tags.
+ * This reduces JSON parse memory usage by storing images in separate script tags.
+ */
+export function extractBase64ToScriptTags(
+  dumpData: string | ReportDumpWithAttributes,
+  reportPath?: string,
+): ImageExtractionResult {
+  let data: Record<string, unknown>;
+  let attributes: Record<string, string> | undefined;
+
+  try {
+    if (typeof dumpData === 'string') {
+      data = JSON.parse(dumpData) as Record<string, unknown>;
+    } else {
+      data = JSON.parse(dumpData.dumpString) as Record<string, unknown>;
+      attributes = dumpData.attributes;
+    }
+  } catch (error) {
+    console.error('Failed to parse dump data for image extraction:', error);
+    // Return original data if parsing fails
+    const dumpString =
+      typeof dumpData === 'string' ? dumpData : dumpData.dumpString;
+    return {
+      processedDumpString: dumpString,
+      imageScriptTags: '',
+      attributes:
+        typeof dumpData === 'object' ? dumpData.attributes : undefined,
+    };
+  }
+
+  // Get or initialize image counter for this report path
+  const counterKey = reportPath || 'default';
+  let imageCounter = imageIdCounterMap.get(counterKey) || 0;
+  const imageScriptTagsArray: string[] = [];
+
+  // Recursively process all base64 images
+  function processImages(obj: unknown): unknown {
+    if (typeof obj !== 'object' || obj === null) {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(processImages);
+    }
+
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // Match both 'screenshot' and 'screenshotBase64' fields
+      if (
+        (key === 'screenshot' || key === 'screenshotBase64') &&
+        typeof value === 'string' &&
+        value.startsWith('data:image/')
+      ) {
+        // Generate unique ID for this image
+        const imageId = `img-${imageCounter++}`;
+
+        // Create script tag for this image
+        const scriptTag =
+          // biome-ignore lint/style/useTemplate: avoid bundle error
+          '<script type="' +
+          IMAGE_SCRIPT_TYPE +
+          '" data-id="' +
+          imageId +
+          '">\n' +
+          escapeScriptTag(value) +
+          '\n</script>';
+        imageScriptTagsArray.push(scriptTag);
+
+        // Replace base64 with reference
+        result[key] = IMAGE_REF_PREFIX + imageId;
+      } else {
+        result[key] = processImages(value);
+      }
+    }
+    return result;
+  }
+
+  const processedData = processImages(data);
+
+  // Update the persistent counter
+  imageIdCounterMap.set(counterKey, imageCounter);
+
+  return {
+    processedDumpString: JSON.stringify(processedData),
+    imageScriptTags: imageScriptTagsArray.join('\n'),
+    attributes,
+  };
+}
 
 export function writeDirectoryReport(
   fileName: string,
