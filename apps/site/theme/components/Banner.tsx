@@ -69,19 +69,27 @@ export function Banner() {
         {/* Right Image */}
         <div className="w-full lg:w-[786px] flex justify-center lg:justify-end">
           <div className="dark:hidden w-full h-full flex items-center justify-center">
-            <img
-              src="/banner-light.png"
-              alt="Midscene banner"
+            <video
+              src="/banner-light.mp4"
               className="w-full max-w-[780px]"
-              loading="lazy"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="auto"
             />
           </div>
           <div className="hidden dark:flex w-full h-full items-center justify-center">
-            <img
-              src="/banner-dark.png"
-              alt="Midscene banner"
+            <video
+              src="/banner-dark.mp4"
               className="w-full max-w-[780px]"
-              loading="lazy"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="auto"
             />
           </div>
         </div>
