@@ -76,7 +76,7 @@ export const rectMarkForItem = (
 };
 
 export const Blackboard = (props: {
-  uiContext: UIContext;
+  uiContext: UIContext | undefined | null;
   highlightElements?: BaseElement[];
   highlightRect?: Rect;
   highlightPoints?: [number, number][];
@@ -88,7 +88,18 @@ export const Blackboard = (props: {
   const highlightRect = props.highlightRect;
   const highlightPoints = props.highlightPoints;
 
-  const context = props.uiContext!;
+  // Handle undefined/null uiContext
+  if (!props.uiContext?.size) {
+    return (
+      <div className="blackboard">
+        <div className="blackboard-main-content" style={{ padding: '20px' }}>
+          No UI context available
+        </div>
+      </div>
+    );
+  }
+
+  const context = props.uiContext;
   const { size, screenshotBase64 } = context;
 
   const screenWidth = size.width;
