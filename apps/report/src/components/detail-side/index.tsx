@@ -531,6 +531,7 @@ const DetailSide = (): JSX.Element => {
 
   let outputDataContent = null;
   const actions = (task as ExecutionTaskPlanning)?.output?.actions;
+  const reasoningContent = task?.reasoning_content || dump?.reasoning_content;
 
   // Prepare error content separately (can coexist with elements)
   let errorContent: JSX.Element | null = null;
@@ -572,6 +573,15 @@ const DetailSide = (): JSX.Element => {
   }
 
   if (elements?.length) {
+    const reasoningCard = reasoningContent ? (
+      <Card
+        liteMode={true}
+        title="reasoning"
+        onMouseEnter={noop}
+        onMouseLeave={noop}
+        content={<pre className="description-content">{reasoningContent}</pre>}
+      />
+    ) : null;
     const elementsContent = elements.map((element, idx) => {
       const ifHighlight = false; // highlightElements.includes(element);
       const highlightColor = ifHighlight
@@ -607,13 +617,29 @@ const DetailSide = (): JSX.Element => {
     // Combine elements with error if both exist
     outputDataContent = (
       <>
+        {reasoningCard}
         {errorContent}
         {elementsContent}
       </>
     );
   } else if (errorContent) {
     // Only error, no elements
-    outputDataContent = errorContent;
+    outputDataContent = (
+      <>
+        {reasoningContent && (
+          <Card
+            liteMode={true}
+            title="reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+          />
+        )}
+        {errorContent}
+      </>
+    );
   } else if (task?.type === 'Insight' && task.subType === 'Assert') {
     const assertTask = task as ExecutionTaskInsightAssertion;
     const thought = assertTask.thought;
@@ -627,6 +653,17 @@ const DetailSide = (): JSX.Element => {
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={<pre className="description-content">{thought}</pre>}
+          />
+        )}
+        {reasoningContent && (
+          <Card
+            liteMode={true}
+            title="reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
           />
         )}
 
@@ -673,6 +710,22 @@ const DetailSide = (): JSX.Element => {
             content={
               <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output?.log}
+              </pre>
+            }
+          />,
+        );
+      }
+      if (task?.reasoning_content) {
+        planItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            title="reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                {task.reasoning_content}
               </pre>
             }
           />,
@@ -810,6 +863,20 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             content={<pre>{thought}</pre>}
             title="thought"
+          />,
+        );
+      }
+      if (reasoningContent) {
+        outputItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+            title="reasoning"
           />,
         );
       }

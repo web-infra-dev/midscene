@@ -168,6 +168,7 @@ export interface ServiceDump extends DumpMeta {
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;
+  reasoning_content?: string;
   taskInfo: ServiceTaskInfo;
   error?: string;
   output?: any;
@@ -187,6 +188,7 @@ export type LocateResultWithDump = LocateResult & ServiceResultBase;
 export interface ServiceExtractResult<T> extends ServiceResultBase {
   data: T;
   thought?: string;
+  reasoning_content?: string;
   usage?: AIUsageInfo;
 }
 
@@ -261,6 +263,7 @@ export interface PlanningAIResponse
   yamlFlow?: MidsceneYamlFlowItem[];
   yamlString?: string;
   error?: string;
+  reasoning_content?: string;
 }
 
 export interface PlanningActionParamSleep {
@@ -353,6 +356,7 @@ export interface ExecutionTaskReturn<TaskOutput = unknown, TaskLog = unknown> {
   log?: TaskLog;
   recorder?: ExecutionRecorderItem[];
   hitBy?: ExecutionTaskHitBy;
+  reasoning_content?: string;
 }
 
 export type ExecutionTask<
@@ -561,6 +565,8 @@ export interface StreamingAIResponse {
   usage?: AIUsageInfo;
   /** Whether the response was streamed */
   isStreamed: boolean;
+  /** The reasoning content */
+  reasoning_content?: string;
 }
 
 export interface DeviceAction<TParam = any, TReturn = any> {

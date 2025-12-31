@@ -130,6 +130,7 @@ export async function plan(
     content: planFromAI,
     contentString: rawResponse,
     usage,
+    reasoning_content,
   } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
     msgs,
     AIActionType.PLAN,
@@ -146,6 +147,7 @@ export async function plan(
     actions,
     rawResponse,
     usage,
+    reasoning_content,
     yamlFlow: buildYamlFlowFromPlans(
       actions,
       opts.actionSpace,

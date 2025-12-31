@@ -303,6 +303,7 @@ export async function uiTarsPlanning(
     usage: res.usage,
     rawResponse: JSON.stringify(res.content, undefined, 2),
     more_actions_needed_by_instruction: shouldContinue,
+    reasoning_content: res.reasoning_content,
   };
 }
 

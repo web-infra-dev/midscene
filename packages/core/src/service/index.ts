@@ -129,7 +129,8 @@ export default class Service {
     }
 
     const startTime = Date.now();
-    const { parseResult, rect, rawResponse, usage } = await AiLocateElement({
+    const { parseResult, rect, rawResponse, usage, reasoning_content } =
+      await AiLocateElement({
       callAIFn: this.aiVendorFn,
       context,
       targetElementDescription: queryPrompt,
@@ -165,6 +166,7 @@ export default class Service {
       taskInfo,
       deepThink: !!searchArea,
       error: errorLog,
+      reasoning_content,
     };
 
     const elements = parseResult.elements || [];
@@ -219,7 +221,8 @@ export default class Service {
 
     const startTime = Date.now();
 
-    const { parseResult, usage } = await AiExtractElementInfo<T>({
+    const { parseResult, usage, reasoning_content } =
+      await AiExtractElementInfo<T>({
       context,
       dataQuery: dataDemand,
       multimodalPrompt,
@@ -257,6 +260,7 @@ export default class Service {
     const dump = createServiceDump({
       ...dumpData,
       data,
+      reasoning_content,
     });
 
     if (errorLog && !data) {
@@ -268,6 +272,7 @@ export default class Service {
       thought,
       usage,
       dump,
+      reasoning_content,
     };
   }
 
