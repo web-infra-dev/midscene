@@ -131,12 +131,12 @@ export default class Service {
     const startTime = Date.now();
     const { parseResult, rect, rawResponse, usage, reasoning_content } =
       await AiLocateElement({
-      callAIFn: this.aiVendorFn,
-      context,
-      targetElementDescription: queryPrompt,
-      searchConfig: searchAreaResponse,
-      modelConfig,
-    });
+        callAIFn: this.aiVendorFn,
+        context,
+        targetElementDescription: queryPrompt,
+        searchConfig: searchAreaResponse,
+        modelConfig,
+      });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
@@ -223,13 +223,13 @@ export default class Service {
 
     const { parseResult, usage, reasoning_content } =
       await AiExtractElementInfo<T>({
-      context,
-      dataQuery: dataDemand,
-      multimodalPrompt,
-      extractOption: opt,
-      modelConfig,
-      pageDescription,
-    });
+        context,
+        dataQuery: dataDemand,
+        multimodalPrompt,
+        extractOption: opt,
+        modelConfig,
+        pageDescription,
+      });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
