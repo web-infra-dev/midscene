@@ -217,7 +217,7 @@ describe('Playground Integration Tests', () => {
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
-      };
+      } as unknown as PlaygroundAgent;
 
       adapter = new LocalExecutionAdapter(mockAgent);
     });
