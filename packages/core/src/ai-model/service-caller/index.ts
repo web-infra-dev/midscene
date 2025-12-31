@@ -372,7 +372,6 @@ export async function callAI(
       accumulatedReasoning =
         (result.choices[0].message as any)?.reasoning_content || '';
       usage = result.usage;
-      debugCall(`response: ${JSON.stringify(result, null, 2)}`);
     }
 
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
