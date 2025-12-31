@@ -95,17 +95,33 @@ describe('Agent cache fallback', () => {
       matchPlanCache: matchPlanCacheSpy,
     } as any;
 
-    // Mock runYaml to throw enhanced error with executionContext
+    // Mock runYaml to throw enhanced error with executionContext (new format)
     const mockError = new Error('YAML execution failed');
     (mockError as any).executionContext = {
       successfulTasks: ['Click login', 'Enter username'],
       failedTasks: [
-        {
-          name: 'Enter password',
-          error: new Error('Element not found'),
-        },
+        { name: 'Enter password', error: new Error('Element not found') },
       ],
       totalTasks: 3,
+      fallbackContext: `Previous cached workflow execution failed at step 3/3:
+
+Completed successfully:
+  ✓ Step 1/3: "Click login"
+  ✓ Step 2/3: "Enter username"
+
+Failed:
+  ✗ Step 3/3: "Enter password"
+    Error: Element not found
+
+Please continue from Step 3 and avoid repeating the successful steps.`,
+      completedTasks: [
+        { index: 0, name: 'Click login' },
+        { index: 1, name: 'Enter username' },
+      ],
+      failedTasksDetailed: [
+        { index: 2, name: 'Enter password', error: new Error('Element not found'), totalSteps: 1 },
+      ],
+      pendingTasks: [],
     };
 
     const runYamlSpy = vi.spyOn(agent, 'runYaml').mockRejectedValue(mockError);
@@ -136,15 +152,19 @@ describe('Agent cache fallback', () => {
     // Verify fallback to normal execution
     expect(agent.taskExecutor.action).toHaveBeenCalled();
 
-    // Verify that enhanced context was passed
+    // Verify that enhanced context was passed with new format
     const actionCall = (agent.taskExecutor.action as any).mock.calls[0];
     const contextParam = actionCall[4]; // 5th parameter is aiActContext
 
-    expect(contextParam).toContain('Previous cached workflow execution failed');
-    expect(contextParam).toContain(
-      'Successfully completed steps: Click login, Enter username',
-    );
-    expect(contextParam).toContain('Failed at: "Enter password"');
+    expect(contextParam).toContain('Previous cached workflow execution failed at step 3/3');
+    expect(contextParam).toContain('Step 1/3:');
+    expect(contextParam).toContain('Step 2/3:');
+    expect(contextParam).toContain('Step 3/3:');
+    expect(contextParam).toContain('Completed successfully:');
+    expect(contextParam).toContain('Failed:');
+    expect(contextParam).toContain('✓ Step 1/3: "Click login"');
+    expect(contextParam).toContain('✓ Step 2/3: "Enter username"');
+    expect(contextParam).toContain('✗ Step 3/3: "Enter password"');
     expect(contextParam).toContain('Element not found');
     expect(contextParam).toContain('avoid repeating the successful steps');
   });
@@ -167,17 +187,25 @@ describe('Agent cache fallback', () => {
       matchPlanCache: vi.fn().mockReturnValue(mockCache),
     } as any;
 
-    // Mock runYaml to throw enhanced error
+    // Mock runYaml to throw enhanced error with new format
     const mockError = new Error('YAML execution failed');
     (mockError as any).executionContext = {
       successfulTasks: ['Click login'],
-      failedTasks: [
-        {
-          name: 'Enter username',
-          error: new Error('Field not found'),
-        },
-      ],
+      failedTasks: [{ name: 'Enter username', error: new Error('Field not found') }],
       totalTasks: 2,
+      fallbackContext: `Previous cached workflow execution failed at step 2/2:
+
+Completed successfully:
+  ✓ Step 1/2: "Click login"
+
+Failed:
+  ✗ Step 2/2: "Enter username"
+    Error: Field not found
+
+Please continue from Step 2 and avoid repeating the successful steps.`,
+      completedTasks: [{ index: 0, name: 'Click login' }],
+      failedTasksDetailed: [{ index: 1, name: 'Enter username', error: new Error('Field not found'), totalSteps: 1 }],
+      pendingTasks: [],
     };
 
     vi.spyOn(agentWithContext, 'runYaml').mockRejectedValue(mockError);
@@ -208,9 +236,9 @@ describe('Agent cache fallback', () => {
 
     expect(contextParam).toContain('User is on login page');
     expect(contextParam).toContain('--- Cache Execution Failed ---');
-    expect(contextParam).toContain('Previous cached workflow execution failed');
-    expect(contextParam).toContain('Successfully completed steps: Click login');
-    expect(contextParam).toContain('Failed at: "Enter username"');
+    expect(contextParam).toContain('Previous cached workflow execution failed at step 2/2');
+    expect(contextParam).toContain('✓ Step 1/2: "Click login"');
+    expect(contextParam).toContain('✗ Step 2/2: "Enter username"');
   });
 
   it('should handle fallback when executionContext is not available', async () => {

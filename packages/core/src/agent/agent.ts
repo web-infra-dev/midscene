@@ -893,42 +893,15 @@ export class Agent<
           cacheError instanceof Error ? cacheError.message : String(cacheError),
         );
 
-        // Build failure context for intelligent fallback
+        // Extract execution context
         const executionContext = (cacheError as any)?.executionContext;
         let fallbackContext: string;
 
-        if (executionContext) {
-          // Detailed execution context available
-          const { successfulTasks, failedTasks, totalTasks } = executionContext;
-
-          const parts = [
-            `Previous cached workflow execution failed (${failedTasks.length}/${totalTasks} tasks failed).`,
-          ];
-
-          if (successfulTasks.length > 0) {
-            parts.push(
-              `Successfully completed steps: ${successfulTasks.join(', ')}`,
-            );
-          } else {
-            parts.push('No steps were completed successfully.');
-          }
-
-          parts.push(
-            `Failed at: ${failedTasks
-              .map(
-                (t: any) =>
-                  `"${t.name}" (${t.error?.message || 'unknown error'})`,
-              )
-              .join('; ')}`,
-          );
-
-          parts.push(
-            'Please continue from the failed step and avoid repeating the successful steps.',
-          );
-
-          fallbackContext = parts.join('\n');
+        if (executionContext?.fallbackContext) {
+          // Use pre-built context from runYaml
+          fallbackContext = executionContext.fallbackContext;
         } else {
-          // No detailed context, use basic error message
+          // Fallback: no detailed context available
           const errorMessage =
             cacheError instanceof Error
               ? cacheError.message
@@ -1291,34 +1264,115 @@ export class Agent<
     await player.run();
 
     if (player.status === 'error') {
-      // Collect successful tasks
-      const successfulTasks = player.taskStatusList
-        .filter((task) => task.status === 'done')
-        .map((task) => task.name);
+      const totalTasks = player.taskStatusList.length;
 
-      // Collect failed tasks with detailed information
+      // Collect completed tasks
+      const completedTasks = player.taskStatusList
+        .filter((task) => task.status === 'done')
+        .map((task) => ({ index: task.index, name: task.name }));
+
+      // Collect failed tasks
       const failedTasks = player.taskStatusList
         .filter((task) => task.status === 'error')
         .map((task) => ({
+          index: task.index,
           name: task.name,
           error: task.error,
+          currentStep: task.currentStep,
+          totalSteps: task.totalSteps,
         }));
 
-      // Generate error message
+      // Collect pending tasks
+      const pendingTasks = player.taskStatusList
+        .filter((task) => task.status === 'init')
+        .map((task) => ({ index: task.index, name: task.name }));
+
+      // Build detailed fallback context for AI
+      const fallbackContextParts: string[] = [];
+
+      // Title
+      if (failedTasks.length > 0) {
+        const firstFailed = failedTasks[0];
+        fallbackContextParts.push(
+          `Previous cached workflow execution failed at step ${firstFailed.index + 1}/${totalTasks}:\n`,
+        );
+      } else {
+        fallbackContextParts.push(
+          'Previous cached workflow execution failed.\n',
+        );
+      }
+
+      // Completed steps
+      if (completedTasks.length > 0) {
+        fallbackContextParts.push('Completed successfully:');
+        for (const task of completedTasks) {
+          fallbackContextParts.push(
+            `  ✓ Step ${task.index + 1}/${totalTasks}: "${task.name}"`,
+          );
+        }
+        fallbackContextParts.push('');
+      }
+
+      // Failed steps
+      if (failedTasks.length > 0) {
+        fallbackContextParts.push('Failed:');
+        for (const task of failedTasks) {
+          const stepInfo =
+            task.currentStep !== undefined
+              ? ` (at substep ${task.currentStep + 1}/${task.totalSteps})`
+              : '';
+          fallbackContextParts.push(
+            `  ✗ Step ${task.index + 1}/${totalTasks}: "${task.name}"${stepInfo}`,
+          );
+          fallbackContextParts.push(
+            `    Error: ${task.error?.message || 'Unknown error'}`,
+          );
+        }
+        fallbackContextParts.push('');
+      }
+
+      // Pending steps
+      if (pendingTasks.length > 0) {
+        fallbackContextParts.push('Remaining steps (not executed):');
+        for (const task of pendingTasks) {
+          fallbackContextParts.push(
+            `  - Step ${task.index + 1}/${totalTasks}: "${task.name}"`,
+          );
+        }
+        fallbackContextParts.push('');
+      }
+
+      // Guidance
+      if (failedTasks.length > 0) {
+        const firstFailed = failedTasks[0];
+        fallbackContextParts.push(
+          `Please continue from Step ${firstFailed.index + 1} and avoid repeating the successful steps.`,
+        );
+      }
+
+      const fallbackContext = fallbackContextParts.join('\n');
+
+      // Build error message for logging
       const errors = failedTasks
-        .map((task) => `task - ${task.name}: ${task.error?.message}`)
+        .map(
+          (task) =>
+            `task ${task.index + 1}/${totalTasks} "${task.name}": ${task.error?.message}`,
+        )
         .join('\n');
 
-      // Create enhanced error object
       const error = new Error(
         `Error(s) occurred in running yaml script:\n${errors}`,
       );
 
-      // Attach execution context metadata for intelligent fallback
+      // Attach execution context (backward compatible + new fields)
       (error as any).executionContext = {
-        successfulTasks,
-        failedTasks,
-        totalTasks: player.taskStatusList.length,
+        successfulTasks: completedTasks.map((t) => t.name),
+        failedTasks: failedTasks.map((t) => ({ name: t.name, error: t.error })),
+        totalTasks,
+        fallbackContext,
+        completedTasks,
+        failedTasksDetailed: failedTasks,
+        pendingTasks,
       };
 
       throw error;
