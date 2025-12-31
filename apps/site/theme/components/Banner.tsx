@@ -1,3 +1,4 @@
+import { Link } from '@rspress/core/theme-original';
 import { useI18n } from '../i18n';
 import { CTAButtons } from './CTAButtons';
 
@@ -19,12 +20,12 @@ export function Banner() {
               <span className="font-sans font-medium text-[10px] md:text-xs text-black/85 dark:text-white/85">
                 {t('newBadge')}
                 <span className="mx-1 text-black/40 dark:text-white/40">|</span>
-                <a
+                <Link
                   className="text-black/60 hover:underline dark:text-white/60"
                   href="./changelog"
                 >
                   {t('changelogLink')}
-                </a>
+                </Link>
               </span>
             </div>
           </div>
