@@ -31,7 +31,6 @@ export function getReportPlaygroundSDK(
   }
   return new PlaygroundSDK({
     type: 'local-execution',
-    agent,
     agentFactory,
   });
 }
