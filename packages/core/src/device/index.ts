@@ -449,6 +449,38 @@ export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
   });
 };
 
+// UploadFile
+export const actionUploadFileParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe(
+    'The file upload button or input element to click',
+  ),
+  files: z
+    .union([z.string(), z.array(z.string())])
+    .describe(
+      'File path(s) to upload. Can be a single path or array of paths for multiple files',
+    ),
+});
+export type ActionUploadFileParam = {
+  locate: LocateResultElement;
+  files: string | string[];
+};
+
+export const defineActionUploadFile = (
+  call: (param: ActionUploadFileParam) => Promise<void>,
+): DeviceAction<ActionUploadFileParam> => {
+  return defineAction<
+    typeof actionUploadFileParamSchema,
+    ActionUploadFileParam
+  >({
+    name: 'UploadFile',
+    description:
+      'Upload file(s) by clicking the upload button/input and selecting files',
+    interfaceAlias: 'aiUploadFile',
+    paramSchema: actionUploadFileParamSchema,
+    call,
+  });
+};
+
 export type { DeviceAction } from '../types';
 export type {
   AndroidDeviceOpt,

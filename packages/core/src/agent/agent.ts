@@ -1472,6 +1472,34 @@ export class Agent<
     return null;
   }
 
+  async aiUploadFile(
+    locatePrompt: TUserPrompt,
+    files: string | string[],
+    opt?: LocateOption,
+  ): Promise<any> {
+    assert(locatePrompt, 'missing locate prompt for upload file');
+    assert(files, 'missing files for upload');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    // Check if the interface supports file upload
+    if (
+      'uploadFile' in this.interface &&
+      typeof this.interface.uploadFile === 'function'
+    ) {
+      // Use the interface's uploadFile method with a click action
+      await (this.interface as any).uploadFile(files, async () => {
+        await this.callActionInActionSpace('Tap', {
+          locate: detailedLocateParam,
+        });
+      });
+
+      return { success: true };
+    } else {
+      throw new Error('File upload is not supported by the current interface');
+    }
+  }
+
   /**
    * Manually flush cache to file
    * @param options - Optional configuration

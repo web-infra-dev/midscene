@@ -6,6 +6,7 @@ import type {
   Point,
   Rect,
   Size,
+  TUserPrompt,
   UIContext,
 } from '@midscene/core';
 import {
@@ -684,6 +685,41 @@ export class Page<
       await page.mouse.down({ button: 'left' });
       await page.waitForTimeout(duration);
       await page.mouse.up({ button: 'left' });
+    }
+  }
+
+  async uploadFile(
+    files: string | string[],
+    clickAction: () => Promise<void>,
+  ): Promise<void> {
+    const { resolve } = await import('node:path');
+    const { existsSync } = await import('node:fs');
+
+    // 路径标准化处理
+    const normalizedFiles = (Array.isArray(files) ? files : [files]).map(
+      (file) => {
+        const absolutePath = resolve(file);
+        if (!existsSync(absolutePath)) {
+          throw new Error(`File not found: ${file}`);
+        }
+        return absolutePath;
+      },
+    );
+
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      const [fileChooser] = await Promise.all([
+        page.waitForFileChooser(),
+        clickAction(),
+      ]);
+      await fileChooser.accept(normalizedFiles);
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        clickAction(),
+      ]);
+      await fileChooser.setFiles(normalizedFiles);
     }
   }
 }

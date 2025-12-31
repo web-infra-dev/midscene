@@ -148,6 +148,7 @@ export const PlaywrightAiFixture = (options?: {
       | 'aiString'
       | 'aiBoolean'
       | 'aiAsk'
+      | 'aiUploadFile'
       | 'runYaml'
       | 'setAIActionContext'
       | 'evaluateJavaScript'
@@ -507,6 +508,18 @@ export const PlaywrightAiFixture = (options?: {
         aiActionType: 'aiAsk',
       });
     },
+    aiUploadFile: async (
+      { page }: { page: OriginPlaywrightPage },
+      use: any,
+      testInfo: TestInfo,
+    ) => {
+      await generateAiFunction({
+        page,
+        testInfo,
+        use,
+        aiActionType: 'aiUploadFile',
+      });
+    },
     runYaml: async (
       { page }: { page: OriginPlaywrightPage },
       use: any,
@@ -650,6 +663,9 @@ export type PlayWrightAiFixtureType = {
   aiAsk: (
     ...args: Parameters<PageAgent['aiAsk']>
   ) => ReturnType<PageAgent['aiAsk']>;
+  aiUploadFile: (
+    ...args: Parameters<PageAgent['aiUploadFile']>
+  ) => ReturnType<PageAgent['aiUploadFile']>;
   runYaml: (
     ...args: Parameters<PageAgent['runYaml']>
   ) => ReturnType<PageAgent['runYaml']>;

@@ -865,4 +865,13 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     this.latestMouseX = to.x;
     this.latestMouseY = to.y;
   }
+
+  async uploadFile(
+    files: string | string[],
+    clickAction: () => Promise<void>,
+  ): Promise<void> {
+    throw new Error(
+      'File upload is not supported in Chrome Extension mode. Please use Playwright or Puppeteer for file upload functionality.',
+    );
+  }
 }
