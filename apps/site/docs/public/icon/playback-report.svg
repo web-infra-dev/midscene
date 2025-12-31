@@ -18,7 +18,5 @@
   <rect x="24" y="44" width="16" height="2" rx="1" fill="#FA884B"/>
 
   <!-- Playback indicators (dots) -->
-  <circle cx="22" y="33" r="1.5" fill="#FA884B"/>
-  <circle cx="27" y="33" r="1.5" fill="#FA884B"/>
-  <circle cx="32" y="33" r="1.5" fill="#FA884B" opacity="0.5"/>
+  <!-- Playback indicators (dots) removed per request -->
 </svg>
