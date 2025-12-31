@@ -317,12 +317,11 @@ describe('service-caller', () => {
   });
 
   describe('resolveDeepThinkConfig', () => {
-    it('returns empty config when deepThink is disabled', () => {
+    it('maps deepThink false for qwen3-vl', () => {
       expect(
         resolveDeepThinkConfig({ deepThink: false, vlMode: 'qwen3-vl' }),
       ).toMatchObject({
-        config: {},
-        debugMessage: undefined,
+        config: { enable_thinking: false },
       });
     });
 
@@ -345,6 +344,17 @@ describe('service-caller', () => {
 
       expect(result.config).toEqual({ thinking: { type: 'enabled' } });
       expect(result.debugMessage).toContain('thinking.type=enabled');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
+    it('maps deepThink false for doubao-vision', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: false,
+        vlMode: 'doubao-vision',
+      });
+
+      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
+      expect(result.debugMessage).toContain('thinking.type=disabled');
       expect(result.warningMessage).toBeUndefined();
     });
 
