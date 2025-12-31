@@ -630,17 +630,6 @@ const DetailSide = (): JSX.Element => {
             content={<pre className="description-content">{thought}</pre>}
           />
         )}
-        {reasoningContent && (
-          <Card
-            liteMode={true}
-            title="reasoning"
-            onMouseEnter={noop}
-            onMouseLeave={noop}
-            content={
-              <pre className="description-content">{reasoningContent}</pre>
-            }
-          />
-        )}
 
         <Card
           liteMode={true}
@@ -653,6 +642,17 @@ const DetailSide = (): JSX.Element => {
             </pre>
           }
         />
+        {reasoningContent && (
+          <Card
+            liteMode={true}
+            title="Reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+          />
+        )}
       </>
     );
   } else if (actions) {
@@ -686,20 +686,6 @@ const DetailSide = (): JSX.Element => {
               <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output?.log}
               </pre>
-            }
-          />,
-        );
-      }
-      if (reasoningContent) {
-        planItems.push(
-          <Card
-            key="reasoning"
-            liteMode={true}
-            title="reasoning"
-            onMouseEnter={noop}
-            onMouseLeave={noop}
-            content={
-              <pre className="description-content">{reasoningContent}</pre>
             }
           />,
         );
@@ -810,6 +796,22 @@ const DetailSide = (): JSX.Element => {
         );
       }
 
+      // Add reasoning at the end
+      if (reasoningContent) {
+        planItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            title="Reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+          />,
+        );
+      }
+
       outputDataContent = planItems;
     }
   } else {
@@ -836,18 +838,6 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             content={<pre>{thought}</pre>}
             title="thought"
-          />,
-        );
-      }
-      if (reasoningContent) {
-        outputItems.push(
-          <Card
-            key="reasoning"
-            liteMode={true}
-            onMouseEnter={noop}
-            onMouseLeave={noop}
-            content={<pre>{reasoningContent}</pre>}
-            title="reasoning"
           />,
         );
       }
@@ -908,6 +898,20 @@ const DetailSide = (): JSX.Element => {
                 {JSON.stringify(data, undefined, 2)}
               </pre>
             }
+          />,
+        );
+      }
+
+      // Add reasoning at the end
+      if (reasoningContent) {
+        outputItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre>{reasoningContent}</pre>}
+            title="Reasoning"
           />,
         );
       }
