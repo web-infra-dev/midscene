@@ -70,7 +70,8 @@ export function Banner() {
         <div className="w-full lg:w-[786px] flex justify-center lg:justify-end">
           <div className="dark:hidden w-full h-full flex items-center justify-center">
             <video
-              src="/banner-light.mp4"
+              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-light.mp4"
+              poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-light.png"
               className="w-full max-w-[780px]"
               autoPlay
               muted
@@ -82,7 +83,8 @@ export function Banner() {
           </div>
           <div className="hidden dark:flex w-full h-full items-center justify-center">
             <video
-              src="/banner-dark.mp4"
+              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-dark.mp4"
+              poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-dark.png"
               className="w-full max-w-[780px]"
               autoPlay
               muted
