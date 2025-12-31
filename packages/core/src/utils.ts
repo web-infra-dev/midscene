@@ -216,22 +216,90 @@ export function reportHTMLContent(
 // Persistent screenshot counter map to prevent file overwriting during append operations
 const screenshotCounterMap = new Map<string, number>();
 
-// Constants for image script tag extraction
+// ============================================================================
+// Image Script Tag Extraction
+// ============================================================================
+
+/** Prefix for image references in dump JSON */
 const IMAGE_REF_PREFIX = '#midscene-img:';
+
+/** Script type for storing extracted base64 images */
 const IMAGE_SCRIPT_TYPE = 'midscene-image';
 
-// Persistent image ID counter map to prevent ID conflicts during append operations
+/** Persistent image ID counter map to prevent ID conflicts during append operations */
 const imageIdCounterMap = new Map<string, number>();
 
+/** Result of extracting base64 images from dump data */
 interface ImageExtractionResult {
   processedDumpString: string;
   imageScriptTags: string;
   attributes?: Record<string, string>;
 }
 
+/** Context for image processing, used to track state during recursion */
+interface ImageProcessingContext {
+  imageCounter: number;
+  scriptTags: string[];
+}
+
+/**
+ * Recursively process object to extract base64 images and replace with references.
+ *
+ * @param obj - The object to process
+ * @param context - Processing context with counter and collected script tags
+ * @returns Processed object with image references instead of base64 data
+ */
+function processBase64Images(
+  obj: unknown,
+  context: ImageProcessingContext,
+): unknown {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => processBase64Images(item, context));
+  }
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    // Match both 'screenshot' and 'screenshotBase64' fields
+    if (
+      (key === 'screenshot' || key === 'screenshotBase64') &&
+      typeof value === 'string' &&
+      value.startsWith('data:image/')
+    ) {
+      // Generate unique ID for this image
+      const imageId = `img-${context.imageCounter++}`;
+
+      // Create script tag for this image
+      const scriptTag =
+        // biome-ignore lint/style/useTemplate: avoid bundle error
+        '<script type="' +
+        IMAGE_SCRIPT_TYPE +
+        '" data-id="' +
+        imageId +
+        '">\n' +
+        escapeScriptTag(value) +
+        '\n</script>';
+      context.scriptTags.push(scriptTag);
+
+      // Replace base64 with reference
+      result[key] = IMAGE_REF_PREFIX + imageId;
+    } else {
+      result[key] = processBase64Images(value, context);
+    }
+  }
+  return result;
+}
+
 /**
  * Extract base64 images from dump data and generate script tags.
  * This reduces JSON parse memory usage by storing images in separate script tags.
+ *
+ * @param dumpData - The dump data string or object with attributes
+ * @param reportPath - Optional report path for counter isolation in append mode
+ * @returns Processed dump string with image references and generated script tags
  */
 export function extractBase64ToScriptTags(
   dumpData: string | ReportDumpWithAttributes,
@@ -261,60 +329,20 @@ export function extractBase64ToScriptTags(
   }
 
   // Get or initialize image counter for this report path
-  const counterKey = reportPath || 'default';
-  let imageCounter = imageIdCounterMap.get(counterKey) || 0;
-  const imageScriptTagsArray: string[] = [];
+  const counterKey = reportPath ?? 'default';
+  const context: ImageProcessingContext = {
+    imageCounter: imageIdCounterMap.get(counterKey) ?? 0,
+    scriptTags: [],
+  };
 
-  // Recursively process all base64 images
-  function processImages(obj: unknown): unknown {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(processImages);
-    }
-
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      // Match both 'screenshot' and 'screenshotBase64' fields
-      if (
-        (key === 'screenshot' || key === 'screenshotBase64') &&
-        typeof value === 'string' &&
-        value.startsWith('data:image/')
-      ) {
-        // Generate unique ID for this image
-        const imageId = `img-${imageCounter++}`;
-
-        // Create script tag for this image
-        const scriptTag =
-          // biome-ignore lint/style/useTemplate: avoid bundle error
-          '<script type="' +
-          IMAGE_SCRIPT_TYPE +
-          '" data-id="' +
-          imageId +
-          '">\n' +
-          escapeScriptTag(value) +
-          '\n</script>';
-        imageScriptTagsArray.push(scriptTag);
-
-        // Replace base64 with reference
-        result[key] = IMAGE_REF_PREFIX + imageId;
-      } else {
-        result[key] = processImages(value);
-      }
-    }
-    return result;
-  }
-
-  const processedData = processImages(data);
+  const processedData = processBase64Images(data, context);
 
   // Update the persistent counter
-  imageIdCounterMap.set(counterKey, imageCounter);
+  imageIdCounterMap.set(counterKey, context.imageCounter);
 
   return {
     processedDumpString: JSON.stringify(processedData),
-    imageScriptTags: imageScriptTagsArray.join('\n'),
+    imageScriptTags: context.scriptTags.join('\n'),
     attributes,
   };
 }
