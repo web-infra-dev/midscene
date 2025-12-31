@@ -300,6 +300,7 @@ export class TaskExecutor {
               usage,
               rawResponse,
               sleep,
+              reasoning_content,
             } = planResult;
 
             executorContext.task.log = {
@@ -307,6 +308,7 @@ export class TaskExecutor {
               rawResponse,
             };
             executorContext.task.usage = usage;
+            executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
               more_actions_needed_by_instruction,
@@ -501,8 +503,9 @@ export class TaskExecutor {
           throw error;
         }
 
-        const { data, usage, thought, dump } = extractResult;
+        const { data, usage, thought, dump, reasoning_content } = extractResult;
         applyDump(dump);
+        task.reasoning_content = reasoning_content;
 
         let outputResult = data;
         if (ifTypeRestricted) {
