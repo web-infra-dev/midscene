@@ -132,9 +132,15 @@ See [Model configuration](./model-config).
 
 ### About the `deepThink` option in `aiAct`
 
-If your model provider offers reasoning-related parameters, you can use `deepThink` to explicitly control whether to enable it. If you don't configure this parameter, the strategy will be determined by the model provider (not necessarily disabled).
+The `deepThink` option controls whether models use deep reasoning during planning. Currently supported for `qwen3-vl` and `doubao-seed-1.6` model families.
 
-Currently, Midscene has adapted this parameter for the `qwen3-vl` and `doubao-seed-1.6` model families. Once the reasoning feature is enabled, you can see the `Reasoning` section on the right side of the report. Planning will take longer but produce more accurate results.
+When enabled, you'll see a `Reasoning` section in the report. Planning takes longer but produces more accurate results.
+
+**Default behavior varies by provider:**
+- `qwen3-vl` on Alibaba Cloud: disabled by default (faster, less accurate)
+- `doubao-seed-1.6` on Volcano Engine: enabled by default (slower, more accurate)
+
+You can explicitly set `deepThink: true` or `deepThink: false` to override the provider's default.
 
 ### API style for model service provider
 
