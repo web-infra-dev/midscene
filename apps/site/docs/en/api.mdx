@@ -141,7 +141,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `deepThink?: boolean` - Whether to enable deep thinking during planning when the model family supports it.
+    - `deepThink?: boolean` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY).
 
 - Return Value:
 
