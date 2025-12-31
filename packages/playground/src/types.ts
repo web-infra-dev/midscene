@@ -50,10 +50,16 @@ export type PlaygroundWebUIContext = WebUIContext & {
 // SDK types - execution model based
 export type ExecutionType = 'local-execution' | 'remote-execution';
 
+// Factory function type for creating agents
+export type AgentFactory =
+  | (() => PlaygroundAgent)
+  | (() => Promise<PlaygroundAgent>);
+
 export interface PlaygroundConfig {
   type: ExecutionType;
   serverUrl?: string; // For remote-execution protocol
-  agent?: PlaygroundAgent; // For local-execution
+  agent?: PlaygroundAgent; // For local-execution (instance mode)
+  agentFactory?: AgentFactory; // For local-execution (factory mode - supports agent recreation after destroy)
 }
 
 /**

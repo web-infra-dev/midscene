@@ -89,10 +89,11 @@ export function BrowserExtensionPlayground({
         console.log('[DEBUG] Detached all debuggers before creating SDK');
       });
 
-      // Create new SDK
+      // Create new SDK with agentFactory for recreation after destroy
       const newSdk = new PlaygroundSDK({
         type: 'local-execution',
         agent: agent,
+        agentFactory: () => getAgent(forceSameTabNavigation),
       });
 
       // Store the new agent and SDK

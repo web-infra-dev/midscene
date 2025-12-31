@@ -2,11 +2,18 @@ import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
-import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
+import type {
+  AgentFactory,
+  ExecutionOptions,
+  FormValue,
+  PlaygroundAgent,
+} from '../types';
 import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent;
+  private agentFactory?: AgentFactory; // Factory function for recreating agent
+  private isAgentDestroyed = false; // Track if agent has been destroyed
   private dumpUpdateCallback?: (
     dump: string,
     executionDump?: ExecutionDump,
@@ -15,9 +22,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
-  constructor(agent: PlaygroundAgent) {
+  constructor(agent: PlaygroundAgent, agentFactory?: AgentFactory) {
     super();
     this.agent = agent;
+    this.agentFactory = agentFactory;
     this._id = uuid(); // Generate unique ID for local adapter
   }
 
@@ -125,6 +133,11 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
+    // Recreate agent if it was destroyed (e.g., after cancellation)
+    if (this.isAgentDestroyed) {
+      await this.recreateAgent();
+    }
+
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
     let removeListener: (() => void) | undefined;
@@ -220,6 +233,28 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
+  /**
+   * Recreate agent instance using the factory function.
+   * Called automatically when executeAction is called after agent was destroyed.
+   */
+  private async recreateAgent(): Promise<void> {
+    if (!this.agentFactory) {
+      throw new Error(
+        'Cannot recreate agent: factory function not provided. Please provide agentFactory in PlaygroundConfig to enable agent recreation after cancellation.',
+      );
+    }
+
+    console.log('Recreating agent...');
+    try {
+      this.agent = await this.agentFactory();
+      this.isAgentDestroyed = false;
+      console.log('Agent recreated successfully');
+    } catch (error) {
+      console.error('Failed to recreate agent:', error);
+      throw error;
+    }
+  }
+
   // Local execution task cancellation - minimal implementation
   async cancelTask(
     _requestId: string,
@@ -230,6 +265,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       await this.agent.destroy?.();
+      this.isAgentDestroyed = true; // Mark agent as destroyed
       return { success: true };
     } catch (error: unknown) {
       const errorMessage =
