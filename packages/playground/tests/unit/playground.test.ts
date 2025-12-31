@@ -225,7 +225,7 @@ describe('Playground Integration Tests', () => {
     it('should handle task cancellation', async () => {
       const result = await adapter.cancelTask('test-request');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
     });
   });
 

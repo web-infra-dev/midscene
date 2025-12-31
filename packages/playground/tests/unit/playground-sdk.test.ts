@@ -29,7 +29,7 @@ describe('PlaygroundSDK', () => {
 
       new PlaygroundSDK(config);
 
-      expect(LocalExecutionAdapter).toHaveBeenCalledWith(mockAgent);
+      expect(LocalExecutionAdapter).toHaveBeenCalledWith(mockAgent, undefined);
     });
 
     it('should create RemoteExecutionAdapter for remote-execution type', () => {
