@@ -205,8 +205,7 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    qwen3_vl_enable_thinking?: boolean;
-    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
+    deepThink?: boolean;
   },
 ): Promise<{
   content: string;
@@ -265,14 +264,19 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
-    ...(options?.qwen3_vl_enable_thinking !== undefined
-      ? { enable_thinking: options.qwen3_vl_enable_thinking }
-      : {}),
-    ...((vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') &&
-    options?.doubao_enable_thinking
-      ? { thinking: { type: options.doubao_enable_thinking } }
-      : {}),
   };
+  const { config: deepThinkConfig, debugMessage, warningMessage } =
+    resolveDeepThinkConfig({
+      deepThink: options?.deepThink,
+      vlMode,
+    });
+  if (debugMessage) {
+    debugCall(debugMessage);
+  }
+  if (warningMessage) {
+    debugCall(warningMessage);
+    console.warn(warningMessage);
+  }
 
   try {
     debugCall(
@@ -285,6 +289,7 @@ export async function callAI(
           model: modelName,
           messages,
           ...commonConfig,
+          ...deepThinkConfig,
         },
         {
           stream: true,
@@ -355,6 +360,7 @@ export async function callAI(
         model: modelName,
         messages,
         ...commonConfig,
+        ...deepThinkConfig,
       } as any);
       timeCost = Date.now() - startTime;
 
@@ -415,8 +421,7 @@ export async function callAIWithObjectResponse<T>(
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
   options?: {
-    qwen3_vl_enable_thinking?: boolean;
-    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
+    deepThink?: boolean;
   },
 ): Promise<{
   content: T;
@@ -425,8 +430,7 @@ export async function callAIWithObjectResponse<T>(
   reasoning_content?: string;
 }> {
   const response = await callAI(messages, AIActionTypeValue, modelConfig, {
-    qwen3_vl_enable_thinking: options?.qwen3_vl_enable_thinking,
-    doubao_enable_thinking: options?.doubao_enable_thinking,
+    deepThink: options?.deepThink,
   });
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
@@ -486,6 +490,43 @@ export function preprocessDoubaoBboxJson(input: string) {
     }
   }
   return input;
+}
+
+export function resolveDeepThinkConfig({
+  deepThink,
+  vlMode,
+}: {
+  deepThink?: boolean;
+  vlMode?: TVlModeTypes;
+}): {
+  config: Record<string, unknown>;
+  debugMessage?: string;
+  warningMessage?: string;
+} {
+  if (!deepThink) {
+    return { config: {}, debugMessage: undefined };
+  }
+
+  if (vlMode === 'qwen3-vl') {
+    return {
+      config: { enable_thinking: true },
+      debugMessage: 'deepThink enabled: mapped to enable_thinking for qwen3-vl',
+    };
+  }
+
+  if (vlMode === 'doubao-vision') {
+    return {
+      config: { thinking: { type: 'enabled' } },
+      debugMessage:
+        'deepThink enabled: mapped to thinking.type=enabled for doubao-vision',
+    };
+  }
+
+  return {
+    config: {},
+    debugMessage: `deepThink ignored: unsupported model_family "${vlMode ?? 'default'}"`,
+    warningMessage: `The "deepThink" option is not supported for model_family "${vlMode ?? 'default'}".`,
+  };
 }
 
 /**
