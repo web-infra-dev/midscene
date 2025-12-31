@@ -69,19 +69,29 @@ export function Banner() {
         {/* Right Image */}
         <div className="w-full lg:w-[786px] flex justify-center lg:justify-end">
           <div className="dark:hidden w-full h-full flex items-center justify-center">
-            <img
-              src="/banner-light.png"
-              alt="Midscene banner"
+            <video
+              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-light.mp4"
+              poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-light.png"
               className="w-full max-w-[780px]"
-              loading="lazy"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="auto"
             />
           </div>
           <div className="hidden dark:flex w-full h-full items-center justify-center">
-            <img
-              src="/banner-dark.png"
-              alt="Midscene banner"
+            <video
+              src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-dark.mp4"
+              poster="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/midscene-banner-dark.png"
               className="w-full max-w-[780px]"
-              loading="lazy"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="auto"
             />
           </div>
         </div>
