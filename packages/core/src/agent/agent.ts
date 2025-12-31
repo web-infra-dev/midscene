@@ -887,11 +887,7 @@ export class Agent<
 
     // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
-    const useDeepThink = (this.opts as any)?._deepThink;
-    if (useDeepThink) {
-      debug('using deep think planning settings');
-    }
-    const imagesIncludeCount: number | undefined = useDeepThink ? undefined : 2;
+    const imagesIncludeCount: number | undefined = 2;
     const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfigForPlanning,
