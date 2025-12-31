@@ -631,6 +631,8 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+  /* use directory-based report format with separate image files */
+  useDirectoryReport?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;
