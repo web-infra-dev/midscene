@@ -251,6 +251,7 @@ export function Player(props?: {
   // -1: not started, 0: running, 1: finished
   const [animationProgress, setAnimationProgress] = useState(-1);
   const cancelFlag = useRef(false);
+  const appInitialized = useRef(false);
 
   useEffect(() => {
     cancelFlag.current = false;
@@ -265,6 +266,10 @@ export function Player(props?: {
     newWidth: number,
     newHeight: number,
   ): Promise<void> => {
+    // Guard: check if app is initialized before accessing app.screen
+    if (!appInitialized.current || !app.screen) {
+      return;
+    }
     if (app.screen.width !== newWidth || app.screen.height !== newHeight) {
       // Update renderer size
       app.renderer.resize(newWidth, newHeight);
@@ -427,7 +432,7 @@ export function Player(props?: {
     cameraState.current = state;
 
     // Use current canvas width if provided, otherwise fall back to original imageWidth
-    const effectiveWidth = currentWidth || app.screen.width || imageWidth;
+    const effectiveWidth = currentWidth || app.screen?.width || imageWidth;
 
     // If auto zoom is enabled, apply zoom
     const newScale = autoZoom ? Math.max(1, effectiveWidth / state.width) : 1;
@@ -461,8 +466,8 @@ export function Player(props?: {
     frame: FrameFn,
   ): Promise<void> => {
     // Get current canvas dimensions
-    const currentCanvasWidth = app.screen.width || imageWidth;
-    const currentCanvasHeight = app.screen.height || imageHeight;
+    const currentCanvasWidth = app.screen?.width || imageWidth;
+    const currentCanvasHeight = app.screen?.height || imageHeight;
 
     // If auto zoom is disabled, skip camera animation (only animate pointer)
     if (!autoZoom) {
@@ -734,6 +739,9 @@ export function Player(props?: {
       antialias: true,
     });
 
+    // Mark app as initialized after app.init() completes
+    appInitialized.current = true;
+
     if (!divContainerRef.current) return;
     divContainerRef.current.appendChild(app.canvas);
 
@@ -778,7 +786,7 @@ export function Player(props?: {
     let cancelFn: () => void;
     Promise.resolve(
       (async () => {
-        if (!app) {
+        if (!app || !appInitialized.current) {
           throw new Error('app is not initialized');
         }
         if (!scripts) {
@@ -960,6 +968,8 @@ export function Player(props?: {
     );
 
     return () => {
+      // Mark app as not initialized before destroying
+      appInitialized.current = false;
       try {
         app.destroy(true, { children: true, texture: true });
       } catch (e) {
