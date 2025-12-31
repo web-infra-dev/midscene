@@ -208,8 +208,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    qwen3_vl_enable_thinking?: boolean,
-    doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto',
+    deepThink?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -280,15 +279,7 @@ export class TaskExecutor {
               conversationHistory: this.conversationHistory,
               includeBbox: includeBboxInPlanning,
               imagesIncludeCount,
-              qwen3_vl_enable_thinking:
-                modelConfigForPlanning.vlMode === 'qwen3-vl'
-                  ? qwen3_vl_enable_thinking
-                  : undefined,
-              doubao_enable_thinking:
-                modelConfigForPlanning.vlMode === 'doubao-vision' ||
-                modelConfigForPlanning.vlMode === 'vlm-ui-tars'
-                  ? doubao_enable_thinking
-                  : undefined,
+              deepThink,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
 

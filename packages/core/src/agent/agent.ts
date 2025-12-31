@@ -138,8 +138,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
-  qwen3_vl_enable_thinking?: boolean;
-  doubao_enable_thinking?: 'enabled' | 'disabled' | 'auto';
+  deepThink?: boolean;
 };
 
 export class Agent<
@@ -860,8 +859,7 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
-    const qwen3_vl_enable_thinking = opt?.qwen3_vl_enable_thinking;
-    const doubao_enable_thinking = opt?.doubao_enable_thinking;
+    const deepThink = opt?.deepThink;
     const replanningCycleLimit = this.resolveReplanningCycleLimit(
       modelConfigForPlanning,
     );
@@ -903,8 +901,7 @@ export class Agent<
       cacheable,
       replanningCycleLimit,
       imagesIncludeCount,
-      qwen3_vl_enable_thinking,
-      doubao_enable_thinking,
+      deepThink,
     );
 
     // update cache
