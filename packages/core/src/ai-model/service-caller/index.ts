@@ -520,8 +520,7 @@ export function resolveDeepThinkConfig({
   if (vlMode === 'doubao-vision') {
     return {
       config: { thinking: { type: deepThink ? 'enabled' : 'disabled' } },
-      debugMessage:
-        `deepThink mapped to thinking.type=${deepThink ? 'enabled' : 'disabled'} for doubao-vision`,
+      debugMessage: `deepThink mapped to thinking.type=${deepThink ? 'enabled' : 'disabled'} for doubao-vision`,
     };
   }
 
