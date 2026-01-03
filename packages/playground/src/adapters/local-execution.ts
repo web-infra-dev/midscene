@@ -288,17 +288,15 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     let reportHTML: string | null = null;
 
     // Get dump data separately - don't let reportHTML errors affect dump retrieval
+    // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
     try {
       if (typeof this.agent.dumpDataString === 'function') {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
+          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
+          // In Playground, each "Run" creates one execution, so we take executions[0]
           const groupedDump = JSON.parse(dumpString);
-          // Get the first execution, or the entire groupedDump if it has tasks
-          if (groupedDump.executions?.length > 0) {
-            dump = groupedDump.executions[0];
-          } else if (groupedDump.tasks?.length > 0) {
-            dump = groupedDump;
-          }
+          dump = groupedDump.executions?.[0] ?? null;
         }
       }
     } catch (error) {
