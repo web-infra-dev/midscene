@@ -123,7 +123,7 @@ export function insertScriptBeforeClosingHtml(
 }
 
 export function reportHTMLContent(
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData: string | ReportDumpWithAttributes | object,
   reportPath?: string,
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
@@ -155,9 +155,11 @@ export function reportHTMLContent(
     // No extraction, use original data
     if (typeof dumpData === 'string') {
       processedDumpString = dumpData;
+    } else if ('dumpString' in dumpData) {
+      processedDumpString = (dumpData as ReportDumpWithAttributes).dumpString;
+      attributes = (dumpData as ReportDumpWithAttributes).attributes;
     } else {
-      processedDumpString = dumpData.dumpString;
-      attributes = dumpData.attributes;
+      processedDumpString = JSON.stringify(dumpData);
     }
   }
 
@@ -236,61 +238,45 @@ interface ImageExtractionResult {
   attributes?: Record<string, string>;
 }
 
-/** Context for image processing, used to track state during recursion */
-interface ImageProcessingContext {
-  imageCounter: number;
-  scriptTags: string[];
+/**
+ * Check if a key-value pair is a base64 image field
+ */
+function isBase64ImageField(key: string, value: unknown): boolean {
+  return (
+    (key === 'screenshot' || key === 'screenshotBase64') &&
+    typeof value === 'string' &&
+    value.startsWith('data:image/')
+  );
 }
 
 /**
- * Recursively process object to extract base64 images and replace with references.
- *
- * @param obj - The object to process
- * @param context - Processing context with counter and collected script tags
- * @returns Processed object with image references instead of base64 data
+ * Recursively traverse object and process base64 image fields
  */
-function processBase64Images(
+function traverseBase64Images(
   obj: unknown,
-  context: ImageProcessingContext,
-): unknown {
-  if (typeof obj !== 'object' || obj === null) {
-    return obj;
-  }
-
+  onImage: (obj: Record<string, unknown>, key: string, value: string) => void,
+): void {
+  if (typeof obj !== 'object' || obj === null) return;
   if (Array.isArray(obj)) {
-    return obj.map((item) => processBase64Images(item, context));
+    obj.forEach((item) => traverseBase64Images(item, onImage));
+    return;
   }
-
-  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
-    // Match both 'screenshot' and 'screenshotBase64' fields
-    if (
-      (key === 'screenshot' || key === 'screenshotBase64') &&
-      typeof value === 'string' &&
-      value.startsWith('data:image/')
-    ) {
-      // Generate unique ID for this image
-      const imageId = `img-${context.imageCounter++}`;
-
-      // Create script tag for this image
-      const scriptTag =
-        // biome-ignore lint/style/useTemplate: avoid bundle error
-        '<script type="' +
-        IMAGE_SCRIPT_TYPE +
-        '" data-id="' +
-        imageId +
-        '">\n' +
-        escapeScriptTag(value) +
-        '\n</script>';
-      context.scriptTags.push(scriptTag);
-
-      // Replace base64 with reference
-      result[key] = IMAGE_REF_PREFIX + imageId;
+    if (isBase64ImageField(key, value)) {
+      onImage(obj as Record<string, unknown>, key, value as string);
     } else {
-      result[key] = processBase64Images(value, context);
+      traverseBase64Images(value, onImage);
     }
   }
-  return result;
+}
+
+/**
+ * Clear all base64 image data from an object in place
+ */
+export function clearBase64Images(obj: unknown): void {
+  traverseBase64Images(obj, (parent, key) => {
+    parent[key] = '';
+  });
 }
 
 /**
@@ -302,7 +288,7 @@ function processBase64Images(
  * @returns Processed dump string with image references and generated script tags
  */
 export function extractBase64ToScriptTags(
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData: string | ReportDumpWithAttributes | object,
   reportPath?: string,
 ): ImageExtractionResult {
   let data: Record<string, unknown>;
@@ -311,45 +297,66 @@ export function extractBase64ToScriptTags(
   try {
     if (typeof dumpData === 'string') {
       data = JSON.parse(dumpData) as Record<string, unknown>;
+    } else if ('dumpString' in dumpData) {
+      data = JSON.parse(
+        (dumpData as ReportDumpWithAttributes).dumpString,
+      ) as Record<string, unknown>;
+      attributes = (dumpData as ReportDumpWithAttributes).attributes;
     } else {
-      data = JSON.parse(dumpData.dumpString) as Record<string, unknown>;
-      attributes = dumpData.attributes;
+      data = dumpData as Record<string, unknown>;
     }
   } catch (error) {
     console.error('Failed to parse dump data for image extraction:', error);
     // Return original data if parsing fails
     const dumpString =
-      typeof dumpData === 'string' ? dumpData : dumpData.dumpString;
+      typeof dumpData === 'string'
+        ? dumpData
+        : 'dumpString' in dumpData
+          ? (dumpData as ReportDumpWithAttributes).dumpString
+          : JSON.stringify(dumpData);
     return {
       processedDumpString: dumpString,
       imageScriptTags: '',
       attributes:
-        typeof dumpData === 'object' ? dumpData.attributes : undefined,
+        typeof dumpData === 'object' && 'attributes' in dumpData
+          ? (dumpData as ReportDumpWithAttributes).attributes
+          : undefined,
     };
   }
 
   // Get or initialize image counter for this report path
   const counterKey = reportPath ?? 'default';
-  const context: ImageProcessingContext = {
-    imageCounter: imageIdCounterMap.get(counterKey) ?? 0,
-    scriptTags: [],
-  };
+  let imageCounter = imageIdCounterMap.get(counterKey) ?? 0;
+  const scriptTags: string[] = [];
 
-  const processedData = processBase64Images(data, context);
+  traverseBase64Images(data, (parent, key, value) => {
+    const imageId = `img-${imageCounter++}`;
+    scriptTags.push(
+      // biome-ignore lint/style/useTemplate: avoid bundle error
+      '<script type="' +
+        IMAGE_SCRIPT_TYPE +
+        '" data-id="' +
+        imageId +
+        '">\n' +
+        escapeScriptTag(value) +
+        '\n</script>',
+    );
+    parent[key] = IMAGE_REF_PREFIX + imageId;
+  });
 
   // Update the persistent counter
-  imageIdCounterMap.set(counterKey, context.imageCounter);
+  imageIdCounterMap.set(counterKey, imageCounter);
 
   return {
-    processedDumpString: JSON.stringify(processedData),
-    imageScriptTags: context.scriptTags.join('\n'),
+    processedDumpString: JSON.stringify(data),
+    imageScriptTags: scriptTags.join('\n'),
     attributes,
   };
 }
 
 export function writeDirectoryReport(
   fileName: string,
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData: string | ReportDumpWithAttributes | object,
   appendReport?: boolean,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
@@ -383,108 +390,39 @@ export function writeDirectoryReport(
   }
 }
 
-interface ScreenshotData {
-  [key: string]: unknown;
-  screenshot?: string;
-}
-
 function extractAndSaveScreenshots(
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData: string | ReportDumpWithAttributes | object,
   screenshotsDir: string,
-): string | ReportDumpWithAttributes {
-  let data: ScreenshotData;
-  let attributes: Record<string, string> | undefined;
+): string {
+  let data: object;
 
-  try {
-    if (typeof dumpData === 'string') {
-      data = JSON.parse(dumpData) as ScreenshotData;
-    } else {
-      data = JSON.parse(dumpData.dumpString) as ScreenshotData;
-      attributes = dumpData.attributes;
-    }
-  } catch (error) {
-    console.error('Failed to parse dump data:', error);
-    throw error;
+  if (typeof dumpData === 'string') {
+    data = JSON.parse(dumpData);
+  } else if ('dumpString' in dumpData) {
+    data = JSON.parse((dumpData as ReportDumpWithAttributes).dumpString);
+  } else {
+    data = dumpData;
   }
 
-  // Get or initialize screenshot counter for this directory
   let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
 
-  // Recursively process all screenshots
-  function processScreenshots(obj: unknown): unknown {
-    if (typeof obj !== 'object' || obj === null) {
-      return obj;
+  traverseBase64Images(data, (parent, key, value) => {
+    const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
+    const screenshotPath = path.join(screenshotsDir, screenshotFileName);
+    const parts = value.split(',');
+    if (parts.length === 2 && parts[1]) {
+      writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
+      parent[key] = `./screenshots/${screenshotFileName}`;
     }
+  });
 
-    if (Array.isArray(obj)) {
-      return obj.map(processScreenshots);
-    }
-
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(obj)) {
-      // Match both 'screenshot' and 'screenshotBase64' fields
-      if (
-        (key === 'screenshot' || key === 'screenshotBase64') &&
-        typeof value === 'string' &&
-        value.startsWith('data:image/')
-      ) {
-        try {
-          // Extract and save screenshot
-          const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
-          const screenshotPath = path.join(screenshotsDir, screenshotFileName);
-
-          // Validate and extract base64 data
-          const parts = value.split(',');
-          if (parts.length !== 2 || !parts[1]) {
-            console.error(
-              `Invalid base64 image format for screenshot: ${screenshotFileName}`,
-            );
-            result[key] = value; // Keep original if invalid
-            continue;
-          }
-
-          const base64Data = parts[1];
-
-          // Write screenshot file
-          writeFileSync(screenshotPath, Buffer.from(base64Data, 'base64'));
-
-          // Replace with relative path
-          result[key] = `./screenshots/${screenshotFileName}`;
-        } catch (error) {
-          console.error(
-            `Failed to save screenshot ${screenshotCounter}:`,
-            error,
-          );
-          // Keep original base64 data if save fails
-          result[key] = value;
-        }
-      } else {
-        result[key] = processScreenshots(value);
-      }
-    }
-    return result;
-  }
-
-  const processedData = processScreenshots(data);
-
-  // Update the persistent counter
   screenshotCounterMap.set(screenshotsDir, screenshotCounter);
-
-  const processedDumpString = JSON.stringify(processedData);
-
-  if (attributes) {
-    return {
-      dumpString: processedDumpString,
-      attributes,
-    };
-  }
-
-  return processedDumpString;
+  return JSON.stringify(data);
 }
 
 export function writeDumpReport(
   fileName: string,
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData: string | ReportDumpWithAttributes | object,
   appendReport?: boolean,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
@@ -522,7 +460,7 @@ export function writeDumpReport(
 export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
-  fileContent: string | ReportDumpWithAttributes;
+  fileContent: string | ReportDumpWithAttributes | object;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
