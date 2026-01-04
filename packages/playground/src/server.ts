@@ -158,10 +158,9 @@ class PlaygroundServer {
    */
   private async recreateAgent(): Promise<void> {
     if (!this.agentFactory) {
-      console.warn(
-        'Cannot recreate agent: factory function not provided. Agent recreation is only available when using factory mode.',
+      throw new Error(
+        'Cannot recreate agent: factory function not provided. Attempting to destroy existing agent only.',
       );
-      return;
     }
 
     console.log('Recreating agent to cancel current task...');
@@ -489,7 +488,7 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Recreate agent to cancel the current task
+          // Recreate/destroy agent to cancel the current task
           await this.recreateAgent();
 
           // Clean up

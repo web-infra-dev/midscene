@@ -1,4 +1,4 @@
-import { PlaygroundSDK } from '@midscene/playground';
+import { type AgentFactory, PlaygroundSDK } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
@@ -8,12 +8,14 @@ export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
  * For report components that support both Server and In-Browser modes.
  *
  * @param serviceMode - The service mode: 'Server', 'In-Browser', or 'In-Browser-Extension'
- * @param agent - Required for In-Browser modes, optional for Server mode
+ * @param agent - Optional initial agent (required if agentFactory not provided)
+ * @param agentFactory - Optional factory function to create/recreate agent
  * @returns Configured PlaygroundSDK instance
  */
 export function getReportPlaygroundSDK(
   serviceMode: ServiceModeType,
   agent?: any,
+  agentFactory?: AgentFactory,
 ): PlaygroundSDK {
   if (serviceMode === 'Server') {
     return new PlaygroundSDK({
@@ -22,11 +24,13 @@ export function getReportPlaygroundSDK(
     });
   }
   // For In-Browser and In-Browser-Extension modes, use local execution
-  if (!agent) {
-    throw new Error('Agent is required for local execution mode');
+  if (!agent && !agentFactory) {
+    throw new Error(
+      'Agent or agentFactory is required for local execution mode',
+    );
   }
   return new PlaygroundSDK({
     type: 'local-execution',
-    agent,
+    agentFactory,
   });
 }

@@ -41,7 +41,7 @@ const copyReportTemplate = () => ({
       const srcPath = path.join(__dirname, 'dist', 'index.html');
       const tplFileContent = fs
         .readFileSync(srcPath, 'utf-8')
-        .replace(magicString, '');
+        .replaceAll(magicString, '');
       assert(
         !tplFileContent.includes(magicString),
         'magic string should not be in the template file',

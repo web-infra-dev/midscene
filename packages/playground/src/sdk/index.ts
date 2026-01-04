@@ -4,6 +4,7 @@ import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
+  AgentFactory,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
@@ -19,6 +20,7 @@ export class PlaygroundSDK {
       config.type,
       config.serverUrl,
       config.agent,
+      config.agentFactory,
     );
   }
 
@@ -26,13 +28,16 @@ export class PlaygroundSDK {
     type: string,
     serverUrl?: string,
     agent?: PlaygroundAgent,
+    agentFactory?: AgentFactory,
   ): BasePlaygroundAdapter {
     switch (type) {
       case 'local-execution':
-        if (!agent) {
-          throw new Error('Agent is required for local execution');
+        if (!agent && !agentFactory) {
+          throw new Error(
+            'Agent or agentFactory is required for local execution',
+          );
         }
-        return new LocalExecutionAdapter(agent);
+        return new LocalExecutionAdapter(agent, agentFactory);
       case 'remote-execution': {
         // Use provided serverUrl first, then fallback to localhost if current page origin is file:// or default
         const finalServerUrl =
@@ -162,8 +167,14 @@ export class PlaygroundSDK {
         };
       }
     } else if (this.adapter instanceof LocalExecutionAdapter) {
-      // For local execution, we might need to implement agent cancellation
-      console.warn('Local execution cancellation not fully implemented');
+      // Invoke adapter cancellation to destroy the agent and block further actions
+      const result = await this.adapter.cancelTask(requestId);
+      if (result.success) {
+        return {
+          dump: (result as any).dump || null,
+          reportHTML: (result as any).reportHTML || null,
+        };
+      }
     }
     return null;
   }
