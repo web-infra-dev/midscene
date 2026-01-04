@@ -686,6 +686,41 @@ export class Page<
       await page.mouse.up({ button: 'left' });
     }
   }
+
+  async uploadFile(
+    files: string | string[],
+    clickAction: () => Promise<void>,
+  ): Promise<void> {
+    const { resolve } = await import('node:path');
+    const { existsSync } = await import('node:fs');
+
+    // Normalize file paths
+    const normalizedFiles = (Array.isArray(files) ? files : [files]).map(
+      (file) => {
+        const absolutePath = resolve(file);
+        if (!existsSync(absolutePath)) {
+          throw new Error(`File not found: ${file}`);
+        }
+        return absolutePath;
+      },
+    );
+
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      const [fileChooser] = await Promise.all([
+        page.waitForFileChooser(),
+        clickAction(),
+      ]);
+      await fileChooser.accept(normalizedFiles);
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      const [fileChooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        clickAction(),
+      ]);
+      await fileChooser.setFiles(normalizedFiles);
+    }
+  }
 }
 
 export function forceClosePopup(

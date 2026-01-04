@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; margin: 20px 0; text-align: center; }
+        .upload-btn { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; }
+        .file-list { margin-top: 20px; }
+        .file-item { padding: 5px; background: #f0f0f0; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>File Upload Test Page</h1>
+
+    <div class="upload-area">
+        <input type="file" id="file-input" multiple style="display: none;">
+        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Choose Files</button>
+        <p>Supports multiple file upload</p>
+    </div>
+
+    <div class="upload-area">
+        <input type="file" id="single-file-input" style="display: none;">
+        <button class="upload-btn" onclick="document.getElementById('single-file-input').click()">Choose Single File</button>
+        <p>Supports single file upload only</p>
+    </div>
+
+    <div class="file-list" id="file-list">
+        <h3>Selected Files:</h3>
+        <div id="selected-files"></div>
+    </div>
+
+    <script>
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            displayFiles(files, 'multiple');
+        });
+
+        document.getElementById('single-file-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            displayFiles(files, 'single');
+        });
+
+        function displayFiles(files, type) {
+            const container = document.getElementById('selected-files');
+            container.innerHTML = '';
+
+            files.forEach(file => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.textContent = `${file.name} (${file.size} bytes) - ${type}`;
+                container.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1472,6 +1472,23 @@ export class Agent<
     return null;
   }
 
+  async aiUploadFile(
+    locatePrompt: TUserPrompt,
+    files: string | string[],
+    opt?: LocateOption,
+  ): Promise<any> {
+    assert(locatePrompt, 'missing locate prompt for upload file');
+    assert(files, 'missing files for upload');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    // Delegate to the UploadFile action so it goes through the action pipeline
+    return this.callActionInActionSpace('UploadFile', {
+      locate: detailedLocateParam,
+      files,
+    });
+  }
+
   /**
    * Manually flush cache to file
    * @param options - Optional configuration
