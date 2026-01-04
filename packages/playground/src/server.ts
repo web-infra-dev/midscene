@@ -326,6 +326,29 @@ class PlaygroundServer {
         });
       }
 
+      // Always recreate agent before execution to ensure latest config is applied
+      if (this.agentFactory) {
+        console.log('Destroying old agent before execution...');
+        try {
+          if (this.agent && typeof this.agent.destroy === 'function') {
+            await this.agent.destroy();
+          }
+        } catch (error) {
+          console.warn('Failed to destroy old agent:', error);
+        }
+
+        console.log('Creating new agent with latest config...');
+        try {
+          this.agent = await this.agentFactory();
+          console.log('Agent created successfully');
+        } catch (error) {
+          console.error('Failed to create agent:', error);
+          return res.status(500).json({
+            error: `Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
+      }
+
       // Update device options if provided
       if (
         deviceOptions &&
@@ -577,9 +600,11 @@ class PlaygroundServer {
       try {
         overrideAIConfig(aiConfig);
 
+        // Note: Agent will be recreated on next execution to apply new config
         return res.json({
           status: 'ok',
-          message: 'AI config updated successfully',
+          message:
+            'AI config updated. Agent will be recreated on next execution.',
         });
       } catch (error: unknown) {
         const errorMessage =

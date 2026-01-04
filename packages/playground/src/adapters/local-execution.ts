@@ -13,7 +13,6 @@ import { BasePlaygroundAdapter } from './base';
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private agent: PlaygroundAgent | null;
   private agentFactory?: AgentFactory; // Factory function for recreating agent
-  private isAgentDestroyed = false; // Track if agent has been destroyed
   private dumpUpdateCallback?: (
     dump: string,
     executionDump?: ExecutionDump,
@@ -27,10 +26,6 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     this.agent = agent ?? null;
     this.agentFactory = agentFactory;
     this._id = uuid(); // Generate unique ID for local adapter
-    // If no agent provided but factory exists, mark as needing creation
-    if (!agent && agentFactory) {
-      this.isAgentDestroyed = true;
-    }
   }
 
   // Get adapter ID
@@ -113,25 +108,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   async overrideConfig(aiConfig: Record<string, unknown>): Promise<void> {
     // For local execution, use the shared env override function
     overrideAIConfig(aiConfig);
-
-    // Recreate agent to apply the new configuration
-    // This ensures all config (including replanningCycleLimit) is properly initialized
-    if (this.agent && this.agentFactory) {
-      console.log('Config changed, recreating agent to apply new settings...');
-      try {
-        // Destroy old agent first
-        await this.agent.destroy?.();
-
-        // Recreate with new config
-        await this.recreateAgent();
-        console.log('Agent recreated successfully with new config');
-      } catch (error) {
-        console.error('Failed to recreate agent after config change:', error);
-        // Even if recreation fails, the config is still updated
-        // The agent will be recreated on next execution
-        this.isAgentDestroyed = true;
-      }
-    }
+    console.log('Config updated. Agent will be recreated on next execution.');
   }
 
   /**
@@ -156,13 +133,30 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
-    // Recreate agent if it was destroyed or not yet created
-    if (this.isAgentDestroyed || !this.agent) {
+    // If agentFactory is provided, always recreate agent with latest config before execution
+    if (this.agentFactory) {
+      if (this.agent) {
+        console.log('Destroying old agent before execution...');
+        try {
+          await this.agent.destroy?.();
+        } catch (error) {
+          console.warn('Failed to destroy old agent:', error);
+        }
+        this.agent = null;
+      }
+
+      // Create new agent with latest config
       await this.recreateAgent();
     }
 
-    // Agent must exist after recreation
-    const agent = this.agent!;
+    // Agent must exist (either recreated or provided in constructor)
+    if (!this.agent) {
+      throw new Error(
+        'No agent available. Please provide either an agent instance or agentFactory.',
+      );
+    }
+
+    const agent = this.agent;
 
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
@@ -271,22 +265,21 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
   /**
    * Recreate agent instance using the factory function.
-   * Called automatically when executeAction is called after agent was destroyed.
+   * Called automatically when executeAction is called.
    */
   private async recreateAgent(): Promise<void> {
     if (!this.agentFactory) {
       throw new Error(
-        'Cannot recreate agent: factory function not provided. Please provide agentFactory in PlaygroundConfig to enable agent recreation after cancellation.',
+        'Cannot recreate agent: factory function not provided. Please provide agentFactory in PlaygroundConfig to enable agent recreation.',
       );
     }
 
-    console.log('Recreating agent...');
+    console.log('Creating new agent with latest config...');
     try {
       this.agent = await this.agentFactory();
-      this.isAgentDestroyed = false;
-      console.log('Agent recreated successfully');
+      console.log('Agent created successfully');
     } catch (error) {
-      console.error('Failed to recreate agent:', error);
+      console.error('Failed to create agent:', error);
       throw error;
     }
   }
@@ -348,7 +341,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       await this.agent.destroy?.();
-      this.isAgentDestroyed = true;
+      this.agent = null; // Clear agent reference
       return { success: true, dump, reportHTML };
     } catch (error: unknown) {
       const errorMessage =

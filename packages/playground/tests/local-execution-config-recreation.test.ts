@@ -51,12 +51,23 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
     expect(agentFactoryCallCount).toBe(0);
     expect(mockAgent.destroy).not.toHaveBeenCalled();
 
-    // Override config
+    // Override config - does not trigger recreation
     await adapter.overrideConfig({
       [MIDSCENE_REPLANNING_CYCLE_LIMIT]: '25',
     });
 
-    // Agent should be destroyed and recreated
+    // Agent should NOT be destroyed yet
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+    expect(agentFactoryCallCount).toBe(0);
+
+    // Execute action - this should destroy old agent and create new one
+    await adapter.executeAction(
+      'ai',
+      { type: 'ai', prompt: 'test prompt' },
+      { requestId: 'test-request' },
+    );
+
+    // Now agent should be destroyed and recreated
     expect(mockAgent.destroy).toHaveBeenCalledTimes(1);
     expect(agentFactoryCallCount).toBe(1);
   });
@@ -99,7 +110,20 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
       }),
     ).resolves.not.toThrow();
 
-    // Agent should still be destroyed
+    // Config is updated but agent not destroyed yet
+    expect(mockAgent.destroy).not.toHaveBeenCalled();
+    expect(failingFactory).not.toHaveBeenCalled();
+
+    // Execute action - this should destroy old agent and attempt recreation
+    await expect(
+      adapter.executeAction(
+        'ai',
+        { type: 'ai', prompt: 'test' },
+        { requestId: 'test-request' },
+      ),
+    ).rejects.toThrow('Factory failed');
+
+    // Agent should be destroyed and factory should be called
     expect(mockAgent.destroy).toHaveBeenCalledTimes(1);
     expect(failingFactory).toHaveBeenCalledTimes(1);
   });
@@ -111,18 +135,42 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
     await adapter.overrideConfig({
       [MIDSCENE_REPLANNING_CYCLE_LIMIT]: '25',
     });
+    expect(agentFactoryCallCount).toBe(0);
+
+    // Execute - destroys old agent and creates new one
+    await adapter.executeAction(
+      'ai',
+      { type: 'ai', prompt: 'test 1' },
+      { requestId: 'test-1' },
+    );
+    expect(mockAgent.destroy).toHaveBeenCalledTimes(1);
     expect(agentFactoryCallCount).toBe(1);
 
     // Second config change
     await adapter.overrideConfig({
       [MIDSCENE_REPLANNING_CYCLE_LIMIT]: '30',
     });
+
+    // Execute - destroys the agent created in first execution and creates new one
+    await adapter.executeAction(
+      'ai',
+      { type: 'ai', prompt: 'test 2' },
+      { requestId: 'test-2' },
+    );
+    // mockAgent was destroyed once, the new agent from factory was destroyed once
     expect(agentFactoryCallCount).toBe(2);
 
     // Third config change
     await adapter.overrideConfig({
       [MIDSCENE_REPLANNING_CYCLE_LIMIT]: '35',
     });
+
+    // Execute - destroys and creates again
+    await adapter.executeAction(
+      'ai',
+      { type: 'ai', prompt: 'test 3' },
+      { requestId: 'test-3' },
+    );
     expect(agentFactoryCallCount).toBe(3);
   });
 });
