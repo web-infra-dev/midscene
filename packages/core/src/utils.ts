@@ -320,20 +320,27 @@ export function extractBase64ToScriptTags(
     }
   } catch (error) {
     console.error('Failed to parse dump data for image extraction:', error);
-    // Return original data if parsing fails
+    // Return original data if parsing fails, and mark extraction as disabled
     const dumpString =
       typeof dumpData === 'string'
         ? dumpData
         : 'dumpString' in dumpData
           ? (dumpData as ReportDumpWithAttributes).dumpString
           : JSON.stringify(dumpData);
+    const existingAttributes =
+      typeof dumpData === 'object' &&
+      dumpData !== null &&
+      'attributes' in dumpData
+        ? (dumpData as ReportDumpWithAttributes).attributes
+        : undefined;
+    const errorAttributes: Record<string, string> | undefined =
+      existingAttributes
+        ? { ...existingAttributes, extractImages: 'false' }
+        : { extractImages: 'false' };
     return {
       processedDumpString: dumpString,
       imageScriptTags: '',
-      attributes:
-        typeof dumpData === 'object' && 'attributes' in dumpData
-          ? (dumpData as ReportDumpWithAttributes).attributes
-          : undefined,
+      attributes: errorAttributes,
     };
   }
 
@@ -367,6 +374,18 @@ export function extractBase64ToScriptTags(
   };
 }
 
+/**
+ * Sanitize fileName to prevent path traversal attacks.
+ * Removes path separators and special characters.
+ */
+function sanitizeFileName(fileName: string): string {
+  // Remove path separators and parent directory references
+  return fileName
+    .replace(/\.\./g, '') // Remove parent directory references
+    .replace(/[/\\]/g, '_') // Replace path separators with underscores
+    .replace(/^[._]+/, ''); // Remove leading dots and underscores
+}
+
 export function writeDirectoryReport(
   fileName: string,
   dumpData:
@@ -381,7 +400,9 @@ export function writeDirectoryReport(
     return null;
   }
 
-  const reportDir = path.join(getMidsceneRunSubDir('report'), fileName);
+  // Sanitize fileName to prevent path traversal
+  const safeFileName = sanitizeFileName(fileName);
+  const reportDir = path.join(getMidsceneRunSubDir('report'), safeFileName);
   const screenshotsDir = path.join(reportDir, 'screenshots');
   const indexPath = path.join(reportDir, 'index.html');
 
@@ -453,9 +474,20 @@ function extractAndSaveScreenshots(
     const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
     const screenshotPath = path.join(screenshotsDir, screenshotFileName);
     const parts = value.split(',');
-    if (parts.length === 2 && parts[1]) {
+    const hasValidPrefix =
+      parts.length === 2 &&
+      !!parts[1] &&
+      typeof parts[0] === 'string' &&
+      /^data:image\/[a-zA-Z0-9.+-]+;base64$/.test(parts[0]);
+    if (hasValidPrefix) {
       writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
       parent[key] = `./screenshots/${screenshotFileName}`;
+    } else {
+      console.warn(
+        'extractAndSaveScreenshots: encountered invalid image data URI, skipping screenshot for key:',
+        key,
+      );
+      parent[key] = null;
     }
   });
 
