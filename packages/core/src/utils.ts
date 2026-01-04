@@ -318,29 +318,21 @@ export function extractBase64ToScriptTags(
     } else {
       data = dumpData as Record<string, unknown>;
     }
-  } catch (error) {
-    console.error('Failed to parse dump data for image extraction:', error);
-    // Return original data if parsing fails, and mark extraction as disabled
+  } catch {
+    // Return original data if parsing fails (non-JSON strings are valid input)
     const dumpString =
       typeof dumpData === 'string'
         ? dumpData
         : 'dumpString' in dumpData
           ? (dumpData as ReportDumpWithAttributes).dumpString
           : JSON.stringify(dumpData);
-    const existingAttributes =
-      typeof dumpData === 'object' &&
-      dumpData !== null &&
-      'attributes' in dumpData
-        ? (dumpData as ReportDumpWithAttributes).attributes
-        : undefined;
-    const errorAttributes: Record<string, string> | undefined =
-      existingAttributes
-        ? { ...existingAttributes, extractImages: 'false' }
-        : { extractImages: 'false' };
     return {
       processedDumpString: dumpString,
       imageScriptTags: '',
-      attributes: errorAttributes,
+      attributes:
+        typeof dumpData === 'object' && 'attributes' in dumpData
+          ? (dumpData as ReportDumpWithAttributes).attributes
+          : undefined,
     };
   }
 
@@ -437,8 +429,10 @@ export function writeDirectoryReport(
       );
     } else if (error && typeof error === 'object' && 'code' in error) {
       const fsError = error as NodeJS.ErrnoException;
+      const errorCode = fsError.code || 'UNKNOWN';
       console.error(
-        `Failed to write directory report due to file system error${fsError.code ? ` (${fsError.code})` : ''}:`,
+        'Failed to write directory report due to file system error (%s):',
+        errorCode,
         fsError,
       );
     } else {
