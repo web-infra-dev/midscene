@@ -524,6 +524,13 @@ export function resolveDeepThinkConfig({
     };
   }
 
+  if (vlMode === 'gemini') {
+    return {
+      config: { thinkingLevel: deepThink ? 'high' : 'low' },
+      debugMessage: `deepThink mapped to thinkingLevel=${deepThink ? 'high' : 'low'} for gemini`,
+    };
+  }
+
   return {
     config: {},
     debugMessage: `deepThink ignored: unsupported model_family "${vlMode ?? 'default'}"`,

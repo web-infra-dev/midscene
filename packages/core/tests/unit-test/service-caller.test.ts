@@ -358,6 +358,28 @@ describe('service-caller', () => {
       expect(result.warningMessage).toBeUndefined();
     });
 
+    it('maps deepThink true for gemini', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: true,
+        vlMode: 'gemini',
+      });
+
+      expect(result.config).toEqual({ thinkingLevel: 'high' });
+      expect(result.debugMessage).toContain('thinkingLevel=high');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
+    it('maps deepThink false for gemini', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: false,
+        vlMode: 'gemini',
+      });
+
+      expect(result.config).toEqual({ thinkingLevel: 'low' });
+      expect(result.debugMessage).toContain('thinkingLevel=low');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
     it('warns when deepThink is unsupported', () => {
       const result = resolveDeepThinkConfig({
         deepThink: true,
