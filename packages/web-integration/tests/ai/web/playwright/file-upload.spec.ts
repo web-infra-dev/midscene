@@ -48,14 +48,15 @@ test.describe('file upload functionality', () => {
     aiAssert,
     page,
   }) => {
-    const testFile = join(__dirname, '../../fixtures/relative-test.txt');
-
     await page.goto(
       `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
     );
 
-    // Upload file
-    await aiUploadFile('Choose Single File', testFile);
+    // Upload file using relative path
+    await aiUploadFile(
+      'Choose Single File',
+      './tests/ai/fixtures/relative-test.txt',
+    );
 
     // Verify file is selected
     await aiAssert('page displays "relative-test.txt"');

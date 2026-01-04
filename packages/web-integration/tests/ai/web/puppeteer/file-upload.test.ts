@@ -55,8 +55,6 @@ describe('file upload functionality', () => {
   });
 
   it('should handle relative paths', async () => {
-    const testFile = join(__dirname, '../../fixtures/relative-test.txt');
-
     const { originPage, reset } = await launchPage(
       `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
     );
@@ -64,8 +62,11 @@ describe('file upload functionality', () => {
 
     const agent = new PuppeteerAgent(originPage);
 
-    // Upload file
-    await agent.aiUploadFile('Choose Single File', testFile);
+    // Upload file using relative path
+    await agent.aiUploadFile(
+      'Choose Single File',
+      './tests/ai/fixtures/relative-test.txt',
+    );
 
     // Verify file is selected
     await agent.aiAssert('page displays "relative-test.txt"');
