@@ -69,7 +69,7 @@ describe('Agent cache fallback', () => {
     // Mock resolveReplanningCycleLimit
     vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
 
-    const result = await agent.aiAct('test task');
+    await agent.aiAct('test task');
 
     // Verify runYaml was called and failed
     expect(runYamlSpy).toHaveBeenCalledWith(
@@ -147,7 +147,7 @@ Please continue from Step 3 and avoid repeating the successful steps.`,
     // Mock resolveReplanningCycleLimit
     vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
 
-    const result = await agent.aiAct('test task');
+    await agent.aiAct('test task');
 
     // Verify runYaml was called and failed
     expect(runYamlSpy).toHaveBeenCalledWith(
@@ -299,5 +299,69 @@ Please continue from Step 2 and avoid repeating the successful steps.`,
     expect(contextParam).toContain('Previous cached workflow execution failed');
     expect(contextParam).toContain('Simple execution error');
     expect(contextParam).toContain('retry with a different approach');
+  });
+
+  it('should update cache after successful fallback execution', async () => {
+    // Mock cache with yaml workflow
+    const mockCache = {
+      cacheContent: {
+        yamlWorkflow: 'tasks:\n  - name: test\n    flow: invalid',
+      },
+    };
+
+    // Mock taskCache to return cache match
+    const matchPlanCacheSpy = vi.fn().mockReturnValue(mockCache);
+    const updateOrAppendCacheRecordSpy = vi.fn();
+    agent.taskCache = {
+      isCacheResultUsed: true,
+      matchPlanCache: matchPlanCacheSpy,
+      updateOrAppendCacheRecord: updateOrAppendCacheRecordSpy,
+    } as any;
+
+    // Mock runYaml to throw error
+    const runYamlSpy = vi
+      .spyOn(agent, 'runYaml')
+      .mockRejectedValue(new Error('Cache execution failed'));
+
+    // Mock taskExecutor to succeed in fallback with yamlFlow
+    const mockActionResult = {
+      output: {
+        result: { success: true },
+        yamlFlow: [
+          {
+            aiTap: 'test element',
+          },
+        ],
+      },
+      planning: {
+        type: 'Planning',
+        thought: 'Fallback planning',
+        actions: [{ type: 'Locate', prompt: 'test element' }],
+        locate: [],
+      },
+    };
+    agent.taskExecutor = {
+      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
+      action: vi.fn().mockResolvedValue(mockActionResult),
+    } as any;
+
+    // Mock model config manager
+    agent.modelConfigManager = {
+      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
+    } as any;
+
+    // Mock resolveReplanningCycleLimit
+    vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
+
+    await agent.aiAct('test task');
+
+    // Verify runYaml was called and failed
+    expect(runYamlSpy).toHaveBeenCalled();
+
+    // Verify fallback to normal execution
+    expect(agent.taskExecutor.action).toHaveBeenCalled();
+
+    // Verify cache was updated after successful fallback
+    expect(updateOrAppendCacheRecordSpy).toHaveBeenCalled();
   });
 });
