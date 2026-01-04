@@ -1,4 +1,4 @@
-import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import { AIResponseFormat, type AIUsageInfo, type DeepThinkOption } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import {
   type IModelConfig,
@@ -205,7 +205,7 @@ export async function callAI(
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
-    deepThink?: boolean;
+    deepThink?: DeepThinkOption;
   },
 ): Promise<{
   content: string;
@@ -424,7 +424,7 @@ export async function callAIWithObjectResponse<T>(
   AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
   options?: {
-    deepThink?: boolean;
+    deepThink?: DeepThinkOption;
   },
 ): Promise<{
   content: T;
@@ -499,28 +499,32 @@ export function resolveDeepThinkConfig({
   deepThink,
   vlMode,
 }: {
-  deepThink?: boolean;
+  deepThink?: DeepThinkOption;
   vlMode?: TVlModeTypes;
 }): {
   config: Record<string, unknown>;
   debugMessage?: string;
   warningMessage?: string;
 } {
-  if (deepThink === undefined) {
+  const normalizedDeepThink = deepThink === 'unset' ? undefined : deepThink;
+
+  if (normalizedDeepThink === undefined) {
     return { config: {}, debugMessage: undefined };
   }
 
   if (vlMode === 'qwen3-vl') {
     return {
-      config: { enable_thinking: deepThink },
-      debugMessage: `deepThink mapped to enable_thinking=${deepThink} for qwen3-vl`,
+      config: { enable_thinking: normalizedDeepThink },
+      debugMessage: `deepThink mapped to enable_thinking=${normalizedDeepThink} for qwen3-vl`,
     };
   }
 
   if (vlMode === 'doubao-vision') {
     return {
-      config: { thinking: { type: deepThink ? 'enabled' : 'disabled' } },
-      debugMessage: `deepThink mapped to thinking.type=${deepThink ? 'enabled' : 'disabled'} for doubao-vision`,
+      config: {
+        thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
+      },
+      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for doubao-vision`,
     };
   }
 
