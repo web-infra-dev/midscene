@@ -294,6 +294,20 @@ export class Agent<
       return this.opts.replanningCycleLimit;
     }
 
+    // Try to read from environment config (supports dynamic override via overrideAIConfig)
+    const envConfig = globalConfigManager.getAllEnvConfig();
+    const envReplanningCycleLimitRaw =
+      envConfig[MIDSCENE_REPLANNING_CYCLE_LIMIT];
+    if (
+      envReplanningCycleLimitRaw !== undefined &&
+      envReplanningCycleLimitRaw !== ''
+    ) {
+      const envReplanningCycleLimit = Number(envReplanningCycleLimitRaw);
+      if (!Number.isNaN(envReplanningCycleLimit)) {
+        return envReplanningCycleLimit;
+      }
+    }
+
     return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
       ? defaultVlmUiTarsReplanningCycleLimit
       : defaultReplanningCycleLimit;
@@ -306,7 +320,8 @@ export class Agent<
     const envReplanningCycleLimitRaw =
       envConfig[MIDSCENE_REPLANNING_CYCLE_LIMIT];
     const envReplanningCycleLimit =
-      envReplanningCycleLimitRaw !== undefined
+      envReplanningCycleLimitRaw !== undefined &&
+      envReplanningCycleLimitRaw !== ''
         ? Number(envReplanningCycleLimitRaw)
         : undefined;
 
