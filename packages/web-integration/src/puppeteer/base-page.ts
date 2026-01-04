@@ -694,7 +694,7 @@ export class Page<
     const { resolve } = await import('node:path');
     const { existsSync } = await import('node:fs');
 
-    // 路径标准化处理
+    // Normalize file paths
     const normalizedFiles = (Array.isArray(files) ? files : [files]).map(
       (file) => {
         const absolutePath = resolve(file);
