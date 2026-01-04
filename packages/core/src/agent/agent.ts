@@ -534,10 +534,12 @@ export class Agent<
     this.dump.groupName = this.opts.groupName!;
     this.dump.groupDescription = this.opts.groupDescription;
 
+    // Always pass this.dump directly so image extraction can modify it in place,
+    // replacing base64 with references to free memory
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
-      fileContent: useDirectoryReport ? this.dump : this.dumpDataString(),
+      fileContent: this.dump,
       type: 'dump',
       generateReport,
       useDirectoryReport,

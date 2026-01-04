@@ -140,7 +140,7 @@ test
     async () => {
       const tool = new ReportMergingTool();
 
-      console.time('generate 100 mocked report files.');
+      console.time('generate 100 mocked report files');
       const hugeContent = Buffer.alloc(50 * 1024 * 1024, 'a').toString();
       generateNReports(
         100,
@@ -150,7 +150,7 @@ test
       );
       console.timeEnd('generate 100 mocked report files');
 
-      console.time('merge and delete 100 mocked report files.');
+      console.time('merge and delete 100 mocked report files');
       const mergedReportPath = tool.mergeReports('merge-100-reports', {
         rmOriginalReports: true,
         overwrite: true,

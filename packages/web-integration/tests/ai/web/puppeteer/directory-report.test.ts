@@ -107,19 +107,106 @@ describe('Directory Report Format', () => {
       'data:text/html,<html><body><h1>Memory Test</h1></body></html>',
     );
 
-    await agent.recordToReport('Screenshot-1', { content: 'First screenshot' });
-    await agent.recordToReport('Screenshot-2', {
-      content: 'Second screenshot',
-    });
+    // take screenshot to capture base64
+    const base64 = await page.screenshot({ encoding: 'base64' });
+    expect(base64.length).toBeGreaterThan(100);
+
+    // manually add base64 to dump to verify it exists before processing
+    const testExecution = {
+      logTime: Date.now(),
+      name: 'Test-Execution',
+      description: 'test',
+      tasks: [
+        {
+          type: 'Log' as const,
+          subType: 'Screenshot' as const,
+          status: 'finished' as const,
+          recorder: [
+            {
+              type: 'screenshot' as const,
+              ts: Date.now(),
+              screenshot: `data:image/png;base64,${base64}`,
+            },
+          ],
+          timing: { start: Date.now(), end: Date.now(), cost: 0 },
+          param: { content: '' },
+          executor: async () => {},
+        },
+      ],
+    };
+    agent.appendExecutionDump(testExecution);
+
+    // verify base64 exists in dump before report generation
+    const dumpBeforeReport = JSON.stringify(agent.dump);
+    expect(dumpBeforeReport.includes('data:image/')).toBe(true);
+
+    // trigger report generation which should clear base64
+    agent.writeOutActionDumps();
 
     // verify report was generated
     expect(agent.reportFile).toBeTruthy();
 
-    // check dump memory for base64 strings
-    const dumpString = JSON.stringify(agent.dump);
-    const hasBase64 = dumpString.includes('data:image/');
+    // check dump memory for base64 strings - should be cleared
+    const dumpAfterReport = JSON.stringify(agent.dump);
+    expect(dumpAfterReport.includes('data:image/')).toBe(false);
 
-    expect(hasBase64).toBe(false);
+    await agent.destroy();
+  });
+
+  it('should clear base64 from dump memory when useDirectoryReport is false', async () => {
+    const agent = new PuppeteerAgent(page, {
+      useDirectoryReport: false,
+      generateReport: true,
+      groupName: 'Memory-Clear-Traditional',
+      autoPrintReportMsg: false,
+    });
+
+    await page.goto(
+      'data:text/html,<html><body><h1>Memory Test Traditional</h1></body></html>',
+    );
+
+    // take screenshot to capture base64
+    const base64 = await page.screenshot({ encoding: 'base64' });
+    expect(base64.length).toBeGreaterThan(100);
+
+    // manually add base64 to dump to verify it exists before processing
+    const testExecution = {
+      logTime: Date.now(),
+      name: 'Test-Execution',
+      description: 'test',
+      tasks: [
+        {
+          type: 'Log' as const,
+          subType: 'Screenshot' as const,
+          status: 'finished' as const,
+          recorder: [
+            {
+              type: 'screenshot' as const,
+              ts: Date.now(),
+              screenshot: `data:image/png;base64,${base64}`,
+            },
+          ],
+          timing: { start: Date.now(), end: Date.now(), cost: 0 },
+          param: { content: '' },
+          executor: async () => {},
+        },
+      ],
+    };
+    agent.appendExecutionDump(testExecution);
+
+    // verify base64 exists in dump before report generation
+    const dumpBeforeReport = JSON.stringify(agent.dump);
+    expect(dumpBeforeReport.includes('data:image/')).toBe(true);
+
+    // trigger report generation which should clear base64
+    agent.writeOutActionDumps();
+
+    // verify report was generated
+    expect(agent.reportFile).toBeTruthy();
+
+    // check dump memory for base64 strings - should be cleared
+    const dumpAfterReport = JSON.stringify(agent.dump);
+    expect(dumpAfterReport.includes('data:image/')).toBe(false);
 
     await agent.destroy();
   });

@@ -208,12 +208,25 @@ export function reportHTMLContent(
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, tpl + allScriptContent, { flag: 'w' });
+      writeFileSync(reportPath!, `${tpl}\n${allScriptContent}`, { flag: 'w' });
       return reportPath!;
     }
 
+    // Check if template is valid (contains </html>) for append mode
+    const isValidTemplate = tpl.includes('</html>');
     if (!reportInitializedMap.get(reportPath!)) {
-      writeFileSync(reportPath!, tpl, { flag: 'w' });
+      if (isValidTemplate) {
+        writeFileSync(reportPath!, tpl, { flag: 'w' });
+      } else {
+        // Use minimal HTML wrapper if template is invalid (e.g., placeholder in test env)
+        writeFileSync(
+          reportPath!,
+          `<!DOCTYPE html><html><head></head><body>\n${allScriptContent}\n</body></html>`,
+          { flag: 'w' },
+        );
+        reportInitializedMap.set(reportPath!, true);
+        return reportPath!;
+      }
       reportInitializedMap.set(reportPath!, true);
     }
 
