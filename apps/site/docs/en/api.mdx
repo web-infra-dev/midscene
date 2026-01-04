@@ -369,7 +369,7 @@ function aiUploadFile(
 - Parameters:
 
   - `locate: string | Object` - A natural language description of the upload button or file input element, or [prompting with images](#prompting-with-images).
-  - `files: string | string[]` - File path(s) to upload. Can be a single file path (string) or multiple file paths (string array). Supports both absolute and relative paths.
+  - `files: string | string[]` - File path(s) to upload. Can be a single file path (string) or multiple file paths (string array). Supports both absolute and relative paths. Relative paths are resolved relative to the process's current working directory.
   - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
