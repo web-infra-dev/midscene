@@ -546,8 +546,6 @@ export class Agent<
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
-
-    // base64 already cleared in-place by writeDirectoryReport via traverseBase64Images
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {

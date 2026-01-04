@@ -20,7 +20,12 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
-import type { Cache, Rect, ReportDumpWithAttributes } from './types';
+import type {
+  Cache,
+  GroupedActionDump,
+  Rect,
+  ReportDumpWithAttributes,
+} from './types';
 
 let logEnvReady = false;
 
@@ -123,7 +128,11 @@ export function insertScriptBeforeClosingHtml(
 }
 
 export function reportHTMLContent(
-  dumpData: string | ReportDumpWithAttributes | object,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   reportPath?: string,
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
@@ -288,7 +297,11 @@ export function clearBase64Images(obj: unknown): void {
  * @returns Processed dump string with image references and generated script tags
  */
 export function extractBase64ToScriptTags(
-  dumpData: string | ReportDumpWithAttributes | object,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   reportPath?: string,
 ): ImageExtractionResult {
   let data: Record<string, unknown>;
@@ -356,7 +369,11 @@ export function extractBase64ToScriptTags(
 
 export function writeDirectoryReport(
   fileName: string,
-  dumpData: string | ReportDumpWithAttributes | object,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   appendReport?: boolean,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
@@ -380,28 +397,54 @@ export function writeDirectoryReport(
     // Process data and extract screenshots
     const processedData = extractAndSaveScreenshots(dumpData, screenshotsDir);
 
-    // Generate HTML report
-    reportHTMLContent(processedData, indexPath, appendReport);
+    // Generate HTML report with extractImages: false since images are already saved as files
+    reportHTMLContent(
+      processedData,
+      indexPath,
+      appendReport,
+      true,
+      false, // Don't extract images - they're already saved as separate files
+    );
 
     return indexPath;
   } catch (error) {
-    console.error('Failed to write directory report:', error);
+    // Provide more specific error messages based on error type
+    if (error instanceof SyntaxError) {
+      console.error(
+        'Failed to write directory report due to JSON parsing error:',
+        error,
+      );
+    } else if (error && typeof error === 'object' && 'code' in error) {
+      const fsError = error as NodeJS.ErrnoException;
+      console.error(
+        `Failed to write directory report due to file system error${fsError.code ? ` (${fsError.code})` : ''}:`,
+        fsError,
+      );
+    } else {
+      console.error('Failed to write directory report:', error);
+    }
     return null;
   }
 }
 
 function extractAndSaveScreenshots(
-  dumpData: string | ReportDumpWithAttributes | object,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   screenshotsDir: string,
 ): string {
-  let data: object;
+  let data: Record<string, unknown>;
 
   if (typeof dumpData === 'string') {
     data = JSON.parse(dumpData);
   } else if ('dumpString' in dumpData) {
     data = JSON.parse((dumpData as ReportDumpWithAttributes).dumpString);
   } else {
-    data = dumpData;
+    // Cast to Record<string, unknown> for processing - traverseBase64Images
+    // only accesses properties it finds, so the index signature mismatch is safe
+    data = dumpData as Record<string, unknown>;
   }
 
   let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
@@ -422,7 +465,11 @@ function extractAndSaveScreenshots(
 
 export function writeDumpReport(
   fileName: string,
-  dumpData: string | ReportDumpWithAttributes | object,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   appendReport?: boolean,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
@@ -460,7 +507,11 @@ export function writeDumpReport(
 export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
-  fileContent: string | ReportDumpWithAttributes | object;
+  fileContent:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
