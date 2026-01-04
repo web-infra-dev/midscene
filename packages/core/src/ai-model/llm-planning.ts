@@ -1,5 +1,6 @@
 import type {
   DeviceAction,
+  DeepThinkOption,
   InterfaceType,
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
@@ -33,7 +34,7 @@ export async function plan(
     conversationHistory: ConversationHistory;
     includeBbox: boolean;
     imagesIncludeCount?: number;
-    deepThink?: boolean;
+    deepThink?: DeepThinkOption;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -135,7 +136,7 @@ export async function plan(
     AIActionType.PLAN,
     modelConfig,
     {
-      deepThink: opts.deepThink,
+      deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
     },
   );
 

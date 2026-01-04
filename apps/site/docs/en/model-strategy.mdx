@@ -142,6 +142,10 @@ When enabled, you'll see a `Reasoning` section in the report. Planning takes lon
 
 You can explicitly set `deepThink: true` or `deepThink: false` to override the provider's default.
 
+`deepThink` accepts `'unset' | true | false`. The default is `'unset'` (same as omitting the option).
+
+Note: The implementation details behind `deepThink` may evolve in the future as model providers change.
+
 ### API style for model service provider
 
 Midscene expects providers to expose an OpenAI-compatible API (this does **not** mean you must use OpenAI models).

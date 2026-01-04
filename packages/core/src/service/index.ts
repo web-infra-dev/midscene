@@ -10,6 +10,7 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  DeepThinkOption,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
   Rect,
@@ -90,7 +91,9 @@ export default class Service {
       debug('globalDeepThinkSwitch', globalDeepThinkSwitch);
     }
     let searchAreaPrompt;
-    if (query.deepThink || globalDeepThinkSwitch) {
+    const deepThinkEnabled =
+      query.deepThink === true || globalDeepThinkSwitch;
+    if (deepThinkEnabled) {
       searchAreaPrompt = query.prompt;
     }
 
@@ -280,7 +283,7 @@ export default class Service {
     target: Rect | [number, number],
     modelConfig: IModelConfig,
     opt?: {
-      deepThink?: boolean;
+      deepThink?: DeepThinkOption;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
@@ -313,7 +316,7 @@ export default class Service {
       borderThickness: 3,
     });
 
-    if (opt?.deepThink) {
+    if (opt?.deepThink === true) {
       const searchArea = expandSearchArea(targetRect, context.size, vlMode);
       debug('describe: set searchArea', searchArea);
       const croppedResult = await cropByRect(

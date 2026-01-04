@@ -6,6 +6,7 @@ import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
   DeviceAction,
+  DeepThinkOption,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,
@@ -208,7 +209,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
-    deepThink?: boolean,
+    deepThink?: DeepThinkOption,
   ): Promise<
     ExecutionResult<
       | {

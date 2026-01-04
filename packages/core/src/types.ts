@@ -135,6 +135,8 @@ export interface LocateResult {
 
 export type ThinkingLevel = 'off' | 'medium' | 'high';
 
+export type DeepThinkOption = 'unset' | true | false;
+
 export interface ServiceTaskInfo {
   durationMs: number;
   formatResponse?: string;

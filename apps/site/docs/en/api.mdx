@@ -130,7 +130,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
-    deepThink?: boolean;
+    deepThink?: 'unset' | true | false;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -141,7 +141,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `deepThink?: boolean` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is undefined and follows the model provider's default strategy. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
 
 - Return Value:
 
@@ -190,7 +190,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 
   - `locate: string | Object` - A natural language description of the element to tap, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -225,7 +225,7 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
 
   - `locate: string | Object` - A natural language description of the element to hover over, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -261,7 +261,7 @@ function aiInput(
     - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
   - `locate: string | Object` - A natural language description of the element to input text into, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS. (Default: true)
@@ -299,7 +299,7 @@ function aiKeyboardPress(
   - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. Refer to the [complete list of supported key names in our source code](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for available values.
   - `locate?: string | Object` - Optional, a natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -335,7 +335,7 @@ function aiScroll(
     - `distance?: number | null` - Optional, the distance to scroll in px. Use `null` to allow Midscene to decide automatically.
   - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -366,7 +366,7 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
 
   - `locate: string | Object` - A natural language description of the element to double-click on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -401,7 +401,7 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
 
   - `locate: string | Object` - A natural language description of the element to right-click on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -678,7 +678,7 @@ function aiLocate(
 
   - `locate: string | Object` - A natural language description of the element to locate, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepThink?: 'unset' | true | false` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. Defaults to `'unset'` (same as omitting). With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
