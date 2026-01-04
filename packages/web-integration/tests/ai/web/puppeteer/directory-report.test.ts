@@ -108,7 +108,9 @@ describe('Directory Report Format', () => {
     );
 
     await agent.recordToReport('Screenshot-1', { content: 'First screenshot' });
-    await agent.recordToReport('Screenshot-2', { content: 'Second screenshot' });
+    await agent.recordToReport('Screenshot-2', {
+      content: 'Second screenshot',
+    });
 
     // verify report was generated
     expect(agent.reportFile).toBeTruthy();
