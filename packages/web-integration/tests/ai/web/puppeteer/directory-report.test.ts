@@ -116,8 +116,8 @@ describe('Directory Report Format', () => {
     expect(agent.reportFile).toBeTruthy();
 
     // check dump memory for base64 strings
-    const dumpStr = JSON.stringify(agent.dump);
-    const hasBase64 = dumpStr.includes('data:image/');
+    const dumpString = JSON.stringify(agent.dump);
+    const hasBase64 = dumpString.includes('data:image/');
 
     expect(hasBase64).toBe(false);
 
