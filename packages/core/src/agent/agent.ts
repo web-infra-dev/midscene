@@ -1482,22 +1482,11 @@ export class Agent<
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    // Check if the interface supports file upload
-    if (
-      'uploadFile' in this.interface &&
-      typeof this.interface.uploadFile === 'function'
-    ) {
-      // Use the interface's uploadFile method with a click action
-      await (this.interface as any).uploadFile(files, async () => {
-        await this.callActionInActionSpace('Tap', {
-          locate: detailedLocateParam,
-        });
-      });
-
-      return { success: true };
-    } else {
-      throw new Error('File upload is not supported by the current interface');
-    }
+    // Delegate to the UploadFile action so it goes through the action pipeline
+    return this.callActionInActionSpace('UploadFile', {
+      locate: detailedLocateParam,
+      files,
+    });
   }
 
   /**
