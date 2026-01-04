@@ -20,10 +20,10 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@rspress/core": "2.0.0-rc.3",
-    "@rspress/plugin-client-redirects": "2.0.0-rc.3",
-    "@rspress/plugin-llms": "2.0.0-rc.3",
-    "@rspress/plugin-sitemap": "2.0.0-rc.3",
+    "@rspress/core": "2.0.0-rc.4",
+    "@rspress/plugin-client-redirects": "2.0.0-rc.4",
+    "@rspress/plugin-llms": "2.0.0-rc.4",
+    "@rspress/plugin-sitemap": "2.0.0-rc.4",
     "@tailwindcss/postcss": "4.1.11",
     "@types/node": "^18.0.0",
     "autoprefixer": "10.4.22",
