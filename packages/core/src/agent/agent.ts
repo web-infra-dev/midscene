@@ -13,6 +13,7 @@ import {
   type ExecutionTaskLog,
   type ExecutionTaskPlanning,
   type GroupedActionDump,
+  type DeepThinkOption,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -138,7 +139,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
-  deepThink?: boolean;
+  deepThink?: DeepThinkOption;
 };
 
 export class Agent<
@@ -859,7 +860,8 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
-    const deepThink = opt?.deepThink;
+    const deepThink =
+      opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
     const replanningCycleLimit = this.resolveReplanningCycleLimit(
       modelConfigForPlanning,
     );

@@ -132,7 +132,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
-    deepThink?: boolean;
+    deepThink?: 'unset' | true | false;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
@@ -143,7 +143,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
   - `prompt: string` - 用自然语言描述的操作内容
   - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `deepThink?: boolean` - 当模型支持时（取决于 MIDSCENE_MODEL_FAMILY），是否开启规划阶段的深度思考能力。默认值为 undefined，跟随模型服务商的默认策略。[详情参阅 deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
+    - `deepThink?: 'unset' | true | false` - 当模型支持时（取决于 MIDSCENE_MODEL_FAMILY），是否开启规划阶段的深度思考能力。默认值为 `'unset'`（等同于省略该参数），跟随模型服务商的默认策略。[详情参阅 deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
 
 - 返回值：
 
