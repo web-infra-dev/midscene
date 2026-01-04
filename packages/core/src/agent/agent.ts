@@ -536,6 +536,33 @@ export class Agent<
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
+
+    // Clear base64 from dump memory after report generation to reduce memory usage
+    if (generateReport && useDirectoryReport) {
+      this.clearBase64FromDump();
+    }
+  }
+
+  private clearBase64FromDump() {
+    const clearBase64 = (obj: unknown): void => {
+      if (typeof obj !== 'object' || obj === null) return;
+      if (Array.isArray(obj)) {
+        obj.forEach(clearBase64);
+        return;
+      }
+      for (const [key, value] of Object.entries(obj)) {
+        if (
+          (key === 'screenshot' || key === 'screenshotBase64') &&
+          typeof value === 'string' &&
+          value.startsWith('data:image/')
+        ) {
+          (obj as Record<string, unknown>)[key] = '';
+        } else {
+          clearBase64(value);
+        }
+      }
+    };
+    clearBase64(this.dump);
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {

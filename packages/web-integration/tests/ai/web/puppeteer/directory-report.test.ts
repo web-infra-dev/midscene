@@ -94,4 +94,31 @@ describe('Directory Report Format', () => {
 
     await agent.destroy();
   });
+
+  it('should clear base64 from dump memory after report generation', async () => {
+    const agent = new PuppeteerAgent(page, {
+      useDirectoryReport: true,
+      generateReport: true,
+      groupName: 'Memory-Clear-Test',
+      autoPrintReportMsg: false,
+    });
+
+    await page.goto(
+      'data:text/html,<html><body><h1>Memory Test</h1></body></html>',
+    );
+
+    await agent.recordToReport('Screenshot-1', { content: 'First screenshot' });
+    await agent.recordToReport('Screenshot-2', { content: 'Second screenshot' });
+
+    // verify report was generated
+    expect(agent.reportFile).toBeTruthy();
+
+    // check dump memory for base64 strings
+    const dumpStr = JSON.stringify(agent.dump);
+    const hasBase64 = dumpStr.includes('data:image/');
+
+    expect(hasBase64).toBe(false);
+
+    await agent.destroy();
+  });
 });
