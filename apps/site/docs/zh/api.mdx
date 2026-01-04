@@ -20,7 +20,7 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 - `generateReport: boolean`: 如果为 true，则生成报告文件。默认值为 true。
 - `reportFileName: string`: 报告文件的名称，默认值由 midscene 内部生成。
 - `autoPrintReportMsg: boolean`: 如果为 true，则打印报告消息。默认值为 true。
-- `useDirectoryReport: boolean`: 如果为 true，则使用目录格式的报告，将截图保存为独立的 PNG 文件而非内嵌 base64。适用于报告文件过大的场景。默认值为 false。**注意**：使用此选项时，报告需要通过 HTTP 服务器或 CDN 地址访问，无法直接在本地通过 `file://` 协议打开（浏览器安全策略限制）。
+- `useDirectoryReport: boolean`: 如果为 true，则使用目录格式的报告，将截图保存为独立的 PNG 文件而非内嵌 base64。适用于报告文件过大的场景。默认值为 false。**注意**：使用此选项时，报告需要通过 HTTP 服务器或 CDN 地址访问，无法直接在本地通过 `file://` 协议打开（由于浏览器对 `file://` 协议的 CORS 跨源资源共享限制，无法通过相对路径加载本地图片）。如需在本地预览报告，可在报告目录下启动本地 HTTP 服务器（例如运行 `python -m http.server`）后通过 `http://localhost:...` 访问。
 - `cacheId: string | undefined`: 如果配置，则使用此 cacheId 保存或匹配缓存。默认值为 undefined，也就是不启用缓存。
 - `aiActContext: string`: 调用 `agent.aiAct()` 时，发送给 AI 模型的背景知识，比如 "有 cookie 对话框时先关闭它"，默认值为空。此前名为 `aiActionContext`，旧名称仍然兼容。
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20（UI-TARS 模型默认 40）。推荐通过 agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
