@@ -35,6 +35,7 @@ export interface ConfigFactoryOptions {
   web?: Partial<MidsceneYamlScriptWebEnv>;
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
   ios?: Partial<MidsceneYamlScriptIOSEnv>;
+  files?: string[];
 }
 
 export interface ParsedConfig {
@@ -157,8 +158,15 @@ export async function createConfig(
   // If keepWindow is true, automatically enable headed mode
   const finalHeaded = keepWindow || headed;
 
+  // If files are provided via command line, expand them and use those instead of config files
+  let files = parsedConfig.files;
+  if (options?.files && options.files.length > 0) {
+    const basePath = dirname(resolve(configYamlPath));
+    files = await expandFilePatterns(options.files, basePath);
+  }
+
   return {
-    files: parsedConfig.files,
+    files,
     concurrent: options?.concurrent ?? parsedConfig.concurrent,
     continueOnError: options?.continueOnError ?? parsedConfig.continueOnError,
     summary: options?.summary ?? parsedConfig.summary,
