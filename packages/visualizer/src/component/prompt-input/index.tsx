@@ -172,6 +172,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   // Check if current method supports deep think option (dynamic based on actionSpace)
   const showDeepThinkOption = useMemo(() => {
+    if (selectedType === 'aiAct') {
+      return true;
+    }
+
     if (selectedType === 'aiLocate') {
       return true;
     }

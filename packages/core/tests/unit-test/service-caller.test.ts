@@ -1,4 +1,7 @@
-import { safeParseJson } from '@/ai-model/service-caller';
+import {
+  resolveDeepThinkConfig,
+  safeParseJson,
+} from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -310,6 +313,60 @@ describe('service-caller', () => {
 
       expect(result.type).toBe('Tap');
       expect(result.param.prompt).toBe('Click');
+    });
+  });
+
+  describe('resolveDeepThinkConfig', () => {
+    it('maps deepThink false for qwen3-vl', () => {
+      expect(
+        resolveDeepThinkConfig({ deepThink: false, vlMode: 'qwen3-vl' }),
+      ).toMatchObject({
+        config: { enable_thinking: false },
+      });
+    });
+
+    it('maps deepThink for qwen3-vl', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: true,
+        vlMode: 'qwen3-vl',
+      });
+
+      expect(result.config).toEqual({ enable_thinking: true });
+      expect(result.debugMessage).toContain('enable_thinking');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
+    it('maps deepThink for doubao-vision', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: true,
+        vlMode: 'doubao-vision',
+      });
+
+      expect(result.config).toEqual({ thinking: { type: 'enabled' } });
+      expect(result.debugMessage).toContain('thinking.type=enabled');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
+    it('maps deepThink false for doubao-vision', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: false,
+        vlMode: 'doubao-vision',
+      });
+
+      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
+      expect(result.debugMessage).toContain('thinking.type=disabled');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
+    it('warns when deepThink is unsupported', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: true,
+        vlMode: 'vlm-ui-tars',
+      });
+
+      expect(result.config).toEqual({});
+      expect(result.debugMessage).toContain('deepThink ignored');
+      expect(result.warningMessage).toContain('not supported');
     });
   });
 });

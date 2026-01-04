@@ -236,6 +236,7 @@ const DetailSide = (): JSX.Element => {
   const task = useExecutionDump((store) => store.activeTask);
   const dump = useExecutionDump((store) => store.insightDump);
   const { matchedElement: elements } = dump || {};
+  const reasoningContent = task?.reasoning_content;
 
   const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
     ?.aiActContext;
@@ -641,6 +642,17 @@ const DetailSide = (): JSX.Element => {
             </pre>
           }
         />
+        {reasoningContent && (
+          <Card
+            liteMode={true}
+            title="Reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+          />
+        )}
       </>
     );
   } else if (actions) {
@@ -784,6 +796,22 @@ const DetailSide = (): JSX.Element => {
         );
       }
 
+      // Add reasoning at the end
+      if (reasoningContent) {
+        planItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            title="Reasoning"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{reasoningContent}</pre>
+            }
+          />,
+        );
+      }
+
       outputDataContent = planItems;
     }
   } else {
@@ -870,6 +898,20 @@ const DetailSide = (): JSX.Element => {
                 {JSON.stringify(data, undefined, 2)}
               </pre>
             }
+          />,
+        );
+      }
+
+      // Add reasoning at the end
+      if (reasoningContent) {
+        outputItems.push(
+          <Card
+            key="reasoning"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre>{reasoningContent}</pre>}
+            title="Reasoning"
           />,
         );
       }

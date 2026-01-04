@@ -404,6 +404,9 @@ export class TaskBuilder {
           if (dump.taskInfo?.searchAreaUsage) {
             task.searchAreaUsage = dump.taskInfo.searchAreaUsage;
           }
+          if (dump.taskInfo?.reasoning_content) {
+            task.reasoning_content = dump.taskInfo.reasoning_content;
+          }
         };
 
         // from bbox (plan hit)
