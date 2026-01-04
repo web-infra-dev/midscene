@@ -255,6 +255,44 @@ concurrent: 2
       expect(result.summary).toBe('from-cmd.json');
       expect(result.globalConfig).toEqual(expectedGlobalConfig);
     });
+
+    test('should override config files with command-line files parameter', async () => {
+      const mockYamlContent = `
+files:
+  - config-file1.yml
+  - config-file2.yml
+concurrent: 2
+`;
+      const mockParsedYaml = {
+        files: ['config-file1.yml', 'config-file2.yml'],
+        concurrent: 2,
+        continueOnError: false,
+        headed: false,
+        keepWindow: false,
+        dotenvOverride: false,
+        dotenvDebug: false,
+        summary: 'parsed.json',
+        shareBrowserContext: false,
+      };
+      vi.mocked(readFileSync).mockReturnValue(mockYamlContent);
+      vi.mocked(yamlLoad).mockReturnValue(mockParsedYaml);
+      // Calls for parseConfigYaml - one for each pattern in config file
+      vi.mocked(matchYamlFiles).mockResolvedValueOnce(['config-file1.yml']);
+      vi.mocked(matchYamlFiles).mockResolvedValueOnce(['config-file2.yml']);
+      // Call for command-line files override
+      vi.mocked(matchYamlFiles).mockResolvedValueOnce(['cmd-file.yml']);
+
+      const cmdLineOptions: ConfigFactoryOptions = {
+        files: ['cmd-file.yml'],
+      };
+
+      const result = await createConfig('/test/index.yml', cmdLineOptions);
+
+      // Command line files should override config files
+      expect(result.files).toEqual(['cmd-file.yml']);
+      // Other config values should still come from the config file
+      expect(result.concurrent).toBe(2);
+    });
   });
 
   describe('createFilesConfig', async () => {

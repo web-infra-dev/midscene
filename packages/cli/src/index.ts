@@ -40,6 +40,7 @@ Promise.resolve(
       web: options.web,
       android: options.android,
       ios: options.ios,
+      files: cmdFiles,
     };
 
     let config;
