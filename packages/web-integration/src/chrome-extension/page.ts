@@ -871,7 +871,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     clickAction: () => Promise<void>,
   ): Promise<void> {
     throw new Error(
-      'File upload is not supported in Chrome Extension mode. Please use Playwright or Puppeteer for file upload functionality.',
+      'File upload is not supported in Chrome Extension mode. Use Playwright or Puppeteer instead.',
     );
   }
 }
