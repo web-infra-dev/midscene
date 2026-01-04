@@ -6,7 +6,6 @@ import type {
   Point,
   Rect,
   Size,
-  TUserPrompt,
   UIContext,
 } from '@midscene/core';
 import {
