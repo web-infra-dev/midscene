@@ -36,9 +36,23 @@ export type RPCResponse<T> = RPCResponse4Succeed<T> | RPCResponse4Failed;
 /**
  * Params for NewAgent method
  */
+
+export type LocalAndroidDevice = {
+  type: 'Local';
+  deviceId: string;
+};
+
+export type RemoteAndroidDevice = {
+  type: 'Remote';
+  host: string;
+  port: number;
+};
+
+export type AndroidDevice = LocalAndroidDevice | RemoteAndroidDevice;
+
 export type NewAgentParams4Android = {
   type: 'Android';
-  deviceId: string;
+  device: AndroidDevice;
 };
 
 export type NewAgentParams4IOS = {
