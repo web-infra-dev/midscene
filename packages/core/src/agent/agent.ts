@@ -1010,7 +1010,7 @@ export class Agent<
     opt?: {
       verifyPrompt?: boolean;
       retryLimit?: number;
-      deepThink?: DeepThinkOption;
+      deepThink?: boolean;
     } & LocatorValidatorOption,
   ): Promise<AgentDescribeElementAtPointResult> {
     const { verifyPrompt = true, retryLimit = 3 } = opt || {};
@@ -1018,7 +1018,7 @@ export class Agent<
     let success = false;
     let retryCount = 0;
     let resultPrompt = '';
-    let deepThink = opt?.deepThink === true;
+    let deepThink = opt?.deepThink || false;
     let verifyResult: LocateValidatorResult | undefined;
 
     while (!success && retryCount < retryLimit) {

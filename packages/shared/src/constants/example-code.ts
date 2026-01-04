@@ -6,16 +6,16 @@ IMPORTANT: Follow these exact type signatures for AI functions:
 
 // Type signatures for AI functions:
 aiAct(prompt: string, options?: { cacheable?: boolean, deepThink?: 'unset' | true | false }): Promise<void>
-aiInput(text: string, locate: string, options?: { deepThink?: 'unset' | true | false, xpath?: string, cacheable?: boolean }): Promise<void>
-aiTap(locate: string, options?: { deepThink?: 'unset' | true | false, xpath?: string, cacheable?: boolean }): Promise<void>
-aiHover(locate: string, options?: { deepThink?: 'unset' | true | false, xpath?: string, cacheable?: boolean }): Promise<void>
-aiDoubleClick(locate: string, options?: { deepThink?: 'unset' | true | false, xpath?: string, cacheable?: boolean }): Promise<void>
-aiKeyboardPress(key: string, locate?: string, options?: { deepThink?: 'unset' | true | false, xpath?: string, cacheable?: boolean }): Promise<void>
+aiInput(text: string, locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiTap(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiHover(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiDoubleClick(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiKeyboardPress(key: string, locate?: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
 aiScroll(locate: string | undefined, options: {
   direction?: 'up' | 'down' | 'left' | 'right',
   scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft',
   distance?: number | null,
-  deepThink?: 'unset' | true | false,
+  deepThink?: boolean,
   xpath?: string,
   cacheable?: boolean
 }): Promise<void>

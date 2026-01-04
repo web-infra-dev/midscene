@@ -1,4 +1,4 @@
-import type { DeepThinkOption, DeviceAction, WebUIContext } from '@midscene/core';
+import type { DeviceAction, WebUIContext } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 
 export interface PlaygroundAgent extends Agent {
@@ -31,7 +31,7 @@ export interface DeviceOptions {
 }
 
 export interface ExecutionOptions {
-  deepThink?: DeepThinkOption;
+  deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
   planningStrategy?: 'fast' | 'standard';

@@ -498,7 +498,7 @@ const locateFieldFlagName = 'midscene_location_field_flag';
 const MidsceneLocationInput = z
   .object({
     prompt: TUserPromptSchema,
-    deepThink: z.union([z.boolean(), z.literal('unset')]).optional(),
+    deepThink: z.boolean().optional(),
     cacheable: z.boolean().optional(),
     xpath: z.union([z.string(), z.boolean()]).optional(),
   })

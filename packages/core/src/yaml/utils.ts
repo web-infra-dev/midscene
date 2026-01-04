@@ -74,12 +74,12 @@ export function buildDetailedLocateParam(
 ): DetailedLocateParam | undefined {
   debugUtils('will call buildDetailedLocateParam', locatePrompt, opt);
   let prompt = locatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
-  let deepThink: LocateOption['deepThink'] | undefined = undefined;
+  let deepThink = false;
   let cacheable = true;
   let xpath = undefined;
 
   if (typeof opt === 'object' && opt !== null) {
-    deepThink = opt.deepThink === 'unset' ? undefined : opt.deepThink;
+    deepThink = opt.deepThink ?? false;
     cacheable = opt.cacheable ?? true;
     xpath = opt.xpath;
     if (locatePrompt && opt.prompt && locatePrompt !== opt.prompt) {

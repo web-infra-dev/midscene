@@ -1,16 +1,11 @@
 import type { TUserPrompt } from './common';
 import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
-import type {
-  AgentOpt,
-  DeepThinkOption,
-  LocateResultElement,
-  Rect,
-} from './types';
+import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
 export interface LocateOption {
   prompt?: TUserPrompt;
-  deepThink?: DeepThinkOption; // only available in vl model
+  deepThink?: boolean; // only available in vl model
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
   uiContext?: UIContext;
