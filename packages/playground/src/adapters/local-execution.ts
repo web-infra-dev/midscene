@@ -113,6 +113,25 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   async overrideConfig(aiConfig: Record<string, unknown>): Promise<void> {
     // For local execution, use the shared env override function
     overrideAIConfig(aiConfig);
+
+    // Recreate agent to apply the new configuration
+    // This ensures all config (including replanningCycleLimit) is properly initialized
+    if (this.agent && this.agentFactory) {
+      console.log('Config changed, recreating agent to apply new settings...');
+      try {
+        // Destroy old agent first
+        await this.agent.destroy?.();
+
+        // Recreate with new config
+        await this.recreateAgent();
+        console.log('Agent recreated successfully with new config');
+      } catch (error) {
+        console.error('Failed to recreate agent after config change:', error);
+        // Even if recreation fails, the config is still updated
+        // The agent will be recreated on next execution
+        this.isAgentDestroyed = true;
+      }
+    }
   }
 
   /**
