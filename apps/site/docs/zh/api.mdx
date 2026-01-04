@@ -363,7 +363,7 @@ function aiUploadFile(
 - 参数：
 
   - `locate: string | Object` - 用自然语言描述的上传按钮或文件输入框的位置，或[使用图片作为提示词](#使用图片作为提示词)。
-  - `files: string | string[]` - 要上传的文件路径。可以是单个文件路径（字符串）或多个文件路径（字符串数组）。支持绝对路径和相对路径。
+  - `files: string | string[]` - 要上传的文件路径。可以是单个文件路径（字符串）或多个文件路径（字符串数组）。支持绝对路径和相对路径；相对路径将相对于当前进程的工作目录（`process.cwd()`）进行解析。
   - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不再明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
