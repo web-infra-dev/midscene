@@ -524,10 +524,15 @@ export class Agent<
     }
     const { generateReport, autoPrintReportMsg, useDirectoryReport } =
       this.opts;
+
+    // Update dump info before writing
+    this.dump.groupName = this.opts.groupName!;
+    this.dump.groupDescription = this.opts.groupDescription;
+
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
+      fileContent: useDirectoryReport ? this.dump : this.dumpDataString(),
       type: 'dump',
       generateReport,
       useDirectoryReport,
@@ -537,32 +542,7 @@ export class Agent<
       printReportMsg(this.reportFile);
     }
 
-    // Clear base64 from dump memory after report generation to reduce memory usage
-    if (generateReport && useDirectoryReport) {
-      this.clearBase64FromDump();
-    }
-  }
-
-  private clearBase64FromDump() {
-    const clearBase64 = (obj: unknown): void => {
-      if (typeof obj !== 'object' || obj === null) return;
-      if (Array.isArray(obj)) {
-        obj.forEach(clearBase64);
-        return;
-      }
-      for (const [key, value] of Object.entries(obj)) {
-        if (
-          (key === 'screenshot' || key === 'screenshotBase64') &&
-          typeof value === 'string' &&
-          value.startsWith('data:image/')
-        ) {
-          (obj as Record<string, unknown>)[key] = '';
-        } else {
-          clearBase64(value);
-        }
-      }
-    };
-    clearBase64(this.dump);
+    // base64 already cleared in-place by writeDirectoryReport via traverseBase64Images
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
