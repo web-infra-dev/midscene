@@ -54,13 +54,14 @@ export class MidsceneRPCServer {
     params: NewAgentParams,
     callback: (err: any, res: RPCResponse<string>) => void,
   ) => void = (params, callback) => {
-    console.log('NewAgentParams', params);
+    console.log('[Midscene RPC] NewAgent called with params:', params);
+
     let setupPromise;
 
     const { type } = params;
     if (type === 'Android') {
       // AndroidAgent
-      this.service = new AndroidRPCService(params.deviceId);
+      this.service = new AndroidRPCService(params.device);
       setupPromise = this.service.setup(params.id);
     } else if (type === 'iOS') {
       // IOSAgent
