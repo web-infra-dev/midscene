@@ -52,7 +52,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it.skip(
+    it.only(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(
@@ -71,7 +71,7 @@ describe(
           // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
           '按住“dragMe”元素，往右拖动300像素',
           {
-            deepThink: false,
+            deepThink: true,
           },
         );
       },
