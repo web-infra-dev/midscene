@@ -520,13 +520,20 @@ export class Agent<
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
-    const { generateReport, autoPrintReportMsg } = this.opts;
+    const { generateReport, autoPrintReportMsg, useDirectoryReport } =
+      this.opts;
+
+    // Update dump info before writing
+    this.dump.groupName = this.opts.groupName!;
+    this.dump.groupDescription = this.opts.groupDescription;
+
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
+      fileContent: useDirectoryReport ? this.dump : this.dumpDataString(),
       type: 'dump',
       generateReport,
+      useDirectoryReport,
     });
     debug('writeOutActionDumps', this.reportFile);
     if (generateReport && autoPrintReportMsg && this.reportFile) {

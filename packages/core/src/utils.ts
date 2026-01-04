@@ -20,7 +20,12 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
-import type { Cache, Rect, ReportDumpWithAttributes } from './types';
+import type {
+  Cache,
+  GroupedActionDump,
+  Rect,
+  ReportDumpWithAttributes,
+} from './types';
 
 let logEnvReady = false;
 
@@ -123,10 +128,15 @@ export function insertScriptBeforeClosingHtml(
 }
 
 export function reportHTMLContent(
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   reportPath?: string,
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
+  extractImages = true, // whether to extract base64 images to separate script tags
 ): string {
   let tpl = '';
   if (withTpl) {
@@ -139,18 +149,41 @@ export function reportHTMLContent(
   }
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
+
+  // Extract base64 images to separate script tags if enabled
+  let processedDumpString: string;
+  let imageScriptTags = '';
+  let attributes: Record<string, string> | undefined;
+
+  if (extractImages) {
+    const extractionResult = extractBase64ToScriptTags(dumpData, reportPath);
+    processedDumpString = extractionResult.processedDumpString;
+    imageScriptTags = extractionResult.imageScriptTags;
+    attributes = extractionResult.attributes;
+  } else {
+    // No extraction, use original data
+    if (typeof dumpData === 'string') {
+      processedDumpString = dumpData;
+    } else if ('dumpString' in dumpData) {
+      processedDumpString = (dumpData as ReportDumpWithAttributes).dumpString;
+      attributes = (dumpData as ReportDumpWithAttributes).attributes;
+    } else {
+      processedDumpString = JSON.stringify(dumpData);
+    }
+  }
+
+  // Generate dump script tag
   let dumpContent = '';
 
-  if (typeof dumpData === 'string') {
+  if (!attributes) {
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
       '<script type="midscene_web_dump" type="application/json">\n' +
-      escapeScriptTag(dumpData) +
+      escapeScriptTag(processedDumpString) +
       '\n</script>';
   } else {
-    const { dumpString, attributes } = dumpData;
-    const attributesArr = Object.keys(attributes || {}).map((key) => {
+    const attributesArr = Object.keys(attributes).map((key) => {
       return `${key}="${encodeURIComponent(attributes![key])}"`;
     });
 
@@ -160,13 +193,22 @@ export function reportHTMLContent(
       '<script type="midscene_web_dump" type="application/json" ' +
       attributesArr.join(' ') +
       '>\n' +
-      escapeScriptTag(dumpString) +
+      escapeScriptTag(processedDumpString) +
       '\n</script>';
+  }
+
+  // Combine image script tags and dump content
+  let allScriptContent: string;
+  if (imageScriptTags) {
+    // biome-ignore lint/style/useTemplate: avoid bundle error
+    allScriptContent = imageScriptTags + '\n' + dumpContent;
+  } else {
+    allScriptContent = dumpContent;
   }
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
+      writeFileSync(reportPath!, tpl + allScriptContent, { flag: 'w' });
       return reportPath!;
     }
 
@@ -175,16 +217,285 @@ export function reportHTMLContent(
       reportInitializedMap.set(reportPath!, true);
     }
 
-    insertScriptBeforeClosingHtml(reportPath!, dumpContent);
+    insertScriptBeforeClosingHtml(reportPath!, allScriptContent);
     return reportPath!;
   }
 
-  return tpl + dumpContent;
+  return tpl + allScriptContent;
+}
+
+// Persistent screenshot counter map to prevent file overwriting during append operations
+const screenshotCounterMap = new Map<string, number>();
+
+// ============================================================================
+// Image Script Tag Extraction
+// ============================================================================
+
+/** Prefix for image references in dump JSON */
+const IMAGE_REF_PREFIX = '#midscene-img:';
+
+/** Script type for storing extracted base64 images */
+const IMAGE_SCRIPT_TYPE = 'midscene-image';
+
+/** Persistent image ID counter map to prevent ID conflicts during append operations */
+const imageIdCounterMap = new Map<string, number>();
+
+/** Result of extracting base64 images from dump data */
+interface ImageExtractionResult {
+  processedDumpString: string;
+  imageScriptTags: string;
+  attributes?: Record<string, string>;
+}
+
+/**
+ * Check if a key-value pair is a base64 image field
+ */
+function isBase64ImageField(key: string, value: unknown): boolean {
+  return (
+    (key === 'screenshot' || key === 'screenshotBase64') &&
+    typeof value === 'string' &&
+    value.startsWith('data:image/')
+  );
+}
+
+/**
+ * Recursively traverse object and process base64 image fields
+ */
+function traverseBase64Images(
+  obj: unknown,
+  onImage: (obj: Record<string, unknown>, key: string, value: string) => void,
+): void {
+  if (typeof obj !== 'object' || obj === null) return;
+  if (Array.isArray(obj)) {
+    obj.forEach((item) => traverseBase64Images(item, onImage));
+    return;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (isBase64ImageField(key, value)) {
+      onImage(obj as Record<string, unknown>, key, value as string);
+    } else {
+      traverseBase64Images(value, onImage);
+    }
+  }
+}
+
+/**
+ * Clear all base64 image data from an object in place
+ */
+export function clearBase64Images(obj: unknown): void {
+  traverseBase64Images(obj, (parent, key) => {
+    parent[key] = '';
+  });
+}
+
+/**
+ * Extract base64 images from dump data and generate script tags.
+ * This reduces JSON parse memory usage by storing images in separate script tags.
+ *
+ * @param dumpData - The dump data string or object with attributes
+ * @param reportPath - Optional report path for counter isolation in append mode
+ * @returns Processed dump string with image references and generated script tags
+ */
+export function extractBase64ToScriptTags(
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
+  reportPath?: string,
+): ImageExtractionResult {
+  let data: Record<string, unknown>;
+  let attributes: Record<string, string> | undefined;
+
+  try {
+    if (typeof dumpData === 'string') {
+      data = JSON.parse(dumpData) as Record<string, unknown>;
+    } else if ('dumpString' in dumpData) {
+      data = JSON.parse(
+        (dumpData as ReportDumpWithAttributes).dumpString,
+      ) as Record<string, unknown>;
+      attributes = (dumpData as ReportDumpWithAttributes).attributes;
+    } else {
+      data = dumpData as Record<string, unknown>;
+    }
+  } catch {
+    // Return original data if parsing fails (non-JSON strings are valid input)
+    const dumpString =
+      typeof dumpData === 'string'
+        ? dumpData
+        : 'dumpString' in dumpData
+          ? (dumpData as ReportDumpWithAttributes).dumpString
+          : JSON.stringify(dumpData);
+    return {
+      processedDumpString: dumpString,
+      imageScriptTags: '',
+      attributes:
+        typeof dumpData === 'object' && 'attributes' in dumpData
+          ? (dumpData as ReportDumpWithAttributes).attributes
+          : undefined,
+    };
+  }
+
+  // Get or initialize image counter for this report path
+  const counterKey = reportPath ?? 'default';
+  let imageCounter = imageIdCounterMap.get(counterKey) ?? 0;
+  const scriptTags: string[] = [];
+
+  traverseBase64Images(data, (parent, key, value) => {
+    const imageId = `img-${imageCounter++}`;
+    scriptTags.push(
+      // biome-ignore lint/style/useTemplate: avoid bundle error
+      '<script type="' +
+        IMAGE_SCRIPT_TYPE +
+        '" data-id="' +
+        imageId +
+        '">\n' +
+        escapeScriptTag(value) +
+        '\n</script>',
+    );
+    parent[key] = IMAGE_REF_PREFIX + imageId;
+  });
+
+  // Update the persistent counter
+  imageIdCounterMap.set(counterKey, imageCounter);
+
+  return {
+    processedDumpString: JSON.stringify(data),
+    imageScriptTags: scriptTags.join('\n'),
+    attributes,
+  };
+}
+
+/**
+ * Sanitize fileName to prevent path traversal attacks.
+ * Removes path separators and special characters.
+ */
+function sanitizeFileName(fileName: string): string {
+  // Remove path separators and parent directory references
+  return fileName
+    .replace(/\.\./g, '') // Remove parent directory references
+    .replace(/[/\\]/g, '_') // Replace path separators with underscores
+    .replace(/^[._]+/, ''); // Remove leading dots and underscores
+}
+
+export function writeDirectoryReport(
+  fileName: string,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
+  appendReport?: boolean,
+): string | null {
+  if (ifInBrowser || ifInWorker) {
+    console.log('will not write directory report in browser');
+    return null;
+  }
+
+  // Sanitize fileName to prevent path traversal
+  const safeFileName = sanitizeFileName(fileName);
+  const reportDir = path.join(getMidsceneRunSubDir('report'), safeFileName);
+  const screenshotsDir = path.join(reportDir, 'screenshots');
+  const indexPath = path.join(reportDir, 'index.html');
+
+  try {
+    // Create directories if they don't exist
+    if (!existsSync(reportDir)) {
+      mkdirSync(reportDir, { recursive: true });
+    }
+    if (!existsSync(screenshotsDir)) {
+      mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Process data and extract screenshots
+    const processedData = extractAndSaveScreenshots(dumpData, screenshotsDir);
+
+    // Generate HTML report with extractImages: false since images are already saved as files
+    reportHTMLContent(
+      processedData,
+      indexPath,
+      appendReport,
+      true,
+      false, // Don't extract images - they're already saved as separate files
+    );
+
+    return indexPath;
+  } catch (error) {
+    // Provide more specific error messages based on error type
+    if (error instanceof SyntaxError) {
+      console.error(
+        'Failed to write directory report due to JSON parsing error:',
+        error,
+      );
+    } else if (error && typeof error === 'object' && 'code' in error) {
+      const fsError = error as NodeJS.ErrnoException;
+      const errorCode = fsError.code || 'UNKNOWN';
+      console.error(
+        'Failed to write directory report due to file system error (%s):',
+        errorCode,
+        fsError,
+      );
+    } else {
+      console.error('Failed to write directory report:', error);
+    }
+    return null;
+  }
+}
+
+function extractAndSaveScreenshots(
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
+  screenshotsDir: string,
+): string {
+  let data: Record<string, unknown>;
+
+  if (typeof dumpData === 'string') {
+    data = JSON.parse(dumpData);
+  } else if ('dumpString' in dumpData) {
+    data = JSON.parse((dumpData as ReportDumpWithAttributes).dumpString);
+  } else {
+    // Cast to Record<string, unknown> for processing - traverseBase64Images
+    // only accesses properties it finds, so the index signature mismatch is safe
+    data = dumpData as Record<string, unknown>;
+  }
+
+  let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
+
+  traverseBase64Images(data, (parent, key, value) => {
+    const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
+    const screenshotPath = path.join(screenshotsDir, screenshotFileName);
+    const parts = value.split(',');
+    const hasValidPrefix =
+      parts.length === 2 &&
+      !!parts[1] &&
+      typeof parts[0] === 'string' &&
+      /^data:image\/[a-zA-Z0-9.+-]+;base64$/.test(parts[0]);
+    if (hasValidPrefix) {
+      writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
+      parent[key] = `./screenshots/${screenshotFileName}`;
+    } else {
+      console.warn(
+        'extractAndSaveScreenshots: encountered invalid image data URI, skipping screenshot for key:',
+        key,
+      );
+      parent[key] = null;
+    }
+  });
+
+  screenshotCounterMap.set(screenshotsDir, screenshotCounter);
+  return JSON.stringify(data);
 }
 
 export function writeDumpReport(
   fileName: string,
-  dumpData: string | ReportDumpWithAttributes,
+  dumpData:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>,
   appendReport?: boolean,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
@@ -222,10 +533,15 @@ export function writeDumpReport(
 export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
-  fileContent: string | ReportDumpWithAttributes;
+  fileContent:
+    | string
+    | ReportDumpWithAttributes
+    | GroupedActionDump
+    | Record<string, unknown>;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
+  useDirectoryReport?: boolean;
 }) {
   if (ifInBrowser || ifInWorker) {
     return '/mock/report.html';
@@ -268,6 +584,9 @@ export function writeLogFile(opts: {
   }
 
   if (opts?.generateReport) {
+    if (opts.useDirectoryReport) {
+      return writeDirectoryReport(fileName, fileContent, opts.appendReport);
+    }
     return writeDumpReport(fileName, fileContent, opts.appendReport);
   }
 

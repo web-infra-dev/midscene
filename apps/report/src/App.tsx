@@ -4,6 +4,7 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
+import type { GroupedActionDump } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -24,6 +25,10 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+import {
+  loadImageMap,
+  restoreImageReferences,
+} from './utils/image-restoration';
 
 let globalRenderCount = 1;
 
@@ -258,6 +263,14 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
 export function App() {
   function getDumpElements(): PlaywrightTasks[] {
+    // Load image map once at the start (images extracted from dump JSON)
+    const imageMap = loadImageMap();
+    const imageCount = Object.keys(imageMap).length;
+    const hasImages = imageCount > 0;
+    if (hasImages) {
+      console.log(`Loaded ${imageCount} images from script tags`);
+    }
+
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
@@ -292,7 +305,7 @@ export function App() {
         });
 
         // Lazy loading: Store raw content and parse only when get() is called
-        let cachedJsonContent: any = null;
+        let cachedJsonContent: GroupedActionDump | null = null;
         let isParsed = false;
 
         reportDump.push({
@@ -301,7 +314,18 @@ export function App() {
               try {
                 console.time('parse_dump');
                 const content = antiEscapeScriptTag(el.textContent || '');
-                cachedJsonContent = JSON.parse(content);
+                cachedJsonContent = JSON.parse(content) as GroupedActionDump;
+
+                // Restore image references from separate script tags
+                if (hasImages) {
+                  console.time('restore_images');
+                  cachedJsonContent = restoreImageReferences(
+                    cachedJsonContent,
+                    imageMap,
+                  );
+                  console.timeEnd('restore_images');
+                }
+
                 console.timeEnd('parse_dump');
                 cachedJsonContent.attributes = attributes;
                 isParsed = true;
@@ -309,14 +333,15 @@ export function App() {
                 console.error(el);
                 console.error('failed to parse json content', e);
                 // Return a fallback object to prevent crashes
+                // Type assertion needed: error fallback doesn't match GroupedActionDump
                 cachedJsonContent = {
                   attributes,
                   error: 'Failed to parse JSON content',
-                };
+                } as unknown as GroupedActionDump;
                 isParsed = true;
               }
             }
-            return cachedJsonContent;
+            return cachedJsonContent!;
           },
           attributes: attributes as PlaywrightTaskAttributes,
         });
