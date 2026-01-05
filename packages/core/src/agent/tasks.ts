@@ -5,8 +5,8 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
-  DeviceAction,
   DeepThinkOption,
+  DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
   ExecutionTaskPlanningApply,

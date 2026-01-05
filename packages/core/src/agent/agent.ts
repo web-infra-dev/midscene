@@ -6,6 +6,7 @@ import {
   type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
+  type DeepThinkOption,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -13,7 +14,6 @@ import {
   type ExecutionTaskLog,
   type ExecutionTaskPlanning,
   type GroupedActionDump,
-  type DeepThinkOption,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -860,8 +860,7 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
-    const deepThink =
-      opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
+    const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
     const replanningCycleLimit = this.resolveReplanningCycleLimit(
       modelConfigForPlanning,
     );
