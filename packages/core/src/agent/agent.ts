@@ -554,6 +554,7 @@ export class Agent<
       screenshotRegistry: this.screenshotRegistry,
     });
     debug('writeOutActionDumps', this.reportFile);
+
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
@@ -1329,15 +1330,25 @@ export class Agent<
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
     const now = Date.now();
-    // 2. build recorder
+
+    // 2. Register screenshot to registry and get reference (if registry available)
+    let screenshot: string;
+    if (this.screenshotRegistry) {
+      const id = this.screenshotRegistry.register(base64);
+      screenshot = this.screenshotRegistry.buildReference(id);
+    } else {
+      screenshot = base64;
+    }
+
+    // 3. build recorder with reference (not raw base64)
     const recorder: ExecutionRecorderItem[] = [
       {
         type: 'screenshot',
         ts: now,
-        screenshot: base64,
+        screenshot,
       },
     ];
-    // 3. build ExecutionTaskLog
+    // 4. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       type: 'Log',
       subType: 'Screenshot',
@@ -1353,14 +1364,14 @@ export class Agent<
       },
       executor: async () => {},
     };
-    // 4. build ExecutionDump
+    // 5. build ExecutionDump
     const executionDump: ExecutionDump = {
       logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
     };
-    // 5. append to execution dump
+    // 6. append to execution dump
     this.appendExecutionDump(executionDump);
 
     // Call all registered dump update listeners
