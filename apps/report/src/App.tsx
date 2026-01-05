@@ -341,7 +341,13 @@ export function App() {
                 isParsed = true;
               }
             }
-            return cachedJsonContent!;
+            if (cachedJsonContent === null) {
+              console.error(
+                'Invariant violation: cachedJsonContent is null after parsing.',
+              );
+              throw new Error('Failed to load dump content from script tag.');
+            }
+            return cachedJsonContent;
           },
           attributes: attributes as PlaywrightTaskAttributes,
         });
