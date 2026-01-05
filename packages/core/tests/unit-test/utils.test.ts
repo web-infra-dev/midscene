@@ -25,6 +25,8 @@ import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 // @ts-ignore no types in es folder
+import { ScreenshotRegistry } from '../../dist/es/screenshot-registry';
+// @ts-ignore no types in es folder
 import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import { ifPlanLocateParamIsBbox } from '../../src/agent/utils';
 import {
@@ -1609,5 +1611,106 @@ describe('ifPlanLocateParamIsBbox', () => {
       bbox: null as any,
     };
     expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+});
+
+describe('Screenshot Registry integration with report generation', () => {
+  it('should generate report with image references when using registry', () => {
+    const registry = new ScreenshotRegistry('test-report-integration');
+
+    // Register some screenshots
+    const id1 = registry.register('data:image/png;base64,firstImage');
+    const id2 = registry.register('data:image/png;base64,secondImage');
+
+    // Build references
+    const ref1 = registry.buildReference(id1);
+    const ref2 = registry.buildReference(id2);
+
+    // Verify references have correct format
+    expect(ref1).toBe('#midscene-img:test-report-integration-img-0');
+    expect(ref2).toBe('#midscene-img:test-report-integration-img-1');
+
+    // Generate script tags
+    const scriptTags = registry.generateScriptTags();
+
+    // Verify script tags contain both images
+    expect(scriptTags).toContain('type="midscene-image"');
+    expect(scriptTags).toContain('data-id="test-report-integration-img-0"');
+    expect(scriptTags).toContain('data-id="test-report-integration-img-1"');
+    expect(scriptTags).toContain('data:image/png;base64,firstImage');
+    expect(scriptTags).toContain('data:image/png;base64,secondImage');
+
+    registry.cleanup();
+  });
+
+  it('should write report with registry and produce valid HTML', () => {
+    const registry = new ScreenshotRegistry('html-report-test');
+
+    // Register a screenshot
+    registry.register('data:image/png;base64,testImage');
+
+    // Create dump data with image reference
+    const ref = registry.buildReference('html-report-test-img-0');
+    const dumpData = JSON.stringify({
+      groupName: 'html-report-test',
+      executions: [
+        {
+          tasks: [
+            {
+              recorder: [{ screenshot: ref }],
+            },
+          ],
+        },
+      ],
+    });
+
+    // Write report with registry
+    const reportPath = writeDumpReport(
+      'registry-integration-test',
+      dumpData,
+      false,
+      registry,
+    );
+
+    expect(reportPath).toBeTruthy();
+    expect(existsSync(reportPath!)).toBe(true);
+
+    // Read and verify report content
+    const htmlContent = readFileSync(reportPath!, 'utf-8');
+
+    // Should contain image script tags
+    expect(htmlContent).toContain('type="midscene-image"');
+    expect(htmlContent).toContain('data-id="html-report-test-img-0"');
+
+    // Should contain dump script tag with references
+    expect(htmlContent).toContain('type="midscene_web_dump"');
+    expect(htmlContent).toContain(ref);
+
+    registry.cleanup();
+  });
+
+  it('should handle empty registry gracefully', () => {
+    const registry = new ScreenshotRegistry('empty-registry-test');
+
+    // Empty registry should produce empty script tags
+    const scriptTags = registry.generateScriptTags();
+    expect(scriptTags).toBe('');
+
+    // Should still write report without errors
+    const dumpData = JSON.stringify({
+      groupName: 'empty-test',
+      executions: [],
+    });
+    const reportPath = writeDumpReport(
+      'empty-registry-test',
+      dumpData,
+      false,
+      registry,
+    );
+
+    expect(reportPath).toBeTruthy();
+    expect(existsSync(reportPath!)).toBe(true);
+
+    registry.cleanup();
   });
 });
