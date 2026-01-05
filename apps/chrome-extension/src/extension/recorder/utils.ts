@@ -1,5 +1,4 @@
 import {
-  AIActionType,
   type AIArgs,
   callAIWithObjectResponse,
   callAIWithStringResponse,
@@ -321,7 +320,7 @@ export const generateRecordTitle = async (
       const response = await callAIWithObjectResponse<{
         title: string;
         description: string;
-      }>([prompt[0], prompt[1]], AIActionType.EXTRACT_DATA, modelConfig);
+      }>([prompt[0], prompt[1]], modelConfig);
       if (response?.content) {
         return {
           title: response.content.title as string,
@@ -624,11 +623,7 @@ const generateAIMindmap = async (
       },
     ];
 
-    const response = await callAIWithStringResponse(
-      prompt,
-      AIActionType.EXTRACT_DATA,
-      modelConfig,
-    );
+    const response = await callAIWithStringResponse(prompt, modelConfig);
 
     if (response?.content && typeof response.content === 'string') {
       return response.content as string;

@@ -1,6 +1,6 @@
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { AIActionType, callAIWithStringResponse } from '../../../src/ai-model';
+import { callAIWithStringResponse } from '../../../src/ai-model';
 import {
   type ChromeRecordedEvent,
   type PlaywrightGenerationOptions,
@@ -18,9 +18,6 @@ import {
 // Mock the callAi function
 vi.mock('../../../src/ai-model', () => ({
   callAIWithStringResponse: vi.fn(),
-  AIActionType: {
-    EXTRACT_DATA: 'EXTRACT_DATA',
-  },
 }));
 
 const mockCallAiWithStringResponse = vi.mocked(callAIWithStringResponse);
@@ -300,7 +297,6 @@ test('Generated test', async ({ aiInput, aiAssert, aiTap, page }) => {
             content: expect.any(Array),
           }),
         ]),
-        AIActionType.TEXT,
         mockedModelConfig,
       );
     });

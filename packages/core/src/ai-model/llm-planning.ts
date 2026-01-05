@@ -12,7 +12,6 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
-  AIActionType,
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
@@ -133,7 +132,6 @@ export async function plan(
     reasoning_content,
   } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
     msgs,
-    AIActionType.PLAN,
     modelConfig,
     {
       deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
