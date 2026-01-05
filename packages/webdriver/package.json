@@ -1,6 +1,6 @@
 {
   "name": "@midscene/webdriver",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "WebDriver protocol implementation for Midscene automation",
   "main": "dist/lib/index.js",
   "module": "dist/es/index.mjs",
