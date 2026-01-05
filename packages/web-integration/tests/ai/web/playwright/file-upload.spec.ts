@@ -57,6 +57,6 @@ test.describe('file upload functionality', () => {
     // Attempt to upload non-existent file
     await expect(
       aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
-    ).rejects.toThrow('File not found');
+    ).rejects.toThrow(/File not found/);
   });
 });
