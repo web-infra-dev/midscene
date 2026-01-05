@@ -1,3 +1,5 @@
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
@@ -691,9 +693,6 @@ export class Page<
     files: string | string[],
     clickAction: () => Promise<void>,
   ): Promise<void> {
-    const { resolve } = await import('node:path');
-    const { existsSync } = await import('node:fs');
-
     // Normalize file paths
     const normalizedFiles = (Array.isArray(files) ? files : [files]).map(
       (file) => {
