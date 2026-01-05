@@ -1,34 +1,24 @@
 # Changelog
 
-## v1.1 - Deep thinking and extensible MCP SDK
+## v1.1 - `aiAct` deep thinking and extensible MCP SDK
 
-v1.1 delivers breakthroughs in model planning capabilities and MCP extensibility, making automation more stable in complex scenarios while providing more flexible solutions for enterprise deployments.
+v1.1 optimizes model planning capabilities and MCP extensibility, making automation more stable in complex scenarios while providing more flexible solutions for enterprise MCP service deployments.
 
-### Model deep thinking capability (deepThink)
+### `aiAct` can enable deep thinking (deepThink)
 
-#### Deep thinking enabled for Qwen3-vl and Doubao-vision
-- **Higher accuracy**: The model performs deeper reasoning during the planning phase, especially suitable for complex forms, multi-step workflows, pages with element occlusion or dense similar controls
-- **Flexible control**: Can be enabled in single calls or global configuration, balancing speed and accuracy as needed
-- **Use cases**: Critical business processes, test cases with high regression failure rates, complex UI interactions
+When deep thinking is enabled in `aiAct`, the model will interpret intent more thoroughly and optimize its planning results. This is suited for complex forms, multi-step flows, and similar scenarios. It improves accuracy but increases planning latency.
+
+Currently supported: Qwen3-vl on Alibaba Cloud and Doubao-vision on Volcano Engine. See [Model strategy](./model-strategy) for details.
 
 Example usage:
 
 ```typescript
-// Method 1: Enable in a single call
-await agent.aiAct('Submit complex order form', { deepThink: true });
-
-// Method 2: Enable globally in Agent configuration
-const agent = await createAgent({
-  modelOptions: { deepThink: true }
-});
+await agent.aiAct('If the UI shows an "Add shipping address" button, expand the existing "Shipping address" list and select the last item', { deepThink: true });
 ```
 
-### MCP extension and self-hosting capabilities
+### MCP extension and SDK exposure
 
-#### Launcher support and SDK exposure
-- **Multi-platform MCP services**: Added launcher support for Android, iOS, and Web MCP, enabling you to start and manage MCP services on your own servers
-- **Enterprise deployment**: Supports private device pool management, intranet deployment, and integrating Midscene capabilities as microservices into existing platforms
-- **Flexible extension**: Exposes SDK interfaces for easy integration with custom toolchains and business logic
+Developers can use the MCP SDK exposed by Midscene to flexibly deploy a public MCP service. This capability applies to Agent instances on any platform.
 
 Typical application scenarios:
 - Run MCP in enterprise intranet to control private device pools
@@ -43,10 +33,10 @@ See documentation: [MCP Services](./mcp)
 
 ### CLI and configuration enhancements
 - **File parameter support**: Fixed CLI issue where `--files` parameter wasn't properly handled when `--config` was specified; now they can be flexibly combined
-- **Dynamic configuration**: Support reading replanning cycle limit from environment variables for easy adjustment across different environments
+- **Dynamic configuration**: Fixed Playground not reading the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable properly
 
-### Cross-platform compatibility improvements
-- Optimized `getWindowSize` method to automatically fall back to legacy endpoint when newer API is unavailable, improving cross-browser compatibility
+### iOS Agent compatibility improvements
+- Optimized `getWindowSize` method to automatically fall back to legacy endpoint when newer API is unavailable, improving compatibility with WebDriverAgent versions
 
 ### Report and Playground improvements
 - Fixed issue where report wasn't properly initialized before accessing screen properties

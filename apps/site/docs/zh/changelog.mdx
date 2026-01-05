@@ -1,34 +1,24 @@
 # 更新日志
  
-## v1.1 - 深度思考与可扩展的 MCP SDK
+## v1.1 - `aiAct`深度思考与可扩展的 MCP SDK
 
-v1.1 版本在模型规划能力与 MCP 扩展性上实现突破，让复杂场景的自动化更稳定，同时为企业级部署提供更灵活的方案。
+v1.1 版本在模型规划能力与 MCP 扩展性上实现优化，让复杂场景的自动化更稳定，同时为企业级 MCP 服务部署提供更灵活的方案。
 
-### 模型深度思考能力（deepThink）
+### `aiAct` 可开启深度思考能力（deepThink）
 
-#### 为 Qwen3-vl 与 Doubao-vision 开放深度思考
-- **更高准确率**: 模型在规划阶段会执行更深层次的推理，特别适用于复杂表单、多步骤流程、元素遮挡或相似控件密集的页面
-- **灵活控制**: 可在单次调用或全局配置中启用，按需平衡速度与准确性
-- **适用场景**: 关键业务流程、回归测试失败率高的用例、复杂 UI 交互
+在 `aiAct` 时开启深度思考能力后，模型会更加深入地理解用户意图、优化规划结果，适用于复杂表单、多步骤流程等场景。它会带来更高的准确率，但也会增加规划耗时。
+
+目前已支持阿里云的 Qwen3-vl 与火山引擎的 Doubao-vision 模型，具体请参考 [模型策略](./model-strategy)。
 
 示例用法：
 
 ```typescript
-// 方式 1: 在单次调用中开启
-await agent.aiAct('提交复杂订单表单', { deepThink: true });
-
-// 方式 2: 在 Agent 配置中统一开启
-const agent = await createAgent({
-  modelOptions: { deepThink: true }
-});
+await agent.aiAct('如果界面上展示“添加收货地址”按钮，那么展开已有的“收货地址”列表，并选择最后一项', { deepThink: true });
 ```
 
-### MCP 扩展与自托管能力
+### MCP 扩展与 SDK 开放
 
-#### Launcher 支持与 SDK 开放
-- **多平台 MCP 服务**: 为 Android、iOS 与 Web MCP 新增 launcher 支持，可在自有服务器上启动和管理 MCP 服务
-- **企业级部署**: 支持私有设备池管理、内网环境部署，把 Midscene 能力以微服务形式对接到现有平台
-- **灵活扩展**: 开放 SDK 接口，方便集成自定义工具链与业务逻辑
+开发者可以使用 Midscene 暴露的 MCP SDK 灵活部署自己的公共 MCP 服务。此能力适用于任意平台的 Agent 实例。
 
 典型应用场景：
 - 在企业内网中运行 MCP 控制私有设备池
@@ -43,10 +33,10 @@ const agent = await createAgent({
 
 ### CLI 与配置增强
 - **文件参数支持**: 修复 CLI 在同时指定 `--config` 时未正确处理 `--files` 参数的问题，现在可灵活组合使用
-- **动态配置**: 支持从环境变量读取 replanning cycle limit，方便在不同环境中调整重试策略
+- **动态配置**: 修复 Playground 中环境变量 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 未正确读取的问题
 
-### 跨平台兼容性提升
-- 优化 `getWindowSize` 方法，在新版本 API 不可用时自动回退到 legacy endpoint，提高跨浏览器兼容性
+### iOS Agent兼容性提升
+- 优化 `getWindowSize` 方法，在新版本 API 不可用时自动回退到 legacy endpoint，提升对 WebDriverAgent 版本的兼容性
 
 ### 报告与 Playground 改进
 - 修复报告在访问屏幕属性前未正确初始化的问题
