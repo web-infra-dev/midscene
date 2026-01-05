@@ -394,7 +394,7 @@ function extractAndSaveScreenshots(
       parts.length === 2 &&
       !!parts[1] &&
       typeof parts[0] === 'string' &&
-      /^data:image\/[a-zA-Z0-9.+-]+;base64$/.test(parts[0]);
+      /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64$/.test(parts[0]);
 
     if (isValidBase64DataUri) {
       writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
