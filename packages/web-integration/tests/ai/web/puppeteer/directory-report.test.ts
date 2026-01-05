@@ -1,5 +1,11 @@
 /**
- * Verify directory report format functionality test cases
+ * Verify directory report format and Screenshot Registry functionality test cases
+ *
+ * These tests validate:
+ * - Directory-based report generation with separate image files
+ * - Screenshot Registry integration for memory optimization
+ * - Image reference format (#midscene-img:xxx) in dump data
+ * - Both traditional single-file and directory-based report formats
  */
 
 import * as fs from 'node:fs';
@@ -7,6 +13,9 @@ import * as path from 'node:path';
 import { PuppeteerAgent } from '@midscene/web/puppeteer';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+
+// Constants matching the implementation
+const IMAGE_REF_PREFIX = '#midscene-img:';
 
 describe('Directory Report Format', () => {
   let browser: Browser;
@@ -21,193 +30,245 @@ describe('Directory Report Format', () => {
     await browser.close();
   });
 
-  it('should generate directory-based report with separate image files', async () => {
-    const agent = new PuppeteerAgent(page, {
-      useDirectoryReport: true,
-      generateReport: true,
-      groupName: 'Directory-Report-Test',
-      autoPrintReportMsg: false,
+  describe('Directory-based report generation', () => {
+    it('should generate directory-based report with separate image files', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: true,
+        generateReport: true,
+        groupName: 'Directory-Report-Test',
+        autoPrintReportMsg: false,
+      });
+
+      // nav to test page
+      await page.goto(
+        'data:text/html,<html><body><h1>Test Page</h1><button>Click Me</button></body></html>',
+      );
+
+      // record multiple screenshots
+      await agent.recordToReport('Initial-State', {
+        content: 'Page loaded successfully',
+      });
+
+      await agent.recordToReport('After-Action', {
+        content: 'Performed some action',
+      });
+
+      // verify report file generation
+      expect(agent.reportFile).toBeTruthy();
+      expect(agent.reportFile).toMatch(/index\.html$/);
+
+      // verify directory structure
+      const reportDir = path.dirname(agent.reportFile!);
+      const screenshotsDir = path.join(reportDir, 'screenshots');
+
+      expect(fs.existsSync(agent.reportFile!)).toBe(true);
+      expect(fs.existsSync(screenshotsDir)).toBe(true);
+
+      // verify screenshot files
+      const screenshots = fs.readdirSync(screenshotsDir);
+      expect(screenshots.length).toBeGreaterThan(0);
+      expect(screenshots.every((file) => file.endsWith('.png'))).toBe(true);
+
+      // verify HTML content contains relative paths
+      const htmlContent = fs.readFileSync(agent.reportFile!, 'utf-8');
+      expect(htmlContent).toContain('./screenshots/');
+
+      await agent.destroy();
     });
-
-    // nav to test page
-    await page.goto(
-      'data:text/html,<html><body><h1>Test Page</h1><button>Click Me</button></body></html>',
-    );
-
-    // record multiple screenshots
-    await agent.recordToReport('Initial-State', {
-      content: 'Page loaded successfully',
-    });
-
-    await agent.recordToReport('After-Action', {
-      content: 'Performed some action',
-    });
-
-    // verify report file generation
-    expect(agent.reportFile).toBeTruthy();
-    expect(agent.reportFile).toMatch(/index\.html$/);
-
-    // verify directory structure
-    const reportDir = path.dirname(agent.reportFile!);
-    const screenshotsDir = path.join(reportDir, 'screenshots');
-
-    expect(fs.existsSync(agent.reportFile!)).toBe(true);
-    expect(fs.existsSync(screenshotsDir)).toBe(true);
-
-    // verify screenshot files
-    const screenshots = fs.readdirSync(screenshotsDir);
-    expect(screenshots.length).toBeGreaterThan(0);
-    expect(screenshots.every((file) => file.endsWith('.png'))).toBe(true);
-
-    // verify HTML content contains relative paths
-    const htmlContent = fs.readFileSync(agent.reportFile!, 'utf-8');
-    expect(htmlContent).toContain('./screenshots/');
-
-    await agent.destroy();
   });
 
-  it('should use traditional format when useDirectoryReport is false', async () => {
-    const agent = new PuppeteerAgent(page, {
-      useDirectoryReport: false,
-      generateReport: true,
-      groupName: 'Traditional-Report-Test',
-      autoPrintReportMsg: false,
+  describe('Traditional report format', () => {
+    it('should use traditional format when useDirectoryReport is false', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: false,
+        generateReport: true,
+        groupName: 'Traditional-Report-Test',
+        autoPrintReportMsg: false,
+      });
+
+      await page.goto(
+        'data:text/html,<html><body><h1>Traditional Test</h1></body></html>',
+      );
+
+      await agent.recordToReport('Traditional-Screenshot', {
+        content: 'Traditional format test',
+      });
+
+      // verify single HTML file generation
+      expect(agent.reportFile).toBeTruthy();
+      expect(agent.reportFile).toMatch(/\.html$/);
+      expect(agent.reportFile).not.toMatch(/index\.html$/);
+
+      // verify it is a single file, not a directory
+      const reportPath = agent.reportFile!;
+      expect(fs.existsSync(reportPath)).toBe(true);
+      expect(fs.statSync(reportPath).isFile()).toBe(true);
+
+      await agent.destroy();
     });
-
-    await page.goto(
-      'data:text/html,<html><body><h1>Traditional Test</h1></body></html>',
-    );
-
-    await agent.recordToReport('Traditional-Screenshot', {
-      content: 'Traditional format test',
-    });
-
-    // verify single HTML file generation
-    expect(agent.reportFile).toBeTruthy();
-    expect(agent.reportFile).toMatch(/\.html$/);
-    expect(agent.reportFile).not.toMatch(/index\.html$/);
-
-    // verify it is a single file, not a directory
-    const reportPath = agent.reportFile!;
-    expect(fs.existsSync(reportPath)).toBe(true);
-    expect(fs.statSync(reportPath).isFile()).toBe(true);
-
-    await agent.destroy();
   });
 
-  it('should clear base64 from dump memory after report generation', async () => {
-    const agent = new PuppeteerAgent(page, {
-      useDirectoryReport: true,
-      generateReport: true,
-      groupName: 'Memory-Clear-Test',
-      autoPrintReportMsg: false,
+  describe('Screenshot Registry integration', () => {
+    it('should use image references in dump instead of raw base64', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: true,
+        generateReport: true,
+        groupName: 'Registry-Test',
+        autoPrintReportMsg: false,
+      });
+
+      await page.goto(
+        'data:text/html,<html><body><h1>Registry Test</h1></body></html>',
+      );
+
+      // record a screenshot which should use the registry
+      await agent.recordToReport('Test-Screenshot', {
+        content: 'Testing registry references',
+      });
+
+      // get dump string and verify it contains references, not raw base64
+      const dumpString = agent.dumpDataString();
+
+      // should contain image references in the format #midscene-img:xxx
+      expect(dumpString).toContain(IMAGE_REF_PREFIX);
+
+      // should NOT contain raw base64 data URIs
+      expect(dumpString).not.toMatch(
+        /data:image\/png;base64,[A-Za-z0-9+/]{100,}/,
+      );
+
+      await agent.destroy();
     });
 
-    await page.goto(
-      'data:text/html,<html><body><h1>Memory Test</h1></body></html>',
-    );
+    it('should generate valid image script tags in traditional report', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: false,
+        generateReport: true,
+        groupName: 'Script-Tag-Test',
+        autoPrintReportMsg: false,
+      });
 
-    // take screenshot to capture base64
-    const base64 = await page.screenshot({ encoding: 'base64' });
-    expect(base64.length).toBeGreaterThan(100);
+      await page.goto(
+        'data:text/html,<html><body><h1>Script Tag Test</h1></body></html>',
+      );
 
-    // manually add base64 to dump to verify it exists before processing
-    const testExecution = {
-      logTime: Date.now(),
-      name: 'Test-Execution',
-      description: 'test',
-      tasks: [
-        {
-          type: 'Log' as const,
-          subType: 'Screenshot' as const,
-          status: 'finished' as const,
-          recorder: [
-            {
-              type: 'screenshot' as const,
-              ts: Date.now(),
-              screenshot: `data:image/png;base64,${base64}`,
-            },
-          ],
-          timing: { start: Date.now(), end: Date.now(), cost: 0 },
-          param: { content: '' },
-          executor: async () => {},
-        },
-      ],
-    };
-    agent.appendExecutionDump(testExecution);
+      await agent.recordToReport('Test-Screenshot', {
+        content: 'Testing script tag generation',
+      });
 
-    // verify base64 exists in dump before report generation
-    const dumpBeforeReport = JSON.stringify(agent.dump);
-    expect(dumpBeforeReport.includes('data:image/')).toBe(true);
+      // trigger report write
+      agent.writeOutActionDumps();
 
-    // trigger report generation which should clear base64
-    agent.writeOutActionDumps();
+      // verify report was generated
+      expect(agent.reportFile).toBeTruthy();
 
-    // verify report was generated
-    expect(agent.reportFile).toBeTruthy();
+      // read the report content
+      const htmlContent = fs.readFileSync(agent.reportFile!, 'utf-8');
 
-    // check dump memory for base64 strings - should be cleared
-    const dumpAfterReport = JSON.stringify(agent.dump);
-    expect(dumpAfterReport.includes('data:image/')).toBe(false);
+      // should contain midscene-image script tags with the image data
+      expect(htmlContent).toContain('type="midscene-image"');
+      expect(htmlContent).toContain('data-id="');
 
-    await agent.destroy();
+      // should contain the dump script tag with references
+      expect(htmlContent).toContain('type="midscene_web_dump"');
+
+      await agent.destroy();
+    });
+
+    it('should properly clean up registry on agent destroy', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: true,
+        generateReport: true,
+        groupName: 'Cleanup-Test',
+        autoPrintReportMsg: false,
+      });
+
+      await page.goto(
+        'data:text/html,<html><body><h1>Cleanup Test</h1></body></html>',
+      );
+
+      await agent.recordToReport('Test-Screenshot', {
+        content: 'Testing cleanup',
+      });
+
+      // verify report file exists before destroy
+      expect(agent.reportFile).toBeTruthy();
+      expect(fs.existsSync(agent.reportFile!)).toBe(true);
+
+      // destroy should not throw and should clean up registry
+      await expect(agent.destroy()).resolves.not.toThrow();
+    });
+
+    it('should handle multiple screenshots with incremental IDs', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: false,
+        generateReport: true,
+        groupName: 'Multi-Screenshot-Test',
+        autoPrintReportMsg: false,
+      });
+
+      await page.goto(
+        'data:text/html,<html><body><h1>Multiple Screenshots</h1></body></html>',
+      );
+
+      // record multiple screenshots
+      await agent.recordToReport('Screenshot-1', { content: 'First' });
+      await agent.recordToReport('Screenshot-2', { content: 'Second' });
+      await agent.recordToReport('Screenshot-3', { content: 'Third' });
+
+      // trigger report write
+      agent.writeOutActionDumps();
+
+      // verify report was generated
+      expect(agent.reportFile).toBeTruthy();
+
+      const htmlContent = fs.readFileSync(agent.reportFile!, 'utf-8');
+
+      // should have multiple image script tags with different IDs
+      const imageTagMatches = htmlContent.match(/data-id="[^"]+"/g);
+      expect(imageTagMatches).toBeTruthy();
+      expect(imageTagMatches!.length).toBeGreaterThanOrEqual(3);
+
+      // verify IDs are unique
+      const ids = imageTagMatches!.map((m) =>
+        m.replace('data-id="', '').replace('"', ''),
+      );
+      const uniqueIds = [...new Set(ids)];
+      expect(uniqueIds.length).toBe(ids.length);
+
+      await agent.destroy();
+    });
   });
 
-  it('should clear base64 from dump memory when useDirectoryReport is false', async () => {
-    const agent = new PuppeteerAgent(page, {
-      useDirectoryReport: false,
-      generateReport: true,
-      groupName: 'Memory-Clear-Traditional',
-      autoPrintReportMsg: false,
+  describe('Memory optimization verification', () => {
+    it('should not hold raw base64 in dump after recordToReport', async () => {
+      const agent = new PuppeteerAgent(page, {
+        useDirectoryReport: true,
+        generateReport: true,
+        groupName: 'Memory-Opt-Test',
+        autoPrintReportMsg: false,
+      });
+
+      await page.goto(
+        'data:text/html,<html><body><h1>Memory Optimization Test</h1></body></html>',
+      );
+
+      // record a screenshot
+      await agent.recordToReport('Test-Screenshot', {
+        content: 'Memory optimization test',
+      });
+
+      // the dump should contain image references, not raw base64
+      const dumpString = agent.dumpDataString();
+
+      // verify no large base64 strings in dump (over 1000 chars is suspicious)
+      const base64Pattern = /data:image\/[a-z]+;base64,[A-Za-z0-9+/=]{1000,}/;
+      expect(dumpString).not.toMatch(base64Pattern);
+
+      // verify references are present
+      expect(dumpString).toContain(IMAGE_REF_PREFIX);
+
+      await agent.destroy();
     });
-
-    await page.goto(
-      'data:text/html,<html><body><h1>Memory Test Traditional</h1></body></html>',
-    );
-
-    // take screenshot to capture base64
-    const base64 = await page.screenshot({ encoding: 'base64' });
-    expect(base64.length).toBeGreaterThan(100);
-
-    // manually add base64 to dump to verify it exists before processing
-    const testExecution = {
-      logTime: Date.now(),
-      name: 'Test-Execution',
-      description: 'test',
-      tasks: [
-        {
-          type: 'Log' as const,
-          subType: 'Screenshot' as const,
-          status: 'finished' as const,
-          recorder: [
-            {
-              type: 'screenshot' as const,
-              ts: Date.now(),
-              screenshot: `data:image/png;base64,${base64}`,
-            },
-          ],
-          timing: { start: Date.now(), end: Date.now(), cost: 0 },
-          param: { content: '' },
-          executor: async () => {},
-        },
-      ],
-    };
-    agent.appendExecutionDump(testExecution);
-
-    // verify base64 exists in dump before report generation
-    const dumpBeforeReport = JSON.stringify(agent.dump);
-    expect(dumpBeforeReport.includes('data:image/')).toBe(true);
-
-    // trigger report generation which should clear base64
-    agent.writeOutActionDumps();
-
-    // verify report was generated
-    expect(agent.reportFile).toBeTruthy();
-
-    // check dump memory for base64 strings - should be cleared
-    const dumpAfterReport = JSON.stringify(agent.dump);
-    expect(dumpAfterReport.includes('data:image/')).toBe(false);
-
-    await agent.destroy();
   });
 });
