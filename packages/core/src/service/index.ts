@@ -5,7 +5,7 @@ import {
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
-import { AIActionType, type AIArgs, expandSearchArea } from '@/common';
+import { type AIArgs, expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -343,11 +343,7 @@ export default class Service {
     const callAIFn = this
       .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
 
-    const res = await callAIFn(
-      msgs,
-      AIActionType.DESCRIBE_ELEMENT,
-      modelConfig,
-    );
+    const res = await callAIFn(msgs, modelConfig);
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);

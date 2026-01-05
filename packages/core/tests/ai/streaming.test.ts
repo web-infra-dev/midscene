@@ -1,4 +1,3 @@
-import { AIActionType } from '@/ai-model';
 import { callAI } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import type { CodeGenerationChunk } from '@/types';
@@ -41,7 +40,6 @@ describe(
               'Explain the concept of artificial intelligence in 3-4 sentences.',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -115,7 +113,6 @@ describe(
             ],
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -158,7 +155,6 @@ describe(
             content: 'What is 15 multiplied by 8? Show your thinking process.',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -191,7 +187,6 @@ describe(
             content: 'Count from 1 to 10, with each number on a new line.',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -228,7 +223,6 @@ describe(
             content: 'Say "Hi"',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -263,7 +257,6 @@ describe(
             content: 'Write a brief paragraph about the weather.',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -303,7 +296,6 @@ describe(
             content: 'What is programming?',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
         {
           stream: true,
@@ -316,38 +308,6 @@ describe(
       expect(result.content).toBeDefined();
       expect(result.content.length).toBeGreaterThan(0);
       expect(result.usage).toBeDefined();
-    });
-
-    it('should handle various AIActionType values in streaming mode', async () => {
-      const actionTypes = [
-        AIActionType.EXTRACT_DATA,
-        AIActionType.DESCRIBE_ELEMENT,
-      ];
-
-      for (const actionType of actionTypes) {
-        const chunks: CodeGenerationChunk[] = [];
-
-        const result = await callAI(
-          [
-            {
-              role: 'user',
-              content: `Test message for action type ${actionType}`,
-            },
-          ],
-          actionType,
-          defaultModelConfig,
-          {
-            stream: true,
-            onChunk: (chunk: CodeGenerationChunk) => {
-              chunks.push(chunk);
-            },
-          },
-        );
-
-        expect(result.isStreamed).toBe(true);
-        expect(chunks.length).toBeGreaterThan(0);
-        expect(result.content).toBeDefined();
-      }
     });
   },
 );

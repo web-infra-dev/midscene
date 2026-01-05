@@ -21,13 +21,11 @@ import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import type { AIActionType, AIArgs } from '../../common';
+import type { AIArgs } from '../../common';
 
 async function createChatClient({
-  AIActionTypeValue,
   modelConfig,
 }: {
-  AIActionTypeValue: AIActionType;
   modelConfig: IModelConfig;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
@@ -204,7 +202,6 @@ async function createChatClient({
 
 export async function callAI(
   messages: ChatCompletionMessageParam[],
-  AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
   options?: {
     stream?: boolean;
@@ -219,7 +216,6 @@ export async function callAI(
 }> {
   const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
     await createChatClient({
-      AIActionTypeValue,
       modelConfig,
     });
 
@@ -425,7 +421,6 @@ export async function callAI(
 
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
-  AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
   options?: {
     deepThink?: DeepThinkOption;
@@ -436,7 +431,7 @@ export async function callAIWithObjectResponse<T>(
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }> {
-  const response = await callAI(messages, AIActionTypeValue, modelConfig, {
+  const response = await callAI(messages, modelConfig, {
     deepThink: options?.deepThink,
   });
   assert(response, 'empty response');
@@ -456,10 +451,9 @@ export async function callAIWithObjectResponse<T>(
 
 export async function callAIWithStringResponse(
   msgs: AIArgs,
-  AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, AIActionTypeValue, modelConfig);
+  const { content, usage } = await callAI(msgs, modelConfig);
   return { content, usage };
 }
 

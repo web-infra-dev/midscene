@@ -5,7 +5,6 @@ import type {
 import { YAML_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import {
-  AIActionType,
   type ChatCompletionMessageParam,
   callAI,
   callAIWithStringResponse,
@@ -342,11 +341,7 @@ Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdow
       });
     }
 
-    const response = await callAIWithStringResponse(
-      prompt,
-      AIActionType.TEXT,
-      modelConfig,
-    );
+    const response = await callAIWithStringResponse(prompt, modelConfig);
 
     if (response?.content && typeof response.content === 'string') {
       return response.content;
@@ -433,17 +428,13 @@ Important: Return ONLY the raw YAML content. Do NOT wrap the response in markdow
 
     if (options.stream && options.onChunk) {
       // Use streaming
-      return await callAI(prompt, AIActionType.TEXT, modelConfig, {
+      return await callAI(prompt, modelConfig, {
         stream: true,
         onChunk: options.onChunk,
       });
     } else {
       // Fallback to non-streaming
-      const response = await callAIWithStringResponse(
-        prompt,
-        AIActionType.TEXT,
-        modelConfig,
-      );
+      const response = await callAIWithStringResponse(prompt, modelConfig);
 
       if (response?.content && typeof response.content === 'string') {
         return {

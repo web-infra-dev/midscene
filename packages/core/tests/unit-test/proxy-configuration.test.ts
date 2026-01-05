@@ -1,4 +1,3 @@
-import { AIActionType } from '@/common';
 import type { IModelConfig } from '@midscene/shared/env';
 /**
  * Proxy Configuration Tests
@@ -67,7 +66,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // Verify ProxyAgent was called with correct URI
       expect(mockProxyAgent).toHaveBeenCalledWith({
@@ -90,7 +89,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // Verify ProxyAgent was called with authenticated proxy URL
       expect(mockProxyAgent).toHaveBeenCalledWith({
@@ -113,7 +112,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       expect(mockProxyAgent).toHaveBeenCalledWith({
         uri: httpProxy,
@@ -138,7 +137,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // Verify socksDispatcher was called with correct SOCKS5 config
       expect(mockSocksDispatcher).toHaveBeenCalledWith({
@@ -163,7 +162,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // Verify socksDispatcher was called with type 4 for SOCKS4
       expect(mockSocksDispatcher).toHaveBeenCalledWith({
@@ -188,7 +187,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // Verify socksDispatcher includes authentication
       expect(mockSocksDispatcher).toHaveBeenCalledWith({
@@ -215,9 +214,9 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await expect(
-        callAI(messages, AIActionType.TEXT, modelConfig),
-      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+      await expect(callAI(messages, modelConfig)).rejects.toThrow(
+        /Invalid SOCKS proxy URL/,
+      );
     });
 
     it('should throw error for SOCKS proxy URL missing port', async () => {
@@ -236,9 +235,9 @@ describe('Proxy Configuration', () => {
       const messages = [{ role: 'user' as const, content: 'test' }];
 
       // URL without port throws error
-      await expect(
-        callAI(messages, AIActionType.TEXT, modelConfig),
-      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+      await expect(callAI(messages, modelConfig)).rejects.toThrow(
+        /Invalid SOCKS proxy URL/,
+      );
     });
 
     it('should throw error for SOCKS proxy URL with invalid port', async () => {
@@ -257,9 +256,9 @@ describe('Proxy Configuration', () => {
       const messages = [{ role: 'user' as const, content: 'test' }];
 
       // URL with invalid port throws error
-      await expect(
-        callAI(messages, AIActionType.TEXT, modelConfig),
-      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+      await expect(callAI(messages, modelConfig)).rejects.toThrow(
+        /Invalid SOCKS proxy URL/,
+      );
     });
 
     it('should throw error for SOCKS proxy URL missing hostname', async () => {
@@ -278,9 +277,9 @@ describe('Proxy Configuration', () => {
       const messages = [{ role: 'user' as const, content: 'test' }];
 
       // URL without hostname throws error
-      await expect(
-        callAI(messages, AIActionType.TEXT, modelConfig),
-      ).rejects.toThrow(/Invalid SOCKS proxy URL/);
+      await expect(callAI(messages, modelConfig)).rejects.toThrow(
+        /Invalid SOCKS proxy URL/,
+      );
     });
   });
 
@@ -302,7 +301,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // HTTP proxy should be used
       expect(mockProxyAgent).toHaveBeenCalledWith({
@@ -327,7 +326,7 @@ describe('Proxy Configuration', () => {
 
       const messages = [{ role: 'user' as const, content: 'test' }];
 
-      await callAI(messages, AIActionType.TEXT, modelConfig);
+      await callAI(messages, modelConfig);
 
       // Neither proxy should be used
       expect(mockProxyAgent).not.toHaveBeenCalled();
