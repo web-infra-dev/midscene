@@ -262,7 +262,7 @@ export const actionScrollParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .optional()
     .describe(
-      'The target element to be scrolled on, like "the table" or "the list" or "the content area" or "the scrollable area"',
+      'Describe the target element to be scrolled on, like "the table" or "the list" or "the content area" or "the scrollable area". Do NOT provide a general intent like "scroll to find some element"',
     ),
 });
 

@@ -610,18 +610,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                           </div>
                         </div>
                         <div
-                          className="summary-cell column-time"
-                          style={{ width: dynamicWidths.time }}
-                        />
-                        <div
-                          className="summary-cell column-intent"
-                          style={{ width: dynamicWidths.intent }}
-                        />
-                        <div
-                          className="summary-cell column-model"
-                          style={{ width: dynamicWidths.model }}
-                        />
-                        <div
                           className="summary-cell column-prompt"
                           style={{ width: dynamicWidths.prompt }}
                         >
@@ -658,18 +646,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                         >
                           <div className="token-total-label">Total</div>
                         </div>
-                        <div
-                          className="summary-cell column-time"
-                          style={{ width: dynamicWidths.time }}
-                        />
-                        <div
-                          className="summary-cell column-intent"
-                          style={{ width: dynamicWidths.intent }}
-                        />
-                        <div
-                          className="summary-cell column-model"
-                          style={{ width: dynamicWidths.model }}
-                        />
                         <div
                           className="summary-cell column-prompt"
                           style={{ width: dynamicWidths.prompt }}
