@@ -1,3 +1,4 @@
+import type { ScreenshotRegistry } from '@/screenshot-registry';
 import { type TaskExecutionError, TaskRunner } from '@/task-runner';
 import type {
   ExecutionTaskApply,
@@ -11,6 +12,7 @@ type ExecutionSessionOptions = ExecutionTaskProgressOptions & {
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
+  screenshotRegistry?: ScreenshotRegistry;
 };
 
 /**
@@ -24,7 +26,10 @@ export class ExecutionSession {
     contextProvider: () => Promise<UIContext>,
     options?: ExecutionSessionOptions,
   ) {
-    this.runner = new TaskRunner(name, contextProvider, options);
+    this.runner = new TaskRunner(name, contextProvider, {
+      ...options,
+      screenshotRegistry: options?.screenshotRegistry,
+    });
   }
 
   async append(

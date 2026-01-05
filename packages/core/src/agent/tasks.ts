@@ -1,6 +1,7 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface, FileChooserHandler } from '@/device';
+import type { ScreenshotRegistry } from '@/screenshot-registry';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
@@ -68,6 +69,8 @@ export class TaskExecutor {
 
   private readonly hooks?: TaskExecutorHooks;
 
+  private readonly screenshotRegistry?: ScreenshotRegistry;
+
   replanningCycleLimit?: number;
 
   // @deprecated use .interface instead
@@ -84,6 +87,7 @@ export class TaskExecutor {
       replanningCycleLimit?: number;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
+      screenshotRegistry?: ScreenshotRegistry;
     },
   ) {
     this.interface = interfaceInstance;
@@ -92,6 +96,7 @@ export class TaskExecutor {
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.hooks = opts.hooks;
+    this.screenshotRegistry = opts.screenshotRegistry;
     this.conversationHistory = new ConversationHistory();
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
@@ -113,6 +118,7 @@ export class TaskExecutor {
         onTaskStart: this.onTaskStartCallback,
         tasks: options?.tasks,
         onTaskUpdate: this.hooks?.onTaskUpdate,
+        screenshotRegistry: this.screenshotRegistry,
       },
     );
   }

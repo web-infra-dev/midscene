@@ -20,6 +20,7 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
+import type { ScreenshotRegistry } from './screenshot-registry';
 import type {
   Cache,
   GroupedActionDump,
@@ -128,15 +129,11 @@ export function insertScriptBeforeClosingHtml(
 }
 
 export function reportHTMLContent(
-  dumpData:
-    | string
-    | ReportDumpWithAttributes
-    | GroupedActionDump
-    | Record<string, unknown>,
+  dumpData: string | ReportDumpWithAttributes,
   reportPath?: string,
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
-  extractImages = true, // whether to extract base64 images to separate script tags
+  screenshotRegistry?: ScreenshotRegistry, // registry for generating image script tags
 ): string {
   let tpl = '';
   if (withTpl) {
@@ -150,29 +147,19 @@ export function reportHTMLContent(
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
 
-  // Extract base64 images to separate script tags if enabled
   let processedDumpString: string;
-  let imageScriptTags = '';
   let attributes: Record<string, string> | undefined;
 
-  if (extractImages) {
-    const extractionResult = extractBase64ToScriptTags(dumpData, reportPath);
-    processedDumpString = extractionResult.processedDumpString;
-    imageScriptTags = extractionResult.imageScriptTags;
-    attributes = extractionResult.attributes;
+  if (typeof dumpData === 'string') {
+    processedDumpString = dumpData;
   } else {
-    // No extraction, use original data
-    if (typeof dumpData === 'string') {
-      processedDumpString = dumpData;
-    } else if ('dumpString' in dumpData) {
-      processedDumpString = (dumpData as ReportDumpWithAttributes).dumpString;
-      attributes = (dumpData as ReportDumpWithAttributes).attributes;
-    } else {
-      processedDumpString = JSON.stringify(dumpData);
-    }
+    processedDumpString = dumpData.dumpString;
+    attributes = dumpData.attributes;
   }
 
-  // Generate dump script tag
+  // Generate image script tags from registry (if available)
+  const imageScriptTags = screenshotRegistry?.generateScriptTags() ?? '';
+
   let dumpContent = '';
 
   if (!attributes) {
@@ -240,26 +227,6 @@ export function reportHTMLContent(
 // Persistent screenshot counter map to prevent file overwriting during append operations
 const screenshotCounterMap = new Map<string, number>();
 
-// ============================================================================
-// Image Script Tag Extraction
-// ============================================================================
-
-/** Prefix for image references in dump JSON */
-const IMAGE_REF_PREFIX = '#midscene-img:';
-
-/** Script type for storing extracted base64 images */
-const IMAGE_SCRIPT_TYPE = 'midscene-image';
-
-/** Persistent image ID counter map to prevent ID conflicts during append operations */
-const imageIdCounterMap = new Map<string, number>();
-
-/** Result of extracting base64 images from dump data */
-interface ImageExtractionResult {
-  processedDumpString: string;
-  imageScriptTags: string;
-  attributes?: Record<string, string>;
-}
-
 /**
  * Check if a key-value pair is a base64 image field
  */
@@ -293,93 +260,6 @@ function traverseBase64Images(
 }
 
 /**
- * Clear all base64 image data from an object in place
- */
-export function clearBase64Images(obj: unknown): void {
-  traverseBase64Images(obj, (parent, key) => {
-    parent[key] = '';
-  });
-}
-
-/**
- * Extract base64 images from dump data and generate script tags.
- * This reduces JSON parse memory usage by storing images in separate script tags.
- *
- * @param dumpData - The dump data string or object with attributes
- * @param reportPath - Optional report path for counter isolation in append mode
- * @returns Processed dump string with image references and generated script tags
- */
-export function extractBase64ToScriptTags(
-  dumpData:
-    | string
-    | ReportDumpWithAttributes
-    | GroupedActionDump
-    | Record<string, unknown>,
-  reportPath?: string,
-): ImageExtractionResult {
-  let data: Record<string, unknown>;
-  let attributes: Record<string, string> | undefined;
-
-  try {
-    if (typeof dumpData === 'string') {
-      data = JSON.parse(dumpData) as Record<string, unknown>;
-    } else if ('dumpString' in dumpData) {
-      data = JSON.parse(
-        (dumpData as ReportDumpWithAttributes).dumpString,
-      ) as Record<string, unknown>;
-      attributes = (dumpData as ReportDumpWithAttributes).attributes;
-    } else {
-      data = dumpData as Record<string, unknown>;
-    }
-  } catch {
-    // Return original data if parsing fails (non-JSON strings are valid input)
-    const dumpString =
-      typeof dumpData === 'string'
-        ? dumpData
-        : 'dumpString' in dumpData
-          ? (dumpData as ReportDumpWithAttributes).dumpString
-          : JSON.stringify(dumpData);
-    return {
-      processedDumpString: dumpString,
-      imageScriptTags: '',
-      attributes:
-        typeof dumpData === 'object' && 'attributes' in dumpData
-          ? (dumpData as ReportDumpWithAttributes).attributes
-          : undefined,
-    };
-  }
-
-  // Get or initialize image counter for this report path
-  const counterKey = reportPath ?? 'default';
-  let imageCounter = imageIdCounterMap.get(counterKey) ?? 0;
-  const scriptTags: string[] = [];
-
-  traverseBase64Images(data, (parent, key, value) => {
-    const imageId = `img-${imageCounter++}`;
-    scriptTags.push(
-      // biome-ignore lint/style/useTemplate: avoid bundle error
-      '<script type="' +
-        IMAGE_SCRIPT_TYPE +
-        '" data-id="' +
-        imageId +
-        '">\n' +
-        escapeScriptTag(value) +
-        '\n</script>',
-    );
-    parent[key] = IMAGE_REF_PREFIX + imageId;
-  });
-
-  // Update the persistent counter
-  imageIdCounterMap.set(counterKey, imageCounter);
-
-  return {
-    processedDumpString: JSON.stringify(data),
-    imageScriptTags: scriptTags.join('\n'),
-    attributes,
-  };
-}
-
-/**
  * Sanitize fileName to prevent path traversal attacks.
  * Removes path separators and special characters.
  */
@@ -393,11 +273,7 @@ function sanitizeFileName(fileName: string): string {
 
 export function writeDirectoryReport(
   fileName: string,
-  dumpData:
-    | string
-    | ReportDumpWithAttributes
-    | GroupedActionDump
-    | Record<string, unknown>,
+  dumpData: string | ReportDumpWithAttributes,
   appendReport?: boolean,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
@@ -423,14 +299,8 @@ export function writeDirectoryReport(
     // Process data and extract screenshots
     const processedData = extractAndSaveScreenshots(dumpData, screenshotsDir);
 
-    // Generate HTML report with extractImages: false since images are already saved as files
-    reportHTMLContent(
-      processedData,
-      indexPath,
-      appendReport,
-      true,
-      false, // Don't extract images - they're already saved as separate files
-    );
+    // Generate HTML report (images are already saved as separate files)
+    reportHTMLContent(processedData, indexPath, appendReport, true);
 
     return indexPath;
   } catch (error) {
@@ -456,23 +326,15 @@ export function writeDirectoryReport(
 }
 
 function extractAndSaveScreenshots(
-  dumpData:
-    | string
-    | ReportDumpWithAttributes
-    | GroupedActionDump
-    | Record<string, unknown>,
+  dumpData: string | ReportDumpWithAttributes,
   screenshotsDir: string,
 ): string {
   let data: Record<string, unknown>;
 
   if (typeof dumpData === 'string') {
     data = JSON.parse(dumpData);
-  } else if ('dumpString' in dumpData) {
-    data = JSON.parse((dumpData as ReportDumpWithAttributes).dumpString);
   } else {
-    // Cast to Record<string, unknown> for processing - traverseBase64Images
-    // only accesses properties it finds, so the index signature mismatch is safe
-    data = dumpData as Record<string, unknown>;
+    data = JSON.parse(dumpData.dumpString);
   }
 
   let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
@@ -504,12 +366,9 @@ function extractAndSaveScreenshots(
 
 export function writeDumpReport(
   fileName: string,
-  dumpData:
-    | string
-    | ReportDumpWithAttributes
-    | GroupedActionDump
-    | Record<string, unknown>,
+  dumpData: string | ReportDumpWithAttributes,
   appendReport?: boolean,
+  screenshotRegistry?: ScreenshotRegistry,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
     console.log('will not write report in browser');
@@ -521,7 +380,13 @@ export function writeDumpReport(
     `${fileName}.html`,
   );
 
-  reportHTMLContent(dumpData, reportPath, appendReport);
+  reportHTMLContent(
+    dumpData,
+    reportPath,
+    appendReport,
+    true,
+    screenshotRegistry,
+  );
 
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
     const jsonPath = `${reportPath}.json`;
@@ -546,15 +411,12 @@ export function writeDumpReport(
 export function writeLogFile(opts: {
   fileName: string;
   fileExt: string;
-  fileContent:
-    | string
-    | ReportDumpWithAttributes
-    | GroupedActionDump
-    | Record<string, unknown>;
+  fileContent: string | ReportDumpWithAttributes;
   type: 'dump' | 'cache' | 'report' | 'tmp';
   generateReport?: boolean;
   appendReport?: boolean;
   useDirectoryReport?: boolean;
+  screenshotRegistry?: ScreenshotRegistry;
 }) {
   if (ifInBrowser || ifInWorker) {
     return '/mock/report.html';
@@ -600,7 +462,12 @@ export function writeLogFile(opts: {
     if (opts.useDirectoryReport) {
       return writeDirectoryReport(fileName, fileContent, opts.appendReport);
     }
-    return writeDumpReport(fileName, fileContent, opts.appendReport);
+    return writeDumpReport(
+      fileName,
+      fileContent,
+      opts.appendReport,
+      opts.screenshotRegistry,
+    );
   }
 
   return filePath;

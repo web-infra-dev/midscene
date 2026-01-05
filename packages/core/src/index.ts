@@ -31,6 +31,12 @@ export { z };
 export default Service;
 export { TaskRunner, Service, getVersion };
 
+export {
+  ScreenshotRegistry,
+  IMAGE_REF_PREFIX,
+  IMAGE_SCRIPT_TYPE,
+} from './screenshot-registry';
+
 export type {
   MidsceneYamlScript,
   MidsceneYamlTask,
