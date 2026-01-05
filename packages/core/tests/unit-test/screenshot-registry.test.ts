@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   IMAGE_REF_PREFIX,
