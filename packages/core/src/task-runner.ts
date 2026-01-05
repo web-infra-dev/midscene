@@ -289,11 +289,32 @@ export class TaskRunner {
         } else {
           uiContext = await this.getUiContext();
         }
-        task.uiContext = uiContext;
+
+        // Store uiContext in task for dump, but with screenshotBase64 converted to reference
+        // if screenshotRegistry is available. This reduces memory usage in dump.
+        if (
+          uiContext &&
+          this.screenshotRegistry &&
+          uiContext.screenshotBase64
+        ) {
+          const screenshotId = this.screenshotRegistry.register(
+            uiContext.screenshotBase64,
+          );
+          const screenshotRef =
+            this.screenshotRegistry.buildReference(screenshotId);
+          // Create a copy with the reference instead of base64 data
+          task.uiContext = {
+            ...uiContext,
+            screenshotBase64: screenshotRef,
+          } as UIContext;
+        } else {
+          task.uiContext = uiContext;
+        }
+
         const executorContext: ExecutorContext = {
           task,
           element: previousFindOutput?.element,
-          uiContext,
+          uiContext, // Pass original uiContext with real base64 for AI calls
         };
 
         if (task.type === 'Insight') {

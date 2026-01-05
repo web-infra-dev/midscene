@@ -20,6 +20,7 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
+import { IMAGE_REF_PREFIX } from './screenshot-registry';
 import type { ScreenshotRegistry } from './screenshot-registry';
 import type {
   Cache,
@@ -228,33 +229,46 @@ export function reportHTMLContent(
 const screenshotCounterMap = new Map<string, number>();
 
 /**
- * Check if a key-value pair is a base64 image field
+ * Check if a value is a base64 image data URI
  */
-function isBase64ImageField(key: string, value: unknown): boolean {
+function isBase64ImageData(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith('data:image/');
+}
+
+/**
+ * Check if a value is a screenshot registry reference
+ */
+function isImageReference(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
+}
+
+/**
+ * Check if a key-value pair is an image field (either base64 or reference)
+ */
+function isImageField(key: string, value: unknown): boolean {
   return (
     (key === 'screenshot' || key === 'screenshotBase64') &&
-    typeof value === 'string' &&
-    value.startsWith('data:image/')
+    (isBase64ImageData(value) || isImageReference(value))
   );
 }
 
 /**
- * Recursively traverse object and process base64 image fields
+ * Recursively traverse object and process image fields
  */
-function traverseBase64Images(
+function traverseImageFields(
   obj: unknown,
   onImage: (obj: Record<string, unknown>, key: string, value: string) => void,
 ): void {
   if (typeof obj !== 'object' || obj === null) return;
   if (Array.isArray(obj)) {
-    obj.forEach((item) => traverseBase64Images(item, onImage));
+    obj.forEach((item) => traverseImageFields(item, onImage));
     return;
   }
   for (const [key, value] of Object.entries(obj)) {
-    if (isBase64ImageField(key, value)) {
+    if (isImageField(key, value)) {
       onImage(obj as Record<string, unknown>, key, value as string);
     } else {
-      traverseBase64Images(value, onImage);
+      traverseImageFields(value, onImage);
     }
   }
 }
@@ -275,6 +289,7 @@ export function writeDirectoryReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes,
   appendReport?: boolean,
+  screenshotRegistry?: ScreenshotRegistry,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
     console.log('will not write directory report in browser');
@@ -296,8 +311,12 @@ export function writeDirectoryReport(
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // Process data and extract screenshots
-    const processedData = extractAndSaveScreenshots(dumpData, screenshotsDir);
+    // Process data and extract screenshots (handles both base64 and references)
+    const processedData = extractAndSaveScreenshots(
+      dumpData,
+      screenshotsDir,
+      screenshotRegistry,
+    );
 
     // Generate HTML report (images are already saved as separate files)
     reportHTMLContent(processedData, indexPath, appendReport, true);
@@ -328,6 +347,7 @@ export function writeDirectoryReport(
 function extractAndSaveScreenshots(
   dumpData: string | ReportDumpWithAttributes,
   screenshotsDir: string,
+  screenshotRegistry?: ScreenshotRegistry,
 ): string {
   let data: Record<string, unknown>;
 
@@ -339,21 +359,49 @@ function extractAndSaveScreenshots(
 
   let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
 
-  traverseBase64Images(data, (parent, key, value) => {
+  traverseImageFields(data, (parent, key, value) => {
     const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
     const screenshotPath = path.join(screenshotsDir, screenshotFileName);
-    const parts = value.split(',');
+
+    let base64Data: string | undefined;
+
+    if (isImageReference(value)) {
+      // Value is a reference like "#midscene-img:groupName-img-0"
+      // Get base64 data from registry
+      if (screenshotRegistry) {
+        const imageId = value.slice(IMAGE_REF_PREFIX.length);
+        base64Data = screenshotRegistry.get(imageId);
+      }
+      if (!base64Data) {
+        console.warn(
+          'extractAndSaveScreenshots: could not resolve image reference:',
+          value,
+        );
+        parent[key] = null;
+        return;
+      }
+    } else if (isBase64ImageData(value)) {
+      // Value is direct base64 data
+      base64Data = value;
+    } else {
+      parent[key] = null;
+      return;
+    }
+
+    // Extract base64 content and save to file
+    const parts = base64Data.split(',');
     const hasValidPrefix =
       parts.length === 2 &&
       !!parts[1] &&
       typeof parts[0] === 'string' &&
       /^data:image\/[a-zA-Z0-9.+-]+;base64$/.test(parts[0]);
+
     if (hasValidPrefix) {
       writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
       parent[key] = `./screenshots/${screenshotFileName}`;
     } else {
       console.warn(
-        'extractAndSaveScreenshots: encountered invalid image data URI, skipping screenshot for key:',
+        'extractAndSaveScreenshots: encountered invalid image data, skipping screenshot for key:',
         key,
       );
       parent[key] = null;
@@ -460,7 +508,12 @@ export function writeLogFile(opts: {
 
   if (opts?.generateReport) {
     if (opts.useDirectoryReport) {
-      return writeDirectoryReport(fileName, fileContent, opts.appendReport);
+      return writeDirectoryReport(
+        fileName,
+        fileContent,
+        opts.appendReport,
+        opts.screenshotRegistry,
+      );
     }
     return writeDumpReport(
       fileName,

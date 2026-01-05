@@ -380,6 +380,8 @@ export class Agent<
     const fullActionSpace = [...baseActionSpace, defineActionAssert()];
 
     // Initialize screenshot registry if report generation is enabled
+    // Registry is used for both single-file HTML and directory-based reports
+    // to avoid holding base64 data in memory
     if (this.opts.generateReport) {
       this.screenshotRegistry = new ScreenshotRegistry(this.opts.groupName!);
     }
