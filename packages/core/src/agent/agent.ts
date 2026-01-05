@@ -532,8 +532,24 @@ export class Agent<
     return stringifyDumpData(this.dump);
   }
 
+  /**
+   * Get the image map for restoring image references in dump data.
+   * Useful for contexts without HTML script tags (e.g., Chrome extension live preview).
+   *
+   * @returns Record mapping screenshot IDs to their base64 data, or empty object if no registry
+   */
+  getImageMap(): Record<string, string> {
+    return this.screenshotRegistry?.getImageMap() ?? {};
+  }
+
   reportHTMLString() {
-    return reportHTMLContent(this.dumpDataString());
+    return reportHTMLContent(
+      this.dumpDataString(),
+      undefined, // reportPath
+      undefined, // appendReport
+      true, // withTpl
+      this.screenshotRegistry, // pass registry to include image script tags
+    );
   }
 
   writeOutActionDumps() {

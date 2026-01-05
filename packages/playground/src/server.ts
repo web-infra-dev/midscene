@@ -3,13 +3,18 @@ import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
+import { restoreImageReferences } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
-import { executeAction, formatErrorMessage } from './common';
+import {
+  executeAction,
+  extractDumpWithImages,
+  formatErrorMessage,
+} from './common';
 
 import 'dotenv/config';
 
@@ -215,7 +220,22 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
-        const executionDump = this.taskExecutionDumps[requestId] || null;
+        let executionDump = this.taskExecutionDumps[requestId] || null;
+
+        // Restore image references in execution dump if available
+        if (executionDump) {
+          try {
+            const imageMap = this.agent?.getImageMap?.() ?? {};
+            if (Object.keys(imageMap).length > 0) {
+              executionDump = restoreImageReferences(executionDump, imageMap);
+            }
+          } catch (error: unknown) {
+            console.warn(
+              'Failed to restore image references in task progress:',
+              error,
+            );
+          }
+        }
 
         res.json({
           executionDump,
@@ -388,7 +408,7 @@ class PlaygroundServer {
 
       const response: {
         result: unknown;
-        dump: string | null;
+        dump: ExecutionDump | null;
         error: string | null;
         reportHTML: string | null;
         requestId?: string;
@@ -429,14 +449,8 @@ class PlaygroundServer {
       }
 
       try {
-        const dumpString = this.agent.dumpDataString();
-        if (dumpString) {
-          const groupedDump = JSON.parse(dumpString);
-          // Extract first execution from grouped dump, matching local execution adapter behavior
-          response.dump = groupedDump.executions?.[0] || null;
-        } else {
-          response.dump = null;
-        }
+        // Get dump data with restored image references
+        response.dump = extractDumpWithImages(this.agent);
         response.reportHTML = this.agent.reportHTMLString() || null;
 
         this.agent.writeOutActionDumps();
@@ -495,17 +509,12 @@ class PlaygroundServer {
           console.log(`Cancelling task: ${requestId}`);
 
           // Get current execution data before cancelling (dump and reportHTML)
-          let dump: any = null;
+          let dump: ExecutionDump | null = null;
           let reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.();
-            if (dumpString) {
-              const groupedDump = JSON.parse(dumpString);
-              // Extract first execution from grouped dump
-              dump = groupedDump.executions?.[0] || null;
-            }
-
+            // Get dump data with restored image references
+            dump = extractDumpWithImages(this.agent);
             reportHTML = this.agent.reportHTMLString?.() || null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);

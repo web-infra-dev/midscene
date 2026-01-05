@@ -1,7 +1,12 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import { restoreImageReferences } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
-import { executeAction, parseStructuredParams } from '../common';
+import {
+  executeAction,
+  extractDumpWithImages,
+  parseStructuredParams,
+} from '../common';
 import type {
   AgentFactory,
   ExecutionOptions,
@@ -230,15 +235,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           : null,
       };
 
-      // Get dump data - separate try-catch to ensure dump is retrieved even if reportHTML fails
+      // Get dump data with restored image references
       try {
-        if (agent.dumpDataString) {
-          const dumpString = agent.dumpDataString();
-          if (dumpString) {
-            const groupedDump = JSON.parse(dumpString);
-            response.dump = groupedDump.executions?.[0] || null;
-          }
-        }
+        response.dump = extractDumpWithImages(agent);
       } catch (error: unknown) {
         console.warn('Failed to get dump from agent:', error);
       }
@@ -309,18 +308,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     let dump: ExecutionDump | null = null;
     let reportHTML: string | null = null;
 
-    // Get dump data separately - don't let reportHTML errors affect dump retrieval
+    // Get dump data with restored image references
     // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
     try {
-      if (typeof this.agent.dumpDataString === 'function') {
-        const dumpString = this.agent.dumpDataString();
-        if (dumpString) {
-          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
-          // In Playground, each "Run" creates one execution, so we take executions[0]
-          const groupedDump = JSON.parse(dumpString);
-          dump = groupedDump.executions?.[0] ?? null;
-        }
-      }
+      dump = extractDumpWithImages(this.agent);
     } catch (error) {
       console.warn(
         '[LocalExecutionAdapter] Failed to get dump data before cancel:',
@@ -377,13 +368,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     };
 
     try {
-      // Get dump data
-      if (this.agent?.dumpDataString) {
-        const dumpString = this.agent.dumpDataString();
-        if (dumpString) {
-          const groupedDump = JSON.parse(dumpString);
-          response.dump = groupedDump.executions?.[0] || null;
-        }
+      // Get dump data with restored image references
+      if (this.agent) {
+        response.dump = extractDumpWithImages(this.agent);
       }
 
       // Get report HTML

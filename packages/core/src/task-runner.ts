@@ -13,7 +13,10 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import type { ScreenshotRegistry } from './screenshot-registry';
+import {
+  type ScreenshotRegistry,
+  ScreenshotRegistry as ScreenshotRegistryClass,
+} from './screenshot-registry';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
@@ -138,8 +141,13 @@ export class TaskRunner {
     // Register screenshot to registry and store ID reference instead of base64
     let screenshot: string;
     if (this.screenshotRegistry) {
-      const id = this.screenshotRegistry.register(screenshotBase64);
-      screenshot = this.screenshotRegistry.buildReference(id);
+      // Check if already a reference to avoid double registration
+      if (ScreenshotRegistryClass.isImageReference(screenshotBase64)) {
+        screenshot = screenshotBase64;
+      } else {
+        const id = this.screenshotRegistry.register(screenshotBase64);
+        screenshot = this.screenshotRegistry.buildReference(id);
+      }
     } else {
       screenshot = screenshotBase64;
     }
@@ -297,16 +305,24 @@ export class TaskRunner {
           this.screenshotRegistry &&
           uiContext.screenshotBase64
         ) {
-          const screenshotId = this.screenshotRegistry.register(
-            uiContext.screenshotBase64,
-          );
-          const screenshotRef =
-            this.screenshotRegistry.buildReference(screenshotId);
-          // Create a copy with the reference instead of base64 data
-          task.uiContext = {
-            ...uiContext,
-            screenshotBase64: screenshotRef,
-          } as UIContext;
+          // Check if already a reference (from subTask reusing previous task's uiContext)
+          if (
+            ScreenshotRegistryClass.isImageReference(uiContext.screenshotBase64)
+          ) {
+            // Already converted, use as-is
+            task.uiContext = uiContext;
+          } else {
+            const screenshotId = this.screenshotRegistry.register(
+              uiContext.screenshotBase64,
+            );
+            const screenshotRef =
+              this.screenshotRegistry.buildReference(screenshotId);
+            // Create a copy with the reference instead of base64 data
+            task.uiContext = {
+              ...uiContext,
+              screenshotBase64: screenshotRef,
+            } as UIContext;
+          }
         } else {
           task.uiContext = uiContext;
         }

@@ -1,4 +1,5 @@
-import type { DeviceAction } from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import { restoreImageReferences } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
 import { buildDetailedLocateParam } from '@midscene/core/yaml';
 import type {
@@ -224,5 +225,46 @@ export async function executeAction(
     }
 
     throw new Error(`Unknown action type: ${actionType}`);
+  }
+}
+
+/**
+ * Extract dump data from agent and restore image references.
+ * This is used by both local-execution adapter and server to ensure
+ * image references in dump are replaced with actual base64 data.
+ *
+ * @param agent - The agent to extract dump from
+ * @returns The execution dump with image references restored, or null if not available
+ */
+export function extractDumpWithImages(
+  agent: PlaygroundAgent,
+): ExecutionDump | null {
+  if (!agent?.dumpDataString) {
+    return null;
+  }
+
+  try {
+    const dumpString = agent.dumpDataString();
+    if (!dumpString) {
+      return null;
+    }
+
+    const groupedDump = JSON.parse(dumpString);
+    let dump = groupedDump.executions?.[0] || null;
+
+    if (!dump) {
+      return null;
+    }
+
+    // Get image map and restore references
+    const imageMap = agent.getImageMap?.() ?? {};
+    if (Object.keys(imageMap).length > 0) {
+      dump = restoreImageReferences(dump, imageMap);
+    }
+
+    return dump;
+  } catch (error: unknown) {
+    console.warn('Failed to extract dump with images:', error);
+    return null;
   }
 }
