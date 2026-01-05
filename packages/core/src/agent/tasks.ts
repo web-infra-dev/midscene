@@ -5,6 +5,7 @@ import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
 import type {
+  DeepThinkOption,
   DeviceAction,
   ExecutionTaskApply,
   ExecutionTaskInsightQueryApply,
@@ -208,6 +209,7 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
+    deepThink?: DeepThinkOption,
   ): Promise<
     ExecutionResult<
       | {
@@ -278,6 +280,7 @@ export class TaskExecutor {
               conversationHistory: this.conversationHistory,
               includeBbox: includeBboxInPlanning,
               imagesIncludeCount,
+              deepThink,
             });
             debug('planResult', JSON.stringify(planResult, null, 2));
 
@@ -289,6 +292,7 @@ export class TaskExecutor {
               usage,
               rawResponse,
               sleep,
+              reasoning_content,
             } = planResult;
 
             executorContext.task.log = {
@@ -296,6 +300,7 @@ export class TaskExecutor {
               rawResponse,
             };
             executorContext.task.usage = usage;
+            executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
               more_actions_needed_by_instruction,
@@ -490,8 +495,9 @@ export class TaskExecutor {
           throw error;
         }
 
-        const { data, usage, thought, dump } = extractResult;
+        const { data, usage, thought, dump, reasoning_content } = extractResult;
         applyDump(dump);
+        task.reasoning_content = reasoning_content;
 
         let outputResult = data;
         if (ifTypeRestricted) {

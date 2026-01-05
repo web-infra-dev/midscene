@@ -128,6 +128,7 @@ export async function AiLocateElement(options: {
   rect?: Rect;
   rawResponse: string;
   usage?: AIUsageInfo;
+  reasoning_content?: string;
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
@@ -261,6 +262,7 @@ export async function AiLocateElement(options: {
     },
     rawResponse,
     usage: res.usage,
+    reasoning_content: res.reasoning_content,
   };
 }
 
@@ -440,6 +442,7 @@ export async function AiExtractElementInfo<T>(options: {
   return {
     parseResult: result.content,
     usage: result.usage,
+    reasoning_content: result.reasoning_content,
   };
 }
 

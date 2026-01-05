@@ -130,7 +130,23 @@ For example, on mobile UI automation, if you have a component tree plus full a11
 
 See [Model configuration](./model-config).
 
-### API style
+### About the `deepThink` option in `aiAct`
+
+The `deepThink` option controls whether models use deep reasoning during planning. Currently supported for `qwen3-vl` and `doubao-seed-1.6` model families.
+
+When enabled, you'll see a `Reasoning` section in the report. Planning takes longer but produces more accurate results.
+
+**Default behavior varies by provider:**
+- `qwen3-vl` on Alibaba Cloud: disabled by default (faster, less accurate)
+- `doubao-seed-1.6` on Volcano Engine: enabled by default (slower, more accurate)
+
+You can explicitly set `deepThink: true` or `deepThink: false` to override the provider's default.
+
+`deepThink` accepts `'unset' | true | false`. The default is `'unset'` (same as omitting the option, following the model provider's default strategy).
+
+Note: The implementation details behind `deepThink` may evolve in the future as model providers change.
+
+### API style for model service provider
 
 Midscene expects providers to expose an OpenAI-compatible API (this does **not** mean you must use OpenAI models).
 

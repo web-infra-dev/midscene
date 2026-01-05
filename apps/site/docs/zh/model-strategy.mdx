@@ -129,6 +129,22 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 请参考 [模型配置](./model-config)。
 
+### 关于 `aiAct` 方法的 `deepThink` 参数
+
+`deepThink` 参数用于控制模型在规划时是否启用深度思考。目前支持 `qwen3-vl` 和 `doubao-seed-1.6` 系列模型。
+
+启用后，你可以在报告中看到 `Reasoning` 栏目。开启后，规划耗时会增加，但结果会更准确。
+
+**不同服务商的默认行为：**
+- `qwen3-vl` 在阿里云：默认关闭（更快，但准确性差）
+- `doubao-seed-1.6` 在火山引擎：默认开启（更慢，但更准确）
+
+你可以通过显式设置 `deepThink: true` 或 `deepThink: false` 来覆盖服务商的默认配置。
+
+`deepThink` 支持 `'unset' | true | false`，默认值为 `'unset'`（等同于省略该参数，跟随模型服务商的默认策略）。
+
+提示：`deepThink` 参数背后的实现方式可能会在未来随着模型提供商的变化而调整。
+
 ### 模型接口风格
 
 Midscene 要求模型服务商提供兼容 OpenAI 风格的接口（这并不是说只能使用 OpenAI 的模型）。

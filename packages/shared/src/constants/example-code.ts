@@ -5,7 +5,7 @@ export const PLAYWRIGHT_EXAMPLE_CODE = `
 IMPORTANT: Follow these exact type signatures for AI functions:
 
 // Type signatures for AI functions:
-aiAct(prompt: string, options?: { cacheable?: boolean }): Promise<void>
+aiAct(prompt: string, options?: { cacheable?: boolean, deepThink?: 'unset' | true | false }): Promise<void>
 aiInput(text: string, locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
 aiTap(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
 aiHover(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>

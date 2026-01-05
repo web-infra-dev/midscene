@@ -1,16 +1,16 @@
 import type { InfoListItem, PlaygroundResult } from '../types';
 
 // tracking popup tip
-export const trackingTip = 'limit popup to current tab';
+export const trackingTip = 'Limit popup to current tab';
 
 // deep think tip
-export const deepThinkTip = 'deep think';
+export const deepThinkTip = 'Deep Think';
 
 // screenshot included tip
-export const screenshotIncludedTip = 'include screenshot in request';
+export const screenshotIncludedTip = 'Include screenshot in request';
 
 // dom included tip
-export const domIncludedTip = 'include DOM info in request';
+export const domIncludedTip = 'Include DOM info in request';
 
 // Android device options tips
 export const imeStrategyTip = 'IME strategy';

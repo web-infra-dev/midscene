@@ -130,6 +130,7 @@ function aiAct(
   prompt: string,
   options?: {
     cacheable?: boolean;
+    deepThink?: 'unset' | true | false;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -140,6 +141,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
 
 - Return Value:
 
@@ -421,6 +423,8 @@ await agent.aiRightClick('The file name at the top of the page', {
 :::tip About the `deepThink` feature
 
 The `deepThink` feature makes Midscene issue two locating requests to improve accuracy. It is useful when the model finds it hard to distinguish the element from its surroundings. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious, so enable it only when needed.
+
+Note: `deepThink` in `aiAct()` is different from `deepThink` in element locating methods. For `aiAct()`, it controls the reasoning strategy during planning. [Learn more](./model-strategy#about-the-deepthink-option-in-aiact).
 
 :::
 

@@ -6,6 +6,7 @@ import {
   type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
+  type DeepThinkOption,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -138,6 +139,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
+  deepThink?: DeepThinkOption;
 };
 
 export class Agent<
@@ -858,6 +860,7 @@ export class Agent<
     debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
     const cacheable = opt?.cacheable;
+    const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
     const replanningCycleLimit = this.resolveReplanningCycleLimit(
       modelConfigForPlanning,
     );
@@ -885,11 +888,7 @@ export class Agent<
 
     // If cache matched but yamlWorkflow is empty, fall through to normal execution
 
-    const useDeepThink = (this.opts as any)?._deepThink;
-    if (useDeepThink) {
-      debug('using deep think planning settings');
-    }
-    const imagesIncludeCount: number | undefined = useDeepThink ? undefined : 2;
+    const imagesIncludeCount: number | undefined = 2;
     const { output } = await this.taskExecutor.action(
       taskPrompt,
       modelConfigForPlanning,
@@ -899,6 +898,7 @@ export class Agent<
       cacheable,
       replanningCycleLimit,
       imagesIncludeCount,
+      deepThink,
     );
 
     // update cache
