@@ -13,6 +13,7 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import type { ScreenshotRegistry } from './screenshot-registry';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
@@ -23,6 +24,7 @@ type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
+  screenshotRegistry?: ScreenshotRegistry;
 };
 
 type TaskRunnerOperationOptions = {
@@ -45,6 +47,8 @@ export class TaskRunner {
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
+  private readonly screenshotRegistry?: ScreenshotRegistry;
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
@@ -59,6 +63,7 @@ export class TaskRunner {
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
     this.onTaskUpdate = options?.onTaskUpdate;
+    this.screenshotRegistry = options?.screenshotRegistry;
   }
 
   private async emitOnTaskUpdate(error?: TaskExecutionError): Promise<void> {
@@ -122,12 +127,21 @@ export class TaskRunner {
     phase: 'after-calling',
   ): void {
     const timing = phase;
-    const screenshot =
+    const screenshotBase64 =
       typeof contextOrScreenshot === 'string'
         ? contextOrScreenshot
         : contextOrScreenshot?.screenshotBase64;
-    if (!timing || !screenshot) {
+    if (!timing || !screenshotBase64) {
       return;
+    }
+
+    // Register screenshot to registry and store ID reference instead of base64
+    let screenshot: string;
+    if (this.screenshotRegistry) {
+      const id = this.screenshotRegistry.register(screenshotBase64);
+      screenshot = this.screenshotRegistry.buildReference(id);
+    } else {
+      screenshot = screenshotBase64;
     }
 
     const recorderItem: ExecutionRecorderItem = {

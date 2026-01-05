@@ -30,6 +30,7 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
+import { ScreenshotRegistry } from '../screenshot-registry';
 export type TestStatus =
   | 'passed'
   | 'failed'
@@ -167,6 +168,12 @@ export class Agent<
   onTaskStartTip?: OnTaskStartTip;
 
   taskCache?: TaskCache;
+
+  /**
+   * Registry for storing screenshots to temporary files.
+   * Only created when generateReport is true.
+   */
+  screenshotRegistry?: ScreenshotRegistry;
 
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
@@ -372,11 +379,17 @@ export class Agent<
     const baseActionSpace = this.interface.actionSpace();
     const fullActionSpace = [...baseActionSpace, defineActionAssert()];
 
+    // Initialize screenshot registry if report generation is enabled
+    if (this.opts.generateReport) {
+      this.screenshotRegistry = new ScreenshotRegistry(this.opts.groupName!);
+    }
+
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       actionSpace: fullActionSpace,
+      screenshotRegistry: this.screenshotRegistry,
       hooks: {
         onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
@@ -529,15 +542,14 @@ export class Agent<
     this.dump.groupName = this.opts.groupName!;
     this.dump.groupDescription = this.opts.groupDescription;
 
-    // Always pass this.dump directly so image extraction can modify it in place,
-    // replacing base64 with references to free memory
     this.reportFile = writeLogFile({
       fileName: this.reportFileName!,
       fileExt: groupedActionDumpFileExt,
-      fileContent: this.dump,
+      fileContent: this.dumpDataString(),
       type: 'dump',
       generateReport,
       useDirectoryReport,
+      screenshotRegistry: this.screenshotRegistry,
     });
     debug('writeOutActionDumps', this.reportFile);
     if (generateReport && autoPrintReportMsg && this.reportFile) {
@@ -1301,6 +1313,7 @@ export class Agent<
     }
 
     await this.interface.destroy?.();
+    this.screenshotRegistry?.cleanup();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
   }
