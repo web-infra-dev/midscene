@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { escapeScriptTag, uuid } from '@midscene/shared/utils';
+import { escapeScriptTag, ifInBrowser, uuid } from '@midscene/shared/utils';
 
 /**
  * Script type for storing extracted base64 images in HTML report
@@ -33,12 +33,16 @@ export class ScreenshotRegistry {
   private tempDir: string;
   private groupId: string;
   private counter = 0;
-  private screenshots = new Map<string, string>(); // id -> tempFilePath
+  private screenshots = new Map<string, string>(); // id -> tempFilePath or base64 (in browser)
 
   constructor(groupId: string) {
     this.groupId = this.sanitizeGroupId(groupId);
-    this.tempDir = path.join(os.tmpdir(), 'midscene-screenshots', uuid());
-    mkdirSync(this.tempDir, { recursive: true });
+    if (ifInBrowser) {
+      this.tempDir = '';
+    } else {
+      this.tempDir = path.join(os.tmpdir(), 'midscene-screenshots', uuid());
+      mkdirSync(this.tempDir, { recursive: true });
+    }
   }
 
   /**
@@ -55,11 +59,20 @@ export class ScreenshotRegistry {
    * @returns The ID reference (e.g., "groupName-img-0")
    */
   register(base64: string): string {
+    // If already a reference, extract and return the existing ID
+    if (base64.startsWith(IMAGE_REF_PREFIX)) {
+      return base64.slice(IMAGE_REF_PREFIX.length);
+    }
+
     const id = `${this.groupId}-img-${this.counter}`;
-    const filePath = path.join(this.tempDir, `${id}.b64`);
-    writeFileSync(filePath, base64);
-    // Increment counter only after successful write to avoid ID gaps on failure
-    this.screenshots.set(id, filePath);
+    if (ifInBrowser) {
+      // In browser, store base64 directly in memory
+      this.screenshots.set(id, base64);
+    } else {
+      const filePath = path.join(this.tempDir, `${id}.b64`);
+      writeFileSync(filePath, base64);
+      this.screenshots.set(id, filePath);
+    }
     this.counter++;
     return id;
   }
@@ -71,9 +84,15 @@ export class ScreenshotRegistry {
    * @returns The base64 data, or undefined if not found
    */
   get(id: string): string | undefined {
-    const filePath = this.screenshots.get(id);
-    if (filePath && existsSync(filePath)) {
-      return readFileSync(filePath, 'utf-8');
+    const stored = this.screenshots.get(id);
+    if (!stored) return undefined;
+    if (ifInBrowser) {
+      // In browser, stored is base64 directly
+      return stored;
+    }
+    // In Node, stored is file path
+    if (existsSync(stored)) {
+      return readFileSync(stored, 'utf-8');
     }
     return undefined;
   }
@@ -86,9 +105,14 @@ export class ScreenshotRegistry {
    */
   generateScriptTags(): string {
     const tags: string[] = [];
-    for (const [id, filePath] of this.screenshots) {
-      if (existsSync(filePath)) {
-        const base64 = readFileSync(filePath, 'utf-8');
+    for (const [id, stored] of this.screenshots) {
+      let base64: string | undefined;
+      if (ifInBrowser) {
+        base64 = stored;
+      } else if (existsSync(stored)) {
+        base64 = readFileSync(stored, 'utf-8');
+      }
+      if (base64) {
         tags.push(
           // biome-ignore lint/style/useTemplate: consistent with other script tag generation
           '<script type="' +
@@ -132,12 +156,14 @@ export class ScreenshotRegistry {
    * Clean up temporary files
    */
   cleanup(): void {
-    try {
-      if (existsSync(this.tempDir)) {
-        rmSync(this.tempDir, { recursive: true, force: true });
+    if (!ifInBrowser) {
+      try {
+        if (this.tempDir && existsSync(this.tempDir)) {
+          rmSync(this.tempDir, { recursive: true, force: true });
+        }
+      } catch (e) {
+        console.warn('Failed to cleanup screenshot temp directory:', e);
       }
-    } catch (e) {
-      console.warn('Failed to cleanup screenshot temp directory:', e);
     }
     this.screenshots.clear();
   }
@@ -162,4 +188,72 @@ export class ScreenshotRegistry {
   getIds(): string[] {
     return Array.from(this.screenshots.keys());
   }
+
+  /**
+   * Get all screenshots as a map of id -> base64 data.
+   * Useful for restoring images in contexts without script tags (e.g., Chrome extension).
+   *
+   * @returns Record mapping screenshot IDs to their base64 data
+   */
+  getImageMap(): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const id of this.screenshots.keys()) {
+      const base64 = this.get(id);
+      if (base64) {
+        map[id] = base64;
+      }
+    }
+    return map;
+  }
+}
+
+/**
+ * Check if a value is an image reference string.
+ */
+function isImageReferenceValue(value: unknown): value is string {
+  return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
+}
+
+/**
+ * Recursively restore image references in parsed data.
+ * Replaces references like "#midscene-img:img-0" with the actual base64 data.
+ *
+ * @param data - The parsed JSON data with image references
+ * @param imageMap - Map of image IDs to base64 data
+ * @returns Data with image references restored to base64
+ */
+export function restoreImageReferences<T>(
+  data: T,
+  imageMap: Record<string, string>,
+): T {
+  if (typeof data === 'string') {
+    if (isImageReferenceValue(data)) {
+      const id = data.slice(IMAGE_REF_PREFIX.length);
+      const base64 = imageMap[id];
+      if (base64) {
+        // Type assertion: string is assignable to T when T extends string
+        return base64 as T;
+      }
+      // Return original reference if not found (for debugging)
+      console.warn(`Image not found for reference: ${data}`);
+      return data;
+    }
+    return data;
+  }
+
+  if (Array.isArray(data)) {
+    // Type assertion: array mapping preserves array type
+    return data.map((item) => restoreImageReferences(item, imageMap)) as T;
+  }
+
+  if (typeof data === 'object' && data !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      result[key] = restoreImageReferences(value, imageMap);
+    }
+    // Type assertion: reconstructed object matches original shape
+    return result as T;
+  }
+
+  return data;
 }
