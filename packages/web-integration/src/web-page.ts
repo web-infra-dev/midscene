@@ -16,7 +16,6 @@ import {
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
-  defineActionUploadFile,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -430,9 +429,23 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   defineActionTap(async (param) => {
     const element = param.locate;
     assert(element, 'Element not found, cannot tap');
-    await page.mouse.click(element.center[0], element.center[1], {
-      button: 'left',
-    });
+
+    // If files are provided and page supports uploadFile, handle file upload
+    if (
+      param.files &&
+      'uploadFile' in page &&
+      typeof page.uploadFile === 'function'
+    ) {
+      await (page as any).uploadFile(param.files, async () => {
+        await page.mouse.click(element.center[0], element.center[1], {
+          button: 'left',
+        });
+      });
+    } else {
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'left',
+      });
+    }
   }),
   defineActionRightClick(async (param) => {
     const element = param.locate;
@@ -626,22 +639,6 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     assert(element, 'Element not found, cannot clear input');
     await page.clearInput(element as unknown as ElementInfo);
   }),
-
-  ...('uploadFile' in page && typeof page.uploadFile === 'function'
-    ? [
-        defineActionUploadFile(async (param) => {
-          const element = param.locate;
-          assert(element, 'Element not found, cannot upload file');
-
-          await (page as any).uploadFile(param.files, async () => {
-            // Click the upload button to trigger file chooser
-            await page.mouse.click(element.center[0], element.center[1], {
-              button: 'left',
-            });
-          });
-        }),
-      ]
-    : []),
 
   defineAction({
     name: 'Navigate',

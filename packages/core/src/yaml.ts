@@ -9,6 +9,7 @@ export interface LocateOption {
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
   uiContext?: UIContext;
+  files?: string | string[]; // file path(s) to upload when tapping triggers a file chooser
 }
 
 export interface ServiceExtractOption {

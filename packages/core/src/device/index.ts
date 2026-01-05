@@ -75,10 +75,17 @@ export const defineAction = <
 // Tap
 export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
+  files: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .describe(
+      'Optional file path(s) to upload when tap triggers a file chooser',
+    ),
 });
 // Override the inferred type to use LocateResultElement for the runtime locate field
 export type ActionTapParam = {
   locate: LocateResultElement;
+  files?: string | string[];
 };
 
 export const defineActionTap = (
@@ -86,7 +93,8 @@ export const defineActionTap = (
 ): DeviceAction<ActionTapParam> => {
   return defineAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
-    description: 'Tap the element',
+    description:
+      'Tap the element. If files are provided, handles file upload after tap triggers a file chooser.',
     interfaceAlias: 'aiTap',
     paramSchema: actionTapParamSchema,
     call,
@@ -446,38 +454,6 @@ export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
         );
       }
     },
-  });
-};
-
-// UploadFile
-export const actionUploadFileParamSchema = z.object({
-  locate: getMidsceneLocationSchema().describe(
-    'The file upload button or input element to click',
-  ),
-  files: z
-    .union([z.string(), z.array(z.string())])
-    .describe(
-      'File path(s) to upload. Can be a single path or array of paths for multiple files',
-    ),
-});
-export type ActionUploadFileParam = {
-  locate: LocateResultElement;
-  files: string | string[];
-};
-
-export const defineActionUploadFile = (
-  call: (param: ActionUploadFileParam) => Promise<void>,
-): DeviceAction<ActionUploadFileParam> => {
-  return defineAction<
-    typeof actionUploadFileParamSchema,
-    ActionUploadFileParam
-  >({
-    name: 'UploadFile',
-    description:
-      'Upload file(s) by clicking the upload button/input and selecting files',
-    interfaceAlias: 'aiUploadFile',
-    paramSchema: actionUploadFileParamSchema,
-    call,
   });
 };
 

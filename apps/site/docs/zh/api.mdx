@@ -111,7 +111,7 @@ const agent = new PuppeteerAgent(page, {
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
 - `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
-- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiUploadFile()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
 
@@ -176,7 +176,7 @@ await agent.aiAct('发布一条微博，内容为 "Hello World"');
 
 ### `agent.aiTap()`
 
-点击某个元素。
+点击某个元素。也支持文件上传功能，当点击触发文件选择器时可自动上传文件。
 
 - 类型
 
@@ -190,6 +190,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不再明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
+    - `files?: string | string[]` - 当点击触发文件选择器时要上传的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
 - 返回值：
 
   - `Promise<void>`
@@ -201,6 +202,10 @@ await agent.aiTap('页面顶部的登录按钮');
 
 // 使用 deepThink 功能精确定位元素
 await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
+
+// 文件上传：点击上传按钮并选择文件
+await agent.aiTap('选择文件按钮', { files: ['./document.pdf'] });
+await agent.aiTap('上传图片', { files: ['./image1.jpg', './image2.png'] });
 ```
 
 ### `agent.aiHover()`
@@ -343,56 +348,6 @@ await agent.aiScroll(
   '表单区域',
 );
 ```
-
-### `agent.aiUploadFile()`
-
-> 仅在 web 页面中可用（Playwright、Puppeteer），在 Android、iOS 和 Chrome Extension 模式下不可用
-
-上传文件到页面的文件输入框或上传按钮。
-
-- 类型
-
-```typescript
-function aiUploadFile(
-  locate: string | Object,
-  files: string | string[],
-  options?: Object,
-): Promise<void>;
-```
-
-- 参数：
-
-  - `locate: string | Object` - 用自然语言描述的上传按钮或文件输入框的位置，或[使用图片作为提示词](#使用图片作为提示词)。
-  - `files: string | string[]` - 要上传的文件路径。可以是单个文件路径（字符串）或多个文件路径（字符串数组）。支持绝对路径和相对路径；相对路径将相对于当前进程的工作目录（`process.cwd()`）进行解析。
-  - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不再明显。
-    - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
-    - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-
-- 返回值：
-
-  - `Promise<void>`
-
-- 示例：
-
-```typescript
-// 上传单个文件
-await agent.aiUploadFile('选择文件按钮', './document.pdf');
-
-// 上传多个文件
-await agent.aiUploadFile('上传图片', ['./image1.jpg', './image2.png']);
-
-// 使用绝对路径
-await agent.aiUploadFile('选择文件', '/absolute/path/to/file.txt');
-```
-
-:::warning 注意
-
-- Chrome Extension 模式不支持文件上传功能。如需使用文件上传，请改用 Playwright 或 Puppeteer。
-- 文件路径必须指向实际存在的文件，否则会抛出 "File not found" 错误。
-- 此功能也可以通过 `agent.aiAct()` 或 `agent.ai()` 自动规划调用。
-
-:::
 
 ### `agent.aiDoubleClick()`
 

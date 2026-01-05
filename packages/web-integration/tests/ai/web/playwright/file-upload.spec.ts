@@ -3,11 +3,7 @@ import { expect } from 'playwright/test';
 import { test } from './fixture';
 
 test.describe('file upload functionality', () => {
-  test('should upload single file', async ({
-    aiUploadFile,
-    aiAssert,
-    page,
-  }) => {
+  test('should upload single file', async ({ aiTap, aiAssert, page }) => {
     const testFile = join(__dirname, '../../fixtures/test-file.txt');
 
     await page.goto(
@@ -15,18 +11,14 @@ test.describe('file upload functionality', () => {
     );
 
     // Upload single file
-    await aiUploadFile('Choose Single File', testFile);
+    await aiTap('Choose Single File', { files: [testFile] });
 
     // Verify file is selected
     await aiAssert('page displays "test-file.txt"');
     await aiAssert('page displays "single"');
   });
 
-  test('should upload multiple files', async ({
-    aiUploadFile,
-    aiAssert,
-    page,
-  }) => {
+  test('should upload multiple files', async ({ aiTap, aiAssert, page }) => {
     const testFile1 = join(__dirname, '../../fixtures/test-file-1.txt');
     const testFile2 = join(__dirname, '../../fixtures/test-file-2.txt');
 
@@ -35,7 +27,7 @@ test.describe('file upload functionality', () => {
     );
 
     // Upload multiple files
-    await aiUploadFile('Choose Files', [testFile1, testFile2]);
+    await aiTap('Choose Files', { files: [testFile1, testFile2] });
 
     // Verify files are selected
     await aiAssert('page displays "test-file-1.txt"');
@@ -43,36 +35,28 @@ test.describe('file upload functionality', () => {
     await aiAssert('page displays "multiple"');
   });
 
-  test('should handle relative paths', async ({
-    aiUploadFile,
-    aiAssert,
-    page,
-  }) => {
+  test('should handle relative paths', async ({ aiTap, aiAssert, page }) => {
     await page.goto(
       `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
     );
 
     // Upload file using relative path
-    await aiUploadFile(
-      'Choose Single File',
-      './tests/ai/fixtures/relative-test.txt',
-    );
+    await aiTap('Choose Single File', {
+      files: ['./tests/ai/fixtures/relative-test.txt'],
+    });
 
     // Verify file is selected
     await aiAssert('page displays "relative-test.txt"');
   });
 
-  test('should throw error for non-existent file', async ({
-    aiUploadFile,
-    page,
-  }) => {
+  test('should throw error for non-existent file', async ({ aiTap, page }) => {
     await page.goto(
       `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
     );
 
     // Attempt to upload non-existent file
     await expect(
-      aiUploadFile('Choose Files', './non-existent-file.txt'),
+      aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
     ).rejects.toThrow('File not found');
   });
 });

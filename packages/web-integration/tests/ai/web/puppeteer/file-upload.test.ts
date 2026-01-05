@@ -27,7 +27,7 @@ describe('file upload functionality', () => {
     const agent = new PuppeteerAgent(originPage);
 
     // Upload single file
-    await agent.aiUploadFile('Choose Single File', testFile);
+    await agent.aiTap('Choose Single File', { files: [testFile] });
 
     // Verify file is selected
     await agent.aiAssert('page displays "test-file.txt"');
@@ -46,7 +46,7 @@ describe('file upload functionality', () => {
     const agent = new PuppeteerAgent(originPage);
 
     // Upload multiple files
-    await agent.aiUploadFile('Choose Files', [testFile1, testFile2]);
+    await agent.aiTap('Choose Files', { files: [testFile1, testFile2] });
 
     // Verify files are selected
     await agent.aiAssert('page displays "test-file-1.txt"');
@@ -63,10 +63,9 @@ describe('file upload functionality', () => {
     const agent = new PuppeteerAgent(originPage);
 
     // Upload file using relative path
-    await agent.aiUploadFile(
-      'Choose Single File',
-      './tests/ai/fixtures/relative-test.txt',
-    );
+    await agent.aiTap('Choose Single File', {
+      files: ['./tests/ai/fixtures/relative-test.txt'],
+    });
 
     // Verify file is selected
     await agent.aiAssert('page displays "relative-test.txt"');
@@ -82,7 +81,7 @@ describe('file upload functionality', () => {
 
     // Attempt to upload non-existent file
     await expect(
-      agent.aiUploadFile('Choose Files', './non-existent-file.txt'),
+      agent.aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
     ).rejects.toThrow('File not found');
   });
 });
