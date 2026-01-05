@@ -1,4 +1,49 @@
 # 更新日志
+ 
+## v1.1 - `aiAct`深度思考与可扩展的 MCP SDK
+
+v1.1 版本在模型规划能力与 MCP 扩展性上实现优化，让复杂场景的自动化更稳定，同时为企业级 MCP 服务部署提供更灵活的方案。
+
+### `aiAct` 可开启深度思考能力（deepThink）
+
+在 `aiAct` 时开启深度思考能力后，模型会更加深入地理解用户意图、优化规划结果，适用于复杂表单、多步骤流程等场景。它会带来更高的准确率，但也会增加规划耗时。
+
+目前已支持阿里云的 Qwen3-vl 与火山引擎的 Doubao-vision 模型，具体请参考 [模型策略](./model-strategy)。
+
+示例用法：
+
+```typescript
+await agent.aiAct('如果界面上展示“添加收货地址”按钮，那么展开已有的“收货地址”列表，并选择最后一项', { deepThink: true });
+```
+
+### MCP 扩展与 SDK 开放
+
+开发者可以使用 Midscene 暴露的 MCP SDK 灵活部署自己的公共 MCP 服务。此能力适用于任意平台的 Agent 实例。
+
+典型应用场景：
+- 在企业内网中运行 MCP 控制私有设备池
+- 将 Midscene 能力封装为内部微服务供多团队使用
+- 扩展自定义自动化工具链
+
+详见文档：[MCP 服务](./mcp)
+
+### Chrome 扩展优化
+- 修复录制期间的潜在事件丢失问题，提升录制稳定性
+- 优化 `describeElement` 的坐标传递，提高元素描述准确性
+
+### CLI 与配置增强
+- **文件参数支持**: 修复 CLI 在同时指定 `--config` 时未正确处理 `--files` 参数的问题，现在可灵活组合使用
+- **动态配置**: 修复 Playground 中环境变量 `MIDSCENE_REPLANNING_CYCLE_LIMIT` 未正确读取的问题
+
+### iOS Agent兼容性提升
+- 优化 `getWindowSize` 方法，在新版本 API 不可用时自动回退到 legacy endpoint，提升对 WebDriverAgent 版本的兼容性
+
+### 报告与 Playground 改进
+- 修复报告在访问屏幕属性前未正确初始化的问题
+- 修复 Playground 中 stop 函数的异常行为
+- 优化视频导出时的错误处理，避免 frame cancel 导致的崩溃
+
+感谢贡献者：@FriedRiceNoodles
 
 ## v1.0 - Midscene v1.0 正式发布！
 

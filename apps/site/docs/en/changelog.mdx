@@ -1,5 +1,50 @@
 # Changelog
 
+## v1.1 - `aiAct` deep thinking and extensible MCP SDK
+
+v1.1 optimizes model planning capabilities and MCP extensibility, making automation more stable in complex scenarios while providing more flexible solutions for enterprise MCP service deployments.
+
+### `aiAct` can enable deep thinking (deepThink)
+
+When deep thinking is enabled in `aiAct`, the model will interpret intent more thoroughly and optimize its planning results. This is suited for complex forms, multi-step flows, and similar scenarios. It improves accuracy but increases planning latency.
+
+Currently supported: Qwen3-vl on Alibaba Cloud and Doubao-vision on Volcano Engine. See [Model strategy](./model-strategy) for details.
+
+Example usage:
+
+```typescript
+await agent.aiAct('If the UI shows an "Add shipping address" button, expand the existing "Shipping address" list and select the last item', { deepThink: true });
+```
+
+### MCP extension and SDK exposure
+
+Developers can use the MCP SDK exposed by Midscene to flexibly deploy a public MCP service. This capability applies to Agent instances on any platform.
+
+Typical application scenarios:
+- Run MCP in enterprise intranet to control private device pools
+- Package Midscene capabilities as internal microservices for multiple teams
+- Extend custom automation toolchains
+
+See documentation: [MCP Services](./mcp)
+
+### Chrome extension improvements
+- Fixed potential event loss during recording, improving recording stability
+- Optimized coordinate passing in `describeElement` for better element description accuracy
+
+### CLI and configuration enhancements
+- **File parameter support**: Fixed CLI issue where `--files` parameter wasn't properly handled when `--config` was specified; now they can be flexibly combined
+- **Dynamic configuration**: Fixed Playground not reading the `MIDSCENE_REPLANNING_CYCLE_LIMIT` environment variable properly
+
+### iOS Agent compatibility improvements
+- Optimized `getWindowSize` method to automatically fall back to legacy endpoint when newer API is unavailable, improving compatibility with WebDriverAgent versions
+
+### Report and Playground improvements
+- Fixed issue where report wasn't properly initialized before accessing screen properties
+- Fixed abnormal behavior of stop function in Playground
+- Improved error handling during video export to avoid crashes caused by frame cancel
+
+Thanks to contributors: @FriedRiceNoodles
+
 ## v1.0 - Midscene v1.0 is here!
 
 Midscene v1.0 is here! Try it out today and see how it can help you automate your workflows.
