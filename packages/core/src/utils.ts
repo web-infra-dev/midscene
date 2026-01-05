@@ -374,7 +374,7 @@ function extractAndSaveScreenshots(
       }
       if (!base64Data) {
         console.warn(
-          'extractAndSaveScreenshots: could not resolve image reference:',
+          'Could not resolve image reference, skipping screenshot:',
           value,
         );
         parent[key] = null;
@@ -401,7 +401,7 @@ function extractAndSaveScreenshots(
       parent[key] = `./screenshots/${screenshotFileName}`;
     } else {
       console.warn(
-        'extractAndSaveScreenshots: encountered invalid image data, skipping screenshot for key:',
+        'Invalid image data format, skipping screenshot for key:',
         key,
       );
       parent[key] = null;
