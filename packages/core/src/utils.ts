@@ -390,13 +390,13 @@ function extractAndSaveScreenshots(
 
     // Extract base64 content and save to file
     const parts = base64Data.split(',');
-    const hasValidPrefix =
+    const isValidBase64DataUri =
       parts.length === 2 &&
       !!parts[1] &&
       typeof parts[0] === 'string' &&
       /^data:image\/[a-zA-Z0-9.+-]+;base64$/.test(parts[0]);
 
-    if (hasValidPrefix) {
+    if (isValidBase64DataUri) {
       writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
       parent[key] = `./screenshots/${screenshotFileName}`;
     } else {
