@@ -55,10 +55,12 @@ export class ScreenshotRegistry {
    * @returns The ID reference (e.g., "groupName-img-0")
    */
   register(base64: string): string {
-    const id = `${this.groupId}-img-${this.counter++}`;
+    const id = `${this.groupId}-img-${this.counter}`;
     const filePath = path.join(this.tempDir, `${id}.b64`);
     writeFileSync(filePath, base64);
+    // Increment counter only after successful write to avoid ID gaps on failure
     this.screenshots.set(id, filePath);
+    this.counter++;
     return id;
   }
 
