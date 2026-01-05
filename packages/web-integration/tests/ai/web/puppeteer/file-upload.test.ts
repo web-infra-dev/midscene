@@ -9,8 +9,16 @@ vi.setConfig({
 
 describe('file upload functionality', () => {
   let resetFn: () => Promise<void>;
+  let agent: PuppeteerAgent;
 
   afterEach(async () => {
+    if (agent) {
+      try {
+        await agent.destroy();
+      } catch (e) {
+        console.warn('agent destroy error', e);
+      }
+    }
     if (resetFn) {
       await resetFn();
     }
@@ -24,7 +32,7 @@ describe('file upload functionality', () => {
     );
     resetFn = reset;
 
-    const agent = new PuppeteerAgent(originPage);
+    agent = new PuppeteerAgent(originPage);
 
     // Upload single file
     await agent.aiTap('Choose Single File', { files: [testFile] });
@@ -43,7 +51,7 @@ describe('file upload functionality', () => {
     );
     resetFn = reset;
 
-    const agent = new PuppeteerAgent(originPage);
+    agent = new PuppeteerAgent(originPage);
 
     // Upload multiple files
     await agent.aiTap('Choose Files', { files: [testFile1, testFile2] });
@@ -60,7 +68,7 @@ describe('file upload functionality', () => {
     );
     resetFn = reset;
 
-    const agent = new PuppeteerAgent(originPage);
+    agent = new PuppeteerAgent(originPage);
 
     // Upload file using relative path
     await agent.aiTap('Choose Single File', {
@@ -77,11 +85,11 @@ describe('file upload functionality', () => {
     );
     resetFn = reset;
 
-    const agent = new PuppeteerAgent(originPage);
+    agent = new PuppeteerAgent(originPage);
 
     // Attempt to upload non-existent file
     await expect(
       agent.aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
-    ).rejects.toThrow('File not found');
+    ).rejects.toThrow(/File not found/);
   });
 });

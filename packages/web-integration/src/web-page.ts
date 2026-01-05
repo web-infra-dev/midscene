@@ -431,16 +431,18 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     assert(element, 'Element not found, cannot tap');
 
     // If files are provided and page supports uploadFile, handle file upload
-    if (
-      param.files &&
-      'uploadFile' in page &&
-      typeof page.uploadFile === 'function'
-    ) {
-      await (page as any).uploadFile(param.files, async () => {
-        await page.mouse.click(element.center[0], element.center[1], {
-          button: 'left',
+    if (param.files) {
+      if ('uploadFile' in page && typeof page.uploadFile === 'function') {
+        await (page as any).uploadFile(param.files, async () => {
+          await page.mouse.click(element.center[0], element.center[1], {
+            button: 'left',
+          });
         });
-      });
+      } else {
+        throw new Error(
+          'File upload is not supported on this page type. Files were provided but the page does not implement uploadFile method.',
+        );
+      }
     } else {
       await page.mouse.click(element.center[0], element.center[1], {
         button: 'left',
