@@ -224,13 +224,6 @@ export function reportHTMLContent(
 const screenshotCounterMap = new Map<string, number>();
 
 /**
- * Check if a value is a base64 image data URI
- */
-function isBase64ImageData(value: unknown): value is string {
-  return typeof value === 'string' && value.startsWith('data:image/');
-}
-
-/**
  * Check if a value is a serialized ScreenshotItem: { $screenshot: string }
  */
 function isSerializedScreenshotItem(
@@ -240,24 +233,17 @@ function isSerializedScreenshotItem(
 }
 
 /**
- * Check if a value is an image field (ScreenshotItem serialized format or legacy base64)
+ * Check if a value is an image field (ScreenshotItem serialized format)
  */
 function isImageField(
   key: string,
   value: unknown,
-): value is { $screenshot: string } | string {
+): value is { $screenshot: string } {
   if (key !== 'screenshot' && key !== 'screenshotBase64') {
     return false;
   }
   // New format: { $screenshot: "id" or "base64" }
-  if (isSerializedScreenshotItem(value)) {
-    return true;
-  }
-  // Legacy format: direct base64 string
-  if (isBase64ImageData(value)) {
-    return true;
-  }
-  return false;
+  return isSerializedScreenshotItem(value);
 }
 
 /**
@@ -272,7 +258,7 @@ function getImageValue(value: { $screenshot: string } | string): string {
 
 /**
  * Recursively traverse object and process image fields
- * Handles both new ScreenshotItem format { $screenshot: "id" } and legacy base64 strings
+ * Handles ScreenshotItem format { $screenshot: "id" }
  */
 function traverseImageFields(
   obj: unknown,
@@ -431,21 +417,14 @@ function extractAndSaveScreenshots(
         base64Data = screenshotRegistry.get(value);
       }
       if (!base64Data) {
-        // Value might be base64 directly if no registry was used
-        if (isBase64ImageData(value)) {
-          base64Data = value;
-        } else {
-          // Could not resolve screenshot ID and value is not base64
-          // Set to empty string so downstream code can handle gracefully
-          warnings.push({ type: 'unresolved', info: String(value) });
-          parent[key] = { $screenshot: '' };
-          return;
-        }
+        // Could not resolve screenshot ID
+        // Set to empty string so downstream code can handle gracefully
+        warnings.push({ type: 'unresolved', info: String(value) });
+        parent[key] = { $screenshot: '' };
+        return;
       }
-    } else if (isBase64ImageData(value)) {
-      // Legacy format: direct base64 data
-      base64Data = value;
     } else {
+      // Not in new format, skip
       parent[key] = null;
       return;
     }
