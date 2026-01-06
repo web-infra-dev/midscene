@@ -13,10 +13,8 @@ import type {
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import {
-  type ScreenshotRegistry,
-  ScreenshotRegistry as ScreenshotRegistryClass,
-} from './screenshot-registry';
+import type { ScreenshotItem } from './screenshot-item';
+import type { ScreenshotRegistry } from './screenshot-registry';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
@@ -114,10 +112,10 @@ export class TaskRunner {
     }
   }
 
-  private async captureScreenshot(): Promise<string | undefined> {
+  private async captureScreenshot(): Promise<ScreenshotItem | undefined> {
     try {
       const uiContext = await this.getUiContext({ forceRefresh: true });
-      return uiContext?.screenshotBase64;
+      return uiContext?.screenshot;
     } catch (error) {
       console.error('error while capturing screenshot', error);
     }
@@ -126,37 +124,18 @@ export class TaskRunner {
 
   private attachRecorderItem(
     task: ExecutionTask,
-    contextOrScreenshot: UIContext | string | undefined,
+    screenshot: ScreenshotItem | undefined,
     phase: 'after-calling',
   ): void {
-    const timing = phase;
-    const screenshotBase64 =
-      typeof contextOrScreenshot === 'string'
-        ? contextOrScreenshot
-        : contextOrScreenshot?.screenshotBase64;
-    if (!timing || !screenshotBase64) {
+    if (!phase || !screenshot) {
       return;
-    }
-
-    // Register screenshot to registry and store ID reference instead of base64
-    let screenshot: string;
-    if (this.screenshotRegistry) {
-      // Check if already a reference to avoid double registration
-      if (ScreenshotRegistryClass.isImageReference(screenshotBase64)) {
-        screenshot = screenshotBase64;
-      } else {
-        const id = this.screenshotRegistry.register(screenshotBase64);
-        screenshot = this.screenshotRegistry.buildReference(id);
-      }
-    } else {
-      screenshot = screenshotBase64;
     }
 
     const recorderItem: ExecutionRecorderItem = {
       type: 'screenshot',
       ts: Date.now(),
       screenshot,
-      timing,
+      timing: phase,
     };
 
     if (!task.recorder) {
@@ -298,34 +277,9 @@ export class TaskRunner {
           uiContext = await this.getUiContext();
         }
 
-        // Store uiContext in task for dump, but with screenshotBase64 converted to reference
-        // if screenshotRegistry is available. This reduces memory usage in dump.
-        if (
-          uiContext &&
-          this.screenshotRegistry &&
-          uiContext.screenshotBase64
-        ) {
-          // Check if already a reference (from subTask reusing previous task's uiContext)
-          if (
-            ScreenshotRegistryClass.isImageReference(uiContext.screenshotBase64)
-          ) {
-            // Already converted, use as-is
-            task.uiContext = uiContext;
-          } else {
-            const screenshotId = this.screenshotRegistry.register(
-              uiContext.screenshotBase64,
-            );
-            const screenshotRef =
-              this.screenshotRegistry.buildReference(screenshotId);
-            // Create a copy with the reference instead of base64 data
-            task.uiContext = {
-              ...uiContext,
-              screenshotBase64: screenshotRef,
-            } as UIContext;
-          }
-        } else {
-          task.uiContext = uiContext;
-        }
+        // Store uiContext in task for dump
+        // ScreenshotItem handles serialization automatically via toJSON()
+        task.uiContext = uiContext;
 
         const executorContext: ExecutorContext = {
           task,

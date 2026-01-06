@@ -316,28 +316,28 @@ export function App() {
                 const content = antiEscapeScriptTag(el.textContent || '');
                 cachedJsonContent = JSON.parse(content) as GroupedActionDump;
 
-                // Restore image references from separate script tags
-                if (hasImages) {
-                  console.time('restore_images');
-                  cachedJsonContent = restoreImageReferences(
-                    cachedJsonContent,
-                    imageMap,
-                  );
-                  console.timeEnd('restore_images');
-                }
+                // Restore image references (handles both embedded script tags and directory-based reports)
+                // Must always run to convert { $screenshot: "..." } objects to strings
+                console.time('restore_images');
+                cachedJsonContent = restoreImageReferences(
+                  cachedJsonContent,
+                  imageMap,
+                );
+                console.timeEnd('restore_images');
 
                 console.timeEnd('parse_dump');
-                cachedJsonContent.attributes = attributes;
                 isParsed = true;
               } catch (e) {
                 console.error(el);
                 console.error('failed to parse json content', e);
                 // Return a fallback object to prevent crashes
-                // Type assertion needed: error fallback doesn't match GroupedActionDump
                 cachedJsonContent = {
-                  attributes,
-                  error: 'Failed to parse JSON content',
-                } as unknown as GroupedActionDump;
+                  sdkVersion: 'unknown',
+                  groupName: 'Error',
+                  groupDescription: 'Failed to parse JSON content',
+                  modelBriefs: [],
+                  executions: [],
+                } as GroupedActionDump;
                 isParsed = true;
               }
             }

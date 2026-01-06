@@ -226,9 +226,7 @@ class PlaygroundServer {
         if (executionDump) {
           try {
             const imageMap = this.agent?.getImageMap?.() ?? {};
-            if (Object.keys(imageMap).length > 0) {
-              executionDump = restoreImageReferences(executionDump, imageMap);
-            }
+            executionDump = restoreImageReferences(executionDump, imageMap);
           } catch (error: unknown) {
             console.warn(
               'Failed to restore image references in task progress:',

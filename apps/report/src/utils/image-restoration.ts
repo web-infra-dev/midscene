@@ -30,15 +30,33 @@ export function loadImageMap(): ImageIdToBase64Map {
 }
 
 /**
- * Check if a value is an image reference string.
+ * Check if a value is an image reference string (legacy format).
  */
 function isImageReference(value: unknown): value is string {
   return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
 }
 
 /**
+ * Check if a value is a serialized ScreenshotItem: { $screenshot: string }
+ * Also handles { $screenshot: undefined } case by returning false
+ */
+function isSerializedScreenshotItem(
+  value: unknown,
+): value is { $screenshot: string } {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  if (!('$screenshot' in value)) {
+    return false;
+  }
+  const screenshot = (value as { $screenshot: unknown }).$screenshot;
+  // Must be a non-empty string
+  return typeof screenshot === 'string' && screenshot.length > 0;
+}
+
+/**
  * Recursively restore image references in parsed data.
- * Replaces references like "#midscene-img:img-0" with the actual base64 data.
+ * Handles both new format { $screenshot: "id" } and legacy format "#midscene-img:id".
  *
  * @param data - The parsed JSON data with image references
  * @param imageMap - Map of image IDs to base64 data
@@ -49,14 +67,13 @@ export function restoreImageReferences<T>(
   imageMap: ImageIdToBase64Map,
 ): T {
   if (typeof data === 'string') {
+    // Legacy format: "#midscene-img:id"
     if (isImageReference(data)) {
       const id = data.slice(IMAGE_REF_PREFIX.length);
       const base64 = imageMap[id];
       if (base64) {
-        // Type assertion: string is assignable to T when T extends string
         return base64 as T;
       }
-      // Return original reference if not found (for debugging)
       const availableIds = Object.keys(imageMap).join(', ') || 'none';
       console.warn(
         `Image not found for reference: ${data}. Available IDs: ${availableIds}`,
@@ -67,16 +84,60 @@ export function restoreImageReferences<T>(
   }
 
   if (Array.isArray(data)) {
-    // Type assertion: array mapping preserves array type
     return data.map((item) => restoreImageReferences(item, imageMap)) as T;
   }
 
   if (typeof data === 'object' && data !== null) {
+    // Handle { $screenshot: ... } format (including empty/undefined values)
+    if ('$screenshot' in data) {
+      const screenshot = (data as { $screenshot: unknown }).$screenshot;
+
+      // Handle undefined or null
+      if (screenshot === undefined || screenshot === null) {
+        return '' as T;
+      }
+
+      // Handle non-string values
+      if (typeof screenshot !== 'string') {
+        console.warn('Invalid $screenshot value type:', typeof screenshot);
+        return '' as T;
+      }
+
+      // Handle empty string
+      if (screenshot.length === 0) {
+        return '' as T;
+      }
+
+      // Check if it's already base64 data
+      if (screenshot.startsWith('data:image/')) {
+        return screenshot as T;
+      }
+
+      // Check if it's a file path (for directory-based reports)
+      if (screenshot.startsWith('./') || screenshot.startsWith('/')) {
+        return screenshot as T;
+      }
+
+      // It's an ID, look up in imageMap
+      const base64 = imageMap[screenshot];
+      if (base64) {
+        return base64 as T;
+      }
+
+      // Fallback: return the value as-is (could be a placeholder)
+      if (Object.keys(imageMap).length > 0) {
+        const availableIds = Object.keys(imageMap).join(', ');
+        console.warn(
+          `Image not found for ID: ${screenshot}. Available IDs: ${availableIds}`,
+        );
+      }
+      return screenshot as T;
+    }
+
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       result[key] = restoreImageReferences(value, imageMap);
     }
-    // Type assertion: reconstructed object matches original shape
     return result as T;
   }
 

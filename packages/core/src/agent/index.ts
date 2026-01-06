@@ -1,5 +1,5 @@
 export { Agent, createAgent } from './agent';
-export { commonContextParser } from './utils';
+export { type RawUIContextData, commonContextParser } from './utils';
 export {
   getReportFileName,
   printReportMsg,

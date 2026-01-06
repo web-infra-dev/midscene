@@ -4,9 +4,9 @@ import type {
   ElementCacheFeature,
   ElementTreeNode,
   Point,
+  RawUIContextData,
   Rect,
   Size,
-  UIContext,
 } from '@midscene/core';
 import {
   AiJudgeOrderSensitive,
@@ -608,7 +608,7 @@ export class Page<
 
   async destroy(): Promise<void> {}
 
-  async getContext(): Promise<UIContext> {
+  async getContext(): Promise<RawUIContextData> {
     return await WebPageContextParser(this, {});
   }
   async swipe(

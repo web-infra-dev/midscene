@@ -169,6 +169,13 @@ export class ScreenshotRegistry {
   }
 
   /**
+   * Check if a screenshot ID is registered
+   */
+  has(id: string): boolean {
+    return this.screenshots.has(id);
+  }
+
+  /**
    * Get the number of registered screenshots
    */
   get size(): number {
@@ -215,6 +222,69 @@ function isImageReferenceValue(value: unknown): value is string {
 }
 
 /**
+ * Restore a screenshot object's value to base64 or file path.
+ * Handles multiple formats: base64, file path, legacy reference, or ID.
+ *
+ * IMPORTANT: This function always processes { $screenshot: "..." } objects,
+ * even when imageMap is empty. This is required to convert objects to strings
+ * for proper rendering in visualizer components.
+ *
+ * @param screenshot - The $screenshot property value
+ * @param imageMap - Map of image IDs to base64 data
+ * @returns The resolved screenshot value (base64, path, or ID)
+ */
+function restoreScreenshotObject(
+  screenshot: unknown,
+  imageMap: Record<string, string>,
+): string {
+  // Handle undefined or null
+  if (screenshot === undefined || screenshot === null) {
+    return '';
+  }
+
+  // Handle non-string values
+  if (typeof screenshot !== 'string') {
+    console.warn('Invalid $screenshot value type:', typeof screenshot);
+    return '';
+  }
+
+  // Handle empty string
+  if (screenshot.length === 0) {
+    return '';
+  }
+
+  // Check if it's already base64 data
+  if (screenshot.startsWith('data:image/')) {
+    return screenshot;
+  }
+
+  // Check if it's a file path (for directory-based reports)
+  if (screenshot.startsWith('./') || screenshot.startsWith('/')) {
+    return screenshot;
+  }
+
+  // Extract ID if legacy format, otherwise use screenshot directly
+  const lookupId = screenshot.startsWith(IMAGE_REF_PREFIX)
+    ? screenshot.slice(IMAGE_REF_PREFIX.length)
+    : screenshot;
+
+  // Look up in imageMap
+  const base64 = imageMap[lookupId];
+  if (base64) {
+    return base64;
+  }
+
+  // Fallback: warn and return original value
+  const availableIds = Object.keys(imageMap);
+  if (availableIds.length > 0) {
+    console.warn(
+      `Image not found for ID: ${screenshot}. Available IDs: ${availableIds.join(', ')}`,
+    );
+  }
+  return screenshot;
+}
+
+/**
  * Recursively restore image references in parsed data.
  * Replaces references like "#midscene-img:img-0" with the actual base64 data.
  *
@@ -247,6 +317,12 @@ export function restoreImageReferences<T>(
   }
 
   if (typeof data === 'object' && data !== null) {
+    // Handle { $screenshot: ... } format (new ScreenshotItem serialization)
+    if ('$screenshot' in data) {
+      const screenshot = (data as { $screenshot: unknown }).$screenshot;
+      return restoreScreenshotObject(screenshot, imageMap) as T;
+    }
+
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       result[key] = restoreImageReferences(value, imageMap);

@@ -10,6 +10,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import type { ScreenshotItem } from './screenshot-item';
 import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
 
 export type {
@@ -113,7 +114,7 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  abstract screenshotBase64: string;
+  abstract screenshot: ScreenshotItem;
 
   abstract size: Size;
 
@@ -315,7 +316,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: string;
+  screenshot?: ScreenshotItem;
   timing?: string;
 }
 

@@ -258,9 +258,7 @@ export function extractDumpWithImages(
 
     // Get image map and restore references
     const imageMap = agent.getImageMap?.() ?? {};
-    if (Object.keys(imageMap).length > 0) {
-      dump = restoreImageReferences(dump, imageMap);
-    }
+    dump = restoreImageReferences(dump, imageMap);
 
     return dump;
   } catch (error: unknown) {

@@ -38,6 +38,10 @@ export {
   restoreImageReferences,
 } from './screenshot-registry';
 
+export { ScreenshotItem } from './screenshot-item';
+
+export type { RawUIContextData } from './agent/utils';
+
 export type {
   MidsceneYamlScript,
   MidsceneYamlTask,

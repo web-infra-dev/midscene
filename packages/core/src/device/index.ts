@@ -1,3 +1,4 @@
+import type { RawUIContextData } from '@/agent/utils';
 import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
@@ -9,7 +10,7 @@ import type { ElementNode } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
-import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
+import type { ElementCacheFeature, Rect, Size } from '../types';
 
 export abstract class AbstractInterface {
   abstract interfaceType: string;
@@ -45,7 +46,7 @@ export abstract class AbstractInterface {
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 
   // @deprecated do NOT extend this method
-  abstract getContext?(): Promise<UIContext>;
+  abstract getContext?(): Promise<RawUIContextData>;
 }
 
 // Generic function to define actions with proper type inference

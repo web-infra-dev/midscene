@@ -30,6 +30,7 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
+import { ScreenshotItem } from '../screenshot-item';
 import { ScreenshotRegistry } from '../screenshot-registry';
 export type TestStatus =
   | 'passed'
@@ -71,6 +72,7 @@ import { TaskCache } from './task-cache';
 import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
+  type RawUIContextData,
   commonContextParser,
   getReportFileName,
   parsePrompt,
@@ -251,14 +253,16 @@ export class Agent<
   /**
    * Lazily compute the ratio between the physical screenshot width and the logical page width
    */
-  private async getScreenshotScale(context: UIContext): Promise<number> {
+  private async getScreenshotScale(
+    rawContext: RawUIContextData,
+  ): Promise<number> {
     if (this.screenshotScale !== undefined) {
       return this.screenshotScale;
     }
 
     if (!this.screenshotScalePromise) {
       this.screenshotScalePromise = (async () => {
-        const pageWidth = context.size?.width;
+        const pageWidth = rawContext.size?.width;
         assert(
           pageWidth && pageWidth > 0,
           `Invalid page width when computing screenshot scale: ${pageWidth}`,
@@ -266,7 +270,7 @@ export class Agent<
 
         debug('will get image info of base64');
         const { width: screenshotWidth } = await imageInfoOfBase64(
-          context.screenshotBase64,
+          rawContext.screenshotBase64,
         );
         debug('image info of base64 done');
 
@@ -433,39 +437,49 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    // Get original context
-    let context: UIContext;
+    // Get raw context data (with base64 string)
+    let rawContext: RawUIContextData;
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      context = await this.interface.getContext();
+      rawContext = await this.interface.getContext();
     } else {
       debug('Using commonContextParser');
-      context = await commonContextParser(this.interface, {
+      rawContext = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
 
     debug('will get screenshot scale');
-    const computedScreenshotScale = await this.getScreenshotScale(context);
+    const computedScreenshotScale = await this.getScreenshotScale(rawContext);
     debug('computedScreenshotScale', computedScreenshotScale);
 
+    let finalBase64 = rawContext.screenshotBase64;
     if (computedScreenshotScale !== 1) {
       const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
       debug(
         `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
       );
-      const targetWidth = Math.round(context.size.width);
-      const targetHeight = Math.round(context.size.height);
+      const targetWidth = Math.round(rawContext.size.width);
+      const targetHeight = Math.round(rawContext.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      context.screenshotBase64 = await resizeImgBase64(
-        context.screenshotBase64,
-        { width: targetWidth, height: targetHeight },
-      );
+      finalBase64 = await resizeImgBase64(rawContext.screenshotBase64, {
+        width: targetWidth,
+        height: targetHeight,
+      });
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
 
-    return context;
+    // Create ScreenshotItem from the final base64, registering to registry if available
+    const screenshot = ScreenshotItem.fromBase64(
+      finalBase64,
+      this.screenshotRegistry,
+    );
+
+    return {
+      size: rawContext.size,
+      screenshot,
+    };
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -1347,16 +1361,13 @@ export class Agent<
     const base64 = await this.interface.screenshotBase64();
     const now = Date.now();
 
-    // 2. Register screenshot to registry and get reference (if registry available)
-    let screenshot: string;
-    if (this.screenshotRegistry) {
-      const id = this.screenshotRegistry.register(base64);
-      screenshot = this.screenshotRegistry.buildReference(id);
-    } else {
-      screenshot = base64;
-    }
+    // 2. Create ScreenshotItem (registers to registry if available)
+    const screenshot = ScreenshotItem.fromBase64(
+      base64,
+      this.screenshotRegistry,
+    );
 
-    // 3. build recorder with reference (not raw base64)
+    // 3. build recorder with ScreenshotItem
     const recorder: ExecutionRecorderItem[] = [
       {
         type: 'screenshot',
