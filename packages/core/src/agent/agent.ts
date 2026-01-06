@@ -387,7 +387,14 @@ export class Agent<
     // Registry is used for both single-file HTML and directory-based reports
     // to avoid holding base64 data in memory
     if (this.opts.generateReport) {
-      this.screenshotRegistry = new ScreenshotRegistry(this.opts.groupName!);
+      try {
+        this.screenshotRegistry = new ScreenshotRegistry(this.opts.groupName!);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to initialize ScreenshotRegistry for group "${this.opts.groupName}": ${message}`,
+        );
+      }
     }
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
