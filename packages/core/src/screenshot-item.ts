@@ -71,9 +71,7 @@ export class ScreenshotItem {
     if (registryData) return registryData;
 
     throw new Error(
-      `Screenshot data not available for id "${this._id}". ` +
-        'Ensure the screenshot was captured before accessing base64 data, ' +
-        'and verify that the screenshot registry has not been cleaned up or lost this id.',
+      `Screenshot data not available for id "${this._id}". Ensure the screenshot was captured before accessing base64 data, and verify that the screenshot registry has not been cleaned up or lost this id.`,
     );
   }
 

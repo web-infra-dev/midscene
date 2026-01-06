@@ -37,24 +37,6 @@ function isImageReference(value: unknown): value is string {
 }
 
 /**
- * Check if a value is a serialized ScreenshotItem: { $screenshot: string }
- * Also handles { $screenshot: undefined } case by returning false
- */
-function isSerializedScreenshotItem(
-  value: unknown,
-): value is { $screenshot: string } {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  if (!('$screenshot' in value)) {
-    return false;
-  }
-  const screenshot = (value as { $screenshot: unknown }).$screenshot;
-  // Must be a non-empty string
-  return typeof screenshot === 'string' && screenshot.length > 0;
-}
-
-/**
  * Recursively restore image references in parsed data.
  * Handles both new format { $screenshot: "id" } and legacy format "#midscene-img:id".
  *

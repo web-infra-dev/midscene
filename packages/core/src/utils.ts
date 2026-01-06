@@ -21,14 +21,8 @@ import {
   uuid,
 } from '@midscene/shared/utils';
 import { ScreenshotItem } from './screenshot-item';
-import { IMAGE_REF_PREFIX } from './screenshot-registry';
 import type { ScreenshotRegistry } from './screenshot-registry';
-import type {
-  Cache,
-  GroupedActionDump,
-  Rect,
-  ReportDumpWithAttributes,
-} from './types';
+import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
 
@@ -149,8 +143,15 @@ export function reportHTMLContent(
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
 
-  const { dumpString: processedDumpString, attributes } =
-    parseDumpData(dumpData);
+  let processedDumpString: string;
+  let attributes: Record<string, string> | undefined;
+
+  if (typeof dumpData === 'string') {
+    processedDumpString = dumpData;
+  } else {
+    processedDumpString = dumpData.dumpString;
+    attributes = dumpData.attributes;
+  }
 
   // Generate image script tags from registry (if available)
   const imageScriptTags = screenshotRegistry?.generateScriptTags() ?? '';

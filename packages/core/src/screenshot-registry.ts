@@ -65,16 +65,22 @@ export class ScreenshotRegistry {
     }
 
     const id = `${this.groupId}-img-${this.counter}`;
-    if (ifInBrowser) {
-      // In browser, store base64 directly in memory
-      this.screenshots.set(id, base64);
-    } else {
-      const filePath = path.join(this.tempDir, `${id}.b64`);
-      writeFileSync(filePath, base64);
-      this.screenshots.set(id, filePath);
+    try {
+      if (ifInBrowser) {
+        // In browser, store base64 directly in memory
+        this.screenshots.set(id, base64);
+      } else {
+        const filePath = path.join(this.tempDir, `${id}.b64`);
+        writeFileSync(filePath, base64);
+        this.screenshots.set(id, filePath);
+      }
+      // Only increment counter after successful write
+      this.counter++;
+      return id;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to register screenshot ${id}: ${message}`);
     }
-    this.counter++;
-    return id;
   }
 
   /**
