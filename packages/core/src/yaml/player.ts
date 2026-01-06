@@ -286,36 +286,42 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
     // Completed
     if (completedTasks.length > 0) {
-      parts.push('Completed successfully:');
-      for (const t of completedTasks) {
-        parts.push(`  ✓ Step ${t.index + 1}/${totalTasks}: "${t.name}"`);
-      }
-      parts.push('');
+      parts.push(
+        'Completed successfully:',
+        ...completedTasks.map(
+          (t) => `  ✓ Step ${t.index + 1}/${totalTasks}: "${t.name}"`,
+        ),
+        '',
+      );
     }
 
     // Failed
     if (failedTasks.length > 0) {
-      parts.push('Failed:');
-      for (const t of failedTasks) {
-        const stepInfo =
-          t.currentStep !== undefined
-            ? ` (at substep ${t.currentStep + 1}/${t.totalSteps})`
-            : '';
-        parts.push(
-          `  ✗ Step ${t.index + 1}/${totalTasks}: "${t.name}"${stepInfo}`,
-        );
-        parts.push(`    Error: ${t.error?.message || 'Unknown error'}`);
-      }
-      parts.push('');
+      parts.push(
+        'Failed:',
+        ...failedTasks.flatMap((t) => {
+          const stepInfo =
+            t.currentStep !== undefined
+              ? ` (at substep ${t.currentStep + 1}/${t.totalSteps})`
+              : '';
+          return [
+            `  ✗ Step ${t.index + 1}/${totalTasks}: "${t.name}"${stepInfo}`,
+            `    Error: ${t.error?.message || 'Unknown error'}`,
+          ];
+        }),
+        '',
+      );
     }
 
     // Pending
     if (pendingTasks.length > 0) {
-      parts.push('Remaining steps (not executed):');
-      for (const t of pendingTasks) {
-        parts.push(`  - Step ${t.index + 1}/${totalTasks}: "${t.name}"`);
-      }
-      parts.push('');
+      parts.push(
+        'Remaining steps (not executed):',
+        ...pendingTasks.map(
+          (t) => `  - Step ${t.index + 1}/${totalTasks}: "${t.name}"`,
+        ),
+        '',
+      );
     }
 
     // Guidance

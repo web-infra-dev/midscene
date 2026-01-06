@@ -299,6 +299,22 @@ export class Agent<
       : defaultReplanningCycleLimit;
   }
 
+  private buildFallbackContextFromError(cacheError: unknown): string {
+    const executionContext = (cacheError as any)?.executionContext;
+    if (executionContext?.fallbackContext) {
+      return executionContext.fallbackContext;
+    }
+
+    const errorMessage =
+      cacheError instanceof Error ? cacheError.message : String(cacheError);
+
+    return [
+      'Previous cached workflow execution failed.',
+      `Error: ${errorMessage}`,
+      'Please retry with a different approach.',
+    ].join('\n');
+  }
+
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
 
@@ -893,25 +909,7 @@ export class Agent<
           cacheError instanceof Error ? cacheError.message : String(cacheError),
         );
 
-        // Extract execution context
-        const executionContext = (cacheError as any)?.executionContext;
-        let fallbackContext: string;
-
-        if (executionContext?.fallbackContext) {
-          // Use pre-built context from runYaml
-          fallbackContext = executionContext.fallbackContext;
-        } else {
-          // Fallback: no detailed context available
-          const errorMessage =
-            cacheError instanceof Error
-              ? cacheError.message
-              : String(cacheError);
-          fallbackContext = [
-            'Previous cached workflow execution failed.',
-            `Error: ${errorMessage}`,
-            'Please retry with a different approach.',
-          ].join('\n');
-        }
+        const fallbackContext = this.buildFallbackContextFromError(cacheError);
 
         // Append failure context to original aiActContext using local variable
         contextForPlanning = this.aiActContext

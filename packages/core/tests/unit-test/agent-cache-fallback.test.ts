@@ -20,6 +20,21 @@ const createMockInterface = () =>
     actionSpace: () => [],
   }) as any;
 
+const setupDefaultMocks = (agent: Agent<any>) => {
+  agent.taskExecutor = {
+    loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
+    action: vi
+      .fn()
+      .mockResolvedValue({ output: { result: { success: true } } }),
+  } as any;
+
+  agent.modelConfigManager = {
+    getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
+  } as any;
+
+  vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
+};
+
 describe('Agent cache fallback', () => {
   let agent: Agent<any>;
 
@@ -53,21 +68,7 @@ describe('Agent cache fallback', () => {
       .spyOn(agent, 'runYaml')
       .mockRejectedValue(new Error('YAML execution failed'));
 
-    // Mock taskExecutor methods - make loadYamlFlowAsPlanning async
-    agent.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi
-        .fn()
-        .mockResolvedValue({ output: { result: { success: true } } }),
-    } as any;
-
-    // Mock model config manager to return non-vlm-ui-tars config
-    agent.modelConfigManager = {
-      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
-    } as any;
-
-    // Mock resolveReplanningCycleLimit
-    vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
+    setupDefaultMocks(agent);
 
     await agent.aiAct('test task');
 
@@ -131,21 +132,7 @@ Please continue from Step 3 and avoid repeating the successful steps.`,
 
     const runYamlSpy = vi.spyOn(agent, 'runYaml').mockRejectedValue(mockError);
 
-    // Mock taskExecutor methods
-    agent.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi
-        .fn()
-        .mockResolvedValue({ output: { result: { success: true } } }),
-    } as any;
-
-    // Mock model config manager
-    agent.modelConfigManager = {
-      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
-    } as any;
-
-    // Mock resolveReplanningCycleLimit
-    vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
+    setupDefaultMocks(agent);
 
     await agent.aiAct('test task');
 
@@ -226,22 +213,7 @@ Please continue from Step 2 and avoid repeating the successful steps.`,
 
     vi.spyOn(agentWithContext, 'runYaml').mockRejectedValue(mockError);
 
-    // Mock taskExecutor
-    agentWithContext.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi
-        .fn()
-        .mockResolvedValue({ output: { result: { success: true } } }),
-    } as any;
-
-    agentWithContext.modelConfigManager = {
-      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
-    } as any;
-
-    vi.spyOn(
-      agentWithContext as any,
-      'resolveReplanningCycleLimit',
-    ).mockReturnValue(3);
+    setupDefaultMocks(agentWithContext);
 
     await agentWithContext.aiAct('test task');
 
@@ -276,19 +248,7 @@ Please continue from Step 2 and avoid repeating the successful steps.`,
     const simpleError = new Error('Simple execution error');
     vi.spyOn(agent, 'runYaml').mockRejectedValue(simpleError);
 
-    // Mock taskExecutor
-    agent.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi
-        .fn()
-        .mockResolvedValue({ output: { result: { success: true } } }),
-    } as any;
-
-    agent.modelConfigManager = {
-      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
-    } as any;
-
-    vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
+    setupDefaultMocks(agent);
 
     await agent.aiAct('test task');
 
@@ -340,18 +300,10 @@ Please continue from Step 2 and avoid repeating the successful steps.`,
         locate: [],
       },
     };
-    agent.taskExecutor = {
-      loadYamlFlowAsPlanning: vi.fn().mockResolvedValue(undefined),
-      action: vi.fn().mockResolvedValue(mockActionResult),
-    } as any;
+    setupDefaultMocks(agent);
 
-    // Mock model config manager
-    agent.modelConfigManager = {
-      getModelConfig: vi.fn().mockReturnValue({ vlMode: 'normal' }),
-    } as any;
-
-    // Mock resolveReplanningCycleLimit
-    vi.spyOn(agent as any, 'resolveReplanningCycleLimit').mockReturnValue(3);
+    // Override action mock to return yamlFlow for cache update test
+    (agent.taskExecutor.action as any).mockResolvedValue(mockActionResult);
 
     await agent.aiAct('test task');
 
