@@ -15,11 +15,6 @@ import { escapeScriptTag, ifInBrowser, uuid } from '@midscene/shared/utils';
 export const IMAGE_SCRIPT_TYPE = 'midscene-image';
 
 /**
- * Prefix for image references in dump JSON
- */
-export const IMAGE_REF_PREFIX = '#midscene-img:';
-
-/**
  * ScreenshotRegistry manages screenshot storage during test execution.
  *
  * Instead of holding base64 data in memory (which accumulates across tasks),
@@ -59,11 +54,6 @@ export class ScreenshotRegistry {
    * @returns The ID reference (e.g., "groupName-img-0")
    */
   register(base64: string): string {
-    // If already a reference, extract and return the existing ID
-    if (base64.startsWith(IMAGE_REF_PREFIX)) {
-      return base64.slice(IMAGE_REF_PREFIX.length);
-    }
-
     const id = `${this.groupId}-img-${this.counter}`;
     try {
       if (ifInBrowser) {
@@ -150,29 +140,6 @@ export class ScreenshotRegistry {
     return tags.join('\n');
   }
 
-  /**
-   * Build the reference string for use in dump JSON
-   *
-   * @param id - The screenshot ID
-   * @returns The reference string (e.g., "#midscene-img:groupName-img-0")
-   */
-  buildReference(id: string): string {
-    return `${IMAGE_REF_PREFIX}${id}`;
-  }
-
-  /**
-   * Check if a string is an image reference
-   */
-  static isImageReference(value: unknown): value is string {
-    return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
-  }
-
-  /**
-   * Extract the ID from an image reference string
-   */
-  static extractIdFromReference(reference: string): string {
-    return reference.slice(IMAGE_REF_PREFIX.length);
-  }
 
   /**
    * Clean up temporary files
@@ -237,15 +204,8 @@ export class ScreenshotRegistry {
 }
 
 /**
- * Check if a value is an image reference string.
- */
-function isImageReferenceValue(value: unknown): value is string {
-  return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
-}
-
-/**
  * Restore a screenshot object's value to base64 or file path.
- * Handles multiple formats: base64, file path, legacy reference, or ID.
+ * Handles multiple formats: base64, file path, or ID.
  *
  * IMPORTANT: This function always processes { $screenshot: "..." } objects,
  * even when imageMap is empty. This is required to convert objects to strings
@@ -285,13 +245,8 @@ function restoreScreenshotObject(
     return screenshot;
   }
 
-  // Extract ID if legacy format, otherwise use screenshot directly
-  const lookupId = screenshot.startsWith(IMAGE_REF_PREFIX)
-    ? screenshot.slice(IMAGE_REF_PREFIX.length)
-    : screenshot;
-
-  // Look up in imageMap
-  const base64 = imageMap[lookupId];
+  // It's an ID, look up in imageMap
+  const base64 = imageMap[screenshot];
   if (base64) {
     return base64;
   }
@@ -308,7 +263,6 @@ function restoreScreenshotObject(
 
 /**
  * Recursively restore image references in parsed data.
- * Replaces references like "#midscene-img:img-0" with the actual base64 data.
  *
  * @param data - The parsed JSON data with image references
  * @param imageMap - Map of image IDs to base64 data
@@ -319,17 +273,6 @@ export function restoreImageReferences<T>(
   imageMap: Record<string, string>,
 ): T {
   if (typeof data === 'string') {
-    if (isImageReferenceValue(data)) {
-      const id = data.slice(IMAGE_REF_PREFIX.length);
-      const base64 = imageMap[id];
-      if (base64) {
-        // Type assertion: string is assignable to T when T extends string
-        return base64 as T;
-      }
-      // Return original reference if not found (for debugging)
-      console.warn(`Image not found for reference: ${data}`);
-      return data;
-    }
     return data;
   }
 

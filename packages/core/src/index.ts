@@ -33,7 +33,6 @@ export { TaskRunner, Service, getVersion };
 
 export {
   ScreenshotRegistry,
-  IMAGE_REF_PREFIX,
   IMAGE_SCRIPT_TYPE,
   restoreImageReferences,
 } from './screenshot-registry';

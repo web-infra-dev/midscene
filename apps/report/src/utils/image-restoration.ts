@@ -1,7 +1,6 @@
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 
 // Constants matching backend definitions in packages/core/src/utils.ts
-const IMAGE_REF_PREFIX = '#midscene-img:';
 const IMAGE_SCRIPT_TYPE = 'midscene-image';
 
 /** Map of image ID to base64 data string, loaded from script tags */
@@ -30,15 +29,8 @@ export function loadImageMap(): ImageIdToBase64Map {
 }
 
 /**
- * Check if a value is an image reference string (legacy format).
- */
-function isImageReference(value: unknown): value is string {
-  return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
-}
-
-/**
  * Recursively restore image references in parsed data.
- * Handles both new format { $screenshot: "id" } and legacy format "#midscene-img:id".
+ * Handles { $screenshot: "id" } format.
  *
  * @param data - The parsed JSON data with image references
  * @param imageMap - Map of image IDs to base64 data
@@ -49,19 +41,6 @@ export function restoreImageReferences<T>(
   imageMap: ImageIdToBase64Map,
 ): T {
   if (typeof data === 'string') {
-    // Legacy format: "#midscene-img:id"
-    if (isImageReference(data)) {
-      const id = data.slice(IMAGE_REF_PREFIX.length);
-      const base64 = imageMap[id];
-      if (base64) {
-        return base64 as T;
-      }
-      const availableIds = Object.keys(imageMap).join(', ') || 'none';
-      console.warn(
-        `Image not found for reference: ${data}. Available IDs: ${availableIds}`,
-      );
-      return data;
-    }
     return data;
   }
 
@@ -126,4 +105,4 @@ export function restoreImageReferences<T>(
   return data;
 }
 
-export { IMAGE_REF_PREFIX, IMAGE_SCRIPT_TYPE };
+export { IMAGE_SCRIPT_TYPE };
