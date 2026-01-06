@@ -93,17 +93,9 @@ export const defineAction = <
 // Tap
 export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
-  files: z
-    .union([z.string(), z.array(z.string())])
-    .optional()
-    .describe(
-      'Optional file path(s) to upload when tap triggers a file chooser',
-    ),
 });
-// Override the inferred type to use LocateResultElement for the runtime locate field
 export type ActionTapParam = {
   locate: LocateResultElement;
-  files?: string | string[];
 };
 
 export const defineActionTap = (
@@ -111,8 +103,7 @@ export const defineActionTap = (
 ): DeviceAction<ActionTapParam> => {
   return defineAction<typeof actionTapParamSchema, ActionTapParam>({
     name: 'Tap',
-    description:
-      'Tap the element. If files are provided, handles file upload after tap triggers a file chooser.',
+    description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: actionTapParamSchema,
     call,
