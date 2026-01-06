@@ -98,7 +98,15 @@ export class ScreenshotRegistry {
     }
     // In Node, stored is file path
     if (existsSync(stored)) {
-      return readFileSync(stored, 'utf-8');
+      try {
+        return readFileSync(stored, 'utf-8');
+      } catch (error) {
+        console.warn(
+          `Failed to read screenshot file ${stored}:`,
+          error instanceof Error ? error.message : String(error),
+        );
+        return undefined;
+      }
     }
     return undefined;
   }
@@ -116,7 +124,15 @@ export class ScreenshotRegistry {
       if (ifInBrowser) {
         base64 = stored;
       } else if (existsSync(stored)) {
-        base64 = readFileSync(stored, 'utf-8');
+        try {
+          base64 = readFileSync(stored, 'utf-8');
+        } catch (error) {
+          console.warn(
+            `Failed to read screenshot file for ${id}:`,
+            error instanceof Error ? error.message : String(error),
+          );
+          continue;
+        }
       }
       if (base64) {
         tags.push(

@@ -4,6 +4,20 @@ import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
 
 /**
+ * Type guard to check if a value is a ScreenshotItem-like object
+ */
+function isScreenshotItem(
+  value: unknown,
+): value is { base64: string; id?: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'base64' in value &&
+    typeof (value as { base64: unknown }).base64 === 'string'
+  );
+}
+
+/**
  * Helper to get screenshot base64 from context.
  * After restoration, screenshot is a base64 string (restored from { $screenshot: id }).
  * TypeScript thinks it's ScreenshotItem, so we need type assertion.
@@ -15,8 +29,8 @@ function getScreenshotBase64(context: WebUIContext): string {
     return screenshot;
   }
   // If it's still a ScreenshotItem (shouldn't happen in visualizer), get base64
-  if (screenshot && typeof screenshot === 'object' && 'base64' in screenshot) {
-    return (screenshot as { base64: string }).base64;
+  if (isScreenshotItem(screenshot)) {
+    return screenshot.base64;
   }
   return '';
 }
