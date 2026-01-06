@@ -303,50 +303,25 @@ function traverseImageFields(
  * Removes path separators and special characters.
  */
 function sanitizeFileName(fileName: string): string {
-  // Ensure we are working with a string
-  let safe = String(fileName);
+  let safe = String(fileName).trim();
 
-  // Remove null bytes and control characters
+  // Remove path traversal attempts (.. sequences)
+  safe = safe.replace(/\.\./g, '');
+
+  // Replace path separators with underscores to prevent directory creation
+  safe = safe.replace(/[/\\]/g, '_');
+
+  // Remove control characters for security
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentionally filtering control characters for security
   safe = safe.replace(/[\x00-\x1F\x7F]/g, '');
 
-  // Remove parent directory references and collapse path separators
-  safe = safe.replace(/\.\.+/g, '').replace(/[/\\]+/g, '_');
-
-  // Split into base name and extension (preserve extension if present)
-  const lastDotIndex = safe.lastIndexOf('.');
-  const hasExtension = lastDotIndex > 0 && lastDotIndex < safe.length - 1;
-  let baseName = hasExtension ? safe.slice(0, lastDotIndex) : safe;
-  const extension = hasExtension ? safe.slice(lastDotIndex) : '';
-
-  // Allow only alphanumeric characters, hyphens, and underscores in the base name
-  baseName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_');
-
-  // Remove leading dots and underscores from the base name
-  baseName = baseName.replace(/^[._]+/, '');
-
-  // Ensure base name is not empty
-  if (baseName.length === 0) {
-    baseName = 'file';
+  // Limit length to filesystem maximum
+  if (safe.length > 255) {
+    safe = safe.slice(0, 255);
   }
 
-  // Avoid Windows reserved filenames (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
-  const upperBase = baseName.toUpperCase();
-  if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(upperBase)) {
-    baseName = `${baseName}_`;
-  }
-
-  // Sanitize extension to a safe character set as well
-  const safeExtension = extension.replace(/[^a-zA-Z0-9._-]/g, '_');
-
-  // Construct final filename and enforce a reasonable maximum length
-  let result = baseName + safeExtension;
-  if (result.length > 255) {
-    // Truncate but try to preserve extension
-    const maxBaseLength = 255 - safeExtension.length;
-    result = baseName.slice(0, maxBaseLength) + safeExtension;
-  }
-
-  return result;
+  // Fallback to default if empty after sanitization
+  return safe || 'report';
 }
 
 export function writeDirectoryReport(
