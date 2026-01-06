@@ -200,21 +200,31 @@ export class IndexedDBStorageProvider implements StorageProvider {
   }
 
   /**
+   * Type guard to check if a value is a ScreenshotItem-like object
+   */
+  private isScreenshotItem(
+    value: unknown,
+  ): value is { base64: string; id?: string } {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'base64' in value &&
+      typeof (value as { base64: unknown }).base64 === 'string'
+    );
+  }
+
+  /**
    * Helper to get screenshot string from UIContext or ExecutionRecorderItem.
    * After restoration, screenshot is a base64 string (restored from { $screenshot: id }).
-   * TypeScript thinks it's ScreenshotItem, so we need type assertion.
+   * TypeScript thinks it's ScreenshotItem, so we use type guard.
    */
   private getScreenshotString(screenshot: unknown): string | undefined {
     if (typeof screenshot === 'string') {
       return screenshot;
     }
     // If it's still a ScreenshotItem, get base64 (shouldn't happen after restoration)
-    if (
-      screenshot &&
-      typeof screenshot === 'object' &&
-      'base64' in screenshot
-    ) {
-      return (screenshot as { base64: string }).base64;
+    if (this.isScreenshotItem(screenshot)) {
+      return screenshot.base64;
     }
     return undefined;
   }
@@ -265,7 +275,10 @@ export class IndexedDBStorageProvider implements StorageProvider {
         ...result.result,
         dump: {
           ...result.result.dump,
-          // Type assertion needed: at runtime screenshot fields are strings after restoration
+          // Type assertion is safe here because:
+          // 1. getScreenshotString() uses type guard to safely extract string from ScreenshotItem
+          // 2. After JSON serialization/deserialization, screenshots are already strings
+          // 3. The structure of tasks remains the same, only screenshot type differs at runtime
           tasks: compressedTasks as typeof result.result.dump.tasks,
         },
       },
