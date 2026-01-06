@@ -35,13 +35,11 @@ describe('LocalExecutionAdapter', () => {
       callActionInActionSpace: vi.fn(),
       onTaskStartTip: vi.fn(),
       destroy: vi.fn(),
-      dumpDataString: vi
-        .fn()
-        .mockReturnValue(
-          JSON.stringify({
-            executions: [{ name: 'test', tasks: [] }],
-          }),
-        ),
+      dumpDataString: vi.fn().mockReturnValue(
+        JSON.stringify({
+          executions: [{ name: 'test', tasks: [] }],
+        }),
+      ),
       getImageMap: vi.fn().mockReturnValue({}),
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
@@ -268,7 +266,11 @@ describe('LocalExecutionAdapter', () => {
 
       const result = await adapter.cancelTask('request-123');
 
-      expect(result).toEqual({ success: true, dump: { name: 'test', tasks: [] }, reportHTML: null });
+      expect(result).toEqual({
+        success: true,
+        dump: { name: 'test', tasks: [] },
+        reportHTML: null,
+      });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 

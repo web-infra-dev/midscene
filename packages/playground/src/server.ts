@@ -251,7 +251,10 @@ class PlaygroundServer {
         const processedActionSpace = actionSpace.map((action: unknown) => {
           if (action && typeof action === 'object' && 'paramSchema' in action) {
             const typedAction = action as {
-              paramSchema?: { shape?: object; [key: string]: unknown };
+              paramSchema?: {
+                shape?: Record<string, unknown>;
+                [key: string]: unknown;
+              };
               [key: string]: unknown;
             };
             if (

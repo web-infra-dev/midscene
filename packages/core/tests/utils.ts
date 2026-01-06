@@ -14,7 +14,10 @@ export function getDemoFilePath(name: string) {
   return join(__dirname, `../demo_data/${name}`);
 }
 
-export function updateAppDemoData(fileName: string, data: object) {
+export function updateAppDemoData(
+  fileName: string,
+  data: Record<string, unknown>,
+) {
   const demoPath = getDemoFilePath(fileName);
   writeFileSync(demoPath, JSON.stringify(data, null, 2));
 }

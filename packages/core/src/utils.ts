@@ -149,15 +149,8 @@ export function reportHTMLContent(
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
 
-  let processedDumpString: string;
-  let attributes: Record<string, string> | undefined;
-
-  if (typeof dumpData === 'string') {
-    processedDumpString = dumpData;
-  } else {
-    processedDumpString = dumpData.dumpString;
-    attributes = dumpData.attributes;
-  }
+  const { dumpString: processedDumpString, attributes } =
+    parseDumpData(dumpData);
 
   // Generate image script tags from registry (if available)
   const imageScriptTags = screenshotRegistry?.generateScriptTags() ?? '';
@@ -310,11 +303,50 @@ function traverseImageFields(
  * Removes path separators and special characters.
  */
 function sanitizeFileName(fileName: string): string {
-  // Remove path separators and parent directory references
-  return fileName
-    .replace(/\.\./g, '') // Remove parent directory references
-    .replace(/[/\\]/g, '_') // Replace path separators with underscores
-    .replace(/^[._]+/, ''); // Remove leading dots and underscores
+  // Ensure we are working with a string
+  let safe = String(fileName);
+
+  // Remove null bytes and control characters
+  safe = safe.replace(/[\x00-\x1F\x7F]/g, '');
+
+  // Remove parent directory references and collapse path separators
+  safe = safe.replace(/\.\.+/g, '').replace(/[/\\]+/g, '_');
+
+  // Split into base name and extension (preserve extension if present)
+  const lastDotIndex = safe.lastIndexOf('.');
+  const hasExtension = lastDotIndex > 0 && lastDotIndex < safe.length - 1;
+  let baseName = hasExtension ? safe.slice(0, lastDotIndex) : safe;
+  const extension = hasExtension ? safe.slice(lastDotIndex) : '';
+
+  // Allow only alphanumeric characters, hyphens, and underscores in the base name
+  baseName = baseName.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+  // Remove leading dots and underscores from the base name
+  baseName = baseName.replace(/^[._]+/, '');
+
+  // Ensure base name is not empty
+  if (baseName.length === 0) {
+    baseName = 'file';
+  }
+
+  // Avoid Windows reserved filenames (CON, PRN, AUX, NUL, COM1-9, LPT1-9)
+  const upperBase = baseName.toUpperCase();
+  if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/.test(upperBase)) {
+    baseName = `${baseName}_`;
+  }
+
+  // Sanitize extension to a safe character set as well
+  const safeExtension = extension.replace(/[^a-zA-Z0-9._-]/g, '_');
+
+  // Construct final filename and enforce a reasonable maximum length
+  let result = baseName + safeExtension;
+  if (result.length > 255) {
+    // Truncate but try to preserve extension
+    const maxBaseLength = 255 - safeExtension.length;
+    result = baseName.slice(0, maxBaseLength) + safeExtension;
+  }
+
+  return result;
 }
 
 export function writeDirectoryReport(
@@ -376,20 +408,39 @@ export function writeDirectoryReport(
   }
 }
 
+/**
+ * Parse dump data from either a string or ReportDumpWithAttributes object.
+ * This helper reduces code duplication between different dump processing functions.
+ */
+function parseDumpData(dumpData: string | ReportDumpWithAttributes): {
+  data: Record<string, unknown>;
+  dumpString: string;
+  attributes?: Record<string, string>;
+} {
+  if (typeof dumpData === 'string') {
+    return {
+      data: JSON.parse(dumpData),
+      dumpString: dumpData,
+    };
+  }
+  return {
+    data: JSON.parse(dumpData.dumpString),
+    dumpString: dumpData.dumpString,
+    attributes: dumpData.attributes,
+  };
+}
+
 function extractAndSaveScreenshots(
   dumpData: string | ReportDumpWithAttributes,
   screenshotsDir: string,
   screenshotRegistry?: ScreenshotRegistry,
 ): string {
-  let data: Record<string, unknown>;
-
-  if (typeof dumpData === 'string') {
-    data = JSON.parse(dumpData);
-  } else {
-    data = JSON.parse(dumpData.dumpString);
-  }
+  const { data } = parseDumpData(dumpData);
 
   let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
+
+  // Collect warnings to batch print at the end for better performance
+  const warnings: { type: 'unresolved' | 'invalid'; info: string }[] = [];
 
   traverseImageFields(data, (parent, key, value, isNewFormat) => {
     const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
@@ -408,10 +459,7 @@ function extractAndSaveScreenshots(
         if (isBase64ImageData(value)) {
           base64Data = value;
         } else {
-          console.warn(
-            'Could not resolve image ID, skipping screenshot:',
-            value,
-          );
+          warnings.push({ type: 'unresolved', info: String(value) });
           parent[key] = { $screenshot: '' };
           return;
         }
@@ -438,13 +486,29 @@ function extractAndSaveScreenshots(
       // Use new format { $screenshot: path } for consistency
       parent[key] = { $screenshot: relativePath };
     } else {
-      console.warn(
-        'Invalid image data format, skipping screenshot for key:',
-        key,
-      );
+      warnings.push({ type: 'invalid', info: String(key) });
       parent[key] = isNewFormat ? { $screenshot: '' } : null;
     }
   });
+
+  // Print batched warnings if any
+  if (warnings.length > 0) {
+    const unresolvedCount = warnings.filter(
+      (w) => w.type === 'unresolved',
+    ).length;
+    const invalidCount = warnings.filter((w) => w.type === 'invalid').length;
+
+    if (unresolvedCount > 0) {
+      console.warn(
+        `[extractAndSaveScreenshots] Could not resolve ${unresolvedCount} image ID(s), skipping screenshots`,
+      );
+    }
+    if (invalidCount > 0) {
+      console.warn(
+        `[extractAndSaveScreenshots] Invalid image data format for ${invalidCount} screenshot(s)`,
+      );
+    }
+  }
 
   screenshotCounterMap.set(screenshotsDir, screenshotCounter);
   return JSON.stringify(data);

@@ -263,13 +263,19 @@ export function extractDumpWithImages(
     try {
       dump = restoreImageReferences(dump, imageMap);
     } catch (restoreError) {
-      console.warn('[extractDumpWithImages] Failed to restore images, returning original dump:', restoreError);
+      console.warn(
+        '[extractDumpWithImages] Failed to restore images, returning original dump:',
+        restoreError,
+      );
       // Return original dump if restore fails
     }
 
     return dump;
   } catch (error: unknown) {
-    console.warn('Failed to extract dump with images:', error);
+    console.warn(
+      '[extractDumpWithImages] Failed to extract dump with images:',
+      error,
+    );
     return null;
   }
 }
