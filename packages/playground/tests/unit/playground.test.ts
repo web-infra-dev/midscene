@@ -56,7 +56,11 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => JSON.stringify({ executions: [{}] }),
+        dumpDataString: () =>
+          JSON.stringify({
+            executions: [{ name: 'test', tasks: [] }],
+          }),
+        getImageMap: () => ({}),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
@@ -106,7 +110,7 @@ describe('Playground Integration Tests', () => {
             },
           },
         },
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
         error: null,
       });
@@ -134,7 +138,7 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
         error: null,
       });
@@ -213,7 +217,11 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => JSON.stringify({ executions: [{}] }),
+        dumpDataString: () =>
+          JSON.stringify({
+            executions: [{ name: 'test', tasks: [] }],
+          }),
+        getImageMap: () => ({}),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
@@ -225,7 +233,7 @@ describe('Playground Integration Tests', () => {
     it('should handle task cancellation', async () => {
       const result = await adapter.cancelTask('test-request');
 
-      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
+      expect(result).toEqual({ success: true, dump: { name: 'test', tasks: [] }, reportHTML: null });
     });
   });
 

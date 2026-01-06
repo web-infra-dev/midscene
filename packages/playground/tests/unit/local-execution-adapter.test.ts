@@ -37,7 +37,12 @@ describe('LocalExecutionAdapter', () => {
       destroy: vi.fn(),
       dumpDataString: vi
         .fn()
-        .mockReturnValue(JSON.stringify({ executions: [{}] })),
+        .mockReturnValue(
+          JSON.stringify({
+            executions: [{ name: 'test', tasks: [] }],
+          }),
+        ),
+      getImageMap: vi.fn().mockReturnValue({}),
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
@@ -208,7 +213,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
         error: null,
       });
@@ -263,7 +268,7 @@ describe('LocalExecutionAdapter', () => {
 
       const result = await adapter.cancelTask('request-123');
 
-      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
+      expect(result).toEqual({ success: true, dump: { name: 'test', tasks: [] }, reportHTML: null });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 
@@ -290,7 +295,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(
