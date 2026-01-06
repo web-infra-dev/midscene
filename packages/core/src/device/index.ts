@@ -11,6 +11,24 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
 
+export interface FileChooserCapable {
+  setFileChooserHandler(files: string | string[]): Promise<void>;
+  clearFileChooserHandler(): Promise<void>;
+}
+
+export function hasFileChooserCapability(
+  obj: unknown,
+): obj is FileChooserCapable {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'setFileChooserHandler' in obj &&
+    typeof (obj as FileChooserCapable).setFileChooserHandler === 'function' &&
+    'clearFileChooserHandler' in obj &&
+    typeof (obj as FileChooserCapable).clearFileChooserHandler === 'function'
+  );
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 

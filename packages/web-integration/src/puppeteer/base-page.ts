@@ -31,7 +31,10 @@ import {
   getExtraReturnLogic,
 } from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
-import type { Page as PlaywrightPage } from 'playwright';
+import type {
+  FileChooser as PlaywrightFileChooser,
+  Page as PlaywrightPage,
+} from 'playwright';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import {
   type KeyInput,
@@ -40,6 +43,16 @@ import {
 } from '../web-page';
 
 export const debugPage = getDebug('web:page');
+
+function normalizeFilePaths(files: string | string[]): string[] {
+  return (Array.isArray(files) ? files : [files]).map((file) => {
+    const absolutePath = resolve(file);
+    if (!existsSync(absolutePath)) {
+      throw new Error(`File not found: ${file}`);
+    }
+    return absolutePath;
+  });
+}
 
 type WebElementCacheFeature = ElementCacheFeature & {
   xpaths?: string[];
@@ -363,7 +376,6 @@ export class Page<
         const { button = 'left', count = 1 } = options || {};
         debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
 
-        // Define the actual click action
         const doClick = async () => {
           if (count === 2 && this.interfaceType === 'playwright') {
             await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
@@ -384,9 +396,8 @@ export class Page<
           }
         };
 
-        // Use wrapper if set (for file upload), otherwise execute directly
-        if (this.clickWrapper) {
-          await this.clickWrapper(doClick);
+        if (this.fileChooserClickWrapper) {
+          await this.fileChooserClickWrapper(doClick);
         } else {
           await doClick();
         }
@@ -695,8 +706,7 @@ export class Page<
     }
   }
 
-  // File chooser handler state - uses wrapper pattern for unified handling
-  private clickWrapper:
+  private fileChooserClickWrapper:
     | ((clickFn: () => Promise<void>) => Promise<void>)
     | null = null;
   private fileChooserCleanup: (() => void) | null = null;
@@ -706,21 +716,11 @@ export class Page<
    * when a file chooser dialog is opened.
    */
   async setFileChooserHandler(files: string | string[]): Promise<void> {
-    // Normalize and validate file paths
-    const normalizedFiles = (Array.isArray(files) ? files : [files]).map(
-      (file) => {
-        const absolutePath = resolve(file);
-        if (!existsSync(absolutePath)) {
-          throw new Error(`File not found: ${file}`);
-        }
-        return absolutePath;
-      },
-    );
+    const normalizedFiles = normalizeFilePaths(files);
 
     if (this.interfaceType === 'puppeteer') {
       const page = this.underlyingPage as PuppeteerPage;
-      // Puppeteer: wrap click with Promise.all for waitForFileChooser
-      this.clickWrapper = async (clickFn) => {
+      this.fileChooserClickWrapper = async (clickFn) => {
         const [fileChooser] = await Promise.all([
           page.waitForFileChooser(),
           clickFn(),
@@ -728,33 +728,28 @@ export class Page<
         await fileChooser.accept(normalizedFiles);
       };
       this.fileChooserCleanup = () => {
-        this.clickWrapper = null;
+        this.fileChooserClickWrapper = null;
       };
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
-      // Playwright: use event listener
-      const handler = async (fileChooser: any) => {
+      const handler = async (fileChooser: PlaywrightFileChooser) => {
         await fileChooser.setFiles(normalizedFiles);
       };
       page.on('filechooser', handler);
-      // Playwright wrapper just passes through - event listener handles it
-      this.clickWrapper = (clickFn) => clickFn();
+      this.fileChooserClickWrapper = (clickFn) => clickFn();
       this.fileChooserCleanup = () => {
         page.off('filechooser', handler);
-        this.clickWrapper = null;
+        this.fileChooserClickWrapper = null;
       };
     }
   }
 
-  /**
-   * Clear the file chooser handler
-   */
   async clearFileChooserHandler(): Promise<void> {
     if (this.fileChooserCleanup) {
       this.fileChooserCleanup();
       this.fileChooserCleanup = null;
     }
-    this.clickWrapper = null;
+    this.fileChooserClickWrapper = null;
   }
 }
 

@@ -63,8 +63,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert } from '../device';
-// import type { AndroidDeviceInputOpt } from '../device';
+import { defineActionAssert, hasFileChooserCapability } from '../device';
 import { TaskCache } from './task-cache';
 import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
@@ -595,24 +594,21 @@ export class Agent<
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
-    const hasFileHandler =
-      'setFileChooserHandler' in this.interface &&
-      typeof (this.interface as any).setFileChooserHandler === 'function';
+    const fileChooserInterface = hasFileChooserCapability(this.interface)
+      ? this.interface
+      : null;
 
-    // Set up file chooser handler before tap if files are provided
-    if (opt?.files && hasFileHandler) {
-      await (this.interface as any).setFileChooserHandler(opt.files);
+    if (opt?.files && fileChooserInterface) {
+      await fileChooserInterface.setFileChooserHandler(opt.files);
     }
 
     try {
-      // Tap action remains pure - no files parameter
       return await this.callActionInActionSpace('Tap', {
         locate: detailedLocateParam,
       });
     } finally {
-      // Clean up file chooser handler after tap
-      if (opt?.files && hasFileHandler) {
-        await (this.interface as any).clearFileChooserHandler();
+      if (opt?.files && fileChooserInterface) {
+        await fileChooserInterface.clearFileChooserHandler();
       }
     }
   }
