@@ -363,22 +363,34 @@ export class Page<
         const { button = 'left', count = 1 } = options || {};
         debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
 
+        // Check if we have pending file chooser files (for Puppeteer)
+        const pendingFiles = this.pendingFileChooserFiles;
+
         if (count === 2 && this.interfaceType === 'playwright') {
           await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
             button,
           });
         } else {
           if (this.interfaceType === 'puppeteer') {
-            if (button === 'left' && count === 1) {
-              await (this.underlyingPage as PuppeteerPage).mouse.click(x, y);
+            const page = this.underlyingPage as PuppeteerPage;
+
+            // For Puppeteer, handle file chooser with Promise.all
+            if (pendingFiles && button === 'left') {
+              const [fileChooser] = await Promise.all([
+                page.waitForFileChooser(),
+                button === 'left' && count === 1
+                  ? page.mouse.click(x, y)
+                  : page.mouse.click(x, y, { button, count }),
+              ]);
+              await fileChooser.accept(pendingFiles);
+            } else if (button === 'left' && count === 1) {
+              await page.mouse.click(x, y);
             } else {
-              await (this.underlyingPage as PuppeteerPage).mouse.click(x, y, {
-                button,
-                count,
-              });
+              await page.mouse.click(x, y, { button, count });
             }
           } else if (this.interfaceType === 'playwright') {
-            (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+            // Playwright uses event listener, already set up in setFileChooserHandler
+            await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
               button,
               clickCount: count,
             });
@@ -689,11 +701,16 @@ export class Page<
     }
   }
 
-  async uploadFile(
-    files: string | string[],
-    clickAction: () => Promise<void>,
-  ): Promise<void> {
-    // Normalize file paths
+  // File chooser handler state
+  private pendingFileChooserFiles: string[] | null = null;
+  private fileChooserCleanup: (() => void) | null = null;
+
+  /**
+   * Set up a file chooser handler that will automatically accept files
+   * when a file chooser dialog is opened.
+   */
+  async setFileChooserHandler(files: string | string[]): Promise<void> {
+    // Normalize and validate file paths
     const normalizedFiles = (Array.isArray(files) ? files : [files]).map(
       (file) => {
         const absolutePath = resolve(file);
@@ -704,21 +721,53 @@ export class Page<
       },
     );
 
+    this.pendingFileChooserFiles = normalizedFiles;
+
     if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      const [fileChooser] = await Promise.all([
-        page.waitForFileChooser(),
-        clickAction(),
-      ]);
-      await fileChooser.accept(normalizedFiles);
+      // Puppeteer uses waitForFileChooser() in mouse.click(), not event listeners
+      // Just set cleanup to clear pending files
+      this.fileChooserCleanup = () => {
+        this.pendingFileChooserFiles = null;
+      };
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
-      const [fileChooser] = await Promise.all([
-        page.waitForEvent('filechooser'),
-        clickAction(),
-      ]);
-      await fileChooser.setFiles(normalizedFiles);
+      const handler = async (fileChooser: any) => {
+        if (this.pendingFileChooserFiles) {
+          await fileChooser.setFiles(this.pendingFileChooserFiles);
+        }
+      };
+      page.on('filechooser', handler);
+      this.fileChooserCleanup = () => {
+        page.off('filechooser', handler);
+        this.pendingFileChooserFiles = null;
+      };
     }
+  }
+
+  /**
+   * Clear the file chooser handler
+   */
+  async clearFileChooserHandler(): Promise<void> {
+    if (this.fileChooserCleanup) {
+      this.fileChooserCleanup();
+      this.fileChooserCleanup = null;
+    }
+    this.pendingFileChooserFiles = null;
+  }
+
+  /**
+   * Check if there's a pending file chooser handler
+   */
+  hasPendingFileChooser(): boolean {
+    return this.pendingFileChooserFiles !== null;
+  }
+
+  /**
+   * Get the pending files and consume them (for Puppeteer which needs explicit handling)
+   */
+  consumePendingFiles(): string[] | null {
+    const files = this.pendingFileChooserFiles;
+    return files;
   }
 }
 

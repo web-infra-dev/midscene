@@ -588,15 +588,33 @@ export class Agent<
     return output;
   }
 
-  async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiTap(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { files?: string | string[] },
+  ) {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+    const hasFileHandler =
+      'setFileChooserHandler' in this.interface &&
+      typeof (this.interface as any).setFileChooserHandler === 'function';
 
-    return this.callActionInActionSpace('Tap', {
-      locate: detailedLocateParam,
-      files: opt?.files,
-    });
+    // Set up file chooser handler before tap if files are provided
+    if (opt?.files && hasFileHandler) {
+      await (this.interface as any).setFileChooserHandler(opt.files);
+    }
+
+    try {
+      // Tap action remains pure - no files parameter
+      return await this.callActionInActionSpace('Tap', {
+        locate: detailedLocateParam,
+      });
+    } finally {
+      // Clean up file chooser handler after tap
+      if (opt?.files && hasFileHandler) {
+        await (this.interface as any).clearFileChooserHandler();
+      }
+    }
   }
 
   async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
