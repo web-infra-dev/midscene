@@ -585,6 +585,12 @@ export class Agent<
     });
     debug('writeOutActionDumps', this.reportFile);
 
+    // After directory-style report generation, cleanup screenshot registry
+    // to release memory as base64 data has been saved to PNG files
+    if (generateReport && useDirectoryReport && this.screenshotRegistry) {
+      this.screenshotRegistry.cleanup();
+    }
+
     if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }

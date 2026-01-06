@@ -10,13 +10,30 @@ import type {
   PlaygroundConfig,
 } from '../../src/types';
 
+// Helper function to create mock agent with common methods
+function createBaseMockAgent(
+  overrides: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent {
+  return {
+    dumpDataString: () =>
+      JSON.stringify({
+        executions: [{ name: 'test', tasks: [] }],
+      }),
+    getImageMap: () => ({}),
+    reportHTMLString: () => '',
+    writeOutActionDumps: () => {},
+    resetDump: () => {},
+    ...overrides,
+  } as unknown as PlaygroundAgent;
+}
+
 describe('Playground Integration Tests', () => {
   describe('End-to-end workflow with LocalExecutionAdapter', () => {
     let mockAgent: PlaygroundAgent;
     let sdk: PlaygroundSDK;
 
     beforeEach(() => {
-      mockAgent = {
+      mockAgent = createBaseMockAgent({
         getActionSpace: async () => [
           {
             name: 'click',
@@ -56,15 +73,7 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () =>
-          JSON.stringify({
-            executions: [{ name: 'test', tasks: [] }],
-          }),
-        getImageMap: () => ({}),
-        reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
-        resetDump: () => {},
-      } as unknown as PlaygroundAgent;
+      });
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
@@ -210,22 +219,14 @@ describe('Playground Integration Tests', () => {
     let mockAgent: PlaygroundAgent;
 
     beforeEach(() => {
-      mockAgent = {
+      mockAgent = createBaseMockAgent({
         getActionSpace: async () => [],
         onTaskStartTip: undefined,
         destroy: async () => {},
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () =>
-          JSON.stringify({
-            executions: [{ name: 'test', tasks: [] }],
-          }),
-        getImageMap: () => ({}),
-        reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
-        resetDump: () => {},
-      } as unknown as PlaygroundAgent;
+      });
 
       adapter = new LocalExecutionAdapter(mockAgent);
     });
@@ -233,7 +234,11 @@ describe('Playground Integration Tests', () => {
     it('should handle task cancellation', async () => {
       const result = await adapter.cancelTask('test-request');
 
-      expect(result).toEqual({ success: true, dump: { name: 'test', tasks: [] }, reportHTML: null });
+      expect(result).toEqual({
+        success: true,
+        dump: { name: 'test', tasks: [] },
+        reportHTML: null,
+      });
     });
   });
 
