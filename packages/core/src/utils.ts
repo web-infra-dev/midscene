@@ -435,6 +435,8 @@ function extractAndSaveScreenshots(
         if (isBase64ImageData(value)) {
           base64Data = value;
         } else {
+          // Could not resolve screenshot ID and value is not base64
+          // Set to empty string so downstream code can handle gracefully
           warnings.push({ type: 'unresolved', info: String(value) });
           parent[key] = { $screenshot: '' };
           return;
@@ -454,7 +456,7 @@ function extractAndSaveScreenshots(
       parts.length === 2 &&
       !!parts[1] &&
       typeof parts[0] === 'string' &&
-      /^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64$/.test(parts[0]);
+      /^data:image\/(png|jpe?g|gif|webp|svg\\+xml);base64$/.test(parts[0]);
 
     if (isValidBase64DataUri) {
       writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
