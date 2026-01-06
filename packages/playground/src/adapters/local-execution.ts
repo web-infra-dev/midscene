@@ -1,5 +1,4 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
-import { restoreImageReferences } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import {

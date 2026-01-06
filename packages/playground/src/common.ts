@@ -258,7 +258,14 @@ export function extractDumpWithImages(
 
     // Get image map and restore references
     const imageMap = agent.getImageMap?.() ?? {};
-    dump = restoreImageReferences(dump, imageMap);
+
+    // Try to restore image references, fallback to original dump if it fails
+    try {
+      dump = restoreImageReferences(dump, imageMap);
+    } catch (restoreError) {
+      console.warn('[extractDumpWithImages] Failed to restore images, returning original dump:', restoreError);
+      // Return original dump if restore fails
+    }
 
     return dump;
   } catch (error: unknown) {
