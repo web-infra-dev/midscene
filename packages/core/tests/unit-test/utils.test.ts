@@ -1615,20 +1615,16 @@ describe('ifPlanLocateParamIsBbox', () => {
 });
 
 describe('Screenshot Registry integration with report generation', () => {
-  it('should generate report with image references when using registry', () => {
+  it('should generate report with image IDs when using registry', () => {
     const registry = new ScreenshotRegistry('test-report-integration');
 
     // Register some screenshots
     const id1 = registry.register('data:image/png;base64,firstImage');
     const id2 = registry.register('data:image/png;base64,secondImage');
 
-    // Build references
-    const ref1 = registry.buildReference(id1);
-    const ref2 = registry.buildReference(id2);
-
-    // Verify references have correct format
-    expect(ref1).toBe('#midscene-img:test-report-integration-img-0');
-    expect(ref2).toBe('#midscene-img:test-report-integration-img-1');
+    // Verify IDs have correct format
+    expect(id1).toBe('test-report-integration-img-0');
+    expect(id2).toBe('test-report-integration-img-1');
 
     // Generate script tags
     const scriptTags = registry.generateScriptTags();
@@ -1647,17 +1643,16 @@ describe('Screenshot Registry integration with report generation', () => {
     const registry = new ScreenshotRegistry('html-report-test');
 
     // Register a screenshot
-    registry.register('data:image/png;base64,testImage');
+    const id = registry.register('data:image/png;base64,testImage');
 
-    // Create dump data with image reference
-    const ref = registry.buildReference('html-report-test-img-0');
+    // Create dump data with image ID (new format: { $screenshot: "id" })
     const dumpData = JSON.stringify({
       groupName: 'html-report-test',
       executions: [
         {
           tasks: [
             {
-              recorder: [{ screenshot: ref }],
+              recorder: [{ screenshot: { $screenshot: id } }],
             },
           ],
         },
@@ -1682,9 +1677,9 @@ describe('Screenshot Registry integration with report generation', () => {
     expect(htmlContent).toContain('type="midscene-image"');
     expect(htmlContent).toContain('data-id="html-report-test-img-0"');
 
-    // Should contain dump script tag with references
+    // Should contain dump script tag with new format { $screenshot: "id" }
     expect(htmlContent).toContain('type="midscene_web_dump"');
-    expect(htmlContent).toContain(ref);
+    expect(htmlContent).toContain(id);
 
     registry.cleanup();
   });

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  IMAGE_REF_PREFIX,
   IMAGE_SCRIPT_TYPE,
   ScreenshotRegistry,
 } from '../../src/screenshot-registry';
@@ -97,35 +96,6 @@ describe('ScreenshotRegistry', () => {
       expect(scriptTags).not.toContain('</script><script>alert');
       expect(scriptTags).toContain('__midscene_lt__');
       expect(scriptTags).toContain('__midscene_gt__');
-    });
-  });
-
-  describe('buildReference', () => {
-    it('should build a valid image reference', () => {
-      const id = registry.register('data:image/png;base64,test');
-      const reference = registry.buildReference(id);
-
-      expect(reference).toBe(`${IMAGE_REF_PREFIX}test-group-img-0`);
-    });
-  });
-
-  describe('static methods', () => {
-    it('isImageReference should identify valid references', () => {
-      expect(
-        ScreenshotRegistry.isImageReference('#midscene-img:test-img-0'),
-      ).toBe(true);
-      expect(
-        ScreenshotRegistry.isImageReference('data:image/png;base64,test'),
-      ).toBe(false);
-      expect(ScreenshotRegistry.isImageReference(null)).toBe(false);
-      expect(ScreenshotRegistry.isImageReference(123)).toBe(false);
-    });
-
-    it('extractIdFromReference should extract the ID', () => {
-      const id = ScreenshotRegistry.extractIdFromReference(
-        '#midscene-img:test-group-img-5',
-      );
-      expect(id).toBe('test-group-img-5');
     });
   });
 
@@ -287,38 +257,6 @@ describe('ScreenshotRegistry', () => {
 
       registry1.cleanup();
       registry2.cleanup();
-    });
-  });
-
-  describe('reference format', () => {
-    it('should generate reference that can be identified', () => {
-      const id = registry.register('data:image/png;base64,test');
-      const reference = registry.buildReference(id);
-
-      expect(ScreenshotRegistry.isImageReference(reference)).toBe(true);
-    });
-
-    it('should extract ID from reference correctly', () => {
-      const id = registry.register('data:image/png;base64,test');
-      const reference = registry.buildReference(id);
-
-      const extractedId = ScreenshotRegistry.extractIdFromReference(reference);
-      expect(extractedId).toBe(id);
-    });
-
-    it('should roundtrip: register -> buildReference -> extractId -> get', () => {
-      const originalData = 'data:image/png;base64,roundtrip-test';
-      const id = registry.register(originalData);
-      const reference = registry.buildReference(id);
-
-      // Verify reference format
-      expect(reference).toBe(`${IMAGE_REF_PREFIX}${id}`);
-
-      // Extract ID and get data
-      const extractedId = ScreenshotRegistry.extractIdFromReference(reference);
-      const retrievedData = registry.get(extractedId);
-
-      expect(retrievedData).toBe(originalData);
     });
   });
 });
