@@ -3,6 +3,24 @@ import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
 
+/**
+ * Helper to get screenshot base64 from context.
+ * After restoration, screenshot is a base64 string (restored from { $screenshot: id }).
+ * TypeScript thinks it's ScreenshotItem, so we need type assertion.
+ */
+function getScreenshotBase64(context: WebUIContext): string {
+  const screenshot = context.screenshot;
+  // After JSON parse and restoration, screenshot is a string (base64 data)
+  if (typeof screenshot === 'string') {
+    return screenshot;
+  }
+  // If it's still a ScreenshotItem (shouldn't happen in visualizer), get base64
+  if (screenshot && typeof screenshot === 'object' && 'base64' in screenshot) {
+    return (screenshot as { base64: string }).base64;
+  }
+  return '';
+}
+
 // Get action name based on type
 export const actionNameForType = (type: string) => {
   // Remove 'ai' prefix and convert camelCase to space-separated words
@@ -31,7 +49,13 @@ export const actionNameForType = (type: string) => {
 
 // Create static agent from context
 export const staticAgentFromContext = (context: WebUIContext) => {
-  const page = new StaticPage(context);
+  // Convert WebUIContext to StaticUIContext format
+  // After restoration, context.screenshot is a base64 string (restored from { $screenshot: id })
+  const staticContext = {
+    size: context.size,
+    screenshotBase64: getScreenshotBase64(context),
+  };
+  const page = new StaticPage(staticContext);
   return new StaticPageAgent(page);
 };
 

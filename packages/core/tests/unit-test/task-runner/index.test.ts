@@ -6,6 +6,7 @@ import type {
   ExecutionTaskPlanningLocateApply,
   UIContext,
 } from '@/index';
+import { ScreenshotItem } from '@/screenshot-item';
 import { fakeService } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -52,7 +53,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
 
 const fakeUIContextBuilder = async () =>
   ({
-    screenshotBase64: '',
+    screenshot: ScreenshotItem.fromBase64('data:image/png;base64,fake'),
     tree: { node: null, children: [] },
     size: { width: 0, height: 0 },
   }) as unknown as UIContext;
@@ -221,7 +222,7 @@ describe(
     it('subTask - reuse previous uiContext', async () => {
       const baseUIContext = (id: string) =>
         ({
-          screenshotBase64: id,
+          screenshot: ScreenshotItem.fromBase64(`data:image/png;base64,${id}`),
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
         }) as unknown as UIContext;
@@ -267,7 +268,7 @@ describe(
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValue({
-          screenshotBase64: '',
+          screenshot: ScreenshotItem.fromBase64('data:image/png;base64,fake'),
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
         } as unknown as UIContext);

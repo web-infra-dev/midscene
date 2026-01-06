@@ -15,6 +15,7 @@ import type {
   MidsceneYamlFlowItem,
   ServiceExtractOption,
 } from './yaml';
+import type { ScreenshotItem } from './screenshot-item';
 
 export type {
   ElementTreeNode,
@@ -108,7 +109,7 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  abstract screenshotBase64: string;
+  abstract screenshot: ScreenshotItem;
 
   abstract size: Size;
 
@@ -309,7 +310,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: string;
+  screenshot?: ScreenshotItem;
   timing?: string;
 }
 

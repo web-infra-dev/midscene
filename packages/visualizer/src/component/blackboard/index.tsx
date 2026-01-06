@@ -100,7 +100,9 @@ export const Blackboard = (props: {
   }
 
   const context = props.uiContext;
-  const { size, screenshotBase64 } = context;
+  const { size, screenshot } = context;
+  // After restoration, screenshot is a base64 string (restored from { $screenshot: id })
+  const screenshotBase64 = typeof screenshot === 'string' ? screenshot : '';
 
   const screenWidth = size.width;
   const screenHeight = size.height;

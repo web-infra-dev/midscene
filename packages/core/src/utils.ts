@@ -20,6 +20,7 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
+import { ScreenshotItem } from './screenshot-item';
 import { IMAGE_REF_PREFIX } from './screenshot-registry';
 import type { ScreenshotRegistry } from './screenshot-registry';
 import type {
@@ -236,28 +237,57 @@ function isBase64ImageData(value: unknown): value is string {
 }
 
 /**
- * Check if a value is a screenshot registry reference
+ * Check if a value is a serialized ScreenshotItem: { $screenshot: string }
  */
-function isImageReference(value: unknown): value is string {
-  return typeof value === 'string' && value.startsWith(IMAGE_REF_PREFIX);
+function isSerializedScreenshotItem(
+  value: unknown,
+): value is { $screenshot: string } {
+  return ScreenshotItem.isSerialized(value);
 }
 
 /**
- * Check if a key-value pair is an image field (either base64 or reference)
+ * Check if a value is an image field (ScreenshotItem serialized format or legacy base64)
  */
-function isImageField(key: string, value: unknown): boolean {
-  return (
-    (key === 'screenshot' || key === 'screenshotBase64') &&
-    (isBase64ImageData(value) || isImageReference(value))
-  );
+function isImageField(
+  key: string,
+  value: unknown,
+): value is { $screenshot: string } | string {
+  if (key !== 'screenshot' && key !== 'screenshotBase64') {
+    return false;
+  }
+  // New format: { $screenshot: "id" or "base64" }
+  if (isSerializedScreenshotItem(value)) {
+    return true;
+  }
+  // Legacy format: direct base64 string
+  if (isBase64ImageData(value)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Get the image ID or base64 from an image field value
+ */
+function getImageValue(value: { $screenshot: string } | string): string {
+  if (typeof value === 'object' && '$screenshot' in value) {
+    return value.$screenshot;
+  }
+  return value;
 }
 
 /**
  * Recursively traverse object and process image fields
+ * Handles both new ScreenshotItem format { $screenshot: "id" } and legacy base64 strings
  */
 function traverseImageFields(
   obj: unknown,
-  onImage: (obj: Record<string, unknown>, key: string, value: string) => void,
+  onImage: (
+    obj: Record<string, unknown>,
+    key: string,
+    value: string,
+    isNewFormat: boolean,
+  ) => void,
 ): void {
   if (typeof obj !== 'object' || obj === null) return;
   if (Array.isArray(obj)) {
@@ -266,7 +296,9 @@ function traverseImageFields(
   }
   for (const [key, value] of Object.entries(obj)) {
     if (isImageField(key, value)) {
-      onImage(obj as Record<string, unknown>, key, value as string);
+      const imageValue = getImageValue(value);
+      const isNewFormat = isSerializedScreenshotItem(value);
+      onImage(obj as Record<string, unknown>, key, imageValue, isNewFormat);
     } else {
       traverseImageFields(value, onImage);
     }
@@ -359,29 +391,33 @@ function extractAndSaveScreenshots(
 
   let screenshotCounter = screenshotCounterMap.get(screenshotsDir) || 0;
 
-  traverseImageFields(data, (parent, key, value) => {
+  traverseImageFields(data, (parent, key, value, isNewFormat) => {
     const screenshotFileName = `screenshot_${++screenshotCounter}.png`;
     const screenshotPath = path.join(screenshotsDir, screenshotFileName);
 
     let base64Data: string | undefined;
 
-    if (isImageReference(value)) {
-      // Value is a reference like "#midscene-img:groupName-img-0"
+    if (isNewFormat) {
+      // New format: { $screenshot: "id" } - value is the ID
       // Get base64 data from registry
       if (screenshotRegistry) {
-        const imageId = value.slice(IMAGE_REF_PREFIX.length);
-        base64Data = screenshotRegistry.get(imageId);
+        base64Data = screenshotRegistry.get(value);
       }
       if (!base64Data) {
-        console.warn(
-          'Could not resolve image reference, skipping screenshot:',
-          value,
-        );
-        parent[key] = null;
-        return;
+        // Value might be base64 directly if no registry was used
+        if (isBase64ImageData(value)) {
+          base64Data = value;
+        } else {
+          console.warn(
+            'Could not resolve image ID, skipping screenshot:',
+            value,
+          );
+          parent[key] = { $screenshot: '' };
+          return;
+        }
       }
     } else if (isBase64ImageData(value)) {
-      // Value is direct base64 data
+      // Legacy format: direct base64 data
       base64Data = value;
     } else {
       parent[key] = null;
@@ -398,13 +434,15 @@ function extractAndSaveScreenshots(
 
     if (isValidBase64DataUri) {
       writeFileSync(screenshotPath, Buffer.from(parts[1], 'base64'));
-      parent[key] = `./screenshots/${screenshotFileName}`;
+      const relativePath = `./screenshots/${screenshotFileName}`;
+      // Use new format { $screenshot: path } for consistency
+      parent[key] = { $screenshot: relativePath };
     } else {
       console.warn(
         'Invalid image data format, skipping screenshot for key:',
         key,
       );
-      parent[key] = null;
+      parent[key] = isNewFormat ? { $screenshot: '' } : null;
     }
   });
 
