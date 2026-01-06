@@ -70,7 +70,11 @@ export class ScreenshotItem {
     const registryData = this._registry?.get(this._id);
     if (registryData) return registryData;
 
-    throw new Error(`Base64 not available for screenshot: ${this._id}`);
+    throw new Error(
+      `Screenshot data not available for id "${this._id}". ` +
+        'Ensure the screenshot was captured before accessing base64 data, ' +
+        'and verify that the screenshot registry has not been cleaned up or lost this id.',
+    );
   }
 
   /**
