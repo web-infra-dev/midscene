@@ -206,7 +206,8 @@ export function usePlaygroundExecution(
           if (resultObj.error) result.error = formatError(resultObj.error);
 
           // If result was wrapped, extract the actual result
-          if (resultObj.result !== undefined) {
+          // Handle both defined values and undefined (e.g., from aiWaitFor)
+          if ('result' in resultObj) {
             result.result = resultObj.result;
           }
         }
