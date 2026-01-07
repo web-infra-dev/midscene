@@ -497,13 +497,13 @@ export class TaskBuilder {
         // 1. element found
         // 2. taskCache enabled
         // 3. not a cache hit (otherwise we'd be writing what we just read)
-        // 4. not already cached (for bbox/plan hit case, avoid redundant writes)
+        // 4. not already cached for plan hit case (avoid redundant writes), OR allow update if cache validation failed
         // 5. cacheable is not explicitly false
         if (
           element &&
           this.taskCache &&
           !isCacheHit &&
-          !locateCacheAlreadyExists &&
+          (!isPlanHit || !locateCacheAlreadyExists) &&
           param?.cacheable !== false
         ) {
           if (this.interface.cacheFeatureForRect) {

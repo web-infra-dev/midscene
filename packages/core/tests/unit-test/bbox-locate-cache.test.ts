@@ -533,4 +533,207 @@ describe('bbox locate cache fix', () => {
       expect(cachedLocate).toBeUndefined();
     });
   });
+
+  describe('cache invalidation and update', () => {
+    it('should update cache when cached xpath becomes invalid (DOM changed)', async () => {
+      // Scenario: Cached xpath is invalid, AI re-locates successfully, cache should be updated
+      // This tests the fix for the bug where cache was not updated after validation failure
+
+      // 1. Create pre-populated cache (simulates first run)
+      const cacheId = uuid();
+      const testCache = new TaskCache(cacheId, true);
+      const internal = getTaskCacheInternal(testCache);
+      internal.cache.caches.push({
+        type: 'locate',
+        prompt: '高一',
+        cache: {
+          xpaths: ['/html/body/div[1]/label[2]'], // Old invalid xpath
+        },
+      });
+      internal.cacheOriginalLength = 1;
+
+      // 2. Mock rectMatchesCacheFeature to reject (simulates xpath validation failure)
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
+        new Error(
+          'No matching element rect found for the provided cache feature',
+        ),
+      );
+
+      // 3. Mock AI locate to return new element with new xpath
+      vi.mocked(mockService.locate).mockResolvedValue({
+        element: {
+          id: 'new-element',
+          center: [600, 400],
+          rect: { left: 550, top: 380, width: 100, height: 40 },
+          xpaths: ['/html/body/div[2]/label[1]'], // New valid xpath
+          attributes: {},
+        },
+        dump: {},
+      });
+
+      // 4. Mock cacheFeatureForRect to return new xpath
+      vi.mocked(mockInterface.cacheFeatureForRect!).mockResolvedValue({
+        xpaths: ['/html/body/div[2]/label[1]'],
+        texts: ['高一'],
+      });
+
+      // 5. Create taskBuilder with pre-populated cache
+      const taskBuilderWithCache = new TaskBuilder({
+        interfaceInstance: mockInterface,
+        service: mockService,
+        taskCache: testCache,
+        actionSpace: mockInterface.actionSpace(),
+      });
+
+      const plans = [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: '高一',
+              // No bbox - will try cache hit
+            },
+          },
+          thought: 'tap 高一',
+        },
+      ];
+
+      const { tasks } = await taskBuilderWithCache.build(
+        plans,
+        mockModelConfig,
+        mockModelConfig,
+      );
+
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+      expect(locateTask).toBeDefined();
+
+      await locateTask!.executor(locateTask!.param, {
+        task: {
+          type: 'Planning',
+          subType: 'Locate',
+          param: locateTask!.param,
+          status: 'running',
+          timing: { start: Date.now(), end: 0, cost: 0 },
+          executor: locateTask!.executor,
+        },
+        uiContext: {
+          screenshotBase64: validBase64Image,
+          size: { width: 1920, height: 1080, dpr: 1 },
+        },
+      });
+
+      // 6. Verify:
+      // - rectMatchesCacheFeature was called (attempted cache hit)
+      expect(mockInterface.rectMatchesCacheFeature).toHaveBeenCalledWith({
+        xpaths: ['/html/body/div[1]/label[2]'],
+      });
+
+      // - AI locate was called (cache hit failed, fallback to AI)
+      expect(mockService.locate).toHaveBeenCalled();
+
+      // - cacheFeatureForRect was called (get new xpath)
+      expect(mockInterface.cacheFeatureForRect).toHaveBeenCalled();
+
+      // - Cache was updated with new xpath (not the old one)
+      const updatedCache = findLocateCacheByPrompt(testCache, '高一');
+      expect(updatedCache).toBeDefined();
+      expect(updatedCache?.cache).toBeDefined();
+      expect(updatedCache?.cache?.xpaths).toContain(
+        '/html/body/div[2]/label[1]',
+      );
+      expect(updatedCache?.cache?.xpaths).not.toContain(
+        '/html/body/div[1]/label[2]',
+      );
+    });
+
+    it('should update cache when cache validation fails for non-plan-hit scenarios', async () => {
+      // Scenario: Cache exists but validation fails, AI relocates, cache should be updated
+      // This is distinct from plan hit, where we want to avoid redundant writes
+
+      const cacheId = uuid();
+      const testCache = new TaskCache(cacheId, true);
+      const internal = getTaskCacheInternal(testCache);
+      internal.cache.caches.push({
+        type: 'locate',
+        prompt: 'submit button',
+        cache: {
+          xpaths: ['/html/body/button[1]'], // Old xpath
+        },
+      });
+      internal.cacheOriginalLength = 1;
+
+      // Mock validation failure
+      vi.mocked(mockInterface.rectMatchesCacheFeature!).mockRejectedValue(
+        new Error('Element not found'),
+      );
+
+      // Mock AI locate success with new xpath
+      vi.mocked(mockService.locate).mockResolvedValue({
+        element: {
+          id: 'submit-btn',
+          center: [500, 300],
+          rect: { left: 450, top: 280, width: 100, height: 40 },
+          xpaths: ['/html/body/form[1]/button[1]'], // New xpath
+          attributes: {},
+        },
+        dump: {},
+      });
+
+      vi.mocked(mockInterface.cacheFeatureForRect!).mockResolvedValue({
+        xpaths: ['/html/body/form[1]/button[1]'],
+        texts: ['Submit'],
+      });
+
+      const taskBuilderWithCache = new TaskBuilder({
+        interfaceInstance: mockInterface,
+        service: mockService,
+        taskCache: testCache,
+        actionSpace: mockInterface.actionSpace(),
+      });
+
+      const plansWithoutBbox = [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'submit button',
+              // No bbox - not a plan hit
+            },
+          },
+          thought: 'tap submit',
+        },
+      ];
+
+      const { tasks } = await taskBuilderWithCache.build(
+        plansWithoutBbox,
+        mockModelConfig,
+        mockModelConfig,
+      );
+
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+
+      await locateTask!.executor(locateTask!.param, {
+        task: {
+          type: 'Planning',
+          subType: 'Locate',
+          param: locateTask!.param,
+          status: 'running',
+          timing: { start: Date.now(), end: 0, cost: 0 },
+          executor: locateTask!.executor,
+        },
+        uiContext: {
+          screenshotBase64: validBase64Image,
+          size: { width: 1920, height: 1080, dpr: 1 },
+        },
+      });
+
+      // Verify cache was updated
+      const updatedCache = findLocateCacheByPrompt(testCache, 'submit button');
+      expect(updatedCache).toBeDefined();
+      expect(updatedCache?.cache?.xpaths).toContain(
+        '/html/body/form[1]/button[1]',
+      );
+      expect(updatedCache?.cache?.xpaths).not.toContain('/html/body/button[1]');
+    });
+  });
 });
