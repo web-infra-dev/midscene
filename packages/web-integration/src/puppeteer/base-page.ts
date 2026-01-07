@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
 import type {
   DeviceAction,
@@ -43,16 +41,6 @@ import {
 } from '../web-page';
 
 export const debugPage = getDebug('web:page');
-
-function normalizeFilePaths(files: string | string[]): string[] {
-  return (Array.isArray(files) ? files : [files]).map((file) => {
-    const absolutePath = resolve(file);
-    if (!existsSync(absolutePath)) {
-      throw new Error(`File not found: ${file}`);
-    }
-    return absolutePath;
-  });
-}
 
 type WebElementCacheFeature = ElementCacheFeature & {
   xpaths?: string[];
@@ -376,30 +364,22 @@ export class Page<
         const { button = 'left', count = 1 } = options || {};
         debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
 
-        const doClick = async () => {
-          if (count === 2 && this.interfaceType === 'playwright') {
-            await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
-              button,
-            });
-          } else if (this.interfaceType === 'puppeteer') {
-            const page = this.underlyingPage as PuppeteerPage;
-            if (button === 'left' && count === 1) {
-              await page.mouse.click(x, y);
-            } else {
-              await page.mouse.click(x, y, { button, count });
-            }
-          } else if (this.interfaceType === 'playwright') {
-            await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
-              button,
-              clickCount: count,
-            });
+        if (count === 2 && this.interfaceType === 'playwright') {
+          await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
+            button,
+          });
+        } else if (this.interfaceType === 'puppeteer') {
+          const page = this.underlyingPage as PuppeteerPage;
+          if (button === 'left' && count === 1) {
+            await page.mouse.click(x, y);
+          } else {
+            await page.mouse.click(x, y, { button, count });
           }
-        };
-
-        if (this.fileChooserClickWrapper) {
-          await this.fileChooserClickWrapper(doClick);
-        } else {
-          await doClick();
+        } else if (this.interfaceType === 'playwright') {
+          await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+            button,
+            clickCount: count,
+          });
         }
       },
       wheel: async (deltaX: number, deltaY: number) => {
@@ -706,50 +686,62 @@ export class Page<
     }
   }
 
-  private fileChooserClickWrapper:
-    | ((clickFn: () => Promise<void>) => Promise<void>)
-    | null = null;
-  private fileChooserCleanup: (() => void) | null = null;
+  private playwrightFileChooserHandler?: (
+    chooser: PlaywrightFileChooser,
+  ) => Promise<void>;
 
-  /**
-   * Set up a file chooser handler that will automatically accept files
-   * when a file chooser dialog is opened.
-   */
-  async setFileChooserHandler(files: string | string[]): Promise<void> {
-    const normalizedFiles = normalizeFilePaths(files);
-
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      this.fileChooserClickWrapper = async (clickFn) => {
-        const [fileChooser] = await Promise.all([
-          page.waitForFileChooser(),
-          clickFn(),
-        ]);
-        await fileChooser.accept(normalizedFiles);
-      };
-      this.fileChooserCleanup = () => {
-        this.fileChooserClickWrapper = null;
-      };
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      const handler = async (fileChooser: PlaywrightFileChooser) => {
-        await fileChooser.setFiles(normalizedFiles);
-      };
-      page.on('filechooser', handler);
-      this.fileChooserClickWrapper = (clickFn) => clickFn();
-      this.fileChooserCleanup = () => {
-        page.off('filechooser', handler);
-        this.fileChooserClickWrapper = null;
-      };
+  async waitForFileChooser(): Promise<
+    import('@midscene/core/device').FileChooserHandler
+  > {
+    if (this.interfaceType !== 'puppeteer') {
+      throw new Error('waitForFileChooser is only supported in Puppeteer');
     }
+
+    const page = this.underlyingPage as PuppeteerPage;
+    const chooser = await page.waitForFileChooser();
+
+    return {
+      accept: async (files: string[]) => {
+        await chooser.accept(files);
+      },
+    };
   }
 
-  async clearFileChooserHandler(): Promise<void> {
-    if (this.fileChooserCleanup) {
-      this.fileChooserCleanup();
-      this.fileChooserCleanup = null;
+  onFileChooser(
+    handler: (
+      chooser: import('@midscene/core/device').FileChooserHandler,
+    ) => Promise<void>,
+  ): void {
+    if (this.interfaceType !== 'playwright') {
+      throw new Error('onFileChooser is only supported in Playwright');
     }
-    this.fileChooserClickWrapper = null;
+
+    const page = this.underlyingPage as PlaywrightPage;
+
+    this.playwrightFileChooserHandler = async (
+      chooser: PlaywrightFileChooser,
+    ) => {
+      await handler({
+        accept: async (files: string[]) => {
+          await chooser.setFiles(files);
+        },
+      });
+    };
+
+    page.on('filechooser', this.playwrightFileChooserHandler);
+  }
+
+  offFileChooser(): void {
+    if (this.interfaceType !== 'playwright') {
+      throw new Error('offFileChooser is only supported in Playwright');
+    }
+
+    const page = this.underlyingPage as PlaywrightPage;
+
+    if (this.playwrightFileChooserHandler) {
+      page.off('filechooser', this.playwrightFileChooserHandler);
+      this.playwrightFileChooserHandler = undefined;
+    }
   }
 }
 

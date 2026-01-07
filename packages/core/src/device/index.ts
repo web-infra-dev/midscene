@@ -11,9 +11,16 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
 
+export interface FileChooserHandler {
+  accept(files: string[]): Promise<void>;
+}
+
 export interface FileChooserCapable {
-  setFileChooserHandler(files: string | string[]): Promise<void>;
-  clearFileChooserHandler(): Promise<void>;
+  waitForFileChooser?(): Promise<FileChooserHandler>;
+  onFileChooser?(handler: (chooser: FileChooserHandler) => Promise<void>): void;
+  offFileChooser?(
+    handler?: (chooser: FileChooserHandler) => Promise<void>,
+  ): void;
 }
 
 export function hasFileChooserCapability(
@@ -22,10 +29,8 @@ export function hasFileChooserCapability(
   return (
     typeof obj === 'object' &&
     obj !== null &&
-    'setFileChooserHandler' in obj &&
-    typeof (obj as FileChooserCapable).setFileChooserHandler === 'function' &&
-    'clearFileChooserHandler' in obj &&
-    typeof (obj as FileChooserCapable).clearFileChooserHandler === 'function'
+    ('waitForFileChooser' in obj ||
+      ('onFileChooser' in obj && 'offFileChooser' in obj))
   );
 }
 

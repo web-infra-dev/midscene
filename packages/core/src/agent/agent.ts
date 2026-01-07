@@ -6,6 +6,7 @@ import {
   type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
+  type DetailedLocateParam,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -51,6 +52,8 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -63,7 +66,12 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert, hasFileChooserCapability } from '../device';
+import {
+  type FileChooserCapable,
+  type FileChooserHandler,
+  defineActionAssert,
+  hasFileChooserCapability,
+} from '../device';
 import { TaskCache } from './task-cache';
 import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
@@ -594,23 +602,28 @@ export class Agent<
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
-    const fileChooserInterface = hasFileChooserCapability(this.interface)
-      ? this.interface
-      : null;
 
-    if (opt?.files && fileChooserInterface) {
-      await fileChooserInterface.setFileChooserHandler(opt.files);
-    }
+    if (opt?.files) {
+      const fileChooserInterface = hasFileChooserCapability(this.interface)
+        ? this.interface
+        : null;
 
-    try {
-      return await this.callActionInActionSpace('Tap', {
-        locate: detailedLocateParam,
-      });
-    } finally {
-      if (opt?.files && fileChooserInterface) {
-        await fileChooserInterface.clearFileChooserHandler();
+      if (!fileChooserInterface) {
+        throw new Error(
+          `File upload is not supported on ${this.interface.interfaceType}`,
+        );
       }
+
+      return await this.handleFileUploadTap(
+        detailedLocateParam,
+        opt.files,
+        fileChooserInterface,
+      );
     }
+
+    return await this.callActionInActionSpace('Tap', {
+      locate: detailedLocateParam,
+    });
   }
 
   async aiRightClick(locatePrompt: TUserPrompt, opt?: LocateOption) {
@@ -1485,6 +1498,89 @@ export class Agent<
     }
 
     return null;
+  }
+
+  private async handleFileUploadTap(
+    locateParam: DetailedLocateParam | undefined,
+    files: string | string[],
+    fileChooserInterface: FileChooserCapable,
+  ) {
+    const filesArray = Array.isArray(files) ? files : [files];
+    const normalizedFiles = this.normalizeFilePaths(filesArray);
+
+    if (this.interface.interfaceType === 'puppeteer') {
+      return await this.handlePuppeteerFileUpload(
+        locateParam,
+        normalizedFiles,
+        fileChooserInterface,
+      );
+    } else if (this.interface.interfaceType === 'playwright') {
+      return await this.handlePlaywrightFileUpload(
+        locateParam,
+        normalizedFiles,
+        fileChooserInterface,
+      );
+    } else {
+      throw new Error(
+        `File upload is not supported for ${this.interface.interfaceType}`,
+      );
+    }
+  }
+
+  private async handlePuppeteerFileUpload(
+    locateParam: DetailedLocateParam | undefined,
+    files: string[],
+    fileChooserInterface: FileChooserCapable,
+  ) {
+    if (!fileChooserInterface.waitForFileChooser) {
+      throw new Error('waitForFileChooser is not available');
+    }
+
+    const waitPromise = fileChooserInterface.waitForFileChooser();
+    const tapPromise = this.callActionInActionSpace('Tap', {
+      locate: locateParam,
+    });
+
+    const [chooser] = await Promise.all([waitPromise, tapPromise]);
+    await chooser.accept(files);
+
+    return tapPromise;
+  }
+
+  private async handlePlaywrightFileUpload(
+    locateParam: DetailedLocateParam | undefined,
+    files: string[],
+    fileChooserInterface: FileChooserCapable,
+  ) {
+    if (
+      !fileChooserInterface.onFileChooser ||
+      !fileChooserInterface.offFileChooser
+    ) {
+      throw new Error('onFileChooser/offFileChooser is not available');
+    }
+
+    const handler = async (chooser: FileChooserHandler) => {
+      await chooser.accept(files);
+    };
+
+    try {
+      fileChooserInterface.onFileChooser(handler);
+      return await this.callActionInActionSpace('Tap', {
+        locate: locateParam,
+      });
+    } finally {
+      fileChooserInterface.offFileChooser(handler);
+    }
+  }
+
+  private normalizeFilePaths(files: string[]): string[] {
+    return files.map((file) => {
+      const absolutePath = resolve(file);
+      if (!existsSync(absolutePath)) {
+        throw new Error(`File not found: ${file}`);
+      }
+      return absolutePath;
+    });
   }
 
   /**
