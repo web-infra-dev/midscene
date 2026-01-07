@@ -246,6 +246,7 @@ export class TaskExecutor {
             userInstruction: userPrompt,
             aiActContext,
             imagesIncludeCount,
+            deepThink,
           },
           executor: async (param, executorContext) => {
             const startTime = Date.now();
