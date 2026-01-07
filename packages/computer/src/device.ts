@@ -55,6 +55,28 @@ async function getLibnut() {
 
 const debugDevice = getDebug('computer:device');
 
+// Key name mapping for cross-platform compatibility
+const keyNameMap: Record<string, string> = {
+  windows: 'win',
+  win: 'win',
+  cmd: 'command',
+  ctrl: 'control',
+  esc: 'escape',
+  del: 'delete',
+  ins: 'insert',
+  pgup: 'pageup',
+  pgdn: 'pagedown',
+  arrowup: 'up',
+  arrowdown: 'down',
+  arrowleft: 'left',
+  arrowright: 'right',
+};
+
+function normalizeKeyName(key: string): string {
+  const lowerKey = key.toLowerCase();
+  return keyNameMap[lowerKey] || lowerKey;
+}
+
 export interface DisplayInfo {
   id: string;
   name: string;
@@ -312,8 +334,8 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         }
 
         const keys = param.keyName.split('+');
-        const modifiers = keys.slice(0, -1).map((k) => k.toLowerCase());
-        const key = keys[keys.length - 1].toLowerCase();
+        const modifiers = keys.slice(0, -1).map((k) => normalizeKeyName(k));
+        const key = normalizeKeyName(keys[keys.length - 1]);
 
         libnut.keyTap(key, modifiers);
       }),
