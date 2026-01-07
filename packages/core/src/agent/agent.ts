@@ -140,7 +140,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
-  files?: string | string[];
+  fileChooserAccept?: string | string[];
 };
 
 export class Agent<
@@ -593,20 +593,20 @@ export class Agent<
 
   async aiTap(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { files?: string | string[] },
+    opt?: LocateOption & { fileChooserAccept?: string | string[] },
   ) {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    if (opt?.files) {
+    if (opt?.fileChooserAccept) {
       if (!this.interface.registerFileChooserListener) {
         throw new Error(
           `File upload is not supported on ${this.interface.interfaceType}`,
         );
       }
 
-      const normalizedFiles = this.normalizeFileInput(opt.files);
+      const normalizedFiles = this.normalizeFileInput(opt.fileChooserAccept);
       const handler = async (chooser: FileChooserHandler) => {
         await chooser.accept(normalizedFiles);
       };
@@ -958,14 +958,14 @@ export class Agent<
       return output;
     };
 
-    if (opt?.files) {
+    if (opt?.fileChooserAccept) {
       if (!this.interface.registerFileChooserListener) {
         throw new Error(
           `File upload is not supported on ${this.interface.interfaceType}`,
         );
       }
 
-      const normalizedFiles = this.normalizeFileInput(opt.files);
+      const normalizedFiles = this.normalizeFileInput(opt.fileChooserAccept);
       const handler = async (chooser: FileChooserHandler) => {
         await chooser.accept(normalizedFiles);
       };

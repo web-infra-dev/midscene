@@ -35,7 +35,7 @@ describe('file upload functionality', () => {
     agent = new PuppeteerAgent(originPage);
 
     // Upload single file
-    await agent.aiTap('Choose Single File', { files: [testFile] });
+    await agent.aiTap('Choose Single File', { fileChooserAccept: [testFile] });
 
     // Verify file is selected
     await agent.aiAssert('page displays "test-file.txt"');
@@ -54,7 +54,9 @@ describe('file upload functionality', () => {
     agent = new PuppeteerAgent(originPage);
 
     // Upload multiple files
-    await agent.aiTap('Choose Files', { files: [testFile1, testFile2] });
+    await agent.aiTap('Choose Files', {
+      fileChooserAccept: [testFile1, testFile2],
+    });
 
     // Verify files are selected
     await agent.aiAssert('page displays "test-file-1.txt"');
@@ -76,7 +78,7 @@ describe('file upload functionality', () => {
     await agent.aiAct(
       'click "Choose Files" button above the text "Supports multiple file upload"',
       {
-        files: [testFile1, testFile2],
+        fileChooserAccept: [testFile1, testFile2],
       },
     );
 
@@ -95,7 +97,9 @@ describe('file upload functionality', () => {
 
     agent = new PuppeteerAgent(originPage);
 
-    await agent.aiAct('click the page title', { files: [testFile] });
+    await agent.aiAct('click the page title', {
+      fileChooserAccept: [testFile],
+    });
   });
 
   it('should handle relative paths', async () => {
@@ -108,7 +112,7 @@ describe('file upload functionality', () => {
 
     // Upload file using relative path
     await agent.aiTap('Choose Single File', {
-      files: ['./tests/ai/fixtures/relative-test.txt'],
+      fileChooserAccept: ['./tests/ai/fixtures/relative-test.txt'],
     });
 
     // Verify file is selected
@@ -125,7 +129,9 @@ describe('file upload functionality', () => {
 
     // Attempt to upload non-existent file
     await expect(
-      agent.aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
+      agent.aiTap('Choose Files', {
+        fileChooserAccept: ['./non-existent-file.txt'],
+      }),
     ).rejects.toThrow(/File not found/);
   });
 
@@ -140,7 +146,7 @@ describe('file upload functionality', () => {
     agent = new PuppeteerAgent(originPage);
 
     await agent.aiTap('the title "File Upload Test Page"', {
-      files: [testFile],
+      fileChooserAccept: [testFile],
     });
   });
 });
