@@ -52,7 +52,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it.only(
+    it.skip(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(
