@@ -29,10 +29,7 @@ import {
   getExtraReturnLogic,
 } from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
-import type {
-  FileChooser as PlaywrightFileChooser,
-  Page as PlaywrightPage,
-} from 'playwright';
+import type { Page as PlaywrightPage } from 'playwright';
 import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
 import {
   type KeyInput,
@@ -690,10 +687,6 @@ export class Page<
     }
   }
 
-  private playwrightFileChooserHandler?: (
-    chooser: PlaywrightFileChooser,
-  ) => Promise<void>;
-
   private async ensurePuppeteerFileChooserSession(
     page: PuppeteerPage,
   ): Promise<CDPSession> {
@@ -713,62 +706,40 @@ export class Page<
       chooser: import('@midscene/core/device').FileChooserHandler,
     ) => Promise<void>,
   ): Promise<() => void> {
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      const session = await this.ensurePuppeteerFileChooserSession(page);
-      if (this.puppeteerFileChooserHandler) {
-        session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
-      }
-      this.puppeteerFileChooserHandler = async (event) => {
-        if (event.backendNodeId === undefined) {
-          debugPage(
-            'puppeteer file chooser opened without backendNodeId, skip',
-          );
-          return;
-        }
-        await handler({
-          accept: async (files: string[]) => {
-            await session.send('DOM.setFileInputFiles', {
-              files,
-              backendNodeId: event.backendNodeId,
-            });
-          },
-        });
-      };
-      session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
-      return () => {
-        if (this.puppeteerFileChooserHandler) {
-          session.off(
-            'Page.fileChooserOpened',
-            this.puppeteerFileChooserHandler,
-          );
-        }
-        void session.detach();
-        this.puppeteerFileChooserHandler = undefined;
-        if (this.puppeteerFileChooserSession === session) {
-          this.puppeteerFileChooserSession = undefined;
-        }
-      };
+    if (this.interfaceType !== 'puppeteer') {
+      throw new Error(
+        'registerFileChooserListener is only supported in Puppeteer',
+      );
     }
 
-    const page = this.underlyingPage as PlaywrightPage;
-
-    this.playwrightFileChooserHandler = async (
-      chooser: PlaywrightFileChooser,
-    ) => {
+    const page = this.underlyingPage as PuppeteerPage;
+    const session = await this.ensurePuppeteerFileChooserSession(page);
+    if (this.puppeteerFileChooserHandler) {
+      session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    }
+    this.puppeteerFileChooserHandler = async (event) => {
+      if (event.backendNodeId === undefined) {
+        debugPage('puppeteer file chooser opened without backendNodeId, skip');
+        return;
+      }
       await handler({
         accept: async (files: string[]) => {
-          await chooser.setFiles(files);
+          await session.send('DOM.setFileInputFiles', {
+            files,
+            backendNodeId: event.backendNodeId,
+          });
         },
       });
     };
-
-    page.on('filechooser', this.playwrightFileChooserHandler);
-
+    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
     return () => {
-      if (this.playwrightFileChooserHandler) {
-        page.off('filechooser', this.playwrightFileChooserHandler);
-        this.playwrightFileChooserHandler = undefined;
+      if (this.puppeteerFileChooserHandler) {
+        session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+      }
+      void session.detach();
+      this.puppeteerFileChooserHandler = undefined;
+      if (this.puppeteerFileChooserSession === session) {
+        this.puppeteerFileChooserSession = undefined;
       }
     };
   }
