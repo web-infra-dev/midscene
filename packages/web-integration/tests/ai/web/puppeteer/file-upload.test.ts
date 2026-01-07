@@ -62,6 +62,42 @@ describe('file upload functionality', () => {
     await agent.aiAssert('page displays "multiple"');
   });
 
+  it('should upload files via aiAct', async () => {
+    const testFile1 = join(__dirname, '../../fixtures/test-file-1.txt');
+    const testFile2 = join(__dirname, '../../fixtures/test-file-2.txt');
+
+    const { originPage, reset } = await launchPage(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+    resetFn = reset;
+
+    agent = new PuppeteerAgent(originPage);
+
+    await agent.aiAct(
+      'click "Choose Files" button above the text "Supports multiple file upload"',
+      {
+        files: [testFile1, testFile2],
+      },
+    );
+
+    await agent.aiAssert('page displays "test-file-1.txt"');
+    await agent.aiAssert('page displays "test-file-2.txt"');
+    await agent.aiAssert('page displays "multiple"');
+  });
+
+  it('should not time out when no file chooser is triggered in aiAct', async () => {
+    const testFile = join(__dirname, '../../fixtures/test-file.txt');
+
+    const { originPage, reset } = await launchPage(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+    resetFn = reset;
+
+    agent = new PuppeteerAgent(originPage);
+
+    await agent.aiAct('click the page title', { files: [testFile] });
+  });
+
   it('should handle relative paths', async () => {
     const { originPage, reset } = await launchPage(
       `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
@@ -91,5 +127,20 @@ describe('file upload functionality', () => {
     await expect(
       agent.aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
     ).rejects.toThrow(/File not found/);
+  });
+
+  it('should not time out when no file chooser is triggered', async () => {
+    const testFile = join(__dirname, '../../fixtures/test-file.txt');
+
+    const { originPage, reset } = await launchPage(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+    resetFn = reset;
+
+    agent = new PuppeteerAgent(originPage);
+
+    await agent.aiTap('the title "File Upload Test Page"', {
+      files: [testFile],
+    });
   });
 });
