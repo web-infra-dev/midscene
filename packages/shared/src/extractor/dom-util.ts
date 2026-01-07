@@ -147,7 +147,10 @@ export function generateElementByPosition(
   };
   const element = {
     rect,
-    center: [position.x, position.y] as [number, number],
+    center: [Math.round(position.x), Math.round(position.y)] as [
+      number,
+      number,
+    ],
     description: description || '',
   };
 

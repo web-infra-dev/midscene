@@ -321,7 +321,7 @@ export function expandSearchArea(
 ) {
   let minEdgeSize = 500;
   if (vlMode === 'qwen3-vl') {
-    minEdgeSize = 700;
+    minEdgeSize = 1200;
   }
   const defaultPadding = 160;
 
