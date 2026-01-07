@@ -32,38 +32,31 @@ describe('computer keyboard operations', () => {
       // Verify screen has content
       await agent.aiAssert('The screen has visible content');
 
-      // Test opening search/Spotlight
-      if (isMac) {
-        await agent.aiAct('press Cmd+Space to open Spotlight search');
-        await sleep(1000);
-
-        // Close Spotlight
-        await agent.aiAct('press Escape to close');
-        await sleep(500);
-      } else {
-        await agent.aiAct('press Windows key to open Start menu');
-        await sleep(1000);
-
-        // Close Start menu
-        await agent.aiAct('press Escape to close');
-        await sleep(500);
-      }
-
-      // Test app switcher shortcuts
-      if (isMac) {
-        await agent.aiAct('press Cmd+Tab to show app switcher');
-        await sleep(500);
-        await agent.aiAct('press Escape or release keys to close app switcher');
-      } else {
-        await agent.aiAct('press Alt+Tab to show app switcher');
-        await sleep(500);
-        await agent.aiAct('press Escape to close');
-      }
-      await sleep(500);
-
-      // Test mouse movement
-      await agent.aiAct('move mouse to the center of screen');
+      // Test basic keyboard input - type some text
+      // First move mouse to a safe area
+      await agent.aiAct('move mouse to center of screen');
       await sleep(300);
+
+      // Test modifier key combinations
+      if (isMac) {
+        // Cmd+Shift+4 to start screenshot selection (then Escape to cancel)
+        await agent.aiAct('press Command+Shift+4');
+        await sleep(500);
+        await agent.aiAct('press Escape');
+        await sleep(300);
+      } else {
+        // Win+D to show desktop, then Win+D again to restore
+        await agent.aiAct('press Win+D to show desktop');
+        await sleep(1000);
+        await agent.aiAct('press Win+D to restore windows');
+        await sleep(500);
+      }
+
+      // Test arrow keys
+      await agent.aiAct('press ArrowUp key');
+      await sleep(200);
+      await agent.aiAct('press ArrowDown key');
+      await sleep(200);
 
       // Take screenshot to verify final state
       const finalState = await agent.aiQuery(

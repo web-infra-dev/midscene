@@ -57,6 +57,7 @@ const debugDevice = getDebug('computer:device');
 
 // Key name mapping for cross-platform compatibility
 const keyNameMap: Record<string, string> = {
+  // Modifier keys
   windows: 'win',
   win: 'win',
   cmd: 'command',
@@ -64,12 +65,28 @@ const keyNameMap: Record<string, string> = {
   esc: 'escape',
   del: 'delete',
   ins: 'insert',
+  // Navigation keys
   pgup: 'pageup',
   pgdn: 'pagedown',
   arrowup: 'up',
   arrowdown: 'down',
   arrowleft: 'left',
   arrowright: 'right',
+  // Media keys
+  volumedown: 'audio_vol_down',
+  volumeup: 'audio_vol_up',
+  mediavolumedown: 'audio_vol_down',
+  mediavolumeup: 'audio_vol_up',
+  mute: 'audio_mute',
+  mediamute: 'audio_mute',
+  mediaplay: 'audio_play',
+  mediapause: 'audio_pause',
+  mediaplaypause: 'audio_play',
+  mediastop: 'audio_stop',
+  medianexttrack: 'audio_next',
+  mediaprevioustrack: 'audio_prev',
+  medianext: 'audio_next',
+  mediaprev: 'audio_prev',
 };
 
 function normalizeKeyName(key: string): string {
@@ -147,18 +164,26 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   async screenshotBase64(): Promise<string> {
-    debugDevice('Taking screenshot');
+    debugDevice('Taking screenshot', { displayId: this.displayId });
 
     try {
       const options: any = { format: 'png' };
       if (this.displayId !== undefined) {
-        // screenshot-desktop expects numeric screen index
-        const screenIndex = Number(this.displayId);
-        if (!Number.isNaN(screenIndex)) {
-          options.screen = screenIndex;
+        // On macOS: displayId is numeric (CGDirectDisplayID)
+        // On Windows: displayId is string like "\\.\DISPLAY1"
+        // On Linux: displayId is string like ":0.0"
+        if (process.platform === 'darwin') {
+          const screenIndex = Number(this.displayId);
+          if (!Number.isNaN(screenIndex)) {
+            options.screen = screenIndex;
+          }
+        } else {
+          // Windows and Linux use string IDs directly
+          options.screen = this.displayId;
         }
       }
 
+      debugDevice('Screenshot options', options);
       const buffer: Buffer = await screenshot(options);
       return createImgBase64ByFormat('png', buffer.toString('base64'));
     } catch (error) {
