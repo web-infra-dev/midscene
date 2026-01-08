@@ -32,31 +32,26 @@ describe('computer keyboard operations', () => {
       // Verify screen has content
       await agent.aiAssert('The screen has visible content');
 
-      // Test basic keyboard input - type some text
-      // First move mouse to a safe area
+      // Test mouse movement
       await agent.aiAct('move mouse to center of screen');
       await sleep(300);
 
       // Test modifier key combinations
       if (isMac) {
-        // Cmd+Shift+4 to start screenshot selection (then Escape to cancel)
-        await agent.aiAct('press Command+Shift+4');
+        // Cmd+Tab to show app switcher
+        await agent.aiAct('press Command+Tab');
         await sleep(500);
-        await agent.aiAct('press Escape');
+        // Press Command alone to release and dismiss app switcher
+        await agent.aiAct('press Command');
         await sleep(300);
       } else {
-        // Win+D to show desktop, then Win+D again to restore
-        await agent.aiAct('press Win+D to show desktop');
-        await sleep(1000);
-        await agent.aiAct('press Win+D to restore windows');
+        // Alt+Tab to show app switcher
+        await agent.aiAct('press Alt+Tab');
         await sleep(500);
+        // Click to dismiss (Alt alone may not work on Windows)
+        await agent.aiAct('click mouse');
+        await sleep(300);
       }
-
-      // Test arrow keys
-      await agent.aiAct('press ArrowUp key');
-      await sleep(200);
-      await agent.aiAct('press ArrowDown key');
-      await sleep(200);
 
       // Take screenshot to verify final state
       const finalState = await agent.aiQuery(

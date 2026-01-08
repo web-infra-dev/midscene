@@ -56,11 +56,11 @@ async function getLibnut() {
 const debugDevice = getDebug('computer:device');
 
 // Key name mapping for cross-platform compatibility
+// Note: Modifier keys have different names when used as primary key vs modifier
 const keyNameMap: Record<string, string> = {
-  // Modifier keys
+  // Modifier keys (for use in modifiers array)
   windows: 'win',
   win: 'win',
-  cmd: 'command',
   ctrl: 'control',
   esc: 'escape',
   del: 'delete',
@@ -89,8 +89,30 @@ const keyNameMap: Record<string, string> = {
   mediaprev: 'audio_prev',
 };
 
+// When pressing modifier keys alone (as primary key), use these names
+const primaryKeyMap: Record<string, string> = {
+  command: 'cmd',
+  cmd: 'cmd',
+  meta: 'meta',
+  control: 'control',
+  ctrl: 'control',
+  shift: 'shift',
+  alt: 'alt',
+  option: 'alt',
+};
+
 function normalizeKeyName(key: string): string {
   const lowerKey = key.toLowerCase();
+  return keyNameMap[lowerKey] || lowerKey;
+}
+
+function normalizePrimaryKey(key: string): string {
+  const lowerKey = key.toLowerCase();
+  // First check primaryKeyMap for modifier keys pressed alone
+  if (primaryKeyMap[lowerKey]) {
+    return primaryKeyMap[lowerKey];
+  }
+  // Then use regular keyNameMap
   return keyNameMap[lowerKey] || lowerKey;
 }
 
@@ -360,9 +382,21 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
         const keys = param.keyName.split('+');
         const modifiers = keys.slice(0, -1).map((k) => normalizeKeyName(k));
-        const key = normalizeKeyName(keys[keys.length - 1]);
+        // Use normalizePrimaryKey for the main key to handle modifier keys pressed alone
+        const key = normalizePrimaryKey(keys[keys.length - 1]);
 
-        libnut.keyTap(key, modifiers);
+        debugDevice('KeyboardPress', {
+          original: param.keyName,
+          key,
+          modifiers,
+        });
+
+        // keyTap supports array of modifiers
+        if (modifiers.length > 0) {
+          libnut.keyTap(key, modifiers);
+        } else {
+          libnut.keyTap(key);
+        }
       }),
 
       // DragAndDrop
