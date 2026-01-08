@@ -217,45 +217,18 @@ export class TaskExecutor {
       | undefined
     >
   > {
-    if (fileChooserAccept?.length) {
-      if (!this.interface.registerFileChooserListener) {
-        throw new Error(
-          `File upload is not supported on ${this.interface.interfaceType}`,
-        );
-      }
-
-      const handler = async (chooser: FileChooserHandler) => {
-        await chooser.accept(fileChooserAccept);
-      };
-
-      const dispose =
-        await this.interface.registerFileChooserListener(handler);
-      try {
-        return await this.runAction(
-          userPrompt,
-          modelConfigForPlanning,
-          modelConfigForDefaultIntent,
-          includeBboxInPlanning,
-          aiActContext,
-          cacheable,
-          replanningCycleLimitOverride,
-          imagesIncludeCount,
-        );
-      } finally {
-        dispose();
-      }
-    }
-
-    return await this.runAction(
-      userPrompt,
-      modelConfigForPlanning,
-      modelConfigForDefaultIntent,
-      includeBboxInPlanning,
-      aiActContext,
-      cacheable,
-      replanningCycleLimitOverride,
-      imagesIncludeCount,
-    );
+    return withFileChooser(this.interface, fileChooserAccept, async () => {
+      return this.runAction(
+        userPrompt,
+        modelConfigForPlanning,
+        modelConfigForDefaultIntent,
+        includeBboxInPlanning,
+        aiActContext,
+        cacheable,
+        replanningCycleLimitOverride,
+        imagesIncludeCount,
+      );
+    });
   }
 
   private async runAction(
@@ -712,5 +685,32 @@ export class TaskExecutor {
     }
 
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+  }
+}
+
+export async function withFileChooser<T>(
+  interfaceInstance: AbstractInterface,
+  fileChooserAccept: string[] | undefined,
+  action: () => Promise<T>,
+): Promise<T> {
+  if (!fileChooserAccept?.length) {
+    return action();
+  }
+
+  if (!interfaceInstance.registerFileChooserListener) {
+    throw new Error(
+      `File upload is not supported on ${interfaceInstance.interfaceType}`,
+    );
+  }
+
+  const handler = async (chooser: FileChooserHandler) => {
+    await chooser.accept(fileChooserAccept);
+  };
+
+  const dispose = await interfaceInstance.registerFileChooserListener(handler);
+  try {
+    return await action();
+  } finally {
+    dispose();
   }
 }

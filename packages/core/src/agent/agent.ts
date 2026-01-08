@@ -54,7 +54,7 @@ import {
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { AbstractInterface, FileChooserHandler } from '@/device';
+import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -68,7 +68,12 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { defineActionAssert } from '../device';
 import { TaskCache } from './task-cache';
-import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
+import {
+  TaskExecutionError,
+  TaskExecutor,
+  locatePlanForLocate,
+  withFileChooser,
+} from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   commonContextParser,
@@ -599,31 +604,14 @@ export class Agent<
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    if (opt?.fileChooserAccept) {
-      if (!this.interface.registerFileChooserListener) {
-        throw new Error(
-          `File upload is not supported on ${this.interface.interfaceType}`,
-        );
-      }
+    const fileChooserAccept = opt?.fileChooserAccept
+      ? this.normalizeFileInput(opt.fileChooserAccept)
+      : undefined;
 
-      const normalizedFiles = this.normalizeFileInput(opt.fileChooserAccept);
-      const handler = async (chooser: FileChooserHandler) => {
-        await chooser.accept(normalizedFiles);
-      };
-
-      const dispose =
-        await this.interface.registerFileChooserListener(handler);
-      try {
-        return await this.callActionInActionSpace('Tap', {
-          locate: detailedLocateParam,
-        });
-      } finally {
-        dispose();
-      }
-    }
-
-    return await this.callActionInActionSpace('Tap', {
-      locate: detailedLocateParam,
+    return withFileChooser(this.interface, fileChooserAccept, async () => {
+      return this.callActionInActionSpace('Tap', {
+        locate: detailedLocateParam,
+      });
     });
   }
 
