@@ -115,7 +115,7 @@ const agent = new PuppeteerAgent(page, {
 
 :::
 
-### `agent.aiAct()` 或 `.ai()`
+### `agent.aiAct()` 或 `agent.ai()`
 
 这个方法允许你通过自然语言描述一系列 UI 操作步骤。Midscene 会自动规划这些步骤并执行。
 
@@ -133,6 +133,7 @@ function aiAct(
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
+    fileChooserAccept?: string | string[];
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
@@ -144,6 +145,9 @@ function ai(prompt: string): Promise<void>; // 简写形式
   - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `deepThink?: 'unset' | true | false` - 当模型支持时（取决于 MIDSCENE_MODEL_FAMILY），是否开启规划阶段的深度思考能力。默认值为 `'unset'`（等同于省略该参数），跟随模型服务商的默认策略。[详情参阅 deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
+    - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
+      - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
+      - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
 
 - 返回值：
 
@@ -178,7 +182,7 @@ await agent.aiAct('发布一条微博，内容为 "Hello World"');
 
 ### `agent.aiTap()`
 
-点击某个元素。也支持文件上传功能，当点击触发文件选择器时可自动上传文件。
+点击某个元素
 
 - 类型
 
