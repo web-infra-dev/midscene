@@ -190,7 +190,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不再明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
-    - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
+    - `files?: string | string[]` - 当点击触发文件选择器时要上传的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
 - 返回值：
 
   - `Promise<void>`
@@ -204,8 +204,8 @@ await agent.aiTap('页面顶部的登录按钮');
 await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
 
 // 文件上传：点击上传按钮并选择文件
-await agent.aiTap('选择文件按钮', { fileChooserAccept: ['./document.pdf'] });
-await agent.aiTap('上传图片', { fileChooserAccept: ['./image1.jpg', './image2.png'] });
+await agent.aiTap('选择文件按钮', { files: ['./document.pdf'] });
+await agent.aiTap('上传图片', { files: ['./image1.jpg', './image2.png'] });
 ```
 
 ### `agent.aiHover()`

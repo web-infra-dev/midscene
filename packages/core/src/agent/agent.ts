@@ -54,7 +54,7 @@ import {
 
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { AbstractInterface, FileChooserHandler } from '@/device';
+import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -66,7 +66,12 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert } from '../device';
+import {
+  type FileChooserCapable,
+  type FileChooserHandler,
+  defineActionAssert,
+  hasFileChooserCapability,
+} from '../device';
 import { TaskCache } from './task-cache';
 import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
@@ -140,7 +145,6 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
-  fileChooserAccept?: string | string[];
 };
 
 export class Agent<
@@ -593,33 +597,28 @@ export class Agent<
 
   async aiTap(
     locatePrompt: TUserPrompt,
-    opt?: LocateOption & { fileChooserAccept?: string | string[] },
+    opt?: LocateOption & { files?: string | string[] },
   ) {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    if (opt?.fileChooserAccept) {
-      if (!this.interface.registerFileChooserListener) {
+    if (opt?.files) {
+      const fileChooserInterface = hasFileChooserCapability(this.interface)
+        ? this.interface
+        : null;
+
+      if (!fileChooserInterface) {
         throw new Error(
           `File upload is not supported on ${this.interface.interfaceType}`,
         );
       }
 
-      const normalizedFiles = this.normalizeFileInput(opt.fileChooserAccept);
-      const handler = async (chooser: FileChooserHandler) => {
-        await chooser.accept(normalizedFiles);
-      };
-
-      const dispose =
-        await this.interface.registerFileChooserListener(handler);
-      try {
-        return await this.callActionInActionSpace('Tap', {
-          locate: detailedLocateParam,
-        });
-      } finally {
-        dispose();
-      }
+      return await this.handleFileUploadTap(
+        detailedLocateParam,
+        opt.files,
+        fileChooserInterface,
+      );
     }
 
     return await this.callActionInActionSpace('Tap', {
@@ -875,111 +874,83 @@ export class Agent<
   }
 
   async aiAct(taskPrompt: string, opt?: AiActOptions) {
-    const runAiAct = async () => {
-      const modelConfigForPlanning =
-        this.modelConfigManager.getModelConfig('planning');
-      const defaultIntentModelConfig =
-        this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
 
-      const includeBboxInPlanning =
-        modelConfigForPlanning.modelName ===
-          defaultIntentModelConfig.modelName &&
-        modelConfigForPlanning.openaiBaseURL ===
-          defaultIntentModelConfig.openaiBaseURL;
-      debug('setting includeBboxInPlanning to', includeBboxInPlanning);
+    const includeBboxInPlanning =
+      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
+      modelConfigForPlanning.openaiBaseURL ===
+        defaultIntentModelConfig.openaiBaseURL;
+    debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
-      const cacheable = opt?.cacheable;
-      const replanningCycleLimit = this.resolveReplanningCycleLimit(
-        modelConfigForPlanning,
-      );
-      // if vlm-ui-tars, plan cache is not used
-      const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
-      const matchedCache =
-        isVlmUiTars || cacheable === false
-          ? undefined
-          : this.taskCache?.matchPlanCache(taskPrompt);
-      if (
-        matchedCache &&
-        this.taskCache?.isCacheResultUsed &&
-        matchedCache.cacheContent?.yamlWorkflow?.trim()
-      ) {
-        // log into report file
-        await this.taskExecutor.loadYamlFlowAsPlanning(
-          taskPrompt,
-          matchedCache.cacheContent.yamlWorkflow,
-        );
-
-        debug('matched cache, will call .runYaml to run the action');
-        const yaml = matchedCache.cacheContent.yamlWorkflow;
-        return this.runYaml(yaml);
-      }
-
-      // If cache matched but yamlWorkflow is empty, fall through to normal execution
-
-      const useDeepThink = (this.opts as any)?._deepThink;
-      if (useDeepThink) {
-        debug('using deep think planning settings');
-      }
-      const imagesIncludeCount: number | undefined = useDeepThink
+    const cacheable = opt?.cacheable;
+    const replanningCycleLimit = this.resolveReplanningCycleLimit(
+      modelConfigForPlanning,
+    );
+    // if vlm-ui-tars, plan cache is not used
+    const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
+    const matchedCache =
+      isVlmUiTars || cacheable === false
         ? undefined
-        : 2;
-      const { output } = await this.taskExecutor.action(
+        : this.taskCache?.matchPlanCache(taskPrompt);
+    if (
+      matchedCache &&
+      this.taskCache?.isCacheResultUsed &&
+      matchedCache.cacheContent?.yamlWorkflow?.trim()
+    ) {
+      // log into report file
+      await this.taskExecutor.loadYamlFlowAsPlanning(
         taskPrompt,
-        modelConfigForPlanning,
-        defaultIntentModelConfig,
-        includeBboxInPlanning,
-        this.aiActContext,
-        cacheable,
-        replanningCycleLimit,
-        imagesIncludeCount,
+        matchedCache.cacheContent.yamlWorkflow,
       );
 
-      // update cache
-      if (this.taskCache && output?.yamlFlow && cacheable !== false) {
-        const yamlContent: MidsceneYamlScript = {
-          tasks: [
-            {
-              name: taskPrompt,
-              flow: output.yamlFlow,
-            },
-          ],
-        };
-        const yamlFlowStr = yaml.dump(yamlContent);
-        this.taskCache.updateOrAppendCacheRecord(
-          {
-            type: 'plan',
-            prompt: taskPrompt,
-            yamlWorkflow: yamlFlowStr,
-          },
-          matchedCache,
-        );
-      }
-
-      return output;
-    };
-
-    if (opt?.fileChooserAccept) {
-      if (!this.interface.registerFileChooserListener) {
-        throw new Error(
-          `File upload is not supported on ${this.interface.interfaceType}`,
-        );
-      }
-
-      const normalizedFiles = this.normalizeFileInput(opt.fileChooserAccept);
-      const handler = async (chooser: FileChooserHandler) => {
-        await chooser.accept(normalizedFiles);
-      };
-
-      const dispose =
-        await this.interface.registerFileChooserListener(handler);
-      try {
-        return await runAiAct();
-      } finally {
-        dispose();
-      }
+      debug('matched cache, will call .runYaml to run the action');
+      const yaml = matchedCache.cacheContent.yamlWorkflow;
+      return this.runYaml(yaml);
     }
 
-    return await runAiAct();
+    // If cache matched but yamlWorkflow is empty, fall through to normal execution
+
+    const useDeepThink = (this.opts as any)?._deepThink;
+    if (useDeepThink) {
+      debug('using deep think planning settings');
+    }
+    const imagesIncludeCount: number | undefined = useDeepThink ? undefined : 2;
+    const { output } = await this.taskExecutor.action(
+      taskPrompt,
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+      includeBboxInPlanning,
+      this.aiActContext,
+      cacheable,
+      replanningCycleLimit,
+      imagesIncludeCount,
+    );
+
+    // update cache
+    if (this.taskCache && output?.yamlFlow && cacheable !== false) {
+      const yamlContent: MidsceneYamlScript = {
+        tasks: [
+          {
+            name: taskPrompt,
+            flow: output.yamlFlow,
+          },
+        ],
+      };
+      const yamlFlowStr = yaml.dump(yamlContent);
+      this.taskCache.updateOrAppendCacheRecord(
+        {
+          type: 'plan',
+          prompt: taskPrompt,
+          yamlWorkflow: yamlFlowStr,
+        },
+        matchedCache,
+      );
+    }
+
+    return output;
   }
 
   /**
@@ -1529,6 +1500,79 @@ export class Agent<
     return null;
   }
 
+  private async handleFileUploadTap(
+    locateParam: DetailedLocateParam | undefined,
+    files: string | string[],
+    fileChooserInterface: FileChooserCapable,
+  ) {
+    const filesArray = Array.isArray(files) ? files : [files];
+    const normalizedFiles = this.normalizeFilePaths(filesArray);
+
+    if (this.interface.interfaceType === 'puppeteer') {
+      return await this.handlePuppeteerFileUpload(
+        locateParam,
+        normalizedFiles,
+        fileChooserInterface,
+      );
+    } else if (this.interface.interfaceType === 'playwright') {
+      return await this.handlePlaywrightFileUpload(
+        locateParam,
+        normalizedFiles,
+        fileChooserInterface,
+      );
+    } else {
+      throw new Error(
+        `File upload is not supported for ${this.interface.interfaceType}`,
+      );
+    }
+  }
+
+  private async handlePuppeteerFileUpload(
+    locateParam: DetailedLocateParam | undefined,
+    files: string[],
+    fileChooserInterface: FileChooserCapable,
+  ) {
+    if (!fileChooserInterface.waitForFileChooser) {
+      throw new Error('waitForFileChooser is not available');
+    }
+
+    const waitPromise = fileChooserInterface.waitForFileChooser();
+    const tapPromise = this.callActionInActionSpace('Tap', {
+      locate: locateParam,
+    });
+
+    const [chooser] = await Promise.all([waitPromise, tapPromise]);
+    await chooser.accept(files);
+
+    return tapPromise;
+  }
+
+  private async handlePlaywrightFileUpload(
+    locateParam: DetailedLocateParam | undefined,
+    files: string[],
+    fileChooserInterface: FileChooserCapable,
+  ) {
+    if (
+      !fileChooserInterface.onFileChooser ||
+      !fileChooserInterface.offFileChooser
+    ) {
+      throw new Error('onFileChooser/offFileChooser is not available');
+    }
+
+    const handler = async (chooser: FileChooserHandler) => {
+      await chooser.accept(files);
+    };
+
+    try {
+      fileChooserInterface.onFileChooser(handler);
+      return await this.callActionInActionSpace('Tap', {
+        locate: locateParam,
+      });
+    } finally {
+      fileChooserInterface.offFileChooser(handler);
+    }
+  }
+
   private normalizeFilePaths(files: string[]): string[] {
     return files.map((file) => {
       const absolutePath = resolve(file);
@@ -1537,11 +1581,6 @@ export class Agent<
       }
       return absolutePath;
     });
-  }
-
-  private normalizeFileInput(files: string | string[]): string[] {
-    const filesArray = Array.isArray(files) ? files : [files];
-    return this.normalizeFilePaths(filesArray);
   }
 
   /**

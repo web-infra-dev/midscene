@@ -11,7 +11,7 @@ test.describe('file upload functionality', () => {
     );
 
     // Upload single file
-    await aiTap('Choose Single File', { fileChooserAccept: [testFile] });
+    await aiTap('Choose Single File', { files: [testFile] });
 
     // Verify file is selected
     await aiAssert('page displays "test-file.txt"');
@@ -27,9 +27,7 @@ test.describe('file upload functionality', () => {
     );
 
     // Upload multiple files
-    await aiTap('Choose Files', {
-      fileChooserAccept: [testFile1, testFile2],
-    });
+    await aiTap('Choose Files', { files: [testFile1, testFile2] });
 
     // Verify files are selected
     await aiAssert('page displays "test-file-1.txt"');
@@ -44,7 +42,7 @@ test.describe('file upload functionality', () => {
 
     // Upload file using relative path
     await aiTap('Choose Single File', {
-      fileChooserAccept: ['./tests/ai/fixtures/relative-test.txt'],
+      files: ['./tests/ai/fixtures/relative-test.txt'],
     });
 
     // Verify file is selected
@@ -58,9 +56,7 @@ test.describe('file upload functionality', () => {
 
     // Attempt to upload non-existent file
     await expect(
-      aiTap('Choose Files', {
-        fileChooserAccept: ['./non-existent-file.txt'],
-      }),
+      aiTap('Choose Files', { files: ['./non-existent-file.txt'] }),
     ).rejects.toThrow(/File not found/);
   });
 });

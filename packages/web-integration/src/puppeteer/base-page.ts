@@ -29,8 +29,11 @@ import {
   getExtraReturnLogic,
 } from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
-import type { Page as PlaywrightPage } from 'playwright';
-import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
+import type {
+  FileChooser as PlaywrightFileChooser,
+  Page as PlaywrightPage,
+} from 'playwright';
+import type { Page as PuppeteerPage } from 'puppeteer';
 import {
   type KeyInput,
   type MouseButton,
@@ -66,10 +69,6 @@ export class Page<
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
   private enableTouchEventsInActionSpace: boolean;
-  private puppeteerFileChooserSession?: CDPSession;
-  private puppeteerFileChooserHandler?: (
-    event: Protocol.Page.FileChooserOpenedEvent,
-  ) => Promise<void>;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -687,61 +686,62 @@ export class Page<
     }
   }
 
-  private async ensurePuppeteerFileChooserSession(
-    page: PuppeteerPage,
-  ): Promise<CDPSession> {
-    if (this.puppeteerFileChooserSession) {
-      return this.puppeteerFileChooserSession;
-    }
-    const session = await page.target().createCDPSession();
-    await session.send('Page.enable');
-    await session.send('DOM.enable');
-    await session.send('Page.setInterceptFileChooserDialog', { enabled: true });
-    this.puppeteerFileChooserSession = session;
-    return session;
-  }
+  private playwrightFileChooserHandler?: (
+    chooser: PlaywrightFileChooser,
+  ) => Promise<void>;
 
-  async registerFileChooserListener(
-    handler: (
-      chooser: import('@midscene/core/device').FileChooserHandler,
-    ) => Promise<void>,
-  ): Promise<() => void> {
+  async waitForFileChooser(): Promise<
+    import('@midscene/core/device').FileChooserHandler
+  > {
     if (this.interfaceType !== 'puppeteer') {
-      throw new Error(
-        'registerFileChooserListener is only supported in Puppeteer',
-      );
+      throw new Error('waitForFileChooser is only supported in Puppeteer');
     }
 
     const page = this.underlyingPage as PuppeteerPage;
-    const session = await this.ensurePuppeteerFileChooserSession(page);
-    if (this.puppeteerFileChooserHandler) {
-      session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    const chooser = await page.waitForFileChooser();
+
+    return {
+      accept: async (files: string[]) => {
+        await chooser.accept(files);
+      },
+    };
+  }
+
+  onFileChooser(
+    handler: (
+      chooser: import('@midscene/core/device').FileChooserHandler,
+    ) => Promise<void>,
+  ): void {
+    if (this.interfaceType !== 'playwright') {
+      throw new Error('onFileChooser is only supported in Playwright');
     }
-    this.puppeteerFileChooserHandler = async (event) => {
-      if (event.backendNodeId === undefined) {
-        debugPage('puppeteer file chooser opened without backendNodeId, skip');
-        return;
-      }
+
+    const page = this.underlyingPage as PlaywrightPage;
+
+    this.playwrightFileChooserHandler = async (
+      chooser: PlaywrightFileChooser,
+    ) => {
       await handler({
         accept: async (files: string[]) => {
-          await session.send('DOM.setFileInputFiles', {
-            files,
-            backendNodeId: event.backendNodeId,
-          });
+          await chooser.setFiles(files);
         },
       });
     };
-    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
-    return () => {
-      if (this.puppeteerFileChooserHandler) {
-        session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
-      }
-      void session.detach();
-      this.puppeteerFileChooserHandler = undefined;
-      if (this.puppeteerFileChooserSession === session) {
-        this.puppeteerFileChooserSession = undefined;
-      }
-    };
+
+    page.on('filechooser', this.playwrightFileChooserHandler);
+  }
+
+  offFileChooser(): void {
+    if (this.interfaceType !== 'playwright') {
+      throw new Error('offFileChooser is only supported in Playwright');
+    }
+
+    const page = this.underlyingPage as PlaywrightPage;
+
+    if (this.playwrightFileChooserHandler) {
+      page.off('filechooser', this.playwrightFileChooserHandler);
+      this.playwrightFileChooserHandler = undefined;
+    }
   }
 }
 

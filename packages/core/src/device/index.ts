@@ -15,6 +15,25 @@ export interface FileChooserHandler {
   accept(files: string[]): Promise<void>;
 }
 
+export interface FileChooserCapable {
+  waitForFileChooser?(): Promise<FileChooserHandler>;
+  onFileChooser?(handler: (chooser: FileChooserHandler) => Promise<void>): void;
+  offFileChooser?(
+    handler?: (chooser: FileChooserHandler) => Promise<void>,
+  ): void;
+}
+
+export function hasFileChooserCapability(
+  obj: unknown,
+): obj is FileChooserCapable {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    ('waitForFileChooser' in obj ||
+      ('onFileChooser' in obj && 'offFileChooser' in obj))
+  );
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
@@ -38,11 +57,6 @@ export abstract class AbstractInterface {
   abstract describe?(): string;
   abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
   abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
-
-  // for web only
-  registerFileChooserListener?(
-    handler: (chooser: FileChooserHandler) => Promise<void>,
-  ): Promise<() => void>;
 
   // @deprecated do NOT extend this method
   abstract getElementsNodeTree?: () => Promise<ElementNode>;
