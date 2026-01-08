@@ -119,10 +119,11 @@ open report_file_name.html
 }
 ```
 
-
 ## 实现自己的 MCP
 
-如果你想在自己的 MCP 服务中集成 Midscene 工具，可以使用 `mcpKitForAgent` 函数来获取工具定义，而不需要启动完整的 MCP 服务器。
+如果你想在自己的 MCP 服务中集成 Midscene 工具，可以使用 `mcpKitForAgent` 函数来获取工具定义，继而自己按需暴露 MCP 服务。
+
+`mcpKitForAgent` 提供的工具包括截图与 Action Space 中的每个 Action。
 
 ### 使用 mcpKitForAgent
 

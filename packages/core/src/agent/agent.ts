@@ -6,6 +6,7 @@ import {
   type AgentOpt,
   type AgentWaitForOpt,
   type CacheConfig,
+  type DeepThinkOption,
   type DetailedLocateParam,
   type DeviceAction,
   type ExecutionDump,
@@ -146,6 +147,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
+  deepThink?: DeepThinkOption;
 };
 
 export class Agent<
@@ -881,6 +883,7 @@ export class Agent<
       debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
       const cacheable = opt?.cacheable;
+      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
@@ -924,6 +927,7 @@ export class Agent<
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
+        deepThink,
         fileChooserAccept,
       );
 

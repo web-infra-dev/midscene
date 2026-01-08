@@ -1,6 +1,5 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { AIActionType } from '@/ai-model';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { localImg2Base64 } from '@/image';
 import { globalModelConfigManager } from '@midscene/shared/env';
@@ -58,7 +57,6 @@ vi.setConfig({
               '鲁迅认识周树人吗？回答我：1. 分析原因 2.回答：是/否/无效问题',
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
       );
 
@@ -77,7 +75,6 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        AIActionType.INSPECT_ELEMENT,
         defaultModelConfig,
       );
       expect(result.content).toEqual({ answer: 15 });
@@ -106,7 +103,6 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        AIActionType.INSPECT_ELEMENT,
         defaultModelConfig,
       );
       expect(result.content).toEqual({ answer: 15 });
@@ -133,7 +129,6 @@ vi.setConfig({
             ],
           },
         ],
-        AIActionType.EXTRACT_DATA,
         defaultModelConfig,
       );
 

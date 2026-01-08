@@ -23,12 +23,7 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import {
-  AIActionType,
-  adaptBboxToRect,
-  expandSearchArea,
-  mergeRects,
-} from '../common';
+import { adaptBboxToRect, expandSearchArea, mergeRects } from '../common';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
@@ -128,6 +123,7 @@ export async function AiLocateElement(options: {
   rect?: Rect;
   rawResponse: string;
   usage?: AIUsageInfo;
+  reasoning_content?: string;
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
@@ -199,7 +195,7 @@ export async function AiLocateElement(options: {
     msgs.push(...addOns);
   }
 
-  const res = await callAIFn(msgs, AIActionType.INSPECT_ELEMENT, modelConfig);
+  const res = await callAIFn(msgs, modelConfig);
 
   const rawResponse = JSON.stringify(res.content);
 
@@ -261,6 +257,7 @@ export async function AiLocateElement(options: {
     },
     rawResponse,
     usage: res.usage,
+    reasoning_content: res.reasoning_content,
   };
 }
 
@@ -313,7 +310,6 @@ export async function AiLocateSection(options: {
 
   const result = await callAIWithObjectResponse<AISectionLocatorResponse>(
     msgs,
-    AIActionType.EXTRACT_DATA,
     modelConfig,
   );
 
@@ -434,12 +430,12 @@ export async function AiExtractElementInfo<T>(options: {
 
   const result = await callAIWithObjectResponse<AIDataExtractionResponse<T>>(
     msgs,
-    AIActionType.EXTRACT_DATA,
     modelConfig,
   );
   return {
     parseResult: result.content,
     usage: result.usage,
+    reasoning_content: result.reasoning_content,
   };
 }
 
@@ -462,11 +458,7 @@ export async function AiJudgeOrderSensitive(
     },
   ];
 
-  const result = await callAIFn(
-    msgs,
-    AIActionType.INSPECT_ELEMENT, // Reuse existing action type for now
-    modelConfig,
-  );
+  const result = await callAIFn(msgs, modelConfig);
 
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,

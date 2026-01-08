@@ -1,4 +1,8 @@
-import { AIResponseFormat, type AIUsageInfo } from '@/types';
+import {
+  AIResponseFormat,
+  type AIUsageInfo,
+  type DeepThinkOption,
+} from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import {
   type IModelConfig,
@@ -17,13 +21,11 @@ import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
-import type { AIActionType, AIArgs } from '../../common';
+import type { AIArgs } from '../../common';
 
 async function createChatClient({
-  AIActionTypeValue,
   modelConfig,
 }: {
-  AIActionTypeValue: AIActionType;
   modelConfig: IModelConfig;
 }): Promise<{
   completion: OpenAI.Chat.Completions;
@@ -200,16 +202,20 @@ async function createChatClient({
 
 export async function callAI(
   messages: ChatCompletionMessageParam[],
-  AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
   options?: {
     stream?: boolean;
     onChunk?: StreamingCallback;
+    deepThink?: DeepThinkOption;
   },
-): Promise<{ content: string; usage?: AIUsageInfo; isStreamed: boolean }> {
+): Promise<{
+  content: string;
+  reasoning_content?: string;
+  usage?: AIUsageInfo;
+  isStreamed: boolean;
+}> {
   const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
     await createChatClient({
-      AIActionTypeValue,
       modelConfig,
     });
 
@@ -226,6 +232,7 @@ export async function callAI(
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
   let accumulated = '';
+  let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
 
@@ -258,6 +265,21 @@ export async function callAI(
         }
       : {}),
   };
+  const {
+    config: deepThinkConfig,
+    debugMessage,
+    warningMessage,
+  } = resolveDeepThinkConfig({
+    deepThink: options?.deepThink,
+    vlMode,
+  });
+  if (debugMessage) {
+    debugCall(debugMessage);
+  }
+  if (warningMessage) {
+    debugCall(warningMessage);
+    console.warn(warningMessage);
+  }
 
   try {
     debugCall(
@@ -270,6 +292,7 @@ export async function callAI(
           model: modelName,
           messages,
           ...commonConfig,
+          ...deepThinkConfig,
         },
         {
           stream: true,
@@ -290,6 +313,7 @@ export async function callAI(
 
         if (content || reasoning_content) {
           accumulated += content;
+          accumulatedReasoning += reasoning_content;
           const chunkData: CodeGenerationChunk = {
             content,
             reasoning_content,
@@ -339,6 +363,7 @@ export async function callAI(
         model: modelName,
         messages,
         ...commonConfig,
+        ...deepThinkConfig,
       } as any);
       timeCost = Date.now() - startTime;
 
@@ -353,10 +378,13 @@ export async function callAI(
         `invalid response from LLM service: ${JSON.stringify(result)}`,
       );
       content = result.choices[0].message.content!;
+      accumulatedReasoning =
+        (result.choices[0].message as any)?.reasoning_content || '';
       usage = result.usage;
     }
 
-    debugCall(`response: ${content}`);
+    debugCall(`response reasoning content: ${accumulatedReasoning}`);
+    debugCall(`response content: ${content}`);
     assert(content, 'empty content');
 
     // Ensure we always have usage info for streaming responses
@@ -375,6 +403,7 @@ export async function callAI(
 
     return {
       content: content || '',
+      reasoning_content: accumulatedReasoning || undefined,
       usage: buildUsageInfo(usage),
       isStreamed: !!isStreaming,
     };
@@ -392,10 +421,19 @@ export async function callAI(
 
 export async function callAIWithObjectResponse<T>(
   messages: ChatCompletionMessageParam[],
-  AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
-): Promise<{ content: T; contentString: string; usage?: AIUsageInfo }> {
-  const response = await callAI(messages, AIActionTypeValue, modelConfig);
+  options?: {
+    deepThink?: DeepThinkOption;
+  },
+): Promise<{
+  content: T;
+  contentString: string;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+}> {
+  const response = await callAI(messages, modelConfig, {
+    deepThink: options?.deepThink,
+  });
   assert(response, 'empty response');
   const vlMode = modelConfig.vlMode;
   const jsonContent = safeParseJson(response.content, vlMode);
@@ -407,15 +445,15 @@ export async function callAIWithObjectResponse<T>(
     content: jsonContent,
     contentString: response.content,
     usage: response.usage,
+    reasoning_content: response.reasoning_content,
   };
 }
 
 export async function callAIWithStringResponse(
   msgs: AIArgs,
-  AIActionTypeValue: AIActionType,
   modelConfig: IModelConfig,
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, AIActionTypeValue, modelConfig);
+  const { content, usage } = await callAI(msgs, modelConfig);
   return { content, usage };
 }
 
@@ -453,6 +491,46 @@ export function preprocessDoubaoBboxJson(input: string) {
     }
   }
   return input;
+}
+
+export function resolveDeepThinkConfig({
+  deepThink,
+  vlMode,
+}: {
+  deepThink?: DeepThinkOption;
+  vlMode?: TVlModeTypes;
+}): {
+  config: Record<string, unknown>;
+  debugMessage?: string;
+  warningMessage?: string;
+} {
+  const normalizedDeepThink = deepThink === 'unset' ? undefined : deepThink;
+
+  if (normalizedDeepThink === undefined) {
+    return { config: {}, debugMessage: undefined };
+  }
+
+  if (vlMode === 'qwen3-vl') {
+    return {
+      config: { enable_thinking: normalizedDeepThink },
+      debugMessage: `deepThink mapped to enable_thinking=${normalizedDeepThink} for qwen3-vl`,
+    };
+  }
+
+  if (vlMode === 'doubao-vision') {
+    return {
+      config: {
+        thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
+      },
+      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for doubao-vision`,
+    };
+  }
+
+  return {
+    config: {},
+    debugMessage: `deepThink ignored: unsupported model_family "${vlMode ?? 'default'}"`,
+    warningMessage: `The "deepThink" option is not supported for model_family "${vlMode ?? 'default'}".`,
+  };
 }
 
 /**

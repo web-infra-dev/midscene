@@ -217,7 +217,7 @@ describe('Playground Integration Tests', () => {
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
         resetDump: () => {},
-      };
+      } as unknown as PlaygroundAgent;
 
       adapter = new LocalExecutionAdapter(mockAgent);
     });
@@ -225,7 +225,7 @@ describe('Playground Integration Tests', () => {
     it('should handle task cancellation', async () => {
       const result = await adapter.cancelTask('test-request');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
     });
   });
 

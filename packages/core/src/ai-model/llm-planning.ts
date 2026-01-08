@@ -1,4 +1,5 @@
 import type {
+  DeepThinkOption,
   DeviceAction,
   InterfaceType,
   PlanningAIResponse,
@@ -11,7 +12,6 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
-  AIActionType,
   buildYamlFlowFromPlans,
   fillBboxParam,
   findAllMidsceneLocatorField,
@@ -33,6 +33,7 @@ export async function plan(
     conversationHistory: ConversationHistory;
     includeBbox: boolean;
     imagesIncludeCount?: number;
+    deepThink?: DeepThinkOption;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -128,10 +129,13 @@ export async function plan(
     content: planFromAI,
     contentString: rawResponse,
     usage,
+    reasoning_content,
   } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
     msgs,
-    AIActionType.PLAN,
     modelConfig,
+    {
+      deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+    },
   );
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
@@ -140,6 +144,7 @@ export async function plan(
     actions,
     rawResponse,
     usage,
+    reasoning_content,
     yamlFlow: buildYamlFlowFromPlans(
       actions,
       opts.actionSpace,

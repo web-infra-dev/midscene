@@ -367,6 +367,14 @@ chrome.runtime.onMessage.addListener(
     }
 
     if (message.action === 'start') {
+      // Check if recorder is already active to avoid clearing events during recording
+      if (window.recorder?.isActive()) {
+        sendResponse({
+          success: true,
+        });
+        return true;
+      }
+
       initialScreenshot = captureScreenshot();
       if (!window.recorder) {
         initializeRecorder(message.sessionId!);
@@ -559,8 +567,22 @@ const checkForNavigation = () => {
   }
 };
 
+// Wrap native history API to catch SPA navigation immediately
+const originalPushState = history.pushState;
+const originalReplaceState = history.replaceState;
+
+history.pushState = function (...args) {
+  const result = originalPushState.apply(this, args);
+  checkForNavigation(); // Immediately check for URL change
+  return result;
+};
+
+history.replaceState = function (...args) {
+  const result = originalReplaceState.apply(this, args);
+  checkForNavigation(); // Immediately check for URL change
+  return result;
+};
+
 // Monitor navigation using multiple methods
-setInterval(checkForNavigation, 1000); // Poll for URL changes
-window.addEventListener('popstate', checkForNavigation);
-window.addEventListener('pushstate', checkForNavigation);
-window.addEventListener('replacestate', checkForNavigation);
+window.addEventListener('popstate', checkForNavigation); // Browser back/forward
+window.addEventListener('hashchange', checkForNavigation); // Hash-based routing (#/path)

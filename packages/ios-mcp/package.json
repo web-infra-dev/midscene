@@ -1,6 +1,6 @@
 {
   "name": "@midscene/ios-mcp",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Midscene MCP Server for iOS automation",
   "bin": "dist/index.js",
   "files": ["dist"],

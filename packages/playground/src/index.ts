@@ -24,6 +24,7 @@ export type {
   ExecutionType,
   PlaygroundAdapter,
   ServerResponse,
+  AgentFactory,
 } from './types';
 export type {
   LaunchPlaygroundOptions,

@@ -68,6 +68,35 @@ const hasValidRect = (event: RecordedEvent): boolean => {
   );
 };
 
+// Extract rect from event, prioritizing full rect properties over x/y coordinates
+const extractRect = (event: RecordedEvent): Rect | [number, number] | null => {
+  if (!event.elementRect) {
+    return null;
+  }
+
+  // Priority 1: Full rect with width/height
+  if (
+    event.elementRect.width &&
+    event.elementRect.height &&
+    (event.elementRect.left !== undefined ||
+      event.elementRect.top !== undefined)
+  ) {
+    return {
+      left: event.elementRect.left || 0,
+      top: event.elementRect.top || 0,
+      width: event.elementRect.width,
+      height: event.elementRect.height,
+    };
+  }
+
+  // Priority 2: x/y coordinates (return as tuple for point-based operations)
+  if (event.elementRect.x !== undefined && event.elementRect.y !== undefined) {
+    return [event.elementRect.x, event.elementRect.y];
+  }
+
+  return null;
+};
+
 // Generate AI description asynchronously
 export const generateAIDescription = async (
   event: RecordedEvent,
@@ -111,15 +140,10 @@ export const generateAIDescription = async (
       };
 
       const service = new Service(mockContext);
-      const rect =
-        event.elementRect?.x && event.elementRect?.y
-          ? ([event.elementRect.x, event.elementRect.y] as [number, number])
-          : {
-              left: event.elementRect?.left!,
-              top: event.elementRect?.top!,
-              width: event.elementRect?.width!,
-              height: event.elementRect?.height!,
-            };
+      const rect = extractRect(event);
+      if (!rect) {
+        throw new Error('No valid rect found');
+      }
 
       // Modify it to a call with retry
       const { description } = await describeWithRetry(service, rect, 3);
@@ -155,36 +179,15 @@ export const generateBoxedImage = async (
     }
 
     const elementsPositionInfo = [];
-    if (hasValidRect(event) && event.elementRect) {
-      // Check if we have left/top/width/height properties
-      if (
-        event.elementRect.width &&
-        event.elementRect.height &&
-        (event.elementRect.left !== undefined ||
-          event.elementRect.top !== undefined)
-      ) {
+    if (hasValidRect(event)) {
+      const rect = extractRect(event);
+      if (rect) {
+        const displayRect = Array.isArray(rect)
+          ? { left: rect[0], top: rect[1], width: 4, height: 4 }
+          : rect;
         elementsPositionInfo.push({
-          rect: {
-            left: event.elementRect.left || 0,
-            top: event.elementRect.top || 0,
-            width: event.elementRect.width,
-            height: event.elementRect.height,
-          },
-          indexId: 1,
-        });
-      }
-      // Check if we have x/y coordinates
-      else if (
-        event.elementRect.x !== undefined &&
-        event.elementRect.y !== undefined
-      ) {
-        elementsPositionInfo.push({
-          rect: {
-            left: event.elementRect.x,
-            top: event.elementRect.y,
-            width: 4,
-            height: 4,
-          },
+          rect: displayRect,
+          indexId: Array.isArray(rect) ? undefined : 1,
         });
       }
     }

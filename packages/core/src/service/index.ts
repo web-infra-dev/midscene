@@ -5,7 +5,7 @@ import {
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
-import { AIActionType, type AIArgs, expandSearchArea } from '@/common';
+import { type AIArgs, expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -129,13 +129,14 @@ export default class Service {
     }
 
     const startTime = Date.now();
-    const { parseResult, rect, rawResponse, usage } = await AiLocateElement({
-      callAIFn: this.aiVendorFn,
-      context,
-      targetElementDescription: queryPrompt,
-      searchConfig: searchAreaResponse,
-      modelConfig,
-    });
+    const { parseResult, rect, rawResponse, usage, reasoning_content } =
+      await AiLocateElement({
+        callAIFn: this.aiVendorFn,
+        context,
+        targetElementDescription: queryPrompt,
+        searchConfig: searchAreaResponse,
+        modelConfig,
+      });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
@@ -147,6 +148,7 @@ export default class Service {
       searchArea,
       searchAreaRawResponse,
       searchAreaUsage,
+      reasoning_content,
     };
 
     let errorLog: string | undefined;
@@ -219,20 +221,22 @@ export default class Service {
 
     const startTime = Date.now();
 
-    const { parseResult, usage } = await AiExtractElementInfo<T>({
-      context,
-      dataQuery: dataDemand,
-      multimodalPrompt,
-      extractOption: opt,
-      modelConfig,
-      pageDescription,
-    });
+    const { parseResult, usage, reasoning_content } =
+      await AiExtractElementInfo<T>({
+        context,
+        dataQuery: dataDemand,
+        multimodalPrompt,
+        extractOption: opt,
+        modelConfig,
+        pageDescription,
+      });
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
       rawResponse: JSON.stringify(parseResult),
+      reasoning_content,
     };
 
     let errorLog: string | undefined;
@@ -267,6 +271,7 @@ export default class Service {
       data,
       thought,
       usage,
+      reasoning_content,
       dump,
     };
   }
@@ -338,11 +343,7 @@ export default class Service {
     const callAIFn = this
       .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
 
-    const res = await callAIFn(
-      msgs,
-      AIActionType.DESCRIBE_ELEMENT,
-      modelConfig,
-    );
+    const res = await callAIFn(msgs, modelConfig);
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);

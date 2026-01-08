@@ -263,7 +263,7 @@ describe('LocalExecutionAdapter', () => {
 
       const result = await adapter.cancelTask('request-123');
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 
@@ -290,9 +290,11 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
+        dump: {},
+        reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to cancel agent: Destroy failed',
+        '[LocalExecutionAdapter] Failed to cancel agent: Destroy failed',
       );
 
       consoleSpy.mockRestore();

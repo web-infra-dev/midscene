@@ -113,12 +113,20 @@ export function StandardPlayground({
         playgroundSDK.current = getReportPlaygroundSDK(
           serviceMode as ServiceModeType,
           agent,
+          // Pass agentFactory for recreation after destroy
+          () => {
+            const newAgent = getAgent();
+            if (!newAgent) {
+              throw new Error('Failed to create agent');
+            }
+            return newAgent;
+          },
         );
         currentAgent.current = agent;
       }
       return playgroundSDK.current;
     },
-    [serviceMode],
+    [serviceMode, getAgent],
   );
 
   // Override AI configuration

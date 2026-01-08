@@ -5,7 +5,7 @@ import type {
 import { PLAYWRIGHT_EXAMPLE_CODE } from '@midscene/shared/constants';
 import type { IModelConfig } from '@midscene/shared/env';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
-import { AIActionType, callAI, callAIWithStringResponse } from '../index';
+import { callAI, callAIWithStringResponse } from '../index';
 // Import shared utilities and types from yaml-generator
 import {
   type ChromeRecordedEvent,
@@ -126,11 +126,7 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
     },
   ];
 
-  const response = await callAIWithStringResponse(
-    prompt,
-    AIActionType.TEXT,
-    modelConfig,
-  );
+  const response = await callAIWithStringResponse(prompt, modelConfig);
 
   if (response?.content && typeof response.content === 'string') {
     return response.content;
@@ -212,17 +208,13 @@ ${PLAYWRIGHT_EXAMPLE_CODE}`;
 
   if (options.stream && options.onChunk) {
     // Use streaming
-    return await callAI(prompt, AIActionType.TEXT, modelConfig, {
+    return await callAI(prompt, modelConfig, {
       stream: true,
       onChunk: options.onChunk,
     });
   } else {
     // Fallback to non-streaming
-    const response = await callAIWithStringResponse(
-      prompt,
-      AIActionType.TEXT,
-      modelConfig,
-    );
+    const response = await callAIWithStringResponse(prompt, modelConfig);
 
     if (response?.content && typeof response.content === 'string') {
       return {

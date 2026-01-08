@@ -31,7 +31,7 @@ export {
   type ConversationHistoryOptions,
 } from './conversation-history';
 
-export { AIActionType, type AIArgs } from '../common';
+export type { AIArgs } from '../common';
 
 export {
   getMidsceneLocationSchema,

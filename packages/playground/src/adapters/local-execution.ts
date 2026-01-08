@@ -2,11 +2,17 @@ import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
-import type { ExecutionOptions, FormValue, PlaygroundAgent } from '../types';
+import type {
+  AgentFactory,
+  ExecutionOptions,
+  FormValue,
+  PlaygroundAgent,
+} from '../types';
 import { BasePlaygroundAdapter } from './base';
 
 export class LocalExecutionAdapter extends BasePlaygroundAdapter {
-  private agent: PlaygroundAgent;
+  private agent: PlaygroundAgent | null;
+  private agentFactory?: AgentFactory; // Factory function for recreating agent
   private dumpUpdateCallback?: (
     dump: string,
     executionDump?: ExecutionDump,
@@ -15,9 +21,10 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
 
-  constructor(agent: PlaygroundAgent) {
+  constructor(agent?: PlaygroundAgent, agentFactory?: AgentFactory) {
     super();
-    this.agent = agent;
+    this.agent = agent ?? null;
+    this.agentFactory = agentFactory;
     this._id = uuid(); // Generate unique ID for local adapter
   }
 
@@ -101,6 +108,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   async overrideConfig(aiConfig: Record<string, unknown>): Promise<void> {
     // For local execution, use the shared env override function
     overrideAIConfig(aiConfig);
+    console.log('Config updated. Agent will be recreated on next execution.');
   }
 
   /**
@@ -125,24 +133,49 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
+    // If agentFactory is provided, always recreate agent with latest config before execution
+    if (this.agentFactory) {
+      if (this.agent) {
+        console.log('Destroying old agent before execution...');
+        try {
+          await this.agent.destroy?.();
+        } catch (error) {
+          console.warn('Failed to destroy old agent:', error);
+        }
+        this.agent = null;
+      }
+
+      // Create new agent with latest config
+      await this.recreateAgent();
+    }
+
+    // Agent must exist (either recreated or provided in constructor)
+    if (!this.agent) {
+      throw new Error(
+        'No agent available. Please provide either an agent instance or agentFactory.',
+      );
+    }
+
+    const agent = this.agent;
+
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
     let removeListener: (() => void) | undefined;
 
     // Reset dump at the start of execution to ensure clean state
     try {
-      this.agent.resetDump?.();
+      agent.resetDump?.();
     } catch (error: unknown) {
       console.warn('Failed to reset dump before execution:', error);
     }
 
     // Setup dump update tracking if requestId is provided
-    if (options.requestId && this.agent) {
+    if (options.requestId) {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
 
       // Add listener and save remove function
-      removeListener = this.agent.addDumpUpdateListener(
+      removeListener = agent.addDumpUpdateListener(
         (dump: string, executionDump?: ExecutionDump) => {
           // Only process if this is still the current request
           if (this.currentRequestId !== options.requestId) {
@@ -164,7 +197,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       try {
         // Call the base implementation with the original signature
         result = await executeAction(
-          this.agent,
+          agent,
           actionType,
           actionSpace,
           value,
@@ -187,26 +220,36 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           : null,
       };
 
+      // Get dump data - separate try-catch to ensure dump is retrieved even if reportHTML fails
       try {
-        if (this.agent.dumpDataString) {
-          const dumpString = this.agent.dumpDataString();
+        if (agent.dumpDataString) {
+          const dumpString = agent.dumpDataString();
           if (dumpString) {
             const groupedDump = JSON.parse(dumpString);
             response.dump = groupedDump.executions?.[0] || null;
           }
         }
+      } catch (error: unknown) {
+        console.warn('Failed to get dump from agent:', error);
+      }
 
-        // Always generate reportHTML for all APIs (including noReplayAPIs)
-        if (this.agent.reportHTMLString) {
-          response.reportHTML = this.agent.reportHTMLString() || null;
-        }
-
-        // Write out action dumps
-        if (this.agent.writeOutActionDumps) {
-          this.agent.writeOutActionDumps();
+      // Try to get reportHTML - may fail in browser environment (fs not available)
+      try {
+        if (agent.reportHTMLString) {
+          response.reportHTML = agent.reportHTMLString() || null;
         }
       } catch (error: unknown) {
-        console.error('Failed to get dump/reportHTML from agent:', error);
+        // reportHTMLString may throw in browser environment
+        // This is expected in chrome-extension, continue without reportHTML
+      }
+
+      // Write out action dumps - may also fail in browser environment
+      try {
+        if (agent.writeOutActionDumps) {
+          agent.writeOutActionDumps();
+        }
+      } catch (error: unknown) {
+        // writeOutActionDumps may fail in browser environment
       }
 
       // Don't throw the error - return it in response so caller can access dump/reportHTML
@@ -220,22 +263,93 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  // Local execution task cancellation - minimal implementation
-  async cancelTask(
-    _requestId: string,
-  ): Promise<{ error?: string; success?: boolean }> {
+  /**
+   * Recreate agent instance using the factory function.
+   * Called automatically when executeAction is called.
+   */
+  private async recreateAgent(): Promise<void> {
+    if (!this.agentFactory) {
+      throw new Error(
+        'Cannot recreate agent: factory function not provided. Please provide agentFactory in PlaygroundConfig to enable agent recreation.',
+      );
+    }
+
+    console.log('Creating new agent with latest config...');
+    try {
+      this.agent = await this.agentFactory();
+      console.log('Agent created successfully');
+    } catch (error) {
+      console.error('Failed to create agent:', error);
+      throw error;
+    }
+  }
+
+  // Local execution task cancellation - returns dump and reportHTML before destroying
+  async cancelTask(_requestId: string): Promise<{
+    error?: string;
+    success?: boolean;
+    dump?: ExecutionDump | null;
+    reportHTML?: string | null;
+  }> {
     if (!this.agent) {
       return { error: 'No active agent found for this requestId' };
     }
 
+    // Get execution data BEFORE destroying the agent
+    let dump: ExecutionDump | null = null;
+    let reportHTML: string | null = null;
+
+    // Get dump data separately - don't let reportHTML errors affect dump retrieval
+    // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
+    try {
+      if (typeof this.agent.dumpDataString === 'function') {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
+          // In Playground, each "Run" creates one execution, so we take executions[0]
+          const groupedDump = JSON.parse(dumpString);
+          dump = groupedDump.executions?.[0] ?? null;
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[LocalExecutionAdapter] Failed to get dump data before cancel:',
+        error,
+      );
+    }
+
+    // Try to get reportHTML separately - this may fail in browser environment
+    // where fs.readFileSync is not available
+    try {
+      if (typeof this.agent.reportHTMLString === 'function') {
+        const html = this.agent.reportHTMLString();
+        if (
+          html &&
+          typeof html === 'string' &&
+          !html.includes('REPLACE_ME_WITH_REPORT_HTML')
+        ) {
+          reportHTML = html;
+        }
+      }
+    } catch (error) {
+      // reportHTMLString may throw in browser environment (fs not available)
+      // This is expected, just continue with dump data only
+      console.warn(
+        '[LocalExecutionAdapter] reportHTMLString not available in this environment',
+      );
+    }
+
     try {
       await this.agent.destroy?.();
-      return { success: true };
+      this.agent = null; // Clear agent reference
+      return { success: true, dump, reportHTML };
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
-      console.error(`Failed to cancel agent: ${errorMessage}`);
-      return { error: `Failed to cancel: ${errorMessage}` };
+      console.error(
+        `[LocalExecutionAdapter] Failed to cancel agent: ${errorMessage}`,
+      );
+      return { error: `Failed to cancel: ${errorMessage}`, dump, reportHTML };
     }
   }
 
@@ -254,7 +368,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     try {
       // Get dump data
-      if (this.agent.dumpDataString) {
+      if (this.agent?.dumpDataString) {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
           const groupedDump = JSON.parse(dumpString);
@@ -263,7 +377,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       }
 
       // Get report HTML
-      if (this.agent.reportHTMLString) {
+      if (this.agent?.reportHTMLString) {
         response.reportHTML = this.agent.reportHTMLString() || null;
       }
     } catch (error: unknown) {

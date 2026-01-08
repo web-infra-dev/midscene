@@ -94,9 +94,7 @@ export default function Recorder() {
     currentTab,
     currentSessionId,
     getCurrentSession,
-    (sessionId: string, updates: Partial<RecordingSession>) => {
-      sessionHooks.handleUpdateSession(sessionId, updates);
-    },
+    handleUpdateSession,
     createNewSession,
   );
   const {
@@ -119,9 +117,7 @@ export default function Recorder() {
     setIsRecording,
     currentSessionId,
     getCurrentSession,
-    (sessionId: string, updates: Partial<RecordingSession>) => {
-      sessionHooks.handleUpdateSession(sessionId, updates);
-    },
+    handleUpdateSession,
     events, // Pass current events to save them during cleanup
     emergencySaveEvents, // Pass emergency save function
   );

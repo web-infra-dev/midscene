@@ -1,6 +1,6 @@
 {
   "name": "@midscene/web-bridge-mcp",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Midscene MCP Server for Web automation (Bridge mode)",
   "bin": "dist/index.js",
   "files": ["dist"],

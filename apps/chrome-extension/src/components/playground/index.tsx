@@ -1,7 +1,7 @@
 import { PlaygroundSDK } from '@midscene/playground';
 import { UniversalPlayground } from '@midscene/visualizer';
 import { useEnvConfig } from '@midscene/visualizer';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getExtensionVersion } from '../../utils/chrome';
 import './index.less';
 
@@ -28,81 +28,35 @@ export function BrowserExtensionPlayground({
   const { config } = useEnvConfig();
   const runEnabled = !!getAgent && Object.keys(config || {}).length >= 1;
 
-  // Simplified agent tracking using a single ref for both agent and SDK
-  const agentInfoRef = useRef<{ agent: any; sdk: PlaygroundSDK } | null>(null);
-
-  // Helper function to detach all debuggers
-  const detachAllDebuggers = async () => {
-    try {
-      const targets = await chrome.debugger.getTargets();
-      for (const target of targets) {
-        if (target.attached && target.tabId) {
-          try {
-            await chrome.debugger.detach({ tabId: target.tabId });
-          } catch (e) {
-            // Ignore errors, debugger might already be detached
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to detach debuggers:', e);
-    }
-  };
-
-  // Helper to cleanup agent
-  const cleanupAgent = useCallback((agent: any) => {
-    if (agent) {
-      try {
-        agent.page?.destroy?.();
-        agent.destroy?.();
-      } catch (error) {
-        console.warn('Failed to cleanup agent:', error);
-      }
-    }
+  // Track active tab to trigger SDK recreation on tab change
+  const [activeTabId, setActiveTabId] = useState<number | null>(null);
+  useEffect(() => {
+    const updateActiveTab = () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        setActiveTabId(tabs[0]?.id ?? null);
+      });
+    };
+    updateActiveTab();
+    chrome.tabs.onActivated.addListener(updateActiveTab);
+    return () => chrome.tabs.onActivated.removeListener(updateActiveTab);
   }, []);
 
-  // Create SDK when needed
+  // Create SDK when needed - recreate on tab change
   const playgroundSDK = useMemo(() => {
-    if (!runEnabled) {
+    if (!runEnabled || activeTabId === null) {
       return null;
     }
 
     try {
-      const agent = getAgent(forceSameTabNavigation);
-      if (!agent) {
-        throw new Error('Please configure AI settings first');
-      }
-
-      // Check if we can reuse existing SDK
-      if (agentInfoRef.current && agentInfoRef.current.agent === agent) {
-        return agentInfoRef.current.sdk;
-      }
-
-      // Need to create new SDK
-      // Clean up previous agent if it exists
-      if (agentInfoRef.current) {
-        cleanupAgent(agentInfoRef.current.agent);
-      }
-
-      // Detach all debuggers before creating new SDK
-      detachAllDebuggers().then(() => {
-        console.log('[DEBUG] Detached all debuggers before creating SDK');
-      });
-
-      // Create new SDK
-      const newSdk = new PlaygroundSDK({
+      return new PlaygroundSDK({
         type: 'local-execution',
-        agent: agent,
+        agentFactory: () => getAgent(forceSameTabNavigation),
       });
-
-      // Store the new agent and SDK
-      agentInfoRef.current = { agent, sdk: newSdk };
-      return newSdk;
     } catch (error) {
       console.error('Failed to initialize PlaygroundSDK:', error);
       return null;
     }
-  }, [runEnabled, getAgent, forceSameTabNavigation, cleanupAgent]);
+  }, [runEnabled, getAgent, forceSameTabNavigation, activeTabId]);
 
   // Progress callback handling is now managed in usePlaygroundExecution hook
   // No need to override onProgressUpdate here
@@ -143,17 +97,6 @@ export function BrowserExtensionPlayground({
       },
     };
   }, [showContextPreview, getAgent, forceSameTabNavigation]);
-
-  // Cleanup effect to detach chrome.debugger when component unmounts
-  useEffect(() => {
-    return () => {
-      // When component unmounts, clean up agent and detach all debuggers
-      if (agentInfoRef.current) {
-        cleanupAgent(agentInfoRef.current.agent);
-        agentInfoRef.current = null;
-      }
-    };
-  }, [cleanupAgent]);
 
   return (
     <UniversalPlayground

@@ -94,16 +94,43 @@ export class WebDriverClient {
   async getWindowSize(): Promise<Size> {
     this.ensureSession();
 
-    const response = await this.makeRequest(
-      'GET',
-      `/session/${this.sessionId}/window/rect`,
-    );
-    const rect = response.value || response;
+    // Try the newer /window/rect endpoint first (returns x,y,width,height).
+    // If it fails (older WDA / WebDriver implementations), fall back to
+    // the older /window/size endpoint which returns width/height.
+    try {
+      const response = await this.makeRequest(
+        'GET',
+        `/session/${this.sessionId}/window/rect`,
+      );
+      const rect = response.value || response;
 
-    return {
-      width: rect.width,
-      height: rect.height,
-    };
+      return {
+        width: rect.width,
+        height: rect.height,
+      };
+    } catch (err) {
+      debugClient(
+        `Failed to get window rect: ${err}. Falling back to /window/size`,
+      );
+
+      // Fallback to legacy size endpoint
+      try {
+        const response = await this.makeRequest(
+          'GET',
+          `/session/${this.sessionId}/window/size`,
+        );
+        const size = response.value || response;
+
+        return {
+          width: size.width,
+          height: size.height,
+        };
+      } catch (err2) {
+        debugClient(`Failed to get window size fallback: ${err2}`);
+        // Re-throw the original fallback error (or the new one) so callers know it failed
+        throw err2;
+      }
+    }
   }
 
   async getDeviceInfo(): Promise<DeviceInfo | null> {

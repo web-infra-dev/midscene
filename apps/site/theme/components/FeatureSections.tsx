@@ -64,12 +64,9 @@ export function FeatureSections() {
               {/* Web Card */}
               <TiltCard
                 href={tUrl(t('platformWebLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 justify-between group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                  {t('platformWeb')}
-                </p>
-                <div className="flex flex-col gap-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -100,6 +97,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                    {t('platformWeb')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformWebDesc')}
                   </div>
@@ -109,12 +109,9 @@ export function FeatureSections() {
               {/* iOS Card */}
               <TiltCard
                 href={tUrl(t('platformIOSLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                  {t('platformIOS')}
-                </p>
-                <div className="flex flex-col gap-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -145,6 +142,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                    {t('platformIOS')}
+                  </p>
                   <div className="text-sm md:text-base font-normal font-sans leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformIOSDesc')}
                   </div>
@@ -157,12 +157,9 @@ export function FeatureSections() {
               {/* Android Card */}
               <TiltCard
                 href={tUrl(t('platformAndroidLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 justify-between group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                  {t('platformAndroid')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-y-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -193,6 +190,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                    {t('platformAndroid')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformAndroidDesc')}
                   </div>
@@ -202,12 +202,9 @@ export function FeatureSections() {
               {/* Any Interface Card */}
               <TiltCard
                 href={tUrl(t('platformAnyInterfaceLink'))}
-                className="w-full md:w-[381px] md:h-[368px] flex flex-col gap-y-4 justify-between group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[368px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                  {t('platformAnyInterface')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-y-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -238,6 +235,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                    {t('platformAnyInterface')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('platformAnyInterfaceDesc')}
                   </div>

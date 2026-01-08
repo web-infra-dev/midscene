@@ -264,13 +264,11 @@ android:
 tasks:
   - name: Launch Settings app
     flow:
-      - launch:
-          uri: com.android.settings
+      - launch: com.android.settings
 
   - name: Open webpage
     flow:
-      - launch:
-          uri: https://www.example.com
+      - launch: https://www.example.com
 ```
 
 ### The `ios` part
@@ -380,11 +378,13 @@ tasks:
       # Perform an interaction. `ai` is a shorthand for `aiAct`.
       - ai: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+        deepThink: <boolean> # Optional, enable deep thinking for planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is undefined and follows the model provider's default strategy.
 
       # This usage is the same as `ai`.
       # Note: In earlier versions, this was also written as `aiAction`. The current version supports both names.
       - aiAct: <prompt>
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
+        deepThink: <boolean> # Optional, enable deep thinking for planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is undefined and follows the model provider's default strategy.
 
       # Instant Action (.aiTap, .aiHover, .aiInput, .aiKeyboardPress, .aiScroll)
       # ----------------
