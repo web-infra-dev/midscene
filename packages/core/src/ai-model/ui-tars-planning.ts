@@ -222,7 +222,7 @@ export async function uiTarsPlanning(
         transformActions.push({
           type: 'KeyboardPress',
           param: {
-            keyName: keys,
+            keyName: keys.join('+'),
           },
           thought: action.thought || '',
         });
