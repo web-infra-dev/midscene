@@ -1,6 +1,6 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
-import type { AbstractInterface } from '@/device';
+import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
@@ -208,6 +208,65 @@ export class TaskExecutor {
     cacheable?: boolean,
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
+    fileChooserAccept?: string[],
+  ): Promise<
+    ExecutionResult<
+      | {
+          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+        }
+      | undefined
+    >
+  > {
+    if (fileChooserAccept?.length) {
+      if (!this.interface.registerFileChooserListener) {
+        throw new Error(
+          `File upload is not supported on ${this.interface.interfaceType}`,
+        );
+      }
+
+      const handler = async (chooser: FileChooserHandler) => {
+        await chooser.accept(fileChooserAccept);
+      };
+
+      const dispose =
+        await this.interface.registerFileChooserListener(handler);
+      try {
+        return await this.runAction(
+          userPrompt,
+          modelConfigForPlanning,
+          modelConfigForDefaultIntent,
+          includeBboxInPlanning,
+          aiActContext,
+          cacheable,
+          replanningCycleLimitOverride,
+          imagesIncludeCount,
+        );
+      } finally {
+        dispose();
+      }
+    }
+
+    return await this.runAction(
+      userPrompt,
+      modelConfigForPlanning,
+      modelConfigForDefaultIntent,
+      includeBboxInPlanning,
+      aiActContext,
+      cacheable,
+      replanningCycleLimitOverride,
+      imagesIncludeCount,
+    );
+  }
+
+  private async runAction(
+    userPrompt: string,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
+    includeBboxInPlanning: boolean,
+    aiActContext?: string,
+    cacheable?: boolean,
+    replanningCycleLimitOverride?: number,
+    imagesIncludeCount?: number,
   ): Promise<
     ExecutionResult<
       | {
@@ -402,13 +461,12 @@ export class TaskExecutor {
       }
     }
 
-    const finalResult = {
+    return {
       output: {
         yamlFlow,
       },
       runner,
     };
-    return finalResult;
   }
 
   private createTypeQueryTask(

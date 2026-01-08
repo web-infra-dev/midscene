@@ -875,6 +875,10 @@ export class Agent<
   }
 
   async aiAct(taskPrompt: string, opt?: AiActOptions) {
+    const fileChooserAccept = opt?.fileChooserAccept
+      ? this.normalizeFileInput(opt.fileChooserAccept)
+      : undefined;
+
     const runAiAct = async () => {
       const modelConfigForPlanning =
         this.modelConfigManager.getModelConfig('planning');
@@ -932,6 +936,7 @@ export class Agent<
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
+        fileChooserAccept,
       );
 
       // update cache
@@ -957,27 +962,6 @@ export class Agent<
 
       return output;
     };
-
-    if (opt?.fileChooserAccept) {
-      if (!this.interface.registerFileChooserListener) {
-        throw new Error(
-          `File upload is not supported on ${this.interface.interfaceType}`,
-        );
-      }
-
-      const normalizedFiles = this.normalizeFileInput(opt.fileChooserAccept);
-      const handler = async (chooser: FileChooserHandler) => {
-        await chooser.accept(normalizedFiles);
-      };
-
-      const dispose =
-        await this.interface.registerFileChooserListener(handler);
-      try {
-        return await runAiAct();
-      } finally {
-        dispose();
-      }
-    }
 
     return await runAiAct();
   }
