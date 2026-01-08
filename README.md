@@ -40,7 +40,7 @@ English | [简体中文](./README.zh.md)
 
 autonomously register the GitHub form in a web browser and pass all field validations.
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls></video>
 
 Plus these real-world showcases:
 * [iOS Automation - Meituan coffee order](https://midscenejs.com/showcases#ios)
