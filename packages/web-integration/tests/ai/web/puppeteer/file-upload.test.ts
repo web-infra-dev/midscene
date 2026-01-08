@@ -149,4 +149,56 @@ describe('file upload functionality', () => {
       fileChooserAccept: [testFile],
     });
   });
+
+  it('should throw error when uploading multiple files to single-file input', async () => {
+    const testFile1 = join(__dirname, '../../fixtures/test-file-1.txt');
+    const testFile2 = join(__dirname, '../../fixtures/test-file-2.txt');
+
+    const { originPage, reset } = await launchPage(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+    resetFn = reset;
+
+    agent = new PuppeteerAgent(originPage);
+
+    // Attempt to upload multiple files to single-file input (no 'multiple' attribute)
+    // This should throw an error because the input only accepts single file
+    await expect(
+      agent.aiTap('Choose Single File', {
+        fileChooserAccept: [testFile1, testFile2],
+      }),
+    ).rejects.toThrow(/Non-multiple file input can only accept single file/);
+
+    // Verify that no files were uploaded after the error
+    await agent.aiAssert('page does not display "test-file-1.txt"');
+    await agent.aiAssert('page does not display "test-file-2.txt"');
+
+    // Verify page is still interactive - can upload a single file successfully
+    const testFile = join(__dirname, '../../fixtures/test-file.txt');
+    await agent.aiTap('Choose Single File', { fileChooserAccept: [testFile] });
+    await agent.aiAssert('page displays "test-file.txt"');
+  });
+
+  it('should allow page interaction when file chooser is triggered but no files provided', async () => {
+    const { originPage, reset } = await launchPage(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+    resetFn = reset;
+
+    agent = new PuppeteerAgent(originPage);
+
+    // Click the upload button without providing fileChooserAccept
+    // The file chooser will be triggered but dismissed without selecting files
+    await agent.aiTap('Choose Single File');
+
+    // Verify page is still interactive - can perform other actions
+    await agent.aiAssert('page displays "File Upload Test Page"');
+
+    // Can still upload files after dismissing the chooser
+    const testFile = join(__dirname, '../../fixtures/test-file.txt');
+    await agent.aiTap('Choose Single File', {
+      fileChooserAccept: [testFile],
+    });
+    await agent.aiAssert('page displays "test-file.txt"');
+  });
 });

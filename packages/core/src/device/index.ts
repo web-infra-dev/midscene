@@ -42,7 +42,7 @@ export abstract class AbstractInterface {
   // for web only
   registerFileChooserListener?(
     handler: (chooser: FileChooserHandler) => Promise<void>,
-  ): Promise<() => void>;
+  ): Promise<{ dispose: () => void; getError: () => Error | undefined }>;
 
   // @deprecated do NOT extend this method
   abstract getElementsNodeTree?: () => Promise<ElementNode>;

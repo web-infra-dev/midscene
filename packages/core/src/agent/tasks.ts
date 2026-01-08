@@ -716,9 +716,16 @@ export async function withFileChooser<T>(
     await chooser.accept(fileChooserAccept);
   };
 
-  const dispose = await interfaceInstance.registerFileChooserListener(handler);
+  const { dispose, getError } =
+    await interfaceInstance.registerFileChooserListener(handler);
   try {
-    return await action();
+    const result = await action();
+    // Check for errors that occurred during file chooser handling
+    const error = getError();
+    if (error) {
+      throw error;
+    }
+    return result;
   } finally {
     dispose();
   }

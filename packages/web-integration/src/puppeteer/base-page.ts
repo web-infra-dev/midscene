@@ -705,7 +705,7 @@ export class Page<
     handler: (
       chooser: import('@midscene/core/device').FileChooserHandler,
     ) => Promise<void>,
-  ): Promise<() => void> {
+  ): Promise<{ dispose: () => void; getError: () => Error | undefined }> {
     if (this.interfaceType !== 'puppeteer') {
       throw new Error(
         'registerFileChooserListener is only supported in Puppeteer',
@@ -717,30 +717,56 @@ export class Page<
     if (this.puppeteerFileChooserHandler) {
       session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
     }
+
+    let capturedError: Error | undefined;
+
     this.puppeteerFileChooserHandler = async (event) => {
       if (event.backendNodeId === undefined) {
         debugPage('puppeteer file chooser opened without backendNodeId, skip');
         return;
       }
-      await handler({
-        accept: async (files: string[]) => {
-          await session.send('DOM.setFileInputFiles', {
-            files,
-            backendNodeId: event.backendNodeId,
-          });
-        },
-      });
+      try {
+        await handler({
+          accept: async (files: string[]) => {
+            // Check if input supports multiple files
+            if (files.length > 1) {
+              const { node } = await session.send('DOM.describeNode', {
+                backendNodeId: event.backendNodeId,
+              });
+              // attributes is a flat array: ['attr1', 'value1', 'attr2', 'value2', ...]
+              const hasMultiple = node.attributes?.includes('multiple');
+              if (!hasMultiple) {
+                throw new Error(
+                  'Non-multiple file input can only accept single file',
+                );
+              }
+            }
+            await session.send('DOM.setFileInputFiles', {
+              files,
+              backendNodeId: event.backendNodeId,
+            });
+          },
+        });
+      } catch (error) {
+        capturedError = error as Error;
+      }
     };
     session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
-    return () => {
-      if (this.puppeteerFileChooserHandler) {
-        session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
-      }
-      void session.detach();
-      this.puppeteerFileChooserHandler = undefined;
-      if (this.puppeteerFileChooserSession === session) {
-        this.puppeteerFileChooserSession = undefined;
-      }
+    return {
+      dispose: () => {
+        if (this.puppeteerFileChooserHandler) {
+          session.off(
+            'Page.fileChooserOpened',
+            this.puppeteerFileChooserHandler,
+          );
+        }
+        void session.detach();
+        this.puppeteerFileChooserHandler = undefined;
+        if (this.puppeteerFileChooserSession === session) {
+          this.puppeteerFileChooserSession = undefined;
+        }
+      },
+      getError: () => capturedError,
     };
   }
 }
