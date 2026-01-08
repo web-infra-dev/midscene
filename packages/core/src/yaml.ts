@@ -204,10 +204,9 @@ export interface MidsceneYamlFlowItemAIAssert extends ServiceExtractOption {
   name?: string;
 }
 
-export interface MidsceneYamlFlowItemAIWaitFor {
+export interface MidsceneYamlFlowItemAIWaitFor extends ServiceExtractOption {
   aiWaitFor: string;
   timeout?: number;
-  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemEvaluateJavaScript {
