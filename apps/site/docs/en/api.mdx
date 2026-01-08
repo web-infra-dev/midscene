@@ -191,7 +191,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `files?: string | string[]` - File path(s) to upload when tap triggers a file chooser. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
+    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
 
 - Return Value:
 
@@ -208,8 +208,8 @@ await agent.aiTap('The login button at the top of the page', {
 });
 
 // File upload: tap the upload button and select files
-await agent.aiTap('Choose file button', { files: ['./document.pdf'] });
-await agent.aiTap('Upload images', { files: ['./image1.jpg', './image2.png'] });
+await agent.aiTap('Choose file button', { fileChooserAccept: ['./document.pdf'] });
+await agent.aiTap('Upload images', { fileChooserAccept: ['./image1.jpg', './image2.png'] });
 ```
 
 ### `agent.aiHover()`
