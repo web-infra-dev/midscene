@@ -14,6 +14,7 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
   fillBboxParam,
+  finalizeActionName,
   findAllMidsceneLocatorField,
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
@@ -139,17 +140,23 @@ export async function plan(
   );
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
+  let shouldContinuePlanning = true;
+  if (!actions.length) {
+    debug('no actions planned and no sleep instruction, stop planning');
+    shouldContinuePlanning = false;
+  }
+  if (actions[0]?.type === finalizeActionName) {
+    debug('finalize action planned, stop planning');
+    shouldContinuePlanning = false;
+  }
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,
     rawResponse,
     usage,
     reasoning_content,
-    yamlFlow: buildYamlFlowFromPlans(
-      actions,
-      opts.actionSpace,
-      planFromAI.sleep,
-    ),
+    yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
+    shouldContinuePlanning,
   };
 
   assert(planFromAI, "can't get plans from AI");
@@ -182,17 +189,6 @@ export async function plan(
       }
     });
   });
-
-  if (
-    actions.length === 0 &&
-    returnValue.more_actions_needed_by_instruction &&
-    !returnValue.sleep
-  ) {
-    console.warn(
-      'No actions planned for the prompt, but model said more actions are needed:',
-      userInstruction,
-    );
-  }
 
   conversationHistory.append({
     role: 'assistant',

@@ -10,8 +10,7 @@ import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
 
-const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.
-  "more_actions_needed_by_instruction": boolean, // Consider if there is still more action(s) to do after the action in "Log" is done, according to the instruction. If so, set this field to true. Otherwise, set it to false.`;
+const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.`;
 
 const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
   if (vlMode) {
@@ -151,7 +150,6 @@ Please tell what the next one action is (or null if no action should be done) to
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
-- If there is nothing to do but waiting, set the "sleep" field to the positive waiting time in milliseconds and null for the "action" field.
 - Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion by calling the "Print_Assert_Result" action.
 
 ## Supporting actions
@@ -171,16 +169,13 @@ Return in JSON format:
       "param"?: { // The parameter of the action, if any
          // k-v style parameter fields
       }, 
-    } | null,
-  ,
-  "sleep"?: number, // The sleep time after the action, in milliseconds.
+    } | null
 }
 
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
 {
   "log": "Click the login button",
-  "more_actions_needed_by_instruction": false,
   "action": {
     "type": "Tap",
     "param": {

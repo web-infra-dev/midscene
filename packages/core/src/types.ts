@@ -242,9 +242,7 @@ export interface PlanningAction<ParamType = any> {
 
 export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
-  more_actions_needed_by_instruction: boolean;
   log: string;
-  sleep?: number;
   error?: string;
 }
 
@@ -257,6 +255,7 @@ export interface PlanningAIResponse
   yamlString?: string;
   error?: string;
   reasoning_content?: string;
+  shouldContinuePlanning: boolean;
 }
 
 export interface PlanningActionParamSleep {
