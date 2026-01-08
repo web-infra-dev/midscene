@@ -91,7 +91,27 @@ class BatchRunner {
       );
 
       if (needsBrowser && this.config.shareBrowserContext) {
-        browser = await puppeteer.launch({ headless: !headed });
+        // Build Chrome args from global config
+        const isWindows = process.platform === 'win32';
+        const baseArgs = [
+          ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
+          '--disable-features=HttpsFirstBalancedModeAutoEnable',
+          '--disable-features=PasswordLeakDetection',
+          '--disable-save-password-bubble',
+        ];
+
+        // Merge custom Chrome arguments from global config if present
+        let args = baseArgs;
+        const globalWebConfig = this.config.globalConfig?.web;
+        if (globalWebConfig?.chromeArgs && globalWebConfig.chromeArgs.length > 0) {
+          args = [...baseArgs, ...globalWebConfig.chromeArgs];
+        }
+
+        browser = await puppeteer.launch({
+          headless: !headed,
+          args,
+          acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
+        });
         // Assign the browser instance to all contexts
         for (const context of fileContextList) {
           context.options.browser = browser;
