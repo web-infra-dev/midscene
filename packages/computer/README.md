@@ -34,10 +34,19 @@ These modules require compilation on installation. Make sure you have the necess
 xcode-select --install
 ```
 
-**Linux**: Install build essentials
+**Linux**: Install build essentials and ImageMagick
 ```bash
-sudo apt-get install build-essential libx11-dev libxtst-dev libpng-dev
+# Ubuntu/Debian
+sudo apt-get install build-essential libx11-dev libxtst-dev libpng-dev imagemagick
+
+# Fedora/RHEL
+sudo dnf install gcc-c++ libX11-devel libXtst-devel libpng-devel ImageMagick
+
+# Arch
+sudo pacman -S base-devel libx11 libxtst libpng imagemagick
 ```
+
+**Note**: ImageMagick is required for screenshot capture on Linux.
 
 **Windows**: Install Windows Build Tools
 ```bash
