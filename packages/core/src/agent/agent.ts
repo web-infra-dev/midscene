@@ -301,6 +301,22 @@ export class Agent<
       : defaultReplanningCycleLimit;
   }
 
+  private buildFallbackContextFromError(cacheError: unknown): string {
+    const executionContext = (cacheError as any)?.executionContext;
+    if (executionContext?.fallbackContext) {
+      return executionContext.fallbackContext;
+    }
+
+    const errorMessage =
+      cacheError instanceof Error ? cacheError.message : String(cacheError);
+
+    return [
+      'Previous cached workflow execution failed.',
+      `Error: ${errorMessage}`,
+      'Please retry with a different approach.',
+    ].join('\n');
+  }
+
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
 
@@ -870,6 +886,10 @@ export class Agent<
       isVlmUiTars || cacheable === false
         ? undefined
         : this.taskCache?.matchPlanCache(taskPrompt);
+
+    // Use local variable for context to avoid modifying instance state
+    let contextForPlanning = this.aiActContext;
+
     if (
       matchedCache &&
       this.taskCache?.isCacheResultUsed &&
@@ -882,8 +902,23 @@ export class Agent<
       );
 
       debug('matched cache, will call .runYaml to run the action');
-      const yaml = matchedCache.cacheContent.yamlWorkflow;
-      return this.runYaml(yaml);
+      const yamlContent = matchedCache.cacheContent.yamlWorkflow;
+      try {
+        return await this.runYaml(yamlContent);
+      } catch (cacheError) {
+        // Cache execution failed, fall back to normal AI planning
+        debug(
+          'cache execution failed, falling back to AI planning:',
+          cacheError instanceof Error ? cacheError.message : String(cacheError),
+        );
+
+        const fallbackContext = this.buildFallbackContextFromError(cacheError);
+
+        // Append failure context to original aiActContext using local variable
+        contextForPlanning = this.aiActContext
+          ? `${this.aiActContext}\n\n--- Cache Execution Failed ---\n${fallbackContext}`
+          : fallbackContext;
+      }
     }
 
     // If cache matched but yamlWorkflow is empty, fall through to normal execution
@@ -894,7 +929,7 @@ export class Agent<
       modelConfigForPlanning,
       defaultIntentModelConfig,
       includeBboxInPlanning,
-      this.aiActContext,
+      contextForPlanning,
       cacheable,
       replanningCycleLimit,
       imagesIncludeCount,
@@ -1227,13 +1262,34 @@ export class Agent<
     await player.run();
 
     if (player.status === 'error') {
-      const errors = player.taskStatusList
-        .filter((task) => task.status === 'error')
-        .map((task) => {
-          return `task - ${task.name}: ${task.error?.message}`;
-        })
+      const { fallbackContext, completedTasks, failedTasks, pendingTasks } =
+        player.buildFailureContext();
+
+      // Build error message for logging
+      const totalTasks = player.taskStatusList.length;
+      const errors = failedTasks
+        .map(
+          (t) =>
+            `task ${t.index + 1}/${totalTasks} "${t.name}": ${t.error?.message}`,
+        )
         .join('\n');
-      throw new Error(`Error(s) occurred in running yaml script:\n${errors}`);
+
+      const error = new Error(
+        `Error(s) occurred in running yaml script:\n${errors}`,
+      );
+
+      // Attach execution context (backward compatible + new fields)
+      (error as any).executionContext = {
+        successfulTasks: completedTasks.map((t) => t.name),
+        failedTasks: failedTasks.map((t) => ({ name: t.name, error: t.error })),
+        totalTasks,
+        fallbackContext,
+        completedTasks,
+        failedTasksDetailed: failedTasks,
+        pendingTasks,
+      };
+
+      throw error;
     }
 
     return {

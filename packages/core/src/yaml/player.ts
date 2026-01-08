@@ -202,6 +202,151 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     this.errorInSetup = error;
   }
 
+  /**
+   * Build detailed failure context for AI fallback when cached workflow execution fails.
+   *
+   * This method constructs a human-readable failure summary with step-by-step breakdown,
+   * including completed tasks, failed tasks with error details, and pending tasks.
+   * The generated context is used to inform the AI during fallback execution so it can
+   * continue from the point of failure without repeating successful steps.
+   *
+   * @returns Object containing:
+   *   - `fallbackContext`: Formatted string with detailed failure information for AI context
+   *   - `completedTasks`: Array of successfully completed tasks with their indices and names
+   *   - `failedTasks`: Array of failed tasks with indices, names, errors, and step information
+   *   - `pendingTasks`: Array of tasks that were not executed due to earlier failure
+   *
+   * @example
+   * ```typescript
+   * // When a workflow fails at step 3:
+   * const context = player.buildFailureContext();
+   * // context.fallbackContext will contain:
+   * // "Previous cached workflow execution failed at step 3/5:
+   * //
+   * // Completed successfully:
+   * //   ✓ Step 1/5: "Login to system"
+   * //   ✓ Step 2/5: "Navigate to dashboard"
+   * //
+   * // Failed:
+   * //   ✗ Step 3/5: "Click submit button"
+   * //     Error: Element not found
+   * //
+   * // Remaining steps (not executed):
+   * //   - Step 4/5: "Verify success message"
+   * //   - Step 5/5: "Logout"
+   * //
+   * // Please continue from Step 3 and avoid repeating the successful steps."
+   * ```
+   */
+  buildFailureContext(): {
+    fallbackContext: string;
+    completedTasks: { index: number; name: string }[];
+    failedTasks: {
+      index: number;
+      name: string;
+      error?: Error;
+      currentStep?: number;
+      totalSteps: number;
+    }[];
+    pendingTasks: { index: number; name: string }[];
+  } {
+    const totalTasks = this.taskStatusList.length;
+
+    const completedTasks = this.taskStatusList
+      .filter((t) => t.status === 'done')
+      .map((t) => ({ index: t.index, name: t.name }));
+
+    const failedTasks = this.taskStatusList
+      .filter((t) => t.status === 'error')
+      .map((t) => ({
+        index: t.index,
+        name: t.name,
+        error: t.error,
+        currentStep: t.currentStep,
+        totalSteps: t.totalSteps,
+      }));
+
+    const pendingTasks = this.taskStatusList
+      .filter((t) => t.status === 'init')
+      .map((t) => ({ index: t.index, name: t.name }));
+
+    const parts: string[] = [];
+
+    // Title
+    if (failedTasks.length > 0) {
+      parts.push(
+        `Previous cached workflow execution failed at step ${failedTasks[0].index + 1}/${totalTasks}:\n`,
+      );
+    } else {
+      // No specific task failed, but execution was interrupted
+      parts.push(
+        `Previous cached workflow execution was interrupted (${completedTasks.length}/${totalTasks} tasks completed).\n`,
+      );
+    }
+
+    // Completed
+    if (completedTasks.length > 0) {
+      parts.push(
+        'Completed successfully:',
+        ...completedTasks.map(
+          (t) => `  ✓ Step ${t.index + 1}/${totalTasks}: "${t.name}"`,
+        ),
+        '',
+      );
+    }
+
+    // Failed
+    if (failedTasks.length > 0) {
+      parts.push(
+        'Failed:',
+        ...failedTasks.flatMap((t) => {
+          const stepInfo =
+            t.currentStep !== undefined
+              ? ` (at substep ${t.currentStep + 1}/${t.totalSteps})`
+              : '';
+          return [
+            `  ✗ Step ${t.index + 1}/${totalTasks}: "${t.name}"${stepInfo}`,
+            `    Error: ${t.error?.message || 'Unknown error'}`,
+          ];
+        }),
+        '',
+      );
+    }
+
+    // Pending
+    if (pendingTasks.length > 0) {
+      parts.push(
+        'Remaining steps (not executed):',
+        ...pendingTasks.map(
+          (t) => `  - Step ${t.index + 1}/${totalTasks}: "${t.name}"`,
+        ),
+        '',
+      );
+    }
+
+    // Guidance
+    if (failedTasks.length > 0) {
+      parts.push(
+        `Please continue from Step ${failedTasks[0].index + 1} and avoid repeating the successful steps.`,
+      );
+    } else if (pendingTasks.length > 0) {
+      // No failed tasks but there are pending tasks
+      parts.push(
+        `Please continue from Step ${pendingTasks[0].index + 1} and complete the remaining tasks.`,
+      );
+    } else {
+      // All tasks completed but execution still failed (unlikely edge case)
+      parts.push('Please retry the entire workflow with a different approach.');
+    }
+
+    return {
+      fallbackContext: parts.join('\n'),
+      completedTasks,
+      failedTasks,
+      pendingTasks,
+    };
+  }
+
   private notifyCurrentTaskStatusChange(taskIndex?: number) {
     const taskIndexToNotify =
       typeof taskIndex === 'number' ? taskIndex : this.currentTaskIndex;

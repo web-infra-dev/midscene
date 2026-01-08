@@ -239,6 +239,7 @@ export interface FreeFn {
 }
 
 export interface ScriptPlayerTaskStatus extends MidsceneYamlTask {
+  index: number;
   status: ScriptPlayerStatusValue;
   currentStep?: number;
   totalSteps: number;
