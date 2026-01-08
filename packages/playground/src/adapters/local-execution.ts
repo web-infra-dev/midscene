@@ -70,6 +70,37 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
   // Local execution gets actionSpace from internal agent (parameter is for backward compatibility)
   async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {
+    // If agent doesn't exist but we have a factory, create one temporarily to get actionSpace
+    if (!this.agent && this.agentFactory) {
+      try {
+        const tempAgent = await this.agentFactory();
+        let actionSpace: DeviceAction<unknown>[] = [];
+
+        // Try to get actionSpace from the temporary agent
+        if (tempAgent.getActionSpace) {
+          actionSpace = await tempAgent.getActionSpace();
+        } else if (
+          'interface' in tempAgent &&
+          typeof tempAgent.interface === 'object'
+        ) {
+          const page = tempAgent.interface as {
+            actionSpace?: () => DeviceAction<unknown>[];
+          };
+          if (page?.actionSpace) {
+            actionSpace = page.actionSpace();
+          }
+        }
+
+        // Keep the agent for later use instead of destroying it
+        this.agent = tempAgent;
+
+        return actionSpace;
+      } catch (error) {
+        console.warn('Failed to create agent for actionSpace:', error);
+        return [];
+      }
+    }
+
     // Priority 1: Use agent's getActionSpace method
     if (this.agent?.getActionSpace) {
       return await this.agent.getActionSpace();
