@@ -429,6 +429,8 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   defineActionTap(async (param) => {
     const element = param.locate;
     assert(element, 'Element not found, cannot tap');
+
+    // Pure tap action - file handling is done at Page layer via setFileChooserHandler
     await page.mouse.click(element.center[0], element.center[1], {
       button: 'left',
     });

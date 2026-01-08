@@ -7,6 +7,7 @@ import {
   type AgentWaitForOpt,
   type CacheConfig,
   type DeepThinkOption,
+  type DetailedLocateParam,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -52,6 +53,8 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -65,9 +68,13 @@ import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { defineActionAssert } from '../device';
-// import type { AndroidDeviceInputOpt } from '../device';
 import { TaskCache } from './task-cache';
-import { TaskExecutionError, TaskExecutor, locatePlanForLocate } from './tasks';
+import {
+  TaskExecutionError,
+  TaskExecutor,
+  locatePlanForLocate,
+  withFileChooser,
+} from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
   commonContextParser,
@@ -139,6 +146,7 @@ const defaultVlmUiTarsReplanningCycleLimit = 40;
 
 export type AiActOptions = {
   cacheable?: boolean;
+  fileChooserAccept?: string | string[];
   deepThink?: DeepThinkOption;
 };
 
@@ -590,13 +598,22 @@ export class Agent<
     return output;
   }
 
-  async aiTap(locatePrompt: TUserPrompt, opt?: LocateOption) {
+  async aiTap(
+    locatePrompt: TUserPrompt,
+    opt?: LocateOption & { fileChooserAccept?: string | string[] },
+  ) {
     assert(locatePrompt, 'missing locate prompt for tap');
 
     const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
 
-    return this.callActionInActionSpace('Tap', {
-      locate: detailedLocateParam,
+    const fileChooserAccept = opt?.fileChooserAccept
+      ? this.normalizeFileInput(opt.fileChooserAccept)
+      : undefined;
+
+    return withFileChooser(this.interface, fileChooserAccept, async () => {
+      return this.callActionInActionSpace('Tap', {
+        locate: detailedLocateParam,
+      });
     });
   }
 
@@ -848,81 +865,97 @@ export class Agent<
   }
 
   async aiAct(taskPrompt: string, opt?: AiActOptions) {
-    const modelConfigForPlanning =
-      this.modelConfigManager.getModelConfig('planning');
-    const defaultIntentModelConfig =
-      this.modelConfigManager.getModelConfig('default');
+    const fileChooserAccept = opt?.fileChooserAccept
+      ? this.normalizeFileInput(opt.fileChooserAccept)
+      : undefined;
 
-    const includeBboxInPlanning =
-      modelConfigForPlanning.modelName === defaultIntentModelConfig.modelName &&
-      modelConfigForPlanning.openaiBaseURL ===
-        defaultIntentModelConfig.openaiBaseURL;
-    debug('setting includeBboxInPlanning to', includeBboxInPlanning);
+    const runAiAct = async () => {
+      const modelConfigForPlanning =
+        this.modelConfigManager.getModelConfig('planning');
+      const defaultIntentModelConfig =
+        this.modelConfigManager.getModelConfig('default');
 
-    const cacheable = opt?.cacheable;
-    const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
-    const replanningCycleLimit = this.resolveReplanningCycleLimit(
-      modelConfigForPlanning,
-    );
-    // if vlm-ui-tars, plan cache is not used
-    const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
-    const matchedCache =
-      isVlmUiTars || cacheable === false
+      const includeBboxInPlanning =
+        modelConfigForPlanning.modelName ===
+          defaultIntentModelConfig.modelName &&
+        modelConfigForPlanning.openaiBaseURL ===
+          defaultIntentModelConfig.openaiBaseURL;
+      debug('setting includeBboxInPlanning to', includeBboxInPlanning);
+
+      const cacheable = opt?.cacheable;
+      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
+      const replanningCycleLimit = this.resolveReplanningCycleLimit(
+        modelConfigForPlanning,
+      );
+      // if vlm-ui-tars, plan cache is not used
+      const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
+      const matchedCache =
+        isVlmUiTars || cacheable === false
+          ? undefined
+          : this.taskCache?.matchPlanCache(taskPrompt);
+      if (
+        matchedCache &&
+        this.taskCache?.isCacheResultUsed &&
+        matchedCache.cacheContent?.yamlWorkflow?.trim()
+      ) {
+        // log into report file
+        await this.taskExecutor.loadYamlFlowAsPlanning(
+          taskPrompt,
+          matchedCache.cacheContent.yamlWorkflow,
+        );
+
+        debug('matched cache, will call .runYaml to run the action');
+        const yaml = matchedCache.cacheContent.yamlWorkflow;
+        return this.runYaml(yaml);
+      }
+
+      // If cache matched but yamlWorkflow is empty, fall through to normal execution
+
+      const useDeepThink = (this.opts as any)?._deepThink;
+      if (useDeepThink) {
+        debug('using deep think planning settings');
+      }
+      const imagesIncludeCount: number | undefined = useDeepThink
         ? undefined
-        : this.taskCache?.matchPlanCache(taskPrompt);
-    if (
-      matchedCache &&
-      this.taskCache?.isCacheResultUsed &&
-      matchedCache.cacheContent?.yamlWorkflow?.trim()
-    ) {
-      // log into report file
-      await this.taskExecutor.loadYamlFlowAsPlanning(
+        : 2;
+      const { output } = await this.taskExecutor.action(
         taskPrompt,
-        matchedCache.cacheContent.yamlWorkflow,
+        modelConfigForPlanning,
+        defaultIntentModelConfig,
+        includeBboxInPlanning,
+        this.aiActContext,
+        cacheable,
+        replanningCycleLimit,
+        imagesIncludeCount,
+        deepThink,
+        fileChooserAccept,
       );
 
-      debug('matched cache, will call .runYaml to run the action');
-      const yaml = matchedCache.cacheContent.yamlWorkflow;
-      return this.runYaml(yaml);
-    }
-
-    // If cache matched but yamlWorkflow is empty, fall through to normal execution
-
-    const imagesIncludeCount: number | undefined = 2;
-    const { output } = await this.taskExecutor.action(
-      taskPrompt,
-      modelConfigForPlanning,
-      defaultIntentModelConfig,
-      includeBboxInPlanning,
-      this.aiActContext,
-      cacheable,
-      replanningCycleLimit,
-      imagesIncludeCount,
-      deepThink,
-    );
-
-    // update cache
-    if (this.taskCache && output?.yamlFlow && cacheable !== false) {
-      const yamlContent: MidsceneYamlScript = {
-        tasks: [
+      // update cache
+      if (this.taskCache && output?.yamlFlow && cacheable !== false) {
+        const yamlContent: MidsceneYamlScript = {
+          tasks: [
+            {
+              name: taskPrompt,
+              flow: output.yamlFlow,
+            },
+          ],
+        };
+        const yamlFlowStr = yaml.dump(yamlContent);
+        this.taskCache.updateOrAppendCacheRecord(
           {
-            name: taskPrompt,
-            flow: output.yamlFlow,
+            type: 'plan',
+            prompt: taskPrompt,
+            yamlWorkflow: yamlFlowStr,
           },
-        ],
-      };
-      const yamlFlowStr = yaml.dump(yamlContent);
-      this.taskCache.updateOrAppendCacheRecord(
-        {
-          type: 'plan',
-          prompt: taskPrompt,
-          yamlWorkflow: yamlFlowStr,
-        },
-        matchedCache,
-      );
-    }
+          matchedCache,
+        );
+      }
 
-    return output;
+      return output;
+    };
+
+    return await runAiAct();
   }
 
   /**
@@ -1470,6 +1503,21 @@ export class Agent<
     }
 
     return null;
+  }
+
+  private normalizeFilePaths(files: string[]): string[] {
+    return files.map((file) => {
+      const absolutePath = resolve(file);
+      if (!existsSync(absolutePath)) {
+        throw new Error(`File not found: ${file}`);
+      }
+      return absolutePath;
+    });
+  }
+
+  private normalizeFileInput(files: string | string[]): string[] {
+    const filesArray = Array.isArray(files) ? files : [files];
+    return this.normalizeFilePaths(filesArray);
   }
 
   /**

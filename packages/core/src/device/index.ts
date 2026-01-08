@@ -11,6 +11,10 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { z } from 'zod';
 import type { ElementCacheFeature, Rect, Size, UIContext } from '../types';
 
+export interface FileChooserHandler {
+  accept(files: string[]): Promise<void>;
+}
+
 export abstract class AbstractInterface {
   abstract interfaceType: string;
 
@@ -34,6 +38,11 @@ export abstract class AbstractInterface {
   abstract describe?(): string;
   abstract beforeInvokeAction?(actionName: string, param: any): Promise<void>;
   abstract afterInvokeAction?(actionName: string, param: any): Promise<void>;
+
+  // for web only
+  registerFileChooserListener?(
+    handler: (chooser: FileChooserHandler) => Promise<void>,
+  ): Promise<{ dispose: () => void; getError: () => Error | undefined }>;
 
   // @deprecated do NOT extend this method
   abstract getElementsNodeTree?: () => Promise<ElementNode>;
@@ -76,7 +85,6 @@ export const defineAction = <
 export const actionTapParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be tapped'),
 });
-// Override the inferred type to use LocateResultElement for the runtime locate field
 export type ActionTapParam = {
   locate: LocateResultElement;
 };

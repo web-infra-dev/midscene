@@ -1,6 +1,6 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
-import type { AbstractInterface } from '@/device';
+import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
 import { TaskExecutionError } from '@/task-runner';
@@ -210,6 +210,40 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
+    fileChooserAccept?: string[],
+  ): Promise<
+    ExecutionResult<
+      | {
+          yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+        }
+      | undefined
+    >
+  > {
+    return withFileChooser(this.interface, fileChooserAccept, async () => {
+      return this.runAction(
+        userPrompt,
+        modelConfigForPlanning,
+        modelConfigForDefaultIntent,
+        includeBboxInPlanning,
+        aiActContext,
+        cacheable,
+        replanningCycleLimitOverride,
+        imagesIncludeCount,
+        deepThink,
+      );
+    });
+  }
+
+  private async runAction(
+    userPrompt: string,
+    modelConfigForPlanning: IModelConfig,
+    modelConfigForDefaultIntent: IModelConfig,
+    includeBboxInPlanning: boolean,
+    aiActContext?: string,
+    cacheable?: boolean,
+    replanningCycleLimitOverride?: number,
+    imagesIncludeCount?: number,
+    deepThink?: DeepThinkOption,
   ): Promise<
     ExecutionResult<
       | {
@@ -408,13 +442,12 @@ export class TaskExecutor {
       }
     }
 
-    const finalResult = {
+    return {
       output: {
         yamlFlow,
       },
       runner,
     };
-    return finalResult;
   }
 
   private createTypeQueryTask(
@@ -661,5 +694,39 @@ export class TaskExecutor {
     }
 
     return session.appendErrorPlan(`waitFor timeout: ${errorThought}`);
+  }
+}
+
+export async function withFileChooser<T>(
+  interfaceInstance: AbstractInterface,
+  fileChooserAccept: string[] | undefined,
+  action: () => Promise<T>,
+): Promise<T> {
+  if (!fileChooserAccept?.length) {
+    return action();
+  }
+
+  if (!interfaceInstance.registerFileChooserListener) {
+    throw new Error(
+      `File upload is not supported on ${interfaceInstance.interfaceType}`,
+    );
+  }
+
+  const handler = async (chooser: FileChooserHandler) => {
+    await chooser.accept(fileChooserAccept);
+  };
+
+  const { dispose, getError } =
+    await interfaceInstance.registerFileChooserListener(handler);
+  try {
+    const result = await action();
+    // Check for errors that occurred during file chooser handling
+    const error = getError();
+    if (error) {
+      throw error;
+    }
+    return result;
+  } finally {
+    dispose();
   }
 }

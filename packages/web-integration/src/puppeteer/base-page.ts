@@ -30,7 +30,7 @@ import {
 } from '@midscene/shared/node';
 import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
-import type { Page as PuppeteerPage } from 'puppeteer';
+import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
 import {
   type KeyInput,
   type MouseButton,
@@ -66,6 +66,10 @@ export class Page<
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
   private enableTouchEventsInActionSpace: boolean;
+  private puppeteerFileChooserSession?: CDPSession;
+  private puppeteerFileChooserHandler?: (
+    event: Protocol.Page.FileChooserOpenedEvent,
+  ) => Promise<void>;
   interfaceType: AgentType;
 
   actionSpace(): DeviceAction[] {
@@ -365,22 +369,18 @@ export class Page<
           await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
             button,
           });
-        } else {
-          if (this.interfaceType === 'puppeteer') {
-            if (button === 'left' && count === 1) {
-              await (this.underlyingPage as PuppeteerPage).mouse.click(x, y);
-            } else {
-              await (this.underlyingPage as PuppeteerPage).mouse.click(x, y, {
-                button,
-                count,
-              });
-            }
-          } else if (this.interfaceType === 'playwright') {
-            (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
-              button,
-              clickCount: count,
-            });
+        } else if (this.interfaceType === 'puppeteer') {
+          const page = this.underlyingPage as PuppeteerPage;
+          if (button === 'left' && count === 1) {
+            await page.mouse.click(x, y);
+          } else {
+            await page.mouse.click(x, y, { button, count });
           }
+        } else if (this.interfaceType === 'playwright') {
+          await (this.underlyingPage as PlaywrightPage).mouse.click(x, y, {
+            button,
+            clickCount: count,
+          });
         }
       },
       wheel: async (deltaX: number, deltaY: number) => {
@@ -685,6 +685,89 @@ export class Page<
       await page.waitForTimeout(duration);
       await page.mouse.up({ button: 'left' });
     }
+  }
+
+  private async ensurePuppeteerFileChooserSession(
+    page: PuppeteerPage,
+  ): Promise<CDPSession> {
+    if (this.puppeteerFileChooserSession) {
+      return this.puppeteerFileChooserSession;
+    }
+    const session = await page.target().createCDPSession();
+    await session.send('Page.enable');
+    await session.send('DOM.enable');
+    await session.send('Page.setInterceptFileChooserDialog', { enabled: true });
+    this.puppeteerFileChooserSession = session;
+    return session;
+  }
+
+  async registerFileChooserListener(
+    handler: (
+      chooser: import('@midscene/core/device').FileChooserHandler,
+    ) => Promise<void>,
+  ): Promise<{ dispose: () => void; getError: () => Error | undefined }> {
+    if (this.interfaceType !== 'puppeteer') {
+      throw new Error(
+        'registerFileChooserListener is only supported in Puppeteer',
+      );
+    }
+
+    const page = this.underlyingPage as PuppeteerPage;
+    const session = await this.ensurePuppeteerFileChooserSession(page);
+    if (this.puppeteerFileChooserHandler) {
+      session.off('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    }
+
+    let capturedError: Error | undefined;
+
+    this.puppeteerFileChooserHandler = async (event) => {
+      if (event.backendNodeId === undefined) {
+        debugPage('puppeteer file chooser opened without backendNodeId, skip');
+        return;
+      }
+      try {
+        await handler({
+          accept: async (files: string[]) => {
+            // Check if input supports multiple files
+            if (files.length > 1) {
+              const { node } = await session.send('DOM.describeNode', {
+                backendNodeId: event.backendNodeId,
+              });
+              // attributes is a flat array: ['attr1', 'value1', 'attr2', 'value2', ...]
+              const hasMultiple = node.attributes?.includes('multiple');
+              if (!hasMultiple) {
+                throw new Error(
+                  'Non-multiple file input can only accept single file',
+                );
+              }
+            }
+            await session.send('DOM.setFileInputFiles', {
+              files,
+              backendNodeId: event.backendNodeId,
+            });
+          },
+        });
+      } catch (error) {
+        capturedError = error as Error;
+      }
+    };
+    session.on('Page.fileChooserOpened', this.puppeteerFileChooserHandler);
+    return {
+      dispose: () => {
+        if (this.puppeteerFileChooserHandler) {
+          session.off(
+            'Page.fileChooserOpened',
+            this.puppeteerFileChooserHandler,
+          );
+        }
+        void session.detach();
+        this.puppeteerFileChooserHandler = undefined;
+        if (this.puppeteerFileChooserSession === session) {
+          this.puppeteerFileChooserSession = undefined;
+        }
+      },
+      getError: () => capturedError,
+    };
   }
 }
 

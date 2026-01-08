@@ -113,7 +113,7 @@ In Midscene, you can choose to use either auto planning or instant action.
 
 :::
 
-### `agent.aiAct()` or `.ai()`
+### `agent.aiAct()` or `agent.ai()`
 
 This method allows you to perform a series of UI actions described in natural language. Midscene automatically plans the steps and executes them.
 
@@ -131,6 +131,7 @@ function aiAct(
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
+    fileChooserAccept?: string | string[];
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -142,6 +143,9 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
+      - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
+      - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
 
 - Return Value:
 
@@ -193,6 +197,9 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+    - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
+      - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
+      - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
 
 - Return Value:
 
@@ -207,6 +214,10 @@ await agent.aiTap('The login button at the top of the page');
 await agent.aiTap('The login button at the top of the page', {
   deepThink: true,
 });
+
+// File upload: tap the upload button and select files
+await agent.aiTap('Choose file button', { fileChooserAccept: ['./document.pdf'] });
+await agent.aiTap('Upload images', { fileChooserAccept: ['./image1.jpg', './image2.png'] });
 ```
 
 ### `agent.aiHover()`
