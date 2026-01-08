@@ -128,4 +128,5 @@ CLAUDE.md
 .gemini-clipboard
 tsconfig.build.tsbuildinfo
 .webx
-.mcp.jsonpackage-lock.json
+.mcp.json
+package-lock.json
