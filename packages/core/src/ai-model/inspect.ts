@@ -200,7 +200,7 @@ export async function AiLocateElement(options: {
   const rawResponse = JSON.stringify(res.content);
 
   let resRect: Rect | undefined;
-  let matchedElements = 'elements' in res.content ? res.content.elements : [];
+  let matchedElements: LocateResultElement[] = [];
   let errors: string[] | undefined =
     'errors' in res.content ? res.content.errors : [];
   try {

@@ -43,13 +43,6 @@ export enum AIResponseFormat {
   TEXT = 'text',
 }
 
-export type AISingleElementResponseById = {
-  id: string;
-  reason?: string;
-  text?: string;
-  xpaths?: string[];
-};
-
 export type AISingleElementResponseByPosition = {
   position?: {
     x: number;
@@ -59,8 +52,6 @@ export type AISingleElementResponseByPosition = {
   reason: string;
   text: string;
 };
-
-export type AISingleElementResponse = AISingleElementResponseById;
 
 export interface AIElementCoordinatesResponse {
   bbox: [number, number, number, number];

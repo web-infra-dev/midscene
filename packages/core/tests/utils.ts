@@ -3,9 +3,7 @@ import { join } from 'node:path';
 import type { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { localImg2Base64 } from '@/image';
 import Service from '@/service';
-import type { AISingleElementResponse, BaseElement, UIContext } from '@/types';
-import { NodeType } from '@midscene/shared/constants';
-import { vi } from 'vitest';
+import type { AIElementResponse, UIContext } from '@/types';
 
 export function getFixture(name: string) {
   return join(__dirname, 'fixtures', name);
@@ -24,63 +22,28 @@ export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface AIElementLocatorResponse {
-  elements: AISingleElementResponse[];
-  errors: string[];
-}
-
 export function fakeService(content: string) {
   const screenshot = getFixture('baidu.png');
   const basicContext = {
     screenshotBase64: localImg2Base64(screenshot),
     size: { width: 1920, height: 1080 },
-    content: [
-      {
-        id: '0',
-        content,
-        rect: {
-          width: 100,
-          height: 100,
-          top: 200,
-          left: 200,
-        },
-        center: [250, 250],
-        tap: vi.fn() as unknown,
-        isVisible: true,
-      },
-    ] as unknown as BaseElement[],
-    tree: {
-      node: {
-        id: '0',
-        attributes: {
-          nodeType: NodeType.CONTAINER,
-        },
-        content: '',
-        rect: {
-          width: 100,
-          height: 100,
-          top: 200,
-          left: 200,
-        },
-        center: [250, 250] as [number, number],
-        children: [],
-        isVisible: true,
-      },
-      children: [],
-    },
   };
   const context: UIContext = {
     ...basicContext,
   };
 
-  const aiVendor: typeof callAIWithObjectResponse<AIElementLocatorResponse> =
-    async () => ({
-      content: {
-        elements: [{ id: '0', reason: '', text: '' }],
+  const aiVendor: typeof callAIWithObjectResponse<AIElementResponse> =
+    async () => {
+      const data = {
+        bbox: [0, 0, 100, 100] as [number, number, number, number],
         errors: [],
-      },
-      usage: undefined,
-    });
+      };
+      return {
+        content: data,
+        contentString: JSON.stringify(data),
+        usage: undefined,
+      };
+    };
 
   const service = new Service(context, {
     aiVendorFn: aiVendor as any,

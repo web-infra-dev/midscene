@@ -18,7 +18,6 @@ const insightFindTask = (shouldThrow?: boolean) => {
     param: {
       prompt: 'test',
     },
-    locate: null,
     async executor(param, taskContext) {
       if (shouldThrow) {
         const { task } = taskContext;
@@ -35,7 +34,6 @@ const insightFindTask = (shouldThrow?: boolean) => {
           modelName: 'mock-model',
           modelDescription: 'mock-model-description',
           intent: 'default',
-          from: 'legacy-env',
         },
       );
       return {
@@ -76,13 +74,11 @@ describe(
       const actionTask: ExecutionTaskActionApply = {
         type: 'Action Space',
         param: taskParam,
-        locate: null,
         executor: tapperFn,
       };
       const actionTask2: ExecutionTaskActionApply = {
         type: 'Action Space',
         param: taskParam,
-        locate: null,
         executor: async () => {
           return {
             output: flushResultData,
@@ -130,7 +126,6 @@ describe(
           action: 'tap',
           element: 'previous',
         },
-        locate: null,
         executor: async () => {
           // delay 500
           await new Promise((resolve) => setTimeout(resolve, 500));
