@@ -101,11 +101,10 @@ class BatchRunner {
         ];
 
         // Merge custom Chrome arguments from global config if present
-        let args = baseArgs;
         const globalWebConfig = this.config.globalConfig?.web;
-        if (globalWebConfig?.chromeArgs && globalWebConfig.chromeArgs.length > 0) {
-          args = [...baseArgs, ...globalWebConfig.chromeArgs];
-        }
+        const args = globalWebConfig?.chromeArgs && globalWebConfig.chromeArgs.length > 0
+          ? [...baseArgs, ...globalWebConfig.chromeArgs]
+          : baseArgs;
 
         browser = await puppeteer.launch({
           headless: !headed,
