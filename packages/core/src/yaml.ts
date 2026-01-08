@@ -198,11 +198,10 @@ export interface MidsceneYamlFlowItemAIAction {
   [key: string]: unknown;
 }
 
-export interface MidsceneYamlFlowItemAIAssert {
+export interface MidsceneYamlFlowItemAIAssert extends ServiceExtractOption {
   aiAssert: string;
   errorMessage?: string;
   name?: string;
-  [key: string]: unknown;
 }
 
 export interface MidsceneYamlFlowItemAIWaitFor {
