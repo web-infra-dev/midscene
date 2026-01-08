@@ -11,8 +11,10 @@ import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ConversationHistory } from './conversation-history';
+import { LatestLocateRecorder } from './latest-locate-recorder';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
+
 type ActionType =
   | 'click'
   | 'left_double'
@@ -38,6 +40,8 @@ const pointToBbox = (
     Math.round(Math.min(point.y + bboxSize / 2, height)),
   ];
 };
+
+const lastLocateRecorder = new LatestLocateRecorder();
 
 export async function uiTarsPlanning(
   userInstruction: string,
@@ -114,50 +118,62 @@ export async function uiTarsPlanning(
     if (actionType === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
+      lastLocateRecorder.recordLocate(locate, 'click');
       transformActions.push({
         type: 'Tap',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
       });
     } else if (actionType === 'left_double') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
+      lastLocateRecorder.recordLocate(locate, 'left_double');
       transformActions.push({
         type: 'DoubleClick',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
         thought: action.thought || '',
       });
     } else if (actionType === 'right_single') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
+      lastLocateRecorder.recordLocate(locate, 'right_single');
       transformActions.push({
         type: 'RightClick',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
         thought: action.thought || '',
       });
@@ -189,10 +205,18 @@ export async function uiTarsPlanning(
         thought: action.thought || '',
       });
     } else if (actionType === 'type') {
+      const { locate: latestLocate, source } =
+        lastLocateRecorder.getLatestLocate();
+      debug(
+        `use latestLocate from ${source} as locate when Input`,
+        latestLocate,
+      );
+
       transformActions.push({
         type: 'Input',
         param: {
           value: action.action_inputs.content,
+          locate: latestLocate,
         },
         thought: action.thought || '',
       });
