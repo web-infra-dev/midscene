@@ -40,7 +40,7 @@
 
 在 Web 浏览器中自主注册 Github 表单，并通过所有字段校验。
 
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls />
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls></video>
 
 此外还有这些实战案例：
 * [iOS 自动化 - 美团下单咖啡](https://midscenejs.com/zh/showcases#ios)
