@@ -73,28 +73,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // If agent doesn't exist but we have a factory, create one temporarily to get actionSpace
     if (!this.agent && this.agentFactory) {
       try {
-        const tempAgent = await this.agentFactory();
-        let actionSpace: DeviceAction<unknown>[] = [];
-
-        // Try to get actionSpace from the temporary agent
-        if (tempAgent.getActionSpace) {
-          actionSpace = await tempAgent.getActionSpace();
-        } else if (
-          'interface' in tempAgent &&
-          typeof tempAgent.interface === 'object'
-        ) {
-          const page = tempAgent.interface as {
-            actionSpace?: () => DeviceAction<unknown>[];
-          };
-          if (page?.actionSpace) {
-            actionSpace = page.actionSpace();
-          }
-        }
-
-        // Keep the agent for later use instead of destroying it
-        this.agent = tempAgent;
-
-        return actionSpace;
+        this.agent = await this.agentFactory();
       } catch (error) {
         console.warn('Failed to create agent for actionSpace:', error);
         return [];
