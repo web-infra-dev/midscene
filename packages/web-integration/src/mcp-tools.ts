@@ -90,7 +90,13 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
             ],
           };
         },
-        autoDestroy: false,
+      },
+      {
+        name: 'web_disconnect',
+        description:
+          'Disconnect from current web page and release browser resources',
+        schema: {},
+        handler: this.createDisconnectHandler('web page'),
       },
     ];
   }

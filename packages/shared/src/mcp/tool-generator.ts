@@ -288,7 +288,6 @@ export function generateToolsFromActionSpace(
           );
         }
       },
-      autoDestroy: true,
     };
   });
 }
@@ -324,7 +323,6 @@ export function generateCommonTools(
           );
         }
       },
-      autoDestroy: true,
     },
   ];
 }

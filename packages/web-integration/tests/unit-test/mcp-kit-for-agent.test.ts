@@ -143,4 +143,47 @@ describe('mcpKitForAgent', () => {
       expect(typeof tool.handler).toBe('function');
     }
   });
+
+  it('should include web_disconnect tool', async () => {
+    const mockAgent = {
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue('base64data'),
+      },
+      getActionSpace: vi.fn().mockResolvedValue([]),
+    } as unknown as AgentOverChromeBridge;
+
+    const result = await mcpKitForAgent(mockAgent);
+
+    const disconnectTool = result.tools.find(
+      (tool) => tool.name === 'web_disconnect',
+    );
+    expect(disconnectTool).toBeDefined();
+    expect(disconnectTool?.description).toContain('Disconnect');
+  });
+
+  it('web_disconnect should call destroy and return success message', async () => {
+    const destroyMock = vi.fn().mockResolvedValue(undefined);
+    const mockAgent = {
+      page: {
+        screenshotBase64: vi.fn().mockResolvedValue('base64data'),
+      },
+      getActionSpace: vi.fn().mockResolvedValue([]),
+      destroy: destroyMock,
+    } as unknown as AgentOverChromeBridge;
+
+    const result = await mcpKitForAgent(mockAgent);
+
+    const disconnectTool = result.tools.find(
+      (tool) => tool.name === 'web_disconnect',
+    );
+    expect(disconnectTool).toBeDefined();
+
+    // Call the handler - since agent is set via setAgent, it should disconnect successfully
+    const response = await disconnectTool?.handler({});
+    expect(destroyMock).toHaveBeenCalled();
+    expect(response?.content[0]).toEqual({
+      type: 'text',
+      text: 'Disconnected from web page',
+    });
+  });
 });
