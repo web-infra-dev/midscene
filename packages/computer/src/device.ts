@@ -3,7 +3,6 @@ import {
   type DeviceAction,
   type InterfaceType,
   type LocateResultElement,
-  type Point,
   type Size,
   getMidsceneLocationSchema,
   z,
@@ -235,8 +234,26 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot tap');
         const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left');
+        const targetX = Math.round(x);
+        const targetY = Math.round(y);
+
+        // Smooth move to maintain hover states
+        const currentPos = libnut.getMousePos();
+        const steps = 8;
+        for (let i = 1; i <= steps; i++) {
+          const stepX = Math.round(
+            currentPos.x + ((targetX - currentPos.x) * i) / steps,
+          );
+          const stepY = Math.round(
+            currentPos.y + ((targetY - currentPos.y) * i) / steps,
+          );
+          libnut.moveMouse(stepX, stepY);
+          await sleep(8);
+        }
+        // Use mouseToggle for more realistic click behavior
+        libnut.mouseToggle('down', 'left');
+        await sleep(50);
+        libnut.mouseToggle('up', 'left');
       }),
 
       // DoubleClick
@@ -262,7 +279,21 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot hover');
         const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
+        const targetX = Math.round(x);
+        const targetY = Math.round(y);
+
+        // Smooth mouse movement to trigger mousemove events for CSS :hover effects
+        const currentPos = libnut.getMousePos();
+        const startX = currentPos.x;
+        const startY = currentPos.y;
+        const steps = 10;
+        for (let i = 1; i <= steps; i++) {
+          const stepX = Math.round(startX + ((targetX - startX) * i) / steps);
+          const stepY = Math.round(startY + ((targetY - startY) * i) / steps);
+          libnut.moveMouse(stepX, stepY);
+          await sleep(10);
+        }
+        await sleep(300); // Wait for CSS hover effects to appear
       }),
 
       // Input
@@ -289,13 +320,15 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             const [x, y] = element.center;
             libnut.moveMouse(Math.round(x), Math.round(y));
             libnut.mouseClick('left');
-            await sleep(100);
+            await sleep(300); // Wait for input to focus
 
             // Select all and delete
             const modifier =
               process.platform === 'darwin' ? 'command' : 'control';
             libnut.keyTap('a', [modifier]);
+            await sleep(50);
             libnut.keyTap('backspace');
+            await sleep(150); // Wait after clearing before typing
           }
 
           if (param.mode === 'clear') {
@@ -306,6 +339,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             return;
           }
 
+          // Type the string - libnut handles the timing
           libnut.typeString(param.value);
         },
       }),
