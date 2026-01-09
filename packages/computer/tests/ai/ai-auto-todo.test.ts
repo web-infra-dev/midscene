@@ -1,11 +1,6 @@
-import { sleep } from '@midscene/core/utils';
-import { expect } from 'vitest';
-import { beforeAll, describe, it, vi } from 'vitest';
-import {
-  type ComputerAgent,
-  ComputerDevice,
-  agentFromDesktop,
-} from '../../src';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { type ComputerAgent, agentFromDesktop } from '../../src';
+import { openBrowserAndNavigate } from './test-utils';
 
 vi.setConfig({
   testTimeout: 120 * 1000,
@@ -15,7 +10,6 @@ const isCacheEnabled = process.env.MIDSCENE_CACHE;
 
 describe('computer todo app automation', () => {
   let agent: ComputerAgent;
-  const isMac = process.platform === 'darwin';
 
   beforeAll(async () => {
     agent = await agentFromDesktop({
@@ -31,26 +25,10 @@ describe('computer todo app automation', () => {
         vi.setConfig({ testTimeout: 1000 * 1000 });
       }
 
-      // Open browser and navigate to todo app
-      if (isMac) {
-        await agent.aiAct('press Cmd+Space');
-        await sleep(500);
-        await agent.aiAct('type "Safari" and press Enter');
-        await sleep(2000);
-        await agent.aiAct('press Cmd+L to focus address bar');
-        await sleep(300);
-      } else {
-        await agent.aiAct('press Windows key');
-        await sleep(500);
-        await agent.aiAct('type "Chrome" and press Enter');
-        await sleep(2000);
-        await agent.aiAct('press Ctrl+L to focus address bar');
-        await sleep(300);
-      }
-
-      await agent.aiAct('type "https://todomvc.com/examples/react/dist/"');
-      await agent.aiAct('press Enter');
-      await sleep(3000);
+      await openBrowserAndNavigate(
+        agent,
+        'https://todomvc.com/examples/react/dist/',
+      );
 
       // Wait for page to load
       await agent.aiAssert('The todo input box is visible');
