@@ -1239,6 +1239,7 @@ export class Agent<
     await this.taskExecutor.waitFor(
       assertion,
       {
+        ...opt,
         timeoutMs: opt?.timeoutMs || 15 * 1000,
         checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       },
