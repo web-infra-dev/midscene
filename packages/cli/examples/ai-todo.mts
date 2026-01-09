@@ -28,15 +28,14 @@ const allTaskList = await agent.aiQuery<string[]>(
 );
 console.log('All tasks:', allTaskList);
 
-// Verify tasks created successfully
-const expectedTasks = [
-  'Learn JS today',
-  'Learn Rust tomorrow',
-  'Learning AI the day after tomorrow',
-];
-for (const task of expectedTasks) {
-  if (!allTaskList.includes(task)) {
-    throw new Error(`Task "${task}" not found`);
+// Verify tasks created successfully (use fuzzy match for AI input variance)
+const expectedKeywords = ['JS today', 'Rust tomorrow', 'day after tomorrow'];
+for (const keyword of expectedKeywords) {
+  const found = allTaskList.some((task) =>
+    task.toLowerCase().includes(keyword.toLowerCase()),
+  );
+  if (!found) {
+    throw new Error(`Task containing "${keyword}" not found`);
   }
 }
 console.log('All tasks created successfully');
@@ -62,9 +61,9 @@ console.log('Completed tasks:', completedTasks);
 if (completedTasks.length !== 1) {
   throw new Error(`Expected 1 completed task, got ${completedTasks.length}`);
 }
-if (completedTasks[0] !== 'Learning AI the day after tomorrow') {
+if (!completedTasks[0].toLowerCase().includes('day after tomorrow')) {
   throw new Error(
-    `Expected task name "Learning AI the day after tomorrow", got "${completedTasks[0]}"`,
+    `Expected task containing "day after tomorrow", got "${completedTasks[0]}"`,
   );
 }
 console.log('Completed tasks verified');
