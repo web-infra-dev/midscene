@@ -11,6 +11,7 @@ import type {
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { buildChromeArgs } from '@midscene/web/puppeteer-agent-launcher';
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser } from 'puppeteer';
@@ -91,20 +92,10 @@ class BatchRunner {
       );
 
       if (needsBrowser && this.config.shareBrowserContext) {
-        // Build Chrome args from global config
-        const isWindows = process.platform === 'win32';
-        const baseArgs = [
-          ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
-          '--disable-features=HttpsFirstBalancedModeAutoEnable',
-          '--disable-features=PasswordLeakDetection',
-          '--disable-save-password-bubble',
-        ];
-
-        // Merge custom Chrome arguments from global config if present
         const globalWebConfig = this.config.globalConfig?.web;
-        const args = globalWebConfig?.chromeArgs && globalWebConfig.chromeArgs.length > 0
-          ? [...baseArgs, ...globalWebConfig.chromeArgs]
-          : baseArgs;
+        const args = buildChromeArgs({
+          chromeArgs: globalWebConfig?.chromeArgs,
+        });
 
         browser = await puppeteer.launch({
           headless: !headed,

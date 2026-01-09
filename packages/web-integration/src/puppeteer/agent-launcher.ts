@@ -100,6 +100,63 @@ interface FreeFn {
 
 const launcherDebug = getDebug('puppeteer:launcher');
 
+export interface BuildChromeArgsOptions {
+  userAgent?: string;
+  windowSize?: { width: number; height: number };
+  chromeArgs?: string[];
+}
+
+/**
+ * Builds Chrome launch arguments with sensible defaults.
+ *
+ * Platform-specific behavior:
+ * - On non-Windows systems, automatically adds --no-sandbox and --disable-setuid-sandbox
+ *   for compatibility with containerized/CI environments
+ *
+ * @param options - Configuration options for Chrome arguments
+ * @returns Array of Chrome launch arguments
+ *
+ * @example
+ * ```typescript
+ * // Basic usage
+ * const args = buildChromeArgs();
+ *
+ * // With custom arguments
+ * const args = buildChromeArgs({
+ *   chromeArgs: ['--disable-gpu', '--disable-dev-shm-usage'],
+ *   userAgent: 'CustomUA/1.0',
+ *   windowSize: { width: 1920, height: 1080 },
+ * });
+ * ```
+ */
+export function buildChromeArgs(options?: BuildChromeArgsOptions): string[] {
+  const isWindows = process.platform === 'win32';
+
+  const baseArgs = [
+    ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
+    '--disable-features=HttpsFirstBalancedModeAutoEnable',
+    '--disable-features=PasswordLeakDetection',
+    '--disable-save-password-bubble',
+  ];
+
+  if (options?.userAgent) {
+    baseArgs.push(`--user-agent="${options.userAgent}"`);
+  }
+
+  if (options?.windowSize) {
+    baseArgs.push(
+      `--window-size=${options.windowSize.width},${options.windowSize.height}`,
+    );
+  }
+
+  if (options?.chromeArgs && options.chromeArgs.length > 0) {
+    validateChromeArgs(options.chromeArgs, baseArgs);
+    return [...baseArgs, ...options.chromeArgs];
+  }
+
+  return baseArgs;
+}
+
 export async function launchPuppeteerPage(
   target: MidsceneYamlScriptWebEnv,
   preference?: {
@@ -150,7 +207,6 @@ export async function launchPuppeteerPage(
   };
 
   const headed = preference?.headed || preference?.keepWindow;
-  const windowSizeArg = `--window-size=${width},${height + (headed ? 100 : 0)}`; // add 100px for the address bar in headed mode
   const defaultViewportConfig = headed ? null : viewportConfig;
 
   // launch the browser
@@ -159,32 +215,16 @@ export async function launchPuppeteerPage(
       'you are probably running headed mode in CI, this will usually fail.',
     );
   }
-  // do not use 'no-sandbox' on windows https://www.perplexity.ai/search/how-to-solve-this-with-nodejs-dMHpdCypRa..JA8TkQzbeQ
-  const isWindows = process.platform === 'win32';
 
-  const baseArgs = [
-    ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
-    '--disable-features=HttpsFirstBalancedModeAutoEnable',
-    '--disable-features=PasswordLeakDetection',
-    '--disable-save-password-bubble',
-    `--user-agent="${ua}"`,
-    windowSizeArg,
-  ];
-
-  // Merge custom Chrome arguments
-  let args = baseArgs;
-  if (target.chromeArgs && target.chromeArgs.length > 0) {
-    validateChromeArgs(target.chromeArgs, baseArgs);
-
-    // Custom args come after base args, allowing them to override defaults
-    args = [...baseArgs, ...target.chromeArgs];
-    launcherDebug(
-      'Merging custom Chrome arguments',
-      target.chromeArgs,
-      'Final args',
-      args,
-    );
-  }
+  // Build Chrome arguments using the shared helper
+  const args = buildChromeArgs({
+    userAgent: ua,
+    windowSize: {
+      width,
+      height: height + (headed ? 100 : 0), // add 100px for the address bar in headed mode
+    },
+    chromeArgs: target.chromeArgs,
+  });
 
   launcherDebug(
     'launching browser with viewport, headed',
@@ -208,7 +248,7 @@ export async function launchPuppeteerPage(
       name: 'puppeteer_browser',
       fn: () => {
         if (!preference?.keepWindow) {
-          if (isWindows) {
+          if (process.platform === 'win32') {
             setTimeout(() => {
               browserInstance?.close();
             }, 800);

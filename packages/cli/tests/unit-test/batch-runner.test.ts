@@ -43,7 +43,16 @@ vi.mock('@/printer', () => ({
   spinnerInterval: 80,
 }));
 vi.mock('@/tty-renderer');
-vi.mock('@midscene/web/puppeteer-agent-launcher');
+vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@midscene/web/puppeteer-agent-launcher')
+    >();
+  return {
+    ...original,
+    // Keep buildChromeArgs as-is, mock other exports if needed
+  };
+});
 vi.mock('@midscene/web/bridge-mode');
 vi.mock('@midscene/android');
 
@@ -148,7 +157,11 @@ describe('BatchRunner', () => {
         globalConfig: {
           web: {
             url: 'http://example.com',
-            chromeArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+            chromeArgs: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+            ],
           },
         },
       };
@@ -156,7 +169,7 @@ describe('BatchRunner', () => {
       await runner.run();
 
       expect(puppeteer.launch).toHaveBeenCalledTimes(1);
-      
+
       // Verify that puppeteer.launch was called with the correct arguments
       const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
       expect(launchCall).toHaveProperty('args');
@@ -185,7 +198,7 @@ describe('BatchRunner', () => {
       await runner.run();
 
       expect(puppeteer.launch).toHaveBeenCalledTimes(1);
-      
+
       const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
       expect(launchCall).toHaveProperty('acceptInsecureCerts', true);
     });
