@@ -96,6 +96,15 @@ export interface BaseAgent {
     options: Record<string, unknown>,
   ) => Promise<unknown>;
   /**
+   * Call an action directly without AI reasoning.
+   * This is useful for actions that don't need AI to locate elements,
+   * e.g., KeyboardPress with no locate parameter.
+   */
+  callActionInActionSpace?: (
+    actionName: string,
+    params: Record<string, unknown>,
+  ) => Promise<unknown>;
+  /**
    * Wait for network idle after actions (e.g., after clicking a link that triggers navigation)
    * This helps ensure consistent screenshots after navigation-triggering actions
    */

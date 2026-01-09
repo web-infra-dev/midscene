@@ -245,6 +245,70 @@ function createErrorResult(message: string): ToolResult {
 }
 
 /**
+ * Get all locate field names from an action's paramSchema
+ */
+function getLocateFieldNames(paramSchema: z.ZodTypeAny | undefined): string[] {
+  if (!paramSchema) {
+    return [];
+  }
+
+  const schema = paramSchema as z.ZodTypeAny;
+  if (!isZodObject(schema)) {
+    return [];
+  }
+
+  const locateFields: string[] = [];
+  for (const [key, value] of Object.entries(schema.shape)) {
+    const { innerValue } = unwrapOptional(value as z.ZodTypeAny);
+    if (isZodObject(innerValue) && isLocateField(innerValue)) {
+      locateFields.push(key);
+    }
+  }
+  return locateFields;
+}
+
+/**
+ * Check if an action needs AI reasoning based on the provided args
+ * An action needs AI if it has locate fields with prompt strings that need resolution
+ */
+function actionNeedsAI(
+  locateFields: string[],
+  args: Record<string, unknown>,
+): boolean {
+  // If no locate fields, no AI needed
+  if (locateFields.length === 0) {
+    return false;
+  }
+
+  // Check if any locate field is provided with a prompt (string or object with prompt)
+  for (const field of locateFields) {
+    const value = args[field];
+    if (!value) {
+      continue;
+    }
+
+    // If value is a string, it's a locate prompt that needs AI
+    if (typeof value === 'string') {
+      return true;
+    }
+
+    // If value is an object with a prompt field (not empty), it needs AI
+    if (typeof value === 'object' && value !== null) {
+      const prompt = (value as { prompt?: unknown }).prompt;
+      if (prompt && typeof prompt === 'string' && prompt.trim() !== '') {
+        return true;
+      }
+      // Also check for nested prompt object
+      if (prompt && typeof prompt === 'object' && (prompt as { prompt?: unknown }).prompt) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
  */
@@ -254,6 +318,7 @@ export function generateToolsFromActionSpace(
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     const schema = extractActionSchema(action.paramSchema as z.ZodTypeAny);
+    const locateFields = getLocateFieldNames(action.paramSchema as z.ZodTypeAny);
 
     return {
       name: action.name,
@@ -263,7 +328,11 @@ export function generateToolsFromActionSpace(
         try {
           const agent = await getAgent();
 
-          if (agent.aiAction) {
+          // Check if this action needs AI reasoning
+          const needsAI = actionNeedsAI(locateFields, args);
+
+          if (needsAI && agent.aiAction) {
+            // Use AI-based action execution for actions that need element location
             const instruction = buildActionInstruction(action.name, args);
             try {
               await agent.aiAction(instruction);
@@ -277,6 +346,40 @@ export function generateToolsFromActionSpace(
                 `Failed to execute action "${action.name}": ${errorMessage}`,
               );
             }
+          } else if (agent.callActionInActionSpace) {
+            // Use direct action execution for actions that don't need AI
+            // This is more efficient and doesn't require AI model service
+            try {
+              await agent.callActionInActionSpace(action.name, args);
+            } catch (error: unknown) {
+              const errorMessage = getErrorMessage(error);
+              console.error(
+                `Error executing action "${action.name}":`,
+                errorMessage,
+              );
+              return createErrorResult(
+                `Failed to execute action "${action.name}": ${errorMessage}`,
+              );
+            }
+          } else if (agent.aiAction) {
+            // Fallback to AI action if callActionInActionSpace is not available
+            const instruction = buildActionInstruction(action.name, args);
+            try {
+              await agent.aiAction(instruction);
+            } catch (error: unknown) {
+              const errorMessage = getErrorMessage(error);
+              console.error(
+                `Error executing action "${action.name}":`,
+                errorMessage,
+              );
+              return createErrorResult(
+                `Failed to execute action "${action.name}": ${errorMessage}`,
+              );
+            }
+          } else {
+            return createErrorResult(
+              `Cannot execute action "${action.name}": No execution method available`,
+            );
           }
 
           // Wait for network idle after action to ensure page stability
