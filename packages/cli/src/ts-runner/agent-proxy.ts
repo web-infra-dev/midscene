@@ -8,29 +8,39 @@ export class AgentProxy {
   private isOwned = false;
 
   async connect(config?: CdpConfig): Promise<void> {
-    if (!config) {
-      const endpoint = await this.discoverLocal();
-      await this.connectToEndpoint(endpoint);
-      return;
-    }
+    const endpoint = this.resolveEndpoint(config);
 
-    if (typeof config === 'string') {
-      await this.connectToEndpoint(config);
+    if (endpoint instanceof Promise) {
+      await this.connectToEndpoint(await endpoint);
       return;
-    }
-
-    let endpoint = config.endpoint;
-    if (config.apiKey) {
-      const url = new URL(endpoint);
-      url.searchParams.set('apiKey', config.apiKey);
-      endpoint = url.toString();
     }
 
     await this.connectToEndpoint(endpoint);
 
-    if (config.tabUrl || typeof config.tabIndex === 'number') {
+    if (
+      typeof config === 'object' &&
+      (config.tabUrl || typeof config.tabIndex === 'number')
+    ) {
       await this.selectTab(config);
     }
+  }
+
+  private resolveEndpoint(config?: CdpConfig): string | Promise<string> {
+    if (!config) {
+      return this.discoverLocal();
+    }
+
+    if (typeof config === 'string') {
+      return config;
+    }
+
+    if (!config.apiKey) {
+      return config.endpoint;
+    }
+
+    const url = new URL(config.endpoint);
+    url.searchParams.set('apiKey', config.apiKey);
+    return url.toString();
   }
 
   async launch(config: LaunchConfig = {}): Promise<void> {

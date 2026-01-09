@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { config } from 'dotenv';
-import { AgentProxy } from './agent-proxy';
-import type { CdpConfig, LaunchConfig } from './types';
+import { AgentProxy } from './agent-proxy.js';
+import type { CdpConfig, LaunchConfig } from './types.js';
 
 interface UserScriptExports {
   launch?: LaunchConfig;
@@ -14,13 +14,11 @@ config();
 const agentInstance = new AgentProxy();
 (globalThis as any).agent = agentInstance;
 
-async function cleanup(): Promise<void> {
+export async function cleanup(): Promise<void> {
   await agentInstance.destroy().catch(() => {});
 }
 
-process.on('beforeExit', async () => {
-  await cleanup();
-});
+process.on('beforeExit', cleanup);
 
 process.on('uncaughtException', async (error) => {
   console.error('Uncaught Exception:', error);
@@ -39,32 +37,25 @@ export async function run(scriptPath?: string): Promise<void> {
   if (!path) {
     console.error('Usage: midscene <script.ts>');
     process.exit(1);
-    return;
+    return; // Required for test mocking where process.exit doesn't terminate
   }
 
   const absolutePath = resolve(process.cwd(), path);
   const userModule = (await import(absolutePath)) as UserScriptExports;
 
-  // Handle declarative config exports
   if (userModule.launch) {
     await agentInstance.launch(userModule.launch);
   } else if (userModule.cdp) {
     await agentInstance.connect(userModule.cdp);
   }
 
-  // Call run function if exported
   if (typeof userModule.run === 'function') {
     await userModule.run(agentInstance);
   }
 }
 
-// Auto-run when executed directly
-if (require.main === module) {
-  run().catch(async (error) => {
-    console.error(error);
-    await cleanup();
-    process.exit(1);
-  });
-}
-
-export { cleanup };
+// Auto-run when executed as entry point
+run().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
