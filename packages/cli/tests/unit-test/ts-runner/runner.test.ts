@@ -69,7 +69,7 @@ describe('runner.ts', () => {
 
   test('should create AgentProxy instance and set global agent', async () => {
     // Import runner module after mocks are set up
-    const runnerModule = await import('../../../src/ts-runner/runner.js');
+    await import('../../../src/ts-runner/runner.js');
 
     // The runner immediately executes on import, so we need to simulate the flow
     // Instead, we'll test the individual functions
@@ -144,7 +144,7 @@ describe('runner.ts', () => {
   test('should cleanup on beforeExit', async () => {
     // This test is more complex because we need to trigger the event
     // We'll test the cleanup function directly
-    const runnerModule = await import('../../../src/ts-runner/runner.js');
+    await import('../../../src/ts-runner/runner.js');
 
     // Trigger beforeExit event
     process.emit('beforeExit');
