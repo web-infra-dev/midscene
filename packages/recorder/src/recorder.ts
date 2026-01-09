@@ -184,9 +184,9 @@ export class EventRecorder {
       clearTimeout(this.inputThrottleTimer);
       this.inputThrottleTimer = null;
     }
-    document.removeEventListener('click', this.handleClick);
+    document.removeEventListener('click', this.handleClick, true);
     document.removeEventListener('input', this.handleInput);
-    document.removeEventListener('scroll', this.handleScroll);
+    document.removeEventListener('scroll', this.handleScroll, true);
 
     debugLog('Removed all event listeners');
   }
