@@ -25,21 +25,55 @@ import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
 
+// Type definitions
+interface LibNut {
+  getScreenSize(): { width: number; height: number };
+  getMousePos(): { x: number; y: number };
+  moveMouse(x: number, y: number): void;
+  mouseClick(button?: 'left' | 'right' | 'middle', double?: boolean): void;
+  mouseToggle(state: 'up' | 'down', button?: 'left' | 'right' | 'middle'): void;
+  scrollMouse(x: number, y: number): void;
+  keyTap(key: string, modifiers?: string[]): void;
+  typeString(text: string): void;
+}
+
+interface ScreenshotOptions {
+  format: 'png' | 'jpg';
+  screen?: string | number;
+}
+
+interface ScreenshotDisplay {
+  id: string | number;
+  name?: string;
+  primary?: boolean;
+}
+
+// Constants
+const SMOOTH_MOVE_STEPS_TAP = 8;
+const SMOOTH_MOVE_STEPS_HOVER = 10;
+const SMOOTH_MOVE_DELAY_TAP = 8;
+const SMOOTH_MOVE_DELAY_HOVER = 10;
+const HOVER_EFFECT_WAIT = 300;
+const CLICK_HOLD_DURATION = 50;
+const INPUT_FOCUS_DELAY = 300;
+const INPUT_CLEAR_DELAY = 150;
+const SCROLL_REPEAT_COUNT = 10;
+const SCROLL_STEP_DELAY = 100;
+const SCROLL_COMPLETE_DELAY = 500;
+
 // Lazy load libnut with fallback
-let libnut: any = null;
+let libnut: LibNut | null = null;
 let libnutLoadError: Error | null = null;
 
-async function getLibnut() {
+async function getLibnut(): Promise<LibNut> {
   if (libnut) return libnut;
   if (libnutLoadError) throw libnutLoadError;
 
   try {
-    // @ts-ignore - libnut types might not be available
-    // Import from the internal module that has the actual libnut binding
     const libnutModule = await import(
       '@computer-use/libnut/dist/import_libnut'
     );
-    libnut = libnutModule.libnut;
+    libnut = libnutModule.libnut as LibNut;
     if (!libnut) {
       throw new Error('libnut module loaded but libnut object is undefined');
     }
@@ -54,9 +88,31 @@ async function getLibnut() {
 
 const debugDevice = getDebug('computer:device');
 
+/**
+ * Smooth mouse movement to trigger mousemove events
+ */
+async function smoothMoveMouse(
+  targetX: number,
+  targetY: number,
+  steps: number,
+  stepDelay: number,
+): Promise<void> {
+  assert(libnut, 'libnut not initialized');
+  const currentPos = libnut.getMousePos();
+  for (let i = 1; i <= steps; i++) {
+    const stepX = Math.round(
+      currentPos.x + ((targetX - currentPos.x) * i) / steps,
+    );
+    const stepY = Math.round(
+      currentPos.y + ((targetY - currentPos.y) * i) / steps,
+    );
+    libnut.moveMouse(stepX, stepY);
+    await sleep(stepDelay);
+  }
+}
+
 // Key name mapping for cross-platform compatibility
-// Note: Modifier keys have different names when used as primary key vs modifier
-const keyNameMap: Record<string, string> = {
+const keyNameMap = {
   // Modifier keys (for use in modifiers array)
   windows: 'win',
   win: 'win',
@@ -86,10 +142,10 @@ const keyNameMap: Record<string, string> = {
   mediaprevioustrack: 'audio_prev',
   medianext: 'audio_next',
   mediaprev: 'audio_prev',
-};
+} as const satisfies Record<string, string>;
 
 // When pressing modifier keys alone (as primary key), use these names
-const primaryKeyMap: Record<string, string> = {
+const primaryKeyMap = {
   command: 'cmd',
   cmd: 'cmd',
   meta: 'meta',
@@ -98,21 +154,22 @@ const primaryKeyMap: Record<string, string> = {
   shift: 'shift',
   alt: 'alt',
   option: 'alt',
-};
+} as const satisfies Record<string, string>;
 
 function normalizeKeyName(key: string): string {
   const lowerKey = key.toLowerCase();
-  return keyNameMap[lowerKey] || lowerKey;
+  return keyNameMap[lowerKey as keyof typeof keyNameMap] || lowerKey;
 }
 
 function normalizePrimaryKey(key: string): string {
   const lowerKey = key.toLowerCase();
   // First check primaryKeyMap for modifier keys pressed alone
-  if (primaryKeyMap[lowerKey]) {
-    return primaryKeyMap[lowerKey];
+  const primaryKey = primaryKeyMap[lowerKey as keyof typeof primaryKeyMap];
+  if (primaryKey) {
+    return primaryKey;
   }
   // Then use regular keyNameMap
-  return keyNameMap[lowerKey] || lowerKey;
+  return keyNameMap[lowerKey as keyof typeof keyNameMap] || lowerKey;
 }
 
 export interface DisplayInfo {
@@ -122,8 +179,8 @@ export interface DisplayInfo {
 }
 
 export interface ComputerDeviceOpt {
-  displayId?: string; // Specify display ID
-  customActions?: DeviceAction<any>[];
+  displayId?: string;
+  customActions?: DeviceAction<unknown>[];
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -148,8 +205,8 @@ export class ComputerDevice implements AbstractInterface {
    */
   static async listDisplays(): Promise<DisplayInfo[]> {
     try {
-      const displays = await screenshot.listDisplays();
-      return displays.map((d: any) => ({
+      const displays: ScreenshotDisplay[] = await screenshot.listDisplays();
+      return displays.map((d) => ({
         id: String(d.id),
         name: d.name || `Display ${d.id}`,
         primary: d.primary || false,
@@ -188,7 +245,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     debugDevice('Taking screenshot', { displayId: this.displayId });
 
     try {
-      const options: any = { format: 'png' };
+      const options: ScreenshotOptions = { format: 'png' };
       if (this.displayId !== undefined) {
         // On macOS: displayId is numeric (CGDirectDisplayID)
         // On Windows: displayId is string like "\\.\DISPLAY1"
@@ -214,6 +271,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   async size(): Promise<Size> {
+    assert(libnut, 'libnut not initialized');
     try {
       const screenSize = libnut.getScreenSize();
       return {
@@ -227,46 +285,42 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
   }
 
-  actionSpace(): DeviceAction<any>[] {
+  actionSpace(): DeviceAction<unknown>[] {
     const defaultActions = [
       // Tap (single click)
       defineActionTap(async (param: ActionTapParam) => {
+        assert(libnut, 'libnut not initialized');
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot tap');
         const [x, y] = element.center;
         const targetX = Math.round(x);
         const targetY = Math.round(y);
 
-        // Smooth move to maintain hover states
-        const currentPos = libnut.getMousePos();
-        const steps = 8;
-        for (let i = 1; i <= steps; i++) {
-          const stepX = Math.round(
-            currentPos.x + ((targetX - currentPos.x) * i) / steps,
-          );
-          const stepY = Math.round(
-            currentPos.y + ((targetY - currentPos.y) * i) / steps,
-          );
-          libnut.moveMouse(stepX, stepY);
-          await sleep(8);
-        }
+        await smoothMoveMouse(
+          targetX,
+          targetY,
+          SMOOTH_MOVE_STEPS_TAP,
+          SMOOTH_MOVE_DELAY_TAP,
+        );
         // Use mouseToggle for more realistic click behavior
         libnut.mouseToggle('down', 'left');
-        await sleep(50);
+        await sleep(CLICK_HOLD_DURATION);
         libnut.mouseToggle('up', 'left');
       }),
 
       // DoubleClick
       defineActionDoubleClick(async (param) => {
+        assert(libnut, 'libnut not initialized');
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot double click');
         const [x, y] = element.center;
         libnut.moveMouse(Math.round(x), Math.round(y));
-        libnut.mouseClick('left', true); // double=true
+        libnut.mouseClick('left', true);
       }),
 
       // RightClick
       defineActionRightClick(async (param) => {
+        assert(libnut, 'libnut not initialized');
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot right click');
         const [x, y] = element.center;
@@ -276,24 +330,20 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
       // Hover
       defineActionHover(async (param) => {
+        assert(libnut, 'libnut not initialized');
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot hover');
         const [x, y] = element.center;
         const targetX = Math.round(x);
         const targetY = Math.round(y);
 
-        // Smooth mouse movement to trigger mousemove events for CSS :hover effects
-        const currentPos = libnut.getMousePos();
-        const startX = currentPos.x;
-        const startY = currentPos.y;
-        const steps = 10;
-        for (let i = 1; i <= steps; i++) {
-          const stepX = Math.round(startX + ((targetX - startX) * i) / steps);
-          const stepY = Math.round(startY + ((targetY - startY) * i) / steps);
-          libnut.moveMouse(stepX, stepY);
-          await sleep(10);
-        }
-        await sleep(300); // Wait for CSS hover effects to appear
+        await smoothMoveMouse(
+          targetX,
+          targetY,
+          SMOOTH_MOVE_STEPS_HOVER,
+          SMOOTH_MOVE_DELAY_HOVER,
+        );
+        await sleep(HOVER_EFFECT_WAIT);
       }),
 
       // Input
@@ -313,6 +363,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             .optional(),
         }),
         call: async (param) => {
+          assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement | undefined;
 
           if (element && param.mode !== 'append') {
@@ -320,7 +371,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             const [x, y] = element.center;
             libnut.moveMouse(Math.round(x), Math.round(y));
             libnut.mouseClick('left');
-            await sleep(300); // Wait for input to focus
+            await sleep(INPUT_FOCUS_DELAY);
 
             // Select all and delete
             const modifier =
@@ -328,7 +379,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             libnut.keyTap('a', [modifier]);
             await sleep(50);
             libnut.keyTap('backspace');
-            await sleep(150); // Wait after clearing before typing
+            await sleep(INPUT_CLEAR_DELAY);
           }
 
           if (param.mode === 'clear') {
@@ -339,13 +390,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             return;
           }
 
-          // Type the string - libnut handles the timing
           libnut.typeString(param.value);
         },
       }),
 
       // Scroll
       defineActionScroll(async (param) => {
+        assert(libnut, 'libnut not initialized');
+
         if (param.locate) {
           const element = param.locate as LocateResultElement;
           const [x, y] = element.center;
@@ -354,59 +406,52 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
         const scrollToEventName = param?.scrollType;
 
-        if (scrollToEventName === 'scrollToTop') {
-          // Scroll to top - multiple upward scrolls
-          for (let i = 0; i < 10; i++) {
-            libnut.scrollMouse(0, 10); // Scroll up
-            await sleep(100);
+        // Scroll to edge actions
+        const scrollToEdgeActions: Record<string, [number, number]> = {
+          scrollToTop: [0, 10],
+          scrollToBottom: [0, -10],
+          scrollToLeft: [-10, 0],
+          scrollToRight: [10, 0],
+        };
+
+        const edgeAction = scrollToEdgeActions[scrollToEventName || ''];
+        if (edgeAction) {
+          const [dx, dy] = edgeAction;
+          for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
+            libnut.scrollMouse(dx, dy);
+            await sleep(SCROLL_STEP_DELAY);
           }
-        } else if (scrollToEventName === 'scrollToBottom') {
-          // Scroll to bottom - multiple downward scrolls
-          for (let i = 0; i < 10; i++) {
-            libnut.scrollMouse(0, -10); // Scroll down
-            await sleep(100);
-          }
-        } else if (scrollToEventName === 'scrollToLeft') {
-          // Scroll to left
-          for (let i = 0; i < 10; i++) {
-            libnut.scrollMouse(-10, 0);
-            await sleep(100);
-          }
-        } else if (scrollToEventName === 'scrollToRight') {
-          // Scroll to right
-          for (let i = 0; i < 10; i++) {
-            libnut.scrollMouse(10, 0);
-            await sleep(100);
-          }
-        } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
-          // Single scroll action
+          return;
+        }
+
+        // Single scroll action
+        if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           const distance = param?.distance || 500;
           const ticks = Math.ceil(distance / 100);
+          const direction = param?.direction || 'down';
 
-          switch (param?.direction || 'down') {
-            case 'up':
-              libnut.scrollMouse(0, ticks);
-              break;
-            case 'down':
-              libnut.scrollMouse(0, -ticks);
-              break;
-            case 'left':
-              libnut.scrollMouse(-ticks, 0);
-              break;
-            case 'right':
-              libnut.scrollMouse(ticks, 0);
-              break;
-          }
-          await sleep(500);
-        } else {
-          throw new Error(
-            `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
-          );
+          const directionMap: Record<string, [number, number]> = {
+            up: [0, ticks],
+            down: [0, -ticks],
+            left: [-ticks, 0],
+            right: [ticks, 0],
+          };
+
+          const [dx, dy] = directionMap[direction] || [0, -ticks];
+          libnut.scrollMouse(dx, dy);
+          await sleep(SCROLL_COMPLETE_DELAY);
+          return;
         }
+
+        throw new Error(
+          `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
+        );
       }),
 
       // KeyboardPress
       defineActionKeyboardPress(async (param) => {
+        assert(libnut, 'libnut not initialized');
+
         if (param.locate) {
           const [x, y] = param.locate.center;
           libnut.moveMouse(Math.round(x), Math.round(y));
@@ -425,7 +470,6 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           modifiers,
         });
 
-        // keyTap supports array of modifiers
         if (modifiers.length > 0) {
           libnut.keyTap(key, modifiers);
         } else {
@@ -435,6 +479,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
       // DragAndDrop
       defineActionDragAndDrop(async (param) => {
+        assert(libnut, 'libnut not initialized');
         const from = param.from as LocateResultElement;
         const to = param.to as LocateResultElement;
         assert(from, 'missing "from" param for drag and drop');
@@ -453,6 +498,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
       // ClearInput
       defineActionClearInput(async (param) => {
+        assert(libnut, 'libnut not initialized');
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot clear input');
 
@@ -467,7 +513,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       }),
     ];
 
-    const platformActions = Object.values(createPlatformActions(this));
+    const platformActions = Object.values(createPlatformActions());
     const customActions = this.options?.customActions || [];
 
     return [...defaultActions, ...platformActions, ...customActions];
@@ -490,7 +536,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 /**
  * Platform-specific actions
  */
-const createPlatformActions = (_device: ComputerDevice) => {
+function createPlatformActions() {
   return {
     ListDisplays: defineAction({
       name: 'ListDisplays',
@@ -500,4 +546,4 @@ const createPlatformActions = (_device: ComputerDevice) => {
       },
     }),
   } as const;
-};
+}
