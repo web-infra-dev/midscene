@@ -29,6 +29,6 @@ describe('ComputerAgent', () => {
     expect(agent.interface).toBeDefined();
   });
 
-  // Note: Tests that require actual libnut functionality (like agentFromDesktop with connect)
+  // Note: Tests that require actual libnut functionality (like agentFromComputer with connect)
   // should be run as AI tests or integration tests where native modules are available
 });

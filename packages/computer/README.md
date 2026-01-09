@@ -58,10 +58,10 @@ npm install --global windows-build-tools
 ### Basic Usage
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
 // Create an agent
-const agent = await agentFromDesktop({
+const agent = await agentFromComputer({
   aiActionContext: 'You are controlling a desktop computer.',
 });
 
@@ -82,14 +82,14 @@ await agent.aiAssert('There is a desktop visible');
 ### Multi-Display Support
 
 ```typescript
-import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+import { ComputerDevice, agentFromComputer } from '@midscene/computer';
 
 // List all displays
 const displays = await ComputerDevice.listDisplays();
 console.log('Available displays:', displays);
 
 // Connect to a specific display
-const agent = await agentFromDesktop({
+const agent = await agentFromComputer({
   displayId: displays[0].id,
 });
 ```
@@ -163,9 +163,9 @@ Start the MCP server for AI assistant integration:
 
 ```typescript
 import { mcpServerForAgent } from '@midscene/computer/mcp-server';
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
-const agent = await agentFromDesktop();
+const agent = await agentFromComputer();
 const { server } = mcpServerForAgent(agent);
 await server.launch();
 ```
@@ -226,7 +226,7 @@ class ComputerAgent extends PageAgent<ComputerDevice> {
 ### Factory Functions
 
 ```typescript
-async function agentFromDesktop(
+async function agentFromComputer(
   opts?: ComputerAgentOpt
 ): Promise<ComputerAgent>;
 

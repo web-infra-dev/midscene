@@ -1,6 +1,6 @@
 import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, it, vi } from 'vitest';
-import { type ComputerAgent, agentFromDesktop } from '../../src';
+import { type ComputerAgent, agentFromComputer } from '../../src';
 import { openBrowserAndNavigate } from './test-utils';
 
 vi.setConfig({
@@ -13,7 +13,7 @@ describe('computer shop app automation', () => {
   let agent: ComputerAgent;
 
   beforeAll(async () => {
-    agent = await agentFromDesktop({
+    agent = await agentFromComputer({
       aiActionContext:
         'You are testing a web application on a desktop browser.',
     });

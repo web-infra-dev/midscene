@@ -1,7 +1,7 @@
 import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
-import { type ComputerAgent, agentFromDesktop } from './agent';
+import { type ComputerAgent, agentFromComputer } from './agent';
 import { ComputerDevice } from './device';
 
 const debug = getDebug('mcp:computer-tools');
@@ -34,7 +34,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
     const opts = displayId ? { displayId } : undefined;
-    const agent = await agentFromDesktop(opts);
+    const agent = await agentFromComputer(opts);
     this.agent = agent;
     return agent;
   }

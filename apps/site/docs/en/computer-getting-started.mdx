@@ -24,44 +24,7 @@ Node.js 18.19.0 or higher is required.
 
 ### Platform-Specific Dependencies
 
-**macOS**: Install Xcode Command Line Tools
-
-```bash
-xcode-select --install
-```
-
-**Linux**: Install build essentials and ImageMagick
-
-<PackageManagerTabs command="install build-essential libx11-dev libxtst-dev libpng-dev imagemagick" />
-
-For other Linux distributions:
-
-```bash
-# Fedora/RHEL
-sudo dnf install gcc-c++ libX11-devel libXtst-devel libpng-devel ImageMagick
-
-# Arch
-sudo pacman -S base-devel libx11 libxtst libpng imagemagick
-```
-
-:::tip
-ImageMagick is required for screenshot capture on Linux.
-:::
-
-**Windows**: Install Windows Build Tools
-
-```bash
-npm install --global windows-build-tools
-```
-
-### Accessibility Permissions (macOS)
-
-On macOS, you need to grant accessibility permissions to your terminal application:
-
-1. Open **System Preferences** → **Security & Privacy** → **Privacy** → **Accessibility**
-2. Click the lock icon to make changes
-3. Add your terminal app (Terminal.app, iTerm, VS Code, etc.)
-4. Restart your terminal
+**Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
 
 ## Integration with Midscene Agent
 
@@ -74,11 +37,11 @@ On macOS, you need to grant accessibility permissions to your terminal applicati
 Create `example.ts`:
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
 (async () => {
   // Create an agent
-  const agent = await agentFromDesktop({
+  const agent = await agentFromComputer({
     aiActionContext: 'You are controlling a desktop computer.',
   });
 
@@ -109,14 +72,14 @@ npx tsx example.ts
 If you have multiple displays, you can control a specific one:
 
 ```typescript
-import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+import { ComputerDevice, agentFromComputer } from '@midscene/computer';
 
 // List all displays
 const displays = await ComputerDevice.listDisplays();
 console.log('Available displays:', displays);
 
 // Connect to a specific display
-const agent = await agentFromDesktop({
+const agent = await agentFromComputer({
   displayId: displays[0].id,
 });
 ```
@@ -202,28 +165,6 @@ console.log('Displays:', env.displays);
 if (!env.available) {
   console.error('Environment not available:', env.error);
 }
-```
-
-## Troubleshooting
-
-### macOS: "operation not permitted"
-
-Grant accessibility permissions to your terminal application in System Preferences.
-
-### Linux: "spawn import ENOENT"
-
-Install ImageMagick:
-
-```bash
-sudo apt-get install imagemagick
-```
-
-### Windows: Build errors during installation
-
-Install Windows Build Tools:
-
-```bash
-npm install --global windows-build-tools
 ```
 
 ## Next Steps

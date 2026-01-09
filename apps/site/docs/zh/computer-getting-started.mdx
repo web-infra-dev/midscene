@@ -24,44 +24,7 @@ import { PackageManagerTabs } from '@theme';
 
 ### 平台特定依赖
 
-**macOS**：安装 Xcode Command Line Tools
-
-```bash
-xcode-select --install
-```
-
-**Linux**：安装构建工具和 ImageMagick
-
-<PackageManagerTabs command="install build-essential libx11-dev libxtst-dev libpng-dev imagemagick" />
-
-其他 Linux 发行版：
-
-```bash
-# Fedora/RHEL
-sudo dnf install gcc-c++ libX11-devel libXtst-devel libpng-devel ImageMagick
-
-# Arch
-sudo pacman -S base-devel libx11 libxtst libpng imagemagick
-```
-
-:::tip
-Linux 上需要 ImageMagick 来进行截图。
-:::
-
-**Windows**：安装 Windows Build Tools
-
-```bash
-npm install --global windows-build-tools
-```
-
-### 辅助功能权限（macOS）
-
-在 macOS 上，您需要向终端应用授予辅助功能权限：
-
-1. 打开 **系统偏好设置** → **安全性与隐私** → **隐私** → **辅助功能**
-2. 点击锁图标以进行更改
-3. 添加您的终端应用（Terminal.app、iTerm、VS Code 等）
-4. 重启终端
+**Linux**：需要安装 [ImageMagick](https://imagemagick.org/script/download.php) 用于截图功能。
 
 ## 与 Midscene Agent 集成
 
@@ -74,11 +37,11 @@ npm install --global windows-build-tools
 创建 `example.ts`：
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
 (async () => {
   // 创建 agent
-  const agent = await agentFromDesktop({
+  const agent = await agentFromComputer({
     aiActionContext: '你正在控制一台桌面计算机。',
   });
 
@@ -109,14 +72,14 @@ npx tsx example.ts
 如果您有多个显示器，可以控制特定的显示器：
 
 ```typescript
-import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+import { ComputerDevice, agentFromComputer } from '@midscene/computer';
 
 // 列出所有显示器
 const displays = await ComputerDevice.listDisplays();
 console.log('可用显示器:', displays);
 
 // 连接到特定显示器
-const agent = await agentFromDesktop({
+const agent = await agentFromComputer({
   displayId: displays[0].id,
 });
 ```
@@ -202,28 +165,6 @@ console.log('显示器数量:', env.displays);
 if (!env.available) {
   console.error('环境不可用:', env.error);
 }
-```
-
-## 故障排除
-
-### macOS: "operation not permitted"
-
-在系统偏好设置中向终端应用授予辅助功能权限。
-
-### Linux: "spawn import ENOENT"
-
-安装 ImageMagick：
-
-```bash
-sudo apt-get install imagemagick
-```
-
-### Windows: 安装时出现构建错误
-
-安装 Windows Build Tools：
-
-```bash
-npm install --global windows-build-tools
 ```
 
 ## 下一步
