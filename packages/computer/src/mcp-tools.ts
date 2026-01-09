@@ -62,14 +62,18 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
             content: [
               {
                 type: 'text',
-                text: `Connected to computer desktop${displayId ? ` (Display: ${displayId})` : ' (Primary display)'}`,
+                text: `Connected to computer${displayId ? ` (Display: ${displayId})` : ' (Primary display)'}`,
               },
               ...this.buildScreenshotContent(screenshot),
             ],
-            isError: false,
           };
         },
-        autoDestroy: false, // Keep agent alive for subsequent operations
+      },
+      {
+        name: 'computer_disconnect',
+        description: 'Disconnect from computer and release resources',
+        schema: {},
+        handler: this.createDisconnectHandler('computer'),
       },
       {
         name: 'computer_list_displays',
@@ -84,10 +88,8 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
                 text: `Available displays:\n${displays.map((d) => `- ${d.name} (ID: ${d.id})${d.primary ? ' [PRIMARY]' : ''}`).join('\n')}`,
               },
             ],
-            isError: false,
           };
         },
-        autoDestroy: false,
       },
     ];
   }
