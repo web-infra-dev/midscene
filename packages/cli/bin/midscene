@@ -1,3 +1,29 @@
 #!/usr/bin/env node
 
-require('../dist/lib/index.js')
+const path = require('node:path');
+const { spawn } = require('node:child_process');
+
+const args = process.argv.slice(2);
+const scriptArg = args.find((arg) => !arg.startsWith('-'));
+
+const isTypeScriptFile =
+  scriptArg && (scriptArg.endsWith('.ts') || scriptArg.endsWith('.mts'));
+
+if (isTypeScriptFile) {
+  const runnerPath = path.join(__dirname, '../dist/es/ts-runner/runner.mjs');
+  const tsxPath = require.resolve('tsx/cli');
+
+  const child = spawn(
+    process.execPath,
+    [tsxPath, runnerPath, ...args],
+    { stdio: 'inherit', cwd: process.cwd() },
+  );
+
+  child.on('exit', (code) => process.exit(code || 0));
+  child.on('error', (error) => {
+    console.error('Failed to start tsx:', error.message);
+    process.exit(1);
+  });
+} else {
+  require('../dist/lib/index.js');
+}

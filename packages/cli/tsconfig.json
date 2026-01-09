@@ -5,13 +5,14 @@
     "lib": ["ESNext", "DOM"],
     "module": "esnext",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@midscene/cli/global": ["./src/ts-runner/global.d.ts"]
     },
     "rootDir": ".",
     "declarationDir": "dist/types",
     "types": ["node"]
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "examples"],
   "references": [
     {
       "path": "../android"
