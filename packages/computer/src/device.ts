@@ -112,7 +112,8 @@ async function smoothMoveMouse(
 }
 
 // Key name mapping for cross-platform compatibility
-const keyNameMap = {
+// Note: Modifier keys have different names when used as primary key vs modifier
+const KEY_NAME_MAP: Record<string, string> = {
   // Modifier keys (for use in modifiers array)
   windows: 'win',
   win: 'win',
@@ -142,10 +143,12 @@ const keyNameMap = {
   mediaprevioustrack: 'audio_prev',
   medianext: 'audio_next',
   mediaprev: 'audio_prev',
-} as const satisfies Record<string, string>;
+};
 
 // When pressing modifier keys alone (as primary key), use these names
-const primaryKeyMap = {
+// This is needed because libnut requires different key names for modifiers
+// when they are the main key vs when they are in the modifiers array
+const PRIMARY_KEY_MAP: Record<string, string> = {
   command: 'cmd',
   cmd: 'cmd',
   meta: 'meta',
@@ -154,22 +157,21 @@ const primaryKeyMap = {
   shift: 'shift',
   alt: 'alt',
   option: 'alt',
-} as const satisfies Record<string, string>;
+};
 
 function normalizeKeyName(key: string): string {
   const lowerKey = key.toLowerCase();
-  return keyNameMap[lowerKey as keyof typeof keyNameMap] || lowerKey;
+  return KEY_NAME_MAP[lowerKey] || lowerKey;
 }
 
 function normalizePrimaryKey(key: string): string {
   const lowerKey = key.toLowerCase();
-  // First check primaryKeyMap for modifier keys pressed alone
-  const primaryKey = primaryKeyMap[lowerKey as keyof typeof primaryKeyMap];
-  if (primaryKey) {
-    return primaryKey;
+  // First check PRIMARY_KEY_MAP for modifier keys pressed alone
+  if (PRIMARY_KEY_MAP[lowerKey]) {
+    return PRIMARY_KEY_MAP[lowerKey];
   }
-  // Then use regular keyNameMap
-  return keyNameMap[lowerKey as keyof typeof keyNameMap] || lowerKey;
+  // Then use regular KEY_NAME_MAP
+  return KEY_NAME_MAP[lowerKey] || lowerKey;
 }
 
 export interface DisplayInfo {
@@ -180,7 +182,8 @@ export interface DisplayInfo {
 
 export interface ComputerDeviceOpt {
   displayId?: string;
-  customActions?: DeviceAction<unknown>[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  customActions?: DeviceAction<any>[];
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -285,8 +288,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     }
   }
 
-  actionSpace(): DeviceAction<unknown>[] {
-    const defaultActions = [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  actionSpace(): DeviceAction<any>[] {
+    const defaultActions: DeviceAction<any>[] = [
       // Tap (single click)
       defineActionTap(async (param: ActionTapParam) => {
         assert(libnut, 'libnut not initialized');
@@ -460,7 +464,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         }
 
         const keys = param.keyName.split('+');
-        const modifiers = keys.slice(0, -1).map((k) => normalizeKeyName(k));
+        const modifiers = keys.slice(0, -1).map(normalizeKeyName);
         // Use normalizePrimaryKey for the main key to handle modifier keys pressed alone
         const key = normalizePrimaryKey(keys[keys.length - 1]);
 
