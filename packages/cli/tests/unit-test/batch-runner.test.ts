@@ -48,10 +48,7 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
     await importOriginal<
       typeof import('@midscene/web/puppeteer-agent-launcher')
     >();
-  return {
-    ...original,
-    // Keep buildChromeArgs as-is, mock other exports if needed
-  };
+  return { ...original };
 });
 vi.mock('@midscene/web/bridge-mode');
 vi.mock('@midscene/android');

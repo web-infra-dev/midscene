@@ -132,24 +132,29 @@ export interface BuildChromeArgsOptions {
 export function buildChromeArgs(options?: BuildChromeArgsOptions): string[] {
   const isWindows = process.platform === 'win32';
 
-  const baseArgs = [
-    ...(isWindows ? [] : ['--no-sandbox', '--disable-setuid-sandbox']),
+  const sandboxArgs = isWindows
+    ? []
+    : ['--no-sandbox', '--disable-setuid-sandbox'];
+  const featureArgs = [
     '--disable-features=HttpsFirstBalancedModeAutoEnable',
     '--disable-features=PasswordLeakDetection',
     '--disable-save-password-bubble',
   ];
+  const userAgentArg = options?.userAgent
+    ? [`--user-agent="${options.userAgent}"`]
+    : [];
+  const windowSizeArg = options?.windowSize
+    ? [`--window-size=${options.windowSize.width},${options.windowSize.height}`]
+    : [];
 
-  if (options?.userAgent) {
-    baseArgs.push(`--user-agent="${options.userAgent}"`);
-  }
+  const baseArgs = [
+    ...sandboxArgs,
+    ...featureArgs,
+    ...userAgentArg,
+    ...windowSizeArg,
+  ];
 
-  if (options?.windowSize) {
-    baseArgs.push(
-      `--window-size=${options.windowSize.width},${options.windowSize.height}`,
-    );
-  }
-
-  if (options?.chromeArgs && options.chromeArgs.length > 0) {
+  if (options?.chromeArgs?.length) {
     validateChromeArgs(options.chromeArgs, baseArgs);
     return [...baseArgs, ...options.chromeArgs];
   }
