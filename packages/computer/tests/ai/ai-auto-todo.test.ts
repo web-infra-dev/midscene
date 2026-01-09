@@ -11,7 +11,7 @@ vi.setConfig({
   testTimeout: 120 * 1000,
 });
 
-const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
+const isCacheEnabled = process.env.MIDSCENE_CACHE;
 
 describe('computer todo app automation', () => {
   let agent: ComputerAgent;
@@ -27,7 +27,7 @@ describe('computer todo app automation', () => {
   it(
     'should automate todo list operations',
     async () => {
-      if (CACHE_TIME_OUT) {
+      if (isCacheEnabled) {
         vi.setConfig({ testTimeout: 1000 * 1000 });
       }
 

@@ -6,7 +6,7 @@ vi.setConfig({
   testTimeout: 120 * 1000,
 });
 
-const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
+const isCacheEnabled = process.env.MIDSCENE_CACHE;
 
 describe('computer shop app automation', () => {
   let agent: ComputerAgent;
@@ -22,7 +22,7 @@ describe('computer shop app automation', () => {
   it(
     'should automate shop login and cart operations',
     async () => {
-      if (CACHE_TIME_OUT) {
+      if (isCacheEnabled) {
         vi.setConfig({ testTimeout: 1000 * 1000 });
       }
 
