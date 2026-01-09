@@ -20,16 +20,14 @@ export async function cleanup(): Promise<void> {
 
 process.on('beforeExit', cleanup);
 
-process.on('uncaughtException', async (error) => {
+process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  await cleanup();
-  process.exit(1);
+  cleanup().finally(() => process.exit(1));
 });
 
-process.on('unhandledRejection', async (reason) => {
+process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
-  await cleanup();
-  process.exit(1);
+  cleanup().finally(() => process.exit(1));
 });
 
 export async function run(scriptPath?: string): Promise<void> {
