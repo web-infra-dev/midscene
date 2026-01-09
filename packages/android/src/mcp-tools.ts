@@ -71,7 +71,40 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
             isError: false,
           };
         },
-        autoDestroy: false, // Keep agent alive for subsequent operations
+      },
+      {
+        name: 'android_disconnect',
+        description:
+          'Disconnect from current Android device and release ADB resources',
+        schema: {},
+        handler: async () => {
+          if (!this.agent) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'No active connection to disconnect',
+                },
+              ],
+            };
+          }
+
+          try {
+            await this.agent.destroy?.();
+          } catch (error) {
+            debug('Failed to destroy agent during disconnect:', error);
+          }
+          this.agent = undefined;
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Disconnected from Android device',
+              },
+            ],
+          };
+        },
       },
     ];
   }

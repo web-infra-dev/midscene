@@ -52,7 +52,40 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
             isError: false,
           };
         },
-        autoDestroy: false,
+      },
+      {
+        name: 'ios_disconnect',
+        description:
+          'Disconnect from current iOS device and release WebDriverAgent resources',
+        schema: {},
+        handler: async () => {
+          if (!this.agent) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'No active connection to disconnect',
+                },
+              ],
+            };
+          }
+
+          try {
+            await this.agent.destroy?.();
+          } catch (error) {
+            debug('Failed to destroy agent during disconnect:', error);
+          }
+          this.agent = undefined;
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Disconnected from iOS device',
+              },
+            ],
+          };
+        },
       },
     ];
   }
