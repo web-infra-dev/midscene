@@ -4,8 +4,14 @@ declare module '@computer-use/libnut/dist/import_libnut' {
     height: number;
   }
 
+  interface Point {
+    x: number;
+    y: number;
+  }
+
   interface LibNut {
     getScreenSize(): ScreenSize;
+    getMousePos(): Point;
     moveMouse(x: number, y: number): void;
     mouseClick(button?: 'left' | 'right' | 'middle', double?: boolean): void;
     mouseToggle(

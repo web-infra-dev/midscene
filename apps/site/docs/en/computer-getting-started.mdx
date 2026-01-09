@@ -1,0 +1,234 @@
+import SetupEnv from './common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# PC Desktop Getting Started
+
+This guide walks you through everything required to automate PC desktop applications with Midscene: install dependencies, configure model credentials, and run your first JavaScript script.
+
+:::info Demo Projects
+
+Control PC desktop with JavaScript: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
+
+Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
+
+:::
+
+<SetupEnv />
+
+## System Requirements
+
+### Node.js
+
+Node.js 18.19.0 or higher is required.
+
+### Platform-Specific Dependencies
+
+**macOS**: Install Xcode Command Line Tools
+
+```bash
+xcode-select --install
+```
+
+**Linux**: Install build essentials and ImageMagick
+
+<PackageManagerTabs command="install build-essential libx11-dev libxtst-dev libpng-dev imagemagick" />
+
+For other Linux distributions:
+
+```bash
+# Fedora/RHEL
+sudo dnf install gcc-c++ libX11-devel libXtst-devel libpng-devel ImageMagick
+
+# Arch
+sudo pacman -S base-devel libx11 libxtst libpng imagemagick
+```
+
+:::tip
+ImageMagick is required for screenshot capture on Linux.
+:::
+
+**Windows**: Install Windows Build Tools
+
+```bash
+npm install --global windows-build-tools
+```
+
+### Accessibility Permissions (macOS)
+
+On macOS, you need to grant accessibility permissions to your terminal application:
+
+1. Open **System Preferences** → **Security & Privacy** → **Privacy** → **Accessibility**
+2. Click the lock icon to make changes
+3. Add your terminal app (Terminal.app, iTerm, VS Code, etc.)
+4. Restart your terminal
+
+## Integration with Midscene Agent
+
+### Step 1. Install dependencies
+
+<PackageManagerTabs command="install @midscene/computer" />
+
+### Step 2. Write your first script
+
+Create `example.ts`:
+
+```typescript
+import { agentFromDesktop } from '@midscene/computer';
+
+(async () => {
+  // Create an agent
+  const agent = await agentFromDesktop({
+    aiActionContext: 'You are controlling a desktop computer.',
+  });
+
+  // Take a screenshot and query information
+  const screenInfo = await agent.aiQuery(
+    '{width: number, height: number}, get screen resolution'
+  );
+  console.log('Screen resolution:', screenInfo);
+
+  // Move mouse to center
+  await agent.aiAct('move mouse to center of screen');
+
+  // Assert screen has content
+  await agent.aiAssert('The screen has visible content');
+
+  console.log('Desktop automation completed!');
+})();
+```
+
+### Step 3. Run the script
+
+```bash
+npx tsx example.ts
+```
+
+## Multi-Display Support
+
+If you have multiple displays, you can control a specific one:
+
+```typescript
+import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+
+// List all displays
+const displays = await ComputerDevice.listDisplays();
+console.log('Available displays:', displays);
+
+// Connect to a specific display
+const agent = await agentFromDesktop({
+  displayId: displays[0].id,
+});
+```
+
+## Example Usage
+
+### Basic Mouse Operations
+
+```typescript
+// Click at center of screen
+await agent.aiAct('click mouse at center of screen');
+
+// Move mouse to a specific location
+await agent.aiAct('move mouse to top-left corner');
+
+// Double-click
+await agent.aiAct('double-click on the desktop icon');
+
+// Right-click
+await agent.aiAct('right-click to open context menu');
+```
+
+### Keyboard Operations
+
+```typescript
+// Type text
+await agent.aiAct('type "Hello World"');
+
+// Press keyboard shortcuts
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space to open Spotlight');
+  await agent.aiAct('type "Calculator" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Calculator" and press Enter');
+}
+
+// Press function keys
+await agent.aiAct('press Escape');
+await agent.aiAct('press Enter');
+```
+
+### Query Information
+
+```typescript
+// Extract screen information
+const info = await agent.aiQuery(
+  '{hasDesktop: boolean, visibleApps: string[]}, check if desktop is visible and list visible apps'
+);
+
+// Locate elements
+const position = await agent.aiLocate('the File menu');
+console.log('File menu position:', position);
+```
+
+### Complex Workflows
+
+```typescript
+// Open an application and interact with it
+await agent.aiAct('open Finder');
+await agent.aiWaitFor('Finder window is visible');
+
+await agent.aiAct('click on Documents folder');
+await agent.aiAct('press Cmd+N to create new folder');
+await agent.aiAct('type "My Project"');
+await agent.aiAct('press Enter');
+
+await agent.aiAssert('A folder named "My Project" exists');
+```
+
+## Environment Check
+
+You can check if your system is properly configured:
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('Platform:', env.platform);
+console.log('Available:', env.available);
+console.log('Displays:', env.displays);
+
+if (!env.available) {
+  console.error('Environment not available:', env.error);
+}
+```
+
+## Troubleshooting
+
+### macOS: "operation not permitted"
+
+Grant accessibility permissions to your terminal application in System Preferences.
+
+### Linux: "spawn import ENOENT"
+
+Install ImageMagick:
+
+```bash
+sudo apt-get install imagemagick
+```
+
+### Windows: Build errors during installation
+
+Install Windows Build Tools:
+
+```bash
+npm install --global windows-build-tools
+```
+
+## Next Steps
+
+- [API Reference](./computer-api-reference)
+- [Use YAML format automation scripts](./automate-with-scripts-in-yaml)
+- [Command-line tools](./command-line-tools)
+- [Caching for efficiency](./caching)

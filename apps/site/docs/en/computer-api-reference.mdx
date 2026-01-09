@@ -1,0 +1,398 @@
+# API Reference (PC Desktop)
+
+This page documents the PC desktop-specific APIs provided by `@midscene/computer`.
+
+For common APIs that work across all platforms, see [Common API Reference](./api).
+
+## Agent Creation
+
+### `agentFromDesktop(opts?): Promise<ComputerAgent>`
+
+Create an agent for desktop automation.
+
+**Parameters:**
+
+```typescript
+interface ComputerAgentOpt {
+  // Agent options (inherited from AgentOpt)
+  aiActionContext?: string;
+  cache?: boolean;
+  // ... other AgentOpt properties
+
+  // Device options
+  displayId?: string;
+  customActions?: DeviceAction<any>[];
+}
+```
+
+- `displayId` (optional): Specify which display to control. Get available displays with `ComputerDevice.listDisplays()`.
+- `customActions` (optional): Add custom actions to the device.
+
+**Example:**
+
+```typescript
+import { agentFromDesktop } from '@midscene/computer';
+
+// Connect to primary display
+const agent = await agentFromDesktop({
+  aiActionContext: 'You are automating a desktop application.',
+});
+
+// Connect to specific display
+const displays = await ComputerDevice.listDisplays();
+const agent2 = await agentFromDesktop({
+  displayId: displays[1].id,
+});
+```
+
+## Device Management
+
+### `ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+
+List all available displays.
+
+**Returns:**
+
+```typescript
+interface DisplayInfo {
+  id: string;
+  name: string;
+  primary?: boolean;
+}
+```
+
+**Example:**
+
+```typescript
+import { ComputerDevice } from '@midscene/computer';
+
+const displays = await ComputerDevice.listDisplays();
+console.log('Available displays:', displays);
+// [
+//   { id: '0', name: 'Built-in Display', primary: true },
+//   { id: '1', name: 'External Display', primary: false }
+// ]
+```
+
+### `checkComputerEnvironment(): Promise<EnvironmentCheck>`
+
+Check if the computer environment is properly configured.
+
+**Returns:**
+
+```typescript
+interface EnvironmentCheck {
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}
+```
+
+**Example:**
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('Environment check:', env);
+
+if (!env.available) {
+  console.error('Environment error:', env.error);
+}
+```
+
+## ComputerAgent
+
+The `ComputerAgent` class extends `PageAgent<ComputerDevice>` and inherits all common agent methods:
+
+- `aiAct(action: string)`: Perform an action with AI
+- `aiQuery(query: string)`: Extract information with AI
+- `aiAssert(assertion: string)`: Assert a condition with AI
+- `aiWaitFor(condition: string)`: Wait for a condition
+- `aiLocate(description: string)`: Locate an element
+- And more...
+
+See [Common API Reference](./api) for details.
+
+## Available Actions
+
+The `ComputerDevice` supports the following actions:
+
+### Mouse Actions
+
+#### Tap (Click)
+
+Single click at the target location.
+
+```typescript
+await agent.aiAct('click on the File menu');
+await agent.aiAct('click at center of screen');
+```
+
+#### DoubleClick
+
+Double-click at the target location.
+
+```typescript
+await agent.aiAct('double-click on the desktop icon');
+```
+
+#### RightClick
+
+Right-click to open context menu.
+
+```typescript
+await agent.aiAct('right-click on the desktop');
+await agent.aiAct('right-click on the file');
+```
+
+#### Hover
+
+Move mouse to hover over an element.
+
+```typescript
+await agent.aiAct('hover over the menu item');
+```
+
+#### DragAndDrop
+
+Drag from one location and drop at another.
+
+```typescript
+await agent.aiAct('drag the file to the folder');
+```
+
+### Keyboard Actions
+
+#### KeyboardPress
+
+Press keyboard keys with optional modifiers.
+
+**Supported keys:**
+- Regular keys: `a-z`, `0-9`, `Enter`, `Escape`, `Space`, `Tab`, etc.
+- Arrow keys: `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`
+- Function keys: `F1`-`F12`
+- Modifiers: `Command`/`Cmd` (macOS), `Control`/`Ctrl`, `Alt`, `Shift`, `Win` (Windows)
+- Media keys: `VolumeUp`, `VolumeDown`, `Mute`, etc.
+
+**Examples:**
+
+```typescript
+// Simple key press
+await agent.aiAct('press Enter');
+await agent.aiAct('press Escape');
+
+// Key combinations (platform-specific)
+if (process.platform === 'darwin') {
+  // macOS
+  await agent.aiAct('press Cmd+Space');  // Open Spotlight
+  await agent.aiAct('press Cmd+Tab');    // App switcher
+  await agent.aiAct('press Cmd+C');      // Copy
+  await agent.aiAct('press Cmd+V');      // Paste
+} else {
+  // Windows/Linux
+  await agent.aiAct('press Windows key'); // Start menu
+  await agent.aiAct('press Alt+Tab');     // App switcher
+  await agent.aiAct('press Ctrl+C');      // Copy
+  await agent.aiAct('press Ctrl+V');      // Paste
+}
+
+// Arrow keys
+await agent.aiAct('press ArrowDown');
+await agent.aiAct('press ArrowUp');
+
+// Function keys
+await agent.aiAct('press F5');  // Refresh
+```
+
+#### Input
+
+Type text into an input field.
+
+```typescript
+await agent.aiAct('type "Hello World" in the search box');
+await agent.aiAct('type "my-document.txt"');
+```
+
+#### ClearInput
+
+Clear the content of an input field.
+
+```typescript
+await agent.aiAct('clear the text field');
+```
+
+### Scroll Actions
+
+Scroll the screen or a specific area.
+
+```typescript
+// Scroll directions
+await agent.aiAct('scroll down');
+await agent.aiAct('scroll up');
+await agent.aiAct('scroll left');
+await agent.aiAct('scroll right');
+
+// Scroll to positions
+await agent.aiAct('scroll to top');
+await agent.aiAct('scroll to bottom');
+```
+
+### Display Actions
+
+#### ListDisplays
+
+Get information about all connected displays.
+
+```typescript
+const displays = await ComputerDevice.listDisplays();
+```
+
+## Platform Differences
+
+Different platforms have different keyboard layouts and shortcuts:
+
+### macOS
+
+- Primary modifier: `Command` (Cmd)
+- Common shortcuts:
+  - `Cmd+Space`: Spotlight search
+  - `Cmd+Tab`: App switcher
+  - `Cmd+Q`: Quit app
+  - `Cmd+W`: Close window
+  - `Cmd+C/V/X`: Copy/Paste/Cut
+
+### Windows
+
+- Primary modifier: `Control` (Ctrl)
+- System key: `Windows` key
+- Common shortcuts:
+  - `Win`: Start menu
+  - `Alt+Tab`: App switcher
+  - `Win+D`: Show desktop
+  - `Ctrl+C/V/X`: Copy/Paste/Cut
+  - `Alt+F4`: Close window
+
+### Linux
+
+- Primary modifier: `Control` (Ctrl)
+- System key: `Super` key
+- Shortcuts vary by desktop environment
+
+## Key Name Mapping
+
+The following key name aliases are supported:
+
+| User Input | Mapped To |
+|-----------|----------|
+| Windows, Win | win |
+| Cmd | command (for modifiers) / cmd (for single press) |
+| Ctrl | control |
+| Esc | escape |
+| Del | delete |
+| ArrowUp/Down/Left/Right | up/down/left/right |
+| VolumeDown/Up | audio_vol_down/up |
+| MediaPlay/Pause/Stop | audio_play/pause/stop |
+
+## Examples
+
+### Open Application and Navigate
+
+```typescript
+import { agentFromDesktop } from '@midscene/computer';
+
+const agent = await agentFromDesktop();
+
+// Open application
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space');
+  await agent.aiAct('type "TextEdit" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Notepad" and press Enter');
+}
+
+await agent.aiWaitFor('text editor window is visible');
+
+// Type content
+await agent.aiAct('type "Hello, Midscene!"');
+
+// Save file
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+S');
+} else {
+  await agent.aiAct('press Ctrl+S');
+}
+```
+
+### Multi-Display Workflow
+
+```typescript
+import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+
+// List displays
+const displays = await ComputerDevice.listDisplays();
+console.log(`Found ${displays.length} displays`);
+
+// Control primary display
+const agent1 = await agentFromDesktop({
+  displayId: displays[0].id,
+});
+await agent1.aiAct('move mouse to center of screen');
+
+// Control secondary display
+if (displays.length > 1) {
+  const agent2 = await agentFromDesktop({
+    displayId: displays[1].id,
+  });
+  await agent2.aiAct('move mouse to center of screen');
+}
+```
+
+### Web Browser Automation
+
+```typescript
+import { agentFromDesktop } from '@midscene/computer';
+
+const agent = await agentFromDesktop();
+
+// Open browser
+if (process.platform === 'darwin') {
+  await agent.aiAct('press Cmd+Space');
+  await agent.aiAct('type "Safari" and press Enter');
+} else {
+  await agent.aiAct('press Windows key');
+  await agent.aiAct('type "Chrome" and press Enter');
+}
+
+await agent.aiWaitFor('browser window is open');
+
+// Navigate
+await agent.aiAct('click on address bar');
+await agent.aiAct('type "example.com" and press Enter');
+await agent.aiWaitFor('page has loaded');
+
+// Extract information
+const title = await agent.aiQuery('string, get the page title');
+console.log('Page title:', title);
+```
+
+## TypeScript Types
+
+```typescript
+import type {
+  ComputerAgent,
+  ComputerAgentOpt,
+  ComputerDevice,
+  ComputerDeviceOpt,
+  DisplayInfo,
+  EnvironmentCheck,
+} from '@midscene/computer';
+```
+
+## See Also
+
+- [Common API Reference](./api) - APIs that work across all platforms
+- [Model Configuration](./model-config) - Configure AI models
+- [Caching](./caching) - Improve performance with caching

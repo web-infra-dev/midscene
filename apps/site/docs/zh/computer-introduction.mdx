@@ -1,0 +1,54 @@
+# PC 桌面自动化支持
+
+Midscene 可以驱动原生键盘和鼠标控制，在 Windows、macOS 和 Linux 上支持 PC 桌面自动化。
+
+通过采用视觉模型方案，自动化流程可以适配任何桌面应用程序——无论是用 Electron、Qt、WPF 还是原生技术构建的。开发者在调试 UI 自动化脚本时，只需关注最终的用户体验。
+
+PC 桌面自动化方案具备 Midscene 的所有特性：
+
+- 支持 JavaScript SDK 进行脚本编写
+- 支持 YAML 格式的自动化脚本和命令行工具
+- 支持 HTML 报告回放所有操作路径
+- 跨 Windows、macOS 和 Linux 平台
+- 多显示器支持复杂设置
+
+## 核心功能
+
+### 跨平台桌面控制
+
+- **鼠标操作**：单击、双击、右键、悬停、拖放
+- **键盘输入**：输入文本、按键组合（Cmd/Ctrl/Alt/Shift）
+- **屏幕截图**：捕获任意显示器的截图
+- **多显示器**：同时操作多个显示器
+
+### AI 驱动自动化
+
+使用 Midscene 的 AI 能力，您可以用自然语言自动化桌面应用：
+
+```typescript
+await agent.aiAct('打开文件菜单');
+await agent.aiAct('点击另存为');
+await agent.aiAct('在文件名字段输入 "我的文档"');
+await agent.aiAct('按回车键');
+```
+
+### 平台特定支持
+
+自动化会适配不同平台的差异：
+
+- **macOS**：Cmd 键、Spotlight（Cmd+Space）、应用切换器（Cmd+Tab）
+- **Windows**：Windows 键、开始菜单、Alt+Tab
+- **Linux**：Super 键、应用启动器
+
+## 使用场景
+
+- **桌面应用测试**：自动化测试 Electron、Qt 或原生应用
+- **工作流自动化**：自动化桌面应用中的重复任务
+- **跨应用集成**：按顺序控制多个应用程序
+- **UI 测试**：使用自然语言描述测试桌面应用
+
+## 下一步
+
+* [开始使用](./computer-getting-started)
+* [API 参考](./computer-api-reference)
+* [使用 YAML 格式自动化脚本](./automate-with-scripts-in-yaml) 和 [命令行工具](./command-line-tools)

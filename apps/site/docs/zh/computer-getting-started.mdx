@@ -1,0 +1,234 @@
+import SetupEnv from './common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# PC 桌面入门指南
+
+本指南将引导您完成使用 Midscene 自动化 PC 桌面应用所需的一切：安装依赖、配置模型凭据并运行您的第一个 JavaScript 脚本。
+
+:::info 示例项目
+
+使用 JavaScript 控制 PC 桌面：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/javascript-sdk-demo)
+
+集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/vitest-demo)
+
+:::
+
+<SetupEnv />
+
+## 系统要求
+
+### Node.js
+
+需要 Node.js 18.19.0 或更高版本。
+
+### 平台特定依赖
+
+**macOS**：安装 Xcode Command Line Tools
+
+```bash
+xcode-select --install
+```
+
+**Linux**：安装构建工具和 ImageMagick
+
+<PackageManagerTabs command="install build-essential libx11-dev libxtst-dev libpng-dev imagemagick" />
+
+其他 Linux 发行版：
+
+```bash
+# Fedora/RHEL
+sudo dnf install gcc-c++ libX11-devel libXtst-devel libpng-devel ImageMagick
+
+# Arch
+sudo pacman -S base-devel libx11 libxtst libpng imagemagick
+```
+
+:::tip
+Linux 上需要 ImageMagick 来进行截图。
+:::
+
+**Windows**：安装 Windows Build Tools
+
+```bash
+npm install --global windows-build-tools
+```
+
+### 辅助功能权限（macOS）
+
+在 macOS 上，您需要向终端应用授予辅助功能权限：
+
+1. 打开 **系统偏好设置** → **安全性与隐私** → **隐私** → **辅助功能**
+2. 点击锁图标以进行更改
+3. 添加您的终端应用（Terminal.app、iTerm、VS Code 等）
+4. 重启终端
+
+## 与 Midscene Agent 集成
+
+### 步骤 1. 安装依赖
+
+<PackageManagerTabs command="install @midscene/computer" />
+
+### 步骤 2. 编写您的第一个脚本
+
+创建 `example.ts`：
+
+```typescript
+import { agentFromDesktop } from '@midscene/computer';
+
+(async () => {
+  // 创建 agent
+  const agent = await agentFromDesktop({
+    aiActionContext: '你正在控制一台桌面计算机。',
+  });
+
+  // 截图并查询信息
+  const screenInfo = await agent.aiQuery(
+    '{width: number, height: number}, 获取屏幕分辨率'
+  );
+  console.log('屏幕分辨率:', screenInfo);
+
+  // 移动鼠标到中心
+  await agent.aiAct('将鼠标移动到屏幕中心');
+
+  // 断言屏幕有内容
+  await agent.aiAssert('屏幕有可见内容');
+
+  console.log('桌面自动化完成！');
+})();
+```
+
+### 步骤 3. 运行脚本
+
+```bash
+npx tsx example.ts
+```
+
+## 多显示器支持
+
+如果您有多个显示器，可以控制特定的显示器：
+
+```typescript
+import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+
+// 列出所有显示器
+const displays = await ComputerDevice.listDisplays();
+console.log('可用显示器:', displays);
+
+// 连接到特定显示器
+const agent = await agentFromDesktop({
+  displayId: displays[0].id,
+});
+```
+
+## 使用示例
+
+### 基本鼠标操作
+
+```typescript
+// 在屏幕中心点击
+await agent.aiAct('在屏幕中心点击鼠标');
+
+// 移动鼠标到特定位置
+await agent.aiAct('将鼠标移动到左上角');
+
+// 双击
+await agent.aiAct('双击桌面图标');
+
+// 右键
+await agent.aiAct('右键打开上下文菜单');
+```
+
+### 键盘操作
+
+```typescript
+// 输入文本
+await agent.aiAct('输入 "你好世界"');
+
+// 按快捷键
+if (process.platform === 'darwin') {
+  await agent.aiAct('按 Cmd+Space 打开 Spotlight');
+  await agent.aiAct('输入 "计算器" 并按回车');
+} else {
+  await agent.aiAct('按 Windows 键');
+  await agent.aiAct('输入 "计算器" 并按回车');
+}
+
+// 按功能键
+await agent.aiAct('按 Escape');
+await agent.aiAct('按 Enter');
+```
+
+### 查询信息
+
+```typescript
+// 提取屏幕信息
+const info = await agent.aiQuery(
+  '{hasDesktop: boolean, visibleApps: string[]}, 检查桌面是否可见并列出可见应用'
+);
+
+// 定位元素
+const position = await agent.aiLocate('文件菜单');
+console.log('文件菜单位置:', position);
+```
+
+### 复杂工作流
+
+```typescript
+// 打开应用并与之交互
+await agent.aiAct('打开访达');
+await agent.aiWaitFor('访达窗口可见');
+
+await agent.aiAct('点击文稿文件夹');
+await agent.aiAct('按 Cmd+N 创建新文件夹');
+await agent.aiAct('输入 "我的项目"');
+await agent.aiAct('按回车');
+
+await agent.aiAssert('存在名为 "我的项目" 的文件夹');
+```
+
+## 环境检查
+
+您可以检查系统是否正确配置：
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('平台:', env.platform);
+console.log('可用:', env.available);
+console.log('显示器数量:', env.displays);
+
+if (!env.available) {
+  console.error('环境不可用:', env.error);
+}
+```
+
+## 故障排除
+
+### macOS: "operation not permitted"
+
+在系统偏好设置中向终端应用授予辅助功能权限。
+
+### Linux: "spawn import ENOENT"
+
+安装 ImageMagick：
+
+```bash
+sudo apt-get install imagemagick
+```
+
+### Windows: 安装时出现构建错误
+
+安装 Windows Build Tools：
+
+```bash
+npm install --global windows-build-tools
+```
+
+## 下一步
+
+- [API 参考](./computer-api-reference)
+- [使用 YAML 格式自动化脚本](./automate-with-scripts-in-yaml)
+- [命令行工具](./command-line-tools)
+- [缓存提高效率](./caching)
