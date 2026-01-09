@@ -96,34 +96,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         description:
           'Disconnect from current web page and release browser resources',
         schema: {},
-        handler: async () => {
-          if (!this.agent) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'No active connection to disconnect',
-                },
-              ],
-            };
-          }
-
-          try {
-            await this.agent.destroy?.();
-          } catch (error) {
-            console.debug('Failed to destroy agent during disconnect:', error);
-          }
-          this.agent = undefined;
-
-          return {
-            content: [
-              {
-                type: 'text',
-                text: 'Disconnected from web page',
-              },
-            ],
-          };
-        },
+        handler: this.createDisconnectHandler('web page'),
       },
     ];
   }

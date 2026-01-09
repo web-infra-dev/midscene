@@ -169,4 +169,35 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
       },
     ];
   }
+
+  /**
+   * Helper: Build a simple text result for tool responses
+   */
+  protected buildTextResult(text: string) {
+    return {
+      content: [{ type: 'text' as const, text }],
+    };
+  }
+
+  /**
+   * Create a disconnect handler for releasing platform resources
+   * @param platformName Human-readable platform name for the response message
+   * @returns Handler function that destroys the agent and returns appropriate response
+   */
+  protected createDisconnectHandler(platformName: string) {
+    return async () => {
+      if (!this.agent) {
+        return this.buildTextResult('No active connection to disconnect');
+      }
+
+      try {
+        await this.agent.destroy?.();
+      } catch (error) {
+        debug('Failed to destroy agent during disconnect:', error);
+      }
+      this.agent = undefined;
+
+      return this.buildTextResult(`Disconnected from ${platformName}`);
+    };
+  }
 }
