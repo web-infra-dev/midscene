@@ -200,7 +200,7 @@ export class ComputerDevice implements AbstractInterface {
   }
 
   describe(): string {
-    return this.description || 'Computer Desktop Device';
+    return this.description || 'Computer Device';
   }
 
   /**
@@ -231,7 +231,7 @@ export class ComputerDevice implements AbstractInterface {
       const displays = await ComputerDevice.listDisplays();
 
       this.description = `
-Type: Computer Desktop
+Type: Computer
 Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}

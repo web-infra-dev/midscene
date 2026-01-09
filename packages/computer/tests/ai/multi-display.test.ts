@@ -1,6 +1,6 @@
 import { sleep } from '@midscene/core/utils';
 import { describe, it, vi } from 'vitest';
-import { ComputerDevice, agentFromDesktop } from '../../src';
+import { ComputerDevice, agentFromComputer } from '../../src';
 
 vi.setConfig({
   testTimeout: 120 * 1000,
@@ -20,7 +20,7 @@ describe('computer multi display', () => {
         );
         // Still test single display
         if (displays.length === 1) {
-          const agent = await agentFromDesktop({
+          const agent = await agentFromComputer({
             displayId: displays[0].id,
           });
           await agent.aiAct('move mouse to center of screen');
@@ -34,7 +34,7 @@ describe('computer multi display', () => {
       console.log(
         `Connecting to display 1: ${display1.name} (ID: ${display1.id})`,
       );
-      const agent1 = await agentFromDesktop({
+      const agent1 = await agentFromComputer({
         displayId: display1.id,
         aiActionContext: `You are controlling display 1: ${display1.name}`,
       });
@@ -52,7 +52,7 @@ describe('computer multi display', () => {
       console.log(
         `Connecting to display 2: ${display2.name} (ID: ${display2.id})`,
       );
-      const agent2 = await agentFromDesktop({
+      const agent2 = await agentFromComputer({
         displayId: display2.id,
         aiActionContext: `You are controlling display 2: ${display2.name}`,
       });

@@ -6,7 +6,7 @@ For common APIs that work across all platforms, see [Common API Reference](./api
 
 ## Agent Creation
 
-### `agentFromDesktop(opts?): Promise<ComputerAgent>`
+### `agentFromComputer(opts?): Promise<ComputerAgent>`
 
 Create an agent for desktop automation.
 
@@ -31,16 +31,16 @@ interface ComputerAgentOpt {
 **Example:**
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
 // Connect to primary display
-const agent = await agentFromDesktop({
+const agent = await agentFromComputer({
   aiActionContext: 'You are automating a desktop application.',
 });
 
 // Connect to specific display
 const displays = await ComputerDevice.listDisplays();
-const agent2 = await agentFromDesktop({
+const agent2 = await agentFromComputer({
   displayId: displays[1].id,
 });
 ```
@@ -249,60 +249,14 @@ Get information about all connected displays.
 const displays = await ComputerDevice.listDisplays();
 ```
 
-## Platform Differences
-
-Different platforms have different keyboard layouts and shortcuts:
-
-### macOS
-
-- Primary modifier: `Command` (Cmd)
-- Common shortcuts:
-  - `Cmd+Space`: Spotlight search
-  - `Cmd+Tab`: App switcher
-  - `Cmd+Q`: Quit app
-  - `Cmd+W`: Close window
-  - `Cmd+C/V/X`: Copy/Paste/Cut
-
-### Windows
-
-- Primary modifier: `Control` (Ctrl)
-- System key: `Windows` key
-- Common shortcuts:
-  - `Win`: Start menu
-  - `Alt+Tab`: App switcher
-  - `Win+D`: Show desktop
-  - `Ctrl+C/V/X`: Copy/Paste/Cut
-  - `Alt+F4`: Close window
-
-### Linux
-
-- Primary modifier: `Control` (Ctrl)
-- System key: `Super` key
-- Shortcuts vary by desktop environment
-
-## Key Name Mapping
-
-The following key name aliases are supported:
-
-| User Input | Mapped To |
-|-----------|----------|
-| Windows, Win | win |
-| Cmd | command (for modifiers) / cmd (for single press) |
-| Ctrl | control |
-| Esc | escape |
-| Del | delete |
-| ArrowUp/Down/Left/Right | up/down/left/right |
-| VolumeDown/Up | audio_vol_down/up |
-| MediaPlay/Pause/Stop | audio_play/pause/stop |
-
 ## Examples
 
 ### Open Application and Navigate
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
-const agent = await agentFromDesktop();
+const agent = await agentFromComputer();
 
 // Open application
 if (process.platform === 'darwin') {
@@ -329,21 +283,21 @@ if (process.platform === 'darwin') {
 ### Multi-Display Workflow
 
 ```typescript
-import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+import { ComputerDevice, agentFromComputer } from '@midscene/computer';
 
 // List displays
 const displays = await ComputerDevice.listDisplays();
 console.log(`Found ${displays.length} displays`);
 
 // Control primary display
-const agent1 = await agentFromDesktop({
+const agent1 = await agentFromComputer({
   displayId: displays[0].id,
 });
 await agent1.aiAct('move mouse to center of screen');
 
 // Control secondary display
 if (displays.length > 1) {
-  const agent2 = await agentFromDesktop({
+  const agent2 = await agentFromComputer({
     displayId: displays[1].id,
   });
   await agent2.aiAct('move mouse to center of screen');
@@ -353,9 +307,9 @@ if (displays.length > 1) {
 ### Web Browser Automation
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
-const agent = await agentFromDesktop();
+const agent = await agentFromComputer();
 
 // Open browser
 if (process.platform === 'darwin') {
