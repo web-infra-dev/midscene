@@ -42,6 +42,8 @@ export class MidsceneRPCServer {
 
     const { task } = params;
 
+    console.log('[Midscene RPC] RunAIMethod called with task:', task);
+
     try {
       const result = await this.service.ai(task);
       callback(null, { code: 1, data: result });
@@ -86,6 +88,7 @@ export class MidsceneRPCServer {
     callback: (err: any, res: RPCResponse<string>) => void,
   ) => void = (params, callback) => {
     const { id, userTaskStatus } = params;
+    console.log('[Midscene RPC] TerminateAgent called with params:', params);
     const service = this.serviceRecord[id];
     if (!service) {
       callback(null, { code: 0, data: { reason: 'Agent not found' } });
