@@ -2,9 +2,12 @@ import fs from 'fs';
 import path from 'path';
 
 import { agentFromAdbDevice, AndroidAgent } from '@midscene/android';
-import { getMidsceneRunDir } from '@midscene/shared';
 
 import { IRPCService, AndroidDevice } from '../../types';
+
+const MIDSCENE_BENCH_DIR = 'midscene_bench';
+
+process.env.MIDSCENE_RUN_DIR = MIDSCENE_BENCH_DIR;
 
 export class AndroidRPCService implements IRPCService {
   private agent: AndroidAgent | undefined;
@@ -39,7 +42,7 @@ export class AndroidRPCService implements IRPCService {
       return Promise.resolve();
     }
 
-    let reportDir = path.resolve(process.cwd(), getMidsceneRunDir(), 'report');
+    let reportDir = path.resolve(process.cwd(), MIDSCENE_BENCH_DIR, 'report');
     let reportName = this.agent.reportFileName;
     const reportPath = path.join(reportDir, `${reportName}.html`);
 

@@ -18,8 +18,8 @@
     "test": "node tests/index.mjs"
   },
   "dependencies": {
-    "@midscene/android": "workspace:*",
-    "@midscene/shared": "workspace:*",
+    "@midscene/android": "1.2.1-beta-20260108154312.0",
+    "@midscene/shared": "1.2.1-beta-20260108154312.0",
     "jayson": "4.3.0"
   },
   "devDependencies": {

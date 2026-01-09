@@ -7,5 +7,7 @@ AGENTS.md
 .ai/
 .env
 midscene-log.txt
+midscene_bench/
+
 
 
