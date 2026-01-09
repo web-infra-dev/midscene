@@ -1,11 +1,4 @@
-import screenshot from 'screenshot-desktop';
-import type { DisplayInfo } from './device';
-
-interface ScreenshotDisplay {
-  id: string | number;
-  name?: string;
-  primary?: boolean;
-}
+import { ComputerDevice, type DisplayInfo } from './device';
 
 export interface EnvironmentCheck {
   available: boolean;
@@ -15,19 +8,14 @@ export interface EnvironmentCheck {
 }
 
 /**
- * Lazy load libnut to avoid loading native module at import time
- */
-async function loadLibnut() {
-  const libnutModule = await import('@computer-use/libnut/dist/import_libnut');
-  return libnutModule.libnut;
-}
-
-/**
  * Check if the computer environment is available
  */
 export async function checkComputerEnvironment(): Promise<EnvironmentCheck> {
   try {
-    const libnut = await loadLibnut();
+    const libnutModule = await import(
+      '@computer-use/libnut/dist/import_libnut'
+    );
+    const libnut = libnutModule.libnut;
     const screenSize = libnut.getScreenSize();
     if (!screenSize || screenSize.width <= 0) {
       return {
@@ -38,8 +26,7 @@ export async function checkComputerEnvironment(): Promise<EnvironmentCheck> {
       };
     }
 
-    const displays: ScreenshotDisplay[] = await screenshot.listDisplays();
-
+    const displays = await ComputerDevice.listDisplays();
     return {
       available: true,
       platform: process.platform,
@@ -60,16 +47,5 @@ export async function checkComputerEnvironment(): Promise<EnvironmentCheck> {
  * Get all connected displays
  */
 export async function getConnectedDisplays(): Promise<DisplayInfo[]> {
-  try {
-    const displays: ScreenshotDisplay[] = await screenshot.listDisplays();
-    return displays.map((d) => ({
-      id: String(d.id),
-      name: d.name || `Display ${d.id}`,
-      primary: d.primary || false,
-    }));
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('Failed to get connected displays:', errorMessage);
-    return [];
-  }
+  return ComputerDevice.listDisplays();
 }

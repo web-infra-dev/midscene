@@ -1,6 +1,7 @@
 import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, it, vi } from 'vitest';
 import { type ComputerAgent, agentFromDesktop } from '../../src';
+import { openBrowserAndNavigate } from './test-utils';
 
 vi.setConfig({
   testTimeout: 120 * 1000,
@@ -10,7 +11,6 @@ const isCacheEnabled = process.env.MIDSCENE_CACHE;
 
 describe('computer shop app automation', () => {
   let agent: ComputerAgent;
-  const isMac = process.platform === 'darwin';
 
   beforeAll(async () => {
     agent = await agentFromDesktop({
@@ -26,26 +26,7 @@ describe('computer shop app automation', () => {
         vi.setConfig({ testTimeout: 1000 * 1000 });
       }
 
-      // Open browser and navigate to shop app
-      if (isMac) {
-        await agent.aiAct('press Cmd+Space');
-        await sleep(500);
-        await agent.aiAct('type "Safari" and press Enter');
-        await sleep(2000);
-        await agent.aiAct('press Cmd+L to focus address bar');
-        await sleep(300);
-      } else {
-        await agent.aiAct('press Windows key');
-        await sleep(500);
-        await agent.aiAct('type "Chrome" and press Enter');
-        await sleep(2000);
-        await agent.aiAct('press Ctrl+L to focus address bar');
-        await sleep(300);
-      }
-
-      await agent.aiAct('type "https://www.saucedemo.com/"');
-      await agent.aiAct('press Enter');
-      await sleep(3000);
+      await openBrowserAndNavigate(agent, 'https://www.saucedemo.com/');
 
       // Wait for page to load
       await agent.aiAssert('The login form is visible');
