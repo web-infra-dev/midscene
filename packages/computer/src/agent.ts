@@ -6,9 +6,9 @@ export type ComputerAgentOpt = AgentOpt & ComputerDeviceOpt;
 export class ComputerAgent extends PageAgent<ComputerDevice> {}
 
 /**
- * Create an Agent from desktop
+ * Create an Agent from computer
  */
-export async function agentFromDesktop(
+export async function agentFromComputer(
   opts?: ComputerAgentOpt,
 ): Promise<ComputerAgent> {
   const device = new ComputerDevice(opts || {});

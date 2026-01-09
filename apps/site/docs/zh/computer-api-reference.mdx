@@ -6,7 +6,7 @@
 
 ## Agent 创建
 
-### `agentFromDesktop(opts?): Promise<ComputerAgent>`
+### `agentFromComputer(opts?): Promise<ComputerAgent>`
 
 创建用于桌面自动化的 agent。
 
@@ -31,16 +31,16 @@ interface ComputerAgentOpt {
 **示例：**
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
 // 连接到主显示器
-const agent = await agentFromDesktop({
+const agent = await agentFromComputer({
   aiActionContext: '你正在自动化一个桌面应用。',
 });
 
 // 连接到特定显示器
 const displays = await ComputerDevice.listDisplays();
-const agent2 = await agentFromDesktop({
+const agent2 = await agentFromComputer({
   displayId: displays[1].id,
 });
 ```
@@ -249,60 +249,14 @@ await agent.aiAct('滚动到底部');
 const displays = await ComputerDevice.listDisplays();
 ```
 
-## 平台差异
-
-不同平台有不同的键盘布局和快捷键：
-
-### macOS
-
-- 主要修饰键：`Command`（Cmd）
-- 常用快捷键：
-  - `Cmd+Space`：Spotlight 搜索
-  - `Cmd+Tab`：应用切换器
-  - `Cmd+Q`：退出应用
-  - `Cmd+W`：关闭窗口
-  - `Cmd+C/V/X`：复制/粘贴/剪切
-
-### Windows
-
-- 主要修饰键：`Control`（Ctrl）
-- 系统键：`Windows` 键
-- 常用快捷键：
-  - `Win`：开始菜单
-  - `Alt+Tab`：应用切换器
-  - `Win+D`：显示桌面
-  - `Ctrl+C/V/X`：复制/粘贴/剪切
-  - `Alt+F4`：关闭窗口
-
-### Linux
-
-- 主要修饰键：`Control`（Ctrl）
-- 系统键：`Super` 键
-- 快捷键因桌面环境而异
-
-## 键名映射
-
-支持以下键名别名：
-
-| 用户输入 | 映射到 |
-|---------|--------|
-| Windows、Win | win |
-| Cmd | command（用于修饰键）/ cmd（用于单独按）|
-| Ctrl | control |
-| Esc | escape |
-| Del | delete |
-| ArrowUp/Down/Left/Right | up/down/left/right |
-| VolumeDown/Up | audio_vol_down/up |
-| MediaPlay/Pause/Stop | audio_play/pause/stop |
-
 ## 示例
 
 ### 打开应用并导航
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
-const agent = await agentFromDesktop();
+const agent = await agentFromComputer();
 
 // 打开应用
 if (process.platform === 'darwin') {
@@ -329,21 +283,21 @@ if (process.platform === 'darwin') {
 ### 多显示器工作流
 
 ```typescript
-import { ComputerDevice, agentFromDesktop } from '@midscene/computer';
+import { ComputerDevice, agentFromComputer } from '@midscene/computer';
 
 // 列出显示器
 const displays = await ComputerDevice.listDisplays();
 console.log(`找到 ${displays.length} 个显示器`);
 
 // 控制主显示器
-const agent1 = await agentFromDesktop({
+const agent1 = await agentFromComputer({
   displayId: displays[0].id,
 });
 await agent1.aiAct('将鼠标移动到屏幕中心');
 
 // 控制副显示器
 if (displays.length > 1) {
-  const agent2 = await agentFromDesktop({
+  const agent2 = await agentFromComputer({
     displayId: displays[1].id,
   });
   await agent2.aiAct('将鼠标移动到屏幕中心');
@@ -353,9 +307,9 @@ if (displays.length > 1) {
 ### Web 浏览器自动化
 
 ```typescript
-import { agentFromDesktop } from '@midscene/computer';
+import { agentFromComputer } from '@midscene/computer';
 
-const agent = await agentFromDesktop();
+const agent = await agentFromComputer();
 
 // 打开浏览器
 if (process.platform === 'darwin') {
