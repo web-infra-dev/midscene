@@ -51,6 +51,10 @@ export class PlaywrightMidsceneTools extends BaseMidsceneTools<PlaywrightAgent> 
     return this.agent;
   }
 
+  // Maximum viewport dimensions
+  private static readonly MAX_VIEWPORT_WIDTH = 1280;
+  private static readonly MAX_VIEWPORT_HEIGHT = 720;
+
   /**
    * Launch Playwright browser and navigate to URL
    */
@@ -63,16 +67,58 @@ export class PlaywrightMidsceneTools extends BaseMidsceneTools<PlaywrightAgent> 
       headless: false,
     });
 
-    // Create browser context
-    this.context = await this.browser.newContext();
+    // Create browser context with no fixed viewport initially
+    // This allows us to detect the available screen space
+    this.context = await this.browser.newContext({
+      viewport: null,
+    });
 
     // Create page and navigate
     const page: PlaywrightPage = await this.context.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
+    // Detect available screen space and set viewport to fit screen but cap at max dimensions
+    await this.setAdaptiveViewport(page);
+
     // Create PlaywrightAgent
     const agent = new PlaywrightAgent(page);
     return agent;
+  }
+
+  /**
+   * Set viewport size that adapts to screen size but is capped at maximum dimensions.
+   * On small screens: viewport fits available space
+   * On large screens: viewport is capped at MAX_VIEWPORT_WIDTH x MAX_VIEWPORT_HEIGHT
+   */
+  private async setAdaptiveViewport(page: PlaywrightPage): Promise<void> {
+    try {
+      // Get current window inner dimensions from the browser
+      // With viewport: null, innerWidth/innerHeight reflect the natural browser window size
+      const windowSize: { innerWidth: number; innerHeight: number } =
+        await page.evaluate('({ innerWidth, innerHeight })');
+
+      // Calculate viewport: use current window size but cap at maximum dimensions
+      const viewportWidth = Math.min(
+        windowSize.innerWidth,
+        PlaywrightMidsceneTools.MAX_VIEWPORT_WIDTH,
+      );
+      const viewportHeight = Math.min(
+        windowSize.innerHeight,
+        PlaywrightMidsceneTools.MAX_VIEWPORT_HEIGHT,
+      );
+
+      await page.setViewportSize({
+        width: viewportWidth,
+        height: viewportHeight,
+      });
+
+      debug(
+        `Set adaptive viewport: ${viewportWidth}x${viewportHeight} (window: ${windowSize.innerWidth}x${windowSize.innerHeight})`,
+      );
+    } catch (error) {
+      // If detection fails, viewport: null already ensures it fits the host window
+      debug('Failed to detect window size, keeping natural viewport:', error);
+    }
   }
 
   /**
