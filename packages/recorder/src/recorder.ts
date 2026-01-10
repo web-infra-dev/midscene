@@ -119,6 +119,7 @@ export class EventRecorder {
   private lastViewportScroll: { x: number; y: number } | null = null;
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;
+  private removeEventListenersFunctions: (() => void)[] = [];
 
   constructor(eventCallback: EventCallback, sessionId: string) {
     this.eventCallback = eventCallback;
@@ -137,6 +138,20 @@ export class EventRecorder {
       },
       timestamp: Date.now(),
       hashId: `navigation_${Date.now()}`,
+    };
+  }
+
+  // Add event listeners to a document
+  private addEventListeners(doc: Document): () => void {
+    const options = { capture: true, passive: true };
+    doc.addEventListener('click', this.handleClick, options);
+    doc.addEventListener('input', this.handleInput, options);
+    doc.addEventListener('scroll', this.handleScroll, options);
+
+    return () => {
+      doc.removeEventListener('click', this.handleClick, options);
+      doc.removeEventListener('input', this.handleInput, options);
+      doc.removeEventListener('scroll', this.handleScroll, options);
     };
   }
 
@@ -161,9 +176,8 @@ export class EventRecorder {
     }, 0);
 
     // Add event listeners
-    document.addEventListener('click', this.handleClick, true);
-    document.addEventListener('input', this.handleInput);
-    document.addEventListener('scroll', this.handleScroll, { capture: true, passive: true });
+    const removeDocumentListeners = this.addEventListeners(document);
+    this.removeEventListenersFunctions.push(removeDocumentListeners);
   }
 
   // Stop recording
@@ -184,9 +198,12 @@ export class EventRecorder {
       clearTimeout(this.inputThrottleTimer);
       this.inputThrottleTimer = null;
     }
-    document.removeEventListener('click', this.handleClick, true);
-    document.removeEventListener('input', this.handleInput);
-    document.removeEventListener('scroll', this.handleScroll, true);
+
+    // Remove all event listeners
+    this.removeEventListenersFunctions.forEach((removeListeners) =>
+      removeListeners(),
+    );
+    this.removeEventListenersFunctions = [];
 
     debugLog('Removed all event listeners');
   }
