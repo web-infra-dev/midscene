@@ -118,6 +118,20 @@ export class GlobalConfigManager {
     return !!value.trim();
   }
 
+  /**
+   * Read string environment variable value and convert it to number.
+   * Returns undefined if the value is not set or cannot be converted to a valid number.
+   * This is useful for environment variables that store numeric values but are defined as string keys.
+   */
+  getEnvConfigValueAsNumber(key: (typeof STRING_ENV_KEYS)[number]): number | undefined {
+    const stringValue = this.getEnvConfigValue(key);
+    if (!stringValue) {
+      return undefined;
+    }
+    const numValue = Number(stringValue);
+    return Number.isNaN(numValue) ? undefined : numValue;
+  }
+
   registerModelConfigManager(globalModelConfigManager: ModelConfigManager) {
     this.globalModelConfigManager = globalModelConfigManager;
   }

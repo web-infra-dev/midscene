@@ -301,6 +301,151 @@ describe('overrideAIConfig', () => {
   });
 });
 
+describe('getEnvConfigValueAsNumber', () => {
+  beforeEach(() => {
+    vi.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
+    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
+    vi.stubEnv(MIDSCENE_CACHE, '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should return number for valid numeric string values', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(100);
+  });
+
+  it('should return undefined for non-numeric string values', () => {
+    vi.stubEnv(MIDSCENE_ADB_PATH, 'not-a-number');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_ADB_PATH),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for unset environment variables', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_PREFERRED_LANGUAGE),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for empty string values', () => {
+    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should handle decimal values', () => {
+    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '123.45');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(123.45);
+  });
+
+  it('should handle zero values', () => {
+    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '0');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(0);
+  });
+
+  it('should handle negative values', () => {
+    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '-100');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(-100);
+  });
+
+  it('should trim whitespace before conversion', () => {
+    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '  100  ');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(100);
+  });
+
+  it('should work with override config', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    // Initially not set
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(100); // from beforeEach
+
+    // Override with new value
+    globalConfigManager.overrideAIConfig({
+      [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]: '200',
+    });
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
+      ),
+    ).toBe(200);
+  });
+
+  it('should throw if key is not in STRING_ENV_KEYS', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(() =>
+      globalConfigManager.getEnvConfigValueAsNumber(
+        // @ts-expect-error MIDSCENE_CACHE is truly not a valid string key (it's boolean)
+        MIDSCENE_CACHE,
+      ),
+    ).toThrowErrorMatchingInlineSnapshot(
+      '[Error: getEnvConfigValue with key MIDSCENE_CACHE is not supported.]',
+    );
+  });
+});
+
 describe('getEnvConfigValue', () => {
   beforeEach(() => {
     vi.stubEnv(MIDSCENE_MODEL_NAME, '<test-model>');
