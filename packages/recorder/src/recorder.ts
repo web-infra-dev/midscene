@@ -282,6 +282,19 @@ export class EventRecorder {
     });
   }
 
+  private detachIframeListenersFromSubtree(element: HTMLElement): void {
+    if (element.tagName === 'IFRAME') {
+      this.removeListenerByTarget.get(element)?.();
+      this.removeListenerByTarget.delete(element);
+    }
+
+    const descendants = element.querySelectorAll<HTMLIFrameElement>('iframe');
+    descendants.forEach((iframe) => {
+      this.removeListenerByTarget.get(iframe)?.();
+      this.removeListenerByTarget.delete(iframe);
+    });
+  }
+
   // Handle DOM mutations to detect newly added iframe
   private handleMutations = (mutations: MutationRecord[]): void => {
     if (!this.isRecording) return;
@@ -290,6 +303,11 @@ export class EventRecorder {
       mutation.addedNodes.forEach((node) => {
         if (node instanceof HTMLElement) {
           this.attachIframeListenersFromSubtree(node);
+        }
+      });
+      mutation.removedNodes.forEach((node) => {
+        if (node instanceof HTMLElement) {
+          this.detachIframeListenersFromSubtree(node);
         }
       });
     });
