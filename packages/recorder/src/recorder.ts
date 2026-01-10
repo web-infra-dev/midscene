@@ -108,6 +108,24 @@ const getLastLabelClick = (
   return undefined;
 };
 
+// Get all iframe elements
+const getAllIframeElements = (): HTMLIFrameElement[] => {
+  const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe');
+  return Array.from(iframes);
+};
+
+const getIframeOffset = (
+  parentIframe?: HTMLIFrameElement | null,
+): {
+  x: number;
+  y: number;
+} => {
+  if (!parentIframe) return { x: 0, y: 0 };
+
+  const iframeRect = parentIframe.getBoundingClientRect();
+  return { x: iframeRect.left, y: iframeRect.top };
+};
+
 // Event recorder class
 export class EventRecorder {
   private isRecording = false;
@@ -120,6 +138,7 @@ export class EventRecorder {
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;
   private removeEventListenersFunctions: (() => void)[] = [];
+  private iframes: HTMLIFrameElement[] = [];
 
   constructor(eventCallback: EventCallback, sessionId: string) {
     this.eventCallback = eventCallback;
@@ -141,18 +160,63 @@ export class EventRecorder {
     };
   }
 
-  // Add event listeners to a document
-  private addEventListeners(doc: Document): () => void {
+  // Add event listeners to a document (main document or iframe document)
+  private addEventListeners(
+    doc: Document,
+    parentIframe?: HTMLIFrameElement | null,
+  ): () => void {
+    // Create wrapper functions that capture the iframe variable
+    const clickHandler = (e: MouseEvent) => this.handleClick(e, parentIframe);
+    const inputHandler = (e: Event) => this.handleInput(e, parentIframe);
+    const scrollHandler = (e: Event) => this.handleScroll(e, parentIframe);
+
     const options = { capture: true, passive: true };
-    doc.addEventListener('click', this.handleClick, options);
-    doc.addEventListener('input', this.handleInput, options);
-    doc.addEventListener('scroll', this.handleScroll, options);
+    // Store handlers for later removal
+    doc.addEventListener('click', clickHandler, options);
+    doc.addEventListener('input', inputHandler, options);
+    doc.addEventListener('scroll', scrollHandler, options);
 
     return () => {
-      doc.removeEventListener('click', this.handleClick, options);
-      doc.removeEventListener('input', this.handleInput, options);
-      doc.removeEventListener('scroll', this.handleScroll, options);
+      try {
+        // Check if document is still valid (iframe might have been removed)
+        doc.removeEventListener('click', clickHandler, options);
+        doc.removeEventListener('input', inputHandler, options);
+        doc.removeEventListener('scroll', scrollHandler, options);
+      } catch (e) {
+        // Document might have been removed or become invalid
+        debugLog(
+          'Unable to remove event listeners (document may have been removed):',
+          e,
+        );
+      }
     };
+  }
+
+  // Add event listeners to an iframe
+  private addIframeListeners(iframe: HTMLIFrameElement): void {
+    const listener = () => {
+      try {
+        const iframeDoc = iframe.contentDocument;
+        if (iframeDoc) {
+          this.addEventListeners(iframeDoc, iframe);
+          debugLog('Added event listeners to iframe:', iframe);
+        }
+      } catch (e) {
+        debugLog('Unable to access iframe (cross-origin):', iframe, e);
+      }
+    };
+
+    if (iframe.contentDocument) {
+      // Iframe is already loaded, add listeners immediately
+      return listener();
+    }
+
+    // Iframe not loaded yet, wait for load event
+    const iframeLoadListener = () => {
+      iframe.removeEventListener('load', iframeLoadListener);
+      listener();
+    };
+    iframe.addEventListener('load', iframeLoadListener);
   }
 
   // Start recording
@@ -164,6 +228,16 @@ export class EventRecorder {
 
     this.isRecording = true;
     debugLog('Starting event recording');
+
+    // Clear previous remove event listeners functions
+    this.removeEventListenersFunctions = [];
+
+    // Handle iframe elements
+    this.iframes = [];
+    // Automatically detect all iframe elements
+    this.iframes = getAllIframeElements();
+
+    debugLog('Added event listeners for', this.iframes.length, 'iframe');
 
     // Add final navigation event to capture the final page
     setTimeout(() => {
@@ -178,6 +252,9 @@ export class EventRecorder {
     // Add event listeners
     const removeDocumentListeners = this.addEventListeners(document);
     this.removeEventListenersFunctions.push(removeDocumentListeners);
+    this.iframes.forEach((iframe) => {
+      this.addIframeListeners(iframe);
+    });
   }
 
   // Stop recording
@@ -209,20 +286,26 @@ export class EventRecorder {
   }
 
   // Click event handler
-  private handleClick = (event: MouseEvent): void => {
+  private handleClick = (
+    event: MouseEvent,
+    parentIframe?: HTMLIFrameElement | null,
+  ): void => {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLElement;
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
+
+    const iframeOffset = getIframeOffset(parentIframe);
+
     const rect = target.getBoundingClientRect();
     const elementRect: ChromeRecordedEvent['elementRect'] = {
-      x: Number(event.clientX.toFixed(2)),
-      y: Number(event.clientY.toFixed(2)),
+      x: Number((event.clientX + iframeOffset.x).toFixed(2)),
+      y: Number((event.clientY + iframeOffset.y).toFixed(2)),
     };
     console.log('isNotContainerElement', isNotContainerElement(target));
     if (isNotContainerElement(target)) {
-      elementRect.left = Number(rect.left.toFixed(2));
-      elementRect.top = Number(rect.top.toFixed(2));
+      elementRect.left = Number((rect.left + iframeOffset.x).toFixed(2));
+      elementRect.top = Number((rect.top + iframeOffset.y).toFixed(2));
       elementRect.width = Number(rect.width.toFixed(2));
       elementRect.height = Number(rect.height.toFixed(2));
     }
@@ -244,34 +327,41 @@ export class EventRecorder {
       labelInfo,
       isTrusted: event.isTrusted,
       detail: event.detail,
-      // pageWidth: window.innerWidth,
-      // pageHeight: window.innerHeight,
     };
 
     this.eventCallback(clickEvent);
   };
 
   // Scroll event handler
-  private handleScroll = (event: Event): void => {
+  private handleScroll = (
+    event: Event,
+    parentIframe?: HTMLIFrameElement | null,
+  ): void => {
     if (!this.isRecording) return;
 
-    function isDocument(target: EventTarget): target is Document {
-      return target instanceof Document;
+    function isDocument(target: EventTarget): boolean {
+      return (
+        target instanceof Document || target === parentIframe?.contentDocument
+      );
     }
+
+    const currentwindow = parentIframe?.contentWindow || window;
+
+    const iframeOffset = getIframeOffset(parentIframe);
 
     const target = event.target as HTMLElement;
     const scrollXTarget = isDocument(target)
-      ? window.scrollX
+      ? currentwindow.scrollX
       : target.scrollLeft;
     const scrollYTarget = isDocument(target)
-      ? window.scrollY
+      ? currentwindow.scrollY
       : target.scrollTop;
     const rect = isDocument(target)
       ? {
           left: 0,
           top: 0,
-          width: window.innerWidth,
-          height: window.innerHeight,
+          width: currentwindow.innerWidth,
+          height: currentwindow.innerHeight,
         }
       : target.getBoundingClientRect();
     // Throttle logic: throttle each target separately (can be extended to Map)
@@ -281,14 +371,10 @@ export class EventRecorder {
     this.scrollThrottleTimer = window.setTimeout(() => {
       if (this.isRecording) {
         const elementRect = {
-          left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
-          top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
-          width: isDocument(target)
-            ? window.innerWidth
-            : Number(rect.width.toFixed(2)),
-          height: isDocument(target)
-            ? window.innerHeight
-            : Number(rect.height.toFixed(2)),
+          left: Number((rect.left + iframeOffset.x).toFixed(2)),
+          top: Number((rect.top + iframeOffset.y).toFixed(2)),
+          width: Number(rect.width.toFixed(2)),
+          height: Number(rect.height.toFixed(2)),
         };
         const scrollEvent: RecordedEvent = {
           type: 'scroll',
@@ -303,8 +389,6 @@ export class EventRecorder {
             ...elementRect,
           }),
           element: target,
-          // pageWidth: window.innerWidth,
-          // pageHeight: window.innerHeight,
         };
         this.eventCallback(scrollEvent);
       }
@@ -313,7 +397,10 @@ export class EventRecorder {
   };
 
   // Input event handler
-  private handleInput = (event: Event): void => {
+  private handleInput = (
+    event: Event,
+    parentIframe?: HTMLIFrameElement | null,
+  ): void => {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
@@ -321,10 +408,13 @@ export class EventRecorder {
     if (target.type === 'checkbox') {
       return;
     }
+
+    const iframeOffset = getIframeOffset(parentIframe);
+
     const rect = target.getBoundingClientRect();
     const elementRect = {
-      left: Number(rect.left.toFixed(2)),
-      top: Number(rect.top.toFixed(2)),
+      left: Number((rect.left + iframeOffset.x).toFixed(2)),
+      top: Number((rect.top + iframeOffset.y).toFixed(2)),
       width: Number(rect.width.toFixed(2)),
       height: Number(rect.height.toFixed(2)),
     };
