@@ -126,6 +126,60 @@ const getIframeOffset = (
   return { x: iframeRect.left, y: iframeRect.top };
 };
 
+// https://stackoverflow.com/a/36155560
+function onceIframeLoaded(
+  iframeEl: HTMLIFrameElement,
+  listener: () => unknown,
+  iframeLoadTimeout = 5000,
+) {
+  const win = iframeEl.contentWindow;
+  if (!win) {
+    return;
+  }
+  // document is loading
+  let fired = false;
+
+  let readyState: DocumentReadyState;
+  try {
+    readyState = win.document.readyState;
+  } catch (error) {
+    return;
+  }
+  if (readyState !== 'complete') {
+    const timer = setTimeout(() => {
+      if (!fired) {
+        fired = true;
+        listener();
+      }
+    }, iframeLoadTimeout);
+    const onLoad = () => {
+      clearTimeout(timer);
+      if (!fired) {
+        fired = true;
+        listener();
+      }
+      iframeEl.addEventListener('load', listener);
+    };
+    iframeEl.addEventListener('load', onLoad, { once: true });
+    return;
+  }
+  // check blank frame for Chrome
+  const blankUrl = 'about:blank';
+  if (
+    win.location.href !== blankUrl ||
+    iframeEl.src === blankUrl ||
+    iframeEl.src === ''
+  ) {
+    // iframe was already loaded, make sure we wait to trigger the listener
+    // till _after_ the mutation that found this iframe has had time to process
+    setTimeout(listener, 0);
+
+    return iframeEl.addEventListener('load', listener); // keep listing for future loads
+  }
+  // use default listener
+  iframeEl.addEventListener('load', listener);
+}
+
 // Event recorder class
 export class EventRecorder {
   private isRecording = false;
@@ -137,8 +191,7 @@ export class EventRecorder {
   private lastViewportScroll: { x: number; y: number } | null = null;
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;
-  private removeEventListenersFunctions: (() => void)[] = [];
-  private iframes: HTMLIFrameElement[] = [];
+  private removeListenerByTarget = new Map<EventTarget, () => void>();
 
   constructor(eventCallback: EventCallback, sessionId: string) {
     this.eventCallback = eventCallback;
@@ -198,7 +251,15 @@ export class EventRecorder {
       try {
         const iframeDoc = iframe.contentDocument;
         if (iframeDoc) {
-          this.addEventListeners(iframeDoc, iframe);
+          // If this iframe navigated/reloaded, remove the previous listeners first to avoid duplicates.
+          this.removeListenerByTarget.get(iframe)?.();
+
+          // Re-bind listeners to the current iframe document, and store its cleanup callback by iframe.
+          const removeIframeListener = this.addEventListeners(
+            iframeDoc,
+            iframe,
+          );
+          this.removeListenerByTarget.set(iframe, removeIframeListener);
           debugLog('Added event listeners to iframe:', iframe);
         }
       } catch (e) {
@@ -206,18 +267,33 @@ export class EventRecorder {
       }
     };
 
-    if (iframe.contentDocument) {
-      // Iframe is already loaded, add listeners immediately
-      return listener();
+    onceIframeLoaded(iframe, listener);
+  }
+
+  // Attach listeners to iframes inside this newly added subtree
+  private attachIframeListenersFromSubtree(element: HTMLElement): void {
+    if (element.tagName === 'IFRAME') {
+      this.addIframeListeners(element as HTMLIFrameElement);
     }
 
-    // Iframe not loaded yet, wait for load event
-    const iframeLoadListener = () => {
-      iframe.removeEventListener('load', iframeLoadListener);
-      listener();
-    };
-    iframe.addEventListener('load', iframeLoadListener);
+    const descendants = element.querySelectorAll<HTMLIFrameElement>('iframe');
+    descendants.forEach((iframe) => {
+      this.addIframeListeners(iframe);
+    });
   }
+
+  // Handle DOM mutations to detect newly added iframe
+  private handleMutations = (mutations: MutationRecord[]): void => {
+    if (!this.isRecording) return;
+
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (node instanceof HTMLElement) {
+          this.attachIframeListenersFromSubtree(node);
+        }
+      });
+    });
+  };
 
   // Start recording
   start(): void {
@@ -230,31 +306,36 @@ export class EventRecorder {
     debugLog('Starting event recording');
 
     // Clear previous remove event listeners functions
-    this.removeEventListenersFunctions = [];
-
-    // Handle iframe elements
-    this.iframes = [];
-    // Automatically detect all iframe elements
-    this.iframes = getAllIframeElements();
-
-    debugLog('Added event listeners for', this.iframes.length, 'iframe');
+    this.removeListenerByTarget.forEach((removeListener) => removeListener());
+    this.removeListenerByTarget.clear();
 
     // Add final navigation event to capture the final page
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const navigationEvent = this.createNavigationEvent(
         window.location.href,
         document.title,
       );
       this.eventCallback(navigationEvent);
       debugLog('Added final navigation event', navigationEvent);
+      clearTimeout(timer);
     }, 0);
 
     // Add event listeners
-    const removeDocumentListeners = this.addEventListeners(document);
-    this.removeEventListenersFunctions.push(removeDocumentListeners);
-    this.iframes.forEach((iframe) => {
+    const removeDocumentListener = this.addEventListeners(document);
+    this.removeListenerByTarget.set(document, removeDocumentListener);
+
+    const iframes = getAllIframeElements();
+    iframes.forEach((iframe) => {
       this.addIframeListeners(iframe);
     });
+
+    // Start MutationObserver to detect dynamically added iframe
+    this.mutationObserver = new MutationObserver(this.handleMutations);
+    this.mutationObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+    debugLog('MutationObserver started to detect dynamic iframe');
   }
 
   // Stop recording
@@ -277,10 +358,15 @@ export class EventRecorder {
     }
 
     // Remove all event listeners
-    this.removeEventListenersFunctions.forEach((removeListeners) =>
-      removeListeners(),
-    );
-    this.removeEventListenersFunctions = [];
+    this.removeListenerByTarget.forEach((removeListener) => removeListener());
+    this.removeListenerByTarget.clear();
+
+    // Stop MutationObserver
+    if (this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
+      debugLog('MutationObserver stopped');
+    }
 
     debugLog('Removed all event listeners');
   }
