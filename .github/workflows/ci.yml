@@ -19,6 +19,9 @@ jobs:
       matrix:
         node-version: [18.19.0]
 
+    # do NOT provide API keys here. The test cases should not rely on any API keys.
+    # env:
+
     steps:
     - uses: actions/checkout@v4
       with:
