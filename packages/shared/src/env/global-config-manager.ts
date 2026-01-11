@@ -111,7 +111,10 @@ export class GlobalConfigManager {
   getEnvConfigValueAsNumber(
     key: (typeof STRING_ENV_KEYS)[number] | (typeof NUMBER_ENV_KEYS)[number],
   ): number | undefined {
-    if (!STRING_ENV_KEYS.includes(key) && !NUMBER_ENV_KEYS.includes(key)) {
+    if (
+      !STRING_ENV_KEYS.includes(key as never) &&
+      !NUMBER_ENV_KEYS.includes(key as never)
+    ) {
       throw new Error(
         `getEnvConfigValueAsNumber with key ${key} is not supported.`,
       );
