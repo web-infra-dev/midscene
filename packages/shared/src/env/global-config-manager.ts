@@ -80,20 +80,6 @@ export class GlobalConfigManager {
   }
 
   /**
-   * read number only from process.env
-   */
-  getEnvConfigInNumber(key: (typeof NUMBER_ENV_KEYS)[number]): number {
-    const allConfig = this.getAllEnvConfig();
-
-    if (!NUMBER_ENV_KEYS.includes(key)) {
-      throw new Error(`getEnvConfigInNumber with key ${key} is not supported`);
-    }
-    const value = allConfig[key];
-    this.keysHaveBeenRead[key] = true;
-    return Number(value || '');
-  }
-
-  /**
    * read boolean only from process.env
    */
   getEnvConfigInBoolean(key: (typeof BOOLEAN_ENV_KEYS)[number]): boolean {
@@ -116,6 +102,37 @@ export class GlobalConfigManager {
       return false;
     }
     return !!value.trim();
+  }
+
+  /**
+   * Read environment variable value and convert it to number.
+   * Returns undefined if the value is not set or cannot be converted to a valid number.
+   */
+  getEnvConfigValueAsNumber(
+    key: (typeof STRING_ENV_KEYS)[number] | (typeof NUMBER_ENV_KEYS)[number],
+  ): number | undefined {
+    if (
+      !STRING_ENV_KEYS.includes(key as never) &&
+      !NUMBER_ENV_KEYS.includes(key as never)
+    ) {
+      throw new Error(
+        `getEnvConfigValueAsNumber with key ${key} is not supported.`,
+      );
+    }
+
+    const allConfig = this.getAllEnvConfig();
+    const value = allConfig[key];
+    this.keysHaveBeenRead[key] = true;
+
+    if (typeof value !== 'string') {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+    const numValue = Number(trimmed);
+    return Number.isNaN(numValue) ? undefined : numValue;
   }
 
   registerModelConfigManager(globalModelConfigManager: ModelConfigManager) {

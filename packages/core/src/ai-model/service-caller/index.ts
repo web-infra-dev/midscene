@@ -220,8 +220,8 @@ export async function callAI(
     });
 
   const maxTokens =
-    globalConfigManager.getEnvConfigValue(MIDSCENE_MODEL_MAX_TOKENS) ??
-    globalConfigManager.getEnvConfigValue(OPENAI_MAX_TOKENS);
+    globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
+    globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
@@ -258,7 +258,7 @@ export async function callAI(
   const commonConfig = {
     temperature,
     stream: !!isStreaming,
-    max_tokens: typeof maxTokens === 'number' ? maxTokens : undefined,
+    max_tokens: maxTokens,
     ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,

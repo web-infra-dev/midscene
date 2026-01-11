@@ -19,10 +19,8 @@ jobs:
       matrix:
         node-version: [18.19.0]
 
-    env:
-      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
-      MIDSCENE_MODEL_BASE_URL: ${{ secrets.MIDSCENE_MODEL_BASE_URL }}
-      MIDSCENE_MODEL_NAME: ${{ secrets.MIDSCENE_MODEL_NAME }}
+    # do NOT provide API keys here. The test cases should not rely on any API keys.
+    # env:
 
     steps:
     - uses: actions/checkout@v4
