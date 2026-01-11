@@ -143,7 +143,7 @@ describe('overrideAIConfig', () => {
     );
     // Should return original env values for non-overridden keys
     expect(
-      globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_MAX_TOKENS),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(100);
   });
 
@@ -194,7 +194,7 @@ describe('overrideAIConfig', () => {
       '/second/override',
     );
     expect(
-      globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_MAX_TOKENS),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(300);
     // Previous override should be lost in non-extend mode
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
@@ -239,7 +239,7 @@ describe('overrideAIConfig', () => {
       '/second/override',
     );
     expect(
-      globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_MAX_TOKENS),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(300);
     // Previous override should be preserved in extend mode
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
@@ -411,7 +411,7 @@ describe('getEnvConfigValueAsNumber', () => {
     ).toBe(200);
   });
 
-  it('should throw if key is not in STRING_ENV_KEYS', () => {
+  it('should throw if key is not a supported numeric key', () => {
     const globalConfigManager = new GlobalConfigManager();
     globalConfigManager.registerModelConfigManager(new ModelConfigManager());
 
@@ -421,7 +421,7 @@ describe('getEnvConfigValueAsNumber', () => {
         MIDSCENE_CACHE,
       ),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: getEnvConfigValue with key MIDSCENE_CACHE is not supported.]',
+      '[Error: getEnvConfigValueAsNumber with key MIDSCENE_CACHE is not supported.]',
     );
   });
 });
@@ -453,12 +453,12 @@ describe('getEnvConfigValue', () => {
     );
 
     expect(() =>
-      globalConfigManager.getEnvConfigInNumber(
+      globalConfigManager.getEnvConfigValueAsNumber(
         // @ts-expect-error MIDSCENE_MODEL_NAME is truly not a valid key
         MIDSCENE_MODEL_NAME,
       ),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: getEnvConfigInNumber with key MIDSCENE_MODEL_NAME is not supported]',
+      '[Error: getEnvConfigValueAsNumber with key MIDSCENE_MODEL_NAME is not supported.]',
     );
 
     expect(() =>
@@ -484,7 +484,7 @@ describe('getEnvConfigValue', () => {
     );
 
     expect(
-      globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_MAX_TOKENS),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(100);
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
@@ -500,8 +500,8 @@ describe('getEnvConfigValue', () => {
     ).toBeUndefined();
 
     expect(
-      globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_MAX_TOKENS),
-    ).toBe(0);
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBeUndefined();
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
       false,
@@ -518,7 +518,7 @@ describe('getEnvConfigValue', () => {
     );
 
     expect(
-      globalConfigManager.getEnvConfigInNumber(MIDSCENE_MODEL_MAX_TOKENS),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(100);
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
