@@ -1,7 +1,11 @@
 import { DownOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons';
 import type { GroupedActionDump } from '@midscene/core';
-import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
-import { Input, Select } from 'antd';
+import {
+  fullTimeStrWithMilliseconds,
+  iconForStatus,
+  timeCostStrElement,
+} from '@midscene/visualizer';
+import { Input, Select, Tooltip } from 'antd';
 import type React from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlaywrightTasks } from '../../types';
@@ -23,6 +27,40 @@ interface PlaywrightCaseSelectorProps {
   selected?: GroupedActionDump | null;
   onSelect?: (dump: GroupedActionDump) => void;
 }
+
+type TimingRange = {
+  earliest: number;
+  latest: number;
+  duration: number;
+};
+
+const getTimingRangeFromTasks = (tasks: GroupedActionDump['executions']) => {
+  let earliest: number | null = null;
+  let latest: number | null = null;
+
+  tasks.forEach((execution) => {
+    execution.tasks.forEach((task) => {
+      const timestamps = [task.timing?.start, task.timing?.end].filter(
+        (timestamp): timestamp is number => typeof timestamp === 'number',
+      );
+
+      timestamps.forEach((timestamp) => {
+        earliest = earliest === null ? timestamp : Math.min(earliest, timestamp);
+        latest = latest === null ? timestamp : Math.max(latest, timestamp);
+      });
+    });
+  });
+
+  if (earliest === null || latest === null) {
+    return null;
+  }
+
+  return {
+    earliest,
+    latest,
+    duration: Math.max(0, latest - earliest),
+  };
+};
 
 export function PlaywrightCaseSelector({
   dumps,
@@ -83,11 +121,31 @@ export function PlaywrightCaseSelector({
 
   const titleForDump = (dump: PlaywrightTasks, key: React.Key) => {
     const status = iconForStatus(dump.attributes?.playwright_test_status);
-    const costStr = dump.attributes?.playwright_test_duration;
-    const cost = costStr ? (
+    const dumpContent = dump.get();
+    const timingRange = dumpContent?.executions
+      ? getTimingRangeFromTasks(dumpContent.executions)
+      : null;
+    const duration =
+      timingRange?.duration ?? dump.attributes?.playwright_test_duration;
+    const cost = typeof duration === 'number' ? (
       <span key={key} className="cost-str">
         {' '}
-        ({timeCostStrElement(Number(costStr) || 0)})
+        {timingRange ? (
+          <Tooltip
+            title={
+              <div>
+                <div>
+                  Start: {fullTimeStrWithMilliseconds(timingRange.earliest)}
+                </div>
+                <div>End: {fullTimeStrWithMilliseconds(timingRange.latest)}</div>
+              </div>
+            }
+          >
+            ({timeCostStrElement(duration)})
+          </Tooltip>
+        ) : (
+          <>({timeCostStrElement(duration)})</>
+        )}
       </span>
     ) : null;
     const rowContent = (
@@ -153,9 +211,41 @@ export function PlaywrightCaseSelector({
     setIsExpanded(false);
   };
 
-  const displayText = selected
-    ? `${selected.groupName} - (${(playwrightAttributes?.playwright_test_duration || 0) / 1000}s)`
-    : 'Select a case';
+  const selectedTimingRange = useMemo(() => {
+    if (!selected?.executions) return null;
+    return getTimingRangeFromTasks(selected.executions);
+  }, [selected]);
+
+  const selectedDuration =
+    selectedTimingRange?.duration ??
+    playwrightAttributes?.playwright_test_duration ??
+    0;
+
+  const displayText = selected ? (
+    <span>
+      {selected.groupName} -{' '}
+      {selectedTimingRange ? (
+        <Tooltip
+          title={
+            <div>
+              <div>
+                Start: {fullTimeStrWithMilliseconds(selectedTimingRange.earliest)}
+              </div>
+              <div>
+                End: {fullTimeStrWithMilliseconds(selectedTimingRange.latest)}
+              </div>
+            </div>
+          }
+        >
+          ({timeCostStrElement(selectedDuration)})
+        </Tooltip>
+      ) : (
+        <>({timeCostStrElement(selectedDuration)})</>
+      )}
+    </span>
+  ) : (
+    'Select a case'
+  );
 
   return (
     <div
