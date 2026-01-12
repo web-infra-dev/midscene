@@ -9,12 +9,13 @@ import {
 } from '@midscene/core';
 import {
   type AbstractInterface,
+  type ActionHoverParam,
   type ActionTapParam,
+  actionHoverParamSchema,
   defineAction,
   defineActionClearInput,
   defineActionDoubleClick,
   defineActionDragAndDrop,
-  defineActionHover,
   defineActionKeyboardPress,
   defineActionRightClick,
   defineActionScroll,
@@ -50,10 +51,10 @@ interface ScreenshotDisplay {
 
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
-const SMOOTH_MOVE_STEPS_HOVER = 10;
+const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
 const SMOOTH_MOVE_DELAY_TAP = 8;
-const SMOOTH_MOVE_DELAY_HOVER = 10;
-const HOVER_EFFECT_WAIT = 300;
+const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
+const MOUSE_MOVE_EFFECT_WAIT = 300;
 const CLICK_HOLD_DURATION = 50;
 const INPUT_FOCUS_DELAY = 300;
 const INPUT_CLEAR_DELAY = 150;
@@ -332,22 +333,28 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         libnut.mouseClick('right');
       }),
 
-      // Hover
-      defineActionHover(async (param) => {
-        assert(libnut, 'libnut not initialized');
-        const element = param.locate as LocateResultElement;
-        assert(element, 'Element not found, cannot hover');
-        const [x, y] = element.center;
-        const targetX = Math.round(x);
-        const targetY = Math.round(y);
+      // MouseMove
+      defineAction<typeof actionHoverParamSchema, ActionHoverParam>({
+        name: 'MouseMove',
+        description: 'Move the mouse to the element',
+        interfaceAlias: 'aiHover',
+        paramSchema: actionHoverParamSchema,
+        call: async (param) => {
+          assert(libnut, 'libnut not initialized');
+          const element = param.locate as LocateResultElement;
+          assert(element, 'Element not found, cannot move mouse');
+          const [x, y] = element.center;
+          const targetX = Math.round(x);
+          const targetY = Math.round(y);
 
-        await smoothMoveMouse(
-          targetX,
-          targetY,
-          SMOOTH_MOVE_STEPS_HOVER,
-          SMOOTH_MOVE_DELAY_HOVER,
-        );
-        await sleep(HOVER_EFFECT_WAIT);
+          await smoothMoveMouse(
+            targetX,
+            targetY,
+            SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            SMOOTH_MOVE_DELAY_MOUSE_MOVE,
+          );
+          await sleep(MOUSE_MOVE_EFFECT_WAIT);
+        },
       }),
 
       // Input
