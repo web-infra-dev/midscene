@@ -324,6 +324,7 @@
         // Allow tags to shrink
         .cache-tag,
         .deeplocate-tag,
+        .xpath-tag,
         .deepthink-tag {
           flex-shrink: 0;
           white-space: nowrap;
@@ -434,7 +435,7 @@
 }
 
 // Light mode Tag styles
-.cache-tag {
+.cache-tag, .xpath-tag {
   color: #1890ff;
   background-color: #e0f5ff;
 }
@@ -630,7 +631,7 @@
     }
 
     // Tag styles for dark mode
-    .cache-tag {
+    .cache-tag, .xpath-tag {
       color: #1890ff !important;
       background-color: rgba(24, 144, 255, 0.15) !important;
     }
