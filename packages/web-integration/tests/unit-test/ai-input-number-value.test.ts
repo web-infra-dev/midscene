@@ -11,7 +11,6 @@ vi.mock('@midscene/core/utils', async () => {
     ...actual,
     writeLogFile: vi.fn(() => null),
     reportHTMLContent: vi.fn(() => ''),
-    stringifyDumpData: vi.fn(() => '{}'),
     groupedActionDumpFileExt: '.json',
     getVersion: () => __VERSION__,
     sleep: vi.fn(() => Promise.resolve()),

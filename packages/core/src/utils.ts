@@ -600,20 +600,6 @@ export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function replacerForPageObject(_key: string, value: any) {
-  if (value && value.constructor?.name === 'Page') {
-    return '[Page object]';
-  }
-  if (value && value.constructor?.name === 'Browser') {
-    return '[Browser object]';
-  }
-  return value;
-}
-
-export function stringifyDumpData(data: any, indents?: number) {
-  return JSON.stringify(data, replacerForPageObject, indents);
-}
-
 declare const __VERSION__: string;
 
 export function getVersion() {

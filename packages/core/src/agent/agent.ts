@@ -517,7 +517,7 @@ export class Agent<
       name: execution.name,
       description: execution.description,
       aiActContext: execution.aiActContext,
-      tasks: execution.tasks,
+      tasks: [...execution.tasks],
     });
 
     if (runner) {
@@ -1400,14 +1400,13 @@ export class Agent<
       executor: async () => {},
     };
     // 5. build ExecutionDump
-    const executionDump: ExecutionDump = {
-      logTime: now,
+    const executionDump = new ExecutionDumpClass({
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
-    };
+    });
     // 6. append to execution dump
-    this.appendExecutionDump(executionDump);
+    this.dump.appendExecution(executionDump);
 
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
