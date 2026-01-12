@@ -1,7 +1,6 @@
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { CdpConfig, LaunchConfig } from '../../../src/ts-runner/types';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -13,16 +12,6 @@ vi.mock('dotenv', () => ({
 vi.mock('../../../src/ts-runner/agent-proxy', () => ({
   AgentProxy: vi.fn(),
 }));
-
-// Mock dynamic imports
-const mockImport = vi.fn();
-vi.mock('node:module', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:module')>();
-  return {
-    ...actual,
-    createRequire: vi.fn(),
-  };
-});
 
 // Mock process.argv and process.exit
 const originalArgv = process.argv;
@@ -49,10 +38,6 @@ describe('runner.ts', () => {
     vi.mocked(await import('../../../src/ts-runner/agent-proxy')).AgentProxy =
       AgentProxyMock;
 
-    // Setup import mock
-    mockImport.mockReset();
-    vi.stubGlobal('import', mockImport);
-
     // Setup process mocks
     processExitMock = vi.fn();
     process.exit = processExitMock as any;
@@ -68,21 +53,19 @@ describe('runner.ts', () => {
   });
 
   test('should create AgentProxy instance and set global agent', async () => {
-    // Import runner module after mocks are set up
     await import('../../../src/ts-runner/runner.js');
 
-    // The runner immediately executes on import, so we need to simulate the flow
-    // Instead, we'll test the individual functions
     expect(AgentProxyMock).toHaveBeenCalledTimes(1);
     expect((globalThis as any).agent).toBe(agentInstanceMock);
   });
 
-  test('should handle launch export', async () => {
+  test('should call run function with agent and run calls launch', async () => {
     const { run } = await import('../../../src/ts-runner/runner.js');
     const scriptPath = resolve(__dirname, 'fixtures/script-with-launch.mts');
 
     await run(scriptPath);
 
+    // run function should be called with agent, which then calls launch
     expect(agentInstanceMock.launch).toHaveBeenCalledWith({
       headed: false,
       url: 'https://example.com',
@@ -90,12 +73,13 @@ describe('runner.ts', () => {
     expect(agentInstanceMock.connect).not.toHaveBeenCalled();
   });
 
-  test('should handle cdp export', async () => {
+  test('should call run function with agent and run calls connect', async () => {
     const { run } = await import('../../../src/ts-runner/runner.js');
     const scriptPath = resolve(__dirname, 'fixtures/script-with-cdp.mts');
 
     await run(scriptPath);
 
+    // run function should be called with agent, which then calls connect
     expect(agentInstanceMock.connect).toHaveBeenCalledWith(
       'ws://localhost:9222/devtools/browser/abc123',
     );
@@ -113,8 +97,6 @@ describe('runner.ts', () => {
     await run(scriptPath);
 
     expect(runSpy).toHaveBeenCalledWith(agentInstanceMock);
-    // launch should also be called since it's exported
-    expect(agentInstanceMock.launch).toHaveBeenCalled();
   });
 
   test('should handle no exports (top-level await style)', async () => {
@@ -123,7 +105,7 @@ describe('runner.ts', () => {
 
     await run(scriptPath);
 
-    // Should not call launch or connect when no exports
+    // No run function exported, so nothing should be called
     expect(agentInstanceMock.launch).not.toHaveBeenCalled();
     expect(agentInstanceMock.connect).not.toHaveBeenCalled();
   });
@@ -132,7 +114,6 @@ describe('runner.ts', () => {
     process.argv = ['node', 'runner.js'];
     const { run } = await import('../../../src/ts-runner/runner.js');
 
-    // run() will check process.argv[2] which is undefined
     await run();
 
     expect(consoleErrorMock).toHaveBeenCalledWith(
@@ -142,14 +123,10 @@ describe('runner.ts', () => {
   });
 
   test('should cleanup on beforeExit', async () => {
-    // This test is more complex because we need to trigger the event
-    // We'll test the cleanup function directly
     await import('../../../src/ts-runner/runner.js');
 
-    // Trigger beforeExit event
     process.emit('beforeExit');
 
-    // Wait for async cleanup
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(agentInstanceMock.destroy).toHaveBeenCalled();
@@ -161,15 +138,12 @@ describe('runner.ts', () => {
 
     process.emit('uncaughtException', error);
 
-    // Wait for async cleanup - use setImmediate for event loop
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(consoleErrorMock).toHaveBeenCalledWith('Uncaught Exception:', error);
     expect(processExitMock).toHaveBeenCalledWith(1);
 
-    // Directly test cleanup function since event listener might not complete
-    // due to mocked process.exit
     await cleanup();
     expect(agentInstanceMock.destroy).toHaveBeenCalled();
   });
@@ -180,7 +154,6 @@ describe('runner.ts', () => {
 
     process.emit('unhandledRejection', reason);
 
-    // Wait for async cleanup - use setImmediate for event loop
     await new Promise((resolve) => setImmediate(resolve));
     await new Promise((resolve) => setImmediate(resolve));
 
@@ -190,8 +163,6 @@ describe('runner.ts', () => {
     );
     expect(processExitMock).toHaveBeenCalledWith(1);
 
-    // Directly test cleanup function since event listener might not complete
-    // due to mocked process.exit
     await cleanup();
     expect(agentInstanceMock.destroy).toHaveBeenCalled();
   });

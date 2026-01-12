@@ -1,8 +1,7 @@
 /// <reference path="../../../../src/ts-runner/global.d.ts" />
 
-export const cdp = 'ws://localhost:9222/devtools/browser/abc123';
-
 export async function run(agent: any) {
-  // Test function that does nothing
+  // Call connect inside run function
+  await agent.connect('ws://localhost:9222/devtools/browser/abc123');
   return 'test completed with cdp';
 }
