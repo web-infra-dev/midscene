@@ -8,6 +8,7 @@ import type {
 import { typeStr } from '@midscene/core/agent';
 import {
   type AnimationScript,
+  fullTimeStrWithMilliseconds,
   iconForStatus,
   timeCostStrElement,
 } from '@midscene/visualizer';
@@ -430,26 +431,53 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   );
 
   // Calculate total time cost
-  // Prefer playwright_test_duration if available (from Playwright test framework)
-  // Otherwise, sum up all task timing costs
-  const totalTimeCost = useMemo(() => {
-    // Use Playwright test duration if available
-    if (playwrightAttributes?.playwright_test_duration) {
-      return playwrightAttributes.playwright_test_duration;
+  const timingRange = useMemo(() => {
+    if (!groupedDump) return null;
+
+    let earliest: number | null = null;
+    let latest: number | null = null;
+
+    groupedDump.executions.forEach((execution) => {
+      execution.tasks.forEach((task) => {
+        const timestamps = [task.timing?.start, task.timing?.end].filter(
+          (timestamp): timestamp is number => typeof timestamp === 'number',
+        );
+
+        timestamps.forEach((timestamp) => {
+          earliest = earliest === null ? timestamp : Math.min(earliest, timestamp);
+          latest = latest === null ? timestamp : Math.max(latest, timestamp);
+        });
+      });
+    });
+
+    if (earliest === null || latest === null) {
+      return null;
     }
 
-    // Fallback: sum up all task timing costs
-    if (!groupedDump) return 0;
+    return {
+      earliest,
+      latest,
+      duration: Math.max(0, latest - earliest),
+    };
+  }, [groupedDump]);
 
-    return groupedDump.executions.reduce((sum, execution) => {
-      return (
-        sum +
-        execution.tasks.reduce((taskSum, task) => {
-          return taskSum + (task.timing?.cost || 0);
-        }, 0)
-      );
-    }, 0);
-  }, [groupedDump, playwrightAttributes]);
+  const totalTimeCost = useMemo(() => {
+    if (timingRange) {
+      return timingRange.duration;
+    }
+
+    return playwrightAttributes?.playwright_test_duration || 0;
+  }, [timingRange, playwrightAttributes]);
+
+  const totalTimeTooltip = useMemo(() => {
+    if (!timingRange) return null;
+    return (
+      <div>
+        <div>Start: {fullTimeStrWithMilliseconds(timingRange.earliest)}</div>
+        <div>End: {fullTimeStrWithMilliseconds(timingRange.latest)}</div>
+      </div>
+    );
+  }, [timingRange]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -650,7 +678,13 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                 style={{ width: dynamicWidths.time }}
               >
                 <span className="token-value">
-                  {timeCostStrElement(totalTimeCost)}
+                  {timingRange ? (
+                    <Tooltip title={totalTimeTooltip}>
+                      {timeCostStrElement(totalTimeCost)}
+                    </Tooltip>
+                  ) : (
+                    timeCostStrElement(totalTimeCost)
+                  )}
                 </span>
               </div>
               {proModeEnabled && (

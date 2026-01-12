@@ -42,7 +42,7 @@ export {
   getPlaceholderForType,
 } from './utils/playground-utils';
 
-export { timeStr, filterBase64Value } from './utils';
+export { timeStr, fullTimeStrWithMilliseconds, filterBase64Value } from './utils';
 
 export { default as ShinyText } from './component/shiny-text';
 
