@@ -1,4 +1,5 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 import type { GroupedActionDump } from './dump';
 import { getReportTpl, insertScriptBeforeClosingHtml } from './utils';
 
@@ -21,6 +22,12 @@ export class ReportWriter {
     reportPath: string,
     append = false,
   ): Promise<string> {
+    // Ensure directory exists
+    const dir = dirname(reportPath);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+
     const scriptContent = await dump.toHTML();
     const tpl = getReportTpl();
 

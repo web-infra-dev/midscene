@@ -33,6 +33,7 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
+import { ReportWriter } from '../report-writer';
 import { ScreenshotItem } from '../screenshot-item';
 import type { StorageProvider } from '../storage';
 import { FileStorage, MemoryStorage } from '../storage';
@@ -44,11 +45,7 @@ export type TestStatus =
   | 'interrupted';
 import yaml from 'js-yaml';
 
-import {
-  getMidsceneRunSubDir,
-  getReportTpl,
-  processCacheConfig,
-} from '@/utils';
+import { getMidsceneRunSubDir, getReportTpl, processCacheConfig } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -184,6 +181,11 @@ export class Agent<
    * Uses FileStorage when generateReport is true, MemoryStorage otherwise.
    */
   storageProvider: StorageProvider;
+
+  /**
+   * Report writer for generating HTML reports.
+   */
+  private reportWriter = new ReportWriter();
 
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void
@@ -581,22 +583,14 @@ export class Agent<
     if (useDirectoryReport) {
       // Write directory-based report with separate PNG files
       const outputDir = `${reportDir}/${this.reportFileName}`;
-      this.reportFile = await this.dump.writeToDirectory(outputDir);
+      this.reportFile = await this.reportWriter.writeDirectory(
+        this.dump,
+        outputDir,
+      );
     } else {
       // Write single HTML file with embedded images
       const reportPath = `${reportDir}/${this.reportFileName}.html`;
-      const htmlContent = await this.reportHTMLString();
-
-      const { writeFileSync, existsSync } = await import('node:fs');
-      const { dirname } = await import('node:path');
-      const { mkdirSync } = await import('node:fs');
-
-      const dir = dirname(reportPath);
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
-      }
-      writeFileSync(reportPath, htmlContent);
-      this.reportFile = reportPath;
+      this.reportFile = await this.reportWriter.write(this.dump, reportPath);
     }
 
     debug('writeOutActionDumps', this.reportFile);

@@ -4,6 +4,7 @@ import {
   withErrorHandling,
 } from '@midscene/shared/baseDB';
 import type { InfoListItem, StorageProvider } from '../../../types';
+import { isScreenshotItem } from '../../../utils/playground-utils';
 
 // Database configuration
 const DB_NAME = 'midscene_playground';
@@ -200,20 +201,6 @@ export class IndexedDBStorageProvider implements StorageProvider {
   }
 
   /**
-   * Type guard to check if a value is a ScreenshotItem-like object
-   */
-  private isScreenshotItem(
-    value: unknown,
-  ): value is { base64: string; id?: string } {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      'base64' in value &&
-      typeof (value as { base64: unknown }).base64 === 'string'
-    );
-  }
-
-  /**
    * Helper to get screenshot string from UIContext or ExecutionRecorderItem.
    * After restoration, screenshot is a base64 string (restored from { $screenshot: id }).
    * TypeScript thinks it's ScreenshotItem, so we use type guard.
@@ -223,7 +210,7 @@ export class IndexedDBStorageProvider implements StorageProvider {
       return screenshot;
     }
     // If it's still a ScreenshotItem, get base64 (shouldn't happen after restoration)
-    if (this.isScreenshotItem(screenshot)) {
+    if (isScreenshotItem(screenshot)) {
       return screenshot.base64;
     }
     return undefined;

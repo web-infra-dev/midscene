@@ -6,6 +6,7 @@ export type {
   SerializableExecutionDump,
   SerializableGroupedActionDump,
   ToHTMLOptions,
+  WriteToDirectoryOptions,
   SerializeWithImagesResult,
   ExecutionDumpInit,
   GroupedActionDumpInit,

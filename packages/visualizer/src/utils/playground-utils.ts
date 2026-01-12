@@ -4,9 +4,10 @@ import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
 
 /**
- * Type guard to check if a value is a ScreenshotItem-like object
+ * Type guard to check if a value is a ScreenshotItem-like object (runtime format with base64 property).
+ * This is different from ScreenshotItem.isSerialized() which checks for { $screenshot: string } format.
  */
-function isScreenshotItem(
+export function isScreenshotItem(
   value: unknown,
 ): value is { base64: string; id?: string } {
   return (

@@ -1,6 +1,7 @@
+import { restoreImageReferences } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 
-// Constants matching backend definitions in packages/core/src/utils.ts
+// Constants matching backend definitions in packages/core/src/dump/html-utils.ts
 const IMAGE_SCRIPT_TYPE = 'midscene-image';
 
 /** Map of image ID to base64 data string, loaded from script tags */
@@ -9,6 +10,7 @@ type ImageIdToBase64Map = Record<string, string>;
 /**
  * Load all image script tags into a map.
  * These are base64 images that were extracted from dump JSON during report generation.
+ * This function is DOM-specific and cannot be moved to @midscene/core.
  *
  * @returns Map of image IDs to their base64 data
  */
@@ -28,81 +30,5 @@ export function loadImageMap(): ImageIdToBase64Map {
   return map;
 }
 
-/**
- * Recursively restore image references in parsed data.
- * Handles { $screenshot: "id" } format.
- *
- * @param data - The parsed JSON data with image references
- * @param imageMap - Map of image IDs to base64 data
- * @returns Data with image references restored to base64
- */
-export function restoreImageReferences<T>(
-  data: T,
-  imageMap: ImageIdToBase64Map,
-): T {
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  if (Array.isArray(data)) {
-    return data.map((item) => restoreImageReferences(item, imageMap)) as T;
-  }
-
-  if (typeof data === 'object' && data !== null) {
-    // Handle { $screenshot: ... } format (including empty/undefined values)
-    if ('$screenshot' in data) {
-      const screenshot = (data as { $screenshot: unknown }).$screenshot;
-
-      // Handle undefined or null
-      if (screenshot === undefined || screenshot === null) {
-        return '' as T;
-      }
-
-      // Handle non-string values
-      if (typeof screenshot !== 'string') {
-        console.warn('Invalid $screenshot value type:', typeof screenshot);
-        return '' as T;
-      }
-
-      // Handle empty string
-      if (screenshot.length === 0) {
-        return '' as T;
-      }
-
-      // Check if it's already base64 data
-      if (screenshot.startsWith('data:image/')) {
-        return screenshot as T;
-      }
-
-      // Check if it's a file path (for directory-based reports)
-      if (screenshot.startsWith('./') || screenshot.startsWith('/')) {
-        return screenshot as T;
-      }
-
-      // It's an ID, look up in imageMap
-      const base64 = imageMap[screenshot];
-      if (base64) {
-        return base64 as T;
-      }
-
-      // Fallback: return the value as-is (could be a placeholder)
-      if (Object.keys(imageMap).length > 0) {
-        const availableIds = Object.keys(imageMap).join(', ');
-        console.warn(
-          `Image not found for ID: ${screenshot}. Available IDs: ${availableIds}`,
-        );
-      }
-      return screenshot as T;
-    }
-
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      result[key] = restoreImageReferences(value, imageMap);
-    }
-    return result as T;
-  }
-
-  return data;
-}
-
-export { IMAGE_SCRIPT_TYPE };
+// Re-export restoreImageReferences from @midscene/core for convenience
+export { restoreImageReferences, IMAGE_SCRIPT_TYPE };
