@@ -505,7 +505,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         );
 
         timestamps.forEach((timestamp) => {
-          earliest = earliest === null ? timestamp : Math.min(earliest, timestamp);
+          earliest =
+            earliest === null ? timestamp : Math.min(earliest, timestamp);
           latest = latest === null ? timestamp : Math.max(latest, timestamp);
         });
       });
