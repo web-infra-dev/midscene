@@ -43,12 +43,26 @@ export class ScreenshotItemNew {
     return this._provider.retrieve(this._id);
   }
 
-  /** Migrate data to a different storage provider */
+  /**
+   * Migrate data to a different storage provider.
+   * If deletion from old provider fails, attempts rollback by removing from new provider.
+   */
   async migrateTo(newProvider: StorageProvider): Promise<ScreenshotItemNew> {
     const data = await this.getData();
     const newId = await newProvider.store(data);
-    await this._provider.delete(this._id);
-    return new ScreenshotItemNew(newId, newProvider);
+
+    try {
+      await this._provider.delete(this._id);
+      return new ScreenshotItemNew(newId, newProvider);
+    } catch (error) {
+      // Rollback: remove data from new provider
+      try {
+        await newProvider.delete(newId);
+      } catch {
+        // Ignore rollback failures
+      }
+      throw error;
+    }
   }
 
   /** Serialize to { $screenshot: id } format for JSON */

@@ -122,10 +122,11 @@ export class ExecutionDumpNew {
     }
 
     if ('toJSON' in screenshot && typeof screenshot.toJSON === 'function') {
-      return {
-        ...rest,
-        screenshot: screenshot.toJSON() as SerializedScreenshot,
-      };
+      const json = screenshot.toJSON();
+      if (isSerializedScreenshot(json)) {
+        return { ...rest, screenshot: json };
+      }
+      return { ...rest, screenshot: null };
     }
 
     return { ...rest, screenshot: null };
