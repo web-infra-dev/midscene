@@ -402,25 +402,24 @@ tasks:
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Input text into an element described by a prompt.
-      - aiInput: <final text content of the input>
-        locate: <prompt>
+      - aiInput: <prompt>
+        value: <final text content of the input>
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Press a key (e.g., Enter, Tab, Escape) on an element described by a prompt.
-      - aiKeyboardPress: <key>
-        locate: <prompt>
+      - aiKeyboardPress: <prompt>
+        keyName: <key>
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Scroll globally or on an element described by a prompt.
-      - aiScroll:
+      - aiScroll: <prompt> # Optional, the element to scroll on.
         scrollType: 'singleAction' # or 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'. Defaults to 'singleAction'.
         direction: 'down' # or 'up' | 'left' | 'right'. Defaults to 'down'. Only effective when scrollType is singleAction.
         distance: <number> # Optional, the scroll distance in pixels. Use null to let Midscene decide automatically.
-        locate: <prompt> # Optional, the element to scroll on.
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
