@@ -32,9 +32,7 @@ process.on('unhandledRejection', (reason) => {
 export async function run(scriptPath?: string): Promise<void> {
   const path = scriptPath ?? process.argv[2];
   if (!path) {
-    console.error('Usage: midscene <script.ts>');
-    process.exit(1);
-    return; // Required for test mocking where process.exit doesn't terminate
+    throw new Error('Usage: midscene <script.ts>');
   }
 
   const absolutePath = resolve(process.cwd(), path);
@@ -47,6 +45,6 @@ export async function run(scriptPath?: string): Promise<void> {
 
 // Auto-run when executed as entry point
 run().catch((error) => {
-  console.error(error);
+  console.error(error.message ?? error);
   process.exit(1);
 });
