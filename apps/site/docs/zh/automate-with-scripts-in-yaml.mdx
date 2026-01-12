@@ -407,26 +407,25 @@ tasks:
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 输入文本到一个元素，用 prompt 描述元素位置
-      - aiInput: <输入框的最终文本内容>
-        locate: <prompt>
+      - aiInput: <prompt> # 要输入文本的元素
+        value: <输入框的最终文本内容>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 在元素上按下某个按键（如 Enter，Tab，Escape 等），用 prompt 描述元素位置
-      - aiKeyboardPress: <按键>
-        locate: <prompt>
+      - aiKeyboardPress: <prompt> # 要按键的目标元素
+        keyName: <按键>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 全局滚动，或滚动 prompt 描述的元素
-      - aiScroll:
+      - aiScroll: <prompt> # 可选，执行滚动的元素
         scrollType: 'singleAction' # 或 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'，默认值为 'singleAction'
         direction: 'down' # 或 'up' | 'left' | 'right'，默认值为 'down'。仅在 scrollType 为 singleAction 时生效
         distance: <number> # 可选，滚动距离，单位为像素。设置为 null 表示由 Midscene 自动决定。
-        locate: <prompt> # 可选，执行滚动的元素
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
 
