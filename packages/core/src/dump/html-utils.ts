@@ -59,8 +59,7 @@ export function generateImageScriptTag(id: string, data: string): string {
     id +
     '">' +
     escapeContent(data) +
-    '</' +
-    'script>'
+    '</script>'
   );
 }
 
@@ -87,7 +86,6 @@ export function generateDumpScriptTag(
     attrString +
     '>' +
     escapeContent(json) +
-    '</' +
-    'script>'
+    '</script>'
   );
 }

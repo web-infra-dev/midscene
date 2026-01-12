@@ -15,7 +15,8 @@ import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 // Constants matching the implementation
-const IMAGE_REF_PREFIX = '#midscene-img:';
+// Screenshots are serialized as { $screenshot: "uuid" } format
+const SCREENSHOT_REF_KEY = '$screenshot';
 
 describe('Directory Report Format', () => {
   let browser: Browser;
@@ -52,6 +53,9 @@ describe('Directory Report Format', () => {
       await agent.recordToReport('After-Action', {
         content: 'Performed some action',
       });
+
+      // write report before verifying
+      await agent.writeOutActionDumps();
 
       // verify report file generation
       expect(agent.reportFile).toBeTruthy();
@@ -94,6 +98,9 @@ describe('Directory Report Format', () => {
         content: 'Traditional format test',
       });
 
+      // write report before verifying
+      await agent.writeOutActionDumps();
+
       // verify single HTML file generation
       expect(agent.reportFile).toBeTruthy();
       expect(agent.reportFile).toMatch(/\.html$/);
@@ -112,7 +119,7 @@ describe('Directory Report Format', () => {
     it('should use image references in dump instead of raw base64', async () => {
       const agent = new PuppeteerAgent(page, {
         useDirectoryReport: true,
-        generateReport: true,
+        generateReport: false, // only checking dump content, no report needed
         groupName: 'Registry-Test',
         autoPrintReportMsg: false,
       });
@@ -129,8 +136,8 @@ describe('Directory Report Format', () => {
       // get dump string and verify it contains references, not raw base64
       const dumpString = agent.dumpDataString();
 
-      // should contain image references in the format #midscene-img:xxx
-      expect(dumpString).toContain(IMAGE_REF_PREFIX);
+      // should contain screenshot references in the format { $screenshot: "uuid" }
+      expect(dumpString).toContain(SCREENSHOT_REF_KEY);
 
       // should NOT contain raw base64 data URIs
       expect(dumpString).not.toMatch(
@@ -157,7 +164,7 @@ describe('Directory Report Format', () => {
       });
 
       // trigger report write
-      agent.writeOutActionDumps();
+      await agent.writeOutActionDumps();
 
       // verify report was generated
       expect(agent.reportFile).toBeTruthy();
@@ -191,6 +198,9 @@ describe('Directory Report Format', () => {
         content: 'Testing cleanup',
       });
 
+      // write report before verifying and destroying
+      await agent.writeOutActionDumps();
+
       // verify report file exists before destroy
       expect(agent.reportFile).toBeTruthy();
       expect(fs.existsSync(agent.reportFile!)).toBe(true);
@@ -217,7 +227,7 @@ describe('Directory Report Format', () => {
       await agent.recordToReport('Screenshot-3', { content: 'Third' });
 
       // trigger report write
-      agent.writeOutActionDumps();
+      await agent.writeOutActionDumps();
 
       // verify report was generated
       expect(agent.reportFile).toBeTruthy();
@@ -244,7 +254,7 @@ describe('Directory Report Format', () => {
     it('should not hold raw base64 in dump after recordToReport', async () => {
       const agent = new PuppeteerAgent(page, {
         useDirectoryReport: true,
-        generateReport: true,
+        generateReport: false, // only checking dump content, no report needed
         groupName: 'Memory-Opt-Test',
         autoPrintReportMsg: false,
       });
@@ -258,15 +268,15 @@ describe('Directory Report Format', () => {
         content: 'Memory optimization test',
       });
 
-      // the dump should contain image references, not raw base64
+      // the dump should contain screenshot references, not raw base64
       const dumpString = agent.dumpDataString();
 
       // verify no large base64 strings in dump (over 1000 chars is suspicious)
       const base64Pattern = /data:image\/[a-z]+;base64,[A-Za-z0-9+/=]{1000,}/;
       expect(dumpString).not.toMatch(base64Pattern);
 
-      // verify references are present
-      expect(dumpString).toContain(IMAGE_REF_PREFIX);
+      // verify references are present in { $screenshot: "uuid" } format
+      expect(dumpString).toContain(SCREENSHOT_REF_KEY);
 
       await agent.destroy();
     });

@@ -162,11 +162,7 @@ export class GroupedActionDump {
       // Insert dump script tag before the LAST </html> only
       // Using replace() would replace ALL occurrences including those in JS code
       const lastHtmlTagIndex = tpl.lastIndexOf('</html>');
-      html =
-        tpl.slice(0, lastHtmlTagIndex) +
-        dumpTag +
-        '\n' +
-        tpl.slice(lastHtmlTagIndex);
+      html = `${tpl.slice(0, lastHtmlTagIndex)}${dumpTag}\n${tpl.slice(lastHtmlTagIndex)}`;
     } else {
       // Fallback to minimal HTML if template is not available (e.g., in tests)
       html = `<!DOCTYPE html>

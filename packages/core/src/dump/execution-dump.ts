@@ -59,11 +59,23 @@ export class ExecutionDump {
     this._tasks.push(task);
   }
 
-  /** Collect all ScreenshotItem instances from recorder items */
+  /** Collect all ScreenshotItem instances from recorder items and uiContext */
   collectScreenshots(): ScreenshotItem[] {
     const screenshots: ScreenshotItem[] = [];
 
     for (const task of this._tasks) {
+      // Collect uiContext.screenshot if present
+      if (
+        task.uiContext?.screenshot &&
+        typeof task.uiContext.screenshot === 'object' &&
+        hasToSerializable(task.uiContext.screenshot as object)
+      ) {
+        screenshots.push(
+          task.uiContext.screenshot as unknown as ScreenshotItem,
+        );
+      }
+
+      // Collect recorder screenshots
       if (!task.recorder) continue;
 
       for (const record of task.recorder) {
@@ -93,16 +105,40 @@ export class ExecutionDump {
   }
 
   private serializeTask(task: ExecutionTask): SerializableExecutionTask {
-    const { recorder, ...taskWithoutRecorder } = task;
+    const { recorder, uiContext, ...taskWithoutRecorderAndContext } = task;
 
-    if (!recorder) {
-      return taskWithoutRecorder;
+    // Serialize uiContext.screenshot if present
+    let serializedUiContext: unknown = uiContext;
+    if (uiContext?.screenshot) {
+      const screenshot = uiContext.screenshot;
+      let serializedScreenshot: SerializedScreenshot | null = null;
+
+      if (hasToSerializable(screenshot as object)) {
+        serializedScreenshot = (screenshot as ScreenshotLike).toSerializable();
+      } else if (isSerializedScreenshot(screenshot)) {
+        serializedScreenshot = screenshot;
+      }
+
+      // Create a new object with serialized screenshot
+      // Using spread to copy all properties and override screenshot
+      serializedUiContext = {
+        ...uiContext,
+        screenshot: serializedScreenshot,
+      };
     }
 
-    return {
-      ...taskWithoutRecorder,
-      recorder: recorder.map((record) => this.serializeRecorderItem(record)),
+    const result: SerializableExecutionTask = {
+      ...taskWithoutRecorderAndContext,
+      uiContext: serializedUiContext as SerializableExecutionTask['uiContext'],
     };
+
+    if (recorder) {
+      result.recorder = recorder.map((record) =>
+        this.serializeRecorderItem(record),
+      );
+    }
+
+    return result;
   }
 
   private serializeRecorderItem(
@@ -160,8 +196,21 @@ export class ExecutionDump {
     task: SerializableExecutionTask,
     provider: StorageProvider,
   ): ExecutionTask {
+    // Rebuild uiContext.screenshot if present
+    let rebuiltUiContext = task.uiContext;
+    if (task.uiContext?.screenshot) {
+      const screenshot = task.uiContext.screenshot;
+      if (isSerializedScreenshot(screenshot)) {
+        rebuiltUiContext = {
+          ...task.uiContext,
+          screenshot: ScreenshotItem.restore(screenshot.$screenshot, provider),
+        };
+      }
+    }
+
+    // Rebuild recorder screenshots if present
     if (!task.recorder) {
-      return task as ExecutionTask;
+      return { ...task, uiContext: rebuiltUiContext } as ExecutionTask;
     }
 
     const recorder = task.recorder.map((record) => {
@@ -182,6 +231,6 @@ export class ExecutionDump {
       return { ...rest, screenshot: undefined };
     });
 
-    return { ...task, recorder } as ExecutionTask;
+    return { ...task, uiContext: rebuiltUiContext, recorder } as ExecutionTask;
   }
 }

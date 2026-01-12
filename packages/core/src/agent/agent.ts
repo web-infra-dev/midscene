@@ -1403,10 +1403,15 @@ export class Agent<
       return;
     }
 
+    // Set destroyed flag FIRST to prevent concurrent writeOutActionDumps calls
+    this.destroyed = true;
+
+    // Clear listeners to prevent async callbacks from triggering writes
+    this.clearDumpUpdateListeners();
+
     await this.interface.destroy?.();
     await this.storageProvider.cleanup();
     this.resetDump(); // reset dump to release memory
-    this.destroyed = true;
   }
 
   async recordToReport(
