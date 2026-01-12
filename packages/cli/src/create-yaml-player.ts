@@ -5,6 +5,7 @@ import { createServer } from 'http-server';
 
 import assert from 'node:assert';
 import { agentFromAdbDevice } from '@midscene/android';
+import { agentFromComputer } from '@midscene/computer';
 import type {
   AgentOpt,
   FreeFn,
@@ -111,6 +112,7 @@ export async function createYamlPlayer(
         typeof webTarget !== 'undefined',
         typeof clonedYamlScript.android !== 'undefined',
         typeof clonedYamlScript.ios !== 'undefined',
+        typeof clonedYamlScript.computer !== 'undefined',
         typeof clonedYamlScript.interface !== 'undefined',
       ].filter(Boolean).length;
 
@@ -119,13 +121,14 @@ export async function createYamlPlayer(
           typeof webTarget !== 'undefined' ? 'web' : null,
           typeof clonedYamlScript.android !== 'undefined' ? 'android' : null,
           typeof clonedYamlScript.ios !== 'undefined' ? 'ios' : null,
+          typeof clonedYamlScript.computer !== 'undefined' ? 'computer' : null,
           typeof clonedYamlScript.interface !== 'undefined'
             ? 'interface'
             : null,
         ].filter(Boolean);
 
         throw new Error(
-          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: web, android, ios, or interface.`,
+          `Only one target type can be specified, but found multiple: ${specifiedTargets.join(', ')}. Please specify only one of: web, android, ios, computer, or interface.`,
         );
       }
 
@@ -274,6 +277,26 @@ export async function createYamlPlayer(
         return { agent, freeFn };
       }
 
+      // handle computer
+      if (typeof clonedYamlScript.computer !== 'undefined') {
+        const computerTarget = clonedYamlScript.computer;
+        const agent = await agentFromComputer({
+          ...computerTarget,
+          ...buildAgentOptions(
+            clonedYamlScript.agent,
+            preference.testId,
+            fileName,
+          ),
+        });
+
+        freeFn.push({
+          name: 'destroy_computer_agent',
+          fn: () => agent.destroy(),
+        });
+
+        return { agent, freeFn };
+      }
+
       // handle general interface
       if (typeof clonedYamlScript.interface !== 'undefined') {
         const interfaceTarget = clonedYamlScript.interface;
@@ -337,7 +360,7 @@ export async function createYamlPlayer(
       }
 
       throw new Error(
-        'No valid interface configuration found in the yaml script, should be either "web", "android", "ios", or "interface"',
+        'No valid interface configuration found in the yaml script, should be either "web", "android", "ios", "computer", or "interface"',
       );
     },
     undefined,

@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
+    "@midscene/computer": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",

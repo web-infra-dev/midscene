@@ -57,6 +57,7 @@ export interface MidsceneYamlScript {
   web?: MidsceneYamlScriptWebEnv;
   android?: MidsceneYamlScriptAndroidEnv;
   ios?: MidsceneYamlScriptIOSEnv;
+  computer?: MidsceneYamlScriptComputerEnv;
 
   interface?: MidsceneYamlScriptEnvGeneralInterface;
   config?: MidsceneYamlScriptConfig;
@@ -183,10 +184,17 @@ export interface MidsceneYamlScriptIOSEnv
   launch?: string;
 }
 
+export interface MidsceneYamlScriptComputerEnv
+  extends MidsceneYamlScriptConfig {
+  // The display ID to use, optional, will use the primary display if not specified
+  displayId?: string;
+}
+
 export type MidsceneYamlScriptEnv =
   | MidsceneYamlScriptWebEnv
   | MidsceneYamlScriptAndroidEnv
-  | MidsceneYamlScriptIOSEnv;
+  | MidsceneYamlScriptIOSEnv
+  | MidsceneYamlScriptComputerEnv;
 
 export interface MidsceneYamlFlowItemAIAction {
   // defined as aiAction for backward compatibility
