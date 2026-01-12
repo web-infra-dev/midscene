@@ -8,6 +8,9 @@ export class AgentProxy {
   private isOwned = false;
 
   async connect(config?: CdpConfig): Promise<void> {
+    // Clean up existing connections before creating new ones
+    await this.destroy();
+
     const endpoint = this.resolveEndpoint(config);
 
     if (endpoint instanceof Promise) {
@@ -25,14 +28,25 @@ export class AgentProxy {
     }
   }
 
+  private validateWebSocketEndpoint(endpoint: string): void {
+    if (!/^wss?:\/\//.test(endpoint)) {
+      throw new Error(
+        `Invalid WebSocket endpoint URL: "${endpoint}". Expected a URL starting with "ws://" or "wss://".`,
+      );
+    }
+  }
+
   private resolveEndpoint(config?: CdpConfig): string | Promise<string> {
     if (!config) {
       return this.discoverLocal();
     }
 
     if (typeof config === 'string') {
+      this.validateWebSocketEndpoint(config);
       return config;
     }
+
+    this.validateWebSocketEndpoint(config.endpoint);
 
     if (!config.apiKey) {
       return config.endpoint;
@@ -44,6 +58,9 @@ export class AgentProxy {
   }
 
   async launch(config: LaunchConfig = {}): Promise<void> {
+    // Clean up existing connections before creating new ones
+    await this.destroy();
+
     const puppeteer = await import('puppeteer');
 
     this.browser = await puppeteer.default.launch({
@@ -117,10 +134,14 @@ export class AgentProxy {
     if (!response.ok) {
       throw new Error(
         `Cannot connect to local Chrome (port ${port}).
-Please start Chrome with the following command:
+
+Midscene connects to Chrome using its remote debugging protocol, which must be enabled.
+Please start Chrome with remote debugging enabled using one of the following commands:
   macOS: open -a "Google Chrome" --args --remote-debugging-port=${port}
   Linux: google-chrome --remote-debugging-port=${port}
-  Windows: chrome.exe --remote-debugging-port=${port}`,
+  Windows: chrome.exe --remote-debugging-port=${port}
+
+For more information, see: https://midscenejs.com/automate-with-scripts-in-yaml.html`,
       );
     }
     const info = (await response.json()) as { webSocketDebuggerUrl: string };
@@ -162,8 +183,11 @@ Please start Chrome with the following command:
   }
 
   private async createAgent(): Promise<void> {
+    if (!this.page) {
+      throw new Error('Cannot create agent: no active page is available');
+    }
     const { PuppeteerAgent } = await import('@midscene/web/puppeteer');
-    this.innerAgent = new PuppeteerAgent(this.page!);
+    this.innerAgent = new PuppeteerAgent(this.page);
   }
 
   private ensureConnected(): void {
