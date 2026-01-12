@@ -1,4 +1,4 @@
-import type { AgentProxy } from './agent-proxy.js';
+import type { AgentProxy } from './agent-proxy';
 
 declare global {
   var agent: AgentProxy;
