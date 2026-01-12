@@ -1,7 +1,7 @@
 /// <reference path="../src/ts-runner/global.d.ts" />
 
 // TodoMVC automation test script (export run function style)
-// Usage: midscene examples/ai-todo-declarative.mts
+// Usage: npx midscene examples/ai-todo-declarative.mts
 
 export async function run() {
   // Launch browser inside run function

@@ -51,7 +51,14 @@ class AgentProxyBase {
       return config.endpoint;
     }
 
-    const url = new URL(config.endpoint);
+    let url: URL;
+    try {
+      url = new URL(config.endpoint);
+    } catch {
+      throw new Error(
+        `Invalid WebSocket endpoint URL: "${config.endpoint}". Please provide a valid URL.`,
+      );
+    }
     url.searchParams.set('apiKey', config.apiKey);
     return url.toString();
   }
@@ -98,10 +105,7 @@ class AgentProxyBase {
   }
 
   private async discoverLocal(port = 9222): Promise<string> {
-    const response = await fetch(`http://localhost:${port}/json/version`);
-    if (!response.ok) {
-      throw new Error(
-        `Cannot connect to local Chrome (port ${port}).
+    const errorMessage = `Cannot connect to local Chrome (port ${port}).
 
 Midscene connects to Chrome using its remote debugging protocol, which must be enabled.
 Please start Chrome with remote debugging enabled using one of the following commands:
@@ -109,8 +113,16 @@ Please start Chrome with remote debugging enabled using one of the following com
   Linux: google-chrome --remote-debugging-port=${port}
   Windows: chrome.exe --remote-debugging-port=${port}
 
-For more information, see: https://midscenejs.com/automate-with-scripts-in-yaml.html`,
-      );
+For more information, see: https://midscenejs.com/automate-with-scripts-in-yaml.html`;
+
+    let response: Response;
+    try {
+      response = await fetch(`http://localhost:${port}/json/version`);
+    } catch {
+      throw new Error(errorMessage);
+    }
+    if (!response.ok) {
+      throw new Error(errorMessage);
     }
     const info = (await response.json()) as { webSocketDebuggerUrl: string };
     return info.webSocketDebuggerUrl;
@@ -145,6 +157,11 @@ For more information, see: https://midscenejs.com/automate-with-scripts-in-yaml.
     }
 
     if (targetPage) {
+      // Destroy existing agent before creating new one to prevent resource leak
+      if (this.innerAgent) {
+        await this.innerAgent.destroy();
+        this.innerAgent = null;
+      }
       this.page = targetPage;
       await this.createAgent();
     }
