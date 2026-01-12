@@ -151,6 +151,7 @@ export interface DumpMeta {
 export interface ReportDumpWithAttributes {
   dumpString: string;
   attributes?: Record<string, any>;
+  imageMap?: Record<string, string>;
 }
 
 export interface ServiceDump extends DumpMeta {

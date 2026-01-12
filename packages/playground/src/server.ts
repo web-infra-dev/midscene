@@ -396,13 +396,10 @@ class PlaygroundServer {
         this.taskExecutionDumps[requestId] = null;
 
         // Use onDumpUpdate to receive and store executionDump directly
-        this.agent.onDumpUpdate = (
-          _dump: string,
-          executionDump?: ExecutionDump,
-        ) => {
+        this.agent.onDumpUpdate = (_dump: string, executionDump?: unknown) => {
           if (executionDump) {
             // Store the execution dump directly without transformation
-            this.taskExecutionDumps[requestId] = executionDump;
+            this.taskExecutionDumps[requestId] = executionDump as ExecutionDump;
           }
         };
       }

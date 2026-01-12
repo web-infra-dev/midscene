@@ -173,7 +173,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Add listener and save remove function
       removeListener = agent.addDumpUpdateListener(
-        (dump: string, executionDump?: ExecutionDump) => {
+        (dump: string, executionDump?: unknown) => {
           // Only process if this is still the current request
           if (this.currentRequestId !== options.requestId) {
             return;
@@ -181,7 +181,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
           // Forward to external callback
           if (this.dumpUpdateCallback) {
-            this.dumpUpdateCallback(dump, executionDump);
+            this.dumpUpdateCallback(dump, executionDump as ExecutionDump);
           }
         },
       );

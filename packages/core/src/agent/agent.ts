@@ -186,18 +186,20 @@ export class Agent<
   storageProvider: StorageProvider;
 
   private dumpUpdateListeners: Array<
-    (dump: string, executionDump?: ExecutionDump) => void
+    (dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void
   > = [];
 
   get onDumpUpdate():
-    | ((dump: string, executionDump?: ExecutionDump) => void)
+    | ((dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void)
     | undefined {
     return this.dumpUpdateListeners[0];
   }
 
-  set onDumpUpdate(callback:
-    | ((dump: string, executionDump?: ExecutionDump) => void)
-    | undefined) {
+  set onDumpUpdate(
+    callback:
+      | ((dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void)
+      | undefined,
+  ) {
     // Clear existing listeners
     this.dumpUpdateListeners = [];
     // Add callback to array if provided
@@ -407,9 +409,10 @@ export class Agent<
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
+          const imageMap = await this.getImageMap();
           for (const listener of this.dumpUpdateListeners) {
             try {
-              listener(dumpString, executionDump);
+              listener(dumpString, executionDump, imageMap);
             } catch (error) {
               console.error('Error in onDumpUpdate listener', error);
             }
@@ -1348,7 +1351,11 @@ export class Agent<
    * @returns A remove function that can be called to remove this listener
    */
   addDumpUpdateListener(
-    listener: (dump: string, executionDump?: ExecutionDump) => void,
+    listener: (
+      dump: string,
+      executionDump?: unknown,
+      imageMap?: Record<string, string>,
+    ) => void,
   ): () => void {
     this.dumpUpdateListeners.push(listener);
 
@@ -1363,7 +1370,11 @@ export class Agent<
    * @param listener The listener function to remove
    */
   removeDumpUpdateListener(
-    listener: (dump: string, executionDump?: ExecutionDump) => void,
+    listener: (
+      dump: string,
+      executionDump?: unknown,
+      imageMap?: Record<string, string>,
+    ) => void,
   ): void {
     const index = this.dumpUpdateListeners.indexOf(listener);
     if (index > -1) {
@@ -1441,15 +1452,16 @@ export class Agent<
 
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
+    const imageMap = await this.getImageMap();
     for (const listener of this.dumpUpdateListeners) {
       try {
-        listener(dumpString);
+        listener(dumpString, executionDump, imageMap);
       } catch (error) {
         console.error('Error in onDumpUpdate listener', error);
       }
     }
 
-    this.writeOutActionDumps();
+    await this.writeOutActionDumps();
   }
 
   /**

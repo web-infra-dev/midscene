@@ -93,9 +93,24 @@ class MidsceneReporter implements Reporter {
     this.tempFiles.add(tempFilePath);
 
     let dumpString: string | undefined;
+    let imageMap: Record<string, string> | undefined;
 
     try {
-      dumpString = readFileSync(tempFilePath, 'utf-8');
+      const fileContent = readFileSync(tempFilePath, 'utf-8');
+      // Parse the temp file format: { dump: string, imageMap: Record<string, string> }
+      try {
+        const parsed = JSON.parse(fileContent);
+        if (parsed && typeof parsed === 'object' && 'dump' in parsed) {
+          dumpString = parsed.dump;
+          imageMap = parsed.imageMap;
+        } else {
+          // Fallback: legacy format where file contains just the dump string
+          dumpString = fileContent;
+        }
+      } catch {
+        // If JSON parse fails, treat as legacy format (raw dump string)
+        dumpString = fileContent;
+      }
     } catch (error) {
       console.error(
         `Failed to read Midscene dump file: ${tempFilePath}`,
@@ -116,6 +131,7 @@ class MidsceneReporter implements Reporter {
           playwright_test_status: result.status,
           playwright_test_duration: result.duration,
         },
+        imageMap,
       };
 
       this.updateReport(testData);

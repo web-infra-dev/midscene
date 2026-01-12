@@ -39,6 +39,10 @@ export interface ToHTMLOptions {
   attributes?: Record<string, string>;
 }
 
+export interface WriteToDirectoryOptions {
+  attributes?: Record<string, string>;
+}
+
 export interface SerializeWithImagesResult {
   json: string;
   images: Map<string, string>;

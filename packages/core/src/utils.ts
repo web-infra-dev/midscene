@@ -21,6 +21,7 @@ import {
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
+import { generateImageScriptTag } from './dump/html-utils';
 import { ScreenshotItem } from './screenshot-item';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
@@ -144,12 +145,22 @@ export function reportHTMLContent(
 
   let processedDumpString: string;
   let attributes: Record<string, string> | undefined;
+  let imageMap: Record<string, string> | undefined;
 
   if (typeof dumpData === 'string') {
     processedDumpString = dumpData;
   } else {
     processedDumpString = dumpData.dumpString;
     attributes = dumpData.attributes;
+    imageMap = dumpData.imageMap;
+  }
+
+  // Generate image script tags if imageMap is provided
+  let imageContent = '';
+  if (imageMap && Object.keys(imageMap).length > 0) {
+    imageContent = Object.entries(imageMap)
+      .map(([id, data]) => generateImageScriptTag(id, data))
+      .join('\n');
   }
 
   let dumpContent = '';
@@ -176,7 +187,10 @@ export function reportHTMLContent(
       '\n</script>';
   }
 
-  const allScriptContent = dumpContent;
+  // Combine image tags and dump content (images first, then dump)
+  const allScriptContent = imageContent
+    ? imageContent + '\n' + dumpContent
+    : dumpContent;
 
   if (writeToFile) {
     if (!appendReport) {

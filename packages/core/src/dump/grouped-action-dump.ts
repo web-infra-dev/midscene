@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { ScreenshotItem } from '../screenshot-item';
 import type { StorageProvider } from '../storage';
 import { MemoryStorage } from '../storage';
-import { getVersion } from '../utils';
+import { getReportTpl, getVersion } from '../utils';
 import { ExecutionDump } from './execution-dump';
 import {
   generateDumpScriptTag,
@@ -16,6 +16,7 @@ import type {
   SerializableGroupedActionDump,
   SerializeWithImagesResult,
   ToHTMLOptions,
+  WriteToDirectoryOptions,
 } from './types';
 
 /**
@@ -119,7 +120,10 @@ export class GroupedActionDump {
   }
 
   /** Write report to directory with screenshots as PNG files */
-  async writeToDirectory(outputDir: string): Promise<string> {
+  async writeToDirectory(
+    outputDir: string,
+    options?: WriteToDirectoryOptions,
+  ): Promise<string> {
     const screenshotsDir = path.join(outputDir, 'screenshots');
 
     mkdirSync(outputDir, { recursive: true });
@@ -144,9 +148,22 @@ export class GroupedActionDump {
     this.replaceIdsWithPaths(serializable, pathMap);
 
     const indexPath = path.join(outputDir, 'index.html');
-    const dumpTag = generateDumpScriptTag(JSON.stringify(serializable));
+    const dumpTag = generateDumpScriptTag(
+      JSON.stringify(serializable),
+      options?.attributes,
+    );
 
-    const html = `<!DOCTYPE html>
+    // Use the full report template with visualizer frontend
+    const tpl = getReportTpl();
+    const hasValidTemplate = tpl && tpl.includes('</html>');
+
+    let html: string;
+    if (hasValidTemplate) {
+      // Insert dump script tag before </html>
+      html = tpl.replace('</html>', `${dumpTag}\n</html>`);
+    } else {
+      // Fallback to minimal HTML if template is not available (e.g., in tests)
+      html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
@@ -156,6 +173,7 @@ export class GroupedActionDump {
 ${dumpTag}
 </body>
 </html>`;
+    }
 
     writeFileSync(indexPath, html);
 
