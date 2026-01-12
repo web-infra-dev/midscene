@@ -1,3 +1,4 @@
 export type { StorageProvider } from './provider';
 export { MemoryStorage } from './memory';
-export { FileStorage } from './file';
+// FileStorage is Node.js only - import directly from '@midscene/core/storage/file'
+export type { FileStorage } from './file';

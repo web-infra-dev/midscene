@@ -41,8 +41,8 @@ export type {
   SerializableGroupedActionDump,
   SerializableExecutionDump,
 } from './dump';
-export type { StorageProvider } from './storage';
-export { MemoryStorage, FileStorage } from './storage';
+export type { StorageProvider, FileStorage } from './storage';
+export { MemoryStorage } from './storage';
 export { ReportWriter } from './report-writer';
 
 export type { RawUIContextData } from './agent/utils';

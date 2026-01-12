@@ -1,8 +1,6 @@
-import { execSync } from 'node:child_process';
-import * as fs from 'node:fs';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import * as path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 export { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
@@ -10,8 +8,7 @@ import {
   MIDSCENE_DEBUG_MODE,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { getRunningPkgInfo } from '@midscene/shared/node';
-import { assert, logMsg } from '@midscene/shared/utils';
+import { logMsg } from '@midscene/shared/utils';
 import {
   escapeScriptTag,
   ifInBrowser,
@@ -21,7 +18,7 @@ import {
 import { generateImageScriptTag } from './dump/html-utils';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
-export { appendFileSync } from 'node:fs';
+export const appendFileSync = fs.appendFileSync;
 
 export const groupedActionDumpFileExt = 'web-dump.json';
 
@@ -74,12 +71,18 @@ export function processCacheConfig(
 
 const reportInitializedMap = new Map<string, boolean>();
 
-declare const __DEV_REPORT_PATH__: string;
+declare const __DEV_REPORT_TPL__: string;
 
 export function getReportTpl() {
-  if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
-    return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
+  // __DEV_REPORT_TPL__ is replaced with actual HTML during build
+  // In development mode, rslib replaces this with the report template content
+  // In production, 'REPLACE_ME_WITH_REPORT_HTML' is replaced with actual HTML
+  if (typeof __DEV_REPORT_TPL__ === 'string' && __DEV_REPORT_TPL__) {
+    return __DEV_REPORT_TPL__;
   }
+
+  // Return embedded template (works in both browser and Node.js)
+  // This placeholder is replaced with actual HTML during build
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
   return reportTpl;
@@ -93,6 +96,12 @@ export function insertScriptBeforeClosingHtml(
   filePath: string,
   scriptContent: string,
 ): void {
+  if (ifInBrowser) {
+    throw new Error(
+      'insertScriptBeforeClosingHtml is not supported in browser',
+    );
+  }
+
   const htmlEndTag = '</html>';
   const stat = fs.statSync(filePath);
 
@@ -188,7 +197,9 @@ export function reportHTMLContent(
 
   if (writeToFile) {
     if (!appendReport) {
-      writeFileSync(reportPath!, `${tpl}\n${allScriptContent}`, { flag: 'w' });
+      fs.writeFileSync(reportPath!, `${tpl}\n${allScriptContent}`, {
+        flag: 'w',
+      });
       return reportPath!;
     }
 
@@ -196,10 +207,10 @@ export function reportHTMLContent(
     const isValidTemplate = tpl.includes('</html>');
     if (!reportInitializedMap.get(reportPath!)) {
       if (isValidTemplate) {
-        writeFileSync(reportPath!, tpl, { flag: 'w' });
+        fs.writeFileSync(reportPath!, tpl, { flag: 'w' });
       } else {
         // Use minimal HTML wrapper if template is invalid (e.g., placeholder in test env)
-        writeFileSync(
+        fs.writeFileSync(
           reportPath!,
           `<!DOCTYPE html><html><head></head><body>\n${allScriptContent}\n</body></html>`,
           { flag: 'w' },
@@ -244,7 +255,7 @@ export function writeDumpReport(
       data = dumpData;
     }
 
-    writeFileSync(jsonPath, JSON.stringify(data, null, 2), {
+    fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), {
       flag: appendReport ? 'a' : 'w',
     });
 
@@ -255,14 +266,21 @@ export function writeDumpReport(
 }
 
 export function getTmpDir(): string | null {
+  if (ifInBrowser || ifInWorker) {
+    return null;
+  }
+
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getRunningPkgInfo } = require('@midscene/shared/node');
+
     const runningPkgInfo = getRunningPkgInfo();
     if (!runningPkgInfo) {
       return null;
     }
     const { name } = runningPkgInfo;
-    const tmpPath = path.join(tmpdir(), name);
-    mkdirSync(tmpPath, { recursive: true });
+    const tmpPath = path.join(os.tmpdir(), name);
+    fs.mkdirSync(tmpPath, { recursive: true });
     return tmpPath;
   } catch (e) {
     return null;
@@ -273,6 +291,7 @@ export function getTmpFile(fileExtWithoutDot: string): string | null {
   if (ifInBrowser || ifInWorker) {
     return null;
   }
+
   const tmpDir = getTmpDir();
   const filename = `${uuid()}.${fileExtWithoutDot}`;
   return path.join(tmpDir!, filename);
@@ -314,10 +333,14 @@ export function uploadTestInfoToServer({
 }: { testUrl: string; serverUrl?: string }) {
   if (!serverUrl) return;
 
+  // Skip in browser environment
+  if (ifInBrowser || ifInWorker) return;
+
   let repoUrl = '';
   let userEmail = '';
 
   try {
+    const { execSync } = require('node:child_process');
     repoUrl = execSync('git config --get remote.origin.url').toString().trim();
     userEmail = execSync('git config --get user.email').toString().trim();
   } catch (error) {

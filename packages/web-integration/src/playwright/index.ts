@@ -1,4 +1,6 @@
 import { Agent as PageAgent } from '@midscene/core/agent';
+
+import { FileStorage } from '@midscene/core/storage/file';
 import type { Page as PlaywrightPage } from 'playwright';
 import { WebPage as PlaywrightWebPage } from './page';
 
@@ -34,7 +36,9 @@ function getPlaywrightVersion(): string | null {
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
   constructor(page: PlaywrightPage, opts?: WebPageAgentOpt) {
     const webPage = new PlaywrightWebPage(page, opts);
-    super(webPage, opts);
+    // Use FileStorage for Node.js environment (Playwright runs in Node.js)
+    const storageProvider = opts?.storageProvider ?? new FileStorage();
+    super(webPage, { ...opts, storageProvider });
 
     const { forceSameTabNavigation = true, forceChromeSelectRendering } =
       opts ?? {};

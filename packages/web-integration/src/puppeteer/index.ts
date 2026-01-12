@@ -1,5 +1,7 @@
 import type { WebPageAgentOpt } from '@/web-element';
 import { Agent as PageAgent } from '@midscene/core/agent';
+
+import { FileStorage } from '@midscene/core/storage/file';
 import { getDebug } from '@midscene/shared/logger';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import semver from 'semver';
@@ -31,7 +33,9 @@ export type { WebPageAgentOpt } from '@/web-element';
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
     const webPage = new PuppeteerWebPage(page, opts);
-    super(webPage, opts);
+    // Use FileStorage for Node.js environment (Puppeteer runs in Node.js)
+    const storageProvider = opts?.storageProvider ?? new FileStorage();
+    super(webPage, { ...opts, storageProvider });
 
     const { forceSameTabNavigation = true, forceChromeSelectRendering } =
       opts ?? {};

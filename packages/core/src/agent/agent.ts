@@ -11,7 +11,6 @@ import {
   type AgentWaitForOpt,
   type CacheConfig,
   type DeepThinkOption,
-  type DetailedLocateParam,
   type DeviceAction,
   type ExecutionDump,
   type ExecutionRecorderItem,
@@ -36,7 +35,7 @@ import {
 import { ReportWriter } from '../report-writer';
 import { ScreenshotItem } from '../screenshot-item';
 import type { StorageProvider } from '../storage';
-import { FileStorage, MemoryStorage } from '../storage';
+import { MemoryStorage } from '../storage';
 export type TestStatus =
   | 'passed'
   | 'failed'
@@ -45,19 +44,13 @@ export type TestStatus =
   | 'interrupted';
 import yaml from 'js-yaml';
 
-import {
-  getMidsceneRunSubDir,
-  getReportTpl,
-  processCacheConfig,
-} from '@/utils';
+import { getReportTpl, processCacheConfig } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
   parseYamlScript,
 } from '../yaml/index';
 
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -69,9 +62,16 @@ import {
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
+
+// Dynamic require to avoid bundler static analysis
+const dynamicRequire = ifInBrowser
+  ? null
+  : (new Function('moduleName', 'return require(moduleName)') as NodeRequire);
+
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { defineActionAssert } from '../device';
-import { TaskCache } from './task-cache';
+import type { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
   TaskExecutor,
@@ -182,7 +182,7 @@ export class Agent<
 
   /**
    * Storage provider for screenshot data.
-   * Uses FileStorage when generateReport is true, MemoryStorage otherwise.
+   * Defaults to MemoryStorage. Pass FileStorage via opts for persistent storage.
    */
   storageProvider: StorageProvider;
 
@@ -389,29 +389,37 @@ export class Agent<
       return this.getUIContext();
     });
 
-    // Process cache configuration
-    const cacheConfigObj = this.processCacheConfig(opts || {});
-    if (cacheConfigObj) {
-      this.taskCache = new TaskCache(
-        cacheConfigObj.id,
-        cacheConfigObj.enabled,
-        undefined, // cacheFilePath
-        {
-          readOnly: cacheConfigObj.readOnly,
-          writeOnly: cacheConfigObj.writeOnly,
-        },
-      );
+    // Initialize task cache
+    // Option 1: Use provided taskCache (dependency injection, preferred for Node.js)
+    // Option 2: Create from cache config (backward compatibility, Node.js only)
+    if (opts?.taskCache) {
+      this.taskCache = opts.taskCache;
+    } else if (!ifInBrowser) {
+      // Only create TaskCache in Node.js environment
+      const cacheConfigObj = this.processCacheConfig(opts || {});
+      if (cacheConfigObj) {
+        // Use dynamic require to avoid bundler including task-cache in browser builds
+        const { TaskCache: TaskCacheClass } = dynamicRequire!(
+          './task-cache',
+        ) as typeof import('./task-cache');
+        this.taskCache = new TaskCacheClass(
+          cacheConfigObj.id,
+          cacheConfigObj.enabled,
+          undefined, // cacheFilePath
+          {
+            readOnly: cacheConfigObj.readOnly,
+            writeOnly: cacheConfigObj.writeOnly,
+          },
+        );
+      }
     }
 
     const baseActionSpace = this.interface.actionSpace();
     const fullActionSpace = [...baseActionSpace, defineActionAssert()];
 
-    // Initialize storage provider
-    // Use FileStorage when generateReport is true (stores to temp files)
-    // Use MemoryStorage otherwise (for tests or quick operations)
-    this.storageProvider = this.opts.generateReport
-      ? new FileStorage()
-      : new MemoryStorage();
+    // Initialize storage provider from options or default to MemoryStorage
+    // Callers in Node.js environments should pass FileStorage for persistent storage
+    this.storageProvider = opts?.storageProvider ?? new MemoryStorage();
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
@@ -1598,6 +1606,14 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
+    if (ifInBrowser) {
+      // In browser, just return the files as-is
+      return files;
+    }
+
+    const { existsSync } = dynamicRequire!('node:fs');
+    const { resolve } = dynamicRequire!('node:path');
+
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {

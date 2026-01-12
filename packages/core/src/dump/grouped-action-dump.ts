@@ -1,5 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
+import { ifInBrowser } from '@midscene/shared/utils';
 import type { ScreenshotItem } from '../screenshot-item';
 import type { StorageProvider } from '../storage';
 import { MemoryStorage } from '../storage';
@@ -124,6 +123,18 @@ export class GroupedActionDump {
     outputDir: string,
     options?: WriteToDirectoryOptions,
   ): Promise<string> {
+    // Skip file operations in browser environment
+    if (ifInBrowser) {
+      console.warn(
+        'writeToDirectory is not supported in browser environment, skipping',
+      );
+      return '';
+    }
+
+    // Dynamic import for Node.js modules to avoid bundling issues
+    const { mkdirSync, writeFileSync } = await import('node:fs');
+    const path = await import('node:path');
+
     const screenshotsDir = path.join(outputDir, 'screenshots');
 
     mkdirSync(outputDir, { recursive: true });

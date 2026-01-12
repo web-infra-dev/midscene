@@ -1,6 +1,21 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@rslib/core';
 import { version } from './package.json';
+
+// Read dev report template content at build time (Node.js build environment)
+function getDevReportTpl(): string {
+  if (!process.env.USE_DEV_REPORT) {
+    return '';
+  }
+  const reportPath = path.resolve(__dirname, '../../apps/report/dist/index.html');
+  try {
+    return fs.readFileSync(reportPath, 'utf-8');
+  } catch {
+    console.warn(`Warning: Could not read dev report template from ${reportPath}`);
+    return '';
+  }
+}
 
 export default defineConfig({
   lib: [
@@ -32,11 +47,8 @@ export default defineConfig({
   source: {
     define: {
       __VERSION__: JSON.stringify(version),
-      __DEV_REPORT_PATH__: JSON.stringify(
-        process.env.USE_DEV_REPORT
-          ? path.resolve(__dirname, '../../apps/report/dist/index.html')
-          : '',
-      ),
+      // Embed dev report template content directly (read at build time)
+      __DEV_REPORT_TPL__: JSON.stringify(getDevReportTpl()),
     },
   },
   output: {

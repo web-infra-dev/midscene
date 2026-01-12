@@ -1,5 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { ifInBrowser } from '@midscene/shared/utils';
 import type { GroupedActionDump } from './dump';
 import { getReportTpl, insertScriptBeforeClosingHtml } from './utils';
 
@@ -22,10 +21,20 @@ export class ReportWriter {
     reportPath: string,
     append = false,
   ): Promise<string> {
+    if (ifInBrowser) {
+      console.warn('ReportWriter.write is not supported in browser');
+      return '';
+    }
+
+    const [fs, path] = await Promise.all([
+      import('node:fs'),
+      import('node:path'),
+    ]);
+
     // Ensure directory exists
-    const dir = dirname(reportPath);
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+    const dir = path.dirname(reportPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
 
     const scriptContent = await dump.toHTML();
@@ -33,17 +42,17 @@ export class ReportWriter {
 
     if (!append) {
       // Overwrite mode: write complete report
-      writeFileSync(reportPath, `${tpl}\n${scriptContent}`);
+      fs.writeFileSync(reportPath, `${tpl}\n${scriptContent}`);
     } else {
       // Append mode: insert content before </html>
       const isValidTemplate = tpl.includes('</html>');
 
       if (!this.initialized.get(reportPath)) {
         if (isValidTemplate) {
-          writeFileSync(reportPath, tpl);
+          fs.writeFileSync(reportPath, tpl);
         } else {
           // Use minimal HTML wrapper if template is invalid (e.g., placeholder in test env)
-          writeFileSync(
+          fs.writeFileSync(
             reportPath,
             `<!DOCTYPE html><html><head></head><body>\n${scriptContent}\n</body></html>`,
           );

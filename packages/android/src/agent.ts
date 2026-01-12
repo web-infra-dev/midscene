@@ -1,5 +1,7 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+
+import { FileStorage } from '@midscene/core/storage/file';
 import { getDebug } from '@midscene/shared/logger';
 import {
   AndroidDevice,
@@ -54,7 +56,9 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   recentApps!: WrappedAction<DeviceActionAndroidRecentAppsButton>;
 
   constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
-    super(device, opts);
+    // Use FileStorage for Node.js environment (Android automation runs in Node.js)
+    const storageProvider = opts?.storageProvider ?? new FileStorage();
+    super(device, { ...opts, storageProvider });
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runAdbShell =
       this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');

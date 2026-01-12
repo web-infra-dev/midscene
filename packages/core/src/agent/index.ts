@@ -12,8 +12,9 @@ export {
   typeStr,
 } from './ui-utils';
 
+// TaskCache is Node.js only - uses node:fs, node:path, node:util
+// Browser environments should not import TaskCache directly
 export { type LocateCache, type PlanningCache, TaskCache } from './task-cache';
-export { cacheFileExt } from './task-cache';
 
 export { TaskExecutor } from './tasks';
 

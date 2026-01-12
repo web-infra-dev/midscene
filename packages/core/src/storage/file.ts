@@ -1,38 +1,49 @@
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  rmSync,
-  unlinkSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { uuid } from '@midscene/shared/utils';
 import type { StorageProvider } from './provider';
 
+/**
+ * File-based storage provider for Node.js environments.
+ * Stores screenshot data as files on disk.
+ *
+ * @example
+ * ```typescript
+ * // Create with auto-generated temp directory
+ * const storage = new FileStorage();
+ *
+ * // Create with custom directory
+ * const storage = new FileStorage('/path/to/screenshots');
+ * ```
+ */
 export class FileStorage implements StorageProvider {
   readonly type = 'file' as const;
   private directory: string;
   private registry = new Map<string, string>();
 
+  /**
+   * Create a FileStorage instance.
+   * @param baseDir - Optional base directory for storing files.
+   *                  If not provided, uses a temp directory.
+   */
   constructor(baseDir?: string) {
     this.directory =
-      baseDir || path.join(tmpdir(), 'midscene-screenshots', uuid());
-    mkdirSync(this.directory, { recursive: true });
+      baseDir || path.join(os.tmpdir(), 'midscene-screenshots', uuid());
+    fs.mkdirSync(this.directory, { recursive: true });
   }
 
   async store(data: string): Promise<string> {
     const id = uuid();
     const filePath = path.join(this.directory, `${id}.b64`);
-    writeFileSync(filePath, data, 'utf-8');
+    fs.writeFileSync(filePath, data, 'utf-8');
     this.registry.set(id, filePath);
     return id;
   }
 
   async storeWithId(id: string, data: string): Promise<void> {
     const filePath = path.join(this.directory, `${id}.b64`);
-    writeFileSync(filePath, data, 'utf-8');
+    fs.writeFileSync(filePath, data, 'utf-8');
     this.registry.set(id, filePath);
   }
 
@@ -41,17 +52,17 @@ export class FileStorage implements StorageProvider {
     if (!filePath) {
       throw new Error(`FileStorage: File not found for id: ${id}`);
     }
-    if (!existsSync(filePath)) {
+    if (!fs.existsSync(filePath)) {
       throw new Error(`FileStorage: File does not exist: ${filePath}`);
     }
-    return readFileSync(filePath, 'utf-8');
+    return fs.readFileSync(filePath, 'utf-8');
   }
 
   async delete(id: string): Promise<void> {
     const filePath = this.registry.get(id);
-    if (filePath && existsSync(filePath)) {
+    if (filePath && fs.existsSync(filePath)) {
       try {
-        unlinkSync(filePath);
+        fs.unlinkSync(filePath);
       } catch {
         // Ignore deletion errors
       }
@@ -60,9 +71,9 @@ export class FileStorage implements StorageProvider {
   }
 
   async cleanup(): Promise<void> {
-    if (existsSync(this.directory)) {
+    if (fs.existsSync(this.directory)) {
       try {
-        rmSync(this.directory, { recursive: true, force: true });
+        fs.rmSync(this.directory, { recursive: true, force: true });
       } catch {
         // Ignore cleanup errors
       }

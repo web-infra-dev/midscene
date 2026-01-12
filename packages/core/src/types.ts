@@ -637,6 +637,37 @@ export interface AgentOpt {
   modelConfig?: TModelConfig;
   cache?: Cache;
   /**
+   * Storage provider for screenshot data.
+   * - In browser environments, use MemoryStorage (default)
+   * - In Node.js environments, use FileStorage for persistent storage
+   *
+   * @example
+   * ```typescript
+   * // Browser (default)
+   * const agent = new Agent(device); // Uses MemoryStorage
+   *
+   * // Node.js with file storage
+   * import { FileStorage } from '@midscene/core/storage';
+   * const agent = new Agent(device, {
+   *   storageProvider: new FileStorage(),
+   * });
+   * ```
+   */
+  storageProvider?: import('./storage').StorageProvider;
+  /**
+   * Task cache instance for caching AI planning and locate results.
+   * Only available in Node.js environments.
+   *
+   * @example
+   * ```typescript
+   * import { TaskCache } from '@midscene/core/agent';
+   * const agent = new Agent(device, {
+   *   taskCache: new TaskCache('my-cache-id', true),
+   * });
+   * ```
+   */
+  taskCache?: import('./agent/task-cache').TaskCache;
+  /**
    * Maximum number of replanning cycles for aiAct.
    * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
