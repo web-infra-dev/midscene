@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { createRequire } from 'node:module';
 import {
   type DeviceAction,
   type InterfaceType,
@@ -71,9 +72,8 @@ async function getLibnut(): Promise<LibNut> {
   if (libnutLoadError) throw libnutLoadError;
 
   try {
-    const libnutModule = await import(
-      '@computer-use/libnut/dist/import_libnut'
-    );
+    const require = createRequire(import.meta.url);
+    const libnutModule = require('@computer-use/libnut/dist/import_libnut');
     libnut = libnutModule.libnut as LibNut;
     if (!libnut) {
       throw new Error('libnut module loaded but libnut object is undefined');
