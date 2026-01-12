@@ -402,14 +402,14 @@ tasks:
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Input text into an element described by a prompt.
-      - aiInput: <prompt>
+      - aiInput: <prompt> # The element to input text into.
         value: <final text content of the input>
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Press a key (e.g., Enter, Tab, Escape) on an element described by a prompt.
-      - aiKeyboardPress: <prompt>
+      - aiKeyboardPress: <prompt> # The element to press the key on.
         keyName: <key>
         deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.

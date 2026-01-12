@@ -407,14 +407,14 @@ tasks:
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 输入文本到一个元素，用 prompt 描述元素位置
-      - aiInput: <prompt>
+      - aiInput: <prompt> # 要输入文本的元素
         value: <输入框的最终文本内容>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
         cacheable: <boolean> # 可选，当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 True
 
       # 在元素上按下某个按键（如 Enter，Tab，Escape 等），用 prompt 描述元素位置
-      - aiKeyboardPress: <prompt>
+      - aiKeyboardPress: <prompt> # 要按键的目标元素
         keyName: <按键>
         deepThink: <boolean> # 可选，是否使用深度思考（deepThink）来精确定位元素。默认值为 False
         xpath: <xpath> # 可选，目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
