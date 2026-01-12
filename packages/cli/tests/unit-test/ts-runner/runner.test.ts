@@ -96,7 +96,8 @@ describe('runner.ts', () => {
 
     await run(scriptPath);
 
-    expect(runSpy).toHaveBeenCalledWith(agentInstanceMock);
+    // run function uses global agent, no parameter passed
+    expect(runSpy).toHaveBeenCalledWith();
   });
 
   test('should handle no exports (top-level await style)', async () => {

@@ -3,7 +3,7 @@ import { config } from 'dotenv';
 import { AgentProxy } from './agent-proxy';
 
 interface UserScriptExports {
-  run?: (agent: AgentProxy) => Promise<void>;
+  run?: () => Promise<void>;
 }
 
 config();
@@ -41,7 +41,7 @@ export async function run(scriptPath?: string): Promise<void> {
   const userModule = (await import(absolutePath)) as UserScriptExports;
 
   if (typeof userModule.run === 'function') {
-    await userModule.run(agentInstance);
+    await userModule.run();
   }
 }
 

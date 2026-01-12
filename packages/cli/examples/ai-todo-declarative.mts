@@ -3,9 +3,7 @@
 // TodoMVC automation test script (export run function style)
 // Usage: midscene examples/ai-todo-declarative.mts
 
-import type { AgentProxy } from '../src/ts-runner/agent-proxy';
-
-export async function run(agent: AgentProxy) {
+export async function run() {
   // Launch browser inside run function
   await agent.launch({
     headed: true,
