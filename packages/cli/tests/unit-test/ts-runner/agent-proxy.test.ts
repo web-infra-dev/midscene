@@ -223,6 +223,28 @@ describe('AgentProxy', () => {
       expect(mockPuppeteerAgent).toHaveBeenCalledTimes(1);
       expect(mockPuppeteerAgent).toHaveBeenCalledWith(pageMock);
     });
+
+    test('should throw error for invalid WebSocket URL', async () => {
+      const agent = new AgentProxy();
+
+      await expect(agent.connect('http://invalid.com')).rejects.toThrow(
+        'Invalid WebSocket endpoint URL',
+      );
+      await expect(agent.connect('invalid-url')).rejects.toThrow(
+        'Invalid WebSocket endpoint URL',
+      );
+    });
+
+    test('should cleanup existing connection before new connect', async () => {
+      const agent = new AgentProxy();
+      setupMockFetch('ws://localhost:9222/devtools/browser/abc123');
+
+      await agent.connect();
+      await agent.connect();
+
+      // destroy should have been called once (before second connect)
+      expect(puppeteerAgentMock.destroy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('launch', () => {
@@ -291,6 +313,16 @@ describe('AgentProxy', () => {
       expect(pageMock.goto).toHaveBeenCalledWith(config.url, {
         waitUntil: 'domcontentloaded',
       });
+    });
+
+    test('should cleanup existing connection before new launch', async () => {
+      const agent = new AgentProxy();
+
+      await agent.launch({});
+      await agent.launch({});
+
+      // destroy should have been called once (before second launch)
+      expect(puppeteerAgentMock.destroy).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -15,7 +15,9 @@ const agentInstance = new AgentProxy();
 (globalThis as any).agent = agentInstance;
 
 export async function cleanup(): Promise<void> {
-  await agentInstance.destroy().catch(() => {});
+  await agentInstance.destroy().catch((error) => {
+    console.error('Error during agent cleanup:', error);
+  });
 }
 
 process.on('beforeExit', cleanup);
@@ -40,6 +42,12 @@ export async function run(scriptPath?: string): Promise<void> {
 
   const absolutePath = resolve(process.cwd(), path);
   const userModule = (await import(absolutePath)) as UserScriptExports;
+
+  if (userModule.launch && userModule.cdp) {
+    console.warn(
+      'Warning: Both "launch" and "cdp" exports found. Using "launch" (cdp will be ignored).',
+    );
+  }
 
   if (userModule.launch) {
     await agentInstance.launch(userModule.launch);
