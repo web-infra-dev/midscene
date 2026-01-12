@@ -1,11 +1,8 @@
 import { resolve } from 'node:path';
 import { config } from 'dotenv';
 import { AgentProxy } from './agent-proxy';
-import type { CdpConfig, LaunchConfig } from './types';
 
 interface UserScriptExports {
-  launch?: LaunchConfig;
-  cdp?: CdpConfig;
   run?: (agent: AgentProxy) => Promise<void>;
 }
 
@@ -42,18 +39,6 @@ export async function run(scriptPath?: string): Promise<void> {
 
   const absolutePath = resolve(process.cwd(), path);
   const userModule = (await import(absolutePath)) as UserScriptExports;
-
-  if (userModule.launch && userModule.cdp) {
-    console.warn(
-      'Warning: Both "launch" and "cdp" exports found. Using "launch" (cdp will be ignored).',
-    );
-  }
-
-  if (userModule.launch) {
-    await agentInstance.launch(userModule.launch);
-  } else if (userModule.cdp) {
-    await agentInstance.connect(userModule.cdp);
-  }
 
   if (typeof userModule.run === 'function') {
     await userModule.run(agentInstance);
