@@ -257,21 +257,36 @@ Input text into something.
 - Type
 
 ```typescript
+// Recommended: locate first, then options with value
 function aiInput(
-  text: string | Object,
-  locate: string,
+  locate: string | Object,
+  opt: {
+    value: string | number;
+    deepThink?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+    autoDismissKeyboard?: boolean;
+    mode?: 'replace' | 'clear' | 'append';
+  },
+): Promise<void>;
+
+// Backward compatible (legacy)
+function aiInput(
+  value: string | number,
+  locate: string | Object,
   options?: Object,
 ): Promise<void>;
 ```
 
 - Parameters:
 
-  - `text: string` - The text content to input.
-    - When `mode` is `'replace'`: The text will replace all existing content in the input field.
-    - When `mode` is `'append'`: The text will be appended to the existing content.
-    - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
+  **Recommended usage:**
   - `locate: string | Object` - A natural language description of the element to input text into, or [prompting with images](#prompting-with-images).
-  - `options?: Object` - Optional, a configuration object containing:
+  - `opt: Object` - Configuration object containing:
+    - `value: string | number` - **Required**. The text content to input.
+      - When `mode` is `'replace'`: The text will replace all existing content in the input field.
+      - When `mode` is `'append'`: The text will be appended to the existing content.
+      - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
@@ -281,6 +296,11 @@ function aiInput(
       - `'append'`: Append the text to existing content without clearing.
       - `'clear'`: Clear the input field without entering new text.
 
+  **Backward compatible usage (deprecated but still supported):**
+  - `value: string | number` - The text content to input.
+  - `locate: string | Object` - A natural language description of the element, or [prompting with images](#prompting-with-images).
+  - `options?: Object` - Optional configuration object. The type is the same as the `opt` type in the recommended usage.
+
 - Return Value:
 
   - Returns a `Promise<void>`
@@ -288,8 +308,18 @@ function aiInput(
 - Examples:
 
 ```typescript
+// Recommended
+await agent.aiInput('The search input box', { value: 'Hello World' });
+
+// Backward compatible (not recommended)
 await agent.aiInput('Hello World', 'The search input box');
 ```
+
+:::note Signature Update
+
+We recently updated the `aiInput` API signature to put the locate prompt as the first parameter, making the parameter order more intuitive. The legacy signature `aiInput(value, locate, options)` is still fully compatible, but new code should use the recommended signature.
+
+:::
 
 ### `agent.aiKeyboardPress()`
 
@@ -298,6 +328,18 @@ Press a keyboard key.
 - Type
 
 ```typescript
+// Recommended: locate first, then options with keyName
+function aiKeyboardPress(
+  locate: string | Object,
+  opt: {
+    keyName: string;
+    deepThink?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+
+// Backward compatible (legacy)
 function aiKeyboardPress(
   key: string,
   locate?: string | Object,
@@ -307,12 +349,18 @@ function aiKeyboardPress(
 
 - Parameters:
 
-  - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. Refer to the [complete list of supported key names in our source code](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for available values.
-  - `locate?: string | Object` - Optional, a natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
-  - `options?: Object` - Optional, a configuration object containing:
+  **Recommended usage:**
+  - `locate: string | Object` - A natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
+  - `opt: Object` - Configuration object containing:
+    - `keyName: string` - **Required**. The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. Refer to the [complete list of supported key names in our source code](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for available values.
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+  **Backward compatible usage (deprecated but still supported):**
+  - `key: string` - The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported.
+  - `locate?: string | Object` - Optional, a natural language description of the element, or [prompting with images](#prompting-with-images).
+  - `options?: Object` - Optional configuration object. The type is the same as the `opt` type in the recommended usage.
 
 - Return Value:
 
@@ -321,8 +369,18 @@ function aiKeyboardPress(
 - Examples:
 
 ```typescript
+// Recommended
+await agent.aiKeyboardPress('The search input box', { keyName: 'Enter' });
+
+// Backward compatible (not recommended)
 await agent.aiKeyboardPress('Enter', 'The search input box');
 ```
+
+:::note Signature Update
+
+We recently updated the `aiKeyboardPress` API signature to put the locate prompt as the first parameter, making the parameter order more intuitive. The legacy signature `aiKeyboardPress(key, locate, options)` is still fully compatible, but new code should use the recommended signature.
+
+:::
 
 ### `agent.aiScroll()`
 
@@ -331,6 +389,20 @@ Scroll a page or an element.
 - Type
 
 ```typescript
+// Recommended: locate first, then options with scroll parameters
+function aiScroll(
+  locate: string | Object | undefined,
+  opt: {
+    scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft';
+    direction?: 'down' | 'up' | 'left' | 'right';
+    distance?: number | null;
+    deepThink?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+
+// Backward compatible (legacy)
 function aiScroll(
   scrollParam: PlanningActionParamScroll,
   locate?: string | Object,
@@ -340,15 +412,20 @@ function aiScroll(
 
 - Parameters:
 
-  - `scrollParam: PlanningActionParamScroll` - The scroll parameter
+  **Recommended usage:**
+  - `locate: string | Object | undefined` - A natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided or undefined, Midscene will perform scroll on the current mouse position.
+  - `opt: Object` - Configuration object containing:
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - The scroll behavior. Defaults to `singleAction`.
     - `direction?: 'down' | 'up' | 'right' | 'left'` - The direction to scroll. Defaults to `down`. Only effective when `scrollType` is `singleAction`. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
     - `distance?: number | null` - Optional, the distance to scroll in px. Use `null` to allow Midscene to decide automatically.
-  - `locate?: string | Object` - Optional, a natural language description of the element to scroll on, or [prompting with images](#prompting-with-images). If not provided, Midscene will perform scroll on the current mouse position.
-  - `options?: Object` - Optional, a configuration object containing:
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+  **Backward compatible usage (deprecated but still supported):**
+  - `scrollParam: PlanningActionParamScroll` - The scroll parameter (contains scrollType, direction, distance).
+  - `locate?: string | Object` - Optional, a natural language description of the element, or [prompting with images](#prompting-with-images).
+  - `options?: Object` - Optional configuration object. The type is the same as the `opt` type in the recommended usage.
 
 - Return Value:
 
@@ -357,11 +434,25 @@ function aiScroll(
 - Examples:
 
 ```typescript
+// Recommended
+await agent.aiScroll('The form panel', {
+  scrollType: 'singleAction',
+  direction: 'up',
+  distance: 100,
+});
+
+// Backward compatible (not recommended)
 await agent.aiScroll(
   { scrollType: 'singleAction', direction: 'up', distance: 100 },
   'The form panel',
 );
 ```
+
+:::note Signature Update
+
+We recently updated the `aiScroll` API signature to put the locate prompt as the first parameter, making the parameter order more intuitive. The legacy signature `aiScroll(scrollParam, locate, options)` is still fully compatible, but new code should use the recommended signature.
+
+:::
 
 ### `agent.aiDoubleClick()`
 

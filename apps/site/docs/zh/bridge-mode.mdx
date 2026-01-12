@@ -82,10 +82,10 @@ tsx demo-new-tab.ts
 
 ## 在 YAML 自动化脚本中使用桥接模式
 
-[YAML 自动化脚本](./automate-with-scripts-in-yaml) 让你用更易读的方式描述流程。要启用桥接模式，在 `target` 中设置 `bridgeMode`：使用当前标签页填 `currentTab`，新建标签页填 `newTabWithUrl`。如需销毁时自动关闭新建标签页，可配置 `closeNewTabsAfterDisconnect: true`。
+[YAML 自动化脚本](./automate-with-scripts-in-yaml) 让你用更易读的方式描述流程。要启用桥接模式，在 `web` 中设置 `bridgeMode`：使用当前标签页填 `currentTab`，新建标签页填 `newTabWithUrl`。如需销毁时自动关闭新建标签页，可配置 `closeNewTabsAfterDisconnect: true`。
 
 ```diff
-target:
+web:
   url: https://www.bing.com
 + bridgeMode: newTabWithUrl
 + closeNewTabsAfterDisconnect: true
