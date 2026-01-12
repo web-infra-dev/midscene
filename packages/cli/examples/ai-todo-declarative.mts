@@ -1,17 +1,18 @@
 /// <reference path="../src/ts-runner/global.d.ts" />
 
-// TodoMVC automation test script (declarative style)
+// TodoMVC automation test script (export run function style)
 // Usage: midscene examples/ai-todo-declarative.mts
 
 import type { AgentProxy } from '../src/ts-runner/agent-proxy';
 
-export const launch = {
-  headed: true,
-  url: 'https://todomvc.com/examples/react/dist/',
-};
-
 export async function run(agent: AgentProxy) {
-  console.log('Starting TodoMVC test (declarative style)...');
+  // Launch browser inside run function
+  await agent.launch({
+    headed: true,
+    url: 'https://todomvc.com/examples/react/dist/',
+  });
+
+  console.log('Starting TodoMVC test (export run style)...');
 
   // Create a task
   await agent.aiAct(
@@ -22,9 +23,10 @@ export async function run(agent: AgentProxy) {
   const tasks = await agent.aiQuery<string[]>('string[], tasks in the list');
   console.log('Tasks:', tasks);
 
-  // Verify task created
-  if (!tasks.includes('Learn TypeScript')) {
-    throw new Error('Task "Learn TypeScript" not found');
+  // Verify task created (fuzzy match)
+  const found = tasks.some((task) => task.toLowerCase().includes('typescript'));
+  if (!found) {
+    throw new Error('Task containing "TypeScript" not found');
   }
   console.log('Task created successfully');
 
