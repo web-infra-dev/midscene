@@ -40,7 +40,7 @@ describe('LocalExecutionAdapter', () => {
           executions: [{ name: 'test', tasks: [] }],
         }),
       ),
-      getImageMap: vi.fn().mockReturnValue({}),
+      getImageMap: vi.fn().mockResolvedValue({}),
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),

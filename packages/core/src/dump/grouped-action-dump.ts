@@ -1,10 +1,10 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import type { ScreenshotItemNew } from '../screenshot-item-new';
+import type { ScreenshotItem } from '../screenshot-item';
 import type { StorageProvider } from '../storage';
 import { MemoryStorage } from '../storage';
 import { getVersion } from '../utils';
-import { ExecutionDumpNew } from './execution-dump';
+import { ExecutionDump } from './execution-dump';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
@@ -22,12 +22,12 @@ import type {
  * GroupedActionDump is the top-level container for execution dumps.
  * Manages serialization, deserialization, and report generation.
  */
-export class GroupedActionDumpNew {
+export class GroupedActionDump {
   readonly sdkVersion: string;
   readonly groupName: string;
   readonly groupDescription?: string;
   private _modelBriefs: Set<string>;
-  private _executions: ExecutionDumpNew[];
+  private _executions: ExecutionDump[];
   private _storageProvider: StorageProvider;
 
   constructor(groupName: string, options?: GroupedActionDumpInit) {
@@ -43,7 +43,7 @@ export class GroupedActionDumpNew {
     return this._storageProvider;
   }
 
-  get executions(): ReadonlyArray<ExecutionDumpNew> {
+  get executions(): ReadonlyArray<ExecutionDump> {
     return this._executions;
   }
 
@@ -55,11 +55,17 @@ export class GroupedActionDumpNew {
     this._modelBriefs.add(brief);
   }
 
-  appendExecution(execution: ExecutionDumpNew): void {
+  appendExecution(execution: ExecutionDump): void {
     this._executions.push(execution);
   }
 
-  collectAllScreenshots(): ScreenshotItemNew[] {
+  updateExecution(index: number, execution: ExecutionDump): void {
+    if (index >= 0 && index < this._executions.length) {
+      this._executions[index] = execution;
+    }
+  }
+
+  collectAllScreenshots(): ScreenshotItem[] {
     return this._executions.flatMap((exec) => exec.collectScreenshots());
   }
 
@@ -75,8 +81,8 @@ export class GroupedActionDumpNew {
     return JSON.stringify(data);
   }
 
-  /** Serialize and extract all image data as a map */
-  async serializeWithImages(): Promise<SerializeWithImagesResult> {
+  /** Collect all screenshot data as a Map */
+  private async collectImageData(): Promise<Map<string, string>> {
     const screenshots = this.collectAllScreenshots();
     const images = new Map<string, string>();
 
@@ -84,19 +90,19 @@ export class GroupedActionDumpNew {
       images.set(screenshot.id, await screenshot.getData());
     }
 
+    return images;
+  }
+
+  /** Serialize and extract all image data as a map */
+  async serializeWithImages(): Promise<SerializeWithImagesResult> {
+    const images = await this.collectImageData();
     return { json: this.serialize(), images };
   }
 
   /** Get imageMap asynchronously (for Playground compatibility) */
   async getImageMap(): Promise<Record<string, string>> {
-    const screenshots = this.collectAllScreenshots();
-    const map: Record<string, string> = {};
-
-    for (const screenshot of screenshots) {
-      map[screenshot.id] = await screenshot.getData();
-    }
-
-    return map;
+    const images = await this.collectImageData();
+    return Object.fromEntries(images);
   }
 
   /** Generate HTML content with embedded images as script tags */
@@ -187,9 +193,9 @@ ${dumpTag}
     }
   }
 
-  static fromJSON(json: string): GroupedActionDumpNew {
+  static fromJSON(json: string): GroupedActionDump {
     const data = JSON.parse(json) as SerializableGroupedActionDump;
-    const dump = new GroupedActionDumpNew(data.groupName, {
+    const dump = new GroupedActionDump(data.groupName, {
       groupDescription: data.groupDescription,
     });
 
@@ -198,7 +204,7 @@ ${dumpTag}
     }
 
     for (const execData of data.executions ?? []) {
-      dump.appendExecution(ExecutionDumpNew.fromSerializable(execData));
+      dump.appendExecution(ExecutionDump.fromSerializable(execData));
     }
 
     return dump;
@@ -207,8 +213,8 @@ ${dumpTag}
   static async fromJSONWithImages(
     json: string,
     imageMap: Record<string, string>,
-  ): Promise<GroupedActionDumpNew> {
-    const dump = GroupedActionDumpNew.fromJSON(json);
+  ): Promise<GroupedActionDump> {
+    const dump = GroupedActionDump.fromJSON(json);
 
     for (const base64 of Object.values(imageMap)) {
       await dump.storageProvider.store(base64);
@@ -217,15 +223,15 @@ ${dumpTag}
     return dump;
   }
 
-  static async fromHTML(html: string): Promise<GroupedActionDumpNew> {
+  static async fromHTML(html: string): Promise<GroupedActionDump> {
     const imageMap = parseImageScripts(html);
     const dumpJson = parseDumpScript(html);
 
     if (Object.keys(imageMap).length > 0) {
-      return GroupedActionDumpNew.fromJSONWithImages(dumpJson, imageMap);
+      return GroupedActionDump.fromJSONWithImages(dumpJson, imageMap);
     }
 
-    return GroupedActionDumpNew.fromJSON(dumpJson);
+    return GroupedActionDump.fromJSON(dumpJson);
   }
 
   async cleanup(): Promise<void> {

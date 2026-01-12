@@ -19,7 +19,7 @@ function createBaseMockAgent(
       JSON.stringify({
         executions: [{ name: 'test', tasks: [] }],
       }),
-    getImageMap: () => ({}),
+    getImageMap: async () => ({}),
     reportHTMLString: () => '',
     writeOutActionDumps: () => {},
     resetDump: () => {},

@@ -1,4 +1,8 @@
 import {
+  ExecutionDump as ExecutionDumpClass,
+  GroupedActionDump as GroupedActionDumpClass,
+} from '../dump';
+import {
   type ActionParam,
   type ActionReturn,
   type AgentAssertOpt,
@@ -13,8 +17,6 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type ExecutionTaskPlanning,
-  type GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -32,7 +34,8 @@ import {
   type UIContext,
 } from '../index';
 import { ScreenshotItem } from '../screenshot-item';
-import { ScreenshotRegistry } from '../screenshot-registry';
+import type { StorageProvider } from '../storage';
+import { FileStorage, MemoryStorage } from '../storage';
 export type TestStatus =
   | 'passed'
   | 'failed'
@@ -42,12 +45,9 @@ export type TestStatus =
 import yaml from 'js-yaml';
 
 import {
-  getVersion,
-  groupedActionDumpFileExt,
+  getMidsceneRunSubDir,
+  getReportTpl,
   processCacheConfig,
-  reportHTMLContent,
-  stringifyDumpData,
-  writeLogFile,
 } from '@/utils';
 import {
   ScriptPlayer,
@@ -160,7 +160,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDump;
+  dump: GroupedActionDumpClass;
 
   reportFile?: string | null;
 
@@ -180,10 +180,10 @@ export class Agent<
   taskCache?: TaskCache;
 
   /**
-   * Registry for storing screenshots to temporary files.
-   * Only created when generateReport is true.
+   * Storage provider for screenshot data.
+   * Uses FileStorage when generateReport is true, MemoryStorage otherwise.
    */
-  screenshotRegistry?: ScreenshotRegistry;
+  storageProvider: StorageProvider;
 
   private dumpUpdateListeners: Array<
     (dump: string, executionDump?: ExecutionDump) => void
@@ -388,28 +388,20 @@ export class Agent<
     const baseActionSpace = this.interface.actionSpace();
     const fullActionSpace = [...baseActionSpace, defineActionAssert()];
 
-    // Initialize screenshot registry if report generation is enabled
-    // Registry is used for both single-file HTML and directory-based reports
-    // to avoid holding base64 data in memory
-    if (this.opts.generateReport) {
-      try {
-        this.screenshotRegistry = new ScreenshotRegistry(this.opts.groupName!);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        throw new Error(
-          `Failed to initialize ScreenshotRegistry for group "${this.opts.groupName}": ${message}`,
-        );
-      }
-    }
+    // Initialize storage provider
+    // Use FileStorage when generateReport is true (stores to temp files)
+    // Use MemoryStorage otherwise (for tests or quick operations)
+    this.storageProvider = this.opts.generateReport
+      ? new FileStorage()
+      : new MemoryStorage();
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
       actionSpace: fullActionSpace,
-      screenshotRegistry: this.screenshotRegistry,
       hooks: {
-        onTaskUpdate: (runner) => {
+        onTaskUpdate: async (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
@@ -423,7 +415,7 @@ export class Agent<
             }
           }
 
-          this.writeOutActionDumps();
+          await this.writeOutActionDumps();
         },
       },
     });
@@ -482,10 +474,10 @@ export class Agent<
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
 
-    // Create ScreenshotItem from the final base64, registering to registry if available
-    const screenshot = ScreenshotItem.fromBase64(
+    // Create screenshot item from the final base64
+    const screenshot = await ScreenshotItem.create(
       finalBase64,
-      this.screenshotRegistry,
+      this.storageProvider,
     );
 
     return {
@@ -515,65 +507,60 @@ export class Agent<
     this.opts.aiActionContext = prompt;
   }
 
-  resetDump() {
-    this.dump = {
-      sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
+  resetDump(): GroupedActionDumpClass {
+    this.dump = new GroupedActionDumpClass(this.opts.groupName!, {
       groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
-    };
+      storageProvider: this.storageProvider,
+    });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
-    const currentDump = this.dump;
+    const executionDumpNew = new ExecutionDumpClass({
+      name: execution.name,
+      description: execution.description,
+      aiActContext: execution.aiActContext,
+      tasks: execution.tasks,
+    });
+
     if (runner) {
       const existingIndex = this.executionDumpIndexByRunner.get(runner);
       if (existingIndex !== undefined) {
-        currentDump.executions[existingIndex] = execution;
+        this.dump.updateExecution(existingIndex, executionDumpNew);
         return;
       }
-      currentDump.executions.push(execution);
+      this.dump.appendExecution(executionDumpNew);
       this.executionDumpIndexByRunner.set(
         runner,
-        currentDump.executions.length - 1,
+        this.dump.executions.length - 1,
       );
       return;
     }
-    currentDump.executions.push(execution);
+    this.dump.appendExecution(executionDumpNew);
   }
 
-  dumpDataString() {
-    // update dump info
-    this.dump.groupName = this.opts.groupName!;
-    this.dump.groupDescription = this.opts.groupDescription;
-    return stringifyDumpData(this.dump);
+  dumpDataString(): string {
+    return this.dump.serialize();
   }
 
   /**
    * Get the image map for restoring image references in dump data.
    * Useful for contexts without HTML script tags (e.g., Chrome extension live preview).
    *
-   * @returns Record mapping screenshot IDs to their base64 data, or empty object if no registry
+   * @returns Promise resolving to record mapping screenshot IDs to their base64 data
    */
-  getImageMap(): Record<string, string> {
-    return this.screenshotRegistry?.getImageMap() ?? {};
+  async getImageMap(): Promise<Record<string, string>> {
+    return this.dump.getImageMap();
   }
 
-  reportHTMLString() {
-    return reportHTMLContent(
-      this.dumpDataString(),
-      undefined, // reportPath
-      undefined, // appendReport
-      true, // withTpl
-      this.screenshotRegistry, // pass registry to include image script tags
-    );
+  async reportHTMLString(): Promise<string> {
+    const scriptContent = await this.dump.toHTML();
+    return getReportTpl() + scriptContent;
   }
 
-  writeOutActionDumps() {
+  async writeOutActionDumps(): Promise<void> {
     if (this.destroyed) {
       throw new Error(
         'PageAgent has been destroyed. Cannot update report file.',
@@ -582,22 +569,36 @@ export class Agent<
     const { generateReport, autoPrintReportMsg, useDirectoryReport } =
       this.opts;
 
-    // Update dump info before writing
-    this.dump.groupName = this.opts.groupName!;
-    this.dump.groupDescription = this.opts.groupDescription;
+    if (!generateReport) {
+      return;
+    }
 
-    this.reportFile = writeLogFile({
-      fileName: this.reportFileName!,
-      fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
-      type: 'dump',
-      generateReport,
-      useDirectoryReport,
-      screenshotRegistry: this.screenshotRegistry,
-    });
+    const reportDir = getMidsceneRunSubDir('report');
+
+    if (useDirectoryReport) {
+      // Write directory-based report with separate PNG files
+      const outputDir = `${reportDir}/${this.reportFileName}`;
+      this.reportFile = await this.dump.writeToDirectory(outputDir);
+    } else {
+      // Write single HTML file with embedded images
+      const reportPath = `${reportDir}/${this.reportFileName}.html`;
+      const htmlContent = await this.reportHTMLString();
+
+      const { writeFileSync, existsSync } = await import('node:fs');
+      const { dirname } = await import('node:path');
+      const { mkdirSync } = await import('node:fs');
+
+      const dir = dirname(reportPath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      writeFileSync(reportPath, htmlContent);
+      this.reportFile = reportPath;
+    }
+
     debug('writeOutActionDumps', this.reportFile);
 
-    if (generateReport && autoPrintReportMsg && this.reportFile) {
+    if (autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
   }
@@ -1384,7 +1385,7 @@ export class Agent<
     }
 
     await this.interface.destroy?.();
-    this.screenshotRegistry?.cleanup();
+    await this.storageProvider.cleanup();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
   }
@@ -1399,10 +1400,10 @@ export class Agent<
     const base64 = await this.interface.screenshotBase64();
     const now = Date.now();
 
-    // 2. Create ScreenshotItem (registers to registry if available)
-    const screenshot = ScreenshotItem.fromBase64(
+    // 2. Create ScreenshotItem
+    const screenshot = await ScreenshotItem.create(
       base64,
-      this.screenshotRegistry,
+      this.storageProvider,
     );
 
     // 3. build recorder with ScreenshotItem

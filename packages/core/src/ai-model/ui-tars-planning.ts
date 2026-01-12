@@ -59,7 +59,7 @@ export async function uiTarsPlanning(
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
   const imagePayload = await resizeImageForUiTars(
-    context.screenshot.base64,
+    await context.screenshot.getData(),
     context.size,
     uiTarsModelVersion,
   );
