@@ -24,6 +24,34 @@ export class AndroidRPCService implements IRPCService {
       });
     }
 
+    this.agent.setAIActContext(`
+use Launch in  action space to open an app is always preferred than using the system app drawer. These apps are available in this system: 
+"Audio Recorder": "com.dimowner.audiorecorder"
+"Broccoli Recipe": "com.flauschcode.broccoli"
+"Camera": "com.android.camera2"
+"Chrome": "com.android.chrome"
+"Clock": "com.google.android.deskclock"
+"Contacts": "com.google.android.contacts"
+"Files": "com.google.android.documentsui"
+"Joplin": "net.cozic.joplin"
+"Markor": "net.gsantner.markor"
+"MiniWob": "com.google.androidenv.miniwob"
+"OpenTracks": "de.dennisguse.opentracks"
+"OsmAnd": "net.osmand"
+"Phone / Dialer": "com.google.android.dialer"
+"Pro Expense": "com.arduia.expense"
+"Retro Music": "code.name.monkey.retromusic"
+"Settings": "com.android.settings"
+"Simple Calendar Pro": "com.simplemobiletools.calendar.pro"
+"Simple Draw Pro": "com.simplemobiletools.draw.pro"
+"Simple Gallery Pro": "com.simplemobiletools.gallery.pro"
+"Simple SMS Messenger": "com.simplemobiletools.smsmessenger"
+"Tasks": "org.tasks"
+"VLC": "org.videolan.vlc"
+"Android World": "com.example.androidworld"
+"Clipper": "ca.zgrs.clipper"
+'`);
+
     if (fileName) {
       this.agent.reportFileName = fileName;
     }
