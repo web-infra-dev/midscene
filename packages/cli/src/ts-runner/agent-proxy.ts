@@ -1,14 +1,13 @@
 import type { Browser, Page } from 'puppeteer';
 import type { CdpConfig, LaunchConfig } from './types';
 
-export class AgentProxy {
+class AgentProxyBase {
   private browser: Browser | null = null;
   private page: Page | null = null;
-  private innerAgent: any = null;
+  innerAgent: any = null;
   private isOwned = false;
 
   async connect(config?: CdpConfig): Promise<void> {
-    // Clean up existing connections before creating new ones
     await this.destroy();
 
     const endpoint = this.resolveEndpoint(config);
@@ -58,7 +57,6 @@ export class AgentProxy {
   }
 
   async launch(config: LaunchConfig = {}): Promise<void> {
-    // Clean up existing connections before creating new ones
     await this.destroy();
 
     const puppeteer = await import('puppeteer');
@@ -79,36 +77,6 @@ export class AgentProxy {
     }
 
     await this.createAgent();
-  }
-
-  async aiAct(prompt: string, options?: any): Promise<any> {
-    this.ensureConnected();
-    return this.innerAgent.aiAct(prompt, options);
-  }
-
-  async aiAction(prompt: string, options?: any): Promise<any> {
-    this.ensureConnected();
-    return this.innerAgent.aiAction(prompt, options);
-  }
-
-  async aiQuery<T = any>(prompt: string, options?: any): Promise<T> {
-    this.ensureConnected();
-    return this.innerAgent.aiQuery(prompt, options);
-  }
-
-  async aiAssert(assertion: string, options?: any): Promise<void> {
-    this.ensureConnected();
-    return this.innerAgent.aiAssert(assertion, options);
-  }
-
-  async aiLocate(prompt: string, options?: any): Promise<any> {
-    this.ensureConnected();
-    return this.innerAgent.aiLocate(prompt, options);
-  }
-
-  async aiWaitFor(assertion: string, options?: any): Promise<void> {
-    this.ensureConnected();
-    return this.innerAgent.aiWaitFor(assertion, options);
   }
 
   async destroy(): Promise<void> {
@@ -190,7 +158,7 @@ For more information, see: https://midscenejs.com/automate-with-scripts-in-yaml.
     this.innerAgent = new PuppeteerAgent(this.page);
   }
 
-  private ensureConnected(): void {
+  ensureConnected(): void {
     if (!this.innerAgent) {
       throw new Error(
         'Please call agent.connect() or agent.launch() first to connect to a browser',
@@ -198,3 +166,47 @@ For more information, see: https://midscenejs.com/automate-with-scripts-in-yaml.
     }
   }
 }
+
+// Create a proxy factory that auto-delegates all methods to innerAgent
+function createAgentProxy(): AgentProxyBase {
+  const instance = new AgentProxyBase();
+
+  return new Proxy(instance, {
+    get(target, prop, receiver) {
+      // First check if property exists on AgentProxyBase itself
+      if (prop in target) {
+        const value = Reflect.get(target, prop, receiver);
+        if (typeof value === 'function') {
+          return value.bind(target);
+        }
+        return value;
+      }
+
+      // Auto-delegate all methods/properties to innerAgent
+      if (target.innerAgent && prop in target.innerAgent) {
+        const value = target.innerAgent[prop];
+        if (typeof value === 'function') {
+          return (...args: any[]) => {
+            target.ensureConnected();
+            return value.apply(target.innerAgent, args);
+          };
+        }
+        return value;
+      }
+
+      // For AI methods accessed before connection, return a function that throws
+      if (typeof prop === 'string' && prop.startsWith('ai')) {
+        return (...args: any[]) => {
+          target.ensureConnected();
+        };
+      }
+
+      return undefined;
+    },
+  }) as AgentProxyBase;
+}
+
+// Export the proxy factory as the AgentProxy class
+export const AgentProxy = function (this: any) {
+  return createAgentProxy();
+} as any as { new (): AgentProxyBase };

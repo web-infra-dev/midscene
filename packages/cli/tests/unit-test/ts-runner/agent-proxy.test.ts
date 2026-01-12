@@ -338,10 +338,7 @@ describe('AgentProxy', () => {
 
       const result = await agent.aiAct('click button');
 
-      expect(puppeteerAgentMock.aiAct).toHaveBeenCalledWith(
-        'click button',
-        undefined,
-      );
+      expect(puppeteerAgentMock.aiAct).toHaveBeenCalledWith('click button');
       expect(result).toBe('aiAct result');
     });
 
@@ -364,10 +361,7 @@ describe('AgentProxy', () => {
 
       const result = await agent.aiAction('type text');
 
-      expect(puppeteerAgentMock.aiAction).toHaveBeenCalledWith(
-        'type text',
-        undefined,
-      );
+      expect(puppeteerAgentMock.aiAction).toHaveBeenCalledWith('type text');
       expect(result).toBe('aiAction result');
     });
 
@@ -377,10 +371,7 @@ describe('AgentProxy', () => {
 
       const result = await agent.aiQuery('get text');
 
-      expect(puppeteerAgentMock.aiQuery).toHaveBeenCalledWith(
-        'get text',
-        undefined,
-      );
+      expect(puppeteerAgentMock.aiQuery).toHaveBeenCalledWith('get text');
       expect(result).toBe('aiQuery result');
     });
 
@@ -392,7 +383,6 @@ describe('AgentProxy', () => {
 
       expect(puppeteerAgentMock.aiAssert).toHaveBeenCalledWith(
         'element exists',
-        undefined,
       );
     });
 
@@ -402,10 +392,7 @@ describe('AgentProxy', () => {
 
       const result = await agent.aiLocate('find button');
 
-      expect(puppeteerAgentMock.aiLocate).toHaveBeenCalledWith(
-        'find button',
-        undefined,
-      );
+      expect(puppeteerAgentMock.aiLocate).toHaveBeenCalledWith('find button');
       expect(result).toBe('aiLocate result');
     });
 
@@ -417,29 +404,28 @@ describe('AgentProxy', () => {
 
       expect(puppeteerAgentMock.aiWaitFor).toHaveBeenCalledWith(
         'element visible',
-        undefined,
       );
     });
 
-    test('should throw error if not connected', async () => {
+    test('should throw error if not connected', () => {
       const agent = new AgentProxy();
 
-      await expect(agent.aiAct('click button')).rejects.toThrow(
+      expect(() => agent.aiAct('click button')).toThrow(
         'Please call agent.connect() or agent.launch() first to connect to a browser',
       );
     });
 
-    test('should throw error for all AI methods if not connected', async () => {
+    test('should throw error for all AI methods if not connected', () => {
       const agent = new AgentProxy();
 
       const errorMessage =
         'Please call agent.connect() or agent.launch() first to connect to a browser';
 
-      await expect(agent.aiAction('action')).rejects.toThrow(errorMessage);
-      await expect(agent.aiQuery('query')).rejects.toThrow(errorMessage);
-      await expect(agent.aiAssert('assert')).rejects.toThrow(errorMessage);
-      await expect(agent.aiLocate('locate')).rejects.toThrow(errorMessage);
-      await expect(agent.aiWaitFor('wait')).rejects.toThrow(errorMessage);
+      expect(() => agent.aiAction('action')).toThrow(errorMessage);
+      expect(() => agent.aiQuery('query')).toThrow(errorMessage);
+      expect(() => agent.aiAssert('assert')).toThrow(errorMessage);
+      expect(() => agent.aiLocate('locate')).toThrow(errorMessage);
+      expect(() => agent.aiWaitFor('wait')).toThrow(errorMessage);
     });
   });
 

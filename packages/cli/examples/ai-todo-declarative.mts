@@ -22,7 +22,9 @@ export async function run() {
   console.log('Tasks:', tasks);
 
   // Verify task created (fuzzy match)
-  const found = tasks.some((task) => task.toLowerCase().includes('typescript'));
+  const found = tasks.some((task: string) =>
+    task.toLowerCase().includes('typescript'),
+  );
   if (!found) {
     throw new Error('Task containing "TypeScript" not found');
   }
