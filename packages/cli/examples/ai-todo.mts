@@ -31,7 +31,7 @@ console.log('All tasks:', allTaskList);
 // Verify tasks created successfully (use fuzzy match for AI input variance)
 const expectedKeywords = ['JS today', 'Rust tomorrow', 'day after tomorrow'];
 for (const keyword of expectedKeywords) {
-  const found = allTaskList.some((task) =>
+  const found = allTaskList.some((task: string) =>
     task.toLowerCase().includes(keyword.toLowerCase()),
   );
   if (!found) {
