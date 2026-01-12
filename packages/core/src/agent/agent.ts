@@ -45,7 +45,11 @@ export type TestStatus =
   | 'interrupted';
 import yaml from 'js-yaml';
 
-import { getMidsceneRunSubDir, getReportTpl, processCacheConfig } from '@/utils';
+import {
+  getMidsceneRunSubDir,
+  getReportTpl,
+  processCacheConfig,
+} from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -188,20 +192,30 @@ export class Agent<
   private reportWriter = new ReportWriter();
 
   private dumpUpdateListeners: Array<
-    (dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void
+    (
+      dump: string,
+      executionDump?: unknown,
+      imageMap?: Record<string, string>,
+    ) => void
   > = [];
 
   get onDumpUpdate():
-    | ((dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void)
+    | ((
+        dump: string,
+        executionDump?: unknown,
+        imageMap?: Record<string, string>,
+      ) => void)
     | undefined {
     return this.dumpUpdateListeners[0];
   }
 
-  set onDumpUpdate(
-    callback:
-      | ((dump: string, executionDump?: unknown, imageMap?: Record<string, string>) => void)
-      | undefined,
-  ) {
+  set onDumpUpdate(callback:
+    | ((
+        dump: string,
+        executionDump?: unknown,
+        imageMap?: Record<string, string>,
+      ) => void)
+    | undefined) {
     // Clear existing listeners
     this.dumpUpdateListeners = [];
     // Add callback to array if provided

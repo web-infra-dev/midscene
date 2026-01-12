@@ -155,12 +155,18 @@ export class GroupedActionDump {
 
     // Use the full report template with visualizer frontend
     const tpl = getReportTpl();
-    const hasValidTemplate = tpl && tpl.includes('</html>');
+    const hasValidTemplate = tpl?.includes('</html>');
 
     let html: string;
     if (hasValidTemplate) {
-      // Insert dump script tag before </html>
-      html = tpl.replace('</html>', `${dumpTag}\n</html>`);
+      // Insert dump script tag before the LAST </html> only
+      // Using replace() would replace ALL occurrences including those in JS code
+      const lastHtmlTagIndex = tpl.lastIndexOf('</html>');
+      html =
+        tpl.slice(0, lastHtmlTagIndex) +
+        dumpTag +
+        '\n' +
+        tpl.slice(lastHtmlTagIndex);
     } else {
       // Fallback to minimal HTML if template is not available (e.g., in tests)
       html = `<!DOCTYPE html>

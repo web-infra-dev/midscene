@@ -52,7 +52,16 @@ export function parseDumpScriptAttributes(
 }
 
 export function generateImageScriptTag(id: string, data: string): string {
-  return `<script type="midscene-image" data-id="${id}">${escapeContent(data)}</script>`;
+  // Do not use template string here, will cause bundle error with <script
+  return (
+    // biome-ignore lint/style/useTemplate: <explanation>
+    '<script type="midscene-image" data-id="' +
+    id +
+    '">' +
+    escapeContent(data) +
+    '</' +
+    'script>'
+  );
 }
 
 export function generateDumpScriptTag(
@@ -61,10 +70,24 @@ export function generateDumpScriptTag(
 ): string {
   let attrString = '';
   if (attributes && Object.keys(attributes).length > 0) {
-    attrString = ` ${Object.entries(attributes)
-      .map(([k, v]) => `${k}="${encodeURIComponent(v)}"`)
-      .join(' ')}`;
+    // Do not use template string here, will cause bundle error with <script
+    attrString =
+      // biome-ignore lint/style/useTemplate: <explanation>
+      ' ' +
+      Object.entries(attributes)
+        // biome-ignore lint/style/useTemplate: <explanation>
+        .map(([k, v]) => k + '="' + encodeURIComponent(v) + '"')
+        .join(' ');
   }
 
-  return `<script type="midscene_web_dump"${attrString}>${escapeContent(json)}</script>`;
+  // Do not use template string here, will cause bundle error with <script
+  return (
+    // biome-ignore lint/style/useTemplate: <explanation>
+    '<script type="midscene_web_dump"' +
+    attrString +
+    '>' +
+    escapeContent(json) +
+    '</' +
+    'script>'
+  );
 }

@@ -183,7 +183,7 @@ export function reportHTMLContent(
 
   // Combine image tags and dump content (images first, then dump)
   const allScriptContent = imageContent
-    ? imageContent + '\n' + dumpContent
+    ? `${imageContent}\n${dumpContent}`
     : dumpContent;
 
   if (writeToFile) {
