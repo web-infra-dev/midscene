@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { config } from 'dotenv';
-import { AgentProxy } from './agent-proxy.js';
-import type { CdpConfig, LaunchConfig } from './types.js';
+import { AgentProxy } from './agent-proxy';
+import type { CdpConfig, LaunchConfig } from './types';
 
 interface UserScriptExports {
   launch?: LaunchConfig;
