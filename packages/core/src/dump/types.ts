@@ -49,9 +49,11 @@ export interface ExecutionDumpInit {
   description?: string;
   tasks?: ExecutionTask[];
   aiActContext?: string;
+  logTime?: number;
 }
 
 export interface GroupedActionDumpInit {
   groupDescription?: string;
   storageProvider?: import('../storage').StorageProvider;
+  sdkVersion?: string;
 }

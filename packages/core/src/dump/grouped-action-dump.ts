@@ -31,7 +31,7 @@ export class GroupedActionDump {
   private _storageProvider: StorageProvider;
 
   constructor(groupName: string, options?: GroupedActionDumpInit) {
-    this.sdkVersion = getVersion();
+    this.sdkVersion = options?.sdkVersion ?? getVersion();
     this.groupName = groupName;
     this.groupDescription = options?.groupDescription;
     this._modelBriefs = new Set();
@@ -197,6 +197,7 @@ ${dumpTag}
     const data = JSON.parse(json) as SerializableGroupedActionDump;
     const dump = new GroupedActionDump(data.groupName, {
       groupDescription: data.groupDescription,
+      sdkVersion: data.sdkVersion,
     });
 
     for (const brief of data.modelBriefs ?? []) {
@@ -214,10 +215,29 @@ ${dumpTag}
     json: string,
     imageMap: Record<string, string>,
   ): Promise<GroupedActionDump> {
-    const dump = GroupedActionDump.fromJSON(json);
+    const data = JSON.parse(json) as SerializableGroupedActionDump;
+    const dump = new GroupedActionDump(data.groupName, {
+      groupDescription: data.groupDescription,
+      sdkVersion: data.sdkVersion,
+    });
 
-    for (const base64 of Object.values(imageMap)) {
-      await dump.storageProvider.store(base64);
+    // Store images with their original IDs first
+    for (const [id, base64] of Object.entries(imageMap)) {
+      await dump.storageProvider.storeWithId(id, base64);
+    }
+
+    for (const brief of data.modelBriefs ?? []) {
+      dump.addModelBrief(brief);
+    }
+
+    // Deserialize executions with ScreenshotItem reconstruction
+    for (const execData of data.executions ?? []) {
+      dump.appendExecution(
+        ExecutionDump.fromSerializableWithProvider(
+          execData,
+          dump.storageProvider,
+        ),
+      );
     }
 
     return dump;
@@ -276,6 +296,7 @@ ${dumpTag}
   ): Promise<GroupedActionDump> {
     const dump = new GroupedActionDump(data.groupName, {
       groupDescription: data.groupDescription,
+      sdkVersion: data.sdkVersion,
     });
 
     for (const brief of data.modelBriefs ?? []) {
@@ -291,7 +312,12 @@ ${dumpTag}
     );
 
     for (const execData of data.executions ?? []) {
-      dump.appendExecution(ExecutionDump.fromSerializable(execData));
+      dump.appendExecution(
+        ExecutionDump.fromSerializableWithProvider(
+          execData,
+          dump.storageProvider,
+        ),
+      );
     }
 
     return dump;

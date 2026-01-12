@@ -8,6 +8,9 @@ export interface StorageProvider {
   /** Store data and return a unique ID */
   store(data: string): Promise<string>;
 
+  /** Store data with a specific ID (for rehydration from serialized data) */
+  storeWithId(id: string, data: string): Promise<void>;
+
   /** Retrieve data by ID */
   retrieve(id: string): Promise<string>;
 

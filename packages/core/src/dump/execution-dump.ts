@@ -1,4 +1,5 @@
-import type { ScreenshotItem } from '../screenshot-item';
+import { ScreenshotItem } from '../screenshot-item';
+import type { StorageProvider } from '../storage';
 import type { ExecutionTask } from '../types';
 import type {
   ExecutionDumpInit,
@@ -43,7 +44,7 @@ export class ExecutionDump {
   private _tasks: ExecutionTask[];
 
   constructor(init: ExecutionDumpInit) {
-    this.logTime = Date.now();
+    this.logTime = init.logTime ?? Date.now();
     this.name = init.name;
     this.description = init.description;
     this.aiActContext = init.aiActContext;
@@ -130,6 +131,57 @@ export class ExecutionDump {
       description: data.description,
       aiActContext: data.aiActContext,
       tasks: data.tasks as ExecutionTask[],
+      logTime: data.logTime,
     });
+  }
+
+  /**
+   * Deserialize with ScreenshotItem reconstruction.
+   * Replaces { $screenshot: id } references with actual ScreenshotItem instances.
+   */
+  static fromSerializableWithProvider(
+    data: SerializableExecutionDump,
+    provider: StorageProvider,
+  ): ExecutionDump {
+    const tasks = data.tasks.map((task) =>
+      ExecutionDump.rebuildTaskScreenshots(task, provider),
+    );
+
+    return new ExecutionDump({
+      name: data.name,
+      description: data.description,
+      aiActContext: data.aiActContext,
+      tasks,
+      logTime: data.logTime,
+    });
+  }
+
+  private static rebuildTaskScreenshots(
+    task: SerializableExecutionTask,
+    provider: StorageProvider,
+  ): ExecutionTask {
+    if (!task.recorder) {
+      return task as ExecutionTask;
+    }
+
+    const recorder = task.recorder.map((record) => {
+      const { screenshot, ...rest } = record;
+
+      if (!screenshot || typeof screenshot !== 'object') {
+        return { ...rest, screenshot: undefined };
+      }
+
+      if (isSerializedScreenshot(screenshot)) {
+        const restored = ScreenshotItem.restore(
+          screenshot.$screenshot,
+          provider,
+        );
+        return { ...rest, screenshot: restored };
+      }
+
+      return { ...rest, screenshot: undefined };
+    });
+
+    return { ...task, recorder } as ExecutionTask;
   }
 }

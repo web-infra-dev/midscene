@@ -30,6 +30,12 @@ export class FileStorage implements StorageProvider {
     return id;
   }
 
+  async storeWithId(id: string, data: string): Promise<void> {
+    const filePath = path.join(this.directory, `${id}.b64`);
+    writeFileSync(filePath, data, 'utf-8');
+    this.registry.set(id, filePath);
+  }
+
   async retrieve(id: string): Promise<string> {
     const filePath = this.registry.get(id);
     if (!filePath) {

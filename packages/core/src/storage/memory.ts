@@ -11,6 +11,10 @@ export class MemoryStorage implements StorageProvider {
     return id;
   }
 
+  async storeWithId(id: string, data: string): Promise<void> {
+    this.dataStore.set(id, data);
+  }
+
   async retrieve(id: string): Promise<string> {
     const data = this.dataStore.get(id);
     if (data === undefined) {
