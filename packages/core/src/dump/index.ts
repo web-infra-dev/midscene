@@ -12,8 +12,8 @@ export type {
 } from './types';
 
 // Classes
-export { ExecutionDumpNew } from './execution-dump';
-export { GroupedActionDumpNew } from './grouped-action-dump';
+export { ExecutionDump } from './execution-dump';
+export { GroupedActionDump } from './grouped-action-dump';
 
 // Utilities
 export { restoreImageReferences } from './image-restoration';

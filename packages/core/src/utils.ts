@@ -7,6 +7,7 @@ import {
   defaultRunDirName,
   getMidsceneRunSubDir,
 } from '@midscene/shared/common';
+export { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   MIDSCENE_CACHE,
   MIDSCENE_DEBUG_MODE,
@@ -21,7 +22,6 @@ import {
   uuid,
 } from '@midscene/shared/utils';
 import { ScreenshotItem } from './screenshot-item';
-import type { ScreenshotRegistry } from './screenshot-registry';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
 let logEnvReady = false;
@@ -129,7 +129,6 @@ export function reportHTMLContent(
   reportPath?: string,
   appendReport?: boolean,
   withTpl = true, // whether return with report template, default = true
-  screenshotRegistry?: ScreenshotRegistry, // registry for generating image script tags
 ): string {
   let tpl = '';
   if (withTpl) {
@@ -152,9 +151,6 @@ export function reportHTMLContent(
     processedDumpString = dumpData.dumpString;
     attributes = dumpData.attributes;
   }
-
-  // Generate image script tags from registry (if available)
-  const imageScriptTags = screenshotRegistry?.generateScriptTags() ?? '';
 
   let dumpContent = '';
 
@@ -180,14 +176,7 @@ export function reportHTMLContent(
       '\n</script>';
   }
 
-  // Combine image script tags and dump content
-  let allScriptContent: string;
-  if (imageScriptTags) {
-    // biome-ignore lint/style/useTemplate: avoid bundle error
-    allScriptContent = imageScriptTags + '\n' + dumpContent;
-  } else {
-    allScriptContent = dumpContent;
-  }
+  const allScriptContent = dumpContent;
 
   if (writeToFile) {
     if (!appendReport) {
@@ -315,7 +304,7 @@ export function writeDirectoryReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes,
   appendReport?: boolean,
-  screenshotRegistry?: ScreenshotRegistry,
+  imageMap?: Record<string, string>,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
     console.log('will not write directory report in browser');
@@ -341,7 +330,7 @@ export function writeDirectoryReport(
     const processedData = extractAndSaveScreenshots(
       dumpData,
       screenshotsDir,
-      screenshotRegistry,
+      imageMap,
     );
 
     // Generate HTML report (images are already saved as separate files)
@@ -395,7 +384,7 @@ function parseDumpData(dumpData: string | ReportDumpWithAttributes): {
 function extractAndSaveScreenshots(
   dumpData: string | ReportDumpWithAttributes,
   screenshotsDir: string,
-  screenshotRegistry?: ScreenshotRegistry,
+  imageMap?: Record<string, string>,
 ): string {
   const { data } = parseDumpData(dumpData);
 
@@ -412,9 +401,9 @@ function extractAndSaveScreenshots(
 
     if (isNewFormat) {
       // New format: { $screenshot: "id" } - value is the ID
-      // Get base64 data from registry
-      if (screenshotRegistry) {
-        base64Data = screenshotRegistry.get(value);
+      // Get base64 data from imageMap
+      if (imageMap) {
+        base64Data = imageMap[value];
       }
       if (!base64Data) {
         // Could not resolve screenshot ID
@@ -475,7 +464,6 @@ export function writeDumpReport(
   fileName: string,
   dumpData: string | ReportDumpWithAttributes,
   appendReport?: boolean,
-  screenshotRegistry?: ScreenshotRegistry,
 ): string | null {
   if (ifInBrowser || ifInWorker) {
     console.log('will not write report in browser');
@@ -487,13 +475,7 @@ export function writeDumpReport(
     `${fileName}.html`,
   );
 
-  reportHTMLContent(
-    dumpData,
-    reportPath,
-    appendReport,
-    true,
-    screenshotRegistry,
-  );
+  reportHTMLContent(dumpData, reportPath, appendReport, true);
 
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
     const jsonPath = `${reportPath}.json`;
@@ -523,7 +505,7 @@ export function writeLogFile(opts: {
   generateReport?: boolean;
   appendReport?: boolean;
   useDirectoryReport?: boolean;
-  screenshotRegistry?: ScreenshotRegistry;
+  imageMap?: Record<string, string>;
 }) {
   if (ifInBrowser || ifInWorker) {
     return '/mock/report.html';
@@ -571,15 +553,10 @@ export function writeLogFile(opts: {
         fileName,
         fileContent,
         opts.appendReport,
-        opts.screenshotRegistry,
+        opts.imageMap,
       );
     }
-    return writeDumpReport(
-      fileName,
-      fileContent,
-      opts.appendReport,
-      opts.screenshotRegistry,
-    );
+    return writeDumpReport(fileName, fileContent, opts.appendReport);
   }
 
   return filePath;

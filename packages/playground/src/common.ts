@@ -230,15 +230,12 @@ export async function executeAction(
 
 /**
  * Extract dump data from agent and restore image references.
- * This is used by both local-execution adapter and server to ensure
- * image references in dump are replaced with actual base64 data.
- *
- * @param agent - The agent to extract dump from
- * @returns The execution dump with image references restored, or null if not available
+ * Used by local-execution adapter and server to replace image references
+ * with actual base64 data in dump.
  */
-export function extractDumpWithImages(
+export async function extractDumpWithImages(
   agent: PlaygroundAgent,
-): ExecutionDump | null {
+): Promise<ExecutionDump | null> {
   if (!agent?.dumpDataString) {
     return null;
   }
@@ -250,32 +247,16 @@ export function extractDumpWithImages(
     }
 
     const groupedDump = JSON.parse(dumpString);
-    let dump = groupedDump.executions?.[0] || null;
+    const dump = groupedDump.executions?.[0] || null;
 
     if (!dump) {
       return null;
     }
 
-    // Get image map and restore references
-    const imageMap = agent.getImageMap?.() ?? {};
-
-    // Try to restore image references, fallback to original dump if it fails
-    try {
-      dump = restoreImageReferences(dump, imageMap);
-    } catch (restoreError) {
-      console.warn(
-        '[extractDumpWithImages] Failed to restore images, returning original dump:',
-        restoreError,
-      );
-      // Return original dump if restore fails
-    }
-
-    return dump;
+    const imageMap = (await agent.getImageMap?.()) ?? {};
+    return restoreImageReferences(dump, imageMap);
   } catch (error: unknown) {
-    console.warn(
-      '[extractDumpWithImages] Failed to extract dump with images:',
-      error,
-    );
+    console.warn('[extractDumpWithImages] Failed to extract dump:', error);
     return null;
   }
 }

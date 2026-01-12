@@ -31,13 +31,14 @@ export { z };
 export default Service;
 export { TaskRunner, Service, getVersion };
 
-export {
-  ScreenshotRegistry,
-  IMAGE_SCRIPT_TYPE,
-  restoreImageReferences,
-} from './screenshot-registry';
-
 export { ScreenshotItem } from './screenshot-item';
+export { restoreImageReferences } from './dump';
+export type {
+  SerializableGroupedActionDump,
+  SerializableExecutionDump,
+} from './dump';
+export type { StorageProvider } from './storage';
+export { MemoryStorage, FileStorage } from './storage';
 
 export type { RawUIContextData } from './agent/utils';
 

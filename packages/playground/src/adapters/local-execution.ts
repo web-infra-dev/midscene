@@ -115,23 +115,6 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     console.log('Config updated. Agent will be recreated on next execution.');
   }
 
-  /**
-   * Safely detaches the Chrome debugger without destroying the agent.
-   * This removes the "Debugger attached" banner from the browser window
-   * while keeping the agent instance intact for potential reuse.
-   * Called on errors to improve user experience by cleaning up the UI.
-   */
-  private async detachDebuggerSafely() {
-    try {
-      const page = this.agent?.interface as
-        | { detachDebugger?: () => Promise<void> }
-        | undefined;
-      await page?.detachDebugger?.();
-    } catch (error) {
-      console.warn('Failed to detach debugger:', error);
-    }
-  }
-
   async executeAction(
     actionType: string,
     value: FormValue,
@@ -226,7 +209,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Get dump data with restored image references
       try {
-        response.dump = extractDumpWithImages(agent);
+        response.dump = await extractDumpWithImages(agent);
       } catch (error: unknown) {
         console.warn('Failed to get dump from agent:', error);
       }
@@ -234,7 +217,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Try to get reportHTML - may fail in browser environment (fs not available)
       try {
         if (agent.reportHTMLString) {
-          response.reportHTML = agent.reportHTMLString() || null;
+          response.reportHTML = (await agent.reportHTMLString()) || null;
         }
       } catch (error: unknown) {
         // reportHTMLString may throw in browser environment
@@ -244,7 +227,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Write out action dumps - may also fail in browser environment
       try {
         if (agent.writeOutActionDumps) {
-          agent.writeOutActionDumps();
+          await agent.writeOutActionDumps();
         }
       } catch (error: unknown) {
         // writeOutActionDumps may fail in browser environment
@@ -300,7 +283,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // Get dump data with restored image references
     // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
     try {
-      dump = extractDumpWithImages(this.agent);
+      dump = await extractDumpWithImages(this.agent);
     } catch (error) {
       console.warn(
         '[LocalExecutionAdapter] Failed to get dump data before cancel:',
@@ -312,7 +295,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // where fs.readFileSync is not available
     try {
       if (typeof this.agent.reportHTMLString === 'function') {
-        const html = this.agent.reportHTMLString();
+        const html = await this.agent.reportHTMLString();
         if (
           html &&
           typeof html === 'string' &&
@@ -359,12 +342,12 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     try {
       // Get dump data with restored image references
       if (this.agent) {
-        response.dump = extractDumpWithImages(this.agent);
+        response.dump = await extractDumpWithImages(this.agent);
       }
 
       // Get report HTML
       if (this.agent?.reportHTMLString) {
-        response.reportHTML = this.agent.reportHTMLString() || null;
+        response.reportHTML = (await this.agent.reportHTMLString()) || null;
       }
     } catch (error: unknown) {
       console.error('Failed to get current execution data:', error);

@@ -225,7 +225,7 @@ class PlaygroundServer {
         // Restore image references in execution dump if available
         if (executionDump) {
           try {
-            const imageMap = this.agent?.getImageMap?.() ?? {};
+            const imageMap = (await this.agent?.getImageMap?.()) ?? {};
             executionDump = restoreImageReferences(executionDump, imageMap);
           } catch (error: unknown) {
             console.warn(
@@ -451,10 +451,10 @@ class PlaygroundServer {
 
       try {
         // Get dump data with restored image references
-        response.dump = extractDumpWithImages(this.agent);
-        response.reportHTML = this.agent.reportHTMLString() || null;
+        response.dump = await extractDumpWithImages(this.agent);
+        response.reportHTML = (await this.agent.reportHTMLString()) || null;
 
-        this.agent.writeOutActionDumps();
+        await this.agent.writeOutActionDumps();
         this.agent.resetDump();
       } catch (error: unknown) {
         const errorMessage =
@@ -515,8 +515,8 @@ class PlaygroundServer {
 
           try {
             // Get dump data with restored image references
-            dump = extractDumpWithImages(this.agent);
-            reportHTML = this.agent.reportHTMLString?.() || null;
+            dump = await extractDumpWithImages(this.agent);
+            reportHTML = (await this.agent.reportHTMLString?.()) || null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }

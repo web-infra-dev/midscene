@@ -1,4 +1,4 @@
-import type { ScreenshotItemNew } from '../screenshot-item-new';
+import type { ScreenshotItem } from '../screenshot-item';
 import type { ExecutionTask } from '../types';
 import type {
   ExecutionDumpInit,
@@ -35,7 +35,7 @@ function isSerializedScreenshot(value: unknown): value is SerializedScreenshot {
  * ExecutionDump represents a single execution session.
  * Contains tasks and their associated screenshots.
  */
-export class ExecutionDumpNew {
+export class ExecutionDump {
   readonly logTime: number;
   readonly name: string;
   readonly description?: string;
@@ -58,9 +58,9 @@ export class ExecutionDumpNew {
     this._tasks.push(task);
   }
 
-  /** Collect all ScreenshotItemNew instances from recorder items */
-  collectScreenshots(): ScreenshotItemNew[] {
-    const screenshots: ScreenshotItemNew[] = [];
+  /** Collect all ScreenshotItem instances from recorder items */
+  collectScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
 
     for (const task of this._tasks) {
       if (!task.recorder) continue;
@@ -72,7 +72,7 @@ export class ExecutionDumpNew {
           typeof screenshot === 'object' &&
           hasToSerializable(screenshot)
         ) {
-          screenshots.push(screenshot as unknown as ScreenshotItemNew);
+          screenshots.push(screenshot as unknown as ScreenshotItem);
         }
       }
     }
@@ -121,19 +121,11 @@ export class ExecutionDumpNew {
       return { ...rest, screenshot };
     }
 
-    if ('toJSON' in screenshot && typeof screenshot.toJSON === 'function') {
-      const json = screenshot.toJSON();
-      if (isSerializedScreenshot(json)) {
-        return { ...rest, screenshot: json };
-      }
-      return { ...rest, screenshot: null };
-    }
-
     return { ...rest, screenshot: null };
   }
 
-  static fromSerializable(data: SerializableExecutionDump): ExecutionDumpNew {
-    return new ExecutionDumpNew({
+  static fromSerializable(data: SerializableExecutionDump): ExecutionDump {
+    return new ExecutionDump({
       name: data.name,
       description: data.description,
       aiActContext: data.aiActContext,

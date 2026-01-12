@@ -33,13 +33,13 @@ describe('PageAgent freeze/unfreeze page context', () => {
   let mockContext: WebUIContext;
   let mockContext2: WebUIContext;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     // Create mock contexts
     mockContext = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshot: ScreenshotItem.fromBase64(
+      screenshot: await ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       ),
       tree: [
@@ -56,7 +56,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     mockContext2 = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshot: ScreenshotItem.fromBase64(
+      screenshot: await ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
       ),
       tree: [
@@ -144,7 +144,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Frozen context should be marked
       const frozenContext = (agent as any).frozenUIContext;
       expect(frozenContext._isFrozen).toBe(true);
-      expect(frozenContext.screenshot.base64).toBe(
+      expect(await frozenContext.screenshot.getData()).toBe(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       );
       expect(frozenContext.tree).toBe(mockContext.tree);

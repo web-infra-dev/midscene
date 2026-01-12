@@ -14,7 +14,6 @@ import type {
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ScreenshotItem } from './screenshot-item';
-import type { ScreenshotRegistry } from './screenshot-registry';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
@@ -25,7 +24,6 @@ type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
     runner: TaskRunner,
     error?: TaskExecutionError,
   ) => Promise<void> | void;
-  screenshotRegistry?: ScreenshotRegistry;
 };
 
 type TaskRunnerOperationOptions = {
@@ -48,8 +46,6 @@ export class TaskRunner {
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
-  private readonly screenshotRegistry?: ScreenshotRegistry;
-
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
@@ -64,7 +60,6 @@ export class TaskRunner {
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
     this.onTaskUpdate = options?.onTaskUpdate;
-    this.screenshotRegistry = options?.screenshotRegistry;
   }
 
   private async emitOnTaskUpdate(error?: TaskExecutionError): Promise<void> {
@@ -278,7 +273,6 @@ export class TaskRunner {
         }
 
         // Store uiContext in task for dump
-        // ScreenshotItem handles serialization automatically via toJSON()
         task.uiContext = uiContext;
 
         const executorContext: ExecutorContext = {
