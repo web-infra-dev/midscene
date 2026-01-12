@@ -111,16 +111,11 @@ describe('runner.ts', () => {
     expect(agentInstanceMock.connect).not.toHaveBeenCalled();
   });
 
-  test('should exit with error when no script path provided', async () => {
+  test('should throw error when no script path provided', async () => {
     process.argv = ['node', 'runner.js'];
     const { run } = await import('../../../src/ts-runner/runner.js');
 
-    await run();
-
-    expect(consoleErrorMock).toHaveBeenCalledWith(
-      'Usage: midscene <script.ts>',
-    );
-    expect(processExitMock).toHaveBeenCalledWith(1);
+    await expect(run()).rejects.toThrow('Usage: midscene <script.ts>');
   });
 
   test('should cleanup on beforeExit', async () => {
