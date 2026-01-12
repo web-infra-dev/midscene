@@ -408,7 +408,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           libnut.moveMouse(Math.round(x), Math.round(y));
         }
 
-        const scrollToEventName = param?.scrollType;
+        const scrollType = param?.scrollType;
 
         // Scroll to edge actions
         const scrollToEdgeActions: Record<string, [number, number]> = {
@@ -418,7 +418,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           scrollToRight: [10, 0],
         };
 
-        const edgeAction = scrollToEdgeActions[scrollToEventName || ''];
+        const edgeAction = scrollToEdgeActions[scrollType || ''];
         if (edgeAction) {
           const [dx, dy] = edgeAction;
           for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
@@ -429,7 +429,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         }
 
         // Single scroll action
-        if (scrollToEventName === 'singleAction' || !scrollToEventName) {
+        if (scrollType === 'singleAction' || !scrollType) {
           const distance = param?.distance || 500;
           const ticks = Math.ceil(distance / 100);
           const direction = param?.direction || 'down';
@@ -448,7 +448,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         }
 
         throw new Error(
-          `Unknown scroll event type: ${scrollToEventName}, param: ${JSON.stringify(param)}`,
+          `Unknown scroll type: ${scrollType}, param: ${JSON.stringify(param)}`,
         );
       }),
 
@@ -514,6 +514,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const modifier = process.platform === 'darwin' ? 'command' : 'control';
         libnut.keyTap('a', [modifier]);
         libnut.keyTap('backspace');
+        await sleep(50);
       }),
     ];
 
