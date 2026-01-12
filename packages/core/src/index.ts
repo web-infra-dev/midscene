@@ -32,8 +32,11 @@ export default Service;
 export { TaskRunner, Service, getVersion };
 
 export { ScreenshotItem } from './screenshot-item';
-export { restoreImageReferences, GroupedActionDump } from './dump';
-export { ExecutionDump as ExecutionDumpClass } from './dump';
+export { restoreImageReferences } from './dump';
+export {
+  GroupedActionDump as GroupedActionDumpClass,
+  ExecutionDump as ExecutionDumpClass,
+} from './dump';
 export type {
   SerializableGroupedActionDump,
   SerializableExecutionDump,
