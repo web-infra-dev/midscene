@@ -21,6 +21,14 @@ vi.mock('../../src/common', async (importOriginal) => {
   return {
     ...actual,
     executeAction: vi.fn(),
+    // Mock extractDumpWithImages to return the dump from agent's dumpDataString
+    extractDumpWithImages: vi.fn(async (agent) => {
+      if (!agent?.dumpDataString) return null;
+      const dumpString = agent.dumpDataString();
+      if (!dumpString) return null;
+      const groupedDump = JSON.parse(dumpString);
+      return groupedDump.executions?.[0] || null;
+    }),
   };
 });
 

@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
 import { PlaygroundSDK } from '../../src/sdk';
@@ -9,6 +9,22 @@ import type {
   PlaygroundAgent,
   PlaygroundConfig,
 } from '../../src/types';
+
+// Mock extractDumpWithImages to avoid module resolution issues in test environment
+vi.mock('../../src/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/common')>();
+  return {
+    ...actual,
+    // Mock extractDumpWithImages to return the dump from agent's dumpDataString
+    extractDumpWithImages: vi.fn(async (agent) => {
+      if (!agent?.dumpDataString) return null;
+      const dumpString = agent.dumpDataString();
+      if (!dumpString) return null;
+      const groupedDump = JSON.parse(dumpString);
+      return groupedDump.executions?.[0] || null;
+    }),
+  };
+});
 
 // Helper function to create mock agent with common methods
 function createBaseMockAgent(
