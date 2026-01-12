@@ -227,11 +227,107 @@ ${dumpTag}
     const imageMap = parseImageScripts(html);
     const dumpJson = parseDumpScript(html);
 
+    // New format: images in separate script tags
     if (Object.keys(imageMap).length > 0) {
       return GroupedActionDump.fromJSONWithImages(dumpJson, imageMap);
     }
 
+    // Check if this is legacy format (images inline in dump)
+    const data = JSON.parse(dumpJson);
+    if (GroupedActionDump.hasLegacyInlineImages(data)) {
+      return GroupedActionDump.fromJSONLegacy(data);
+    }
+
     return GroupedActionDump.fromJSON(dumpJson);
+  }
+
+  /**
+   * Check if the dump data contains legacy inline base64 images
+   */
+  private static hasLegacyInlineImages(data: unknown): boolean {
+    if (typeof data !== 'object' || data === null) return false;
+
+    if (Array.isArray(data)) {
+      return data.some((item) => GroupedActionDump.hasLegacyInlineImages(item));
+    }
+
+    for (const [key, value] of Object.entries(data)) {
+      // Legacy format: screenshot field is a direct base64 string
+      if (
+        (key === 'screenshot' || key === 'screenshotBase64') &&
+        typeof value === 'string' &&
+        (value.startsWith('data:image/') || value.length > 100)
+      ) {
+        return true;
+      }
+      if (GroupedActionDump.hasLegacyInlineImages(value)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Handle legacy format where images are inline base64 strings in the dump
+   */
+  private static async fromJSONLegacy(
+    data: SerializableGroupedActionDump,
+  ): Promise<GroupedActionDump> {
+    const dump = new GroupedActionDump(data.groupName, {
+      groupDescription: data.groupDescription,
+    });
+
+    for (const brief of data.modelBriefs ?? []) {
+      dump.addModelBrief(brief);
+    }
+
+    // Extract inline images and convert to new format
+    const imageMap: Record<string, string> = {};
+    await GroupedActionDump.extractLegacyImages(
+      data,
+      imageMap,
+      dump.storageProvider,
+    );
+
+    for (const execData of data.executions ?? []) {
+      dump.appendExecution(ExecutionDump.fromSerializable(execData));
+    }
+
+    return dump;
+  }
+
+  /**
+   * Recursively extract legacy inline base64 images and convert to new format
+   */
+  private static async extractLegacyImages(
+    obj: unknown,
+    imageMap: Record<string, string>,
+    provider: StorageProvider,
+  ): Promise<void> {
+    if (typeof obj !== 'object' || obj === null) return;
+
+    if (Array.isArray(obj)) {
+      for (const item of obj) {
+        await GroupedActionDump.extractLegacyImages(item, imageMap, provider);
+      }
+      return;
+    }
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (
+        (key === 'screenshot' || key === 'screenshotBase64') &&
+        typeof value === 'string' &&
+        (value.startsWith('data:image/') || value.length > 100)
+      ) {
+        // Store the base64 data and replace with new format
+        const id = await provider.store(value);
+        imageMap[id] = value;
+        (obj as Record<string, unknown>)[key] = { $screenshot: id };
+      } else {
+        await GroupedActionDump.extractLegacyImages(value, imageMap, provider);
+      }
+    }
   }
 
   async cleanup(): Promise<void> {

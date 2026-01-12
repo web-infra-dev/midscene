@@ -10,12 +10,12 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import type { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
   ServiceExtractOption,
 } from './yaml';
-import type { ScreenshotItem } from './screenshot-item';
 
 export type {
   ElementTreeNode,
