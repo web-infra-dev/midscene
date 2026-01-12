@@ -8,11 +8,9 @@ export function parseImageScripts(html: string): Record<string, string> {
   const regex =
     /<script type="midscene-image" data-id="([^"]+)">([\s\S]*?)<\/script>/g;
 
-  let match = regex.exec(html);
-  while (match !== null) {
+  for (const match of html.matchAll(regex)) {
     const [, id, content] = match;
     imageMap[id] = unescapeContent(content);
-    match = regex.exec(html);
   }
 
   return imageMap;
@@ -43,13 +41,11 @@ export function parseDumpScriptAttributes(
   const attributes: Record<string, string> = {};
   const attrRegex = /(\w+)="([^"]*)"/g;
 
-  let attrMatch = attrRegex.exec(attrString);
-  while (attrMatch !== null) {
+  for (const attrMatch of attrString.matchAll(attrRegex)) {
     const [, key, value] = attrMatch;
     if (key !== 'type') {
       attributes[key] = decodeURIComponent(value);
     }
-    attrMatch = attrRegex.exec(attrString);
   }
 
   return attributes;
