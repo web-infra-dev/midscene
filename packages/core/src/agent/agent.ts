@@ -1,3 +1,21 @@
+import yaml from 'js-yaml';
+
+import type { AbstractInterface } from '@/device';
+import type { TaskRunner } from '@/task-runner';
+import { getReportTpl, processCacheConfig } from '@/utils';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  type IModelConfig,
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
+  ModelConfigManager,
+  globalConfigManager,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
+import { assert, ifInBrowser } from '@midscene/shared/utils';
+
+import { defineActionAssert } from '../device';
 import {
   ExecutionDump as ExecutionDumpClass,
   GroupedActionDump as GroupedActionDumpClass,
@@ -36,42 +54,13 @@ import { ReportWriter } from '../report-writer';
 import { ScreenshotItem } from '../screenshot-item';
 import type { StorageProvider } from '../storage';
 import { MemoryStorage } from '../storage';
-export type TestStatus =
-  | 'passed'
-  | 'failed'
-  | 'timedOut'
-  | 'skipped'
-  | 'interrupted';
-import yaml from 'js-yaml';
-
-import { getReportTpl, processCacheConfig } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
   parseYamlScript,
 } from '../yaml/index';
 
-import type { AbstractInterface } from '@/device';
-import type { TaskRunner } from '@/task-runner';
-import {
-  type IModelConfig,
-  MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  ModelConfigManager,
-  globalConfigManager,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser } from '@midscene/shared/utils';
-
-// Dynamic require to avoid bundler static analysis
-const dynamicRequire = ifInBrowser
-  ? null
-  : (new Function('moduleName', 'return require(moduleName)') as NodeRequire);
-
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { defineActionAssert } from '../device';
-import type { TaskCache } from './task-cache';
+import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
   TaskExecutor,
@@ -86,6 +75,13 @@ import {
   parsePrompt,
   printReportMsg,
 } from './utils';
+
+export type TestStatus =
+  | 'passed'
+  | 'failed'
+  | 'timedOut'
+  | 'skipped'
+  | 'interrupted';
 
 const debug = getDebug('agent');
 
@@ -390,19 +386,14 @@ export class Agent<
     });
 
     // Initialize task cache
-    // Option 1: Use provided taskCache (dependency injection, preferred for Node.js)
-    // Option 2: Create from cache config (backward compatibility, Node.js only)
+    // Option 1: Use provided taskCache (dependency injection)
+    // Option 2: Auto-create from cache config (Node.js only)
     if (opts?.taskCache) {
       this.taskCache = opts.taskCache;
     } else if (!ifInBrowser) {
-      // Only create TaskCache in Node.js environment
       const cacheConfigObj = this.processCacheConfig(opts || {});
       if (cacheConfigObj) {
-        // Use dynamic require to avoid bundler including task-cache in browser builds
-        const { TaskCache: TaskCacheClass } = dynamicRequire!(
-          './task-cache',
-        ) as typeof import('./task-cache');
-        this.taskCache = new TaskCacheClass(
+        this.taskCache = new TaskCache(
           cacheConfigObj.id,
           cacheConfigObj.enabled,
           undefined, // cacheFilePath
@@ -1606,21 +1597,14 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
-    if (ifInBrowser) {
-      // In browser, just return the files as-is
+    const resolver = this.opts.filePathResolver;
+    if (!resolver) {
+      // No resolver provided, return files as-is
+      // In Node.js environments, callers should provide filePathResolver for path validation
       return files;
     }
 
-    const { existsSync } = dynamicRequire!('node:fs');
-    const { resolve } = dynamicRequire!('node:path');
-
-    return files.map((file) => {
-      const absolutePath = resolve(file);
-      if (!existsSync(absolutePath)) {
-        throw new Error(`File not found: ${file}`);
-      }
-      return absolutePath;
-    });
+    return files.map((file) => resolver(file));
   }
 
   private normalizeFileInput(files: string | string[]): string[] {

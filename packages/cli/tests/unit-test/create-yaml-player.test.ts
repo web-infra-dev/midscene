@@ -13,9 +13,13 @@ vi.mock('@midscene/shared/env', () => ({
 }));
 
 // Mock dependencies
-vi.mock('node:fs', () => ({
-  readFileSync: vi.fn(),
-}));
+vi.mock('node:fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:fs')>();
+  return {
+    ...actual,
+    readFileSync: vi.fn(),
+  };
+});
 
 vi.mock('http-server', () => ({
   createServer: vi.fn(),

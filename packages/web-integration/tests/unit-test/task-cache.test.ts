@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, unlinkSync } from 'node:fs';
 import path, { join } from 'node:path';
 import type { LocateCache, PlanningCache } from '@midscene/core/agent';
-import { TaskCache } from '@midscene/core/agent';
+import { TaskCache, cacheFileExt } from '@midscene/core/agent';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import yaml from 'js-yaml';

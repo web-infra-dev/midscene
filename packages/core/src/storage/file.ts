@@ -5,6 +5,22 @@ import { uuid } from '@midscene/shared/utils';
 import type { StorageProvider } from './provider';
 
 /**
+ * Default file path resolver for Node.js environments.
+ * Resolves relative paths to absolute and validates file existence.
+ *
+ * @param filePath - The file path to resolve
+ * @returns The absolute path if file exists
+ * @throws Error if file does not exist
+ */
+export function defaultFilePathResolver(filePath: string): string {
+  const absolutePath = path.resolve(filePath);
+  if (!fs.existsSync(absolutePath)) {
+    throw new Error(`File not found: ${filePath}`);
+  }
+  return absolutePath;
+}
+
+/**
  * File-based storage provider for Node.js environments.
  * Stores screenshot data as files on disk.
  *

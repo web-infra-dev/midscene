@@ -668,6 +668,26 @@ export interface AgentOpt {
    */
   taskCache?: import('./agent/task-cache').TaskCache;
   /**
+   * File path resolver for validating and resolving file paths.
+   * Only needed in Node.js environments for file upload operations.
+   *
+   * @example
+   * ```typescript
+   * import fs from 'node:fs';
+   * import path from 'node:path';
+   * const agent = new Agent(device, {
+   *   filePathResolver: (filePath) => {
+   *     const absolutePath = path.resolve(filePath);
+   *     if (!fs.existsSync(absolutePath)) {
+   *       throw new Error(`File not found: ${filePath}`);
+   *     }
+   *     return absolutePath;
+   *   },
+   * });
+   * ```
+   */
+  filePathResolver?: (filePath: string) => string;
+  /**
    * Maximum number of replanning cycles for aiAct.
    * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.

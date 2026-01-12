@@ -1,6 +1,6 @@
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 export { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
