@@ -8,11 +8,16 @@ function getDevReportTpl(): string {
   if (!process.env.USE_DEV_REPORT) {
     return '';
   }
-  const reportPath = path.resolve(__dirname, '../../apps/report/dist/index.html');
+  const reportPath = path.resolve(
+    __dirname,
+    '../../apps/report/dist/index.html',
+  );
   try {
     return fs.readFileSync(reportPath, 'utf-8');
   } catch {
-    console.warn(`Warning: Could not read dev report template from ${reportPath}`);
+    console.warn(
+      `Warning: Could not read dev report template from ${reportPath}`,
+    );
     return '';
   }
 }
