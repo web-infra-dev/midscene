@@ -45,8 +45,6 @@ export type { StorageProvider, FileStorage } from './storage';
 export { MemoryStorage } from './storage';
 export { ReportWriter } from './report-writer';
 
-export type { RawUIContextData } from './agent/utils';
-
 export type {
   MidsceneYamlScript,
   MidsceneYamlTask,
