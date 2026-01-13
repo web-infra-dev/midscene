@@ -114,12 +114,15 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelConfig,
     );
 
-    // Verify that createTypeQueryTask was called with doNotThrowError: true
+    // Verify that createTypeQueryTask was called with ServiceExtractOption
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
       mockedModelConfig,
-      undefined,
+      {
+        domIncluded: undefined,
+        screenshotIncluded: undefined,
+      },
       undefined,
     );
 
@@ -166,12 +169,15 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       mockedModelConfig,
     );
 
-    // Verify that createTypeQueryTask was called multiple times with doNotThrowError: true
+    // Verify that createTypeQueryTask was called multiple times with ServiceExtractOption
     expect(createTypeQueryTaskSpy).toHaveBeenCalledWith(
       'WaitFor',
       'test assertion',
       mockedModelConfig,
-      undefined,
+      {
+        domIncluded: undefined,
+        screenshotIncluded: undefined,
+      },
       undefined,
     );
 

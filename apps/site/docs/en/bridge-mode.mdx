@@ -84,14 +84,14 @@ After executing the script, you should see the status of the Chrome extension sw
 
 [Yaml scripts](./automate-with-scripts-in-yaml) is a way for developers to write automation scripts in yaml format, which is easy to read and write comparing to javascript.
 
-To use bridge mode in yaml script, set the `bridgeMode` property in the `target` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
+To use bridge mode in yaml script, set the `bridgeMode` property in the `web` section. If you want to use the current tab, set it to `currentTab`, otherwise set it to `newTabWithUrl`.
 
 Set `closeNewTabsAfterDisconnect` to true if you want to close the newly created tabs when the bridge is destroyed. This is optional and the default value is false.
 
 For example, the following script will open a new tab by Chrome extension bridge: 
 
 ```diff
-target:
+web:
   url: https://www.bing.com
 + bridgeMode: newTabWithUrl
 + closeNewTabsAfterDisconnect: true

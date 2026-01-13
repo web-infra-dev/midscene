@@ -74,9 +74,9 @@ export class TaskCache {
     assert(cacheId, 'cacheId is required');
     let safeCacheId = replaceIllegalPathCharsAndSpace(cacheId);
     const cacheMaxFilenameLength =
-      globalConfigManager.getEnvConfigInNumber(
+      globalConfigManager.getEnvConfigValueAsNumber(
         MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ) || DEFAULT_CACHE_MAX_FILENAME_LENGTH;
+      ) ?? DEFAULT_CACHE_MAX_FILENAME_LENGTH;
     if (Buffer.byteLength(safeCacheId, 'utf8') > cacheMaxFilenameLength) {
       const prefix = safeCacheId.slice(0, 32);
       const hash = generateHashId(undefined, safeCacheId);

@@ -314,13 +314,10 @@ export class Agent<
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
     this.interface = interfaceInstance;
 
-    const envConfig = globalConfigManager.getAllEnvConfig();
-    const envReplanningCycleLimitRaw =
-      envConfig[MIDSCENE_REPLANNING_CYCLE_LIMIT];
     const envReplanningCycleLimit =
-      envReplanningCycleLimitRaw !== undefined
-        ? Number(envReplanningCycleLimitRaw)
-        : undefined;
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_REPLANNING_CYCLE_LIMIT,
+      );
 
     this.opts = Object.assign(
       {
@@ -1247,6 +1244,7 @@ export class Agent<
     await this.taskExecutor.waitFor(
       assertion,
       {
+        ...opt,
         timeoutMs: opt?.timeoutMs || 15 * 1000,
         checkIntervalMs: opt?.checkIntervalMs || 3 * 1000,
       },

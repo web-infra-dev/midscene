@@ -1,6 +1,6 @@
 # 缓存 AI 规划和定位
 
-Midscene 支持缓存 Plan 的步骤与匹配到的元素位置信息，减少 AI 模型的调用次数，从而大幅提升执行效率。请注意，DOM 元素缓存仅在 Web 自动化任务中支持。
+Midscene 支持缓存 Plan 的步骤与匹配到的元素位置信息，减少 AI 模型的调用次数，从而大幅提升执行效率。请注意，DOM 元素缓存仅在 Web 自动化任务中支持，且存在[一定局限性](#使用-xpath-缓存元素定位信息的局限性)。
 
 **效果**
 
@@ -333,7 +333,14 @@ Midscene 使用 [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 
 1. 新元素在相同的 XPath 下的文本内容与缓存元素不同。
 2. 页面的 DOM 结构与缓存时的结构不同。
 
-当缓存未命中时，Midscene 将回退到继续使用 AI 服务来查找元素。
+此外，由于元素定位缓存依赖 DOM 结构，以下场景无法使用缓存功能：
+
+1. **Canvas 元素**：Canvas 内部的图形内容不存在 DOM 节点，无法通过 XPath 定位。
+2. **跨域 iframe**：浏览器安全策略限制了对跨域 iframe 内部 DOM 的访问。
+3. **Shadow DOM（closed 模式）**：封闭的 Shadow DOM 无法从外部访问其内部结构。
+4. **WebGL / SVG 动态内容**：动态生成的图形内容可能没有稳定的 DOM 结构。
+
+当缓存未命中或不可用时，Midscene 将回退到使用 AI 服务来查找元素。
 
 ### 获取缓存相关的调试日志
 

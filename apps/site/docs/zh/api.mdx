@@ -251,21 +251,36 @@ await agent.aiHover('页面顶部的登录按钮');
 - 类型
 
 ```typescript
+// 推荐用法：定位提示在前，其他选项在 opt 中
 function aiInput(
-  text: string | Object,
-  locate: string,
+  locate: string | Object,
+  opt: {
+    value: string | number;
+    deepThink?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+    autoDismissKeyboard?: boolean;
+    mode?: 'replace' | 'clear' | 'append';
+  },
+): Promise<void>;
+
+// 兼容用法：保留向后兼容性
+function aiInput(
+  value: string | number,
+  locate: string | Object,
   options?: Object,
 ): Promise<void>;
 ```
 
 - 参数：
 
-  - `text: string` - 要输入的文本内容。
-    - 当 `mode` 为 `'replace'` 时：文本将替换输入框中的所有现有内容。
-    - 当 `mode` 为 `'append'` 时：文本将追加到现有内容后面。
-    - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
+  **推荐用法**：
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
-  - `options?: Object` - 可选，一个配置对象，包含：
+  - `opt: Object` - 配置对象，包含：
+    - `value: string | number` - **必填**，要输入的文本内容。
+      - 当 `mode` 为 `'replace'` 时：文本将替换输入框中的所有现有内容。
+      - 当 `mode` 为 `'append'` 时：文本将追加到现有内容后面。
+      - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
@@ -275,6 +290,11 @@ function aiInput(
       - `'append'`: 将文本追加到现有内容后面，不清空输入框。
       - `'clear'`: 清空输入框，不会输入新的文本。
 
+  **兼容用法**（已过时，但仍然支持）：
+  - `value: string | number` - 要输入的文本内容。
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `options?: Object` - 可选的配置对象，类型与推荐用法中的 `opt` 类型相同。
+
 - 返回值：
 
   - `Promise<void>`
@@ -282,8 +302,18 @@ function aiInput(
 - 示例：
 
 ```typescript
+// 推荐用法
+await agent.aiInput('搜索框', { value: 'Hello World' });
+
+// 兼容用法（不推荐）
 await agent.aiInput('Hello World', '搜索框');
 ```
+
+:::note 关于签名变更
+
+我们最近更新了 `aiInput` 的 API 签名，将定位提示作为第一个参数，使得参数顺序更直观。旧的签名 `aiInput(value, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
+
+:::
 
 ### `agent.aiKeyboardPress()`
 
@@ -292,6 +322,18 @@ await agent.aiInput('Hello World', '搜索框');
 - 类型
 
 ```typescript
+// 推荐用法：定位提示在前，其他选项在 opt 中
+function aiKeyboardPress(
+  locate: string | Object,
+  opt: {
+    keyName: string;
+    deepThink?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+
+// 兼容用法：保留向后兼容性
 function aiKeyboardPress(
   key: string,
   locate?: string | Object,
@@ -301,12 +343,18 @@ function aiKeyboardPress(
 
 - 参数：
 
-  - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
-  - `locate?: string | Object` - 用自然语言描述的元素定位，，或[使用图片作为提示词](#使用图片作为提示词)。
-  - `options?: Object` - 可选，一个配置对象，包含：
+  **推荐用法**：
+  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `opt: Object` - 配置对象，包含：
+    - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
+
+  **兼容用法**（已过时，但仍然支持）：
+  - `key: string` - 要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。
+  - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `options?: Object` - 可选的配置对象，类型与推荐用法中的 `opt` 类型相同。。
 
 - 返回值：
 
@@ -315,8 +363,18 @@ function aiKeyboardPress(
 - 示例：
 
 ```typescript
+// 推荐用法
+await agent.aiKeyboardPress('搜索框', { keyName: 'Enter' });
+
+// 兼容用法（不推荐）
 await agent.aiKeyboardPress('Enter', '搜索框');
 ```
+
+:::note 关于签名变更
+
+我们最近更新了 `aiKeyboardPress` 的 API 签名，将定位提示作为第一个参数，使得参数顺序更直观。旧的签名 `aiKeyboardPress(key, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
+
+:::
 
 ### `agent.aiScroll()`
 
@@ -325,6 +383,20 @@ await agent.aiKeyboardPress('Enter', '搜索框');
 - 类型
 
 ```typescript
+// 推荐用法：定位提示在前，其他选项在 opt 中
+function aiScroll(
+  locate: string | Object | undefined,
+  opt: {
+    scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft';
+    direction?: 'down' | 'up' | 'left' | 'right';
+    distance?: number | null;
+    deepThink?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+
+// 兼容用法：保留向后兼容性
 function aiScroll(
   scrollParam: PlanningActionParamScroll,
   locate?: string | Object,
@@ -334,15 +406,20 @@ function aiScroll(
 
 - 参数：
 
-  - `scrollParam: PlanningActionParamScroll` - 滚动参数
+  **推荐用法**：
+  - `locate: string | Object | undefined` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入或为 undefined，Midscene 会在当前鼠标位置滚动。
+  - `opt: Object` - 配置对象，包含：
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - 滚动类型，默认值为 `singleAction`。
     - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。仅在 `scrollType` 为 `singleAction` 时生效。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
-  - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，Midscene 会在当前鼠标位置滚动。
-  - `options?: Object` - 可选，一个配置对象，包含：
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
+
+  **兼容用法**（已过时，但仍然支持）：
+  - `scrollParam: PlanningActionParamScroll` - 滚动参数（包含 scrollType、direction、distance）。
+  - `locate?: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
+  - `options?: Object` - 可选的配置对象，类型与推荐用法中的 `opt` 类型相同。。
 
 - 返回值：
 
@@ -351,11 +428,25 @@ function aiScroll(
 - 示例：
 
 ```typescript
+// 推荐用法
+await agent.aiScroll('表单区域', {
+  scrollType: 'singleAction',
+  direction: 'up',
+  distance: 100,
+});
+
+// 兼容用法（不推荐）
 await agent.aiScroll(
   { scrollType: 'singleAction', direction: 'up', distance: 100 },
   '表单区域',
 );
 ```
+
+:::note 关于签名变更
+
+我们最近更新了 `aiScroll` 的 API 签名，将定位提示作为第一个参数，使得参数顺序更直观。旧的签名 `aiScroll(scrollParam, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
+
+:::
 
 ### `agent.aiDoubleClick()`
 

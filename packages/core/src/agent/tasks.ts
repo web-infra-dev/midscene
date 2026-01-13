@@ -630,7 +630,18 @@ export class TaskExecutor {
       taskTitleStr('WaitFor', description),
     );
     const runner = session.getRunner();
-    const { timeoutMs, checkIntervalMs } = opt;
+    const {
+      timeoutMs,
+      checkIntervalMs,
+      domIncluded,
+      screenshotIncluded,
+      ...restOpt
+    } = opt;
+    const serviceExtractOpt: ServiceExtractOption = {
+      domIncluded,
+      screenshotIncluded,
+      ...restOpt,
+    };
 
     assert(assertion, 'No assertion for waitFor');
     assert(timeoutMs, 'No timeoutMs for waitFor');
@@ -652,7 +663,7 @@ export class TaskExecutor {
         'WaitFor',
         textPrompt,
         modelConfig,
-        undefined,
+        serviceExtractOpt,
         multimodalPrompt,
       );
 

@@ -113,6 +113,18 @@ tasks:
 - Add deepThink: true for complex interactions
 - Keep task names concise but descriptive
 
+4. CRITICAL - YAML Indentation Rules:
+- For actions with additional parameters (aiScroll, aiInput, aiKeyboardPress), the parameters must be SIBLING keys, NOT nested children
+- Parameters like direction, scrollType, locate must align with the action key, not indented further
+- CORRECT indentation example:
+      - aiScroll:
+        direction: down
+        scrollType: singleAction
+- WRONG indentation (DO NOT do this):
+      - aiScroll:
+          direction: down
+          scrollType: singleAction
+
 
 
 YAML type

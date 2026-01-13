@@ -55,7 +55,6 @@ export interface ToolDefinition<T = Record<string, unknown>> {
   description: string;
   schema: ToolSchema;
   handler: ToolHandler<T>;
-  autoDestroy?: boolean;
 }
 
 /**
