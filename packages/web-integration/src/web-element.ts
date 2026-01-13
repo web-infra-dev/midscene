@@ -1,8 +1,8 @@
 import type {
   AgentOpt,
   DeviceAction,
+  RawUIContextData,
   Rect,
-  UIContext,
   WebElementInfo,
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
@@ -101,7 +101,7 @@ const debug = getDebug('web:parse-context');
 export async function WebPageContextParser(
   page: AbstractInterface,
   _opt: { uploadServerUrl?: string },
-): Promise<UIContext> {
+): Promise<RawUIContextData> {
   const basicContext = await commonContextParser(page, {
     uploadServerUrl: _opt.uploadServerUrl,
   });

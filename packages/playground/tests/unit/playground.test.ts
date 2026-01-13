@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
 import { PlaygroundSDK } from '../../src/sdk';
@@ -10,13 +10,46 @@ import type {
   PlaygroundConfig,
 } from '../../src/types';
 
+// Mock extractDumpWithImages to avoid module resolution issues in test environment
+vi.mock('../../src/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/common')>();
+  return {
+    ...actual,
+    // Mock extractDumpWithImages to return the dump from agent's dumpDataString
+    extractDumpWithImages: vi.fn(async (agent) => {
+      if (!agent?.dumpDataString) return null;
+      const dumpString = agent.dumpDataString();
+      if (!dumpString) return null;
+      const groupedDump = JSON.parse(dumpString);
+      return groupedDump.executions?.[0] || null;
+    }),
+  };
+});
+
+// Helper function to create mock agent with common methods
+function createBaseMockAgent(
+  overrides: Partial<PlaygroundAgent> = {},
+): PlaygroundAgent {
+  return {
+    dumpDataString: () =>
+      JSON.stringify({
+        executions: [{ name: 'test', tasks: [] }],
+      }),
+    getImageMap: async () => ({}),
+    reportHTMLString: () => '',
+    writeOutActionDumps: () => {},
+    resetDump: () => {},
+    ...overrides,
+  } as unknown as PlaygroundAgent;
+}
+
 describe('Playground Integration Tests', () => {
   describe('End-to-end workflow with LocalExecutionAdapter', () => {
     let mockAgent: PlaygroundAgent;
     let sdk: PlaygroundSDK;
 
     beforeEach(() => {
-      mockAgent = {
+      mockAgent = createBaseMockAgent({
         getActionSpace: async () => [
           {
             name: 'click',
@@ -56,11 +89,7 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => JSON.stringify({ executions: [{}] }),
-        reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
-        resetDump: () => {},
-      } as unknown as PlaygroundAgent;
+      });
 
       const config: PlaygroundConfig = {
         type: 'local-execution',
@@ -106,7 +135,7 @@ describe('Playground Integration Tests', () => {
             },
           },
         },
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
         error: null,
       });
@@ -134,7 +163,7 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
         error: null,
       });
@@ -206,18 +235,14 @@ describe('Playground Integration Tests', () => {
     let mockAgent: PlaygroundAgent;
 
     beforeEach(() => {
-      mockAgent = {
+      mockAgent = createBaseMockAgent({
         getActionSpace: async () => [],
         onTaskStartTip: undefined,
         destroy: async () => {},
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
-        dumpDataString: () => JSON.stringify({ executions: [{}] }),
-        reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
-        resetDump: () => {},
-      } as unknown as PlaygroundAgent;
+      });
 
       adapter = new LocalExecutionAdapter(mockAgent);
     });
@@ -225,7 +250,11 @@ describe('Playground Integration Tests', () => {
     it('should handle task cancellation', async () => {
       const result = await adapter.cancelTask('test-request');
 
-      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
+      expect(result).toEqual({
+        success: true,
+        dump: { name: 'test', tasks: [] },
+        reportHTML: null,
+      });
     });
   });
 

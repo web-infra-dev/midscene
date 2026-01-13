@@ -1,5 +1,5 @@
 export { Agent, createAgent } from './agent';
-export { commonContextParser } from './utils';
+export { type RawUIContextData, commonContextParser } from './utils';
 export {
   getReportFileName,
   printReportMsg,
@@ -12,8 +12,14 @@ export {
   typeStr,
 } from './ui-utils';
 
-export { type LocateCache, type PlanningCache, TaskCache } from './task-cache';
-export { cacheFileExt } from './task-cache';
+// TaskCache is Node.js only - uses node:fs, node:path, node:util
+// Browser environments should not import TaskCache directly
+export {
+  cacheFileExt,
+  type LocateCache,
+  type PlanningCache,
+  TaskCache,
+} from './task-cache';
 
 export { TaskExecutor } from './tasks';
 

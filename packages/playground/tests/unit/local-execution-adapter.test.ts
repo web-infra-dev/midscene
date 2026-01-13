@@ -21,6 +21,14 @@ vi.mock('../../src/common', async (importOriginal) => {
   return {
     ...actual,
     executeAction: vi.fn(),
+    // Mock extractDumpWithImages to return the dump from agent's dumpDataString
+    extractDumpWithImages: vi.fn(async (agent) => {
+      if (!agent?.dumpDataString) return null;
+      const dumpString = agent.dumpDataString();
+      if (!dumpString) return null;
+      const groupedDump = JSON.parse(dumpString);
+      return groupedDump.executions?.[0] || null;
+    }),
   };
 });
 
@@ -35,9 +43,12 @@ describe('LocalExecutionAdapter', () => {
       callActionInActionSpace: vi.fn(),
       onTaskStartTip: vi.fn(),
       destroy: vi.fn(),
-      dumpDataString: vi
-        .fn()
-        .mockReturnValue(JSON.stringify({ executions: [{}] })),
+      dumpDataString: vi.fn().mockReturnValue(
+        JSON.stringify({
+          executions: [{ name: 'test', tasks: [] }],
+        }),
+      ),
+      getImageMap: vi.fn().mockResolvedValue({}),
       reportHTMLString: vi.fn().mockReturnValue(''),
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
@@ -208,7 +219,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
         error: null,
       });
@@ -263,7 +274,11 @@ describe('LocalExecutionAdapter', () => {
 
       const result = await adapter.cancelTask('request-123');
 
-      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
+      expect(result).toEqual({
+        success: true,
+        dump: { name: 'test', tasks: [] },
+        reportHTML: null,
+      });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 
@@ -290,7 +305,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: {},
+        dump: { name: 'test', tasks: [] },
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(

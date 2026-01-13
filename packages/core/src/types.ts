@@ -9,8 +9,10 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
+import type { TaskCache } from './agent/task-cache';
 import type { TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
+import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -632,6 +634,8 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+  /* use directory-based report format with separate image files */
+  useDirectoryReport?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;
@@ -639,6 +643,22 @@ export interface AgentOpt {
   reportFileName?: string;
   modelConfig?: TModelConfig;
   cache?: Cache;
+  /**
+   * Storage provider for screenshot data.
+   * - In browser environments, use MemoryStorage (default)
+   * - In Node.js environments, use FileStorage for persistent storage
+   */
+  storageProvider?: StorageProvider;
+  /**
+   * Task cache instance for caching AI planning and locate results.
+   * Only available in Node.js environments.
+   */
+  taskCache?: TaskCache;
+  /**
+   * File path resolver for validating and resolving file paths.
+   * Only needed in Node.js environments for file upload operations.
+   */
+  filePathResolver?: (filePath: string) => string;
   /**
    * Maximum number of replanning cycles for aiAct.
    * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
