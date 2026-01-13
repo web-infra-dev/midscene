@@ -610,17 +610,16 @@ export const findAllMidsceneLocatorField = (
   return [];
 };
 
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export const dumpActionParam = (
   jsonObject: Record<string, any>,
   zodSchema: z.ZodType<any>,
 ): Record<string, any> => {
-  // If jsonObject is not a plain object, return empty object
-  // This prevents spreading strings into {0: 'c', 1: 'o', ...}
-  if (
-    typeof jsonObject !== 'object' ||
-    jsonObject === null ||
-    Array.isArray(jsonObject)
-  ) {
+  // Prevent spreading strings into {0: 'c', 1: 'o', ...}
+  if (!isPlainObject(jsonObject)) {
     return {};
   }
 

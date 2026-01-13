@@ -20,6 +20,10 @@ import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/
 import { isElementField, useExecutionDump } from '../store';
 
 const noop = () => {};
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 const Card = (props: {
   liteMode?: boolean;
   highlightWithColor?: string;
@@ -693,13 +697,7 @@ const DetailSide = (): JSX.Element => {
 
       // Add each plan action
       actions.forEach((action, index) => {
-        // Ensure paramToShow is a plain object, not a string or array
-        const paramToShow =
-          typeof action.param === 'object' &&
-          action.param !== null &&
-          !Array.isArray(action.param)
-            ? action.param
-            : {};
+        const paramToShow = isPlainObject(action.param) ? action.param : {};
         const actionType = action.type || '';
 
         // Create a Card for each param key
