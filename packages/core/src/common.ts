@@ -7,7 +7,7 @@ import type {
   Rect,
   Size,
 } from '@/types';
-import { assert } from '@midscene/shared/utils';
+import { assert, isPlainObject } from '@midscene/shared/utils';
 
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
@@ -609,10 +609,6 @@ export const findAllMidsceneLocatorField = (
   // For other ZodType instances, we can't extract field names
   return [];
 };
-
-function isPlainObject(value: unknown): value is Record<string, any> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
 
 export const dumpActionParam = (
   jsonObject: Record<string, any>,
