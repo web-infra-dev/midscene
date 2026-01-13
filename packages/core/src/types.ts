@@ -9,10 +9,8 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
-import type { TaskCache } from './agent/task-cache';
 import type { TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
-import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -111,7 +109,12 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  abstract screenshot: ScreenshotItem;
+  /**
+   * Screenshot data as ScreenshotItem (optional in PR1, required in PR2)
+   */
+  screenshot?: ScreenshotItem;
+
+  abstract screenshotBase64: string;
 
   abstract size: Size;
 
@@ -313,7 +316,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: ScreenshotItem;
+  screenshot?: ScreenshotItem | string;
   timing?: string;
 }
 
@@ -629,8 +632,6 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
-  /* use directory-based report format with separate image files */
-  useDirectoryReport?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;
@@ -638,57 +639,6 @@ export interface AgentOpt {
   reportFileName?: string;
   modelConfig?: TModelConfig;
   cache?: Cache;
-  /**
-   * Storage provider for screenshot data.
-   * - In browser environments, use MemoryStorage (default)
-   * - In Node.js environments, use FileStorage for persistent storage
-   *
-   * @example
-   * ```typescript
-   * // Browser (default)
-   * const agent = new Agent(device); // Uses MemoryStorage
-   *
-   * // Node.js with file storage
-   * import { FileStorage } from '@midscene/core/storage';
-   * const agent = new Agent(device, {
-   *   storageProvider: new FileStorage(),
-   * });
-   * ```
-   */
-  storageProvider?: StorageProvider;
-  /**
-   * Task cache instance for caching AI planning and locate results.
-   * Only available in Node.js environments.
-   *
-   * @example
-   * ```typescript
-   * import { TaskCache } from '@midscene/core/agent';
-   * const agent = new Agent(device, {
-   *   taskCache: new TaskCache('my-cache-id', true),
-   * });
-   * ```
-   */
-  taskCache?: TaskCache;
-  /**
-   * File path resolver for validating and resolving file paths.
-   * Only needed in Node.js environments for file upload operations.
-   *
-   * @example
-   * ```typescript
-   * import fs from 'node:fs';
-   * import path from 'node:path';
-   * const agent = new Agent(device, {
-   *   filePathResolver: (filePath) => {
-   *     const absolutePath = path.resolve(filePath);
-   *     if (!fs.existsSync(absolutePath)) {
-   *       throw new Error(`File not found: ${filePath}`);
-   *     }
-   *     return absolutePath;
-   *   },
-   * });
-   * ```
-   */
-  filePathResolver?: (filePath: string) => string;
   /**
    * Maximum number of replanning cycles for aiAct.
    * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.
