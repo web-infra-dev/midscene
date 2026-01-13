@@ -20,6 +20,10 @@ import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/
 import { isElementField, useExecutionDump } from '../store';
 
 const noop = () => {};
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 const Card = (props: {
   liteMode?: boolean;
   highlightWithColor?: string;
@@ -693,7 +697,7 @@ const DetailSide = (): JSX.Element => {
 
       // Add each plan action
       actions.forEach((action, index) => {
-        const paramToShow = action.param || {};
+        const paramToShow = isPlainObject(action.param) ? action.param : {};
         const actionType = action.type || '';
 
         // Create a Card for each param key
@@ -757,7 +761,16 @@ const DetailSide = (): JSX.Element => {
             );
           });
         } else {
-          // If no params, still show the action
+          // If no params or param is not an object, still show the action
+          // For non-object params (e.g., string), show the value
+          const nonObjectContent =
+            action.param !== null && action.param !== undefined ? (
+              <pre className="description-content">
+                {typeof action.param === 'string'
+                  ? action.param
+                  : JSON.stringify(action.param, undefined, 2)}
+              </pre>
+            ) : null;
           planItems.push(
             <Card
               key={`plan-${index}`}
@@ -766,7 +779,7 @@ const DetailSide = (): JSX.Element => {
               subtitle={action.thought}
               onMouseEnter={noop}
               onMouseLeave={noop}
-              content={null}
+              content={nonObjectContent}
             />,
           );
         }

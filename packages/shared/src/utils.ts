@@ -125,3 +125,10 @@ export function replaceIllegalPathCharsAndSpace(str: string) {
   // Only replace characters that are illegal in filenames, but preserve path separators
   return str.replace(/[:*?"<>|# ]/g, '-');
 }
+
+/**
+ * Check if a value is a plain object (not null, not array, not other types)
+ */
+export function isPlainObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
