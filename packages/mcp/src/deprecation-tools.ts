@@ -211,7 +211,6 @@ export class DeprecationMidsceneTools extends BaseMidsceneTools {
           },
         ],
       }),
-      autoDestroy: false,
     }));
   }
 }

@@ -11,6 +11,7 @@ import type {
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { buildChromeArgs } from '@midscene/web/puppeteer-agent-launcher';
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser } from 'puppeteer';
@@ -91,7 +92,16 @@ class BatchRunner {
       );
 
       if (needsBrowser && this.config.shareBrowserContext) {
-        browser = await puppeteer.launch({ headless: !headed });
+        const globalWebConfig = this.config.globalConfig?.web;
+        const args = buildChromeArgs({
+          chromeArgs: globalWebConfig?.chromeArgs,
+        });
+
+        browser = await puppeteer.launch({
+          headless: !headed,
+          args,
+          acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
+        });
         // Assign the browser instance to all contexts
         for (const context of fileContextList) {
           context.options.browser = browser;

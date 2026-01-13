@@ -1,6 +1,6 @@
 # Caching AI planning & locate
 
-Midscene supports caching Plan steps and matched DOM element information to reduce AI model calls and greatly improve execution efficiency. Please note that DOM element cache is only supported for web automation tasks.
+Midscene supports caching Plan steps and matched DOM element information to reduce AI model calls and greatly improve execution efficiency. Please note that DOM element cache is only supported for web automation tasks, and has [certain limitations](#limitations-of-xpath-in-caching-element-location).
 
 **Effect**
 
@@ -324,12 +324,19 @@ Please refer to the documentation of the corresponding [API](./api.mdx) for deta
 
 ### Limitations of XPath in caching element location
 
-Midscene uses [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) to cache the element location. ⁠We are using a relatively strict strategy to prevent false matches. In these situations, the cache will not be accessed.
+Midscene uses [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) to cache the element location. ⁠We are using a relatively strict strategy to prevent false matches. In these situations, the cache will not be accessed:
 
 1. The text content of the new element at the same XPath is different from the cached element.
 2. The DOM structure of the page is changed from the cached one.
 
-When the cache is not hit, the process will fall back to continue using AI services to find the element.
+Additionally, since element location caching relies on DOM structure, caching is not available in the following scenarios:
+
+1. **Canvas elements**: Graphics content inside Canvas does not have DOM nodes and cannot be located via XPath.
+2. **Cross-origin iframes**: Browser security policies restrict access to the internal DOM of cross-origin iframes.
+3. **Shadow DOM (closed mode)**: Closed Shadow DOM cannot be accessed from outside.
+4. **WebGL / Dynamic SVG content**: Dynamically generated graphics may not have a stable DOM structure.
+
+When the cache is not hit or not available, the process will fall back to using AI services to find the element.
 
 ### Get more debug logs for caching
 

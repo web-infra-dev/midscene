@@ -328,8 +328,13 @@
   .structured-params-container {
     padding: 16px;
     padding-bottom: 56px;
+    overflow: hidden;
+    box-sizing: border-box;
 
     .structured-params {
+      width: 100%;
+      min-width: 0; // Prevent flex item from overflowing
+
       .ant-form-item {
         // Force vertical layout - label above input
         display: flex;

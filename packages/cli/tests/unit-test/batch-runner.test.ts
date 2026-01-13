@@ -43,7 +43,13 @@ vi.mock('@/printer', () => ({
   spinnerInterval: 80,
 }));
 vi.mock('@/tty-renderer');
-vi.mock('@midscene/web/puppeteer-agent-launcher');
+vi.mock('@midscene/web/puppeteer-agent-launcher', async (importOriginal) => {
+  const original =
+    await importOriginal<
+      typeof import('@midscene/web/puppeteer-agent-launcher')
+    >();
+  return { ...original };
+});
 vi.mock('@midscene/web/bridge-mode');
 vi.mock('@midscene/android');
 
@@ -138,6 +144,60 @@ describe('BatchRunner', () => {
         expect.any(Object),
         expect.objectContaining({ browser: browserInstance }),
       );
+    });
+
+    test('should pass chromeArgs from global config to puppeteer.launch when shareBrowserContext is true', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml', 'web2.yml'],
+        globalConfig: {
+          web: {
+            url: 'http://example.com',
+            chromeArgs: [
+              '--no-sandbox',
+              '--disable-setuid-sandbox',
+              '--disable-dev-shm-usage',
+            ],
+          },
+        },
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+
+      // Verify that puppeteer.launch was called with the correct arguments
+      const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
+      expect(launchCall).toHaveProperty('args');
+      expect(launchCall?.args).toEqual(
+        expect.arrayContaining([
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+        ]),
+      );
+    });
+
+    test('should pass acceptInsecureCerts from global config to puppeteer.launch when shareBrowserContext is true', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml'],
+        globalConfig: {
+          web: {
+            url: 'http://example.com',
+            acceptInsecureCerts: true,
+          },
+        },
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.launch).toHaveBeenCalledTimes(1);
+
+      const launchCall = vi.mocked(puppeteer.launch).mock.calls[0][0];
+      expect(launchCall).toHaveProperty('acceptInsecureCerts', true);
     });
 
     test('should not create a shared browser instance when shareBrowserContext is false', async () => {

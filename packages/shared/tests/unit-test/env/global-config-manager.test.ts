@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   MIDSCENE_ADB_PATH,
   MIDSCENE_CACHE,
-  MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_MAX_TOKENS,
   MIDSCENE_MODEL_NAME,
   MIDSCENE_PREFERRED_LANGUAGE,
   ModelConfigManager,
@@ -69,7 +69,7 @@ describe('overrideAIConfig', () => {
       globalConfigManager.overrideAIConfig({
         [MIDSCENE_ADB_PATH]: '/custom/adb/path',
         [MIDSCENE_CACHE]: 'true',
-        [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]: '200',
+        [MIDSCENE_MODEL_MAX_TOKENS]: '200',
         [MIDSCENE_PREFERRED_LANGUAGE]: 'zh-CN',
       }),
     ).not.toThrow();
@@ -123,7 +123,7 @@ describe('overrideAIConfig', () => {
     // Set initial environment values
     vi.stubEnv(MIDSCENE_ADB_PATH, '/original/adb/path');
     vi.stubEnv(MIDSCENE_CACHE, 'false');
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '100');
 
     // Override with extend mode
     globalConfigManager.overrideAIConfig(
@@ -143,9 +143,7 @@ describe('overrideAIConfig', () => {
     );
     // Should return original env values for non-overridden keys
     expect(
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(100);
   });
 
@@ -189,16 +187,14 @@ describe('overrideAIConfig', () => {
     // Second override (should replace first)
     globalConfigManager.overrideAIConfig({
       [MIDSCENE_ADB_PATH]: '/second/override',
-      [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]: '300',
+      [MIDSCENE_MODEL_MAX_TOKENS]: '300',
     });
 
     expect(globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_PATH)).toBe(
       '/second/override',
     );
     expect(
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(300);
     // Previous override should be lost in non-extend mode
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
@@ -234,7 +230,7 @@ describe('overrideAIConfig', () => {
     globalConfigManager.overrideAIConfig(
       {
         [MIDSCENE_ADB_PATH]: '/second/override',
-        [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]: '300',
+        [MIDSCENE_MODEL_MAX_TOKENS]: '300',
       },
       true,
     );
@@ -243,9 +239,7 @@ describe('overrideAIConfig', () => {
       '/second/override',
     );
     expect(
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(300);
     // Previous override should be preserved in extend mode
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
@@ -301,6 +295,137 @@ describe('overrideAIConfig', () => {
   });
 });
 
+describe('getEnvConfigValueAsNumber', () => {
+  beforeEach(() => {
+    vi.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '100');
+    vi.stubEnv(MIDSCENE_CACHE, '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('should return number for valid numeric string values', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(100);
+  });
+
+  it('should return undefined for non-numeric string values', () => {
+    vi.stubEnv(MIDSCENE_ADB_PATH, 'not-a-number');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_ADB_PATH),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for unset environment variables', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(
+        MIDSCENE_PREFERRED_LANGUAGE,
+      ),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for empty string values', () => {
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBeUndefined();
+  });
+
+  it('should handle decimal values', () => {
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '123.45');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(123.45);
+  });
+
+  it('should handle zero values', () => {
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '0');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(0);
+  });
+
+  it('should handle negative values', () => {
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '-100');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(-100);
+  });
+
+  it('should trim whitespace before conversion', () => {
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '  100  ');
+
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(100);
+  });
+
+  it('should work with override config', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    // Initially not set
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(100); // from beforeEach
+
+    // Override with new value
+    globalConfigManager.overrideAIConfig({
+      [MIDSCENE_MODEL_MAX_TOKENS]: '200',
+    });
+
+    expect(
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBe(200);
+  });
+
+  it('should throw if key is not a supported numeric key', () => {
+    const globalConfigManager = new GlobalConfigManager();
+    globalConfigManager.registerModelConfigManager(new ModelConfigManager());
+
+    expect(() =>
+      globalConfigManager.getEnvConfigValueAsNumber(
+        // @ts-expect-error MIDSCENE_CACHE is truly not a valid string key (it's boolean)
+        MIDSCENE_CACHE,
+      ),
+    ).toThrowErrorMatchingInlineSnapshot(
+      '[Error: getEnvConfigValueAsNumber with key MIDSCENE_CACHE is not supported.]',
+    );
+  });
+});
+
 describe('getEnvConfigValue', () => {
   beforeEach(() => {
     vi.stubEnv(MIDSCENE_MODEL_NAME, '<test-model>');
@@ -328,12 +453,12 @@ describe('getEnvConfigValue', () => {
     );
 
     expect(() =>
-      globalConfigManager.getEnvConfigInNumber(
+      globalConfigManager.getEnvConfigValueAsNumber(
         // @ts-expect-error MIDSCENE_MODEL_NAME is truly not a valid key
         MIDSCENE_MODEL_NAME,
       ),
     ).toThrowErrorMatchingInlineSnapshot(
-      '[Error: getEnvConfigInNumber with key MIDSCENE_MODEL_NAME is not supported]',
+      '[Error: getEnvConfigValueAsNumber with key MIDSCENE_MODEL_NAME is not supported.]',
     );
 
     expect(() =>
@@ -348,7 +473,7 @@ describe('getEnvConfigValue', () => {
 
   it('should return the correct value from process.env', () => {
     vi.stubEnv(MIDSCENE_ADB_PATH, '<test-adb-path>');
-    vi.stubEnv(MIDSCENE_CACHE_MAX_FILENAME_LENGTH, '100');
+    vi.stubEnv(MIDSCENE_MODEL_MAX_TOKENS, '100');
     vi.stubEnv(MIDSCENE_CACHE, 'true');
 
     const globalConfigManager = new GlobalConfigManager();
@@ -359,9 +484,7 @@ describe('getEnvConfigValue', () => {
     );
 
     expect(
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(100);
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
@@ -377,10 +500,8 @@ describe('getEnvConfigValue', () => {
     ).toBeUndefined();
 
     expect(
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ),
-    ).toBe(0);
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
+    ).toBeUndefined();
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(
       false,
@@ -388,7 +509,7 @@ describe('getEnvConfigValue', () => {
 
     globalConfigManager.overrideAIConfig({
       [MIDSCENE_ADB_PATH]: '<override-adb-path>',
-      [MIDSCENE_CACHE_MAX_FILENAME_LENGTH]: '100',
+      [MIDSCENE_MODEL_MAX_TOKENS]: '100',
       [MIDSCENE_CACHE]: 'true',
     });
 
@@ -397,9 +518,7 @@ describe('getEnvConfigValue', () => {
     );
 
     expect(
-      globalConfigManager.getEnvConfigInNumber(
-        MIDSCENE_CACHE_MAX_FILENAME_LENGTH,
-      ),
+      globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS),
     ).toBe(100);
 
     expect(globalConfigManager.getEnvConfigInBoolean(MIDSCENE_CACHE)).toBe(

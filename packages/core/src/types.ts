@@ -10,7 +10,11 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import type { DetailedLocateParam, MidsceneYamlFlowItem } from './yaml';
+import type {
+  DetailedLocateParam,
+  MidsceneYamlFlowItem,
+  ServiceExtractOption,
+} from './yaml';
 
 export type {
   ElementTreeNode,
@@ -215,10 +219,9 @@ export type ServiceAssertionResponse = AIAssertionResponse & {
 
 export type OnTaskStartTip = (tip: string) => Promise<void> | void;
 
-export interface AgentWaitForOpt {
+export interface AgentWaitForOpt extends ServiceExtractOption {
   checkIntervalMs?: number;
   timeoutMs?: number;
-  [key: string]: unknown;
 }
 
 export interface AgentAssertOpt {

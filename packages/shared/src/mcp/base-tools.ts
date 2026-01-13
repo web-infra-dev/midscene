@@ -124,53 +124,15 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     }
 
     for (const toolDef of this.toolDefinitions) {
-      if (toolDef.autoDestroy) {
-        this.toolWithAutoDestroy(
-          toolDef.name,
-          toolDef.description,
-          toolDef.schema,
-          toolDef.handler,
-        );
-      } else {
-        this.mcpServer.tool(
-          toolDef.name,
-          toolDef.description,
-          toolDef.schema,
-          toolDef.handler,
-        );
-      }
+      this.mcpServer.tool(
+        toolDef.name,
+        toolDef.description,
+        toolDef.schema,
+        toolDef.handler,
+      );
     }
 
     debug('Registered', this.toolDefinitions.length, 'tools');
-  }
-
-  /**
-   * Wrapper for auto-destroy behavior
-   */
-  private toolWithAutoDestroy(
-    name: string,
-    description: string,
-    schema: any,
-    handler: (...args: any[]) => Promise<any>,
-  ): void {
-    if (!this.mcpServer) {
-      throw new Error('MCP server not attached');
-    }
-
-    this.mcpServer.tool(name, description, schema, async (...args: any[]) => {
-      try {
-        return await handler(...args);
-      } finally {
-        if (!process.env.MIDSCENE_MCP_DISABLE_AGENT_AUTO_DESTROY) {
-          try {
-            await this.agent?.destroy?.();
-          } catch (error) {
-            debug('Failed to destroy agent during cleanup:', error);
-          }
-          this.agent = undefined;
-        }
-      }
-    });
   }
 
   /**
@@ -206,5 +168,36 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
         mimeType,
       },
     ];
+  }
+
+  /**
+   * Helper: Build a simple text result for tool responses
+   */
+  protected buildTextResult(text: string) {
+    return {
+      content: [{ type: 'text' as const, text }],
+    };
+  }
+
+  /**
+   * Create a disconnect handler for releasing platform resources
+   * @param platformName Human-readable platform name for the response message
+   * @returns Handler function that destroys the agent and returns appropriate response
+   */
+  protected createDisconnectHandler(platformName: string) {
+    return async () => {
+      if (!this.agent) {
+        return this.buildTextResult('No active connection to disconnect');
+      }
+
+      try {
+        await this.agent.destroy?.();
+      } catch (error) {
+        debug('Failed to destroy agent during disconnect:', error);
+      }
+      this.agent = undefined;
+
+      return this.buildTextResult(`Disconnected from ${platformName}`);
+    };
   }
 }
