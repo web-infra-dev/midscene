@@ -516,11 +516,11 @@ importers:
   benchmarks/infra:
     dependencies:
       '@midscene/android':
-        specifier: 1.2.1-beta-20260108154312.0
-        version: 1.2.1-beta-20260108154312.0(ws@7.5.10(bufferutil@4.0.9))
+        specifier: 1.2.1-beta-20260113073450.0
+        version: 1.2.1-beta-20260113073450.0(ws@7.5.10(bufferutil@4.0.9))
       '@midscene/shared':
-        specifier: 1.2.1-beta-20260108154312.0
-        version: 1.2.1-beta-20260108154312.0
+        specifier: 1.2.1-beta-20260113073450.0
+        version: 1.2.1-beta-20260113073450.0
       jayson:
         specifier: 4.3.0
         version: 4.3.0(bufferutil@4.0.9)
@@ -2920,15 +2920,15 @@ packages:
   '@microsoft/tsdoc@0.15.1':
     resolution: {integrity: sha512-4aErSrCR/On/e5G2hDP0wjooqDdauzEbIq8hIkIe5pXV0rtWJZvdCEKL0ykZxex+IxIwBp0eGeV48hQN07dXtw==}
 
-  '@midscene/android@1.2.1-beta-20260108154312.0':
-    resolution: {integrity: sha512-qnWQD4EqNnLNCzvy9OqYqMPOTNzDytVSjWfh2CZ9hsN4iK7Ll+MCCVVNJmbLsxoVBj/BPWG45eMgtD4T+kv9FA==}
+  '@midscene/android@1.2.1-beta-20260113073450.0':
+    resolution: {integrity: sha512-ZuhOR4ezS3edn4liZ+CgpQcIq/Y8ivkrNoENqwfCtGSbOPSUtoauFGonKc9rVDwGm79mW8F7X5lAYJ30j+UGCw==}
 
-  '@midscene/core@1.2.1-beta-20260108154312.0':
-    resolution: {integrity: sha512-/y3bF+iWANlUirIQ5p+vA2qsy9UFWSEpmC0nFQYBEiS06iOH9YGXTURhqginRdOnYH0V2z3TQwjjHCKhAme7fA==}
+  '@midscene/core@1.2.1-beta-20260113073450.0':
+    resolution: {integrity: sha512-/chg7FgdbBJeKd6XH+ina6QSQ1wd337r8OKGf4qljVpKhcn42s7LvUD3Oq+Bcg0RZpuagSClf/KNgp1AEdnF6w==}
     engines: {node: '>=18.0.0'}
 
-  '@midscene/shared@1.2.1-beta-20260108154312.0':
-    resolution: {integrity: sha512-j6K68t2Jqf1XpHVIwbxnrGqCDcHxkRJy/kb1D0OLJ8XvKIYyr1NHsIJJ4T3cuNFbpMfFeBd6NBJo1LcwUaZJfw==}
+  '@midscene/shared@1.2.1-beta-20260113073450.0':
+    resolution: {integrity: sha512-qrUn3WkgL+QLCJUHxJSjXpEJkCFoUvVWinDrraN/sVUhfDmRbz5Qz44sSsxfsNpRSzG5RaVcTFP7Xb7lzcHelg==}
 
   '@modelcontextprotocol/inspector-cli@0.16.3':
     resolution: {integrity: sha512-6Hbh+QVRsEDel7hA9qiRklwWEoW4dQXHw4Ltr8JdsU1ziqem4/ERgGxthg/d+qrmbVwW9shOqPIaGoRFaZ264g==}
@@ -12836,10 +12836,10 @@ snapshots:
   '@microsoft/tsdoc@0.15.1':
     optional: true
 
-  '@midscene/android@1.2.1-beta-20260108154312.0(ws@7.5.10(bufferutil@4.0.9))':
+  '@midscene/android@1.2.1-beta-20260113073450.0(ws@7.5.10(bufferutil@4.0.9))':
     dependencies:
-      '@midscene/core': 1.2.1-beta-20260108154312.0(ws@7.5.10(bufferutil@4.0.9))
-      '@midscene/shared': 1.2.1-beta-20260108154312.0
+      '@midscene/core': 1.2.1-beta-20260113073450.0(ws@7.5.10(bufferutil@4.0.9))
+      '@midscene/shared': 1.2.1-beta-20260113073450.0
       appium-adb: 12.12.1
     transitivePeerDependencies:
       - debug
@@ -12847,9 +12847,9 @@ snapshots:
       - supports-color
       - ws
 
-  '@midscene/core@1.2.1-beta-20260108154312.0(ws@7.5.10(bufferutil@4.0.9))':
+  '@midscene/core@1.2.1-beta-20260113073450.0(ws@7.5.10(bufferutil@4.0.9))':
     dependencies:
-      '@midscene/shared': 1.2.1-beta-20260108154312.0
+      '@midscene/shared': 1.2.1-beta-20260113073450.0
       '@ui-tars/action-parser': 1.2.3
       dayjs: 1.11.19
       dotenv: 16.4.7
@@ -12865,7 +12865,7 @@ snapshots:
       - supports-color
       - ws
 
-  '@midscene/shared@1.2.1-beta-20260108154312.0':
+  '@midscene/shared@1.2.1-beta-20260113073450.0':
     dependencies:
       '@modelcontextprotocol/sdk': 1.10.2
       '@silvia-odwyer/photon': 0.3.3
@@ -17041,7 +17041,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.0
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -17398,7 +17398,7 @@ snapshots:
     dependencies:
       basic-ftp: 5.0.5
       data-uri-to-buffer: 6.0.2
-      debug: 4.4.3
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -17774,7 +17774,7 @@ snapshots:
   http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -17816,7 +17816,7 @@ snapshots:
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -19597,7 +19597,7 @@ snapshots:
     dependencies:
       '@tootallnate/quickjs-emscripten': 0.23.0
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
       get-uri: 6.0.5
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
@@ -19924,7 +19924,7 @@ snapshots:
   proxy-agent@6.5.0:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       lru-cache: 7.18.3
@@ -21321,7 +21321,7 @@ snapshots:
   socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
       socks: 2.8.7
     transitivePeerDependencies:
       - supports-color
