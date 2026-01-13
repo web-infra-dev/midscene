@@ -109,11 +109,6 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  /**
-   * Screenshot data as ScreenshotItem (optional in PR1, required in PR2)
-   */
-  screenshot?: ScreenshotItem;
-
   abstract screenshotBase64: string;
 
   abstract size: Size;
