@@ -614,6 +614,16 @@ export const dumpActionParam = (
   jsonObject: Record<string, any>,
   zodSchema: z.ZodType<any>,
 ): Record<string, any> => {
+  // If jsonObject is not a plain object, return empty object
+  // This prevents spreading strings into {0: 'c', 1: 'o', ...}
+  if (
+    typeof jsonObject !== 'object' ||
+    jsonObject === null ||
+    Array.isArray(jsonObject)
+  ) {
+    return {};
+  }
+
   const locatorFields = findAllMidsceneLocatorField(zodSchema);
   const result = { ...jsonObject };
 

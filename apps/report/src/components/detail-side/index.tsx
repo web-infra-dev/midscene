@@ -693,7 +693,13 @@ const DetailSide = (): JSX.Element => {
 
       // Add each plan action
       actions.forEach((action, index) => {
-        const paramToShow = action.param || {};
+        // Ensure paramToShow is a plain object, not a string or array
+        const paramToShow =
+          typeof action.param === 'object' &&
+          action.param !== null &&
+          !Array.isArray(action.param)
+            ? action.param
+            : {};
         const actionType = action.type || '';
 
         // Create a Card for each param key
@@ -757,7 +763,16 @@ const DetailSide = (): JSX.Element => {
             );
           });
         } else {
-          // If no params, still show the action
+          // If no params or param is not an object, still show the action
+          // For non-object params (e.g., string), show the value
+          const nonObjectContent =
+            action.param !== null && action.param !== undefined ? (
+              <pre className="description-content">
+                {typeof action.param === 'string'
+                  ? action.param
+                  : JSON.stringify(action.param, undefined, 2)}
+              </pre>
+            ) : null;
           planItems.push(
             <Card
               key={`plan-${index}`}
@@ -766,7 +781,7 @@ const DetailSide = (): JSX.Element => {
               subtitle={action.thought}
               onMouseEnter={noop}
               onMouseLeave={noop}
-              content={null}
+              content={nonObjectContent}
             />,
           );
         }

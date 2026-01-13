@@ -1220,6 +1220,29 @@ describe('dumpActionParam', () => {
       }
     `);
   });
+
+  it('should return empty object when input is not a plain object', () => {
+    const schema = z.object({
+      name: z.string(),
+    });
+
+    // Test with string input - this was causing the serialization bug
+    // where "com.example.app" was being spread into {0: 'c', 1: 'o', ...}
+    const stringInput = 'com.example.app' as unknown as Record<string, any>;
+    expect(dumpActionParam(stringInput, schema)).toEqual({});
+
+    // Test with array input
+    const arrayInput = ['a', 'b', 'c'] as unknown as Record<string, any>;
+    expect(dumpActionParam(arrayInput, schema)).toEqual({});
+
+    // Test with null input
+    const nullInput = null as unknown as Record<string, any>;
+    expect(dumpActionParam(nullInput, schema)).toEqual({});
+
+    // Test with number input
+    const numberInput = 12345 as unknown as Record<string, any>;
+    expect(dumpActionParam(numberInput, schema)).toEqual({});
+  });
 });
 
 describe('loadActionParam', () => {
