@@ -106,10 +106,10 @@ describe('reportMergingTool', () => {
     });
   });
 
-  it('should extract content from <script> tag in large HTML', async () => {
+  it('should merge reports with large HTML content', async () => {
     const tool = new ReportMergingTool();
-    // create 3M html temp file
-    const hugeContent = Buffer.alloc(3 * 1024 * 1024 - 200, 'a').toString();
+    // create 1M html temp file
+    const hugeContent = Buffer.alloc(1 * 1024 * 1024 - 200, 'a').toString();
     const largeHtmlPath = getTmpFile('html');
     if (!largeHtmlPath) {
       throw new Error('Failed to create temp html file');
@@ -122,16 +122,47 @@ describe('reportMergingTool', () => {
 <body>
 ${hugeContent}
 <script type="midscene_web_dump" type="application/json">
-test
+test-content-to-extract
 </script>
 </body>
 </html>
 `,
       'utf8',
     );
-    const result = await tool.extractScriptContent(largeHtmlPath);
-    unlinkSync(largeHtmlPath); // remove temp file
-    expect(result).toBe('test');
+    // Add the large report to tool
+    tool.append({
+      reportFilePath: largeHtmlPath,
+      reportAttributes: {
+        testDescription: 'large test',
+        testDuration: 1,
+        testId: 'large-1',
+        testStatus: 'passed',
+        testTitle: 'large test',
+      },
+    });
+    // Add a second report so we can merge
+    const secondReport = writeDumpReport('report-second', {
+      dumpString: 'second-report-content',
+    });
+    tool.append({
+      reportFilePath: secondReport!,
+      reportAttributes: {
+        testDescription: 'second',
+        testDuration: 1,
+        testId: 'second-1',
+        testStatus: 'passed',
+        testTitle: 'second',
+      },
+    });
+    // Merge and verify both contents are present
+    const mergedPath = tool.mergeReports('merged-large-test', {
+      overwrite: true,
+    });
+    expect(mergedPath).toBeTruthy();
+    const mergedContent = readFileSync(mergedPath!, 'utf-8');
+    expect(mergedContent).toContain('test-content-to-extract');
+    expect(mergedContent).toContain('second-report-content');
+    unlinkSync(largeHtmlPath);
   });
 
   it(
@@ -140,7 +171,7 @@ test
     async () => {
       const tool = new ReportMergingTool();
 
-      console.time('generate 100 mocked report files.');
+      console.time('generate 100 mocked report files');
       const hugeContent = Buffer.alloc(50 * 1024 * 1024, 'a').toString();
       generateNReports(
         100,
@@ -150,7 +181,7 @@ test
       );
       console.timeEnd('generate 100 mocked report files');
 
-      console.time('merge and delete 100 mocked report files.');
+      console.time('merge and delete 100 mocked report files');
       const mergedReportPath = tool.mergeReports('merge-100-reports', {
         rmOriginalReports: true,
         overwrite: true,

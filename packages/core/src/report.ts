@@ -3,7 +3,7 @@ import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { getReportFileName } from './agent';
 import type { ReportFileWithAttributes } from './types';
-import { getReportTpl, reportHTMLContent } from './utils';
+import { getReportTpl, insertScriptBeforeClosingHtml } from './utils';
 
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
@@ -13,16 +13,31 @@ export class ReportMergingTool {
   public clear() {
     this.reportInfos = [];
   }
-  private extractScriptContent(filePath: string): string {
-    // Regular expression to match content between script tags
-    // Requires newline before <script and </script>
-    const scriptRegex =
-      /\n<script type="midscene_web_dump" type="application\/json"[^>]*>([\s\S]*?)\n<\/script>/;
 
+  /**
+   * Extract all script content from a report file.
+   * Includes both image scripts (midscene-image) and dump scripts (midscene_web_dump).
+   */
+  private extractAllScripts(filePath: string): string {
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const match = scriptRegex.exec(fileContent);
+    const scripts: string[] = [];
 
-    return match ? match[1].trim() : '';
+    // Extract image script tags: <script type="midscene-image" data-id="...">...</script>
+    const imageRegex = /<script type="midscene-image"[^>]*>[\s\S]*?<\/script>/g;
+    const imageMatches = fileContent.match(imageRegex);
+    if (imageMatches) {
+      scripts.push(...imageMatches);
+    }
+
+    // Extract dump script tags (with attributes): <script type="midscene_web_dump" ...>...</script>
+    const dumpRegex =
+      /<script type="midscene_web_dump"[^>]*>[\s\S]*?<\/script>/g;
+    const dumpMatches = fileContent.match(dumpRegex);
+    if (dumpMatches) {
+      scripts.push(...dumpMatches);
+    }
+
+    return scripts.join('\n');
   }
 
   public mergeReports(
@@ -68,34 +83,31 @@ export class ReportMergingTool {
     );
 
     try {
-      // Write template
-      fs.appendFileSync(outputFilePath, getReportTpl());
+      // Write template - check if valid, use minimal HTML if not
+      const tpl = getReportTpl();
+      const isValidTemplate = tpl.includes('</html>');
+      if (isValidTemplate) {
+        fs.writeFileSync(outputFilePath, tpl);
+      } else {
+        // Use minimal HTML wrapper if template is placeholder (e.g., test env)
+        fs.writeFileSync(
+          outputFilePath,
+          '<!DOCTYPE html><html><head></head><body></body></html>',
+        );
+      }
 
       // Process all reports one by one
       for (let i = 0; i < this.reportInfos.length; i++) {
         const reportInfo = this.reportInfos[i];
         console.log(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
-        const dumpString = this.extractScriptContent(reportInfo.reportFilePath);
-        const reportAttributes = reportInfo.reportAttributes;
+        // Extract all scripts (images + dump) from the original report
+        const allScripts = this.extractAllScripts(reportInfo.reportFilePath);
 
-        const reportHtmlStr = `${reportHTMLContent(
-          {
-            dumpString,
-            attributes: {
-              playwright_test_duration: reportAttributes.testDuration,
-              playwright_test_status: reportAttributes.testStatus,
-              playwright_test_title: reportAttributes.testTitle,
-              playwright_test_id: reportAttributes.testId,
-              playwright_test_description: reportAttributes.testDescription,
-            },
-          },
-          undefined,
-          undefined,
-          false,
-        )}\n`; // use existed function to achieve report script content
-
-        fs.appendFileSync(outputFilePath, reportHtmlStr);
+        // Insert all scripts before </html>
+        if (allScripts) {
+          insertScriptBeforeClosingHtml(outputFilePath, allScripts);
+        }
       }
 
       console.log(`Successfully merged new report: ${outputFilePath}`);

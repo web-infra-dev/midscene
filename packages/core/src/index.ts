@@ -31,6 +31,22 @@ export { z };
 export default Service;
 export { TaskRunner, Service, getVersion };
 
+export { ScreenshotItem } from './screenshot-item';
+export { restoreImageReferences } from './dump';
+export {
+  GroupedActionDump as GroupedActionDumpClass,
+  ExecutionDump as ExecutionDumpClass,
+} from './dump';
+export type {
+  SerializableGroupedActionDump,
+  SerializableExecutionDump,
+} from './dump';
+export type { StorageProvider, FileStorage } from './storage';
+export { MemoryStorage } from './storage';
+export { ReportWriter } from './report-writer';
+
+export type { RawUIContextData } from './agent/utils';
+
 export type {
   MidsceneYamlScript,
   MidsceneYamlTask,
