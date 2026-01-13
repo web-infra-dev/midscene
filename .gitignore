@@ -130,3 +130,8 @@ tsconfig.build.tsbuildinfo
 .webx
 .mcp.json
 package-lock.json
+
+# Build cache directories
+jiti/
+node-compile-cache/
+nx-native-file-cache-*/
