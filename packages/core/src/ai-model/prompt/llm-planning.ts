@@ -19,6 +19,43 @@ const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
   return '{ prompt: string /* description of the target element */ }';
 };
 
+/**
+ * Find ZodDefault in the wrapper chain and return its default value
+ */
+const findDefaultValue = (field: unknown): any | undefined => {
+  let current = field;
+  const visited = new Set<unknown>();
+
+  while (current && !visited.has(current)) {
+    visited.add(current);
+    const currentWithDef = current as {
+      _def?: {
+        typeName?: string;
+        defaultValue?: () => any;
+        innerType?: unknown;
+      };
+    };
+
+    if (!currentWithDef._def?.typeName) break;
+
+    if (currentWithDef._def.typeName === 'ZodDefault') {
+      return currentWithDef._def.defaultValue?.();
+    }
+
+    // Continue unwrapping if it's a wrapper type
+    if (
+      currentWithDef._def.typeName === 'ZodOptional' ||
+      currentWithDef._def.typeName === 'ZodNullable'
+    ) {
+      current = currentWithDef._def.innerType;
+    } else {
+      break;
+    }
+  }
+
+  return undefined;
+};
+
 export const descriptionForAction = (
   action: DeviceAction<any>,
   locatorSchemaTypeDescription: string,
@@ -59,12 +96,9 @@ export const descriptionForAction = (
           // Get description using extracted helper
           const description = getZodDescription(field as z.ZodTypeAny);
 
-          // Check if field has a default value
-          const fieldWithDef = field as { _def?: { defaultValue?: () => any } };
-          const hasDefault = fieldWithDef._def?.defaultValue !== undefined;
-          const defaultValue = hasDefault
-            ? fieldWithDef._def?.defaultValue?.()
-            : undefined;
+          // Check if field has a default value by searching the wrapper chain
+          const defaultValue = findDefaultValue(field);
+          const hasDefault = defaultValue !== undefined;
 
           // Build param line for this field
           let paramLine = `${keyWithOptional}: ${typeName}`;

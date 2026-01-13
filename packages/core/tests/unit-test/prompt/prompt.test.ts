@@ -104,7 +104,7 @@ describe('action space', () => {
           - locate: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped
           - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped for the second time
           - scrollType?: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type, default: "once"
-          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type
+          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type, default: "Tap"
           - option?: number // An optional option value"
     `);
   });
