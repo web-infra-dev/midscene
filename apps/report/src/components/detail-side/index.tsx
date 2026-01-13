@@ -691,6 +691,24 @@ const DetailSide = (): JSX.Element => {
         );
       }
 
+      // Add Note if exists
+      if ((task as ExecutionTaskPlanning).output?.note) {
+        planItems.push(
+          <Card
+            key="note"
+            liteMode={true}
+            title="Note"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                {(task as ExecutionTaskPlanning).output?.note}
+              </pre>
+            }
+          />,
+        );
+      }
+
       // Add each plan action
       actions.forEach((action, index) => {
         const paramToShow = action.param || {};
