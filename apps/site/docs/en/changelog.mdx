@@ -1,5 +1,33 @@
 # Changelog
 
+## v1.2 - File upload support and stability improvements
+
+v1.2 focuses on expanding Web automation capabilities and improving overall stability. It adds file upload functionality and fixes several issues affecting user experience, making automated testing more reliable.
+
+### File upload feature
+
+File upload is a common requirement in Web automation scenarios. v1.2 adds file upload capability for the web, supporting natural language operations for file input boxes, making form automation more complete.
+
+See: [aiTap file upload](./api.mdx#agentaitap)
+
+### Cache mechanism optimization
+
+Fixed the issue where cache wasn't updated after DOM changes. When page DOM changes cause cache validation to fail, the system now automatically updates the cache, avoiding operation failures due to stale cache and improving automation script stability.
+
+### Report and Playground improvements
+
+#### Deep thinking tag optimization
+- Fixed the issue where deepThink tags weren't displayed correctly in reports when using `.aiAct()` method with deep thinking. Now you can clearly see which operations used deep thinking capability in reports
+- Improved the style of summary rows in reports for better readability
+
+#### Playground stability improvements
+- Fixed the issue where Playground didn't properly create agent instances in `getActionSpace` when using agentFactory mode, ensuring normal operation across various usage modes
+- Optimized Playground output display to prevent overly long reportHTML content from affecting the interface
+
+### Model configuration updates
+
+Updated configuration parameters for Qwen model's deep thinking functionality to ensure compatibility with the latest model version.
+
 ## v1.1 - `aiAct` deep thinking and extensible MCP SDK
 
 v1.1 optimizes model planning capabilities and MCP extensibility, making automation more stable in complex scenarios while providing more flexible solutions for enterprise MCP service deployments.
