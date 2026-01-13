@@ -3,6 +3,98 @@ import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
 
+/**
+ * Type guard to check if a value is a ScreenshotItem-like object (runtime format with base64 property).
+ * This is different from ScreenshotItem.isSerialized() which checks for { $screenshot: string } format.
+ */
+export function isScreenshotItem(
+  value: unknown,
+): value is { base64: string; id?: string } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'base64' in value &&
+    typeof (value as { base64: unknown }).base64 === 'string'
+  );
+}
+
+/**
+ * Type guard to check if a value has getData() method (ScreenshotItem instance).
+ */
+function hasGetDataMethod(
+  value: unknown,
+): value is { getData: () => Promise<string> } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'getData' in value &&
+    typeof (value as { getData: unknown }).getData === 'function'
+  );
+}
+
+/**
+ * Extract screenshot base64 from various context formats.
+ * Handles all formats uniformly:
+ * 1. RawUIContextData: { screenshotBase64: string }
+ * 2. UIContext with string: { screenshot: string }
+ * 3. UIContext with ScreenshotItem instance: { screenshot: { getData(): Promise<string> } }
+ * 4. Legacy format: { screenshot: { base64: string } }
+ */
+export async function getScreenshotFromContext(
+  context: WebUIContext | null | undefined,
+): Promise<string> {
+  if (!context) {
+    return '';
+  }
+
+  const contextAny = context as any;
+
+  // Case 1: RawUIContextData format
+  if (typeof contextAny.screenshotBase64 === 'string') {
+    return contextAny.screenshotBase64;
+  }
+
+  // Use unknown to handle various runtime formats
+  const screenshot = context.screenshot as unknown;
+
+  // Case 2: Already a string (after JSON restoration)
+  if (typeof screenshot === 'string') {
+    return screenshot;
+  }
+
+  // Case 3: ScreenshotItem instance with getData() method
+  if (hasGetDataMethod(screenshot)) {
+    return screenshot.getData();
+  }
+
+  // Case 4: Legacy format with base64 property
+  if (isScreenshotItem(screenshot)) {
+    return screenshot.base64;
+  }
+
+  return '';
+}
+
+/**
+ * Synchronous version for cases where async is not possible.
+ * Note: Cannot handle ScreenshotItem with getData() method.
+ */
+function getScreenshotBase64(context: WebUIContext): string {
+  const contextAny = context as any;
+  if (typeof contextAny.screenshotBase64 === 'string') {
+    return contextAny.screenshotBase64;
+  }
+
+  const screenshot = context.screenshot as unknown;
+  if (typeof screenshot === 'string') {
+    return screenshot;
+  }
+  if (isScreenshotItem(screenshot)) {
+    return screenshot.base64;
+  }
+  return '';
+}
+
 // Get action name based on type
 export const actionNameForType = (type: string) => {
   // Remove 'ai' prefix and convert camelCase to space-separated words
@@ -31,7 +123,21 @@ export const actionNameForType = (type: string) => {
 
 // Create static agent from context
 export const staticAgentFromContext = (context: WebUIContext) => {
-  const page = new StaticPage(context);
+  // Convert WebUIContext to StaticUIContext format
+  // After restoration, context.screenshot is a base64 string (restored from { $screenshot: id })
+  const screenshotBase64 = getScreenshotBase64(context);
+
+  if (!screenshotBase64) {
+    throw new Error(
+      'Failed to get screenshot base64 from context. Screenshot may be missing or in an unsupported format.',
+    );
+  }
+
+  const staticContext = {
+    size: context.size,
+    screenshotBase64,
+  };
+  const page = new StaticPage(staticContext);
   return new StaticPageAgent(page);
 };
 
