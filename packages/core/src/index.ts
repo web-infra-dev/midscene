@@ -60,3 +60,5 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
+
+export type { RawUIContextData } from './agent/utils';
