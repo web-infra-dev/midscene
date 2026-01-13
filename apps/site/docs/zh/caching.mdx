@@ -335,6 +335,17 @@ Midscene 使用 [XPath](https://developer.mozilla.org/en-US/docs/Web/XML/XPath) 
 
 当缓存未命中时，Midscene 将回退到继续使用 AI 服务来查找元素。
 
+### Canvas、iframe 等场景无法使用缓存
+
+由于元素定位缓存是基于 DOM 结构和 XPath 实现的，以下场景无法使用缓存功能：
+
+1. **Canvas 元素**：Canvas 内部的图形内容不存在 DOM 节点，无法通过 XPath 定位。
+2. **跨域 iframe**：浏览器安全策略限制了对跨域 iframe 内部 DOM 的访问。
+3. **Shadow DOM（closed 模式）**：封闭的 Shadow DOM 无法从外部访问其内部结构。
+4. **WebGL / SVG 动态内容**：动态生成的图形内容可能没有稳定的 DOM 结构。
+
+在这些场景中，Midscene 仍然可以通过视觉识别来定位和操作元素，但每次都需要调用 AI 服务，无法利用缓存加速。
+
 ### 获取缓存相关的调试日志
 
 在环境变量中配置 `DEBUG=midscene:cache:*`，你可以看到缓存相关的调试日志。
