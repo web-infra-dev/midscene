@@ -243,6 +243,7 @@ export interface PlanningAction<ParamType = any> {
 export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
   log: string;
+  note?: string;
   error?: string;
 }
 
