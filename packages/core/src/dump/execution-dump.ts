@@ -145,16 +145,20 @@ export class ExecutionDump {
   ): SerializableRecorderItem {
     const { screenshot, ...rest } = record;
 
-    if (!screenshot || typeof screenshot !== 'object') {
+    // In PR1, screenshot is typed as string, but we use duck typing to support
+    // ScreenshotItem objects at runtime (will be properly typed in PR2)
+    const screenshotValue = screenshot as unknown;
+
+    if (!screenshotValue || typeof screenshotValue !== 'object') {
       return { ...rest, screenshot: null };
     }
 
-    if (hasToSerializable(screenshot)) {
-      return { ...rest, screenshot: screenshot.toSerializable() };
+    if (hasToSerializable(screenshotValue)) {
+      return { ...rest, screenshot: screenshotValue.toSerializable() };
     }
 
-    if (isSerializedScreenshot(screenshot)) {
-      return { ...rest, screenshot };
+    if (isSerializedScreenshot(screenshotValue)) {
+      return { ...rest, screenshot: screenshotValue };
     }
 
     return { ...rest, screenshot: null };

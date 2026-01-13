@@ -316,7 +316,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: ScreenshotItem | string;
+  screenshot?: string;
   timing?: string;
 }
 
