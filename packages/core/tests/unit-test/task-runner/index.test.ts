@@ -10,8 +10,6 @@ import { fakeService } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const insightFindTask = (shouldThrow?: boolean) => {
-  const insight = fakeService('test-task-runner');
-
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
     type: 'Planning',
     subType: 'Locate',
@@ -25,6 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
+      const insight = await fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
