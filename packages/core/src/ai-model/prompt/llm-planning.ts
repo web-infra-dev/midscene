@@ -59,10 +59,28 @@ export const descriptionForAction = (
           // Get description using extracted helper
           const description = getZodDescription(field as z.ZodTypeAny);
 
+          // Check if field has a default value
+          const fieldWithDef = field as { _def?: { defaultValue?: () => any } };
+          const hasDefault = fieldWithDef._def?.defaultValue !== undefined;
+          const defaultValue = hasDefault
+            ? fieldWithDef._def?.defaultValue?.()
+            : undefined;
+
           // Build param line for this field
           let paramLine = `${keyWithOptional}: ${typeName}`;
+          const comments: string[] = [];
           if (description) {
-            paramLine += ` // ${description}`;
+            comments.push(description);
+          }
+          if (hasDefault) {
+            const defaultStr =
+              typeof defaultValue === 'string'
+                ? `"${defaultValue}"`
+                : JSON.stringify(defaultValue);
+            comments.push(`default: ${defaultStr}`);
+          }
+          if (comments.length > 0) {
+            paramLine += ` // ${comments.join(', ')}`;
           }
 
           paramLines.push(paramLine);
@@ -161,6 +179,7 @@ ${logFieldInstruction}
 
 Return in JSON format:
 {
+  "note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action.
   "log": string, // a brief preamble to the user explaining what you’re about to do
   ${commonOutputFields}
   "action": 
@@ -182,6 +201,22 @@ For example, if the instruction is to login and the form has already been filled
       "locate": { 
         "prompt": "The login button"${vlMode && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
       }
+    }
+  }
+}
+
+For example, if the instruction is to find out every title in the screenshot, the return value should be:
+
+{
+  "note": "The titles in the screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
+  "log": "Scroll to find more titles",
+  "action": {
+    "type": "Scroll",
+    "param": {
+      "locate": {
+        "prompt": "The page content area"
+      },
+      "direction": "down"
     }
   }
 }
