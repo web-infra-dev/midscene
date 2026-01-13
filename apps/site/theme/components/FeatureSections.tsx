@@ -302,12 +302,9 @@ export function FeatureSections() {
               {/* Model 1 - Seed */}
               <TiltCard
                 href={tUrl('/model-config#doubao-seed-vision')}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                  {t('modelSeedName')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -325,6 +322,9 @@ export function FeatureSections() {
                       }}
                     />
                   </div>
+                  <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                    {t('modelSeedName')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelSeedDesc')}
                   </div>
@@ -334,12 +334,9 @@ export function FeatureSections() {
               {/* Model 2 - Qwen */}
               <TiltCard
                 href={tUrl('/model-config#qwen3-vl')}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                  {t('modelQwenName')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -357,6 +354,9 @@ export function FeatureSections() {
                       }}
                     />
                   </div>
+                  <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                    {t('modelQwenName')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelQwenDesc')}
                   </div>
@@ -369,12 +369,9 @@ export function FeatureSections() {
               {/* Model 3 - Gemini */}
               <TiltCard
                 href={tUrl('/model-config#gemini-3-pro')}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                  {t('modelGeminiName')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -392,6 +389,9 @@ export function FeatureSections() {
                       }}
                     />
                   </div>
+                  <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                    {t('modelGeminiName')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelGeminiDesc')}
                   </div>
@@ -401,12 +401,9 @@ export function FeatureSections() {
               {/* Model 4 - Multi-model combo */}
               <TiltCard
                 href={tUrl(t('multiModelStrategyLink'))}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <span className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                  {t('modelMultiModelName')}
-                </span>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex items-center justify-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -437,6 +434,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                    {t('modelMultiModelName')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('modelMultiModelDesc')}
                   </div>
@@ -501,12 +501,9 @@ export function FeatureSections() {
               {/* Rich APIs Card */}
               <TiltCard
                 href={tUrl(t('featureRichAPIsLink'))}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                  {t('featureRichAPIs')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -537,6 +534,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                    {t('featureRichAPIs')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureRichAPIsDesc')}
                   </div>
@@ -546,12 +546,9 @@ export function FeatureSections() {
               {/* MCP Server Card */}
               <TiltCard
                 href={tUrl(t('featureMCPServerLink'))}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                  {t('featureMCPServer')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -582,6 +579,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                    {t('featureMCPServer')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureMCPServerDesc')}
                   </div>
@@ -594,12 +594,9 @@ export function FeatureSections() {
               {/* Reports & Playground Card */}
               <TiltCard
                 href={tUrl(t('featureReportsPlaygroundLink'))}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                  {t('featureReportsPlayground')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -630,6 +627,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
+                    {t('featureReportsPlayground')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureReportsPlaygroundDesc')}
                   </div>
@@ -639,12 +639,9 @@ export function FeatureSections() {
               {/* Flexible Integration Card */}
               <TiltCard
                 href={tUrl(t('featureFlexibleIntegrationLink'))}
-                className="w-full md:w-[381px] md:h-[289px] flex flex-col gap-4 md:gap-6 group cursor-pointer"
+                className="w-full md:w-[381px] md:h-[289px] flex flex-col group cursor-pointer"
               >
-                <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                  {t('featureFlexibleIntegration')}
-                </p>
-                <div className="flex flex-col gap-y-[17px]">
+                <div className="flex flex-col gap-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[185px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
                       className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
@@ -675,6 +672,9 @@ export function FeatureSections() {
                       />
                     </div>
                   </div>
+                  <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
+                    {t('featureFlexibleIntegration')}
+                  </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
                     {t('featureFlexibleIntegrationDesc')}
                   </div>

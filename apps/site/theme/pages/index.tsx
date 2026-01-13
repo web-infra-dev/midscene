@@ -28,6 +28,7 @@ export function HomeLayout() {
         style={{
           backgroundImage: 'url(/midscene-light-bg.png)',
           backgroundRepeat: 'no-repeat',
+          backgroundSize: 'cover',
         }}
       />
       <HomeBackground
@@ -35,6 +36,7 @@ export function HomeLayout() {
         style={{
           backgroundImage: 'url(/midscene-dark-bg.png)',
           backgroundRepeat: 'no-repeat',
+          backgroundSize: 'cover',
         }}
       />
 
