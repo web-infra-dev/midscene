@@ -413,7 +413,7 @@ export function FeatureSections() {
                       }}
                     >
                       <img
-                        src="/icon/multi-model.svg"
+                        src="/icon/multi-model.png"
                         alt="Multi-model combo"
                         className="w-[120px] h-[105px]"
                       />
