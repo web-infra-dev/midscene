@@ -109,6 +109,11 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
+  /**
+   * Screenshot data as ScreenshotItem (new API)
+   */
+  abstract screenshot: ScreenshotItem;
+
   abstract screenshotBase64: string;
 
   abstract size: Size;
