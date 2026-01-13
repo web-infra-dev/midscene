@@ -61,6 +61,8 @@ import 'dotenv/config';
 
 ## 常用模型配置
 
+这里列出常用模型的配置，如需了解模型区别和选型，可查阅 [推荐的视觉模型](./model-strategy.html#recommended-vision-models)。
+
 ### 豆包 Seed 模型 {#doubao-seed-model}
 
 推荐使用 Doubao-Seed-1.6-Vision。
@@ -142,7 +144,9 @@ MIDSCENE_MODEL_FAMILY="vlm-ui-tars-doubao-1.5"
 
 ## 多模型示例：GPT-5.1 用于 Planning/Insight，Qwen3-VL 负责视觉 {#gpt51-planning-insight-qwen3}
 
-使用 GPT-5.1 处理重度推理（Planning 和/或 Insight），让 Qwen3-VL 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
+关于组合多个模型的更多信息，可查阅 [进阶：组合多个模型](./model-strategy.html#advanced-combining-multiple-models)。
+
+下面以 GPT-5.1 用于 Planning/Insight、Qwen3-VL 负责视觉为例。使用 GPT-5.1 处理重度推理（Planning 和/或 Insight），让 Qwen3-VL 专注视觉定位。独立的 Planning 和 Insight 模型可按需启用，不需要同时开启。
 
 ```bash
 # 默认视觉模型：Qwen3-VL

@@ -58,6 +58,8 @@ import 'dotenv/config';
 
 ## Common model configurations
 
+This section lists common model configurations. For details on model differences and selection strategies, see [Recommended Vision Models](./model-strategy.html#recommended-vision-models).
+
 ### Doubao Seed Model {#doubao-seed-model}
 
 Doubao-Seed-1.6-Vision is the recommended model.
@@ -141,7 +143,9 @@ Starting with version 1.0, Midscene no longer supports gpt series models as the 
 
 ## Multi-model example: GPT-5.1 planning/insight + Qwen3-VL for vision {#gpt51-planning-insight-qwen3}
 
-Use GPT-5.1 for Planning and/or Insight to handle heavy reasoning, while Qwen3-VL focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
+For more information on combining multiple models, see [Advanced: Combining Multiple Models](./model-strategy.html#advanced-combining-multiple-models).
+
+Below is an example using GPT-5.1 for Planning/Insight and Qwen3-VL for vision. Use GPT-5.1 for Planning and/or Insight to handle heavy reasoning, while Qwen3-VL focuses on visual grounding. You can enable either role or both—toggle them based on your workload.
 
 ```bash
 # Default vision model: Qwen3-VL
