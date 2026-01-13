@@ -52,6 +52,8 @@ export class FileStorage implements StorageProvider {
   async store(data: string): Promise<string> {
     const id = uuid();
     const filePath = path.join(this.directory, `${id}.b64`);
+    // Using sync API for simplicity and atomicity - screenshot storage is typically
+    // called sequentially and the overhead of async I/O scheduling outweighs benefits
     fs.writeFileSync(filePath, data, 'utf-8');
     this.registry.set(id, filePath);
     return id;

@@ -45,7 +45,16 @@ export class ScreenshotItem {
 
   /**
    * Migrate data to a different storage provider.
+   *
+   * Migration process:
+   * 1. Copy data to new provider
+   * 2. Delete from old provider
+   * 3. Return new ScreenshotItem pointing to new provider
+   *
    * If deletion from old provider fails, attempts rollback by removing from new provider.
+   * Note: If rollback also fails, data may exist in both providers (caller should handle cleanup).
+   *
+   * @throws Error if migration fails (old provider deletion failed)
    */
   async migrateTo(newProvider: StorageProvider): Promise<ScreenshotItem> {
     const data = await this.getData();
@@ -55,11 +64,12 @@ export class ScreenshotItem {
       await this._provider.delete(this._id);
       return new ScreenshotItem(newId, newProvider);
     } catch (error) {
-      // Rollback: remove data from new provider
+      // Rollback: attempt to remove data from new provider
       try {
         await newProvider.delete(newId);
       } catch {
-        // Ignore rollback failures
+        // Rollback failed - data may exist in both providers
+        // Caller should handle cleanup if needed
       }
       throw error;
     }

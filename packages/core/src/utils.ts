@@ -172,7 +172,7 @@ export function reportHTMLContent(
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json">\n' +
+      '<script type="midscene_web_dump">\n' +
       escapeScriptTag(processedDumpString) +
       '\n</script>';
   } else {

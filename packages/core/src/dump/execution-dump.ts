@@ -9,16 +9,15 @@ import type {
   SerializedScreenshot,
 } from './types';
 
-// Type guard interfaces for screenshot detection
+/** Type guard interface for ScreenshotItem detection */
 interface ScreenshotLike {
   toSerializable(): { $screenshot: string };
-  getData(): Promise<string>;
 }
 
+/** Check if a value has toSerializable method (duck typing for ScreenshotItem) */
 function hasToSerializable(value: object): value is ScreenshotLike {
   return (
     'toSerializable' in value &&
-    'getData' in value &&
     typeof (value as ScreenshotLike).toSerializable === 'function'
   );
 }

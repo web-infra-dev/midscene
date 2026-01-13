@@ -40,31 +40,30 @@ export class ReportWriter {
     const scriptContent = await dump.toHTML();
     const tpl = getReportTpl();
 
+    // Overwrite mode: write complete report with template and content
     if (!append) {
-      // Overwrite mode: write complete report
       fs.writeFileSync(reportPath, `${tpl}\n${scriptContent}`);
-    } else {
-      // Append mode: insert content before </html>
-      const isValidTemplate = tpl.includes('</html>');
-
-      if (!this.initialized.get(reportPath)) {
-        if (isValidTemplate) {
-          fs.writeFileSync(reportPath, tpl);
-        } else {
-          // Use minimal HTML wrapper if template is invalid (e.g., placeholder in test env)
-          fs.writeFileSync(
-            reportPath,
-            `<!DOCTYPE html><html><head></head><body>\n${scriptContent}\n</body></html>`,
-          );
-          this.initialized.set(reportPath, true);
-          return reportPath;
-        }
-        this.initialized.set(reportPath, true);
-      }
-
-      insertScriptBeforeClosingHtml(reportPath, scriptContent);
+      return reportPath;
     }
 
+    // Append mode: initialize template first, then insert content
+    const isValidTemplate = tpl.includes('</html>');
+    const needsInitialization = !this.initialized.get(reportPath);
+
+    if (needsInitialization) {
+      this.initialized.set(reportPath, true);
+
+      // Invalid template (e.g., placeholder in test env): use minimal HTML wrapper
+      if (!isValidTemplate) {
+        const minimalHtml = `<!DOCTYPE html><html><head></head><body>\n${scriptContent}\n</body></html>`;
+        fs.writeFileSync(reportPath, minimalHtml);
+        return reportPath;
+      }
+
+      fs.writeFileSync(reportPath, tpl);
+    }
+
+    insertScriptBeforeClosingHtml(reportPath, scriptContent);
     return reportPath;
   }
 

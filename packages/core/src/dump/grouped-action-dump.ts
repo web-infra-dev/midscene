@@ -18,6 +18,9 @@ import type {
   WriteToDirectoryOptions,
 } from './types';
 
+/** Minimum length threshold to identify potential base64 image data */
+const MIN_BASE64_IMAGE_LENGTH = 100;
+
 /**
  * GroupedActionDump is the top-level container for execution dumps.
  * Manages serialization, deserialization, and report generation.
@@ -307,7 +310,8 @@ ${dumpTag}
       if (
         (key === 'screenshot' || key === 'screenshotBase64') &&
         typeof value === 'string' &&
-        (value.startsWith('data:image/') || value.length > 100)
+        (value.startsWith('data:image/') ||
+          value.length > MIN_BASE64_IMAGE_LENGTH)
       ) {
         return true;
       }
@@ -375,7 +379,8 @@ ${dumpTag}
       if (
         (key === 'screenshot' || key === 'screenshotBase64') &&
         typeof value === 'string' &&
-        (value.startsWith('data:image/') || value.length > 100)
+        (value.startsWith('data:image/') ||
+          value.length > MIN_BASE64_IMAGE_LENGTH)
       ) {
         // Store the base64 data and replace with new format
         const id = await provider.store(value);

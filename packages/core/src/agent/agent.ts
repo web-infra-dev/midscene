@@ -187,6 +187,11 @@ export class Agent<
    */
   private reportWriter = new ReportWriter();
 
+  /**
+   * Internal array of dump update listeners.
+   * Use addDumpUpdateListener/removeDumpUpdateListener for multiple listeners,
+   * or the legacy onDumpUpdate setter for single listener (backward compatible).
+   */
   private dumpUpdateListeners: Array<
     (
       dump: string,
@@ -195,6 +200,9 @@ export class Agent<
     ) => void
   > = [];
 
+  /**
+   * @deprecated Use addDumpUpdateListener instead. This getter returns only the first listener.
+   */
   get onDumpUpdate():
     | ((
         dump: string,
@@ -205,6 +213,9 @@ export class Agent<
     return this.dumpUpdateListeners[0];
   }
 
+  /**
+   * @deprecated Use addDumpUpdateListener instead. This setter replaces all listeners with a single one.
+   */
   set onDumpUpdate(callback:
     | ((
         dump: string,

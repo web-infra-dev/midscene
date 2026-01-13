@@ -9,8 +9,10 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
+import type { TaskCache } from './agent/task-cache';
 import type { TUserPrompt } from './common';
 import type { ScreenshotItem } from './screenshot-item';
+import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -653,7 +655,7 @@ export interface AgentOpt {
    * });
    * ```
    */
-  storageProvider?: import('./storage').StorageProvider;
+  storageProvider?: StorageProvider;
   /**
    * Task cache instance for caching AI planning and locate results.
    * Only available in Node.js environments.
@@ -666,7 +668,7 @@ export interface AgentOpt {
    * });
    * ```
    */
-  taskCache?: import('./agent/task-cache').TaskCache;
+  taskCache?: TaskCache;
   /**
    * File path resolver for validating and resolving file paths.
    * Only needed in Node.js environments for file upload operations.
