@@ -5,7 +5,9 @@ import {
   getZodTypeName,
 } from '@midscene/shared/zod-schema-utils';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
+import type { ChatCompletionTool } from 'openai/resources/index';
 import type { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
@@ -191,4 +193,82 @@ For example, if the instruction is to login and the form has already been filled
   }
 }
 `;
+}
+
+/**
+ * System prompt for function calling mode
+ */
+export async function systemPromptForFunctionCalling(): Promise<string> {
+  const logFieldInstruction = `
+## About your response (preamble message)
+
+Your response should be a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
+
+- **Use the same language as the user's instruction**
+- **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
+- **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
+- **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
+
+**Examples:**
+- "Click the login button"
+- "Scroll to find the 'Yes' button in popup"
+- "Previous actions failed to find the 'Yes' button, i will try again"
+- "Go back to find the login button"
+`;
+
+  return `
+Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action according to current situation to accomplish the instruction.
+
+You will use function calling to execute actions. When you need to perform an action, call the appropriate function with the required parameters.
+
+## Rules
+
+- Don't give extra actions or plans beyond the instruction. For example, don't try to submit the form if the instruction is only to fill something.
+- Give just the next ONE action you should do by calling ONE function
+- Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
+- Make sure the previous actions are completed successfully before performing the next step
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should report this as an error in your response.
+- If there is nothing to do but waiting, indicate this in your response without calling any function.
+- Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion by calling the "Print_Assert_Result" function.
+
+${logFieldInstruction}
+
+After you call a function, you will receive a screenshot showing the result of your action. Use this to determine the next step.
+`;
+}
+
+/**
+ * Convert actionSpace to OpenAI tools format for function calling
+ */
+export function convertActionSpaceToTools(
+  actionSpace: DeviceAction<any>[],
+): ChatCompletionTool[] {
+  return actionSpace.map((action) => {
+    // Convert paramSchema to JSON schema if it exists
+    let parameters: any = {
+      type: 'object',
+      properties: {},
+      required: [],
+    };
+
+    if (action.paramSchema) {
+      const jsonSchema = zodToJsonSchema(action.paramSchema, {
+        $refStrategy: 'none', // Don't use $ref to keep schema inline
+      });
+
+      // Use the converted schema
+      if (jsonSchema && typeof jsonSchema === 'object') {
+        parameters = jsonSchema;
+      }
+    }
+
+    return {
+      type: 'function',
+      function: {
+        name: action.name,
+        description: action.description || `Execute ${action.name} action`,
+        parameters,
+      },
+    } satisfies ChatCompletionTool;
+  });
 }

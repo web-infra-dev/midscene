@@ -82,7 +82,8 @@
     "openai": "6.3.0",
     "semver": "7.5.2",
     "undici": "^6.0.0",
-    "zod": "3.24.3"
+    "zod": "3.24.3",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",

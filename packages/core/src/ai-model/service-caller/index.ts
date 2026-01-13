@@ -207,12 +207,15 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     deepThink?: DeepThinkOption;
+    tools?: OpenAI.Chat.Completions.ChatCompletionTool[];
+    tool_choice?: OpenAI.Chat.Completions.ChatCompletionToolChoiceOption;
   },
 ): Promise<{
   content: string;
   reasoning_content?: string;
   usage?: AIUsageInfo;
   isStreamed: boolean;
+  tool_calls?: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[];
 }> {
   const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
     await createChatClient({
@@ -235,6 +238,7 @@ export async function callAI(
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
+  let tool_calls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] | undefined;
 
   const buildUsageInfo = (usageData?: OpenAI.CompletionUsage) => {
     if (!usageData) return undefined;
@@ -264,6 +268,8 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
+    ...(options?.tools ? { tools: options.tools } : {}),
+    ...(options?.tool_choice ? { tool_choice: options.tool_choice } : {}),
   };
   const {
     config: deepThinkConfig,
@@ -377,15 +383,18 @@ export async function callAI(
         result.choices,
         `invalid response from LLM service: ${JSON.stringify(result)}`,
       );
-      content = result.choices[0].message.content!;
+      content = result.choices[0].message.content || '';
       accumulatedReasoning =
         (result.choices[0].message as any)?.reasoning_content || '';
+      tool_calls = result.choices[0].message.tool_calls;
       usage = result.usage;
     }
 
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
     debugCall(`response content: ${content}`);
-    assert(content, 'empty content');
+    debugCall(`response tool_calls: ${JSON.stringify(tool_calls)}`);
+    // Content can be empty if only tool_calls are present
+    assert(content || tool_calls, 'empty content and no tool calls');
 
     // Ensure we always have usage info for streaming responses
     if (isStreaming && !usage) {
@@ -406,6 +415,7 @@ export async function callAI(
       reasoning_content: accumulatedReasoning || undefined,
       usage: buildUsageInfo(usage),
       isStreamed: !!isStreaming,
+      tool_calls,
     };
   } catch (e: any) {
     console.error(' call AI error', e);

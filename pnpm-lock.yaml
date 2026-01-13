@@ -780,6 +780,9 @@ importers:
       zod:
         specifier: 3.24.3
         version: 3.24.3
+      zod-to-json-schema:
+        specifier: ^3.24.1
+        version: 3.24.6(zod@3.24.3)
     devDependencies:
       '@rslib/core':
         specifier: ^0.18.3
@@ -18260,7 +18263,7 @@ snapshots:
       semver: 7.7.2
       uuid: 10.0.0
     optionalDependencies:
-      openai: 6.3.0(ws@8.18.3)(zod@3.24.3)
+      openai: 6.3.0(ws@8.18.3)(zod@3.25.76)
 
   latest-version@9.0.0:
     dependencies:
