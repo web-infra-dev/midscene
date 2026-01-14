@@ -526,6 +526,15 @@ export function resolveDeepThinkConfig({
     };
   }
 
+  if (vlMode === 'glm-v') {
+    return {
+      config: {
+        thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
+      },
+      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for glm-v`,
+    };
+  }
+
   return {
     config: {},
     debugMessage: `deepThink ignored: unsupported model_family "${vlMode ?? 'default'}"`,

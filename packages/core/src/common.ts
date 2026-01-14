@@ -196,7 +196,7 @@ export function adaptBbox(
     result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (vlMode === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
-  } else if (vlMode === 'qwen3-vl') {
+  } else if (vlMode === 'qwen3-vl' || vlMode === 'glm-v') {
     result = normalized01000(normalizedBbox as number[], width, height);
   } else {
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);

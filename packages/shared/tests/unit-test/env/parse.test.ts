@@ -46,6 +46,14 @@ describe('modelFamilyToVLConfig', () => {
       vlMode: 'doubao-vision',
       uiTarsVersion: undefined,
     });
+    expect(modelFamilyToVLConfig('gemini')).toEqual({
+      vlMode: 'gemini',
+      uiTarsVersion: undefined,
+    });
+    expect(modelFamilyToVLConfig('glm-v')).toEqual({
+      vlMode: 'glm-v',
+      uiTarsVersion: undefined,
+    });
   });
 
   it('should throw on invalid value', () => {

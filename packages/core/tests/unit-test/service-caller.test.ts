@@ -358,6 +358,28 @@ describe('service-caller', () => {
       expect(result.warningMessage).toBeUndefined();
     });
 
+    it('maps deepThink for glm-v', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: true,
+        vlMode: 'glm-v',
+      });
+
+      expect(result.config).toEqual({ thinking: { type: 'enabled' } });
+      expect(result.debugMessage).toContain('thinking.type=enabled');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
+    it('maps deepThink false for glm-v', () => {
+      const result = resolveDeepThinkConfig({
+        deepThink: false,
+        vlMode: 'glm-v',
+      });
+
+      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
+      expect(result.debugMessage).toContain('thinking.type=disabled');
+      expect(result.warningMessage).toBeUndefined();
+    });
+
     it('warns when deepThink is unsupported', () => {
       const result = resolveDeepThinkConfig({
         deepThink: true,

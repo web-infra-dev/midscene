@@ -238,14 +238,16 @@ export type TVlModeValues =
   | 'gemini'
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
-  | 'vlm-ui-tars-doubao-1.5';
+  | 'vlm-ui-tars-doubao-1.5'
+  | 'glm-v';
 
 export type TVlModeTypes =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'doubao-vision'
   | 'gemini'
-  | 'vlm-ui-tars';
+  | 'vlm-ui-tars'
+  | 'glm-v';
 
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
@@ -255,6 +257,7 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
+  'glm-v',
 ];
 
 /**
@@ -317,6 +320,7 @@ export interface IModelConfigForPlanning {
  *   - 'vlm-ui-tars'
  *   - 'vlm-ui-tars-doubao'
  *   - 'vlm-ui-tars-doubao-1.5'
+ *   - 'glm-v'
  */
 export interface IModelConfigForDefault {
   // model name
