@@ -319,6 +319,10 @@ export function replacerForPageObject(_key: string, value: any) {
   if (value && value.constructor?.name === 'Browser') {
     return '[Browser object]';
   }
+  // Handle ScreenshotItem serialization
+  if (value && typeof value.toSerializable === 'function') {
+    return value.toSerializable();
+  }
   return value;
 }
 

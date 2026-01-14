@@ -59,17 +59,14 @@ describe('aiAction cacheable option propagation', () => {
 
     // Create mock insight
     mockService = {
-      contextRetrieverFn: vi.fn().mockImplementation(async () => {
-        const screenshot = await ScreenshotItem.create(validBase64Image);
-        return {
-          screenshot,
-          size: { width: 1920, height: 1080, dpr: 1 },
-          tree: {
-            id: 'root',
-            attributes: {},
-            children: [],
-          },
-        };
+      contextRetrieverFn: vi.fn().mockResolvedValue({
+        screenshot: ScreenshotItem.create(validBase64Image),
+        size: { width: 1920, height: 1080, dpr: 1 },
+        tree: {
+          id: 'root',
+          attributes: {},
+          children: [],
+        },
       }),
       locate: vi.fn().mockResolvedValue({
         element: {

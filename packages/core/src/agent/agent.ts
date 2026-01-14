@@ -266,7 +266,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = await context.screenshot.getData();
+        const screenshotBase64 = context.screenshot.getData();
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -447,12 +447,12 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = await context.screenshot.getData();
+      const currentScreenshotBase64 = context.screenshot.getData();
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
       });
-      context.screenshot = await ScreenshotItem.create(resizedBase64);
+      context.screenshot = ScreenshotItem.create(resizedBase64);
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
@@ -1337,7 +1337,7 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = await ScreenshotItem.create(base64);
+    const screenshot = ScreenshotItem.create(base64);
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [

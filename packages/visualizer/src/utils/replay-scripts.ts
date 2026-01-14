@@ -68,6 +68,20 @@ const actionDuration = 500;
 const clearInsightDuration = 200;
 const lastFrameDuration = 200;
 
+/**
+ * Helper function to get base64 string from screenshot
+ * Handles both ScreenshotItem object and plain base64 string
+ */
+const getScreenshotData = (screenshot: any): string => {
+  if (typeof screenshot === 'string') {
+    return screenshot;
+  }
+  if (screenshot && typeof screenshot.getData === 'function') {
+    return getScreenshotData(screenshot);
+  }
+  return '';
+};
+
 // fit rect to camera
 export const cameraStateForRect = (
   rect: Rect,
@@ -388,13 +402,13 @@ export const generateAnimationScripts = (
       const title = typeStr(task);
       const subTitle = paramStr(task);
       const context = task.uiContext;
-      if (context?.screenshotBase64) {
+      if (context?.screenshot) {
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
         scripts.push({
           type: 'img',
-          img: context.screenshotBase64,
+          img: getScreenshotData(context.screenshot),
           duration: stillAfterInsightDuration,
           title,
           subTitle,
@@ -420,7 +434,7 @@ export const generateAnimationScripts = (
 
           scripts.push({
             type: 'insight',
-            img: context.screenshotBase64,
+            img: getScreenshotData(context.screenshot),
             context: context,
             camera: newCameraState,
             highlightElement: element,
@@ -448,7 +462,7 @@ export const generateAnimationScripts = (
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         scripts.push({
           type: 'img',
-          img: planningTask.recorder?.[0]?.screenshot,
+          img: getScreenshotData(planningTask.recorder?.[0]?.screenshot),
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
@@ -484,7 +498,7 @@ export const generateAnimationScripts = (
       // const ifLastTask = index === taskCount - 1;
       scripts.push({
         type: 'img',
-        img: task.recorder?.[0]?.screenshot,
+        img: getScreenshotData(task.recorder?.[0]?.screenshot),
         duration: actionDuration,
         camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
         title,
@@ -501,7 +515,7 @@ export const generateAnimationScripts = (
       if (screenshot) {
         scripts.push({
           type: 'img',
-          img: screenshot,
+          img: getScreenshotData(screenshot),
           duration: stillDuration,
           camera: fullPageCameraState,
           title,
@@ -523,7 +537,9 @@ export const generateAnimationScripts = (
         type: 'img',
         img:
           task.recorder && task.recorder.length > 0
-            ? task.recorder[task.recorder.length - 1].screenshot
+            ? getScreenshotData(
+                task.recorder[task.recorder.length - 1].screenshot,
+              ) || ''
             : '',
         camera: fullPageCameraState,
         duration: stillDuration,

@@ -23,7 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const insight = await fakeService('test-task-runner');
+      const insight = fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
@@ -49,8 +49,8 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = async () => {
-  const screenshot = await ScreenshotItem.create('');
+const fakeUIContextBuilder = () => {
+  const screenshot = ScreenshotItem.create('');
   return {
     screenshot,
     tree: { node: null, children: [] },
@@ -220,8 +220,8 @@ describe(
     });
 
     it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = async (id: string) => {
-        const screenshot = await ScreenshotItem.create(id);
+      const baseUIContext = (id: string) => {
+        const screenshot = ScreenshotItem.create(id);
         return {
           screenshot,
           tree: { node: null, children: [] },
@@ -229,8 +229,8 @@ describe(
         } as unknown as UIContext;
       };
 
-      const firstContext = await baseUIContext('first');
-      const screenshotContext = await baseUIContext('screenshot');
+      const firstContext = baseUIContext('first');
+      const screenshotContext = baseUIContext('screenshot');
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValueOnce(firstContext)
@@ -269,14 +269,11 @@ describe(
     it('subTask - throws when previous uiContext missing', async () => {
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
-        .mockImplementation(async () => {
-          const screenshot = await ScreenshotItem.create('');
-          return {
-            screenshot,
-            tree: { node: null, children: [] },
-            size: { width: 0, height: 0 },
-          } as unknown as UIContext;
-        });
+        .mockResolvedValue({
+          screenshot: ScreenshotItem.create(''),
+          tree: { node: null, children: [] },
+          size: { width: 0, height: 0 },
+        } as unknown as UIContext);
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [

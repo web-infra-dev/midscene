@@ -10,7 +10,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   protected async createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
-    const screenshot = await ScreenshotItem.create('');
+    const screenshot = ScreenshotItem.create('');
     return new StaticPage({
       screenshot,
       size: { width: 1920, height: 1080 },

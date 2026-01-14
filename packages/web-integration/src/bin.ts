@@ -6,7 +6,7 @@ import 'dotenv/config';
 
 async function startServer() {
   // Create page and agent instances with minimal valid data
-  const screenshot = await ScreenshotItem.create('');
+  const screenshot = ScreenshotItem.create('');
   const page = new StaticPage({
     size: { width: 800, height: 600 },
     screenshot,

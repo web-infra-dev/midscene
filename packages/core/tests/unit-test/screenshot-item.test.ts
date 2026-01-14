@@ -1,96 +1,92 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { ScreenshotItem } from '../../src/screenshot-item';
-import { MemoryStorage } from '../../src/storage';
+import { stringifyDumpData } from '../../src/utils';
 
 describe('ScreenshotItem', () => {
-  let storage: MemoryStorage;
-
-  beforeEach(() => {
-    storage = new MemoryStorage();
-  });
-
   describe('create', () => {
-    it('should create a ScreenshotItem with base64 data', async () => {
+    it('should create a ScreenshotItem with base64 data', () => {
       const base64 = 'data:image/png;base64,abc123';
-      const item = await ScreenshotItem.create(base64, storage);
+      const item = ScreenshotItem.create(base64);
 
       expect(item).toBeInstanceOf(ScreenshotItem);
-      expect(item.id).toBeDefined();
-      expect(await item.getData()).toBe(base64);
+      expect(item.getData()).toBe(base64);
     });
 
-    it('should generate unique IDs for different items', async () => {
-      const item1 = await ScreenshotItem.create('data1', storage);
-      const item2 = await ScreenshotItem.create('data2', storage);
+    it('should create multiple independent items', () => {
+      const base64_1 = 'data:image/png;base64,data1';
+      const base64_2 = 'data:image/png;base64,data2';
 
-      expect(item1.id).not.toBe(item2.id);
+      const item1 = ScreenshotItem.create(base64_1);
+      const item2 = ScreenshotItem.create(base64_2);
+
+      expect(item1.getData()).toBe(base64_1);
+      expect(item2.getData()).toBe(base64_2);
+      expect(item1.getData()).not.toBe(item2.getData());
     });
   });
 
-  describe('restore', () => {
-    it('should restore a ScreenshotItem from ID', async () => {
+  describe('getData', () => {
+    it('should return the base64 data synchronously', () => {
       const base64 = 'data:image/png;base64,xyz789';
-      const original = await ScreenshotItem.create(base64, storage);
+      const item = ScreenshotItem.create(base64);
 
-      const restored = ScreenshotItem.restore(original.id, storage);
-      expect(await restored.getData()).toBe(base64);
+      const data = item.getData();
+      expect(data).toBe(base64);
+      expect(typeof data).toBe('string');
     });
   });
 
   describe('toSerializable', () => {
-    it('should return serializable format', async () => {
-      const item = await ScreenshotItem.create('test-data', storage);
+    it('should return base64 string directly', () => {
+      const base64 = 'data:image/png;base64,test-data';
+      const item = ScreenshotItem.create(base64);
       const serialized = item.toSerializable();
 
-      expect(serialized).toEqual({ $screenshot: item.id });
+      expect(serialized).toBe(base64);
+      expect(typeof serialized).toBe('string');
     });
   });
 
-  describe('isSerialized', () => {
-    it('should detect serialized format', () => {
-      expect(ScreenshotItem.isSerialized({ $screenshot: 'id123' })).toBe(true);
-      expect(ScreenshotItem.isSerialized({ other: 'data' })).toBe(false);
-      expect(ScreenshotItem.isSerialized('string')).toBe(false);
-      expect(ScreenshotItem.isSerialized(null)).toBe(false);
-    });
-  });
-});
+  describe('serialization with stringifyDumpData', () => {
+    it('should serialize ScreenshotItem to base64 string in JSON', () => {
+      const base64 = 'data:image/png;base64,serialization-test';
+      const screenshot = ScreenshotItem.create(base64);
 
-describe('MemoryStorage', () => {
-  let storage: MemoryStorage;
+      const data = {
+        screenshot,
+        nested: {
+          screenshot,
+        },
+      };
 
-  beforeEach(() => {
-    storage = new MemoryStorage();
-  });
+      const serialized = stringifyDumpData(data);
+      const parsed = JSON.parse(serialized);
 
-  describe('store and retrieve', () => {
-    it('should store and retrieve data', async () => {
-      const id = await storage.store('test-data');
-      const retrieved = await storage.retrieve(id);
-
-      expect(retrieved).toBe('test-data');
+      // After serialization and parsing, screenshots should be plain strings
+      expect(typeof parsed.screenshot).toBe('string');
+      expect(parsed.screenshot).toBe(base64);
+      expect(typeof parsed.nested.screenshot).toBe('string');
+      expect(parsed.nested.screenshot).toBe(base64);
     });
 
-    it('should throw error for non-existent ID', async () => {
-      await expect(storage.retrieve('non-existent')).rejects.toThrow();
-    });
-  });
+    it('should handle arrays of ScreenshotItems', () => {
+      const base64_1 = 'data:image/png;base64,array-test-1';
+      const base64_2 = 'data:image/png;base64,array-test-2';
 
-  describe('storeWithId', () => {
-    it('should store data with specific ID', async () => {
-      await storage.storeWithId('custom-id', 'custom-data');
-      const retrieved = await storage.retrieve('custom-id');
+      const data = {
+        screenshots: [
+          ScreenshotItem.create(base64_1),
+          ScreenshotItem.create(base64_2),
+        ],
+      };
 
-      expect(retrieved).toBe('custom-data');
-    });
-  });
+      const serialized = stringifyDumpData(data);
+      const parsed = JSON.parse(serialized);
 
-  describe('cleanup', () => {
-    it('should clear all stored data', async () => {
-      const id = await storage.store('test-data');
-      await storage.cleanup();
-
-      await expect(storage.retrieve(id)).rejects.toThrow();
+      expect(Array.isArray(parsed.screenshots)).toBe(true);
+      expect(parsed.screenshots.length).toBe(2);
+      expect(parsed.screenshots[0]).toBe(base64_1);
+      expect(parsed.screenshots[1]).toBe(base64_2);
     });
   });
 });
