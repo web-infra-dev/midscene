@@ -16,6 +16,7 @@ import {
   fillBboxParam,
   findAllMidsceneLocatorField,
 } from '../common';
+import { getScreenshotData } from '../screenshot-item';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import { callAIWithObjectResponse } from './service-caller/index';
@@ -38,7 +39,7 @@ export async function plan(
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
   const { size } = context;
-  const screenshotBase64 = context.screenshot.getData();
+  const screenshotBase64 = getScreenshotData(context.screenshot);
 
   const { vlMode } = modelConfig;
 

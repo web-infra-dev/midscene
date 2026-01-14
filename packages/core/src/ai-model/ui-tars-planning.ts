@@ -10,6 +10,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
+import { getScreenshotData } from '../screenshot-item';
 import type { ConversationHistory } from './conversation-history';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
@@ -58,7 +59,7 @@ export async function uiTarsPlanning(
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
-  const screenshotBase64 = context.screenshot.getData();
+  const screenshotBase64 = getScreenshotData(context.screenshot);
   const imagePayload = await resizeImageForUiTars(
     screenshotBase64,
     context.size,

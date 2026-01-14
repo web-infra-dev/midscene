@@ -27,3 +27,17 @@ export class ScreenshotItem {
     return this._data;
   }
 }
+
+/**
+ * Helper function to get base64 data from screenshot
+ * Handles both ScreenshotItem object and plain base64 string (for deserialized data)
+ */
+export function getScreenshotData(screenshot: ScreenshotItem | string | undefined): string {
+  if (!screenshot) {
+    return '';
+  }
+  if (typeof screenshot === 'string') {
+    return screenshot;
+  }
+  return screenshot.getData();
+}
