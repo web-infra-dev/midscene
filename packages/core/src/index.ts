@@ -52,3 +52,25 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
+
+// Dump serialization utilities
+export type {
+  SerializedScreenshot,
+  SerializableRecorderItem,
+  SerializableExecutionTask,
+  SerializableExecutionDump,
+  SerializableGroupedActionDump,
+  ToHTMLOptions,
+  WriteToDirectoryOptions,
+  SerializeWithImagesResult,
+} from './dump';
+export {
+  restoreImageReferences,
+  escapeContent,
+  unescapeContent,
+  parseImageScripts,
+  parseDumpScript,
+  parseDumpScriptAttributes,
+  generateImageScriptTag,
+  generateDumpScriptTag,
+} from './dump';
