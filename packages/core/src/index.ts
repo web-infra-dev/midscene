@@ -24,7 +24,13 @@ export {
 } from '@midscene/shared/env';
 
 export type * from './types';
-export { ServiceError } from './types';
+export {
+  ServiceError,
+  ExecutionDump,
+  GroupedActionDump,
+  type IExecutionDump,
+  type IGroupedActionDump,
+} from './types';
 
 export { z };
 

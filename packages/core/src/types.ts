@@ -383,11 +383,78 @@ export type ExecutionTask<
     reasoning_content?: string;
   };
 
-export interface ExecutionDump extends DumpMeta {
+export interface IExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
   aiActContext?: string;
+}
+
+/**
+ * Replacer function for JSON serialization that handles Page and Browser objects
+ */
+function replacerForDumpSerialization(_key: string, value: any): any {
+  if (value && value.constructor?.name === 'Page') {
+    return '[Page object]';
+  }
+  if (value && value.constructor?.name === 'Browser') {
+    return '[Browser object]';
+  }
+  return value;
+}
+
+/**
+ * ExecutionDump class for serializing and deserializing execution dumps
+ */
+export class ExecutionDump implements IExecutionDump {
+  logTime: number;
+  name: string;
+  description?: string;
+  tasks: ExecutionTask[];
+  aiActContext?: string;
+
+  constructor(data: IExecutionDump) {
+    this.logTime = data.logTime;
+    this.name = data.name;
+    this.description = data.description;
+    this.tasks = data.tasks;
+    this.aiActContext = data.aiActContext;
+  }
+
+  /**
+   * Serialize the ExecutionDump to a JSON string
+   */
+  serialize(indents?: number): string {
+    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+  }
+
+  /**
+   * Convert to a plain object for JSON serialization
+   */
+  toJSON(): IExecutionDump {
+    return {
+      logTime: this.logTime,
+      name: this.name,
+      description: this.description,
+      tasks: this.tasks,
+      aiActContext: this.aiActContext,
+    };
+  }
+
+  /**
+   * Create an ExecutionDump instance from a serialized JSON string
+   */
+  static fromSerializedString(serialized: string): ExecutionDump {
+    const parsed = JSON.parse(serialized) as IExecutionDump;
+    return new ExecutionDump(parsed);
+  }
+
+  /**
+   * Create an ExecutionDump instance from a plain object
+   */
+  static fromJSON(data: IExecutionDump): ExecutionDump {
+    return new ExecutionDump(data);
+  }
 }
 
 /*
@@ -512,12 +579,68 @@ export type ExecutionTaskPlanningLocate =
 /*
 Grouped dump
 */
-export interface GroupedActionDump {
+export interface IGroupedActionDump {
+  sdkVersion: string;
+  groupName: string;
+  groupDescription?: string;
+  modelBriefs: string[];
+  executions: IExecutionDump[];
+}
+
+/**
+ * GroupedActionDump class for serializing and deserializing grouped action dumps
+ */
+export class GroupedActionDump implements IGroupedActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
   modelBriefs: string[];
   executions: ExecutionDump[];
+
+  constructor(data: IGroupedActionDump) {
+    this.sdkVersion = data.sdkVersion;
+    this.groupName = data.groupName;
+    this.groupDescription = data.groupDescription;
+    this.modelBriefs = data.modelBriefs;
+    this.executions = data.executions.map((exec) =>
+      exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
+    );
+  }
+
+  /**
+   * Serialize the GroupedActionDump to a JSON string
+   */
+  serialize(indents?: number): string {
+    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+  }
+
+  /**
+   * Convert to a plain object for JSON serialization
+   */
+  toJSON(): IGroupedActionDump {
+    return {
+      sdkVersion: this.sdkVersion,
+      groupName: this.groupName,
+      groupDescription: this.groupDescription,
+      modelBriefs: this.modelBriefs,
+      executions: this.executions.map((exec) => exec.toJSON()),
+    };
+  }
+
+  /**
+   * Create a GroupedActionDump instance from a serialized JSON string
+   */
+  static fromSerializedString(serialized: string): GroupedActionDump {
+    const parsed = JSON.parse(serialized) as IGroupedActionDump;
+    return new GroupedActionDump(parsed);
+  }
+
+  /**
+   * Create a GroupedActionDump instance from a plain object
+   */
+  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
+    return new GroupedActionDump(data);
+  }
 }
 
 export type InterfaceType =
