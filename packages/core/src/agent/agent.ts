@@ -9,12 +9,12 @@ import {
   type DeepThinkOption,
   type DetailedLocateParam,
   type DeviceAction,
-  type ExecutionDump,
+  ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
   type ExecutionTaskPlanning,
-  type GroupedActionDump,
+  GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -44,7 +44,6 @@ import {
   groupedActionDumpFileExt,
   processCacheConfig,
   reportHTMLContent,
-  stringifyDumpData,
   writeLogFile,
 } from '@/utils';
 import {
@@ -480,13 +479,13 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = {
+    this.dump = new GroupedActionDump({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
       executions: [],
       modelBriefs: [],
-    };
+    });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
@@ -514,7 +513,7 @@ export class Agent<
     // update dump info
     this.dump.groupName = this.opts.groupName!;
     this.dump.groupDescription = this.opts.groupDescription;
-    return stringifyDumpData(this.dump);
+    return this.dump.serialize();
   }
 
   reportHTMLString() {
@@ -1361,12 +1360,12 @@ export class Agent<
       executor: async () => {},
     };
     // 4. build ExecutionDump
-    const executionDump: ExecutionDump = {
+    const executionDump = new ExecutionDump({
       logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
-    };
+    });
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
