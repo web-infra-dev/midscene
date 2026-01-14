@@ -37,10 +37,6 @@ export {
   GroupedActionDump as GroupedActionDumpClass,
   ExecutionDump as ExecutionDumpClass,
 } from './dump';
-export type {
-  SerializableGroupedActionDump,
-  SerializableExecutionDump,
-} from './dump';
 export type { StorageProvider, FileStorage } from './storage';
 export { MemoryStorage } from './storage';
 export { ReportWriter } from './report-writer';
