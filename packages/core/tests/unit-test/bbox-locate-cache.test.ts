@@ -15,6 +15,7 @@
 import { type LocateCache, TaskCache } from '@/agent';
 import { TaskBuilder } from '@/agent/task-builder';
 import type { AbstractInterface } from '@/device';
+import { ScreenshotItem } from '@/screenshot-item';
 import type Service from '@/service';
 import type { IModelConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
@@ -39,6 +40,15 @@ interface TaskCacheInternal {
 function getTaskCacheInternal(taskCache: TaskCache): TaskCacheInternal {
   return taskCache as unknown as TaskCacheInternal;
 }
+
+// Helper function to create mock UIContext with ScreenshotItem
+const createMockUIContext = async (
+  screenshotData: string,
+  size = { width: 1920, height: 1080, dpr: 1 },
+) => {
+  const screenshot = await ScreenshotItem.create(screenshotData);
+  return { screenshot, size };
+};
 
 describe('bbox locate cache fix', () => {
   let taskBuilder: TaskBuilder;
@@ -90,14 +100,17 @@ describe('bbox locate cache fix', () => {
 
     // Create mock service with typed methods
     mockService = {
-      contextRetrieverFn: vi.fn().mockResolvedValue({
-        screenshotBase64: validBase64Image,
-        size: { width: 1920, height: 1080, dpr: 1 },
-        tree: {
-          id: 'root',
-          attributes: {},
-          children: [],
-        },
+      contextRetrieverFn: vi.fn().mockImplementation(async () => {
+        const screenshot = await ScreenshotItem.create(validBase64Image);
+        return {
+          screenshot,
+          size: { width: 1920, height: 1080, dpr: 1 },
+          tree: {
+            id: 'root',
+            attributes: {},
+            children: [],
+          },
+        };
       }),
       locate: vi.fn().mockResolvedValue({
         element: {
@@ -175,10 +188,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // Verify element was found using bbox (plan hit)
@@ -230,10 +240,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // Verify AI locate was NOT called (bbox was used instead)
@@ -299,10 +306,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // Verify cacheFeatureForRect was NOT called (cache already exists)
@@ -374,10 +378,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // Verify cache was hit
@@ -422,10 +423,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       expect(result).toBeDefined();
@@ -464,10 +462,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // Verify cacheFeatureForRect was NOT called (cacheable: false)
@@ -516,10 +511,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       expect(result).toBeDefined();
@@ -616,10 +608,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // 6. Verify:
@@ -721,10 +710,7 @@ describe('bbox locate cache fix', () => {
           timing: { start: Date.now(), end: 0, cost: 0 },
           executor: locateTask!.executor,
         },
-        uiContext: {
-          screenshotBase64: validBase64Image,
-          size: { width: 1920, height: 1080, dpr: 1 },
-        },
+        uiContext: await createMockUIContext(validBase64Image),
       });
 
       // Verify cache was updated

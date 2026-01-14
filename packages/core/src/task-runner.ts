@@ -1,3 +1,4 @@
+import type { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -11,7 +12,6 @@ import {
   type PlanningActionParamError,
   type UIContext,
 } from '@/types';
-import { ScreenshotItem } from '@/screenshot-item';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
@@ -110,9 +110,7 @@ export class TaskRunner {
   private async captureScreenshot(): Promise<ScreenshotItem | undefined> {
     try {
       const uiContext = await this.getUiContext({ forceRefresh: true });
-      if (uiContext?.screenshotBase64) {
-        return await ScreenshotItem.create(uiContext.screenshotBase64);
-      }
+      return uiContext?.screenshot;
     } catch (error) {
       console.error('error while capturing screenshot', error);
     }

@@ -2,16 +2,16 @@
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 
-import {
-  type ExecutionDump,
-  type ExecutionTask,
-  type ExecutionTaskPlanning,
+import type {
+  ExecutionDump,
+  ExecutionTask,
+  ExecutionTaskPlanning,
   GroupedActionDump,
-  type IExecutionDump,
-  type IGroupedActionDump,
-  type LocateResultElement,
-  type Rect,
-  type UIContext,
+  IExecutionDump,
+  IGroupedActionDump,
+  LocateResultElement,
+  Rect,
+  UIContext,
 } from '@midscene/core';
 
 // Local type definition for Planning Locate task

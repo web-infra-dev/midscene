@@ -1,4 +1,4 @@
-import { TaskRunner } from '@/index';
+import { ScreenshotItem, TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
   ExecutionTaskInsightLocate,
@@ -10,8 +10,6 @@ import { fakeService } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const insightFindTask = (shouldThrow?: boolean) => {
-  const insight = fakeService('test-task-runner');
-
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
     type: 'Planning',
     subType: 'Locate',
@@ -25,6 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
+      const insight = await fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
@@ -50,12 +49,14 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = async () =>
-  ({
-    screenshotBase64: '',
+const fakeUIContextBuilder = async () => {
+  const screenshot = await ScreenshotItem.create('');
+  return {
+    screenshot,
     tree: { node: null, children: [] },
     size: { width: 0, height: 0 },
-  }) as unknown as UIContext;
+  } as unknown as UIContext;
+};
 
 describe(
   'task-runner',
@@ -219,15 +220,17 @@ describe(
     });
 
     it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = (id: string) =>
-        ({
-          screenshotBase64: id,
+      const baseUIContext = async (id: string) => {
+        const screenshot = await ScreenshotItem.create(id);
+        return {
+          screenshot,
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
-        }) as unknown as UIContext;
+        } as unknown as UIContext;
+      };
 
-      const firstContext = baseUIContext('first');
-      const screenshotContext = baseUIContext('screenshot');
+      const firstContext = await baseUIContext('first');
+      const screenshotContext = await baseUIContext('screenshot');
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValueOnce(firstContext)
@@ -266,11 +269,14 @@ describe(
     it('subTask - throws when previous uiContext missing', async () => {
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
-        .mockResolvedValue({
-          screenshotBase64: '',
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext);
+        .mockImplementation(async () => {
+          const screenshot = await ScreenshotItem.create('');
+          return {
+            screenshot,
+            tree: { node: null, children: [] },
+            size: { width: 0, height: 0 },
+          } as unknown as UIContext;
+        });
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [
