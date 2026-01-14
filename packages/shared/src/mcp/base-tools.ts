@@ -46,7 +46,7 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    * Must be implemented by subclasses to create a temporary device instance
    * This allows getting real actionSpace without connecting to device
    */
-  protected abstract createTemporaryDevice(): BaseDevice;
+  protected abstract createTemporaryDevice(): BaseDevice | Promise<BaseDevice>;
 
   /**
    * Initialize all tools by querying actionSpace
@@ -89,7 +89,7 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
           'Agent not available yet, using temporary device for action space',
         );
       }
-      const tempDevice = this.createTemporaryDevice();
+      const tempDevice = await this.createTemporaryDevice();
       actionSpace = tempDevice.actionSpace();
       debug(
         'Action space from temporary device:',
