@@ -65,7 +65,5 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
-// Storage and ScreenshotItem
+// ScreenshotItem
 export { ScreenshotItem, getScreenshotData } from './screenshot-item';
-export type { StorageProvider, FileStorage } from './storage';
-export { MemoryStorage } from './storage';
