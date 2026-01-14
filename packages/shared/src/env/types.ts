@@ -239,7 +239,9 @@ export type TVlModeValues =
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
   | 'vlm-ui-tars-doubao-1.5'
-  | 'glm-v';
+  | 'glm-v'
+  | 'auto-glm'
+  | 'auto-glm-multilingual';
 
 export type TVlModeTypes =
   | 'qwen2.5-vl'
@@ -247,7 +249,9 @@ export type TVlModeTypes =
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars'
-  | 'glm-v';
+  | 'glm-v'
+  | 'auto-glm'
+  | 'auto-glm-multilingual';
 
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
@@ -258,6 +262,8 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
   'glm-v',
+  'auto-glm',
+  'auto-glm-multilingual',
 ];
 
 /**

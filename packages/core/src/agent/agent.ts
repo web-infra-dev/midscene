@@ -37,6 +37,7 @@ export type TestStatus =
   | 'timedOut'
   | 'skipped'
   | 'interrupted';
+import { isAutoGLM } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
 import {
@@ -143,6 +144,7 @@ const normalizeScrollType = (
 
 const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+const defaultAutoGlmReplanningCycleLimit = 100;
 
 export type AiActOptions = {
   cacheable?: boolean;
@@ -306,7 +308,9 @@ export class Agent<
 
     return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
       ? defaultVlmUiTarsReplanningCycleLimit
-      : defaultReplanningCycleLimit;
+      : isAutoGLM(modelConfigForPlanning.vlMode)
+        ? defaultAutoGlmReplanningCycleLimit
+        : defaultReplanningCycleLimit;
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -884,10 +888,11 @@ export class Agent<
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
-      // if vlm-ui-tars, plan cache is not used
+      // if vlm-ui-tars or auto-glm, plan cache is not used
       const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
+      const isAutoGlm = isAutoGLM(modelConfigForPlanning.vlMode);
       const matchedCache =
-        isVlmUiTars || cacheable === false
+        isVlmUiTars || isAutoGlm || cacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
