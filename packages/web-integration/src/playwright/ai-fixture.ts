@@ -102,8 +102,12 @@ export const PlaywrightAiFixture = (options?: {
         ...opts,
       });
 
-      pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-        updateDumpAnnotation(testInfo, dump, idForPage);
+      pageAgentMap[idForPage].onDumpUpdate = (
+        dump: string,
+        _executionDump?: unknown,
+        imageMap?: Record<string, string>,
+      ) => {
+        updateDumpAnnotation(testInfo, dump, idForPage, imageMap);
       };
 
       page.on('close', () => {
@@ -196,6 +200,7 @@ export const PlaywrightAiFixture = (options?: {
     test: TestInfo,
     dump: string,
     pageId: string,
+    imageMap?: Record<string, string>,
   ) => {
     // 1. First, clean up the old temp file if it exists
     const oldTempFilePath = pageTempFiles.get(pageId);
@@ -211,9 +216,10 @@ export const PlaywrightAiFixture = (options?: {
     const tempFileName = `midscene-dump-${test.testId || uuid()}-${pageId}.json`;
     const tempFilePath = join(tmpdir(), tempFileName);
 
-    // 3. Write dump to the new temporary file
+    // 3. Write dump and imageMap to the new temporary file as JSON
+    const tempData = JSON.stringify({ dump, imageMap: imageMap || {} });
     try {
-      writeFileSync(tempFilePath, dump, 'utf-8');
+      writeFileSync(tempFilePath, tempData, 'utf-8');
       debugPage(`Dump written to temp file: ${tempFilePath}`);
 
       // 4. Track the new temp file (only if write succeeded)

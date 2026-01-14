@@ -1220,18 +1220,6 @@ describe('dumpActionParam', () => {
       }
     `);
   });
-
-  it('should return empty object when input is not a plain object', () => {
-    const schema = z.object({
-      name: z.string(),
-    });
-
-    // String input was causing the bug: "com.example.app" spread into {0: 'c', 1: 'o', ...}
-    expect(dumpActionParam('com.example.app' as any, schema)).toEqual({});
-    expect(dumpActionParam(['a', 'b', 'c'] as any, schema)).toEqual({});
-    expect(dumpActionParam(null as any, schema)).toEqual({});
-    expect(dumpActionParam(12345 as any, schema)).toEqual({});
-  });
 });
 
 describe('loadActionParam', () => {

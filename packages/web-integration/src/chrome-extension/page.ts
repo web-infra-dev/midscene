@@ -6,7 +6,12 @@
 */
 
 import { limitOpenNewTabScript } from '@/web-element';
-import type { ElementTreeNode, Point, Size, UIContext } from '@midscene/core';
+import type {
+  ElementTreeNode,
+  Point,
+  RawUIContextData,
+  Size,
+} from '@midscene/core';
 import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
@@ -416,7 +421,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return content?.tree || { node: null, children: [] };
   }
 
-  async getContext(): Promise<UIContext> {
+  async getContext(): Promise<RawUIContextData> {
     return await WebPageContextParser(this, {});
   }
 

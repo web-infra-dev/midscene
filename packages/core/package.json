@@ -48,6 +48,16 @@
       "types": "./dist/types/report.d.ts",
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
+    },
+    "./storage": {
+      "types": "./dist/types/storage/index.d.ts",
+      "import": "./dist/es/storage/index.mjs",
+      "require": "./dist/lib/storage/index.js"
+    },
+    "./storage/file": {
+      "types": "./dist/types/storage/file.d.ts",
+      "import": "./dist/es/storage/file.mjs",
+      "require": "./dist/lib/storage/file.js"
     }
   },
   "typesVersions": {
@@ -58,7 +68,9 @@
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"]
+      "yaml": ["./dist/types/yaml.d.ts"],
+      "storage": ["./dist/types/storage/index.d.ts"],
+      "storage/file": ["./dist/types/storage/file.d.ts"]
     }
   },
   "scripts": {

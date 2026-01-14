@@ -1,4 +1,4 @@
-import type { DeviceAction, Point, UIContext } from '@midscene/core';
+import type { DeviceAction, Point, RawUIContextData } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import {
   defineActionDragAndDrop,
@@ -11,8 +11,8 @@ import {
 } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 
-type WebUIContext = UIContext & {
-  screenshotBase64?: string;
+type StaticUIContext = {
+  screenshotBase64: string;
   size: { width: number; height: number; dpr?: number };
 };
 
@@ -25,9 +25,9 @@ const ThrowNotImplemented = (methodName: string) => {
 export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
 
-  private uiContext: WebUIContext;
+  private uiContext: StaticUIContext;
 
-  constructor(uiContext: WebUIContext) {
+  constructor(uiContext: StaticUIContext) {
     this.uiContext = uiContext;
   }
 
@@ -151,11 +151,11 @@ export default class StaticPage implements AbstractInterface {
     //
   }
 
-  async getContext(): Promise<UIContext> {
+  async getContext(): Promise<RawUIContextData> {
     return this.uiContext;
   }
 
-  updateContext(newContext: WebUIContext): void {
+  updateContext(newContext: StaticUIContext): void {
     this.uiContext = newContext;
   }
 }

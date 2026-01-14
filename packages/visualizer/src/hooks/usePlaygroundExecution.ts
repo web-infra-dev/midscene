@@ -1,9 +1,4 @@
-import type {
-  DeviceAction,
-  ExecutionDump,
-  IExecutionDump,
-  IGroupedActionDump,
-} from '@midscene/core';
+import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
@@ -48,9 +43,7 @@ function buildProgressContent(task: any): string {
  * @param dump - The execution dump containing tasks and their usage information
  * @returns A grouped action dump with model briefs and executions array
  */
-function wrapExecutionDumpForReplay(
-  dump: ExecutionDump | IExecutionDump,
-): IGroupedActionDump {
+function wrapExecutionDumpForReplay(dump: ExecutionDump) {
   const modelBriefsSet = new Set<string>();
 
   if (dump?.tasks && Array.isArray(dump.tasks)) {

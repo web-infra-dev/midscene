@@ -1,6 +1,6 @@
 import assert from 'node:assert';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 import type { TUserPrompt } from '@/ai-model';
 import type { ElementCacheFeature } from '@/types';
@@ -10,7 +10,6 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
-import { ifInBrowser, ifInWorker } from '@midscene/shared/utils';
 import { generateHashId } from '@midscene/shared/utils';
 import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
@@ -49,10 +48,14 @@ export type CacheFileContent = {
 const lowestSupportedMidsceneVersion = '0.16.10';
 export const cacheFileExt = '.cache.yaml';
 
+/**
+ * TaskCache handles caching of AI planning and locate results.
+ * This class is only available in Node.js environments.
+ */
 export class TaskCache {
   cacheId: string;
 
-  cacheFilePath?: string;
+  cacheFilePath: string;
 
   cache: CacheFileContent;
 
@@ -85,10 +88,12 @@ export class TaskCache {
     this.cacheId = safeCacheId;
 
     this.cacheFilePath =
-      ifInBrowser || ifInWorker
-        ? undefined
-        : cacheFilePath ||
-          join(getMidsceneRunSubDir('cache'), `${this.cacheId}${cacheFileExt}`);
+      cacheFilePath ||
+      path.join(
+        getMidsceneRunSubDir('cache'),
+        `${this.cacheId}${cacheFileExt}`,
+      );
+
     const readOnlyMode = Boolean(options?.readOnly);
     const writeOnlyMode = Boolean(options?.writeOnly);
 
@@ -101,7 +106,7 @@ export class TaskCache {
     this.writeOnlyMode = writeOnlyMode;
 
     let cacheContent;
-    if (this.cacheFilePath && !this.writeOnlyMode) {
+    if (!this.writeOnlyMode) {
       cacheContent = this.loadCacheFromFile();
     }
     if (!cacheContent) {
@@ -124,6 +129,7 @@ export class TaskCache {
     if (!this.isCacheResultUsed) {
       return undefined;
     }
+
     // Find the first unused matching cache
     const promptStr =
       typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
@@ -212,16 +218,15 @@ export class TaskCache {
 
   loadCacheFromFile() {
     const cacheFile = this.cacheFilePath;
-    assert(cacheFile, 'cache file path is required');
 
-    if (!existsSync(cacheFile)) {
+    if (!fs.existsSync(cacheFile)) {
       debug('no cache file found, path: %s', cacheFile);
       return undefined;
     }
 
     // detect old cache file
     const jsonTypeCacheFile = cacheFile.replace(cacheFileExt, '.json');
-    if (existsSync(jsonTypeCacheFile) && this.isCacheResultUsed) {
+    if (fs.existsSync(jsonTypeCacheFile) && this.isCacheResultUsed) {
       console.warn(
         `An outdated cache file from an earlier version of Midscene has been detected. Since version 0.17, we have implemented an improved caching strategy. Please delete the old file located at: ${jsonTypeCacheFile}.`,
       );
@@ -229,7 +234,7 @@ export class TaskCache {
     }
 
     try {
-      const data = readFileSync(cacheFile, 'utf8');
+      const data = fs.readFileSync(cacheFile, 'utf8');
       const jsonData = yaml.load(data) as CacheFileContent;
 
       const version = getMidsceneVersion();
@@ -273,11 +278,6 @@ export class TaskCache {
       return;
     }
 
-    if (!this.cacheFilePath) {
-      debug('no cache file path, will not write cache to file');
-      return;
-    }
-
     // Clean unused caches if requested
     if (options?.cleanUnused) {
       // Skip cleaning in write-only mode or when cache is not used
@@ -314,9 +314,9 @@ export class TaskCache {
     }
 
     try {
-      const dir = dirname(this.cacheFilePath);
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+      const dir = path.dirname(this.cacheFilePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
         debug('created cache directory: %s', dir);
       }
 
@@ -334,7 +334,7 @@ export class TaskCache {
       };
 
       const yamlData = yaml.dump(cacheToWrite);
-      writeFileSync(this.cacheFilePath, yamlData);
+      fs.writeFileSync(this.cacheFilePath, yamlData);
       debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {
       debug(

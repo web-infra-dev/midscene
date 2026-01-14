@@ -7,7 +7,7 @@ import type {
   Rect,
   Size,
 } from '@/types';
-import { assert, isPlainObject } from '@midscene/shared/utils';
+import { assert } from '@midscene/shared/utils';
 
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
@@ -614,11 +614,6 @@ export const dumpActionParam = (
   jsonObject: Record<string, any>,
   zodSchema: z.ZodType<any>,
 ): Record<string, any> => {
-  // Prevent spreading strings into {0: 'c', 1: 'o', ...}
-  if (!isPlainObject(jsonObject)) {
-    return {};
-  }
-
   const locatorFields = findAllMidsceneLocatorField(zodSchema);
   const result = { ...jsonObject };
 

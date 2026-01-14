@@ -2,16 +2,14 @@
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 
-import {
-  type ExecutionDump,
-  type ExecutionTask,
-  type ExecutionTaskPlanning,
+import type {
+  ExecutionDump,
+  ExecutionTask,
+  ExecutionTaskPlanning,
   GroupedActionDump,
-  type IExecutionDump,
-  type IGroupedActionDump,
-  type LocateResultElement,
-  type Rect,
-  type UIContext,
+  LocateResultElement,
+  Rect,
+  UIContext,
 } from '@midscene/core';
 
 // Local type definition for Planning Locate task
@@ -67,6 +65,31 @@ const locateDuration = 800;
 const actionDuration = 500;
 const clearInsightDuration = 200;
 const lastFrameDuration = 200;
+
+/**
+ * Helper to extract screenshot string from recorder item.
+ * After restoration, screenshot is a base64 string.
+ * TypeScript thinks it's ScreenshotItem, so we need type assertion.
+ */
+function getRecorderScreenshot(
+  recorder: ExecutionTask['recorder'],
+  index: number,
+): string | undefined {
+  const item = recorder?.[index];
+  if (!item?.screenshot) return undefined;
+  // After JSON parse and restoration, screenshot is a string (base64 data)
+  return item.screenshot as unknown as string;
+}
+
+/**
+ * Get the last screenshot from recorder
+ */
+function getLastRecorderScreenshot(
+  recorder: ExecutionTask['recorder'],
+): string | undefined {
+  if (!recorder || recorder.length === 0) return undefined;
+  return getRecorderScreenshot(recorder, recorder.length - 1);
+}
 
 // fit rect to camera
 export const cameraStateForRect = (
@@ -146,12 +169,7 @@ const capitalizeFirstLetter = (str: string) => {
 };
 
 export const allScriptsFromDump = (
-  dump:
-    | GroupedActionDump
-    | IGroupedActionDump
-    | ExecutionDump
-    | null
-    | undefined,
+  dump: GroupedActionDump | ExecutionDump | null | undefined,
 ): ReplayScriptsInfo | null => {
   if (!dump) {
     console.warn('[allScriptsFromDump] dump is empty');
@@ -161,7 +179,7 @@ export const allScriptsFromDump = (
     };
   }
 
-  const normalizedDump: IGroupedActionDump = Array.isArray(
+  const normalizedDump: GroupedActionDump = Array.isArray(
     (dump as GroupedActionDump).executions,
   )
     ? (dump as GroupedActionDump)
@@ -271,7 +289,7 @@ export const allScriptsFromDump = (
 };
 
 export const generateAnimationScripts = (
-  execution: ExecutionDump | IExecutionDump | null,
+  execution: ExecutionDump | null,
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
@@ -388,13 +406,16 @@ export const generateAnimationScripts = (
       const title = typeStr(task);
       const subTitle = paramStr(task);
       const context = task.uiContext;
-      if (context?.screenshotBase64) {
+      // After restoration, screenshot is a base64 string (restored from { $screenshot: id })
+      const screenshotBase64 =
+        typeof context?.screenshot === 'string' ? context.screenshot : '';
+      if (screenshotBase64) {
         // show the original screenshot first
-        const width = context.size?.width || imageWidth;
-        const height = context.size?.height || imageHeight;
+        const width = context?.size?.width || imageWidth;
+        const height = context?.size?.height || imageHeight;
         scripts.push({
           type: 'img',
-          img: context.screenshotBase64,
+          img: screenshotBase64,
           duration: stillAfterInsightDuration,
           title,
           subTitle,
@@ -420,7 +441,7 @@ export const generateAnimationScripts = (
 
           scripts.push({
             type: 'insight',
-            img: context.screenshotBase64,
+            img: screenshotBase64,
             context: context,
             camera: newCameraState,
             highlightElement: element,
@@ -429,8 +450,8 @@ export const generateAnimationScripts = (
             insightCameraDuration: locateDuration,
             title,
             subTitle: element.description || subTitle,
-            imageWidth: context.size?.width || imageWidth,
-            imageHeight: context.size?.height || imageHeight,
+            imageWidth: context?.size?.width || imageWidth,
+            imageHeight: context?.size?.height || imageHeight,
           });
 
           // scripts.push({
@@ -448,7 +469,7 @@ export const generateAnimationScripts = (
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         scripts.push({
           type: 'img',
-          img: planningTask.recorder?.[0]?.screenshot,
+          img: getRecorderScreenshot(planningTask.recorder, 0),
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
@@ -484,7 +505,7 @@ export const generateAnimationScripts = (
       // const ifLastTask = index === taskCount - 1;
       scripts.push({
         type: 'img',
-        img: task.recorder?.[0]?.screenshot,
+        img: getRecorderScreenshot(task.recorder, 0),
         duration: actionDuration,
         camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
         title,
@@ -496,7 +517,7 @@ export const generateAnimationScripts = (
       // Handle normal tasks
       const title = typeStr(task);
       const subTitle = paramStr(task);
-      const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
+      const screenshot = getLastRecorderScreenshot(task.recorder);
 
       if (screenshot) {
         scripts.push({
@@ -521,10 +542,7 @@ export const generateAnimationScripts = (
           : errorMsg;
       scripts.push({
         type: 'img',
-        img:
-          task.recorder && task.recorder.length > 0
-            ? task.recorder[task.recorder.length - 1].screenshot
-            : '',
+        img: getLastRecorderScreenshot(task.recorder) ?? '',
         camera: fullPageCameraState,
         duration: stillDuration,
         title: errorTitle,

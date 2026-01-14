@@ -1,5 +1,10 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+
+import {
+  FileStorage,
+  defaultFilePathResolver,
+} from '@midscene/core/storage/file';
 import { getDebug } from '@midscene/shared/logger';
 import {
   type DeviceActionIOSAppSwitcher,
@@ -50,7 +55,10 @@ export class IOSAgent extends PageAgent<IOSDevice> {
   appSwitcher!: WrappedAction<DeviceActionIOSAppSwitcher>;
 
   constructor(device: IOSDevice, opts?: IOSAgentOpt) {
-    super(device, opts);
+    // Use FileStorage and defaultFilePathResolver for Node.js environment
+    const storageProvider = opts?.storageProvider ?? new FileStorage();
+    const filePathResolver = opts?.filePathResolver ?? defaultFilePathResolver;
+    super(device, { ...opts, storageProvider, filePathResolver });
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');

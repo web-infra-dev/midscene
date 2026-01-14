@@ -24,18 +24,28 @@ export {
 } from '@midscene/shared/env';
 
 export type * from './types';
-export {
-  ServiceError,
-  ExecutionDump,
-  GroupedActionDump,
-  type IExecutionDump,
-  type IGroupedActionDump,
-} from './types';
+export { ServiceError } from './types';
 
 export { z };
 
 export default Service;
 export { TaskRunner, Service, getVersion };
+
+export { ScreenshotItem } from './screenshot-item';
+export { restoreImageReferences } from './dump';
+export {
+  GroupedActionDump as GroupedActionDumpClass,
+  ExecutionDump as ExecutionDumpClass,
+} from './dump';
+export type {
+  SerializableGroupedActionDump,
+  SerializableExecutionDump,
+} from './dump';
+export type { StorageProvider, FileStorage } from './storage';
+export { MemoryStorage } from './storage';
+export { ReportWriter } from './report-writer';
+
+export type { RawUIContextData } from './agent/utils';
 
 export type {
   MidsceneYamlScript,
@@ -52,30 +62,3 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
-
-// Dump serialization utilities
-export type {
-  SerializedScreenshot,
-  SerializableRecorderItem,
-  SerializableExecutionTask,
-  SerializableExecutionDump,
-  SerializableGroupedActionDump,
-  ToHTMLOptions,
-  WriteToDirectoryOptions,
-  SerializeWithImagesResult,
-} from './dump';
-export {
-  restoreImageReferences,
-  escapeContent,
-  unescapeContent,
-  parseImageScripts,
-  parseDumpScript,
-  parseDumpScriptAttributes,
-  generateImageScriptTag,
-  generateDumpScriptTag,
-} from './dump';
-
-// Storage and ScreenshotItem
-export { ScreenshotItem } from './screenshot-item';
-export type { StorageProvider, FileStorage } from './storage';
-export { MemoryStorage } from './storage';

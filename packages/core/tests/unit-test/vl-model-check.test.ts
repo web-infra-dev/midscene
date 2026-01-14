@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@midscene/core/utils', () => ({
   writeLogFile: vi.fn(() => null),
   reportHTMLContent: vi.fn(() => ''),
-  stringifyDumpData: vi.fn(() => '{}'),
   groupedActionDumpFileExt: '.json',
   getVersion: () => '0.0.0-test',
   sleep: vi.fn(() => Promise.resolve()),

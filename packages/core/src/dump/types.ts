@@ -1,7 +1,7 @@
 import type {
+  ExecutionDump as ExecutionDumpInterface,
   ExecutionRecorderItem,
   ExecutionTask,
-  IExecutionDump,
 } from '../types';
 
 export interface SerializedScreenshot {
@@ -19,7 +19,7 @@ export interface SerializableExecutionTask
 }
 
 export interface SerializableExecutionDump
-  extends Omit<IExecutionDump, 'tasks'> {
+  extends Omit<ExecutionDumpInterface, 'tasks'> {
   logTime: number;
   name: string;
   description?: string;
@@ -46,4 +46,18 @@ export interface WriteToDirectoryOptions {
 export interface SerializeWithImagesResult {
   json: string;
   images: Map<string, string>;
+}
+
+export interface ExecutionDumpInit {
+  name: string;
+  description?: string;
+  tasks?: ExecutionTask[];
+  aiActContext?: string;
+  logTime?: number;
+}
+
+export interface GroupedActionDumpInit {
+  groupDescription?: string;
+  storageProvider?: import('../storage').StorageProvider;
+  sdkVersion?: string;
 }

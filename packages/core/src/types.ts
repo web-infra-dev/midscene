@@ -9,7 +9,10 @@ import type {
   Size,
 } from '@midscene/shared/types';
 import type { z } from 'zod';
+import type { TaskCache } from './agent/task-cache';
 import type { TUserPrompt } from './common';
+import type { ScreenshotItem } from './screenshot-item';
+import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -108,7 +111,7 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  abstract screenshotBase64: string;
+  abstract screenshot: ScreenshotItem;
 
   abstract size: Size;
 
@@ -150,6 +153,7 @@ export interface DumpMeta {
 export interface ReportDumpWithAttributes {
   dumpString: string;
   attributes?: Record<string, any>;
+  imageMap?: Record<string, string>;
 }
 
 export interface ServiceDump extends DumpMeta {
@@ -309,7 +313,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: string;
+  screenshot?: ScreenshotItem;
   timing?: string;
 }
 
@@ -383,78 +387,11 @@ export type ExecutionTask<
     reasoning_content?: string;
   };
 
-export interface IExecutionDump extends DumpMeta {
+export interface ExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
   aiActContext?: string;
-}
-
-/**
- * Replacer function for JSON serialization that handles Page and Browser objects
- */
-function replacerForDumpSerialization(_key: string, value: any): any {
-  if (value && value.constructor?.name === 'Page') {
-    return '[Page object]';
-  }
-  if (value && value.constructor?.name === 'Browser') {
-    return '[Browser object]';
-  }
-  return value;
-}
-
-/**
- * ExecutionDump class for serializing and deserializing execution dumps
- */
-export class ExecutionDump implements IExecutionDump {
-  logTime: number;
-  name: string;
-  description?: string;
-  tasks: ExecutionTask[];
-  aiActContext?: string;
-
-  constructor(data: IExecutionDump) {
-    this.logTime = data.logTime;
-    this.name = data.name;
-    this.description = data.description;
-    this.tasks = data.tasks;
-    this.aiActContext = data.aiActContext;
-  }
-
-  /**
-   * Serialize the ExecutionDump to a JSON string
-   */
-  serialize(indents?: number): string {
-    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
-  }
-
-  /**
-   * Convert to a plain object for JSON serialization
-   */
-  toJSON(): IExecutionDump {
-    return {
-      logTime: this.logTime,
-      name: this.name,
-      description: this.description,
-      tasks: this.tasks,
-      aiActContext: this.aiActContext,
-    };
-  }
-
-  /**
-   * Create an ExecutionDump instance from a serialized JSON string
-   */
-  static fromSerializedString(serialized: string): ExecutionDump {
-    const parsed = JSON.parse(serialized) as IExecutionDump;
-    return new ExecutionDump(parsed);
-  }
-
-  /**
-   * Create an ExecutionDump instance from a plain object
-   */
-  static fromJSON(data: IExecutionDump): ExecutionDump {
-    return new ExecutionDump(data);
-  }
 }
 
 /*
@@ -579,68 +516,12 @@ export type ExecutionTaskPlanningLocate =
 /*
 Grouped dump
 */
-export interface IGroupedActionDump {
-  sdkVersion: string;
-  groupName: string;
-  groupDescription?: string;
-  modelBriefs: string[];
-  executions: IExecutionDump[];
-}
-
-/**
- * GroupedActionDump class for serializing and deserializing grouped action dumps
- */
-export class GroupedActionDump implements IGroupedActionDump {
+export interface GroupedActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
   modelBriefs: string[];
   executions: ExecutionDump[];
-
-  constructor(data: IGroupedActionDump) {
-    this.sdkVersion = data.sdkVersion;
-    this.groupName = data.groupName;
-    this.groupDescription = data.groupDescription;
-    this.modelBriefs = data.modelBriefs;
-    this.executions = data.executions.map((exec) =>
-      exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
-    );
-  }
-
-  /**
-   * Serialize the GroupedActionDump to a JSON string
-   */
-  serialize(indents?: number): string {
-    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
-  }
-
-  /**
-   * Convert to a plain object for JSON serialization
-   */
-  toJSON(): IGroupedActionDump {
-    return {
-      sdkVersion: this.sdkVersion,
-      groupName: this.groupName,
-      groupDescription: this.groupDescription,
-      modelBriefs: this.modelBriefs,
-      executions: this.executions.map((exec) => exec.toJSON()),
-    };
-  }
-
-  /**
-   * Create a GroupedActionDump instance from a serialized JSON string
-   */
-  static fromSerializedString(serialized: string): GroupedActionDump {
-    const parsed = JSON.parse(serialized) as IGroupedActionDump;
-    return new GroupedActionDump(parsed);
-  }
-
-  /**
-   * Create a GroupedActionDump instance from a plain object
-   */
-  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
-    return new GroupedActionDump(data);
-  }
 }
 
 export type InterfaceType =
@@ -748,6 +629,8 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+  /* use directory-based report format with separate image files */
+  useDirectoryReport?: boolean;
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;
@@ -755,6 +638,57 @@ export interface AgentOpt {
   reportFileName?: string;
   modelConfig?: TModelConfig;
   cache?: Cache;
+  /**
+   * Storage provider for screenshot data.
+   * - In browser environments, use MemoryStorage (default)
+   * - In Node.js environments, use FileStorage for persistent storage
+   *
+   * @example
+   * ```typescript
+   * // Browser (default)
+   * const agent = new Agent(device); // Uses MemoryStorage
+   *
+   * // Node.js with file storage
+   * import { FileStorage } from '@midscene/core/storage';
+   * const agent = new Agent(device, {
+   *   storageProvider: new FileStorage(),
+   * });
+   * ```
+   */
+  storageProvider?: StorageProvider;
+  /**
+   * Task cache instance for caching AI planning and locate results.
+   * Only available in Node.js environments.
+   *
+   * @example
+   * ```typescript
+   * import { TaskCache } from '@midscene/core/agent';
+   * const agent = new Agent(device, {
+   *   taskCache: new TaskCache('my-cache-id', true),
+   * });
+   * ```
+   */
+  taskCache?: TaskCache;
+  /**
+   * File path resolver for validating and resolving file paths.
+   * Only needed in Node.js environments for file upload operations.
+   *
+   * @example
+   * ```typescript
+   * import fs from 'node:fs';
+   * import path from 'node:path';
+   * const agent = new Agent(device, {
+   *   filePathResolver: (filePath) => {
+   *     const absolutePath = path.resolve(filePath);
+   *     if (!fs.existsSync(absolutePath)) {
+   *       throw new Error(`File not found: ${filePath}`);
+   *     }
+   *     return absolutePath;
+   *   },
+   * });
+   * ```
+   */
+  filePathResolver?: (filePath: string) => string;
   /**
    * Maximum number of replanning cycles for aiAct.
    * Defaults to 20 (40 for `vlm-ui-tars`) when not provided.

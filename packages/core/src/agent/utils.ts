@@ -4,7 +4,7 @@ import type {
   ElementCacheFeature,
   LocateResultElement,
   PlanningLocateParam,
-  UIContext,
+  Size,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
 import {
@@ -21,10 +21,19 @@ import { debug as cacheDebug } from './task-cache';
 
 const debugProfile = getDebug('web:tool:profile');
 
+/**
+ * Raw context data before ScreenshotItem conversion.
+ * Used internally during context building.
+ */
+export interface RawUIContextData {
+  size: Size;
+  screenshotBase64: string;
+}
+
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
   _opt: { uploadServerUrl?: string },
-): Promise<UIContext> {
+): Promise<RawUIContextData> {
   assert(interfaceInstance, 'interfaceInstance is required');
 
   debugProfile('Getting interface description');

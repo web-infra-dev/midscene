@@ -225,7 +225,6 @@ export const extractDefaultValue = (field: ZodType): unknown => {
 import type {
   ExecutionDump,
   GroupedActionDump,
-  IExecutionDump,
   WebUIContext,
 } from '@midscene/core';
 import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
@@ -233,7 +232,7 @@ import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
 // result type
 export interface PlaygroundResult {
   result: any;
-  dump?: ExecutionDump | IExecutionDump | null;
+  dump?: ExecutionDump | null;
   reportHTML?: string | null;
   error: string | null;
 }
