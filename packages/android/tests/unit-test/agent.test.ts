@@ -41,6 +41,7 @@ describe('AndroidAgent', () => {
         url: vi.fn(),
         launch: vi.fn(),
         destroy: vi.fn(),
+        setAppNameMapping: vi.fn(),
       };
     });
   });
@@ -139,6 +140,7 @@ describe('AndroidAgent', () => {
           getElementsInfo: vi.fn(),
           url: vi.fn(),
           launch: vi.fn(),
+          setAppNameMapping: vi.fn(),
         };
       });
 
@@ -166,6 +168,7 @@ describe('AndroidAgent', () => {
           getElementsInfo: vi.fn(),
           url: vi.fn(),
           launch: vi.fn(),
+          setAppNameMapping: vi.fn(),
         };
       });
 
@@ -192,6 +195,7 @@ describe('AndroidAgent', () => {
           getElementsInfo: vi.fn(),
           url: vi.fn(),
           launch: vi.fn(),
+          setAppNameMapping: vi.fn(),
         };
       });
 

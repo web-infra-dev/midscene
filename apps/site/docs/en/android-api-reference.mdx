@@ -109,6 +109,7 @@ const agent = new AndroidAgent(device, {
 ### Android-specific options
 
 - `customActions?: DeviceAction[]` &mdash; Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to package names. When you pass an app name to `launch(target)`, the agent will look up the package name in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
 - All other fields match [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
 
 ### Usage notes
@@ -128,10 +129,10 @@ const agent = new AndroidAgent(device, {
 Launch a web URL or native Android activity/package.
 
 ```ts
-function launch(uri: string): Promise<void>;
+function launch(target: string): Promise<void>;
 ```
 
-- `uri: string` &mdash; Either a webpage URL or a package/`package/.Activity` string such as `com.android.settings/.Settings`.
+- `target: string` &mdash; Can be a web URL, a string in `package/.Activity` format (e.g., `com.android.settings/.Settings`), an app package name, or an app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped package name; otherwise, `target` will be launched as-is.
 
 #### `agent.runAdbShell()`
 

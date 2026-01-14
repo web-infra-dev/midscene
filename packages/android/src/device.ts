@@ -77,6 +77,7 @@ export class AndroidDevice implements AbstractInterface {
     isCurrentOrientation?: boolean;
   } | null = null;
   private cachedOrientation: number | null = null;
+  private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -424,8 +425,27 @@ ${Object.keys(size)
     });
   }
 
+  /**
+   * Set the app name to package name mapping
+   */
+  public setAppNameMapping(mapping: Record<string, string>): void {
+    this.appNameMapping = mapping;
+  }
+
+  /**
+   * Resolve app name to package name using the mapping
+   * @param appName The app name to resolve
+   */
+  private resolvePackageName(appName: string): string | undefined {
+    if (appName in this.appNameMapping) {
+      return this.appNameMapping[appName];
+    }
+    return undefined;
+  }
+
   public async launch(uri: string): Promise<AndroidDevice> {
     const adb = await this.getAdb();
+
     this.uri = uri;
 
     try {
@@ -445,8 +465,10 @@ ${Object.keys(size)
           activity: appActivity,
         });
       } else {
-        // Assume it's just a package name
-        await adb.activateApp(uri);
+        // Assume it's just a package name or app name
+        // Auto-resolve friendly app name to package name if mapping exists
+        const resolvedUri = this.resolvePackageName(uri) ?? uri;
+        await adb.activateApp(resolvedUri);
       }
       debugDevice(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -1610,7 +1632,7 @@ const runAdbShellParamSchema = z
 
 const launchParamSchema = z
   .string()
-  .describe('App package name or URL to launch');
+  .describe('App package name or URL or app name to launch,');
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;

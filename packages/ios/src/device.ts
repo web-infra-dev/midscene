@@ -49,6 +49,7 @@ export class IOSDevice implements AbstractInterface {
   private customActions?: DeviceAction<any>[];
   private wdaBackend: WebDriverAgentBackend;
   private wdaManager: WDAManager;
+  private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
   options?: IOSDeviceOpt;
@@ -281,6 +282,26 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
   }
 
+  /**
+   * Set the app name to bundle ID mapping
+   */
+  public setAppNameMapping(mapping: Record<string, string>): void {
+    this.appNameMapping = mapping;
+  }
+
+  /**
+   * Resolve app name to bundle ID using the mapping.
+   * Returns the bundle ID if found, otherwise undefined.
+   *
+   * @param appName The app name to resolve.
+   */
+  private resolveBundleId(appName: string): string | undefined {
+    if (appName in this.appNameMapping) {
+      return this.appNameMapping[appName];
+    }
+    return undefined;
+  }
+
   public async launch(uri: string): Promise<IOSDevice> {
     this.uri = uri;
 
@@ -294,8 +315,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
         // Try to open URL using WebDriverAgent
         await this.openUrl(uri);
       } else {
-        // Launch app using bundle ID
-        await this.wdaBackend.launchApp(uri);
+        // Launch app using bundle ID or app name
+        // Auto-resolve friendly app name to bundle ID if mapping exists
+        const resolvedUri = this.resolveBundleId(uri) ?? uri;
+        await this.wdaBackend.launchApp(resolvedUri);
       }
       debugDevice(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -941,7 +964,9 @@ const runWdaRequestParamSchema = z.object({
 type RunWdaRequestParam = z.infer<typeof runWdaRequestParamSchema>;
 type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
 
-const launchParamSchema = z.string().describe('App bundle ID or URL to launch');
+const launchParamSchema = z
+  .string()
+  .describe('App bundle ID, URL, or app name');
 
 type LaunchParam = z.infer<typeof launchParamSchema>;
 
