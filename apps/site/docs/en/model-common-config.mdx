@@ -97,6 +97,19 @@ MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
 ```
 
+### Zhipu GLM-V {#glm-v}
+
+Using Zhipu AI's GLM-4.6V as an example:
+
+Obtain an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), and set:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.z.ai/api/paas/v4" # Or https://open.bigmodel.cn/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="glm-4.6v"
+MIDSCENE_MODEL_FAMILY="glm-v"
+```
+
 ### Gemini-3-Pro and Gemini-3-Flash {#gemini-3-pro}
 
 After requesting an API key from [Google Gemini](https://gemini.google.com/), configure. Use your specific Gemini-3-Pro or Gemini-3-Flash release name for `MIDSCENE_MODEL_NAME`:

@@ -352,13 +352,11 @@ ios:
 tasks:
   - name: Launch Settings app
     flow:
-      - launch:
-          uri: com.apple.Preferences
+      - launch: com.apple.Preferences
 
   - name: Open webpage
     flow:
-      - launch:
-          uri: https://www.example.com
+      - launch: https://www.example.com
 ```
 
 ### The `tasks` part

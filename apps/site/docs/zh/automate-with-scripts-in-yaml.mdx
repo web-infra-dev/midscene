@@ -356,13 +356,11 @@ ios:
 tasks:
   - name: 启动设置应用
     flow:
-      - launch:
-          uri: com.apple.Preferences
+      - launch: com.apple.Preferences
 
   - name: 打开网页
     flow:
-      - launch:
-          uri: https://www.example.com
+      - launch: https://www.example.com
 ```
 
 ### `tasks` 部分
