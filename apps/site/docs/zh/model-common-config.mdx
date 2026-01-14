@@ -96,6 +96,19 @@ MIDSCENE_MODEL_NAME="qwen-vl-max-latest"
 MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
 ```
 
+### 智谱 GLM-V {#glm-v}
+
+以智谱的 `GLM-4.6V` 模型为例：
+
+从 [Z.AI（国际）](https://z.ai/manage-apikey/apikey-list)或 [BigModel（国内）](https://bigmodel.cn/usercenter/proj-mgmt/apikeys)获取 API 密钥，然后设置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://open.bigmodel.cn/api/paas/v4" # 或 https://api.z.ai/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="glm-4.6v"
+MIDSCENE_MODEL_FAMILY="glm-v"
+```
+
 ### Gemini-3-Pro and Gemini-3-Flash {#gemini-3-pro}
 
 在 [Google Gemini](https://gemini.google.com/) 上申请 API 密钥后，可以使用以下配置。`MIDSCENE_MODEL_NAME` 请填写你使用的 Gemini-3-Pro 或 Gemini-3-Flash 具体模型名：
