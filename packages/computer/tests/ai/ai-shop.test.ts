@@ -15,7 +15,7 @@ describe('computer shop app automation', () => {
   beforeAll(async () => {
     agent = await agentFromComputer({
       aiActionContext:
-        'You are testing a web application on a desktop browser.',
+        'If any popup appears, click agree. If login page appears, skip it.',
     });
   });
 
