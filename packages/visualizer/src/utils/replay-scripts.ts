@@ -2,14 +2,16 @@
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 
-import type {
-  ExecutionDump,
-  ExecutionTask,
-  ExecutionTaskPlanning,
+import {
+  type ExecutionDump,
+  type ExecutionTask,
+  type ExecutionTaskPlanning,
   GroupedActionDump,
-  LocateResultElement,
-  Rect,
-  UIContext,
+  type IExecutionDump,
+  type IGroupedActionDump,
+  type LocateResultElement,
+  type Rect,
+  type UIContext,
 } from '@midscene/core';
 
 // Local type definition for Planning Locate task
@@ -144,7 +146,12 @@ const capitalizeFirstLetter = (str: string) => {
 };
 
 export const allScriptsFromDump = (
-  dump: GroupedActionDump | ExecutionDump | null | undefined,
+  dump:
+    | GroupedActionDump
+    | IGroupedActionDump
+    | ExecutionDump
+    | null
+    | undefined,
 ): ReplayScriptsInfo | null => {
   if (!dump) {
     console.warn('[allScriptsFromDump] dump is empty');
@@ -154,7 +161,7 @@ export const allScriptsFromDump = (
     };
   }
 
-  const normalizedDump: GroupedActionDump = Array.isArray(
+  const normalizedDump: IGroupedActionDump = Array.isArray(
     (dump as GroupedActionDump).executions,
   )
     ? (dump as GroupedActionDump)
@@ -264,7 +271,7 @@ export const allScriptsFromDump = (
 };
 
 export const generateAnimationScripts = (
-  execution: ExecutionDump | null,
+  execution: ExecutionDump | IExecutionDump | null,
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
