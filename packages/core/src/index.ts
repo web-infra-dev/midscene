@@ -53,17 +53,7 @@ export type {
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
 
-// Dump serialization utilities
-export type {
-  SerializedScreenshot,
-  SerializableRecorderItem,
-  SerializableExecutionTask,
-  SerializableExecutionDump,
-  SerializableGroupedActionDump,
-  ToHTMLOptions,
-  WriteToDirectoryOptions,
-  SerializeWithImagesResult,
-} from './dump';
+// Dump utilities
 export {
   restoreImageReferences,
   escapeContent,
@@ -74,3 +64,8 @@ export {
   generateImageScriptTag,
   generateDumpScriptTag,
 } from './dump';
+
+// Storage and ScreenshotItem
+export { ScreenshotItem } from './screenshot-item';
+export type { StorageProvider, FileStorage } from './storage';
+export { MemoryStorage } from './storage';

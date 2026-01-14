@@ -15,6 +15,7 @@ import type {
   MidsceneYamlFlowItem,
   ServiceExtractOption,
 } from './yaml';
+import type { ScreenshotItem } from './screenshot-item';
 
 export type {
   ElementTreeNode,
@@ -309,7 +310,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: string;
+  screenshot?: ScreenshotItem;
   timing?: string;
 }
 
@@ -391,7 +392,7 @@ export interface IExecutionDump extends DumpMeta {
 }
 
 /**
- * Replacer function for JSON serialization that handles Page and Browser objects
+ * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
  */
 function replacerForDumpSerialization(_key: string, value: any): any {
   if (value && value.constructor?.name === 'Page') {
@@ -399,6 +400,10 @@ function replacerForDumpSerialization(_key: string, value: any): any {
   }
   if (value && value.constructor?.name === 'Browser') {
     return '[Browser object]';
+  }
+  // Handle ScreenshotItem serialization
+  if (value && typeof value.toSerializable === 'function') {
+    return value.toSerializable();
   }
   return value;
 }

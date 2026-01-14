@@ -24,6 +24,7 @@ import {
   type PlanningAction,
   type Rect,
   type ScrollParam,
+  ScreenshotItem,
   Service,
   type ServiceAction,
   type ServiceExtractOption,
@@ -1334,13 +1335,14 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
+    const screenshot = await ScreenshotItem.create(base64);
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
       {
         type: 'screenshot',
         ts: now,
-        screenshot: base64,
+        screenshot,
       },
     ];
     // 3. build ExecutionTaskLog
