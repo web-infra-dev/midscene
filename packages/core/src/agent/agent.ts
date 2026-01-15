@@ -407,7 +407,11 @@ export class Agent<
             }
           }
 
-          this.writeOutActionDumps();
+          // Fire and forget - don't block task execution
+          void this.writeOutActionDumps().catch((error) => {
+            console.error('Error writing action dumps:', error);
+            debug('writeOutActionDumps error', error);
+          });
         },
       },
     });
@@ -490,13 +494,16 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
-      sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
-      groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
-    });
+    this.dump = new GroupedActionDump(
+      {
+        sdkVersion: getVersion(),
+        groupName: this.opts.groupName!,
+        groupDescription: this.opts.groupDescription,
+        executions: [],
+        modelBriefs: [],
+      },
+      this.opts.storageProvider, // Pass storageProvider for directory-based reports
+    );
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
@@ -531,23 +538,53 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  writeOutActionDumps() {
+  async writeOutActionDumps() {
     if (this.destroyed) {
       throw new Error(
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
-    const { generateReport, autoPrintReportMsg } = this.opts;
-    this.reportFile = writeLogFile({
-      fileName: this.reportFileName!,
-      fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
-      type: 'dump',
-      generateReport,
-    });
-    debug('writeOutActionDumps', this.reportFile);
-    if (generateReport && autoPrintReportMsg && this.reportFile) {
-      printReportMsg(this.reportFile);
+
+    const {
+      generateReport = true,
+      autoPrintReportMsg = true,
+      useDirectoryReport = false,
+    } = this.opts;
+
+    if (useDirectoryReport) {
+      // Use directory-based report format with separate PNG files
+      const { getMidsceneRunSubDir } = await import('@midscene/shared/common');
+      const path = await import('node:path');
+
+      const outputDir = path.join(
+        getMidsceneRunSubDir('report'),
+        this.reportFileName!,
+      );
+
+      this.reportFile = await this.dump.writeToDirectory(outputDir);
+      debug('writeOutActionDumps (directory)', this.reportFile);
+
+      if (generateReport && autoPrintReportMsg && this.reportFile) {
+        console.log('\n[Midscene] Directory report generated.');
+        console.log(
+          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
+        );
+        console.log(`[Midscene] Example: npx serve ${path.dirname(this.reportFile)}`);
+      }
+    } else {
+      // Use traditional single HTML file with embedded base64 images
+      this.reportFile = writeLogFile({
+        fileName: this.reportFileName!,
+        fileExt: groupedActionDumpFileExt,
+        fileContent: this.dumpDataString(),
+        type: 'dump',
+        generateReport,
+      });
+      debug('writeOutActionDumps (single file)', this.reportFile);
+
+      if (generateReport && autoPrintReportMsg && this.reportFile) {
+        printReportMsg(this.reportFile);
+      }
     }
   }
 
@@ -1396,7 +1433,7 @@ export class Agent<
       }
     }
 
-    this.writeOutActionDumps();
+    await this.writeOutActionDumps();
   }
 
   /**
