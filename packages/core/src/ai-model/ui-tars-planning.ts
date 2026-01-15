@@ -41,8 +41,6 @@ const pointToBbox = (
   ];
 };
 
-const lastLocateRecorder = new LatestLocateRecorder();
-
 export async function uiTarsPlanning(
   userInstruction: string,
   options: {
@@ -128,7 +126,6 @@ export async function uiTarsPlanning(
         ),
       };
 
-      lastLocateRecorder.recordLocate(locate, 'click');
       transformActions.push({
         type: 'Tap',
         param: {
@@ -148,7 +145,6 @@ export async function uiTarsPlanning(
         ),
       };
 
-      lastLocateRecorder.recordLocate(locate, 'left_double');
       transformActions.push({
         type: 'DoubleClick',
         param: {
@@ -169,7 +165,6 @@ export async function uiTarsPlanning(
         ),
       };
 
-      lastLocateRecorder.recordLocate(locate, 'right_single');
       transformActions.push({
         type: 'RightClick',
         param: {
@@ -205,18 +200,10 @@ export async function uiTarsPlanning(
         thought: action.thought || '',
       });
     } else if (actionType === 'type') {
-      const { locate: latestLocate, source } =
-        lastLocateRecorder.getLatestLocate();
-      debug(
-        `use latestLocate from ${source} as locate when Input`,
-        latestLocate,
-      );
-
       transformActions.push({
         type: 'Input',
         param: {
           value: action.action_inputs.content,
-          locate: latestLocate,
         },
         thought: action.thought || '',
       });
