@@ -1,9 +1,27 @@
+import { adaptBbox, pointToBbox } from '@/common';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { LatestLocateRecorder } from '../latest-locate-recorder';
-import { AUTO_GLM_COORDINATE_MAX, autoGLMCoordinateToBbox } from './util';
 
 const debug = getDebug('auto-glm-actions');
+
+/**
+ * Auto-GLM coordinate system range: [0, AUTO_GLM_COORDINATE_MAX]
+ */
+const AUTO_GLM_COORDINATE_MAX = 1000;
+
+/**
+ * Convert auto-glm coordinate [0,1000] to bbox in pixel coordinates
+ */
+function autoGLMCoordinateToBbox(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  const bbox = pointToBbox(x, y, 10);
+  return adaptBbox(bbox, width, height, width, height, 'auto-glm');
+}
 const lastLocateRecorder = new LatestLocateRecorder();
 
 export interface BaseAction {

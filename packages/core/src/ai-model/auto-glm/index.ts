@@ -6,5 +6,5 @@ export {
 } from './parser';
 export { autoGLMPlanning } from './planning';
 export { transformAutoGLMAction } from './actions';
-export { autoGLMCoordinateToBbox, isAutoGLM } from './util';
+export { isAutoGLM } from './util';
 export type { ParsedAction } from './actions';

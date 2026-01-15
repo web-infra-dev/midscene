@@ -18,6 +18,7 @@ import {
   loadActionParam,
   mergeRects,
   normalized01000,
+  pointToBbox,
 } from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -387,7 +388,16 @@ describe('qwen-vl-2.5', () => {
   });
 
   it('adaptBboxToRect - size exceed image size - 2', () => {
-    const result = adaptBboxToRect([158, 114, 526, 179], 684, 301, 611, 221);
+    const result = adaptBboxToRect(
+      [158, 114, 526, 179],
+      684,
+      301,
+      611,
+      221,
+      684,
+      301,
+      'qwen2.5-vl',
+    );
     expect(result).toMatchInlineSnapshot(`
       {
         "height": 65,
@@ -399,7 +409,16 @@ describe('qwen-vl-2.5', () => {
   });
 
   it('adaptBboxToRect - size exceed image size - 3', () => {
-    const result = adaptBboxToRect([25, 154, 153, 186], 301, 164, 0, 752);
+    const result = adaptBboxToRect(
+      [25, 154, 153, 186],
+      301,
+      164,
+      0,
+      752,
+      301,
+      164,
+      'qwen2.5-vl',
+    );
     expect(result).toMatchInlineSnapshot(`
       {
         "height": 10,
@@ -419,6 +438,7 @@ describe('qwen-vl-2.5', () => {
       752,
       140,
       910,
+      'qwen2.5-vl',
     );
     expect(result).toMatchInlineSnapshot(`
       {
@@ -648,6 +668,42 @@ describe('normalized-0-1000 and gemini', () => {
         400,
       ]
     `);
+  });
+});
+
+describe('pointToBbox', () => {
+  it('should convert point to bbox in [0, 1000] space with default size (20)', () => {
+    const bbox = pointToBbox(500, 500);
+    expect(bbox).toEqual([490, 490, 510, 510]);
+  });
+
+  it('should convert point to bbox with custom size', () => {
+    const bbox = pointToBbox(500, 500, 10);
+    expect(bbox).toEqual([495, 495, 505, 505]);
+  });
+
+  it('should handle boundary at origin (0, 0)', () => {
+    const bbox = pointToBbox(0, 0);
+    expect(bbox[0]).toBe(0);
+    expect(bbox[1]).toBe(0);
+    expect(bbox[2]).toBe(10);
+    expect(bbox[3]).toBe(10);
+  });
+
+  it('should handle boundary at max (1000, 1000)', () => {
+    const bbox = pointToBbox(1000, 1000);
+    expect(bbox[0]).toBe(990);
+    expect(bbox[1]).toBe(990);
+    expect(bbox[2]).toBe(1000);
+    expect(bbox[3]).toBe(1000);
+  });
+
+  it('should clamp to [0, 1000] range', () => {
+    const bbox = pointToBbox(5, 995);
+    expect(bbox[0]).toBe(0);
+    expect(bbox[1]).toBe(985);
+    expect(bbox[2]).toBe(15);
+    expect(bbox[3]).toBe(1000);
   });
 });
 
