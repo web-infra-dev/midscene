@@ -19,7 +19,6 @@ import type {
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
-  PlanningActionParamSleep,
   PlanningActionParamWaitFor,
   ServiceDump,
   ServiceExtractOption,
@@ -328,6 +327,7 @@ export class TaskExecutor {
             const {
               actions,
               log,
+              note,
               error,
               usage,
               rawResponse,
@@ -343,6 +343,7 @@ export class TaskExecutor {
             executorContext.task.output = {
               actions: actions || [],
               log,
+              note,
               yamlFlow: planResult.yamlFlow,
               output: outputString,
               shouldContinuePlanning: planResult.shouldContinuePlanning,
@@ -600,15 +601,6 @@ export class TaskExecutor {
       output,
       thought,
       runner,
-    };
-  }
-
-  private sleepPlan(timeMs: number): PlanningAction<PlanningActionParamSleep> {
-    return {
-      type: 'Sleep',
-      param: {
-        timeMs,
-      },
     };
   }
 
