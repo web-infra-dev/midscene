@@ -101,9 +101,7 @@ export const Blackboard = (props: {
 
   const context = props.uiContext;
   const { size, screenshot } = context;
-  // Handle both ScreenshotItem object and plain base64 string
-  const screenshotBase64 =
-    typeof screenshot === 'string' ? screenshot : screenshot.getData();
+  const screenshotBase64 = screenshot.getData();
 
   const screenWidth = size.width;
   const screenHeight = size.height;

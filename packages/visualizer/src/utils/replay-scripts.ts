@@ -450,12 +450,8 @@ export const generateAnimationScripts = (
 
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
-        const recorderScreenshot = planningTask.recorder[0]?.screenshot;
-        const screenshotData = recorderScreenshot
-          ? typeof recorderScreenshot === 'string'
-            ? recorderScreenshot
-            : recorderScreenshot.getData()
-          : '';
+        const screenshotData =
+          planningTask.recorder[0]?.screenshot?.getData() || '';
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -492,12 +488,8 @@ export const generateAnimationScripts = (
 
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
-      const actionRecorderScreenshot = task.recorder?.[0]?.screenshot;
-      const actionScreenshotData = actionRecorderScreenshot
-        ? typeof actionRecorderScreenshot === 'string'
-          ? actionRecorderScreenshot
-          : actionRecorderScreenshot.getData()
-        : '';
+      const actionScreenshotData =
+        task.recorder?.[0]?.screenshot?.getData() || '';
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -537,15 +529,10 @@ export const generateAnimationScripts = (
         errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
-      const errorScreenshot =
+      const errorScreenshotData =
         task.recorder && task.recorder.length > 0
-          ? task.recorder[task.recorder.length - 1].screenshot
-          : undefined;
-      const errorScreenshotData = errorScreenshot
-        ? typeof errorScreenshot === 'string'
-          ? errorScreenshot
-          : errorScreenshot.getData()
-        : '';
+          ? task.recorder[task.recorder.length - 1].screenshot?.getData() || ''
+          : '';
       scripts.push({
         type: 'img',
         img: errorScreenshotData,
