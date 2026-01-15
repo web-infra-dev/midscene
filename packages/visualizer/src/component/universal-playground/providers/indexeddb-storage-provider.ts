@@ -214,16 +214,13 @@ export class IndexedDBStorageProvider implements StorageProvider {
       uiContext: task.uiContext
         ? {
             ...task.uiContext,
-            screenshotBase64:
-              this.compressScreenshotIfNeeded(
-                task.uiContext.screenshotBase64,
-              ) ?? task.uiContext.screenshotBase64,
+            screenshot: task.uiContext.screenshot,
           }
         : task.uiContext,
       // Compress recorder screenshots
       recorder: task.recorder?.map((record) => ({
         ...record,
-        screenshot: this.compressScreenshotIfNeeded(record.screenshot),
+        screenshot: record.screenshot,
       })),
     }));
 

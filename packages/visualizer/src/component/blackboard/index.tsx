@@ -100,7 +100,8 @@ export const Blackboard = (props: {
   }
 
   const context = props.uiContext;
-  const { size, screenshotBase64 } = context;
+  const { size, screenshot } = context;
+  const screenshotBase64 = screenshot.getData();
 
   const screenWidth = size.width;
   const screenHeight = size.height;

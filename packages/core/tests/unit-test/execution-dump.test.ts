@@ -126,7 +126,9 @@ describe('ExecutionDump', () => {
     });
 
     it('should throw on invalid JSON', () => {
-      expect(() => ExecutionDump.fromSerializedString('invalid json')).toThrow();
+      expect(() =>
+        ExecutionDump.fromSerializedString('invalid json'),
+      ).toThrow();
     });
   });
 

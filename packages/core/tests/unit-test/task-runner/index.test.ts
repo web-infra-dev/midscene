@@ -1,4 +1,4 @@
-import { TaskRunner } from '@/index';
+import { ScreenshotItem, TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
   ExecutionTaskInsightLocate,
@@ -10,8 +10,6 @@ import { fakeService } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
 const insightFindTask = (shouldThrow?: boolean) => {
-  const insight = fakeService('test-task-runner');
-
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
     type: 'Planning',
     subType: 'Locate',
@@ -25,6 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
+      const insight = fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
@@ -50,12 +49,14 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = async () =>
-  ({
-    screenshotBase64: '',
+const fakeUIContextBuilder = () => {
+  const screenshot = ScreenshotItem.create('');
+  return {
+    screenshot,
     tree: { node: null, children: [] },
     size: { width: 0, height: 0 },
-  }) as unknown as UIContext;
+  } as unknown as UIContext;
+};
 
 describe(
   'task-runner',
@@ -219,12 +220,14 @@ describe(
     });
 
     it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = (id: string) =>
-        ({
-          screenshotBase64: id,
+      const baseUIContext = (id: string) => {
+        const screenshot = ScreenshotItem.create(id);
+        return {
+          screenshot,
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
-        }) as unknown as UIContext;
+        } as unknown as UIContext;
+      };
 
       const firstContext = baseUIContext('first');
       const screenshotContext = baseUIContext('screenshot');
@@ -267,7 +270,7 @@ describe(
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValue({
-          screenshotBase64: '',
+          screenshot: ScreenshotItem.create(''),
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
         } as unknown as UIContext);

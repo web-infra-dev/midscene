@@ -1,3 +1,4 @@
+import type { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -106,10 +107,10 @@ export class TaskRunner {
     }
   }
 
-  private async captureScreenshot(): Promise<string | undefined> {
+  private async captureScreenshot(): Promise<ScreenshotItem | undefined> {
     try {
       const uiContext = await this.getUiContext({ forceRefresh: true });
-      return uiContext?.screenshotBase64;
+      return uiContext?.screenshot;
     } catch (error) {
       console.error('error while capturing screenshot', error);
     }
@@ -118,15 +119,10 @@ export class TaskRunner {
 
   private attachRecorderItem(
     task: ExecutionTask,
-    contextOrScreenshot: UIContext | string | undefined,
+    screenshot: ScreenshotItem | undefined,
     phase: 'after-calling',
   ): void {
-    const timing = phase;
-    const screenshot =
-      typeof contextOrScreenshot === 'string'
-        ? contextOrScreenshot
-        : contextOrScreenshot?.screenshotBase64;
-    if (!timing || !screenshot) {
+    if (!phase || !screenshot) {
       return;
     }
 
@@ -134,7 +130,7 @@ export class TaskRunner {
       type: 'screenshot',
       ts: Date.now(),
       screenshot,
-      timing,
+      timing: phase,
     };
 
     if (!task.recorder) {

@@ -10,6 +10,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -108,7 +109,7 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  abstract screenshotBase64: string;
+  abstract screenshot: ScreenshotItem;
 
   abstract size: Size;
 
@@ -309,7 +310,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: string;
+  screenshot?: ScreenshotItem;
   timing?: string;
 }
 
@@ -391,7 +392,7 @@ export interface IExecutionDump extends DumpMeta {
 }
 
 /**
- * Replacer function for JSON serialization that handles Page and Browser objects
+ * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
  */
 function replacerForDumpSerialization(_key: string, value: any): any {
   if (value && value.constructor?.name === 'Page') {
@@ -399,6 +400,22 @@ function replacerForDumpSerialization(_key: string, value: any): any {
   }
   if (value && value.constructor?.name === 'Browser') {
     return '[Browser object]';
+  }
+  // Handle ScreenshotItem serialization
+  if (value && typeof value.toSerializable === 'function') {
+    return value.toSerializable();
+  }
+  return value;
+}
+
+/**
+ * Reviver function for JSON deserialization that restores ScreenshotItem from base64 strings
+ * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
+ */
+function reviverForDumpDeserialization(key: string, value: any): any {
+  // Restore screenshot fields in uiContext and recorder
+  if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
+    return ScreenshotItem.fromSerializedData(value);
   }
   return value;
 }
@@ -445,7 +462,10 @@ export class ExecutionDump implements IExecutionDump {
    * Create an ExecutionDump instance from a serialized JSON string
    */
   static fromSerializedString(serialized: string): ExecutionDump {
-    const parsed = JSON.parse(serialized) as IExecutionDump;
+    const parsed = JSON.parse(
+      serialized,
+      reviverForDumpDeserialization,
+    ) as IExecutionDump;
     return new ExecutionDump(parsed);
   }
 
@@ -631,7 +651,10 @@ export class GroupedActionDump implements IGroupedActionDump {
    * Create a GroupedActionDump instance from a serialized JSON string
    */
   static fromSerializedString(serialized: string): GroupedActionDump {
-    const parsed = JSON.parse(serialized) as IGroupedActionDump;
+    const parsed = JSON.parse(
+      serialized,
+      reviverForDumpDeserialization,
+    ) as IGroupedActionDump;
     return new GroupedActionDump(parsed);
   }
 

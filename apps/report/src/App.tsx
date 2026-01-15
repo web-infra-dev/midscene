@@ -302,7 +302,8 @@ export function App() {
               try {
                 console.time('parse_dump');
                 const content = antiEscapeScriptTag(el.textContent || '');
-                cachedJsonContent = GroupedActionDump.fromSerializedString(content);
+                cachedJsonContent =
+                  GroupedActionDump.fromSerializedString(content);
                 console.timeEnd('parse_dump');
                 (cachedJsonContent as any).attributes = attributes;
                 isParsed = true;

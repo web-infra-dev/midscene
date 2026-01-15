@@ -2,16 +2,16 @@
 import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 
-import {
-  type ExecutionDump,
-  type ExecutionTask,
-  type ExecutionTaskPlanning,
+import type {
+  ExecutionDump,
+  ExecutionTask,
+  ExecutionTaskPlanning,
   GroupedActionDump,
-  type IExecutionDump,
-  type IGroupedActionDump,
-  type LocateResultElement,
-  type Rect,
-  type UIContext,
+  IExecutionDump,
+  IGroupedActionDump,
+  LocateResultElement,
+  Rect,
+  UIContext,
 } from '@midscene/core';
 
 // Local type definition for Planning Locate task
@@ -388,13 +388,17 @@ export const generateAnimationScripts = (
       const title = typeStr(task);
       const subTitle = paramStr(task);
       const context = task.uiContext;
-      if (context?.screenshotBase64) {
+      if (context?.screenshot) {
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
+        const screenshotData =
+          typeof context.screenshot === 'string'
+            ? context.screenshot
+            : context.screenshot.getData();
         scripts.push({
           type: 'img',
-          img: context.screenshotBase64,
+          img: screenshotData,
           duration: stillAfterInsightDuration,
           title,
           subTitle,
@@ -420,7 +424,7 @@ export const generateAnimationScripts = (
 
           scripts.push({
             type: 'insight',
-            img: context.screenshotBase64,
+            img: screenshotData,
             context: context,
             camera: newCameraState,
             highlightElement: element,
@@ -446,9 +450,11 @@ export const generateAnimationScripts = (
 
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
+        const screenshotData =
+          planningTask.recorder[0]?.screenshot?.getData() || '';
         scripts.push({
           type: 'img',
-          img: planningTask.recorder?.[0]?.screenshot,
+          img: screenshotData,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
@@ -482,9 +488,11 @@ export const generateAnimationScripts = (
 
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
+      const actionScreenshotData =
+        task.recorder?.[0]?.screenshot?.getData() || '';
       scripts.push({
         type: 'img',
-        img: task.recorder?.[0]?.screenshot,
+        img: actionScreenshotData,
         duration: actionDuration,
         camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
         title,
@@ -499,9 +507,11 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
+        const screenshotData =
+          typeof screenshot === 'string' ? screenshot : screenshot.getData();
         scripts.push({
           type: 'img',
-          img: screenshot,
+          img: screenshotData,
           duration: stillDuration,
           camera: fullPageCameraState,
           title,
@@ -519,12 +529,13 @@ export const generateAnimationScripts = (
         errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
+      const errorScreenshotData =
+        task.recorder && task.recorder.length > 0
+          ? task.recorder[task.recorder.length - 1].screenshot?.getData() || ''
+          : '';
       scripts.push({
         type: 'img',
-        img:
-          task.recorder && task.recorder.length > 0
-            ? task.recorder[task.recorder.length - 1].screenshot
-            : '',
+        img: errorScreenshotData,
         camera: fullPageCameraState,
         duration: stillDuration,
         title: errorTitle,

@@ -285,7 +285,8 @@ export default class Service {
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
     const context = await this.contextRetrieverFn();
-    const { screenshotBase64, size } = context;
+    const { size } = context;
+    const screenshotBase64 = context.screenshot.getData();
     assert(screenshotBase64, 'screenshot is required for service.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
     const { vlMode } = modelConfig;
