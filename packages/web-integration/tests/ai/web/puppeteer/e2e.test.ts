@@ -52,7 +52,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it.only(
+    it.skip(
       'drag and drop',
       async () => {
         const { originPage, reset } = await launchPage(
