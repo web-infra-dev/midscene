@@ -1,4 +1,4 @@
-import { TaskRunner } from '@/index';
+import { ScreenshotItem, TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
   ExecutionTaskInsightLocate,
@@ -6,13 +6,10 @@ import type {
   ExecutionTaskPlanningLocateApply,
   UIContext,
 } from '@/index';
-import { ScreenshotItem } from '@/screenshot-item';
 import { fakeService } from 'tests/utils';
 import { describe, expect, it, vi } from 'vitest';
 
-const insightFindTask = async (shouldThrow?: boolean) => {
-  const insight = await fakeService('test-task-runner');
-
+const insightFindTask = (shouldThrow?: boolean) => {
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
     type: 'Planning',
     subType: 'Locate',
@@ -26,6 +23,7 @@ const insightFindTask = async (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
+      const insight = fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
@@ -51,12 +49,14 @@ const insightFindTask = async (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = async () =>
-  ({
-    screenshot: await ScreenshotItem.create('data:image/png;base64,fake'),
+const fakeUIContextBuilder = () => {
+  const screenshot = ScreenshotItem.create('');
+  return {
+    screenshot,
     tree: { node: null, children: [] },
     size: { width: 0, height: 0 },
-  }) as unknown as UIContext;
+  } as unknown as UIContext;
+};
 
 describe(
   'task-runner',
@@ -65,7 +65,7 @@ describe(
   },
   () => {
     it('insight - basic run', async () => {
-      const insightTask1 = await insightFindTask();
+      const insightTask1 = insightFindTask();
       const flushResultData = 'abcdef';
       const taskParam = {
         action: 'tap',
@@ -120,7 +120,7 @@ describe(
       expect(initRunner.status).toBe('init');
       const tapperFn = vi.fn();
 
-      const insightTask1 = await insightFindTask();
+      const insightTask1 = insightFindTask();
       const actionTask: ExecutionTaskActionApply = {
         type: 'Action Space',
         param: {
@@ -172,7 +172,7 @@ describe(
 
     it('insight - run with error', async () => {
       const runner = new TaskRunner('test', fakeUIContextBuilder, {
-        tasks: [await insightFindTask(true), await insightFindTask()],
+        tasks: [insightFindTask(true), insightFindTask()],
       });
       // expect to throw an error
       await expect(runner.flush()).rejects.toThrowError();
@@ -188,13 +188,13 @@ describe(
       expect(runner.isInErrorState()).toBeTruthy();
 
       await expect(async () => {
-        await runner.append(await insightFindTask());
+        await runner.append(insightFindTask());
       }).rejects.toThrowError();
     });
 
     it('allows append and flush when recovering from error', async () => {
       const runner = new TaskRunner('recoverable', fakeUIContextBuilder, {
-        tasks: [await insightFindTask(true)],
+        tasks: [insightFindTask(true)],
       });
 
       await expect(runner.flush()).rejects.toThrowError();
@@ -220,17 +220,17 @@ describe(
     });
 
     it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = async (id: string) =>
-        ({
-          screenshot: await ScreenshotItem.create(
-            `data:image/png;base64,${id}`,
-          ),
+      const baseUIContext = (id: string) => {
+        const screenshot = ScreenshotItem.create(id);
+        return {
+          screenshot,
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
-        }) as unknown as UIContext;
+        } as unknown as UIContext;
+      };
 
-      const firstContext = await baseUIContext('first');
-      const screenshotContext = await baseUIContext('screenshot');
+      const firstContext = baseUIContext('first');
+      const screenshotContext = baseUIContext('screenshot');
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValueOnce(firstContext)
@@ -267,13 +267,10 @@ describe(
     });
 
     it('subTask - throws when previous uiContext missing', async () => {
-      const fakeScreenshot = await ScreenshotItem.create(
-        'data:image/png;base64,fake',
-      );
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValue({
-          screenshot: fakeScreenshot,
+          screenshot: ScreenshotItem.create(''),
           tree: { node: null, children: [] },
           size: { width: 0, height: 0 },
         } as unknown as UIContext);

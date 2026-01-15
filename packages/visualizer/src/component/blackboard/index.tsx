@@ -1,12 +1,15 @@
 'use client';
 import 'pixi.js/unsafe-eval';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
-import { DropShadowFilter, GlowFilter } from 'pixi-filters';
+import { Checkbox } from 'antd';
+import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import { colorForName, highlightColorForType } from '../../utils/color';
-import { getScreenshotFromContext } from '../../utils/playground-utils';
 import './index.less';
+import { treeToList } from '@midscene/shared/extractor';
+import { DropShadowFilter, GlowFilter } from 'pixi-filters';
+import { useGlobalPreference } from '../../store/store';
 
 const itemFillAlpha = 0.4;
 const highlightAlpha = 0.4;
@@ -14,7 +17,7 @@ const pointRadius = 10;
 
 export const pointMarkForItem = (
   point: [number, number],
-  _type: 'highlightPoint',
+  type: 'highlightPoint',
 ) => {
   const [x, y] = point;
   const themeColor = highlightColorForType('element');
@@ -81,6 +84,7 @@ export const Blackboard = (props: {
   onCanvasClick?: (position: [number, number]) => void;
 }) => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
+  const highlightIds = highlightElements.map((e) => e.id);
   const highlightRect = props.highlightRect;
   const highlightPoints = props.highlightPoints;
 
@@ -96,13 +100,8 @@ export const Blackboard = (props: {
   }
 
   const context = props.uiContext;
-  const { size } = context;
-
-  const [screenshotBase64, setScreenshotBase64] = useState<string>('');
-
-  useEffect(() => {
-    getScreenshotFromContext(context).then(setScreenshotBase64);
-  }, [context]);
+  const { size, screenshot } = context;
+  const screenshotBase64 = screenshot.getData();
 
   const screenWidth = size.width;
   const screenHeight = size.height;
@@ -114,7 +113,7 @@ export const Blackboard = (props: {
   const highlightContainer = useMemo(() => new PIXI.Container(), []);
   const elementMarkContainer = useMemo(() => new PIXI.Container(), []);
 
-  const [hoverElement] = useState<BaseElement | null>(null);
+  const [hoverElement, setHoverElement] = useState<BaseElement | null>(null);
 
   // key overlays
   const pixiBgRef = useRef<PIXI.Sprite | undefined>(undefined);
@@ -161,6 +160,7 @@ export const Blackboard = (props: {
 
     // Clean up the PIXI application when the component unmounts
     return () => {
+      console.log('will destroy');
       // Stop animation
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -168,8 +168,8 @@ export const Blackboard = (props: {
       }
       try {
         app.destroy(true, { children: true, texture: true });
-      } catch (_e) {
-        // Ignore destroy errors
+      } catch (e) {
+        console.warn('destroy failed', e);
       }
     };
   }, [app, screenWidth, screenHeight]);
@@ -184,7 +184,8 @@ export const Blackboard = (props: {
     app.stage.hitArea = new PIXI.Rectangle(0, 0, screenWidth, screenHeight);
 
     const clickHandler = (event: PIXI.FederatedPointerEvent) => {
-      const { x, y } = event.global;
+      console.log('pixi click', event);
+      const { x, y } = event.data.global;
       props.onCanvasClick?.([Math.round(x), Math.round(y)]);
     };
 
@@ -197,7 +198,7 @@ export const Blackboard = (props: {
 
   // draw all texts on PIXI app
   useEffect(() => {
-    if (!appInitialed || !screenshotBase64) {
+    if (!appInitialed) {
       return;
     }
 
@@ -223,7 +224,7 @@ export const Blackboard = (props: {
       console.error('load screenshot failed', e);
     };
     img.src = screenshotBase64;
-  }, [app.stage, appInitialed, screenWidth, screenHeight, screenshotBase64]);
+  }, [app.stage, appInitialed, screenWidth, screenHeight]);
 
   const { highlightElementRects } = useMemo(() => {
     const highlightElementRects: Rect[] = [];
@@ -250,7 +251,7 @@ export const Blackboard = (props: {
 
     if (highlightElements.length) {
       highlightElements.forEach((element) => {
-        const { rect, content } = element;
+        const { rect, content, id } = element;
         const items = rectMarkForItem(rect, content, 'highlight');
         const graphics = items[0] as PIXI.Graphics; // First element is always Graphics
 
@@ -334,9 +335,18 @@ export const Blackboard = (props: {
   // Pulsing animation for highlight elements
   useEffect(() => {
     if (!appInitialed || highlightGraphicsRef.current.length === 0) {
+      console.log('Animation skipped:', {
+        appInitialed,
+        graphicsCount: highlightGraphicsRef.current.length,
+      });
       return;
     }
 
+    console.log(
+      'Starting pulsing animation for',
+      highlightGraphicsRef.current.length,
+      'graphics',
+    );
     const graphicsToAnimate = highlightGraphicsRef.current;
     const glowFilters = glowFiltersRef.current;
     const pulseDuration = 1200; // 1.2 seconds for smooth pulsing
@@ -373,6 +383,7 @@ export const Blackboard = (props: {
     animate();
 
     return () => {
+      console.log('Stopping pulsing animation');
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;

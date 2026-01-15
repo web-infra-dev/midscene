@@ -1,25 +1,3 @@
-import yaml from 'js-yaml';
-
-import type { AbstractInterface } from '@/device';
-import type { TaskRunner } from '@/task-runner';
-import { getReportTpl, processCacheConfig } from '@/utils';
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import {
-  type IModelConfig,
-  MIDSCENE_REPLANNING_CYCLE_LIMIT,
-  ModelConfigManager,
-  globalConfigManager,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser } from '@midscene/shared/utils';
-
-import { defineActionAssert } from '../device';
-import {
-  ExecutionDump as ExecutionDumpClass,
-  GroupedActionDump as GroupedActionDumpClass,
-} from '../dump';
 import {
   type ActionParam,
   type ActionReturn,
@@ -29,11 +7,14 @@ import {
   type AgentWaitForOpt,
   type CacheConfig,
   type DeepThinkOption,
+  type DetailedLocateParam,
   type DeviceAction,
-  type ExecutionDump,
+  ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type ExecutionTaskPlanning,
+  GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -42,6 +23,7 @@ import {
   type OnTaskStartTip,
   type PlanningAction,
   type Rect,
+  ScreenshotItem,
   type ScrollParam,
   Service,
   type ServiceAction,
@@ -50,16 +32,42 @@ import {
   type TUserPrompt,
   type UIContext,
 } from '../index';
-import { ReportWriter } from '../report-writer';
-import { ScreenshotItem } from '../screenshot-item';
-import type { StorageProvider } from '../storage';
-import { MemoryStorage } from '../storage';
+export type TestStatus =
+  | 'passed'
+  | 'failed'
+  | 'timedOut'
+  | 'skipped'
+  | 'interrupted';
+import yaml from 'js-yaml';
+
+import {
+  getVersion,
+  groupedActionDumpFileExt,
+  processCacheConfig,
+  reportHTMLContent,
+  writeLogFile,
+} from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
   parseYamlScript,
 } from '../yaml/index';
 
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import type { AbstractInterface } from '@/device';
+import type { TaskRunner } from '@/task-runner';
+import {
+  type IModelConfig,
+  MIDSCENE_REPLANNING_CYCLE_LIMIT,
+  ModelConfigManager,
+  globalConfigManager,
+  globalModelConfigManager,
+} from '@midscene/shared/env';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
+import { assert } from '@midscene/shared/utils';
+import { defineActionAssert } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -69,19 +77,11 @@ import {
 } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
 import {
-  type RawUIContextData,
   commonContextParser,
   getReportFileName,
   parsePrompt,
   printReportMsg,
 } from './utils';
-
-export type TestStatus =
-  | 'passed'
-  | 'failed'
-  | 'timedOut'
-  | 'skipped'
-  | 'interrupted';
 
 const debug = getDebug('agent');
 
@@ -157,7 +157,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDumpClass;
+  dump: GroupedActionDump;
 
   reportFile?: string | null;
 
@@ -176,52 +176,18 @@ export class Agent<
 
   taskCache?: TaskCache;
 
-  /**
-   * Storage provider for screenshot data.
-   * Defaults to MemoryStorage. Pass FileStorage via opts for persistent storage.
-   */
-  storageProvider: StorageProvider;
-
-  /**
-   * Report writer for generating HTML reports.
-   */
-  private reportWriter = new ReportWriter();
-
-  /**
-   * Internal array of dump update listeners.
-   * Use addDumpUpdateListener/removeDumpUpdateListener for multiple listeners,
-   * or the legacy onDumpUpdate setter for single listener (backward compatible).
-   */
   private dumpUpdateListeners: Array<
-    (
-      dump: string,
-      executionDump?: unknown,
-      imageMap?: Record<string, string>,
-    ) => void
+    (dump: string, executionDump?: ExecutionDump) => void
   > = [];
 
-  /**
-   * @deprecated Use addDumpUpdateListener instead. This getter returns only the first listener.
-   */
   get onDumpUpdate():
-    | ((
-        dump: string,
-        executionDump?: unknown,
-        imageMap?: Record<string, string>,
-      ) => void)
+    | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined {
     return this.dumpUpdateListeners[0];
   }
 
-  /**
-   * @deprecated Use addDumpUpdateListener instead. This setter replaces all listeners with a single one.
-   */
   set onDumpUpdate(callback:
-    | ((
-        dump: string,
-        executionDump?: unknown,
-        imageMap?: Record<string, string>,
-      ) => void)
+    | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined) {
     // Clear existing listeners
     this.dumpUpdateListeners = [];
@@ -286,25 +252,23 @@ export class Agent<
   /**
    * Lazily compute the ratio between the physical screenshot width and the logical page width
    */
-  private async getScreenshotScale(
-    rawContext: RawUIContextData,
-  ): Promise<number> {
+  private async getScreenshotScale(context: UIContext): Promise<number> {
     if (this.screenshotScale !== undefined) {
       return this.screenshotScale;
     }
 
     if (!this.screenshotScalePromise) {
       this.screenshotScalePromise = (async () => {
-        const pageWidth = rawContext.size?.width;
+        const pageWidth = context.size?.width;
         assert(
           pageWidth && pageWidth > 0,
           `Invalid page width when computing screenshot scale: ${pageWidth}`,
         );
 
         debug('will get image info of base64');
-        const { width: screenshotWidth } = await imageInfoOfBase64(
-          rawContext.screenshotBase64,
-        );
+        const screenshotBase64 = context.screenshot.getData();
+        const { width: screenshotWidth } =
+          await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
 
         assert(
@@ -396,32 +360,22 @@ export class Agent<
       return this.getUIContext();
     });
 
-    // Initialize task cache
-    // Option 1: Use provided taskCache (dependency injection)
-    // Option 2: Auto-create from cache config (Node.js only)
-    if (opts?.taskCache) {
-      this.taskCache = opts.taskCache;
-    } else if (!ifInBrowser) {
-      const cacheConfigObj = this.processCacheConfig(opts || {});
-      if (cacheConfigObj) {
-        this.taskCache = new TaskCache(
-          cacheConfigObj.id,
-          cacheConfigObj.enabled,
-          undefined, // cacheFilePath
-          {
-            readOnly: cacheConfigObj.readOnly,
-            writeOnly: cacheConfigObj.writeOnly,
-          },
-        );
-      }
+    // Process cache configuration
+    const cacheConfigObj = this.processCacheConfig(opts || {});
+    if (cacheConfigObj) {
+      this.taskCache = new TaskCache(
+        cacheConfigObj.id,
+        cacheConfigObj.enabled,
+        undefined, // cacheFilePath
+        {
+          readOnly: cacheConfigObj.readOnly,
+          writeOnly: cacheConfigObj.writeOnly,
+        },
+      );
     }
 
     const baseActionSpace = this.interface.actionSpace();
     const fullActionSpace = [...baseActionSpace, defineActionAssert()];
-
-    // Initialize storage provider from options or default to MemoryStorage
-    // Callers in Node.js environments should pass FileStorage for persistent storage
-    this.storageProvider = opts?.storageProvider ?? new MemoryStorage();
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
@@ -429,22 +383,21 @@ export class Agent<
       replanningCycleLimit: this.opts.replanningCycleLimit,
       actionSpace: fullActionSpace,
       hooks: {
-        onTaskUpdate: async (runner) => {
+        onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
-          const imageMap = await this.getImageMap();
           for (const listener of this.dumpUpdateListeners) {
             try {
-              listener(dumpString, executionDump, imageMap);
+              listener(dumpString, executionDump);
             } catch (error) {
               console.error('Error in onDumpUpdate listener', error);
             }
           }
 
-          await this.writeOutActionDumps();
+          this.writeOutActionDumps();
         },
       },
     });
@@ -470,49 +423,41 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    // Get raw context data (with base64 string)
-    let rawContext: RawUIContextData;
+    // Get original context
+    let context: UIContext;
     if (this.interface.getContext) {
       debug('Using page.getContext for action:', action);
-      rawContext = await this.interface.getContext();
+      context = await this.interface.getContext();
     } else {
       debug('Using commonContextParser');
-      rawContext = await commonContextParser(this.interface, {
+      context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       });
     }
 
     debug('will get screenshot scale');
-    const computedScreenshotScale = await this.getScreenshotScale(rawContext);
+    const computedScreenshotScale = await this.getScreenshotScale(context);
     debug('computedScreenshotScale', computedScreenshotScale);
 
-    let finalBase64 = rawContext.screenshotBase64;
     if (computedScreenshotScale !== 1) {
       const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
       debug(
         `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
       );
-      const targetWidth = Math.round(rawContext.size.width);
-      const targetHeight = Math.round(rawContext.size.height);
+      const targetWidth = Math.round(context.size.width);
+      const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      finalBase64 = await resizeImgBase64(rawContext.screenshotBase64, {
+      const currentScreenshotBase64 = context.screenshot.getData();
+      const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
       });
+      context.screenshot = ScreenshotItem.create(resizedBase64);
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
 
-    // Create screenshot item from the final base64
-    const screenshot = await ScreenshotItem.create(
-      finalBase64,
-      this.storageProvider,
-    );
-
-    return {
-      size: rawContext.size,
-      screenshot,
-    };
+    return context;
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -536,10 +481,13 @@ export class Agent<
     this.opts.aiActionContext = prompt;
   }
 
-  resetDump(): GroupedActionDumpClass {
-    this.dump = new GroupedActionDumpClass(this.opts.groupName!, {
+  resetDump() {
+    this.dump = new GroupedActionDump({
+      sdkVersion: getVersion(),
+      groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
-      storageProvider: this.storageProvider,
+      executions: [],
+      modelBriefs: [],
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
@@ -547,79 +495,50 @@ export class Agent<
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
-    const executionDumpNew = new ExecutionDumpClass({
-      name: execution.name,
-      description: execution.description,
-      aiActContext: execution.aiActContext,
-      tasks: [...execution.tasks],
-    });
-
+    const currentDump = this.dump;
     if (runner) {
       const existingIndex = this.executionDumpIndexByRunner.get(runner);
       if (existingIndex !== undefined) {
-        this.dump.updateExecution(existingIndex, executionDumpNew);
+        currentDump.executions[existingIndex] = execution;
         return;
       }
-      this.dump.appendExecution(executionDumpNew);
+      currentDump.executions.push(execution);
       this.executionDumpIndexByRunner.set(
         runner,
-        this.dump.executions.length - 1,
+        currentDump.executions.length - 1,
       );
       return;
     }
-    this.dump.appendExecution(executionDumpNew);
+    currentDump.executions.push(execution);
   }
 
-  dumpDataString(): string {
+  dumpDataString() {
+    // update dump info
+    this.dump.groupName = this.opts.groupName!;
+    this.dump.groupDescription = this.opts.groupDescription;
     return this.dump.serialize();
   }
 
-  /**
-   * Get the image map for restoring image references in dump data.
-   * Useful for contexts without HTML script tags (e.g., Chrome extension live preview).
-   *
-   * @returns Promise resolving to record mapping screenshot IDs to their base64 data
-   */
-  async getImageMap(): Promise<Record<string, string>> {
-    return this.dump.getImageMap();
+  reportHTMLString() {
+    return reportHTMLContent(this.dumpDataString());
   }
 
-  async reportHTMLString(): Promise<string> {
-    const scriptContent = await this.dump.toHTML();
-    return getReportTpl() + scriptContent;
-  }
-
-  async writeOutActionDumps(): Promise<void> {
+  writeOutActionDumps() {
     if (this.destroyed) {
       throw new Error(
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
-    const { generateReport, autoPrintReportMsg, useDirectoryReport } =
-      this.opts;
-
-    if (!generateReport) {
-      return;
-    }
-
-    const reportDir = getMidsceneRunSubDir('report');
-
-    if (useDirectoryReport) {
-      // Write directory-based report with separate PNG files
-      const outputDir = `${reportDir}/${this.reportFileName}`;
-      this.reportFile = await this.reportWriter.writeDirectory(
-        this.dump,
-        outputDir,
-      );
-    } else {
-      // Write single HTML file with embedded images
-      const reportPath = `${reportDir}/${this.reportFileName}.html`;
-      this.reportFile = await this.reportWriter.write(this.dump, reportPath);
-    }
-
+    const { generateReport, autoPrintReportMsg } = this.opts;
+    this.reportFile = writeLogFile({
+      fileName: this.reportFileName!,
+      fileExt: groupedActionDumpFileExt,
+      fileContent: this.dumpDataString(),
+      type: 'dump',
+      generateReport,
+    });
     debug('writeOutActionDumps', this.reportFile);
-
-    if (autoPrintReportMsg && this.reportFile) {
+    if (generateReport && autoPrintReportMsg && this.reportFile) {
       printReportMsg(this.reportFile);
     }
   }
@@ -1369,11 +1288,7 @@ export class Agent<
    * @returns A remove function that can be called to remove this listener
    */
   addDumpUpdateListener(
-    listener: (
-      dump: string,
-      executionDump?: unknown,
-      imageMap?: Record<string, string>,
-    ) => void,
+    listener: (dump: string, executionDump?: ExecutionDump) => void,
   ): () => void {
     this.dumpUpdateListeners.push(listener);
 
@@ -1388,11 +1303,7 @@ export class Agent<
    * @param listener The listener function to remove
    */
   removeDumpUpdateListener(
-    listener: (
-      dump: string,
-      executionDump?: unknown,
-      imageMap?: Record<string, string>,
-    ) => void,
+    listener: (dump: string, executionDump?: ExecutionDump) => void,
   ): void {
     const index = this.dumpUpdateListeners.indexOf(listener);
     if (index > -1) {
@@ -1413,15 +1324,9 @@ export class Agent<
       return;
     }
 
-    // Set destroyed flag FIRST to prevent concurrent writeOutActionDumps calls
-    this.destroyed = true;
-
-    // Clear listeners to prevent async callbacks from triggering writes
-    this.clearDumpUpdateListeners();
-
     await this.interface.destroy?.();
-    await this.storageProvider.cleanup();
     this.resetDump(); // reset dump to release memory
+    this.destroyed = true;
   }
 
   async recordToReport(
@@ -1432,15 +1337,9 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
+    const screenshot = ScreenshotItem.create(base64);
     const now = Date.now();
-
-    // 2. Create ScreenshotItem
-    const screenshot = await ScreenshotItem.create(
-      base64,
-      this.storageProvider,
-    );
-
-    // 3. build recorder with ScreenshotItem
+    // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
       {
         type: 'screenshot',
@@ -1448,7 +1347,7 @@ export class Agent<
         screenshot,
       },
     ];
-    // 4. build ExecutionTaskLog
+    // 3. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
       type: 'Log',
       subType: 'Screenshot',
@@ -1464,27 +1363,27 @@ export class Agent<
       },
       executor: async () => {},
     };
-    // 5. build ExecutionDump
-    const executionDump = new ExecutionDumpClass({
+    // 4. build ExecutionDump
+    const executionDump = new ExecutionDump({
+      logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
       tasks: [task],
     });
-    // 6. append to execution dump
-    this.dump.appendExecution(executionDump);
+    // 5. append to execution dump
+    this.appendExecutionDump(executionDump);
 
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
-    const imageMap = await this.getImageMap();
     for (const listener of this.dumpUpdateListeners) {
       try {
-        listener(dumpString, executionDump, imageMap);
+        listener(dumpString);
       } catch (error) {
         console.error('Error in onDumpUpdate listener', error);
       }
     }
 
-    await this.writeOutActionDumps();
+    this.writeOutActionDumps();
   }
 
   /**
@@ -1608,14 +1507,13 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
-    const resolver = this.opts.filePathResolver;
-    if (!resolver) {
-      // No resolver provided, return files as-is
-      // In Node.js environments, callers should provide filePathResolver for path validation
-      return files;
-    }
-
-    return files.map((file) => resolver(file));
+    return files.map((file) => {
+      const absolutePath = resolve(file);
+      if (!existsSync(absolutePath)) {
+        throw new Error(`File not found: ${file}`);
+      }
+      return absolutePath;
+    });
   }
 
   private normalizeFileInput(files: string | string[]): string[] {

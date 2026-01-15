@@ -1,15 +1,16 @@
-import type {
+import type { ScreenshotItem } from '@/screenshot-item';
+import {
   ExecutionDump,
-  ExecutionRecorderItem,
-  ExecutionTask,
-  ExecutionTaskActionApply,
-  ExecutionTaskApply,
-  ExecutionTaskPlanningLocateOutput,
-  ExecutionTaskProgressOptions,
-  ExecutionTaskReturn,
-  ExecutorContext,
-  PlanningActionParamError,
-  UIContext,
+  type ExecutionRecorderItem,
+  type ExecutionTask,
+  type ExecutionTaskActionApply,
+  type ExecutionTaskApply,
+  type ExecutionTaskPlanningLocateOutput,
+  type ExecutionTaskProgressOptions,
+  type ExecutionTaskReturn,
+  type ExecutorContext,
+  type PlanningActionParamError,
+  type UIContext,
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -395,12 +396,11 @@ export class TaskRunner {
   }
 
   dump(): ExecutionDump {
-    const dumpData: ExecutionDump = {
+    return new ExecutionDump({
       logTime: Date.now(),
       name: this.name,
       tasks: this.tasks,
-    };
-    return dumpData;
+    });
   }
 
   async appendErrorPlan(errorMsg: string): Promise<{

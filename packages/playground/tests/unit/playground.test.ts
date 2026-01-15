@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
+import { ExecutionDump } from '@midscene/core';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
 import { RemoteExecutionAdapter } from '../../src/adapters/remote-execution';
@@ -106,7 +107,7 @@ describe('Playground Integration Tests', () => {
             },
           },
         },
-        dump: {},
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
         error: null,
       });
@@ -134,7 +135,7 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: {},
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
         error: null,
       });
@@ -225,7 +226,11 @@ describe('Playground Integration Tests', () => {
     it('should handle task cancellation', async () => {
       const result = await adapter.cancelTask('test-request');
 
-      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
+      expect(result).toEqual({
+        success: true,
+        dump: expect.any(ExecutionDump),
+        reportHTML: null,
+      });
     });
   });
 

@@ -58,8 +58,9 @@ export async function uiTarsPlanning(
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
+  const screenshotBase64 = context.screenshot.getData();
   const imagePayload = await resizeImageForUiTars(
-    await context.screenshot.getData(),
+    screenshotBase64,
     context.size,
     uiTarsModelVersion,
   );

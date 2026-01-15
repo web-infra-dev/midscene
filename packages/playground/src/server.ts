@@ -3,18 +3,14 @@ import type { Server } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
-import { restoreImageReferences } from '@midscene/core';
+import { GroupedActionDump } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
-import {
-  executeAction,
-  extractDumpWithImages,
-  formatErrorMessage,
-} from './common';
+import { executeAction, formatErrorMessage } from './common';
 
 import 'dotenv/config';
 
@@ -220,20 +216,7 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
-        let executionDump = this.taskExecutionDumps[requestId] || null;
-
-        // Restore image references in execution dump if available
-        if (executionDump) {
-          try {
-            const imageMap = (await this.agent?.getImageMap?.()) ?? {};
-            executionDump = restoreImageReferences(executionDump, imageMap);
-          } catch (error: unknown) {
-            console.warn(
-              'Failed to restore image references in task progress:',
-              error,
-            );
-          }
-        }
+        const executionDump = this.taskExecutionDumps[requestId] || null;
 
         res.json({
           executionDump,
@@ -251,10 +234,7 @@ class PlaygroundServer {
         const processedActionSpace = actionSpace.map((action: unknown) => {
           if (action && typeof action === 'object' && 'paramSchema' in action) {
             const typedAction = action as {
-              paramSchema?: {
-                shape?: Record<string, unknown>;
-                [key: string]: unknown;
-              };
+              paramSchema?: { shape?: object; [key: string]: unknown };
               [key: string]: unknown;
             };
             if (
@@ -396,10 +376,13 @@ class PlaygroundServer {
         this.taskExecutionDumps[requestId] = null;
 
         // Use onDumpUpdate to receive and store executionDump directly
-        this.agent.onDumpUpdate = (_dump: string, executionDump?: unknown) => {
+        this.agent.onDumpUpdate = (
+          _dump: string,
+          executionDump?: ExecutionDump,
+        ) => {
           if (executionDump) {
             // Store the execution dump directly without transformation
-            this.taskExecutionDumps[requestId] = executionDump as ExecutionDump;
+            this.taskExecutionDumps[requestId] = executionDump;
           }
         };
       }
@@ -447,11 +430,18 @@ class PlaygroundServer {
       }
 
       try {
-        // Get dump data with restored image references
-        response.dump = await extractDumpWithImages(this.agent);
-        response.reportHTML = (await this.agent.reportHTMLString()) || null;
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump =
+            GroupedActionDump.fromSerializedString(dumpString);
+          // Extract first execution from grouped dump, matching local execution adapter behavior
+          response.dump = groupedDump.executions?.[0] || null;
+        } else {
+          response.dump = null;
+        }
+        response.reportHTML = this.agent.reportHTMLString() || null;
 
-        await this.agent.writeOutActionDumps();
+        this.agent.writeOutActionDumps();
         this.agent.resetDump();
       } catch (error: unknown) {
         const errorMessage =
@@ -507,13 +497,19 @@ class PlaygroundServer {
           console.log(`Cancelling task: ${requestId}`);
 
           // Get current execution data before cancelling (dump and reportHTML)
-          let dump: ExecutionDump | null = null;
+          let dump: any = null;
           let reportHTML: string | null = null;
 
           try {
-            // Get dump data with restored image references
-            dump = await extractDumpWithImages(this.agent);
-            reportHTML = (await this.agent.reportHTMLString?.()) || null;
+            const dumpString = this.agent.dumpDataString?.();
+            if (dumpString) {
+              const groupedDump =
+                GroupedActionDump.fromSerializedString(dumpString);
+              // Extract first execution from grouped dump
+              dump = groupedDump.executions?.[0] || null;
+            }
+
+            reportHTML = this.agent.reportHTMLString?.() || null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }

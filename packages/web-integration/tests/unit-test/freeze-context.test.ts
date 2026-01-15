@@ -33,13 +33,13 @@ describe('PageAgent freeze/unfreeze page context', () => {
   let mockContext: WebUIContext;
   let mockContext2: WebUIContext;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
 
     // Create mock contexts
     mockContext = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshot: await ScreenshotItem.create(
+      screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       ),
       tree: [
@@ -56,7 +56,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     mockContext2 = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshot: await ScreenshotItem.create(
+      screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
       ),
       tree: [
@@ -144,7 +144,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Frozen context should be marked
       const frozenContext = (agent as any).frozenUIContext;
       expect(frozenContext._isFrozen).toBe(true);
-      expect(await frozenContext.screenshot.getData()).toBe(
+      expect(frozenContext.screenshot.getData()).toBe(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       );
       expect(frozenContext.tree).toBe(mockContext.tree);
@@ -267,17 +267,12 @@ describe('PageAgent freeze/unfreeze page context', () => {
     });
 
     it('should return fresh context for all actions when not frozen', async () => {
-      // Mock WebPageContextParser - must return RawUIContextData (with screenshotBase64)
-      const rawContextBase = {
-        size: { width: 1920, height: 1080, dpr: 1 },
-        screenshotBase64:
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      };
+      // Mock WebPageContextParser
       const mockParseContext = vi
         .fn()
-        .mockResolvedValueOnce({ ...rawContextBase, fresh: 1 })
-        .mockResolvedValueOnce({ ...rawContextBase, fresh: 2 })
-        .mockResolvedValueOnce({ ...rawContextBase, fresh: 3 });
+        .mockResolvedValueOnce({ ...mockContext, fresh: 1 })
+        .mockResolvedValueOnce({ ...mockContext, fresh: 2 })
+        .mockResolvedValueOnce({ ...mockContext, fresh: 3 });
 
       vi.spyOn(
         await import('@/web-element'),
@@ -289,27 +284,21 @@ describe('PageAgent freeze/unfreeze page context', () => {
       const context2 = await agent.getUIContext('extract');
       const context3 = await agent.getUIContext('assert');
 
-      // Each call should get a fresh context (fresh property is passed through)
-      // Note: Since getUIContext converts raw context, we can only verify the conversion happened
-      expect(context1.screenshot).toBeDefined();
-      expect(context2.screenshot).toBeDefined();
-      expect(context3.screenshot).toBeDefined();
+      // Each call should get a fresh context
+      expect((context1 as any).fresh).toBe(1);
+      expect((context2 as any).fresh).toBe(2);
+      expect((context3 as any).fresh).toBe(3);
 
       // WebPageContextParser should be called for each
       expect(mockParseContext).toHaveBeenCalledTimes(3);
     });
 
     it('should switch between frozen and fresh contexts correctly', async () => {
-      // Mock WebPageContextParser - must return RawUIContextData (with screenshotBase64)
-      const rawContextBase = {
-        size: { width: 1920, height: 1080, dpr: 1 },
-        screenshotBase64:
-          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      };
+      // Mock WebPageContextParser
       const mockParseContext = vi
         .fn()
-        .mockResolvedValueOnce({ ...rawContextBase })
-        .mockResolvedValueOnce({ ...rawContextBase });
+        .mockResolvedValueOnce({ ...mockContext2, callNumber: 1 })
+        .mockResolvedValueOnce({ ...mockContext2, callNumber: 2 });
 
       vi.spyOn(
         await import('@/web-element'),
@@ -318,7 +307,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       // Get fresh context initially
       const freshContext1 = await agent.getUIContext('locate');
-      expect(freshContext1.screenshot).toBeDefined();
+      expect((freshContext1 as any).callNumber).toBe(1);
 
       // Freeze context
       await agent.freezePageContext();
@@ -333,11 +322,9 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
       // Should return fresh context again
       const freshContext2 = await agent.getUIContext('locate');
-      expect(freshContext2.screenshot).toBeDefined();
+      expect((freshContext2 as any).callNumber).toBe(2);
 
       // Total calls: 2 (initial fresh + after unfreeze)
-      // Note: freezePageContext calls _snapshotContext which also calls getUIContext
-      // but _snapshotContext is mocked to return mockContext directly
       expect(mockParseContext).toHaveBeenCalledTimes(2);
     });
 

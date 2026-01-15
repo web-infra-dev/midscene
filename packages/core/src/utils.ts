@@ -1,24 +1,30 @@
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
-import * as os from 'node:os';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import * as path from 'node:path';
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
-export { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  defaultRunDirName,
+  getMidsceneRunSubDir,
+} from '@midscene/shared/common';
 import {
   MIDSCENE_CACHE,
   MIDSCENE_DEBUG_MODE,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { logMsg } from '@midscene/shared/utils';
+import { getRunningPkgInfo } from '@midscene/shared/node';
+import { assert, logMsg } from '@midscene/shared/utils';
 import {
   escapeScriptTag,
   ifInBrowser,
   ifInWorker,
   uuid,
 } from '@midscene/shared/utils';
-import { generateImageScriptTag } from './dump/html-utils';
 import type { Cache, Rect, ReportDumpWithAttributes } from './types';
 
-export const appendFileSync = fs.appendFileSync;
+let logEnvReady = false;
+
+export { appendFileSync } from 'node:fs';
 
 export const groupedActionDumpFileExt = 'web-dump.json';
 
@@ -71,18 +77,12 @@ export function processCacheConfig(
 
 const reportInitializedMap = new Map<string, boolean>();
 
-declare const __DEV_REPORT_TPL__: string;
+declare const __DEV_REPORT_PATH__: string;
 
 export function getReportTpl() {
-  // __DEV_REPORT_TPL__ is replaced with actual HTML during build
-  // In development mode, rslib replaces this with the report template content
-  // In production, 'REPLACE_ME_WITH_REPORT_HTML' is replaced with actual HTML
-  if (typeof __DEV_REPORT_TPL__ === 'string' && __DEV_REPORT_TPL__) {
-    return __DEV_REPORT_TPL__;
+  if (typeof __DEV_REPORT_PATH__ === 'string' && __DEV_REPORT_PATH__) {
+    return fs.readFileSync(__DEV_REPORT_PATH__, 'utf-8');
   }
-
-  // Return embedded template (works in both browser and Node.js)
-  // This placeholder is replaced with actual HTML during build
   const reportTpl = 'REPLACE_ME_WITH_REPORT_HTML';
 
   return reportTpl;
@@ -96,12 +96,6 @@ export function insertScriptBeforeClosingHtml(
   filePath: string,
   scriptContent: string,
 ): void {
-  if (ifInBrowser) {
-    throw new Error(
-      'insertScriptBeforeClosingHtml is not supported in browser',
-    );
-  }
-
   const htmlEndTag = '</html>';
   const stat = fs.statSync(filePath);
 
@@ -145,38 +139,18 @@ export function reportHTMLContent(
   }
   // if reportPath is set, it means we are in write to file mode
   const writeToFile = reportPath && !ifInBrowser;
-
-  let processedDumpString: string;
-  let attributes: Record<string, string> | undefined;
-  let imageMap: Record<string, string> | undefined;
-
-  if (typeof dumpData === 'string') {
-    processedDumpString = dumpData;
-  } else {
-    processedDumpString = dumpData.dumpString;
-    attributes = dumpData.attributes;
-    imageMap = dumpData.imageMap;
-  }
-
-  // Generate image script tags if imageMap is provided
-  let imageContent = '';
-  if (imageMap && Object.keys(imageMap).length > 0) {
-    imageContent = Object.entries(imageMap)
-      .map(([id, data]) => generateImageScriptTag(id, data))
-      .join('\n');
-  }
-
   let dumpContent = '';
 
-  if (!attributes) {
+  if (typeof dumpData === 'string') {
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
       '<script type="midscene_web_dump" type="application/json">\n' +
-      escapeScriptTag(processedDumpString) +
+      escapeScriptTag(dumpData) +
       '\n</script>';
   } else {
-    const attributesArr = Object.keys(attributes).map((key) => {
+    const { dumpString, attributes } = dumpData;
+    const attributesArr = Object.keys(attributes || {}).map((key) => {
       return `${key}="${encodeURIComponent(attributes![key])}"`;
     });
 
@@ -186,46 +160,26 @@ export function reportHTMLContent(
       '<script type="midscene_web_dump" type="application/json" ' +
       attributesArr.join(' ') +
       '>\n' +
-      escapeScriptTag(processedDumpString) +
+      escapeScriptTag(dumpString) +
       '\n</script>';
   }
 
-  // Combine image tags and dump content (images first, then dump)
-  const allScriptContent = imageContent
-    ? `${imageContent}\n${dumpContent}`
-    : dumpContent;
-
   if (writeToFile) {
     if (!appendReport) {
-      fs.writeFileSync(reportPath!, `${tpl}\n${allScriptContent}`, {
-        flag: 'w',
-      });
+      writeFileSync(reportPath!, tpl + dumpContent, { flag: 'w' });
       return reportPath!;
     }
 
-    // Check if template is valid (contains </html>) for append mode
-    const isValidTemplate = tpl.includes('</html>');
     if (!reportInitializedMap.get(reportPath!)) {
-      if (isValidTemplate) {
-        fs.writeFileSync(reportPath!, tpl, { flag: 'w' });
-      } else {
-        // Use minimal HTML wrapper if template is invalid (e.g., placeholder in test env)
-        fs.writeFileSync(
-          reportPath!,
-          `<!DOCTYPE html><html><head></head><body>\n${allScriptContent}\n</body></html>`,
-          { flag: 'w' },
-        );
-        reportInitializedMap.set(reportPath!, true);
-        return reportPath!;
-      }
+      writeFileSync(reportPath!, tpl, { flag: 'w' });
       reportInitializedMap.set(reportPath!, true);
     }
 
-    insertScriptBeforeClosingHtml(reportPath!, allScriptContent);
+    insertScriptBeforeClosingHtml(reportPath!, dumpContent);
     return reportPath!;
   }
 
-  return tpl + allScriptContent;
+  return tpl + dumpContent;
 }
 
 export function writeDumpReport(
@@ -243,7 +197,7 @@ export function writeDumpReport(
     `${fileName}.html`,
   );
 
-  reportHTMLContent(dumpData, reportPath, appendReport, true);
+  reportHTMLContent(dumpData, reportPath, appendReport);
 
   if (process.env.MIDSCENE_DEBUG_LOG_JSON) {
     const jsonPath = `${reportPath}.json`;
@@ -255,7 +209,7 @@ export function writeDumpReport(
       data = dumpData;
     }
 
-    fs.writeFileSync(jsonPath, JSON.stringify(data, null, 2), {
+    writeFileSync(jsonPath, JSON.stringify(data, null, 2), {
       flag: appendReport ? 'a' : 'w',
     });
 
@@ -265,22 +219,70 @@ export function writeDumpReport(
   return reportPath;
 }
 
-export function getTmpDir(): string | null {
+export function writeLogFile(opts: {
+  fileName: string;
+  fileExt: string;
+  fileContent: string | ReportDumpWithAttributes;
+  type: 'dump' | 'cache' | 'report' | 'tmp';
+  generateReport?: boolean;
+  appendReport?: boolean;
+}) {
   if (ifInBrowser || ifInWorker) {
-    return null;
+    return '/mock/report.html';
+  }
+  const { fileName, fileExt, fileContent, type = 'dump' } = opts;
+  const targetDir = getMidsceneRunSubDir(type);
+  // Ensure directory exists
+  if (!logEnvReady) {
+    assert(targetDir, 'logDir should be set before writing dump file');
+
+    // gitIgnore in the parent directory
+    const gitIgnorePath = path.join(targetDir, '../../.gitignore');
+    const gitPath = path.join(targetDir, '../../.git');
+    let gitIgnoreContent = '';
+
+    if (existsSync(gitPath)) {
+      // if the git path exists, we need to add the log folder to the git ignore file
+      if (existsSync(gitIgnorePath)) {
+        gitIgnoreContent = readFileSync(gitIgnorePath, 'utf-8');
+      }
+
+      // ignore the log folder
+      if (!gitIgnoreContent.includes(`${defaultRunDirName}/`)) {
+        writeFileSync(
+          gitIgnorePath,
+          `${gitIgnoreContent}\n# Midscene.js dump files\n${defaultRunDirName}/dump\n${defaultRunDirName}/report\n${defaultRunDirName}/tmp\n${defaultRunDirName}/log\n`,
+          'utf-8',
+        );
+      }
+    }
+
+    logEnvReady = true;
   }
 
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getRunningPkgInfo } = require('@midscene/shared/node');
+  const filePath = path.join(targetDir, `${fileName}.${fileExt}`);
 
+  if (type !== 'dump') {
+    // do not write dump file any more
+    writeFileSync(filePath, JSON.stringify(fileContent));
+  }
+
+  if (opts?.generateReport) {
+    return writeDumpReport(fileName, fileContent, opts.appendReport);
+  }
+
+  return filePath;
+}
+
+export function getTmpDir(): string | null {
+  try {
     const runningPkgInfo = getRunningPkgInfo();
     if (!runningPkgInfo) {
       return null;
     }
     const { name } = runningPkgInfo;
-    const tmpPath = path.join(os.tmpdir(), name);
-    fs.mkdirSync(tmpPath, { recursive: true });
+    const tmpPath = path.join(tmpdir(), name);
+    mkdirSync(tmpPath, { recursive: true });
     return tmpPath;
   } catch (e) {
     return null;
@@ -291,7 +293,6 @@ export function getTmpFile(fileExtWithoutDot: string): string | null {
   if (ifInBrowser || ifInWorker) {
     return null;
   }
-
   const tmpDir = getTmpDir();
   const filename = `${uuid()}.${fileExtWithoutDot}`;
   return path.join(tmpDir!, filename);
@@ -309,6 +310,24 @@ export function overlapped(container: Rect, target: Rect) {
 
 export async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+export function replacerForPageObject(_key: string, value: any) {
+  if (value && value.constructor?.name === 'Page') {
+    return '[Page object]';
+  }
+  if (value && value.constructor?.name === 'Browser') {
+    return '[Browser object]';
+  }
+  // Handle ScreenshotItem serialization
+  if (value && typeof value.toSerializable === 'function') {
+    return value.toSerializable();
+  }
+  return value;
+}
+
+export function stringifyDumpData(data: any, indents?: number) {
+  return JSON.stringify(data, replacerForPageObject, indents);
 }
 
 declare const __VERSION__: string;
@@ -333,14 +352,10 @@ export function uploadTestInfoToServer({
 }: { testUrl: string; serverUrl?: string }) {
   if (!serverUrl) return;
 
-  // Skip in browser environment
-  if (ifInBrowser || ifInWorker) return;
-
   let repoUrl = '';
   let userEmail = '';
 
   try {
-    const { execSync } = require('node:child_process');
     repoUrl = execSync('git config --get remote.origin.url').toString().trim();
     userEmail = execSync('git config --get user.email').toString().trim();
   } catch (error) {

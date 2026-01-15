@@ -1,5 +1,6 @@
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
+import { ScreenshotItem } from '@/screenshot-item';
 import type {
   ElementCacheFeature,
   LocateResultElement,
@@ -54,9 +55,11 @@ export async function commonContextParser(
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
+  const screenshot = ScreenshotItem.create(screenshotBase64!);
+
   return {
     size,
-    screenshotBase64: screenshotBase64!,
+    screenshot,
   };
 }
 

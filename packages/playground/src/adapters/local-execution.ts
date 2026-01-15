@@ -1,11 +1,8 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import { GroupedActionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
-import {
-  executeAction,
-  extractDumpWithImages,
-  parseStructuredParams,
-} from '../common';
+import { executeAction, parseStructuredParams } from '../common';
 import type {
   AgentFactory,
   ExecutionOptions,
@@ -125,6 +122,23 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     console.log('Config updated. Agent will be recreated on next execution.');
   }
 
+  /**
+   * Safely detaches the Chrome debugger without destroying the agent.
+   * This removes the "Debugger attached" banner from the browser window
+   * while keeping the agent instance intact for potential reuse.
+   * Called on errors to improve user experience by cleaning up the UI.
+   */
+  private async detachDebuggerSafely() {
+    try {
+      const page = this.agent?.interface as
+        | { detachDebugger?: () => Promise<void> }
+        | undefined;
+      await page?.detachDebugger?.();
+    } catch (error) {
+      console.warn('Failed to detach debugger:', error);
+    }
+  }
+
   async executeAction(
     actionType: string,
     value: FormValue,
@@ -173,7 +187,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Add listener and save remove function
       removeListener = agent.addDumpUpdateListener(
-        (dump: string, executionDump?: unknown) => {
+        (dump: string, executionDump?: ExecutionDump) => {
           // Only process if this is still the current request
           if (this.currentRequestId !== options.requestId) {
             return;
@@ -181,7 +195,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
           // Forward to external callback
           if (this.dumpUpdateCallback) {
-            this.dumpUpdateCallback(dump, executionDump as ExecutionDump);
+            this.dumpUpdateCallback(dump, executionDump);
           }
         },
       );
@@ -217,9 +231,16 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           : null,
       };
 
-      // Get dump data with restored image references
+      // Get dump data - separate try-catch to ensure dump is retrieved even if reportHTML fails
       try {
-        response.dump = await extractDumpWithImages(agent);
+        if (agent.dumpDataString) {
+          const dumpString = agent.dumpDataString();
+          if (dumpString) {
+            const groupedDump =
+              GroupedActionDump.fromSerializedString(dumpString);
+            response.dump = groupedDump.executions?.[0] || null;
+          }
+        }
       } catch (error: unknown) {
         console.warn('Failed to get dump from agent:', error);
       }
@@ -227,7 +248,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Try to get reportHTML - may fail in browser environment (fs not available)
       try {
         if (agent.reportHTMLString) {
-          response.reportHTML = (await agent.reportHTMLString()) || null;
+          response.reportHTML = agent.reportHTMLString() || null;
         }
       } catch (error: unknown) {
         // reportHTMLString may throw in browser environment
@@ -237,7 +258,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Write out action dumps - may also fail in browser environment
       try {
         if (agent.writeOutActionDumps) {
-          await agent.writeOutActionDumps();
+          agent.writeOutActionDumps();
         }
       } catch (error: unknown) {
         // writeOutActionDumps may fail in browser environment
@@ -290,10 +311,19 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     let dump: ExecutionDump | null = null;
     let reportHTML: string | null = null;
 
-    // Get dump data with restored image references
+    // Get dump data separately - don't let reportHTML errors affect dump retrieval
     // IMPORTANT: Must extract dump BEFORE agent.destroy(), as dump is stored in agent memory
     try {
-      dump = await extractDumpWithImages(this.agent);
+      if (typeof this.agent.dumpDataString === 'function') {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
+          // In Playground, each "Run" creates one execution, so we take executions[0]
+          const groupedDump =
+            GroupedActionDump.fromSerializedString(dumpString);
+          dump = groupedDump.executions?.[0] ?? null;
+        }
+      }
     } catch (error) {
       console.warn(
         '[LocalExecutionAdapter] Failed to get dump data before cancel:',
@@ -305,7 +335,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // where fs.readFileSync is not available
     try {
       if (typeof this.agent.reportHTMLString === 'function') {
-        const html = await this.agent.reportHTMLString();
+        const html = this.agent.reportHTMLString();
         if (
           html &&
           typeof html === 'string' &&
@@ -350,14 +380,19 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     };
 
     try {
-      // Get dump data with restored image references
-      if (this.agent) {
-        response.dump = await extractDumpWithImages(this.agent);
+      // Get dump data
+      if (this.agent?.dumpDataString) {
+        const dumpString = this.agent.dumpDataString();
+        if (dumpString) {
+          const groupedDump =
+            GroupedActionDump.fromSerializedString(dumpString);
+          response.dump = groupedDump.executions?.[0] || null;
+        }
       }
 
       // Get report HTML
       if (this.agent?.reportHTMLString) {
-        response.reportHTML = (await this.agent.reportHTMLString()) || null;
+        response.reportHTML = this.agent.reportHTMLString() || null;
       }
     } catch (error: unknown) {
       console.error('Failed to get current execution data:', error);

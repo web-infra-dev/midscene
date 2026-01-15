@@ -4,7 +4,6 @@ import {
   withErrorHandling,
 } from '@midscene/shared/baseDB';
 import type { InfoListItem, StorageProvider } from '../../../types';
-import { isScreenshotItem } from '../../../utils/playground-utils';
 
 // Database configuration
 const DB_NAME = 'midscene_playground';
@@ -201,22 +200,6 @@ export class IndexedDBStorageProvider implements StorageProvider {
   }
 
   /**
-   * Helper to get screenshot string from UIContext or ExecutionRecorderItem.
-   * After restoration, screenshot is a base64 string (restored from { $screenshot: id }).
-   * TypeScript thinks it's ScreenshotItem, so we use type guard.
-   */
-  private getScreenshotString(screenshot: unknown): string | undefined {
-    if (typeof screenshot === 'string') {
-      return screenshot;
-    }
-    // If it's still a ScreenshotItem, get base64 (shouldn't happen after restoration)
-    if (isScreenshotItem(screenshot)) {
-      return screenshot.base64;
-    }
-    return undefined;
-  }
-
-  /**
    * Compress result data for storage while preserving playback functionality
    */
   private compressResultForStorage(result: InfoListItem): InfoListItem {
@@ -225,36 +208,21 @@ export class IndexedDBStorageProvider implements StorageProvider {
     }
 
     // ExecutionDump now has tasks directly (not wrapped in executions array)
-    // After restoration, screenshot is a string (base64 data), but TypeScript thinks it's ScreenshotItem
-    const compressedTasks = result.result.dump.tasks.map((task) => {
-      // Get screenshot string (after restoration, it's already a string)
-      const uiContextScreenshot = this.getScreenshotString(
-        task.uiContext?.screenshot,
-      );
-
-      return {
-        ...task,
-        // Compress screenshots if they're too large (>1MB)
-        uiContext: task.uiContext
-          ? {
-              ...task.uiContext,
-              screenshot: uiContextScreenshot
-                ? this.compressScreenshotIfNeeded(uiContextScreenshot)
-                : uiContextScreenshot,
-            }
-          : task.uiContext,
-        // Compress recorder screenshots
-        recorder: task.recorder?.map((record) => {
-          const recordScreenshot = this.getScreenshotString(record.screenshot);
-          return {
-            ...record,
-            screenshot: recordScreenshot
-              ? this.compressScreenshotIfNeeded(recordScreenshot)
-              : recordScreenshot,
-          };
-        }),
-      };
-    });
+    const compressedTasks = result.result.dump.tasks.map((task) => ({
+      ...task,
+      // Compress screenshots if they're too large (>1MB)
+      uiContext: task.uiContext
+        ? {
+            ...task.uiContext,
+            screenshot: task.uiContext.screenshot,
+          }
+        : task.uiContext,
+      // Compress recorder screenshots
+      recorder: task.recorder?.map((record) => ({
+        ...record,
+        screenshot: record.screenshot,
+      })),
+    }));
 
     return {
       ...result,
@@ -262,11 +230,7 @@ export class IndexedDBStorageProvider implements StorageProvider {
         ...result.result,
         dump: {
           ...result.result.dump,
-          // Type assertion is safe here because:
-          // 1. getScreenshotString() uses type guard to safely extract string from ScreenshotItem
-          // 2. After JSON serialization/deserialization, screenshots are already strings
-          // 3. The structure of tasks remains the same, only screenshot type differs at runtime
-          tasks: compressedTasks as typeof result.result.dump.tasks,
+          tasks: compressedTasks,
         },
       },
     };
