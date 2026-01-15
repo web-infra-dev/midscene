@@ -676,7 +676,10 @@ export class GroupedActionDump implements IGroupedActionDump {
   modelBriefs: string[];
   executions: ExecutionDump[];
 
-  constructor(data: IGroupedActionDump) {
+  // Storage provider for screenshots (used in directory-based reports)
+  private _storageProvider?: any; // Import StorageProvider type dynamically to avoid circular deps
+
+  constructor(data: IGroupedActionDump, storageProvider?: any) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -684,6 +687,11 @@ export class GroupedActionDump implements IGroupedActionDump {
     this.executions = data.executions.map((exec) =>
       exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
     );
+    this._storageProvider = storageProvider;
+  }
+
+  get storageProvider(): any {
+    return this._storageProvider;
   }
 
   /**
@@ -722,6 +730,141 @@ export class GroupedActionDump implements IGroupedActionDump {
    */
   static fromJSON(data: IGroupedActionDump): GroupedActionDump {
     return new GroupedActionDump(data);
+  }
+
+  /**
+   * Collect all ScreenshotItem instances from all executions.
+   *
+   * @returns Array of all ScreenshotItem instances across all executions
+   */
+  collectAllScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
+    for (const execution of this.executions) {
+      screenshots.push(...execution.collectScreenshots());
+    }
+    return screenshots;
+  }
+
+  /**
+   * Convert to HTML format for report generation.
+   * This is an async method that handles screenshot data serialization.
+   *
+   * @returns HTML string containing the report data
+   */
+  async toHTML(): Promise<string> {
+    // Collect all screenshots and their data
+    const screenshots = this.collectAllScreenshots();
+    const imageDataMap = new Map<string, string>();
+
+    // Load all screenshot data
+    for (const screenshot of screenshots) {
+      const data = await screenshot.getData();
+      imageDataMap.set(screenshot.id, data);
+    }
+
+    // Serialize executions
+    const serializedExecutions: any[] = [];
+    for (const execution of this.executions) {
+      const serialized = await execution.toSerializableFormat();
+      serializedExecutions.push(serialized);
+    }
+
+    const dumpData = {
+      sdkVersion: this.sdkVersion,
+      groupName: this.groupName,
+      groupDescription: this.groupDescription,
+      modelBriefs: this.modelBriefs,
+      executions: serializedExecutions,
+    };
+
+    // Generate scripts for embedding
+    const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
+    const dumpScript = generateDumpScriptTag(dumpData);
+    const imageScripts = Array.from(imageDataMap.entries())
+      .map(([id, data]) => generateImageScriptTag(id, data))
+      .join('\n');
+
+    return `${dumpScript}\n${imageScripts}`;
+  }
+
+  /**
+   * Write report to a directory with separate image files.
+   * This is useful for reducing memory usage and report file size.
+   *
+   * @param outputDir - Directory path to write the report
+   * @returns Path to the generated index.html file
+   */
+  async writeToDirectory(outputDir: string): Promise<string> {
+    const { ifInBrowser } = require('@midscene/shared/utils');
+    if (ifInBrowser) {
+      console.warn('writeToDirectory is not supported in browser environment, skipping');
+      return '';
+    }
+
+    // Dynamic import to avoid bundling node modules
+    const [fs, path] = await Promise.all([
+      import('node:fs'),
+      import('node:path'),
+    ]);
+
+    // Create output directory
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Create screenshots subdirectory
+    const screenshotsDir = path.join(outputDir, 'screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Collect all screenshots
+    const screenshots = this.collectAllScreenshots();
+
+    // Write each screenshot as a separate PNG file
+    for (const screenshot of screenshots) {
+      const data = await screenshot.getData();
+      const base64Data = data.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const filePath = path.join(screenshotsDir, `${screenshot.id}.png`);
+      fs.writeFileSync(filePath, buffer);
+    }
+
+    // Serialize executions with relative paths
+    const serializedExecutions: any[] = [];
+    for (const execution of this.executions) {
+      const serialized = await execution.toSerializableFormat();
+      serializedExecutions.push(serialized);
+    }
+
+    const dumpData = {
+      sdkVersion: this.sdkVersion,
+      groupName: this.groupName,
+      groupDescription: this.groupDescription,
+      modelBriefs: this.modelBriefs,
+      executions: serializedExecutions,
+    };
+
+    // Generate HTML with relative image paths
+    const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
+    const { getReportTpl } = require('./utils');
+
+    const dumpScript = generateDumpScriptTag(dumpData);
+
+    // Generate image reference scripts (pointing to separate files)
+    const imageScripts = screenshots
+      .map((screenshot) =>
+        generateImageScriptTag(screenshot.id, `screenshots/${screenshot.id}.png`),
+      )
+      .join('\n');
+
+    const htmlContent = `${getReportTpl()}\n${dumpScript}\n${imageScripts}`;
+
+    // Write index.html
+    const indexPath = path.join(outputDir, 'index.html');
+    fs.writeFileSync(indexPath, htmlContent);
+
+    return indexPath;
   }
 }
 
