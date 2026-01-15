@@ -431,22 +431,53 @@ export async function callAIWithObjectResponse<T>(
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }> {
-  const response = await callAI(messages, modelConfig, {
-    deepThink: options?.deepThink,
-  });
-  assert(response, 'empty response');
-  const vlMode = modelConfig.vlMode;
-  const jsonContent = safeParseJson(response.content, vlMode);
-  assert(
-    typeof jsonContent === 'object',
-    `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
-  );
-  return {
-    content: jsonContent,
-    contentString: response.content,
-    usage: response.usage,
-    reasoning_content: response.reasoning_content,
-  };
+  const retryCount = modelConfig.retryCount ?? 1;
+  const retryInterval = modelConfig.retryInterval ?? 2000;
+  const maxAttempts = retryCount + 1; // retryCount=1 means 2 total attempts (1 initial + 1 retry)
+
+  let lastError: Error | undefined;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let response: Awaited<ReturnType<typeof callAI>> | undefined;
+
+    try {
+      response = await callAI(messages, modelConfig, {
+        deepThink: options?.deepThink,
+      });
+
+      if (!response) {
+        throw new Error('empty response from AI model');
+      }
+    } catch (error) {
+      lastError = error as Error;
+
+      if (attempt < maxAttempts) {
+        console.warn(
+          `[Midscene] AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, retryInterval));
+        continue;
+      }
+      throw lastError;
+    }
+
+    // JSON parsing - no retry on failure, throw immediately
+    const vlMode = modelConfig.vlMode;
+    const jsonContent = safeParseJson(response.content, vlMode);
+    assert(
+      typeof jsonContent === 'object',
+      `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+    );
+    return {
+      content: jsonContent,
+      contentString: response.content,
+      usage: response.usage,
+      reasoning_content: response.reasoning_content,
+    };
+  }
+
+  // All attempts failed, throw the last error
+  throw lastError;
 }
 
 export async function callAIWithStringResponse(

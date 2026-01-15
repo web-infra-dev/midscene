@@ -26,6 +26,8 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 | `MIDSCENE_MODEL_TIMEOUT` | Timeout for AI API calls in milliseconds (default intent). Defaults to OpenAI SDK default (10 minutes) |
 | `MIDSCENE_MODEL_TEMPERATURE` | Sampling temperature for model responses |
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
+| `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |
+| `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |
@@ -45,6 +47,8 @@ Set the following if the Insight intent needs a different model:
 | `MIDSCENE_INSIGHT_MODEL_NAME` | Model name |
 | `MIDSCENE_INSIGHT_MODEL_TIMEOUT` | Optional; timeout for Insight intent AI API calls in milliseconds |
 | `MIDSCENE_INSIGHT_MODEL_TEMPERATURE` | Optional; sampling temperature for Insight intent responses |
+| `MIDSCENE_INSIGHT_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |
+| `MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL` | Optional; same effect as `MIDSCENE_MODEL_RETRY_INTERVAL` |
 | `MIDSCENE_INSIGHT_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_INSIGHT_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
@@ -60,6 +64,8 @@ Set the following if the Planning intent needs a different model:
 | `MIDSCENE_PLANNING_MODEL_NAME` | Model name |
 | `MIDSCENE_PLANNING_MODEL_TIMEOUT` | Optional; timeout for Planning intent AI API calls in milliseconds |
 | `MIDSCENE_PLANNING_MODEL_TEMPERATURE` | Optional; sampling temperature for Planning intent responses |
+| `MIDSCENE_PLANNING_MODEL_RETRY_COUNT` | Optional; same effect as `MIDSCENE_MODEL_RETRY_COUNT` |
+| `MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL` | Optional; same effect as `MIDSCENE_MODEL_RETRY_INTERVAL` |
 | `MIDSCENE_PLANNING_MODEL_HTTP_PROXY` | Optional; same effect as `MIDSCENE_MODEL_HTTP_PROXY` |
 | `MIDSCENE_PLANNING_MODEL_SOCKS_PROXY` | Optional; same effect as `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_PLANNING_MODEL_INIT_CONFIG_JSON` | Optional; same effect as `MIDSCENE_MODEL_INIT_CONFIG_JSON` |
