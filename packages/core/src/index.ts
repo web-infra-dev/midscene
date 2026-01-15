@@ -24,13 +24,7 @@ export {
 } from '@midscene/shared/env';
 
 export type * from './types';
-export {
-  ServiceError,
-  ExecutionDump,
-  GroupedActionDump,
-  type IExecutionDump,
-  type IGroupedActionDump,
-} from './types';
+export { ServiceError } from './types';
 
 export { z };
 
@@ -42,6 +36,10 @@ export { restoreImageReferences } from './dump';
 export {
   GroupedActionDump as GroupedActionDumpClass,
   ExecutionDump as ExecutionDumpClass,
+} from './dump';
+export type {
+  SerializableGroupedActionDump,
+  SerializableExecutionDump,
 } from './dump';
 export type { StorageProvider, FileStorage } from './storage';
 export { MemoryStorage } from './storage';
@@ -64,18 +62,3 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
-
-// Dump utilities
-export {
-  restoreImageReferences,
-  escapeContent,
-  unescapeContent,
-  parseImageScripts,
-  parseDumpScript,
-  parseDumpScriptAttributes,
-  generateImageScriptTag,
-  generateDumpScriptTag,
-} from './dump';
-
-// ScreenshotItem
-export { ScreenshotItem } from './screenshot-item';
