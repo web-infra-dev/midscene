@@ -38,7 +38,7 @@ export async function plan(
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
   const { size } = context;
-  const screenshotBase64 = context.screenshot.getData();
+  const screenshotBase64 = await context.screenshot.getData();
 
   const { vlMode } = modelConfig;
 

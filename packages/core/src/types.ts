@@ -11,7 +11,7 @@ import type {
 import type { z } from 'zod';
 import type { TaskCache } from './agent/task-cache';
 import type { TUserPrompt } from './common';
-import { ScreenshotItem } from './screenshot-item';
+import type { ScreenshotItem } from './screenshot-item';
 import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,

@@ -1,6 +1,5 @@
-import type { ScreenshotItem } from '@/screenshot-item';
 import {
-  ExecutionDump,
+  type ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskActionApply,
@@ -12,6 +11,7 @@ import {
   type PlanningActionParamError,
   type UIContext,
 } from '@/types';
+import { ExecutionDump as ExecutionDumpClass } from './dump';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ScreenshotItem } from './screenshot-item';
@@ -396,7 +396,7 @@ export class TaskRunner {
   }
 
   dump(): ExecutionDump {
-    return new ExecutionDump({
+    return new ExecutionDumpClass({
       logTime: Date.now(),
       name: this.name,
       tasks: this.tasks,
