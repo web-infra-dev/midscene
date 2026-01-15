@@ -10,6 +10,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -108,7 +109,7 @@ export interface AgentDescribeElementAtPointResult {
  */
 
 export abstract class UIContext {
-  abstract screenshotBase64: string;
+  abstract screenshot: ScreenshotItem;
 
   abstract size: Size;
 
@@ -309,7 +310,7 @@ export interface ExecutionTaskProgressOptions {
 export interface ExecutionRecorderItem {
   type: 'screenshot';
   ts: number;
-  screenshot?: string;
+  screenshot?: ScreenshotItem;
   timing?: string;
 }
 
@@ -383,11 +384,97 @@ export type ExecutionTask<
     reasoning_content?: string;
   };
 
-export interface ExecutionDump extends DumpMeta {
+export interface IExecutionDump extends DumpMeta {
   name: string;
   description?: string;
   tasks: ExecutionTask[];
   aiActContext?: string;
+}
+
+/**
+ * Replacer function for JSON serialization that handles Page, Browser objects and ScreenshotItem
+ */
+function replacerForDumpSerialization(_key: string, value: any): any {
+  if (value && value.constructor?.name === 'Page') {
+    return '[Page object]';
+  }
+  if (value && value.constructor?.name === 'Browser') {
+    return '[Browser object]';
+  }
+  // Handle ScreenshotItem serialization
+  if (value && typeof value.toSerializable === 'function') {
+    return value.toSerializable();
+  }
+  return value;
+}
+
+/**
+ * Reviver function for JSON deserialization that restores ScreenshotItem from base64 strings
+ * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
+ */
+function reviverForDumpDeserialization(key: string, value: any): any {
+  // Restore screenshot fields in uiContext and recorder
+  if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
+    return ScreenshotItem.fromSerializedData(value);
+  }
+  return value;
+}
+
+/**
+ * ExecutionDump class for serializing and deserializing execution dumps
+ */
+export class ExecutionDump implements IExecutionDump {
+  logTime: number;
+  name: string;
+  description?: string;
+  tasks: ExecutionTask[];
+  aiActContext?: string;
+
+  constructor(data: IExecutionDump) {
+    this.logTime = data.logTime;
+    this.name = data.name;
+    this.description = data.description;
+    this.tasks = data.tasks;
+    this.aiActContext = data.aiActContext;
+  }
+
+  /**
+   * Serialize the ExecutionDump to a JSON string
+   */
+  serialize(indents?: number): string {
+    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+  }
+
+  /**
+   * Convert to a plain object for JSON serialization
+   */
+  toJSON(): IExecutionDump {
+    return {
+      logTime: this.logTime,
+      name: this.name,
+      description: this.description,
+      tasks: this.tasks,
+      aiActContext: this.aiActContext,
+    };
+  }
+
+  /**
+   * Create an ExecutionDump instance from a serialized JSON string
+   */
+  static fromSerializedString(serialized: string): ExecutionDump {
+    const parsed = JSON.parse(
+      serialized,
+      reviverForDumpDeserialization,
+    ) as IExecutionDump;
+    return new ExecutionDump(parsed);
+  }
+
+  /**
+   * Create an ExecutionDump instance from a plain object
+   */
+  static fromJSON(data: IExecutionDump): ExecutionDump {
+    return new ExecutionDump(data);
+  }
 }
 
 /*
@@ -512,12 +599,71 @@ export type ExecutionTaskPlanningLocate =
 /*
 Grouped dump
 */
-export interface GroupedActionDump {
+export interface IGroupedActionDump {
+  sdkVersion: string;
+  groupName: string;
+  groupDescription?: string;
+  modelBriefs: string[];
+  executions: IExecutionDump[];
+}
+
+/**
+ * GroupedActionDump class for serializing and deserializing grouped action dumps
+ */
+export class GroupedActionDump implements IGroupedActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
   modelBriefs: string[];
   executions: ExecutionDump[];
+
+  constructor(data: IGroupedActionDump) {
+    this.sdkVersion = data.sdkVersion;
+    this.groupName = data.groupName;
+    this.groupDescription = data.groupDescription;
+    this.modelBriefs = data.modelBriefs;
+    this.executions = data.executions.map((exec) =>
+      exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
+    );
+  }
+
+  /**
+   * Serialize the GroupedActionDump to a JSON string
+   */
+  serialize(indents?: number): string {
+    return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+  }
+
+  /**
+   * Convert to a plain object for JSON serialization
+   */
+  toJSON(): IGroupedActionDump {
+    return {
+      sdkVersion: this.sdkVersion,
+      groupName: this.groupName,
+      groupDescription: this.groupDescription,
+      modelBriefs: this.modelBriefs,
+      executions: this.executions.map((exec) => exec.toJSON()),
+    };
+  }
+
+  /**
+   * Create a GroupedActionDump instance from a serialized JSON string
+   */
+  static fromSerializedString(serialized: string): GroupedActionDump {
+    const parsed = JSON.parse(
+      serialized,
+      reviverForDumpDeserialization,
+    ) as IGroupedActionDump;
+    return new GroupedActionDump(parsed);
+  }
+
+  /**
+   * Create a GroupedActionDump instance from a plain object
+   */
+  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
+    return new GroupedActionDump(data);
+  }
 }
 
 export type InterfaceType =

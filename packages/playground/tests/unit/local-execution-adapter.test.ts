@@ -1,4 +1,5 @@
 import type { DeviceAction } from '@midscene/core';
+import { ExecutionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LocalExecutionAdapter } from '../../src/adapters/local-execution';
@@ -11,9 +12,6 @@ import type {
 
 // Mock dependencies
 vi.mock('@midscene/shared/env');
-vi.mock('@midscene/core/ai-model', () => ({
-  findAllMidsceneLocatorField: vi.fn(() => ['locateField']),
-}));
 
 // Import the real parseStructuredParams function for use in adapter
 vi.mock('../../src/common', async (importOriginal) => {
@@ -208,7 +206,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: {},
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
         error: null,
       });
@@ -263,7 +261,11 @@ describe('LocalExecutionAdapter', () => {
 
       const result = await adapter.cancelTask('request-123');
 
-      expect(result).toEqual({ success: true, dump: {}, reportHTML: null });
+      expect(result).toEqual({
+        success: true,
+        dump: expect.any(ExecutionDump),
+        reportHTML: null,
+      });
       expect(mockAgent.destroy).toHaveBeenCalled();
     });
 
@@ -290,7 +292,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: {},
+        dump: expect.any(ExecutionDump),
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(
