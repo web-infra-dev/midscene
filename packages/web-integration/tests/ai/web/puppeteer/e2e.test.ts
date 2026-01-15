@@ -77,6 +77,29 @@ describe(
       15 * 60 * 1000,
     );
 
+    it.skip(
+      'take note',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.baidu.com/',
+          {
+            headless: false,
+          },
+        );
+        resetFn = reset;
+        agent = new PuppeteerAgent(originPage);
+
+        await sleep(10 * 1000);
+
+        const result = await agent.aiAct(
+          '看下百度热搜的第五条标题（看一下，不用点击），查一下北京天气，再查下杭州天气，去 bing.com ，搜索关键字是百度热搜第五条 + 上海的最高气温',
+        );
+
+        expect(result).toBe('cpstest.org');
+      },
+      15 * 60 * 1000,
+    );
+
     it('error in beforeInvokeAction', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
