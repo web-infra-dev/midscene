@@ -1,13 +1,7 @@
 /// <reference path="../src/ts-runner/global.d.ts" />
 
 // TodoMVC automation test script
-// Usage: npx midscene examples/ai-todo.mts
-
-// Launch browser and open TodoMVC
-await agent.launch({
-  headed: true,
-  url: 'https://todomvc.com/examples/react/dist/',
-});
+// Usage: npx midscene examples/ai-todo.mts --headed --url https://todomvc.com/examples/react/dist/
 
 console.log('Starting TodoMVC test...');
 

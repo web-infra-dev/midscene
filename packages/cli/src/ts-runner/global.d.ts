@@ -1,8 +1,9 @@
 import type { PuppeteerAgent } from '@midscene/web/puppeteer';
-import type { AgentProxy } from './agent-proxy';
-
-type Agent = AgentProxy & Omit<PuppeteerAgent, 'page' | 'browser'>;
 
 declare global {
-  var agent: Agent;
+  /**
+   * Global agent instance initialized by the runner based on CLI arguments.
+   * Available in all user scripts.
+   */
+  var agent: PuppeteerAgent;
 }

@@ -1,15 +1,9 @@
 /// <reference path="../src/ts-runner/global.d.ts" />
 
 // TodoMVC automation test script (export run function style)
-// Usage: npx midscene examples/ai-todo-declarative.mts
+// Usage: npx midscene examples/ai-todo-declarative.mts --headed --url https://todomvc.com/examples/react/dist/
 
 export async function run() {
-  // Launch browser inside run function
-  await agent.launch({
-    headed: true,
-    url: 'https://todomvc.com/examples/react/dist/',
-  });
-
   console.log('Starting TodoMVC test (export run style)...');
 
   // Create a task

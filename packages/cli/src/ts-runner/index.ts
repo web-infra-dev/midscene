@@ -1,3 +1,3 @@
-export { AgentProxy } from './agent-proxy';
-export { cleanup, run } from './runner';
+export { cleanup, connectAgent, launchAgent } from './agent-factory';
+export { run } from './runner';
 export type { CdpConfig, LaunchConfig } from './types';
