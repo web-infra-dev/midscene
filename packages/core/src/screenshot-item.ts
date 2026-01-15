@@ -34,4 +34,12 @@ export class ScreenshotItem {
   static isSerializedData(value: unknown): value is string {
     return typeof value === 'string' && value.length > 0;
   }
+
+  /**
+   * Deserialize from base64 string back to ScreenshotItem
+   * This is the counterpart of toSerializable()
+   */
+  static fromSerializedData(data: string): ScreenshotItem {
+    return new ScreenshotItem(data);
+  }
 }

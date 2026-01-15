@@ -413,9 +413,9 @@ function replacerForDumpSerialization(_key: string, value: any): any {
  * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
-  // Restore screenshot fields in uiContext
+  // Restore screenshot fields in uiContext and recorder
   if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
-    return ScreenshotItem.create(value);
+    return ScreenshotItem.fromSerializedData(value);
   }
   return value;
 }
