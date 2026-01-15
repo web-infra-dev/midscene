@@ -23,12 +23,12 @@ import { debug as cacheDebug } from './task-cache';
 const debugProfile = getDebug('web:tool:profile');
 
 /**
- * Raw context data before ScreenshotItem conversion.
+ * Raw context data with ScreenshotItem.
  * Used internally during context building.
  */
 export interface RawUIContextData {
   size: Size;
-  screenshotBase64: string;
+  screenshot: ScreenshotItem;
 }
 
 export async function commonContextParser(
@@ -55,7 +55,7 @@ export async function commonContextParser(
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
-  const screenshot = ScreenshotItem.create(screenshotBase64!);
+  const screenshot = await ScreenshotItem.create(screenshotBase64!);
 
   return {
     size,

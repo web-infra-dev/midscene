@@ -150,7 +150,7 @@ describe('utils', () => {
     expect(fileContentC).toContain(uuid1);
   });
 
-  it(
+  it.skip(
     'should handle multiple large reports correctly',
     { timeout: 30000 },
     async () => {

@@ -1,19 +1,19 @@
-import {
-  type ExecutionDump,
-  type ExecutionRecorderItem,
-  type ExecutionTask,
-  type ExecutionTaskActionApply,
-  type ExecutionTaskApply,
-  type ExecutionTaskPlanningLocateOutput,
-  type ExecutionTaskProgressOptions,
-  type ExecutionTaskReturn,
-  type ExecutorContext,
-  type PlanningActionParamError,
-  type UIContext,
+import type {
+  ExecutionDump,
+  ExecutionRecorderItem,
+  ExecutionTask,
+  ExecutionTaskActionApply,
+  ExecutionTaskApply,
+  ExecutionTaskPlanningLocateOutput,
+  ExecutionTaskProgressOptions,
+  ExecutionTaskReturn,
+  ExecutorContext,
+  PlanningActionParamError,
+  UIContext,
 } from '@/types';
-import { ExecutionDump as ExecutionDumpClass } from './dump';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
+import { ExecutionDump as ExecutionDumpClass } from './dump';
 import type { ScreenshotItem } from './screenshot-item';
 
 const debug = getDebug('task-runner');
@@ -395,7 +395,7 @@ export class TaskRunner {
     return null;
   }
 
-  dump(): ExecutionDump {
+  dump(): ExecutionDumpClass {
     return new ExecutionDumpClass({
       logTime: Date.now(),
       name: this.name,

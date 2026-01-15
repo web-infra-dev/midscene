@@ -9,12 +9,14 @@ import {
   type DeepThinkOption,
   type DetailedLocateParam,
   type DeviceAction,
-  ExecutionDump,
+  type ExecutionDump,
+  ExecutionDumpClass,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
   type ExecutionTaskPlanning,
-  GroupedActionDump,
+  type GroupedActionDump,
+  GroupedActionDumpClass,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -157,7 +159,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDump;
+  dump: GroupedActionDumpClass;
 
   reportFile?: string | null;
 
@@ -266,7 +268,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = context.screenshot.getData();
+        const screenshotBase64 = await context.screenshot.getData();
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -447,12 +449,12 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = context.screenshot.getData();
+      const currentScreenshotBase64 = await context.screenshot.getData();
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
       });
-      context.screenshot = ScreenshotItem.create(resizedBase64);
+      context.screenshot = await ScreenshotItem.create(resizedBase64);
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
@@ -482,40 +484,34 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
+    this.dump = new GroupedActionDumpClass(this.opts.groupName!, {
       sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
   }
 
-  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
+  appendExecutionDump(execution: ExecutionDumpClass, runner?: TaskRunner) {
     const currentDump = this.dump;
     if (runner) {
       const existingIndex = this.executionDumpIndexByRunner.get(runner);
       if (existingIndex !== undefined) {
-        currentDump.executions[existingIndex] = execution;
+        currentDump.updateExecution(existingIndex, execution);
         return;
       }
-      currentDump.executions.push(execution);
+      currentDump.appendExecution(execution);
       this.executionDumpIndexByRunner.set(
         runner,
         currentDump.executions.length - 1,
       );
       return;
     }
-    currentDump.executions.push(execution);
+    currentDump.appendExecution(execution);
   }
 
   dumpDataString() {
-    // update dump info
-    this.dump.groupName = this.opts.groupName!;
-    this.dump.groupDescription = this.opts.groupDescription;
     return this.dump.serialize();
   }
 
@@ -1337,7 +1333,7 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = ScreenshotItem.create(base64);
+    const screenshot = await ScreenshotItem.create(base64);
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
@@ -1364,7 +1360,7 @@ export class Agent<
       executor: async () => {},
     };
     // 4. build ExecutionDump
-    const executionDump = new ExecutionDump({
+    const executionDump = new ExecutionDumpClass({
       logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',

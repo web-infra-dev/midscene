@@ -4,16 +4,16 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
 // Helper function to create mock UIContext with ScreenshotItem
-const createMockUIContext = (screenshotData = 'mock-screenshot') => {
-  const screenshot = ScreenshotItem.create(screenshotData);
+const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
+  const screenshot = await ScreenshotItem.create(screenshotData);
   return {
     screenshot,
     size: { width: 1920, height: 1080 },
   };
 };
 
-const createEmptyUIContext = () => {
-  const screenshot = ScreenshotItem.create('');
+const createEmptyUIContext = async () => {
+  const screenshot = await ScreenshotItem.create('');
   return {
     screenshot,
     size: { width: 0, height: 0 },

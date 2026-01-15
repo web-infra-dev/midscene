@@ -390,7 +390,7 @@ export type ExecutionTask<
 export interface ExecutionDump extends DumpMeta {
   name: string;
   description?: string;
-  tasks: ExecutionTask[];
+  readonly tasks: ReadonlyArray<ExecutionTask>;
   aiActContext?: string;
 }
 
