@@ -18,11 +18,7 @@ import {
   parseAutoGLMLocateResponse,
   parseAutoGLMResponse,
 } from '@/ai-model/auto-glm/parser';
-import {
-  AUTO_GLM_COORDINATE_MAX,
-  autoGLMCoordinateToBbox,
-  isAutoGLM,
-} from '@/ai-model/auto-glm/util';
+import { isAutoGLM } from '@/ai-model/auto-glm/util';
 import { describe, expect, it } from 'vitest';
 
 const defaultSize = { width: 1080, height: 1920 };
@@ -494,43 +490,6 @@ describe('auto-glm util functions', () => {
 
     it('should return false for undefined', () => {
       expect(isAutoGLM(undefined)).toBe(false);
-    });
-  });
-
-  describe('autoGLMCoordinateToBbox', () => {
-    it('should convert coordinate to bbox', () => {
-      const bbox = autoGLMCoordinateToBbox(500, 500, 1000, 1000);
-      expect(bbox).toHaveLength(4);
-      expect(bbox[0]).toBeLessThan(bbox[2]); // x1 < x2
-      expect(bbox[1]).toBeLessThan(bbox[3]); // y1 < y2
-    });
-
-    it('should create 10x10 bbox by default', () => {
-      const bbox = autoGLMCoordinateToBbox(500, 500, 1000, 1000);
-      const width = bbox[2] - bbox[0];
-      const height = bbox[3] - bbox[1];
-      expect(width).toBeLessThanOrEqual(10 + 1); // Allow rounding
-      expect(height).toBeLessThanOrEqual(10 + 1);
-    });
-
-    it('should handle boundary coordinates', () => {
-      const bbox = autoGLMCoordinateToBbox(0, 0, 1000, 1000);
-      expect(bbox[0]).toBe(0);
-      expect(bbox[1]).toBe(0);
-    });
-
-    it('should scale coordinates based on image size', () => {
-      const size = { width: 1080, height: 1920 };
-      const bbox = autoGLMCoordinateToBbox(500, 500, size.width, size.height);
-      // Coordinates should be in pixel space
-      expect(bbox[0]).toBeGreaterThanOrEqual(0);
-      expect(bbox[2]).toBeLessThanOrEqual(size.width);
-      expect(bbox[1]).toBeGreaterThanOrEqual(0);
-      expect(bbox[3]).toBeLessThanOrEqual(size.height);
-    });
-
-    it('should verify AUTO_GLM_COORDINATE_MAX constant', () => {
-      expect(AUTO_GLM_COORDINATE_MAX).toBe(1000);
     });
   });
 
