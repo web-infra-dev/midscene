@@ -78,6 +78,9 @@ const modelConfigCalcByMockedModelConfig = {
   vlMode: 'qwen3-vl',
   vlModeRaw: 'qwen3-vl',
   createOpenAIClient: undefined,
+  retryCount: 1,
+  retryInterval: 2000,
+  timeout: undefined,
 };
 
 // Mock task executor
