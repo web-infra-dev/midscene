@@ -1,5 +1,5 @@
 import { ifInBrowser } from '@midscene/shared/utils';
-import type { GroupedActionDump } from './dump';
+import type { GroupedActionDump } from './types';
 import { getReportTpl, insertScriptBeforeClosingHtml } from './utils';
 
 /**
