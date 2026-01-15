@@ -973,6 +973,37 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+
+  /**
+   * Use directory-based report format with separate image files.
+   *
+   * When enabled:
+   * - Screenshots are saved as PNG files in a `screenshots/` subdirectory
+   * - Report is generated as `index.html` with relative image paths
+   * - Reduces memory usage and report file size
+   *
+   * IMPORTANT: Directory reports must be served via HTTP server
+   * (e.g., `npx serve ./report-dir`). The file:// protocol will not
+   * work due to browser CORS restrictions.
+   *
+   * @default false
+   */
+  useDirectoryReport?: boolean;
+
+  /**
+   * Storage provider for screenshots.
+   * Defaults to MemoryStorage if not specified.
+   *
+   * @example
+   * ```typescript
+   * import { FileStorage } from '@midscene/core';
+   * const agent = new Agent(page, {
+   *   storageProvider: new FileStorage('/tmp/screenshots'),
+   * });
+   * ```
+   */
+  storageProvider?: any; // Use `any` to avoid circular dependency with storage module
+
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;
