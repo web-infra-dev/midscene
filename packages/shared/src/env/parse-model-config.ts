@@ -218,6 +218,24 @@ export const parseOpenaiSdkConfig = ({
       ? Number(provider[keys.timeout])
       : undefined,
     temperature,
+    retryCount: (() => {
+      if (!provider[keys.retryCount]) return 1;
+      const val = Number(provider[keys.retryCount]);
+      if (!Number.isFinite(val)) return 1;
+      if (val < 0)
+        throw new Error(`${keys.retryCount} must be non-negative, got ${val}`);
+      return val;
+    })(),
+    retryInterval: (() => {
+      if (!provider[keys.retryInterval]) return 2000;
+      const val = Number(provider[keys.retryInterval]);
+      if (!Number.isFinite(val)) return 2000;
+      if (val < 0)
+        throw new Error(
+          `${keys.retryInterval} must be non-negative, got ${val}`,
+        );
+      return val;
+    })(),
   };
 };
 

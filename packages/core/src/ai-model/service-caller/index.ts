@@ -359,33 +359,65 @@ export async function callAI(
         `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
       );
     } else {
-      const result = await completion.create({
-        model: modelName,
-        messages,
-        ...commonConfig,
-        ...deepThinkConfig,
-      } as any);
-      timeCost = Date.now() - startTime;
+      // Non-streaming with retry logic
+      const retryCount = modelConfig.retryCount ?? 1;
+      const retryInterval = modelConfig.retryInterval ?? 2000;
+      const maxAttempts = retryCount + 1; // retryCount=1 means 2 total attempts (1 initial + 1 retry)
 
-      debugProfileStats(
-        `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
-      );
+      let lastError: Error | undefined;
 
-      debugProfileDetail(`model usage detail: ${JSON.stringify(result.usage)}`);
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const result = await completion.create({
+            model: modelName,
+            messages,
+            ...commonConfig,
+            ...deepThinkConfig,
+          } as any);
 
-      assert(
-        result.choices,
-        `invalid response from LLM service: ${JSON.stringify(result)}`,
-      );
-      content = result.choices[0].message.content!;
-      accumulatedReasoning =
-        (result.choices[0].message as any)?.reasoning_content || '';
-      usage = result.usage;
+          timeCost = Date.now() - startTime;
+
+          debugProfileStats(
+            `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
+          );
+
+          debugProfileDetail(
+            `model usage detail: ${JSON.stringify(result.usage)}`,
+          );
+
+          if (!result.choices) {
+            throw new Error(
+              `invalid response from LLM service: ${JSON.stringify(result)}`,
+            );
+          }
+
+          content = result.choices[0].message.content!;
+          if (!content) {
+            throw new Error('empty content from AI model');
+          }
+
+          accumulatedReasoning =
+            (result.choices[0].message as any)?.reasoning_content || '';
+          usage = result.usage;
+          break; // Success, exit retry loop
+        } catch (error) {
+          lastError = error as Error;
+          if (attempt < maxAttempts) {
+            console.warn(
+              `[Midscene] AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, retryInterval));
+          }
+        }
+      }
+
+      if (!content) {
+        throw lastError;
+      }
     }
 
     debugCall(`response reasoning content: ${accumulatedReasoning}`);
     debugCall(`response content: ${content}`);
-    assert(content, 'empty content');
 
     // Ensure we always have usage info for streaming responses
     if (isStreaming && !usage) {
