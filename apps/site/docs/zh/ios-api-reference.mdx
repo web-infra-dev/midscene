@@ -104,6 +104,7 @@ const agent = new IOSAgent(device, {
 ### iOS 特有选项
 
 - `customActions?: DeviceAction<any>[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 Bundle Identifier。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的 Bundle ID；若未找到映射，则按原样尝试启动 `target`。用户提供的 appNameMapping 优先级高于默认映射。
 - 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
 
 ### 使用说明
@@ -123,10 +124,10 @@ const agent = new IOSAgent(device, {
 打开网页、原生应用或自定义 Scheme。
 
 ```ts
-function launch(uri: string): Promise<void>;
+function launch(target: string): Promise<void>;
 ```
 
-- `uri: string` —— 目标地址（网页 URL、Bundle Identifier、URL scheme、tel/mailto 等）。
+- `target: string` —— 目标地址（网页 URL、Bundle Identifier、URL scheme、tel/mailto 等）或应用名称。若传入应用名称且在 `appNameMapping` 中存在映射，将自动解析为对应 Bundle ID；若未找到映射，则直接按 `target` 启动。
 
 ```ts
 await agent.launch('https://www.apple.com');

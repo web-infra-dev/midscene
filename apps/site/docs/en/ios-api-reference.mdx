@@ -103,6 +103,7 @@ const agent = new IOSAgent(device, {
 ### iOS-specific options
 
 - `customActions?: DeviceAction<any>[]` &mdash; Extend planning with actions defined via `defineAction`.
+- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
 - All other fields match [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
 
 ### Usage notes
@@ -122,10 +123,10 @@ const agent = new IOSAgent(device, {
 Launch a web URL, native application bundle, or custom scheme.
 
 ```ts
-function launch(uri: string): Promise<void>;
+function launch(target: string): Promise<void>;
 ```
 
-- `uri: string` &mdash; Destination to open (web URL, bundle identifier, URL scheme, tel/mailto, etc.).
+- `target: string` &mdash; Target address (web URL, Bundle Identifier, URL scheme, tel/mailto, etc.) or app name. If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped Bundle ID; otherwise, `target` will be launched as-is.
 
 ```ts
 await agent.launch('https://www.apple.com');

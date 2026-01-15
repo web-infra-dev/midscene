@@ -108,6 +108,7 @@ const agent = new AndroidAgent(device, {
 ### Android 特有选项
 
 - `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到包名。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的包名；若未找到映射，则按原样尝试启动 `target`。
 - 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
 
 ### 使用说明
@@ -127,10 +128,10 @@ const agent = new AndroidAgent(device, {
 启动网页或原生 Android activity/package。
 
 ```ts
-function launch(uri: string): Promise<void>;
+function launch(target: string): Promise<void>;
 ```
 
-- `uri: string` —— 可以是网页 URL，也可以是 `package/.Activity` 形式的字符串，例如 `com.android.settings/.Settings`。
+- `target: string` —— 可以是网页 URL，也可以是 `package/.Activity` 形式的字符串，例如 `com.android.settings/.Settings`，也可以是应用包名、URL 或应用名称。若传入应用名称且在 `appNameMapping` 中存在映射，将自动解析为对应包名；若未找到映射，则直接按 `target` 启动。
 
 #### `agent.runAdbShell()`
 
