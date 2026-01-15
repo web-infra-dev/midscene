@@ -10,7 +10,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import type { ScreenshotItem } from './screenshot-item';
+import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -409,6 +409,18 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
+ * Reviver function for JSON deserialization that restores ScreenshotItem from base64 strings
+ * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
+ */
+function reviverForDumpDeserialization(key: string, value: any): any {
+  // Restore screenshot fields in uiContext
+  if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
+    return ScreenshotItem.create(value);
+  }
+  return value;
+}
+
+/**
  * ExecutionDump class for serializing and deserializing execution dumps
  */
 export class ExecutionDump implements IExecutionDump {
@@ -450,7 +462,10 @@ export class ExecutionDump implements IExecutionDump {
    * Create an ExecutionDump instance from a serialized JSON string
    */
   static fromSerializedString(serialized: string): ExecutionDump {
-    const parsed = JSON.parse(serialized) as IExecutionDump;
+    const parsed = JSON.parse(
+      serialized,
+      reviverForDumpDeserialization,
+    ) as IExecutionDump;
     return new ExecutionDump(parsed);
   }
 
@@ -636,7 +651,10 @@ export class GroupedActionDump implements IGroupedActionDump {
    * Create a GroupedActionDump instance from a serialized JSON string
    */
   static fromSerializedString(serialized: string): GroupedActionDump {
-    const parsed = JSON.parse(serialized) as IGroupedActionDump;
+    const parsed = JSON.parse(
+      serialized,
+      reviverForDumpDeserialization,
+    ) as IGroupedActionDump;
     return new GroupedActionDump(parsed);
   }
 

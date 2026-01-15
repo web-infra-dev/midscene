@@ -68,20 +68,6 @@ const actionDuration = 500;
 const clearInsightDuration = 200;
 const lastFrameDuration = 200;
 
-/**
- * Helper function to get base64 string from screenshot
- * Handles both ScreenshotItem object and plain base64 string
- */
-const getScreenshotData = (screenshot: any): string => {
-  if (typeof screenshot === 'string') {
-    return screenshot;
-  }
-  if (screenshot && typeof screenshot.getData === 'function') {
-    return getScreenshotData(screenshot);
-  }
-  return '';
-};
-
 // fit rect to camera
 export const cameraStateForRect = (
   rect: Rect,
@@ -406,9 +392,13 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
+        const screenshotData =
+          typeof context.screenshot === 'string'
+            ? context.screenshot
+            : context.screenshot.getData();
         scripts.push({
           type: 'img',
-          img: getScreenshotData(context.screenshot),
+          img: screenshotData,
           duration: stillAfterInsightDuration,
           title,
           subTitle,
@@ -434,7 +424,7 @@ export const generateAnimationScripts = (
 
           scripts.push({
             type: 'insight',
-            img: getScreenshotData(context.screenshot),
+            img: screenshotData,
             context: context,
             camera: newCameraState,
             highlightElement: element,
@@ -460,9 +450,15 @@ export const generateAnimationScripts = (
 
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
+        const recorderScreenshot = planningTask.recorder[0]?.screenshot;
+        const screenshotData = recorderScreenshot
+          ? typeof recorderScreenshot === 'string'
+            ? recorderScreenshot
+            : recorderScreenshot.getData()
+          : '';
         scripts.push({
           type: 'img',
-          img: getScreenshotData(planningTask.recorder?.[0]?.screenshot),
+          img: screenshotData,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
@@ -496,9 +492,15 @@ export const generateAnimationScripts = (
 
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
+      const actionRecorderScreenshot = task.recorder?.[0]?.screenshot;
+      const actionScreenshotData = actionRecorderScreenshot
+        ? typeof actionRecorderScreenshot === 'string'
+          ? actionRecorderScreenshot
+          : actionRecorderScreenshot.getData()
+        : '';
       scripts.push({
         type: 'img',
-        img: getScreenshotData(task.recorder?.[0]?.screenshot),
+        img: actionScreenshotData,
         duration: actionDuration,
         camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
         title,
@@ -513,9 +515,11 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
+        const screenshotData =
+          typeof screenshot === 'string' ? screenshot : screenshot.getData();
         scripts.push({
           type: 'img',
-          img: getScreenshotData(screenshot),
+          img: screenshotData,
           duration: stillDuration,
           camera: fullPageCameraState,
           title,
@@ -533,14 +537,18 @@ export const generateAnimationScripts = (
         errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
+      const errorScreenshot =
+        task.recorder && task.recorder.length > 0
+          ? task.recorder[task.recorder.length - 1].screenshot
+          : undefined;
+      const errorScreenshotData = errorScreenshot
+        ? typeof errorScreenshot === 'string'
+          ? errorScreenshot
+          : errorScreenshot.getData()
+        : '';
       scripts.push({
         type: 'img',
-        img:
-          task.recorder && task.recorder.length > 0
-            ? getScreenshotData(
-                task.recorder[task.recorder.length - 1].screenshot,
-              ) || ''
-            : '',
+        img: errorScreenshotData,
         camera: fullPageCameraState,
         duration: stillDuration,
         title: errorTitle,

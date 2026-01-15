@@ -24,7 +24,6 @@ import type {
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import { adaptBboxToRect, expandSearchArea, mergeRects } from '../common';
-import { getScreenshotData } from '../screenshot-item';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
@@ -128,7 +127,7 @@ export async function AiLocateElement(options: {
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
-  const screenshotBase64 = getScreenshotData(context.screenshot);
+  const screenshotBase64 = context.screenshot.getData();
 
   assert(
     targetElementDescription,
@@ -275,7 +274,7 @@ export async function AiLocateSection(options: {
 }> {
   const { context, sectionDescription, modelConfig } = options;
   const { vlMode } = modelConfig;
-  const screenshotBase64 = getScreenshotData(context.screenshot);
+  const screenshotBase64 = context.screenshot.getData();
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
   const sectionLocatorInstructionText = sectionLocatorInstruction(
@@ -389,7 +388,7 @@ export async function AiExtractElementInfo<T>(options: {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
   const systemPrompt = systemPromptToExtract();
-  const screenshotBase64 = getScreenshotData(context.screenshot);
+  const screenshotBase64 = context.screenshot.getData();
 
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',

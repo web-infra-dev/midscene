@@ -26,18 +26,12 @@ export class ScreenshotItem {
   toSerializable(): string {
     return this._data;
   }
-}
 
-/**
- * Helper function to get base64 data from screenshot
- * Handles both ScreenshotItem object and plain base64 string (for deserialized data)
- */
-export function getScreenshotData(screenshot: ScreenshotItem | string | undefined): string {
-  if (!screenshot) {
-    return '';
+  /**
+   * Check if a value looks like serialized screenshot data
+   * (non-empty base64 string)
+   */
+  static isSerializedData(value: unknown): value is string {
+    return typeof value === 'string' && value.length > 0;
   }
-  if (typeof screenshot === 'string') {
-    return screenshot;
-  }
-  return screenshot.getData();
 }

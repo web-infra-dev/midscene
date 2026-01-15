@@ -66,4 +66,4 @@ export {
 } from './dump';
 
 // ScreenshotItem
-export { ScreenshotItem, getScreenshotData } from './screenshot-item';
+export { ScreenshotItem } from './screenshot-item';

@@ -24,7 +24,6 @@ import {
   type PlanningAction,
   type Rect,
   ScreenshotItem,
-  getScreenshotData,
   type ScrollParam,
   Service,
   type ServiceAction,
@@ -267,7 +266,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = getScreenshotData(context.screenshot);
+        const screenshotBase64 = context.screenshot.getData();
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -448,7 +447,7 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = getScreenshotData(context.screenshot);
+      const currentScreenshotBase64 = context.screenshot.getData();
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
