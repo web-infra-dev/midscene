@@ -269,11 +269,14 @@ describe(
     it('subTask - throws when previous uiContext missing', async () => {
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
-        .mockImplementation(async () => ({
-          screenshot: await ScreenshotItem.create(''),
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext));
+        .mockImplementation(
+          async () =>
+            ({
+              screenshot: await ScreenshotItem.create(''),
+              tree: { node: null, children: [] },
+              size: { width: 0, height: 0 },
+            }) as unknown as UIContext,
+        );
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [

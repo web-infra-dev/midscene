@@ -569,7 +569,9 @@ export class Agent<
         console.log(
           '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
         );
-        console.log(`[Midscene] Example: npx serve ${path.dirname(this.reportFile)}`);
+        console.log(
+          `[Midscene] Example: npx serve ${path.dirname(this.reportFile)}`,
+        );
       }
     } else {
       // Use traditional single HTML file with embedded base64 images
