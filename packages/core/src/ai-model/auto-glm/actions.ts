@@ -345,9 +345,15 @@ export function transformAutoGLMAction(
             ];
           }
           case 'Launch': {
-            throw new Error(
-              `Action "Launch" from auto-glm is not supported in the current implementation.`,
-            );
+            const launchAction = doAction as LaunchAction;
+            debug('Transform Launch action:', launchAction);
+            return [
+              {
+                type: 'Launch',
+                param: launchAction.app,
+                thought: launchAction.think || '',
+              },
+            ];
           }
           case 'Interact': {
             throw new Error(
