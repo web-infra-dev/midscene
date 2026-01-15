@@ -64,6 +64,7 @@ export const defaultAppNameMapping: Record<string, string> = {
   抖音: 'com.ss.iphone.ugc.Aweme',
   抖音极速版: 'com.ss.iphone.ugc.aweme.lite',
   抖音火山版: 'com.ss.iphone.ugc.Live',
+  懂车帝: 'com.ss.ios.auto',
   Tiktok: 'com.zhiliaoapp.musically',
   飞书: 'com.bytedance.ee.lark',
   今日头条: 'com.ss.iphone.article.News',
