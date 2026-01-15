@@ -797,7 +797,9 @@ export class GroupedActionDump implements IGroupedActionDump {
   async writeToDirectory(outputDir: string): Promise<string> {
     const { ifInBrowser } = require('@midscene/shared/utils');
     if (ifInBrowser) {
-      console.warn('writeToDirectory is not supported in browser environment, skipping');
+      console.warn(
+        'writeToDirectory is not supported in browser environment, skipping',
+      );
       return '';
     }
 
@@ -824,7 +826,10 @@ export class GroupedActionDump implements IGroupedActionDump {
     // Write each screenshot as a separate PNG file
     for (const screenshot of screenshots) {
       const data = await screenshot.getData();
-      const base64Data = data.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+      const base64Data = data.replace(
+        /^data:image\/(png|jpeg|jpg);base64,/,
+        '',
+      );
       const buffer = Buffer.from(base64Data, 'base64');
       const filePath = path.join(screenshotsDir, `${screenshot.id}.png`);
       fs.writeFileSync(filePath, buffer);
@@ -854,7 +859,10 @@ export class GroupedActionDump implements IGroupedActionDump {
     // Generate image reference scripts (pointing to separate files)
     const imageScripts = screenshots
       .map((screenshot) =>
-        generateImageScriptTag(screenshot.id, `screenshots/${screenshot.id}.png`),
+        generateImageScriptTag(
+          screenshot.id,
+          `screenshots/${screenshot.id}.png`,
+        ),
       )
       .join('\n');
 
