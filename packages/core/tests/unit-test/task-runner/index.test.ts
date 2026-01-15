@@ -23,7 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const insight = fakeService('test-task-runner');
+      const insight = await fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
