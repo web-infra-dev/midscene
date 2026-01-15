@@ -394,11 +394,15 @@ export const defineActionSwipe = (
 };
 
 // ClearInput
+const clearInputLocateDescription =
+  'the position of the placeholder or text content in the target input field. If there is no content, locate the center of the input field.';
 export const actionClearInputParamSchema = z.object({
-  locate: getMidsceneLocationSchema().describe('The input field to be cleared'),
+  locate: getMidsceneLocationSchema()
+    .describe(clearInputLocateDescription)
+    .optional(),
 });
 export type ActionClearInputParam = {
-  locate: LocateResultElement;
+  locate?: LocateResultElement;
 };
 
 export const defineActionClearInput = (
@@ -409,7 +413,7 @@ export const defineActionClearInput = (
     ActionClearInputParam
   >({
     name: 'ClearInput',
-    description: inputLocateDescription,
+    description: 'Clear the input field',
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
     call,

@@ -285,8 +285,30 @@ export class AndroidDevice implements AbstractInterface {
       }),
       defineActionClearInput(async (param) => {
         const element = param.locate;
-        assert(element, 'Element not found, cannot clear input');
-        await this.clearInput(element as unknown as ElementInfo);
+        if (element) {
+          await this.clearInput(element as unknown as ElementInfo);
+        } else {
+          // If no locate provided, use keyboard-only operation
+          // Clear the currently focused input without clicking
+          await this.ensureYadb();
+          const adb = await this.getAdb();
+
+          const IME_STRATEGY =
+            (this.options?.imeStrategy ||
+              globalConfigManager.getEnvConfigValue(
+                MIDSCENE_ANDROID_IME_STRATEGY,
+              )) ?? IME_STRATEGY_YADB_FOR_NON_ASCII;
+
+          if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
+            // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
+            await adb.clearTextField(100);
+          } else {
+            // Use the yadb tool to clear the input box
+            await adb.shell(
+              `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
+            );
+          }
+        }
       }),
     ];
 

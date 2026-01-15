@@ -201,8 +201,19 @@ export class IOSDevice implements AbstractInterface {
       }),
       defineActionClearInput(async (param) => {
         const element = param.locate;
-        assert(element, 'Element not found, cannot clear input');
-        await this.clearInput(element as unknown as ElementInfo);
+        if (element) {
+          await this.clearInput(element as unknown as ElementInfo);
+        } else {
+          // If no locate provided, use keyboard-only operation
+          // Clear the currently focused element
+          debugDevice('Attempting to clear input without locate, using keyboard');
+          const cleared = await this.wdaBackend.clearActiveElement();
+          if (cleared) {
+            debugDevice('Successfully cleared focused input');
+          } else {
+            debugDevice('Failed to clear input - no active element');
+          }
+        }
       }),
     ];
 

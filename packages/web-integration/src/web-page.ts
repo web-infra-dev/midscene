@@ -624,8 +624,20 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
   defineActionClearInput(async (param) => {
     const element = param.locate;
-    assert(element, 'Element not found, cannot clear input');
-    await page.clearInput(element as unknown as ElementInfo);
+    if (element) {
+      await page.clearInput(element as unknown as ElementInfo);
+    } else {
+      // If no locate provided, use keyboard-only operation (like Input)
+      // Select all and delete
+      const isMac = process.platform === 'darwin';
+      const selectAllKeys = isMac
+        ? [{ key: 'Meta' }, { key: 'a' }]
+        : [{ key: 'Control' }, { key: 'a' }];
+
+      await page.keyboard.press(selectAllKeys as any);
+      await sleep(100);
+      await page.keyboard.press([{ key: 'Backspace' }] as any);
+    }
   }),
 
   defineAction({
