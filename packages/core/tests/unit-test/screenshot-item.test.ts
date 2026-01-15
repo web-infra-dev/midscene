@@ -73,8 +73,12 @@ describe('ScreenshotItem', () => {
 
   describe('isSerialized', () => {
     it('should return true for valid serialized objects', () => {
-      expect(ScreenshotItem.isSerialized({ $screenshot: 'test-id' })).toBe(true);
-      expect(ScreenshotItem.isSerialized({ $screenshot: 'another-id' })).toBe(true);
+      expect(ScreenshotItem.isSerialized({ $screenshot: 'test-id' })).toBe(
+        true,
+      );
+      expect(ScreenshotItem.isSerialized({ $screenshot: 'another-id' })).toBe(
+        true,
+      );
     });
 
     it('should return false for invalid objects', () => {
