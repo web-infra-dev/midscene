@@ -27,6 +27,11 @@ export class ScreenshotItem {
     return this._data;
   }
 
+  /** toJSON for automatic JSON.stringify support */
+  toJSON(): string {
+    return this._data;
+  }
+
   /**
    * Check if a value looks like serialized screenshot data
    * (non-empty base64 string)

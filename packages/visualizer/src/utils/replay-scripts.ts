@@ -392,10 +392,9 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
-        const screenshotData =
-          typeof context.screenshot === 'string'
-            ? context.screenshot
-            : context.screenshot.getData();
+        const screenshotData = (context.screenshot?.getData?.() ||
+          context.screenshot ||
+          '') as string;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -450,8 +449,10 @@ export const generateAnimationScripts = (
 
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
-        const screenshotData =
-          planningTask.recorder[0]?.screenshot?.getData() || '';
+        const screenshot = planningTask.recorder[0]?.screenshot;
+        const screenshotData = (screenshot?.getData?.() ||
+          screenshot ||
+          '') as string;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -488,8 +489,10 @@ export const generateAnimationScripts = (
 
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
-      const actionScreenshotData =
-        task.recorder?.[0]?.screenshot?.getData() || '';
+      const screenshot = task.recorder?.[0]?.screenshot;
+      const actionScreenshotData = (screenshot?.getData?.() ||
+        screenshot ||
+        '') as string;
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -507,8 +510,9 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
-        const screenshotData =
-          typeof screenshot === 'string' ? screenshot : screenshot.getData();
+        const screenshotData = (screenshot?.getData?.() ||
+          screenshot ||
+          '') as string;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -529,10 +533,10 @@ export const generateAnimationScripts = (
         errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
-      const errorScreenshotData =
-        task.recorder && task.recorder.length > 0
-          ? task.recorder[task.recorder.length - 1].screenshot?.getData() || ''
-          : '';
+      const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
+      const errorScreenshotData = (screenshot?.getData?.() ||
+        screenshot ||
+        '') as string;
       scripts.push({
         type: 'img',
         img: errorScreenshotData,
