@@ -66,6 +66,7 @@ describe('IOSAgent', () => {
           },
         },
       ]),
+      setAppNameMapping: vi.fn(),
     };
 
     MockedIOSDevice.mockImplementation(() => mockDevice as IOSDevice);

@@ -1,6 +1,7 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
+import { defaultAppNameMapping } from './appNameMapping';
 import {
   AndroidDevice,
   type AndroidDeviceOpt,
@@ -14,7 +15,13 @@ import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
-export type AndroidAgentOpt = AgentOpt;
+export type AndroidAgentOpt = AgentOpt & {
+  /**
+   * Custom mapping of app names to package names
+   * User-provided mappings will take precedence over default mappings
+   */
+  appNameMapping?: Record<string, string>;
+};
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []
@@ -53,8 +60,23 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   recentApps!: WrappedAction<DeviceActionAndroidRecentAppsButton>;
 
+  /**
+   * User-provided app name to package name mapping
+   */
+  private appNameMapping: Record<string, string>;
+
   constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
     super(device, opts);
+    // Merge user-provided mapping with default mapping
+    // User-provided mapping has higher priority
+    this.appNameMapping = {
+      ...defaultAppNameMapping,
+      ...(opts?.appNameMapping || {}),
+    };
+
+    // Set the mapping on the device instance
+    device.setAppNameMapping(this.appNameMapping);
+
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runAdbShell =
       this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');
