@@ -6,6 +6,7 @@ import {
   defaultFilePathResolver,
 } from '@midscene/core/storage/file';
 import { getDebug } from '@midscene/shared/logger';
+import { defaultAppNameMapping } from './appNameMapping';
 import {
   AndroidDevice,
   type AndroidDeviceOpt,
@@ -19,7 +20,13 @@ import { getConnectedDevices } from './utils';
 
 const debugAgent = getDebug('android:agent');
 
-export type AndroidAgentOpt = AgentOpt;
+export type AndroidAgentOpt = AgentOpt & {
+  /**
+   * Custom mapping of app names to package names
+   * User-provided mappings will take precedence over default mappings
+   */
+  appNameMapping?: Record<string, string>;
+};
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []
@@ -58,11 +65,26 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   recentApps!: WrappedAction<DeviceActionAndroidRecentAppsButton>;
 
+  /**
+   * User-provided app name to package name mapping
+   */
+  private appNameMapping: Record<string, string>;
+
   constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
     // Use FileStorage and defaultFilePathResolver for Node.js environment
     const storageProvider = opts?.storageProvider ?? new FileStorage();
     const filePathResolver = opts?.filePathResolver ?? defaultFilePathResolver;
     super(device, { ...opts, storageProvider, filePathResolver });
+
+    // Merge user-provided mapping with default mapping
+    // User-provided mapping has higher priority
+    this.appNameMapping = {
+      ...defaultAppNameMapping,
+      ...(opts?.appNameMapping || {}),
+    };
+
+    // Set the mapping on the device instance
+    device.setAppNameMapping(this.appNameMapping);
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runAdbShell =
       this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');

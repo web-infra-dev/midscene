@@ -6,6 +6,7 @@ import {
   defaultFilePathResolver,
 } from '@midscene/core/storage/file';
 import { getDebug } from '@midscene/shared/logger';
+import { defaultAppNameMapping } from './appNameMapping';
 import {
   type DeviceActionIOSAppSwitcher,
   type DeviceActionIOSHomeButton,
@@ -18,7 +19,13 @@ import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
 
-export type IOSAgentOpt = AgentOpt;
+export type IOSAgentOpt = AgentOpt & {
+  /**
+   * Custom mapping of app names to bundle IDs
+   * User-provided mappings will take precedence over default mappings
+   */
+  appNameMapping?: Record<string, string>;
+};
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
   ? []
@@ -54,11 +61,26 @@ export class IOSAgent extends PageAgent<IOSDevice> {
    */
   appSwitcher!: WrappedAction<DeviceActionIOSAppSwitcher>;
 
+  /**
+   * User-provided app name to bundle ID mapping
+   */
+  private appNameMapping: Record<string, string>;
+
   constructor(device: IOSDevice, opts?: IOSAgentOpt) {
     // Use FileStorage and defaultFilePathResolver for Node.js environment
     const storageProvider = opts?.storageProvider ?? new FileStorage();
     const filePathResolver = opts?.filePathResolver ?? defaultFilePathResolver;
     super(device, { ...opts, storageProvider, filePathResolver });
+
+    // Merge user-provided mapping with default mapping
+    // User-provided mapping has higher priority
+    this.appNameMapping = {
+      ...defaultAppNameMapping,
+      ...(opts?.appNameMapping || {}),
+    };
+
+    // Set the mapping on the device instance
+    device.setAppNameMapping(this.appNameMapping);
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
