@@ -120,6 +120,11 @@ export function StandardPlayground({
             if (!newAgent) {
               throw new Error('Failed to create agent');
             }
+            // Set up onTaskStartTip callback for the new agent
+            // This ensures progress tips are shown even when agent is recreated
+            newAgent.onTaskStartTip = (tip: string) => {
+              setLoadingProgressText(tip);
+            };
             return newAgent;
           },
         );
