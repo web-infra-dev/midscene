@@ -411,13 +411,19 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that restores ScreenshotItem from base64 strings
- * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
+ * Reviver function for JSON deserialization that restores ScreenshotItem
+ * Automatically converts screenshot fields (in uiContext and recorder) back to ScreenshotItem
+ *
+ * Note: This reviver creates ScreenshotItem using MemoryStorage by default.
+ * For file-based storage, use GroupedActionDump.fromJSONWithImages() instead.
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
-  // Restore screenshot fields in uiContext and recorder
-  if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
-    return ScreenshotItem.fromSerializedData(value);
+  // Restore screenshot fields from new format { $screenshot: "id" }
+  if (key === 'screenshot' && ScreenshotItem.isSerialized(value)) {
+    // Use MemoryStorage as default provider for deserialization
+    // The actual data will be loaded later via storageProvider
+    const { MemoryStorage } = require('./storage');
+    return ScreenshotItem.restore(value.$screenshot, new MemoryStorage());
   }
   return value;
 }
@@ -476,6 +482,57 @@ export class ExecutionDump implements IExecutionDump {
    */
   static fromJSON(data: IExecutionDump): ExecutionDump {
     return new ExecutionDump(data);
+  }
+
+  /**
+   * Collect all ScreenshotItem instances from tasks.
+   * Scans through uiContext and recorder items to find screenshots.
+   *
+   * @returns Array of ScreenshotItem instances
+   */
+  collectScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
+
+    for (const task of this.tasks) {
+      // Collect uiContext.screenshot if present
+      if (task.uiContext?.screenshot instanceof ScreenshotItem) {
+        screenshots.push(task.uiContext.screenshot);
+      }
+
+      // Collect recorder screenshots
+      if (task.recorder) {
+        for (const record of task.recorder) {
+          if (record.screenshot instanceof ScreenshotItem) {
+            screenshots.push(record.screenshot);
+          }
+        }
+      }
+    }
+
+    return screenshots;
+  }
+
+  /**
+   * Convert to serializable format where ScreenshotItem instances
+   * are replaced with { $screenshot: "id" } placeholders.
+   *
+   * This is an async method because it needs to handle potential
+   * async operations in the serialization process.
+   *
+   * @returns Serializable version of the execution dump
+   */
+  async toSerializableFormat(): Promise<IExecutionDump> {
+    // Deep clone the data using JSON serialization with custom replacer
+    const replacer = (key: string, value: any): any => {
+      // Convert ScreenshotItem to { $screenshot: id } format
+      if (value instanceof ScreenshotItem) {
+        return value.toSerializable();
+      }
+      return value;
+    };
+
+    const jsonString = JSON.stringify(this.toJSON(), replacer);
+    return JSON.parse(jsonString);
   }
 }
 
