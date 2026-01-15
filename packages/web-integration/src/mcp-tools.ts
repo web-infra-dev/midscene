@@ -7,7 +7,7 @@ import { StaticPage } from './static';
  * Tools manager for Web bridge-mode MCP
  */
 export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
-  protected async createTemporaryDevice() {
+  protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
     const screenshot = ScreenshotItem.create('');
