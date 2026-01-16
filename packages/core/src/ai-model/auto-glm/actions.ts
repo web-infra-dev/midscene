@@ -307,7 +307,7 @@ export function transformAutoGLMAction(
 
             return [
               {
-                type: 'AndroidLongPress',
+                type: 'LongPress',
                 param: {
                   locate,
                 },

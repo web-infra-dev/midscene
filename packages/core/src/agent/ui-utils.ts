@@ -189,7 +189,7 @@ export function paramStr(task: ExecutionTask) {
       value = scrollParamStr((task as ExecutionTaskAction)?.param);
     } else if (
       typeof (task as ExecutionTaskAction)?.param?.direction === 'string' &&
-      (task as ExecutionTaskAction)?.subType === 'AndroidPull'
+      (task as ExecutionTaskAction)?.subType === 'PullGesture'
     ) {
       value = pullParamStr((task as ExecutionTaskAction)?.param);
     } else if (
