@@ -986,16 +986,7 @@ ${Object.keys(size)
       await this.mouseClick(element.center[0], element.center[1]);
     }
 
-    await this.clearInputWithKeyboard();
-
-    if (!element) {
-      return;
-    }
-  }
-
-  private async clearInputWithKeyboard(): Promise<void> {
     await this.ensureYadb();
-
     const adb = await this.getAdb();
 
     const IME_STRATEGY =
@@ -1004,13 +995,23 @@ ${Object.keys(size)
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
     if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
+      // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
+      // clearTextField() batches all key events into a single shell command for better performance
       await adb.clearTextField(100);
+    } else {
+      // Use the yadb tool to clear the input box
+      await adb.shell(
+        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
+      );
+    }
+
+    if (await adb.isSoftKeyboardPresent()) {
       return;
     }
 
-    await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
-    );
+    if (element) {
+      await this.mouseClick(element.center[0], element.center[1]);
+    }
   }
 
   async forceScreenshot(path: string): Promise<void> {
