@@ -10,7 +10,21 @@ import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
 
-const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.`;
+const buildCommonOutputFields = (includeThought: boolean) => {
+  const fields = [
+    `"note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action.`,
+    `"log": string, // a brief preamble to the user explaining what you’re about to do`,
+    `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.`,
+  ];
+
+  if (includeThought) {
+    fields.unshift(
+      `"thought": string, // your thought process about the next action`,
+    );
+  }
+
+  return fields.join('\n  ');
+};
 
 const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
   if (vlMode) {
@@ -153,10 +167,12 @@ export async function systemPromptToTaskPlanning({
   actionSpace,
   vlMode,
   includeBbox,
+  includeThought,
 }: {
   actionSpace: DeviceAction<any>[];
   vlMode: TVlModeTypes | undefined;
   includeBbox: boolean;
+  includeThought?: boolean;
 }) {
   // Validate parameters: if includeBbox is true, vlMode must be defined
   if (includeBbox && !vlMode) {
@@ -190,6 +206,17 @@ The \`log\` field is a brief preamble message to the user explaining what you’
 - "Go back to find the login button"
 `;
 
+  const shouldIncludeThought = includeThought ?? true;
+  const commonOutputFields = buildCommonOutputFields(shouldIncludeThought);
+  const exampleThoughtLine = shouldIncludeThought
+    ? `  "thought": "The form has already been filled, I need to click the login button to login",
+`
+    : '';
+  const exampleThoughtLineWithNote = shouldIncludeThought
+    ? `  "thought": "I need to note the titles in the current screenshot for further processing and scroll to find more titles",
+`
+    : '';
+
   return `
 Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action according to current situation to accomplish the instruction.
 
@@ -213,8 +240,6 @@ ${logFieldInstruction}
 
 Return in JSON format:
 {
-  "note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action.
-  "log": string, // a brief preamble to the user explaining what you’re about to do
   ${commonOutputFields}
   "action": 
     {
@@ -228,7 +253,7 @@ Return in JSON format:
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
 {
-  "log": "Click the login button",
+${exampleThoughtLine}  "log": "Click the login button",
   "action": {
     "type": "Tap",
     "param": {
@@ -242,7 +267,7 @@ For example, if the instruction is to login and the form has already been filled
 For example, if the instruction is to find out every title in the screenshot, the return value should be:
 
 {
-  "note": "The titles in the screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
+${exampleThoughtLineWithNote}  "note": "The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
   "log": "Scroll to find more titles",
   "action": {
     "type": "Scroll",

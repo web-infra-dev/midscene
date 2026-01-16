@@ -120,6 +120,18 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it('planning - includeThought false removes thought field', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      vlMode: undefined,
+      includeBbox: false,
+      includeThought: false,
+    });
+
+    expect(prompt).not.toContain('"thought"');
+    expect(prompt).toContain('"log"');
+  });
+
   it('planning - should throw error when includeBbox is true but vlMode is undefined', async () => {
     await expect(
       systemPromptToTaskPlanning({

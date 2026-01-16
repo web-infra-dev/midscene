@@ -326,6 +326,7 @@ export class TaskExecutor {
 
             const {
               actions,
+              thought,
               log,
               note,
               error,
@@ -343,6 +344,7 @@ export class TaskExecutor {
             executorContext.task.output = {
               actions: actions || [],
               log,
+              thought,
               note,
               yamlFlow: planResult.yamlFlow,
               output: outputString,
