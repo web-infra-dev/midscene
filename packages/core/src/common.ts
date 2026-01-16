@@ -667,26 +667,6 @@ export const dumpActionParam = (
   return result;
 };
 
-export const loadActionParam = (
-  jsonObject: Record<string, any>,
-  zodSchema: z.ZodType<any>,
-): Record<string, any> => {
-  const locatorFields = findAllMidsceneLocatorField(zodSchema);
-  const result = { ...jsonObject };
-
-  for (const fieldName of locatorFields) {
-    const fieldValue = result[fieldName];
-    if (fieldValue && typeof fieldValue === 'string') {
-      result[fieldName] = {
-        [locateFieldFlagName]: true,
-        prompt: fieldValue,
-      };
-    }
-  }
-
-  return result;
-};
-
 /**
  * Parse and validate action parameters using Zod schema.
  * All fields are validated through Zod, EXCEPT locator fields which are skipped.

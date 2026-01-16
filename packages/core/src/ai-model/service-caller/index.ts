@@ -1,8 +1,4 @@
-import {
-  AIResponseFormat,
-  type AIUsageInfo,
-  type DeepThinkOption,
-} from '@/types';
+import type { AIUsageInfo, DeepThinkOption } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
 import {
   type IModelConfig,
