@@ -521,17 +521,56 @@ export class ExecutionDump implements IExecutionDump {
    *
    * @returns Serializable version of the execution dump
    */
-  async toSerializableFormat(): Promise<IExecutionDump> {
+  async toSerializableFormat(options?: { inlineScreenshots?: boolean }): Promise<IExecutionDump> {
+    const inlineScreenshots = options?.inlineScreenshots ?? false;
+
     // Deep clone the data using JSON serialization with custom replacer
-    const replacer = (key: string, value: any): any => {
-      // Convert ScreenshotItem to { $screenshot: id } format
+    const replacer = async (key: string, value: any): Promise<any> => {
+      // Convert ScreenshotItem to { $screenshot: id } format or inline base64
       if (value instanceof ScreenshotItem) {
+        if (inlineScreenshots) {
+          return await value.getData();
+        }
         return value.toSerializable();
       }
       return value;
     };
 
-    const jsonString = JSON.stringify(this.toJSON(), replacer);
+    // If inlineScreenshots is true, we need to await all screenshot getData() calls
+    if (inlineScreenshots) {
+      const collectScreenshotPromises = (obj: any): Promise<any> => {
+        if (obj instanceof ScreenshotItem) {
+          return obj.getData();
+        }
+        if (Array.isArray(obj)) {
+          return Promise.all(obj.map(collectScreenshotPromises));
+        }
+        if (obj && typeof obj === 'object') {
+          const promises: Record<string, Promise<any>> = {};
+          for (const [key, value] of Object.entries(obj)) {
+            promises[key] = collectScreenshotPromises(value);
+          }
+          return (async () => {
+            const resolved: Record<string, any> = {};
+            for (const [key, promise] of Object.entries(promises)) {
+              resolved[key] = await promise;
+            }
+            return resolved;
+          })();
+        }
+        return Promise.resolve(obj);
+      };
+
+      const resolvedData = await collectScreenshotPromises(this.toJSON());
+      return resolvedData as IExecutionDump;
+    }
+
+    const jsonString = JSON.stringify(this.toJSON(), (_key, value) => {
+      if (value instanceof ScreenshotItem) {
+        return value.toSerializable();
+      }
+      return value;
+    });
     return JSON.parse(jsonString);
   }
 }
@@ -835,10 +874,10 @@ export class GroupedActionDump implements IGroupedActionDump {
       fs.writeFileSync(filePath, buffer);
     }
 
-    // Serialize executions with relative paths
+    // Serialize executions with inline base64 screenshots
     const serializedExecutions: any[] = [];
     for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat();
+      const serialized = await execution.toSerializableFormat({ inlineScreenshots: true });
       serializedExecutions.push(serialized);
     }
 
@@ -850,23 +889,21 @@ export class GroupedActionDump implements IGroupedActionDump {
       executions: serializedExecutions,
     };
 
-    // Generate HTML with relative image paths
+    // Generate HTML with embedded base64 image data
     const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
     const { getReportTpl } = require('./utils');
 
     const dumpScript = generateDumpScriptTag(JSON.stringify(dumpData));
 
-    // Generate image reference scripts (pointing to separate files)
-    const imageScripts = screenshots
-      .map((screenshot) =>
-        generateImageScriptTag(
-          screenshot.id,
-          `screenshots/${screenshot.id}.png`,
-        ),
-      )
-      .join('\n');
+    // Generate image reference scripts with base64 data (not file paths)
+    const imageScripts: string[] = [];
+    for (const screenshot of screenshots) {
+      const data = await screenshot.getData();
+      imageScripts.push(generateImageScriptTag(screenshot.id, data));
+    }
+    const imageScriptsString = imageScripts.join('\n');
 
-    const htmlContent = `${getReportTpl()}\n${dumpScript}\n${imageScripts}`;
+    const htmlContent = `${getReportTpl()}\n${dumpScript}\n${imageScriptsString}`;
 
     // Write index.html
     const indexPath = path.join(outputDir, 'index.html');
