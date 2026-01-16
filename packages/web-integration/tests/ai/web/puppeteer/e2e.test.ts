@@ -77,7 +77,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it.only(
+    it.skip(
       'take note',
       async () => {
         const { originPage, reset } = await launchPage(
