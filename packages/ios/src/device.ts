@@ -95,10 +95,8 @@ export class IOSDevice implements AbstractInterface {
         }),
         call: async (param) => {
           const element = param.locate;
-          if (element) {
-            if (param.mode !== 'append') {
-              await this.clearInput(element as unknown as ElementInfo);
-            }
+          if (param.mode !== 'append') {
+            await this.clearInput(element as unknown as ElementInfo);
           }
 
           if (param.mode === 'clear') {

@@ -23,6 +23,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
+import { isAutoGLM } from '../auto-glm/util';
 
 async function createChatClient({
   modelConfig,
@@ -275,6 +276,12 @@ export async function callAI(
         }
       : {}),
   };
+
+  if (isAutoGLM(vlMode)) {
+    (commonConfig as unknown as Record<string, number>).top_p = 0.85;
+    (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
+  }
+
   const {
     config: deepThinkConfig,
     debugMessage,

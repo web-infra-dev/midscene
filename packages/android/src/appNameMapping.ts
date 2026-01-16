@@ -46,6 +46,7 @@ export const defaultAppNameMapping: Record<string, string> = {
   滴滴出行: 'com.sdu.didi.psnger',
   bilibili: 'tv.danmaku.bili',
   抖音: 'com.ss.android.ugc.aweme',
+  懂车帝: 'com.ss.android.auto',
   快手: 'com.smile.gifmaker',
   腾讯视频: 'com.tencent.qqlive',
   爱奇艺: 'com.qiyi.video',

@@ -1,4 +1,10 @@
-import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
+import {
+  ConversationHistory,
+  autoGLMPlanning,
+  plan,
+  uiTarsPlanning,
+} from '@/ai-model';
+import { isAutoGLM } from '@/ai-model/auto-glm/util';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -309,9 +315,13 @@ export class TaskExecutor {
               );
             }
 
-            const planResult = await (uiTarsModelVersion
+            const planImpl = uiTarsModelVersion
               ? uiTarsPlanning
-              : plan)(param.userInstruction, {
+              : isAutoGLM(vlMode)
+                ? autoGLMPlanning
+                : plan;
+
+            const planResult = await planImpl(param.userInstruction, {
               context: uiContext,
               actionContext: param.aiActContext,
               interfaceType: this.interface.interfaceType as InterfaceType,

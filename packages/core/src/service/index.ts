@@ -1,3 +1,4 @@
+import { isAutoGLM } from '@/ai-model/auto-glm/util';
 import {
   AiExtractElementInfo,
   AiLocateElement,
@@ -100,6 +101,11 @@ export default class Service {
       console.warn(
         'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
       );
+      searchAreaPrompt = undefined;
+    }
+
+    if (searchAreaPrompt && isAutoGLM(vlMode)) {
+      console.warn('The "deepThink" feature is not supported with AutoGLM.');
       searchAreaPrompt = undefined;
     }
 

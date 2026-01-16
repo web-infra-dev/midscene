@@ -25,6 +25,29 @@ const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
 type AdaptBboxInput = number[] | string[] | string | (number[] | string[])[];
 
+/**
+ * Convert a point coordinate [0, 1000] to a small bbox [0, 1000]
+ * Creates a small bbox around the center point in the same coordinate space
+ *
+ * @param x - X coordinate in [0, 1000] range
+ * @param y - Y coordinate in [0, 1000] range
+ * @param bboxSize - Size of the bbox to create (default: 20)
+ * @returns [x1, y1, x2, y2] bbox in [0, 1000] coordinate space
+ */
+export function pointToBbox(
+  x: number,
+  y: number,
+  bboxSize = defaultBboxSize,
+): [number, number, number, number] {
+  const halfSize = bboxSize / 2;
+  const x1 = Math.max(x - halfSize, 0);
+  const y1 = Math.max(y - halfSize, 0);
+  const x2 = Math.min(x + halfSize, 1000);
+  const y2 = Math.min(y + halfSize, 1000);
+
+  return [x1, y1, x2, y2];
+}
+
 // transform the param of locate from qwen mode
 export function fillBboxParam(
   locate: PlanningLocateParam,
@@ -196,10 +219,12 @@ export function adaptBbox(
     result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (vlMode === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
-  } else if (vlMode === 'qwen3-vl' || vlMode === 'glm-v') {
-    result = normalized01000(normalizedBbox as number[], width, height);
-  } else {
+  } else if (vlMode === 'qwen2.5-vl') {
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
+  } else {
+    // Default: normalized 0-1000 coordinate system
+    // Includes: qwen3-vl, glm-v, auto-glm, auto-glm-multilingual, and future models
+    result = normalized01000(normalizedBbox as number[], width, height);
   }
 
   result[2] = Math.min(result[2], rightLimit);
