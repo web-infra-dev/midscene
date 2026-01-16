@@ -11,7 +11,6 @@ import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ConversationHistory } from './conversation-history';
-import { LatestLocateRecorder } from './latest-locate-recorder';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
 
@@ -40,8 +39,6 @@ const pointToBbox = (
     Math.round(Math.min(point.y + bboxSize / 2, height)),
   ];
 };
-
-const lastLocateRecorder = new LatestLocateRecorder();
 
 export async function uiTarsPlanning(
   userInstruction: string,
@@ -129,7 +126,6 @@ export async function uiTarsPlanning(
         ),
       };
 
-      lastLocateRecorder.recordLocate(locate, 'click');
       transformActions.push({
         type: 'Tap',
         param: {
@@ -149,7 +145,6 @@ export async function uiTarsPlanning(
         ),
       };
 
-      lastLocateRecorder.recordLocate(locate, 'left_double');
       transformActions.push({
         type: 'DoubleClick',
         param: {
@@ -170,7 +165,6 @@ export async function uiTarsPlanning(
         ),
       };
 
-      lastLocateRecorder.recordLocate(locate, 'right_single');
       transformActions.push({
         type: 'RightClick',
         param: {
@@ -206,18 +200,10 @@ export async function uiTarsPlanning(
         thought: action.thought || '',
       });
     } else if (actionType === 'type') {
-      const { locate: latestLocate, source } =
-        lastLocateRecorder.getLatestLocate();
-      debug(
-        `use latestLocate from ${source} as locate when Input`,
-        latestLocate,
-      );
-
       transformActions.push({
         type: 'Input',
         param: {
           value: action.action_inputs.content,
-          locate: latestLocate,
         },
         thought: action.thought || '',
       });

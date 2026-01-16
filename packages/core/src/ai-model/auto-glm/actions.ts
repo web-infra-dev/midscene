@@ -1,7 +1,6 @@
 import { adaptBbox, pointToBbox } from '@/common';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import { LatestLocateRecorder } from '../latest-locate-recorder';
 
 const debug = getDebug('auto-glm-actions');
 
@@ -22,7 +21,6 @@ function autoGLMCoordinateToBbox(
   const bbox = pointToBbox(x, y, 10);
   return adaptBbox(bbox, width, height, width, height, 'auto-glm');
 }
-const lastLocateRecorder = new LatestLocateRecorder();
 
 export interface BaseAction {
   _metadata: string;
@@ -177,7 +175,6 @@ export function transformAutoGLMAction(
               prompt: '',
               bbox: [x1, y1, x2, y2],
             };
-            lastLocateRecorder.recordLocate(locate, 'Tap');
 
             return [
               {
@@ -205,7 +202,6 @@ export function transformAutoGLMAction(
               prompt: '',
               bbox: [x1, y1, x2, y2],
             };
-            lastLocateRecorder.recordLocate(locate, 'Double Tap');
 
             return [
               {
@@ -219,19 +215,12 @@ export function transformAutoGLMAction(
           case 'Type': {
             const typeAction = doAction as TypeAction;
             debug('Transform Type action:', typeAction);
-            const { locate: latestLocate, source } =
-              lastLocateRecorder.getLatestLocate();
-            debug(
-              `use latestLocate from ${source} as locate when Input`,
-              latestLocate,
-            );
 
             return [
               {
                 type: 'Input',
                 param: {
                   value: typeAction.text,
-                  locate: latestLocate,
                 },
               },
             ];
@@ -315,7 +304,6 @@ export function transformAutoGLMAction(
               prompt: '',
               bbox: [x1, y1, x2, y2],
             };
-            lastLocateRecorder.recordLocate(locate, 'Long Press');
 
             return [
               {
