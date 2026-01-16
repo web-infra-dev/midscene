@@ -29,7 +29,7 @@ async function createChatClient({
   completion: OpenAI.Chat.Completions;
   modelName: string;
   modelDescription: string;
-  uiTarsVersion?: UITarsModelVersion;
+  uiTarsModelVersion?: UITarsModelVersion;
   vlMode: TVlModeTypes | undefined;
   modelFamily: TModelFamily | undefined;
 }> {
@@ -41,7 +41,7 @@ async function createChatClient({
     openaiApiKey,
     openaiExtraConfig,
     modelDescription,
-    uiTarsModelVersion: uiTarsVersion,
+    uiTarsModelVersion,
     vlMode,
     modelFamily,
     createOpenAIClient,
@@ -195,7 +195,7 @@ async function createChatClient({
     completion: openai.chat.completions,
     modelName,
     modelDescription,
-    uiTarsVersion,
+    uiTarsModelVersion,
     vlMode,
     modelFamily,
   };
@@ -219,7 +219,7 @@ export async function callAI(
     completion,
     modelName,
     modelDescription,
-    uiTarsVersion,
+    uiTarsModelVersion,
     vlMode,
     modelFamily,
   } = await createChatClient({
@@ -391,7 +391,7 @@ export async function callAI(
           timeCost = Date.now() - startTime;
 
           debugProfileStats(
-            `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
+            `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsModelVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
           );
 
           debugProfileDetail(

@@ -438,9 +438,9 @@ export type Action =
 export async function resizeImageForUiTars(
   imageBase64: string,
   size: Size,
-  uiTarsVersion: UITarsModelVersion | undefined,
+  uiTarsModelVersion: UITarsModelVersion | undefined,
 ) {
-  if (uiTarsVersion === UITarsModelVersion.V1_5) {
+  if (uiTarsModelVersion === UITarsModelVersion.V1_5) {
     debug('ui-tars-v1.5, will check image size', size);
     const currentPixels = size.width * size.height;
     const maxPixels = 16384 * 28 * 28; //

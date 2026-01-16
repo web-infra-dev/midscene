@@ -44,21 +44,24 @@ const KEYS_MAP: Record<TIntent, TModelConfigKeys> = {
 /**
  * Convert model family to VL configuration
  * @param modelFamily - The model family value
- * @returns Object containing vlMode and uiTarsVersion
+ * @returns Object containing vlMode and uiTarsModelVersion
  */
 export const modelFamilyToVLConfig = (
   modelFamily?: TModelFamily,
 ): {
   vlMode?: TVlModeTypes;
-  uiTarsVersion?: UITarsModelVersion;
+  uiTarsModelVersion?: UITarsModelVersion;
 } => {
   if (!modelFamily) {
-    return { vlMode: undefined, uiTarsVersion: undefined };
+    return { vlMode: undefined, uiTarsModelVersion: undefined };
   }
 
   // UI-TARS variants with version handling
   if (modelFamily === 'vlm-ui-tars') {
-    return { vlMode: 'vlm-ui-tars', uiTarsVersion: UITarsModelVersion.V1_0 };
+    return {
+      vlMode: 'vlm-ui-tars',
+      uiTarsModelVersion: UITarsModelVersion.V1_0,
+    };
   }
 
   if (
@@ -67,12 +70,12 @@ export const modelFamilyToVLConfig = (
   ) {
     return {
       vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
+      uiTarsModelVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     };
   }
 
   if (modelFamily === 'gpt-5') {
-    return { vlMode: undefined, uiTarsVersion: undefined };
+    return { vlMode: undefined, uiTarsModelVersion: undefined };
   }
 
   // Check if the modelFamily is valid
@@ -81,7 +84,7 @@ export const modelFamilyToVLConfig = (
   }
 
   // For other model families, they directly map to vlMode
-  return { vlMode: modelFamily as TVlModeTypes, uiTarsVersion: undefined };
+  return { vlMode: modelFamily as TVlModeTypes, uiTarsModelVersion: undefined };
 };
 
 /**
@@ -92,7 +95,7 @@ export const modelFamilyToVLConfig = (
 export const legacyConfigToModelFamily = (
   provider: Record<string, string | undefined>,
 ): TModelFamily | undefined => {
-  // Step 1: Parse legacy environment variables to get vlMode and uiTarsVersion
+  // Step 1: Parse legacy environment variables to get vlMode and uiTarsModelVersion
   const isDoubao = provider[MIDSCENE_USE_DOUBAO_VISION];
   const isQwen = provider[MIDSCENE_USE_QWEN_VL];
   const isQwen3 = provider[MIDSCENE_USE_QWEN3_VL];
@@ -187,24 +190,24 @@ export const parseOpenaiSdkConfig = ({
     ? Number(provider[keys.temperature])
     : 0;
 
-  const { vlMode, uiTarsVersion } = modelFamilyToVLConfig(
+  const { vlMode, uiTarsModelVersion } = modelFamilyToVLConfig(
     modelFamilyRaw as unknown as TModelFamily,
   );
 
   const getModelDescription = (
     vlMode: TVlModeTypes | undefined,
-    uiTarsVersion: UITarsModelVersion | undefined,
+    uiTarsModelVersion: UITarsModelVersion | undefined,
   ) => {
     if (vlMode) {
-      if (uiTarsVersion) {
-        return `UI-TARS=${uiTarsVersion}`;
+      if (uiTarsModelVersion) {
+        return `UI-TARS=${uiTarsModelVersion}`;
       } else {
         return `${vlMode} mode`;
       }
     }
     return '';
   };
-  const modelDescription = getModelDescription(vlMode, uiTarsVersion);
+  const modelDescription = getModelDescription(vlMode, uiTarsModelVersion);
 
   return {
     socksProxy,
@@ -215,7 +218,7 @@ export const parseOpenaiSdkConfig = ({
     openaiExtraConfig,
     vlMode,
     modelFamily: modelFamilyRaw as unknown as TModelFamily,
-    uiTarsModelVersion: uiTarsVersion,
+    uiTarsModelVersion,
     modelName: modelName!,
     modelDescription,
     intent: '-' as any,

@@ -16,50 +16,50 @@ describe('modelFamilyToVLConfig', () => {
   it('should return empty values when model family is missing', () => {
     expect(modelFamilyToVLConfig()).toEqual({
       vlMode: undefined,
-      uiTarsVersion: undefined,
+      uiTarsModelVersion: undefined,
     });
   });
 
   it('should map ui-tars variants to correct version', () => {
     expect(modelFamilyToVLConfig('vlm-ui-tars')).toEqual({
       vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.V1_0,
+      uiTarsModelVersion: UITarsModelVersion.V1_0,
     });
 
     expect(modelFamilyToVLConfig('vlm-ui-tars-doubao')).toEqual({
       vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
+      uiTarsModelVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     });
 
     expect(modelFamilyToVLConfig('vlm-ui-tars-doubao-1.5')).toEqual({
       vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
+      uiTarsModelVersion: UITarsModelVersion.DOUBAO_1_5_20B,
     });
   });
 
   it('should map other model families directly', () => {
     expect(modelFamilyToVLConfig('qwen3-vl')).toEqual({
       vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
+      uiTarsModelVersion: undefined,
     });
     expect(modelFamilyToVLConfig('doubao-vision')).toEqual({
       vlMode: 'doubao-vision',
-      uiTarsVersion: undefined,
+      uiTarsModelVersion: undefined,
     });
     expect(modelFamilyToVLConfig('gemini')).toEqual({
       vlMode: 'gemini',
-      uiTarsVersion: undefined,
+      uiTarsModelVersion: undefined,
     });
     expect(modelFamilyToVLConfig('glm-v')).toEqual({
       vlMode: 'glm-v',
-      uiTarsVersion: undefined,
+      uiTarsModelVersion: undefined,
     });
   });
 
   it('should allow gpt-5 without vlMode', () => {
     expect(modelFamilyToVLConfig('gpt-5')).toEqual({
       vlMode: undefined,
-      uiTarsVersion: undefined,
+      uiTarsModelVersion: undefined,
     });
   });
 
