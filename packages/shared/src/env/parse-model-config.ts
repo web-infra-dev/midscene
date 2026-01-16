@@ -210,6 +210,7 @@ export const parseOpenaiSdkConfig = ({
     openaiApiKey,
     openaiExtraConfig,
     vlMode,
+    modelFamily: modelFamilyRaw as unknown as TModelFamily,
     uiTarsModelVersion: uiTarsVersion,
     modelName: modelName!,
     modelDescription,
