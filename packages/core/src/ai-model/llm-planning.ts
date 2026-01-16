@@ -47,6 +47,7 @@ export async function plan(
     actionSpace: opts.actionSpace,
     vlMode,
     includeBbox: opts.includeBbox,
+    includeThought: opts.deepThink !== true,
   });
 
   let imagePayload = screenshotBase64;
