@@ -395,7 +395,7 @@ export const generateAnimationScripts = (
         const screenshotData =
           typeof context.screenshot === 'string'
             ? context.screenshot
-            : context.screenshot.getData();
+            : context.screenshot.base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -451,7 +451,7 @@ export const generateAnimationScripts = (
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshotData =
-          planningTask.recorder[0]?.screenshot?.getData() || '';
+          planningTask.recorder[0]?.screenshot?.base64 || '';
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -489,7 +489,7 @@ export const generateAnimationScripts = (
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const actionScreenshotData =
-        task.recorder?.[0]?.screenshot?.getData() || '';
+        task.recorder?.[0]?.screenshot?.base64 || '';
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -508,7 +508,7 @@ export const generateAnimationScripts = (
 
       if (screenshot) {
         const screenshotData =
-          typeof screenshot === 'string' ? screenshot : screenshot.getData();
+          typeof screenshot === 'string' ? screenshot : screenshot.base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -531,7 +531,7 @@ export const generateAnimationScripts = (
           : errorMsg;
       const errorScreenshotData =
         task.recorder && task.recorder.length > 0
-          ? task.recorder[task.recorder.length - 1].screenshot?.getData() || ''
+          ? task.recorder[task.recorder.length - 1].screenshot?.base64 || ''
           : '';
       scripts.push({
         type: 'img',

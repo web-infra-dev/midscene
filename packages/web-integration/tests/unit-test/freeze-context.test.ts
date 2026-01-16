@@ -144,7 +144,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Frozen context should be marked
       const frozenContext = (agent as any).frozenUIContext;
       expect(frozenContext._isFrozen).toBe(true);
-      expect(frozenContext.screenshot.getData()).toBe(
+      expect(frozenContext.screenshot.base64).toBe(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       );
       expect(frozenContext.tree).toBe(mockContext.tree);
