@@ -298,10 +298,6 @@ export class TaskExecutor {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
             const { vlMode } = modelConfigForPlanning;
-            const uiTarsModelVersion =
-              vlMode === 'vlm-ui-tars'
-                ? modelConfigForPlanning.uiTarsModelVersion
-                : undefined;
 
             const actionSpace = this.getActionSpace();
             debug(
@@ -315,11 +311,12 @@ export class TaskExecutor {
               );
             }
 
-            const planImpl = uiTarsModelVersion
-              ? uiTarsPlanning
-              : isAutoGLM(vlMode)
-                ? autoGLMPlanning
-                : plan;
+            const planImpl =
+              vlMode === 'vlm-ui-tars'
+                ? uiTarsPlanning
+                : isAutoGLM(vlMode)
+                  ? autoGLMPlanning
+                  : plan;
 
             const planResult = await planImpl(param.userInstruction, {
               context: uiContext,
