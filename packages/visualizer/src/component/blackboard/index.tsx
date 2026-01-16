@@ -1,11 +1,6 @@
 'use client';
 import 'pixi.js/unsafe-eval';
-import {
-  type BaseElement,
-  type Rect,
-  ScreenshotItem,
-  type UIContext,
-} from '@midscene/core';
+import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
@@ -107,8 +102,7 @@ export const Blackboard = (props: {
   const context = props.uiContext;
   const { size, screenshot } = context;
 
-  // Extract base64 string using ScreenshotItem helper
-  const screenshotBase64 = ScreenshotItem.toBase64String(screenshot);
+  const screenshotBase64 = screenshot?.base64 ?? '';
 
   const screenWidth = size.width;
   const screenHeight = size.height;

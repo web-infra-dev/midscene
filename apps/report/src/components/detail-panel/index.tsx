@@ -10,7 +10,6 @@ import type {
   ExecutionTaskPlanning,
   ExecutionTaskPlanningLocate,
 } from '@midscene/core';
-import { ScreenshotItem } from '@midscene/core';
 import { filterBase64Value } from '@midscene/visualizer';
 import { Blackboard, Player } from '@midscene/visualizer';
 import type { WebUIContext } from '@midscene/web';
@@ -175,34 +174,22 @@ const DetailPanel = (): JSX.Element => {
 
     // screenshot view
     const screenshotFromContext = activeTask.uiContext?.screenshot;
-    if (screenshotFromContext) {
-      // Extract base64 string using ScreenshotItem helper
-      const screenshotBase64 = ScreenshotItem.toBase64String(
-        screenshotFromContext,
-      );
-      if (screenshotBase64) {
-        screenshotItems.push({
-          timestamp: activeTask.timing?.start ?? undefined,
-          screenshot: screenshotBase64,
-          timing: 'before-calling',
-        });
-      }
+    if (screenshotFromContext?.base64) {
+      screenshotItems.push({
+        timestamp: activeTask.timing?.start ?? undefined,
+        screenshot: screenshotFromContext.base64,
+        timing: 'before-calling',
+      });
     }
 
     if (activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
-        if (item.screenshot) {
-          // Extract base64 string using ScreenshotItem helper
-          const screenshotBase64 = ScreenshotItem.toBase64String(
-            item.screenshot,
-          );
-          if (screenshotBase64) {
-            screenshotItems.push({
-              timestamp: item.ts,
-              screenshot: screenshotBase64,
-              timing: item.timing,
-            });
-          }
+        if (item.screenshot?.base64) {
+          screenshotItems.push({
+            timestamp: item.ts,
+            screenshot: item.screenshot.base64,
+            timing: item.timing,
+          });
         }
       }
     }

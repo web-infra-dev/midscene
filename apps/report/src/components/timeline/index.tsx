@@ -3,11 +3,7 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef } from 'react';
 
 import './index.less';
-import {
-  type ExecutionRecorderItem,
-  type ExecutionTask,
-  ScreenshotItem,
-} from '@midscene/core';
+import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
 import { useTheme } from '@midscene/visualizer';
 import { getTextureFromCache, loadTexture } from '../pixi-loader';
 import { useAllCurrentTasks, useExecutionDump } from '../store';
@@ -537,10 +533,7 @@ const Timeline = () => {
       return item.screenshot;
     })
     .map((recorderItem) => {
-      // Extract base64 string using ScreenshotItem helper
-      const screenshotBase64 = ScreenshotItem.toBase64String(
-        recorderItem.screenshot,
-      );
+      const screenshotBase64 = recorderItem.screenshot?.base64 || '';
       return {
         id: recorderItem.id,
         img: screenshotBase64,
