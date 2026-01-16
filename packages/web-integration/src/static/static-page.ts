@@ -11,7 +11,8 @@ import {
 } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 
-type WebUIContext = UIContext & {
+type WebUIContext = Omit<UIContext, 'screenshot'> & {
+  screenshot?: UIContext['screenshot'];
   screenshotBase64?: string;
   size: { width: number; height: number; dpr?: number };
 };
@@ -97,8 +98,8 @@ export default class StaticPage implements AbstractInterface {
       // screenshot can be either a string (serialized) or ScreenshotItem object
       if (typeof screenshot === 'string') {
         base64 = screenshot;
-      } else if (screenshot && 'base64' in screenshot) {
-        base64 = screenshot.base64;
+      } else if (screenshot && typeof screenshot.getData === 'function') {
+        base64 = await screenshot.getData();
       }
     }
 
@@ -165,7 +166,14 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async getContext(): Promise<UIContext> {
-    return this.uiContext;
+    // Lazy load ScreenshotItem if needed
+    if (!this.uiContext.screenshot && this.uiContext.screenshotBase64) {
+      const { ScreenshotItem } = await import('@midscene/core');
+      this.uiContext.screenshot = await ScreenshotItem.create(
+        this.uiContext.screenshotBase64,
+      );
+    }
+    return this.uiContext as UIContext;
   }
 
   updateContext(newContext: WebUIContext): void {
