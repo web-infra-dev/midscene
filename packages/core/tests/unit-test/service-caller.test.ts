@@ -307,7 +307,7 @@ describe('service-caller', () => {
     });
 
     it('should work with doubao-vision mode and trim spaces', () => {
-      // Test that normalization works correctly even when vlMode is set
+      // Test that normalization works correctly even when modelFamily is set
       const input = '{"  type  ": "  Tap  ", "param": {"  prompt  ": "Click"}}';
       const result = safeParseJson(input, 'doubao-vision');
 

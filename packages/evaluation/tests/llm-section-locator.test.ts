@@ -18,12 +18,12 @@ const testSources = ['antd-tooltip'];
 
 const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
-const { modelName, vlMode } = defaultModelConfig;
+const { modelName, modelFamily } = defaultModelConfig;
 const resultCollector = new TestResultCollector('section-locator', modelName);
 
 let failCaseThreshold = 0;
 
-if (process.env.CI && !vlMode) {
+if (process.env.CI && !modelFamily) {
   failCaseThreshold = 3;
 }
 

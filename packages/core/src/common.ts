@@ -11,9 +11,10 @@ import { assert, isPlainObject } from '@midscene/shared/utils';
 
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
+import { isUITars } from '@/ai-model/auto-glm/util';
 import type { PlanningLocateParam } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
-import type { TVlModeTypes } from '@midscene/shared/env';
+import type { TModelFamily } from '@midscene/shared/env';
 import { treeToList } from '@midscene/shared/extractor';
 import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
@@ -55,7 +56,7 @@ export function fillBboxParam(
   height: number,
   rightLimit: number,
   bottomLimit: number,
-  vlMode: TVlModeTypes | undefined,
+  modelFamily: TModelFamily | undefined,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
   if ((locate as any).bbox_2d && !locate?.bbox) {
@@ -71,7 +72,7 @@ export function fillBboxParam(
       height,
       rightLimit,
       bottomLimit,
-      vlMode,
+      modelFamily,
     );
   }
 
@@ -210,16 +211,16 @@ export function adaptBbox(
   height: number,
   rightLimit: number,
   bottomLimit: number,
-  vlMode: TVlModeTypes | undefined,
+  modelFamily: TModelFamily | undefined,
 ): [number, number, number, number] {
   const normalizedBbox = normalizeBboxInput(bbox);
 
   let result: [number, number, number, number] = [0, 0, 0, 0];
-  if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
+  if (modelFamily === 'doubao-vision' || isUITars(modelFamily)) {
     result = adaptDoubaoBbox(normalizedBbox, width, height);
-  } else if (vlMode === 'gemini') {
+  } else if (modelFamily === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
-  } else if (vlMode === 'qwen2.5-vl') {
+  } else if (modelFamily === 'qwen2.5-vl') {
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
   } else {
     // Default: normalized 0-1000 coordinate system
@@ -268,7 +269,7 @@ export function adaptBboxToRect(
   offsetY = 0,
   rightLimit = width,
   bottomLimit = height,
-  vlMode?: TVlModeTypes | undefined,
+  modelFamily?: TModelFamily | undefined,
 ): Rect {
   debugInspectUtils(
     'adaptBboxToRect',
@@ -281,8 +282,8 @@ export function adaptBboxToRect(
     'limit',
     rightLimit,
     bottomLimit,
-    'vlMode',
-    vlMode,
+    'modelFamily',
+    modelFamily,
   );
   const [left, top, right, bottom] = adaptBbox(
     bbox,
@@ -290,7 +291,7 @@ export function adaptBboxToRect(
     height,
     rightLimit,
     bottomLimit,
-    vlMode,
+    modelFamily,
   );
 
   // Calculate initial rect dimensions
@@ -342,10 +343,10 @@ export function mergeRects(rects: Rect[]) {
 export function expandSearchArea(
   rect: Rect,
   screenSize: Size,
-  vlMode: TVlModeTypes | undefined,
+  modelFamily: TModelFamily | undefined,
 ) {
   let minEdgeSize = 500;
-  if (vlMode === 'qwen3-vl') {
+  if (modelFamily === 'qwen3-vl') {
     minEdgeSize = 1200;
   }
   const defaultPadding = 160;

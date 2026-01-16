@@ -1,8 +1,10 @@
-import type { TVlModeTypes } from '@midscene/shared/env';
+import type { TModelFamily } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
-export function systemPromptToLocateSection(vlMode: TVlModeTypes | undefined) {
-  const bboxFormat = bboxDescription(vlMode);
+export function systemPromptToLocateSection(
+  modelFamily: TModelFamily | undefined,
+) {
+  const bboxFormat = bboxDescription(modelFamily);
   return `
 ## Role:
 You are an AI assistant that helps identify UI elements.

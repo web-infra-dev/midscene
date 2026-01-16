@@ -483,7 +483,7 @@ describe('auto-glm util functions', () => {
       expect(isAutoGLM('auto-glm-multilingual')).toBe(true);
     });
 
-    it('should return false for other vlMode', () => {
+    it('should return false for other modelFamily', () => {
       expect(isAutoGLM('qwen2.5-vl')).toBe(false);
       expect(isAutoGLM('gemini')).toBe(false);
     });

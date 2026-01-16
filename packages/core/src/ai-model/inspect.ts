@@ -131,7 +131,7 @@ export async function AiLocateElement(options: {
   reasoning_content?: string;
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
-  const { vlMode } = modelConfig;
+  const { modelFamily } = modelConfig;
   const screenshotBase64 = context.screenshot.base64;
 
   assert(
@@ -142,9 +142,9 @@ export async function AiLocateElement(options: {
     targetElementDescription,
   );
   const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
-  const systemPrompt = isAutoGLM(vlMode)
-    ? getAutoGLMLocatePrompt(vlMode)
-    : systemPromptToLocateElement(vlMode);
+  const systemPrompt = isAutoGLM(modelFamily)
+    ? getAutoGLMLocatePrompt(modelFamily)
+    : systemPromptToLocateElement(modelFamily);
 
   let imagePayload = screenshotBase64;
   let imageWidth = context.size.width;
@@ -167,7 +167,7 @@ export async function AiLocateElement(options: {
     imageHeight = options.searchConfig.rect?.height;
     originalImageWidth = imageWidth;
     originalImageHeight = imageHeight;
-  } else if (vlMode === 'qwen2.5-vl') {
+  } else if (modelFamily === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
@@ -188,7 +188,7 @@ export async function AiLocateElement(options: {
         },
         {
           type: 'text',
-          text: isAutoGLM(vlMode)
+          text: isAutoGLM(modelFamily)
             ? `Tap: ${userInstructionPrompt}`
             : userInstructionPrompt,
         },
@@ -204,7 +204,7 @@ export async function AiLocateElement(options: {
     msgs.push(...addOns);
   }
 
-  if (isAutoGLM(vlMode)) {
+  if (isAutoGLM(modelFamily)) {
     const { content: rawResponseContent, usage } =
       await callAIWithStringResponse(msgs, modelConfig);
 
@@ -306,7 +306,7 @@ export async function AiLocateElement(options: {
         options.searchConfig?.rect?.top,
         originalImageWidth,
         originalImageHeight,
-        vlMode,
+        modelFamily,
       );
 
       debugInspect('resRect', resRect);
@@ -362,10 +362,10 @@ export async function AiLocateSection(options: {
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription, modelConfig } = options;
-  const { vlMode } = modelConfig;
+  const { modelFamily } = modelConfig;
   const screenshotBase64 = context.screenshot.base64;
 
-  const systemPrompt = systemPromptToLocateSection(vlMode);
+  const systemPrompt = systemPromptToLocateSection(modelFamily);
   const sectionLocatorInstructionText = sectionLocatorInstruction(
     extraTextFromUserPrompt(sectionDescription),
   );
@@ -413,7 +413,7 @@ export async function AiLocateSection(options: {
       0,
       context.size.width,
       context.size.height,
-      vlMode,
+      modelFamily,
     );
     debugSection('original targetRect %j', targetRect);
 
@@ -431,7 +431,7 @@ export async function AiLocateSection(options: {
           0,
           context.size.width,
           context.size.height,
-          vlMode,
+          modelFamily,
         );
       });
     debugSection('referenceRects %j', referenceRects);
@@ -441,7 +441,7 @@ export async function AiLocateSection(options: {
     debugSection('mergedRect %j', mergedRect);
 
     // expand search area to at least 200 x 200
-    sectionRect = expandSearchArea(mergedRect, context.size, vlMode);
+    sectionRect = expandSearchArea(mergedRect, context.size, modelFamily);
     debugSection('expanded sectionRect %j', sectionRect);
   }
 
@@ -450,7 +450,7 @@ export async function AiLocateSection(options: {
     const croppedResult = await cropByRect(
       screenshotBase64,
       sectionRect,
-      vlMode === 'qwen2.5-vl',
+      modelFamily === 'qwen2.5-vl',
     );
     imageBase64 = croppedResult.imageBase64;
     sectionRect.width = croppedResult.width;

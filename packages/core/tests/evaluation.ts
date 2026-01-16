@@ -1,12 +1,12 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describeUserPage } from '@/index';
-import type { TVlModeTypes } from '@midscene/shared/env';
+import type { TModelFamily } from '@midscene/shared/env';
 import { imageInfoOfBase64, localImg2Base64 } from '@midscene/shared/img';
 
 export async function buildContext(
   targetDir: string,
-  vlMode?: TVlModeTypes | undefined,
+  modelFamily?: TModelFamily | undefined,
 ): Promise<{
   context: {
     size: {
@@ -65,7 +65,7 @@ export async function buildContext(
   const elementTree = JSON.parse(
     readFileSync(elementTreeJsonPath, { encoding: 'utf-8' }),
   );
-  const screenshotBase64 = vlMode
+  const screenshotBase64 = modelFamily
     ? originalScreenshotBase64
     : localImg2Base64(resizeOutputImgP);
 
@@ -93,12 +93,12 @@ export async function buildContext(
 export async function getContextFromFixture(
   pageName: string,
   opts?: {
-    vlMode?: TVlModeTypes | undefined;
+    modelFamily?: TModelFamily | undefined;
   },
 ) {
   const targetDir = path.join(
     __dirname,
     `../../evaluation/page-data/${pageName}`,
   );
-  return await buildContext(targetDir, opts?.vlMode);
+  return await buildContext(targetDir, opts?.modelFamily);
 }

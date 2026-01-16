@@ -223,9 +223,10 @@ describe(
       expect(names.length).toBeGreaterThan(5);
     });
 
-    const vlMode = globalModelConfigManager.getModelConfig('default').vlMode;
+    const modelFamily =
+      globalModelConfigManager.getModelConfig('default').modelFamily;
 
-    it.skipIf(!vlMode)('search engine with specific actions', async () => {
+    it.skipIf(!modelFamily)('search engine with specific actions', async () => {
       const htmlPath = path.join(__dirname, 'local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       resetFn = reset;

@@ -14,7 +14,7 @@ vi.setConfig({
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');
 
-describe.skipIf(modelConfig.vlMode)('automation - llm planning', () => {
+describe.skipIf(modelConfig.modelFamily)('automation - llm planning', () => {
   it('basic run', async () => {
     const { context } = await getContextFromFixture('todo');
 

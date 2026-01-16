@@ -38,7 +38,7 @@ export type TestStatus =
   | 'timedOut'
   | 'skipped'
   | 'interrupted';
-import { isAutoGLM } from '@/ai-model/auto-glm/util';
+import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
 import {
@@ -308,9 +308,9 @@ export class Agent<
       return this.opts.replanningCycleLimit;
     }
 
-    return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
+    return isUITars(modelConfigForPlanning.modelFamily)
       ? defaultVlmUiTarsReplanningCycleLimit
-      : isAutoGLM(modelConfigForPlanning.vlMode)
+      : isAutoGLM(modelConfigForPlanning.modelFamily)
         ? defaultAutoGlmReplanningCycleLimit
         : defaultReplanningCycleLimit;
   }
@@ -898,8 +898,8 @@ export class Agent<
         modelConfigForPlanning,
       );
       // if vlm-ui-tars or auto-glm, plan cache is not used
-      const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
-      const isAutoGlm = isAutoGLM(modelConfigForPlanning.vlMode);
+      const isVlmUiTars = isUITars(modelConfigForPlanning.modelFamily);
+      const isAutoGlm = isAutoGLM(modelConfigForPlanning.modelFamily);
       const matchedCache =
         isVlmUiTars || isAutoGlm || cacheable === false
           ? undefined

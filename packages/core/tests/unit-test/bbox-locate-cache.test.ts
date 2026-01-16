@@ -62,7 +62,7 @@ describe('bbox locate cache fix', () => {
 
   // Mock model config with required properties for testing
   const mockModelConfig: IModelConfig = {
-    vlMode: undefined,
+    modelFamily: undefined,
     modelName: 'test-model',
     modelDescription: 'test model for unit tests',
     intent: 'default',

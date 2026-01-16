@@ -12,7 +12,7 @@ describe('maskConfig', () => {
       httpProxy: 'http://proxy.example.com:8080',
       openaiBaseURL: 'https://api.openai.com/v1',
       openaiExtraConfig: { top_p: 0.9 },
-      vlMode: 'doubao-vision',
+      modelFamily: 'doubao-vision',
       modelDescription: '',
       intent: 'default',
     };
@@ -26,7 +26,7 @@ describe('maskConfig', () => {
       openaiBaseURL: 'https://api.openai.com/v1',
       openaiExtraConfig: { top_p: 0.9 },
       socksProxy: 'socks://proxy.example.com:1080',
-      vlMode: 'doubao-vision',
+      modelFamily: 'doubao-vision',
     });
   });
 });

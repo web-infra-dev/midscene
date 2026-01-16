@@ -1,5 +1,5 @@
 import type { DeviceAction } from '@/types';
-import type { TVlModeTypes } from '@midscene/shared/env';
+import type { TModelFamily } from '@midscene/shared/env';
 import {
   getZodDescription,
   getZodTypeName,
@@ -26,9 +26,9 @@ const buildCommonOutputFields = (includeThought: boolean) => {
   return fields.join('\n  ');
 };
 
-const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
-  if (vlMode) {
-    return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(vlMode)}`;
+const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
+  if (modelFamily) {
+    return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(modelFamily)}`;
   }
   return '{ prompt: string /* description of the target element */ }';
 };
@@ -165,26 +165,26 @@ ${tab}${fields.join(`\n${tab}`)}
 
 export async function systemPromptToTaskPlanning({
   actionSpace,
-  vlMode,
+  modelFamily,
   includeBbox,
   includeThought,
 }: {
   actionSpace: DeviceAction<any>[];
-  vlMode: TVlModeTypes | undefined;
+  modelFamily: TModelFamily | undefined;
   includeBbox: boolean;
   includeThought?: boolean;
 }) {
-  // Validate parameters: if includeBbox is true, vlMode must be defined
-  if (includeBbox && !vlMode) {
+  // Validate parameters: if includeBbox is true, modelFamily must be defined
+  if (includeBbox && !modelFamily) {
     throw new Error(
-      'vlMode cannot be undefined when includeBbox is true. A valid vlMode is required for bbox-based location.',
+      'modelFamily cannot be undefined when includeBbox is true. A valid modelFamily is required for bbox-based location.',
     );
   }
 
   const actionDescriptionList = actionSpace.map((action) => {
     return descriptionForAction(
       action,
-      vlLocateParam(includeBbox ? vlMode : undefined),
+      vlLocateParam(includeBbox ? modelFamily : undefined),
     );
   });
   const actionList = actionDescriptionList.join('\n');
@@ -258,7 +258,7 @@ ${exampleThoughtLine}  "log": "Click the login button",
     "type": "Tap",
     "param": {
       "locate": { 
-        "prompt": "The login button"${vlMode && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
+        "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
       }
     }
   }

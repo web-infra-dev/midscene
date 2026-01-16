@@ -7,7 +7,7 @@ import { expect, test } from 'vitest';
 
 const modelConfig = globalModelConfigManager.getModelConfig('default');
 
-test.skipIf(!modelConfig.vlMode)(
+test.skipIf(!modelConfig.modelFamily)(
   'locate section',
   {
     timeout: 60 * 1000,

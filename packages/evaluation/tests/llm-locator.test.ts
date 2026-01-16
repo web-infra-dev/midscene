@@ -31,11 +31,11 @@ const failCaseThreshold = 2;
 beforeAll(async () => {
   const modelConfig = globalModelConfigManager.getModelConfig('default');
 
-  const { vlMode, modelName } = modelConfig;
+  const { modelFamily, modelName } = modelConfig;
 
   const positionModeTag = 'by_coordinates';
   resultCollector = new TestResultCollector(positionModeTag, modelName);
-  expect(vlMode).toBeTruthy();
+  expect(modelFamily).toBeTruthy();
 });
 
 afterAll(async () => {
@@ -75,7 +75,7 @@ testSources.forEach((source) => {
             {
               prompt,
               deepThink:
-                modelConfig.vlMode === 'doubao-vision'
+                modelConfig.modelFamily === 'doubao-vision'
                   ? undefined
                   : testCase.deepThink,
             },

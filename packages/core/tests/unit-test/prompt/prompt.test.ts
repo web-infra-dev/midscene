@@ -114,7 +114,7 @@ describe('system prompts', () => {
   it('planning - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: undefined,
+      modelFamily: undefined,
       includeBbox: false,
     });
     expect(prompt).toMatchSnapshot();
@@ -123,7 +123,7 @@ describe('system prompts', () => {
   it('planning - includeThought false removes thought field', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: undefined,
+      modelFamily: undefined,
       includeBbox: false,
       includeThought: false,
     });
@@ -132,22 +132,22 @@ describe('system prompts', () => {
     expect(prompt).toContain('"log"');
   });
 
-  it('planning - should throw error when includeBbox is true but vlMode is undefined', async () => {
+  it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
     await expect(
       systemPromptToTaskPlanning({
         actionSpace: mockActionSpace,
-        vlMode: undefined,
+        modelFamily: undefined,
         includeBbox: true,
       }),
     ).rejects.toThrow(
-      'vlMode cannot be undefined when includeBbox is true. A valid vlMode is required for bbox-based location.',
+      'modelFamily cannot be undefined when includeBbox is true. A valid modelFamily is required for bbox-based location.',
     );
   });
 
   it('planning - qwen - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen2.5-vl',
+      modelFamily: 'qwen2.5-vl',
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
@@ -156,7 +156,7 @@ describe('system prompts', () => {
   it('planning - qwen - cot without bbox', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen2.5-vl',
+      modelFamily: 'qwen2.5-vl',
       includeBbox: false,
     });
 
@@ -166,7 +166,7 @@ describe('system prompts', () => {
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'gemini',
+      modelFamily: 'gemini',
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
@@ -175,7 +175,7 @@ describe('system prompts', () => {
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen2.5-vl',
+      modelFamily: 'qwen2.5-vl',
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
