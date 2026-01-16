@@ -25,7 +25,6 @@ export interface ReferenceImage {
 
 export interface DetailedLocateParam extends LocateOption {
   prompt: TUserPrompt;
-  referenceImage?: ReferenceImage;
 }
 
 export type ScrollType =

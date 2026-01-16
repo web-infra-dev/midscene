@@ -115,7 +115,6 @@ const promptsToChatParam = async (
 export async function AiLocateElement(options: {
   context: UIContext;
   targetElementDescription: TUserPrompt;
-  referenceImage?: ReferenceImage;
   callAIFn: typeof callAIWithObjectResponse<
     AIElementResponse | [number, number]
   >;
