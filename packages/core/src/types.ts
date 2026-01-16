@@ -521,7 +521,9 @@ export class ExecutionDump implements IExecutionDump {
    *
    * @returns Serializable version of the execution dump
    */
-  async toSerializableFormat(options?: { inlineScreenshots?: boolean }): Promise<IExecutionDump> {
+  async toSerializableFormat(options?: {
+    inlineScreenshots?: boolean;
+  }): Promise<IExecutionDump> {
     const inlineScreenshots = options?.inlineScreenshots ?? false;
 
     // Deep clone the data using JSON serialization with custom replacer
@@ -877,7 +879,9 @@ export class GroupedActionDump implements IGroupedActionDump {
     // Serialize executions with inline base64 screenshots
     const serializedExecutions: any[] = [];
     for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({ inlineScreenshots: true });
+      const serialized = await execution.toSerializableFormat({
+        inlineScreenshots: true,
+      });
       serializedExecutions.push(serialized);
     }
 
