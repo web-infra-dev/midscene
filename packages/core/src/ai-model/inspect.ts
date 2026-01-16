@@ -133,7 +133,7 @@ export async function AiLocateElement(options: {
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
   const { vlMode } = modelConfig;
-  const screenshotBase64 = context.screenshot.base64;
+  const screenshotBase64 = await context.screenshot.getData();
 
   assert(
     targetElementDescription,
@@ -364,7 +364,7 @@ export async function AiLocateSection(options: {
 }> {
   const { context, sectionDescription, modelConfig } = options;
   const { vlMode } = modelConfig;
-  const screenshotBase64 = context.screenshot.base64;
+  const screenshotBase64 = await context.screenshot.getData();
 
   const systemPrompt = systemPromptToLocateSection(vlMode);
   const sectionLocatorInstructionText = sectionLocatorInstruction(
@@ -478,7 +478,7 @@ export async function AiExtractElementInfo<T>(options: {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
   const systemPrompt = systemPromptToExtract();
-  const screenshotBase64 = context.screenshot.base64;
+  const screenshotBase64 = await context.screenshot.getData();
 
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',
