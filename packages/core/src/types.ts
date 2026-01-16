@@ -854,7 +854,7 @@ export class GroupedActionDump implements IGroupedActionDump {
     const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
     const { getReportTpl } = require('./utils');
 
-    const dumpScript = generateDumpScriptTag(dumpData);
+    const dumpScript = generateDumpScriptTag(JSON.stringify(dumpData));
 
     // Generate image reference scripts (pointing to separate files)
     const imageScripts = screenshots
