@@ -491,14 +491,24 @@ const Timeline = () => {
       // Extract uiContext screenshot FIRST (before recorder processing)
       const uiContextRecorderItem: (ExecutionRecorderItem & { id: string })[] =
         [];
-      const screenshotFromContext = current.uiContext?.screenshotBase64;
+      const screenshotFromContext = current.uiContext?.screenshot;
       if (screenshotFromContext && current.timing?.start) {
         const idStr = `id_${idCount++}`;
         idTaskMap[idStr] = current;
+        // Extract base64 string from ScreenshotItem or SerializedScreenshotItem
+        let screenshotBase64: string;
+        if (typeof screenshotFromContext === 'string') {
+          screenshotBase64 = screenshotFromContext;
+        } else if ('base64' in screenshotFromContext) {
+          // SerializedScreenshotItem or ScreenshotItem with base64 getter
+          screenshotBase64 = (screenshotFromContext as any).base64;
+        } else {
+          return acc;
+        }
         uiContextRecorderItem.push({
           type: 'screenshot',
           ts: current.timing.start,
-          screenshot: screenshotFromContext,
+          screenshot: screenshotBase64,
           timing: 'before-calling',
           id: idStr,
         });
@@ -533,9 +543,20 @@ const Timeline = () => {
       return item.screenshot;
     })
     .map((recorderItem) => {
+      // Extract base64 string from screenshot
+      let screenshotBase64: string;
+      const screenshot = recorderItem.screenshot!;
+      if (typeof screenshot === 'string') {
+        screenshotBase64 = screenshot;
+      } else if ('base64' in screenshot) {
+        // SerializedScreenshotItem or ScreenshotItem with base64 getter
+        screenshotBase64 = (screenshot as any).base64;
+      } else {
+        screenshotBase64 = '';
+      }
       return {
         id: recorderItem.id,
-        img: recorderItem.screenshot!,
+        img: screenshotBase64,
         timeOffset: recorderItem.ts - startingTime,
       };
     })

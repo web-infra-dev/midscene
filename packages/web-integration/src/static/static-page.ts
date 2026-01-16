@@ -97,8 +97,8 @@ export default class StaticPage implements AbstractInterface {
       // screenshot can be either a string (serialized) or ScreenshotItem object
       if (typeof screenshot === 'string') {
         base64 = screenshot;
-      } else if (screenshot && typeof screenshot.getData === 'function') {
-        base64 = screenshot.getData();
+      } else if (screenshot && 'base64' in screenshot) {
+        base64 = screenshot.base64;
       }
     }
 

@@ -392,7 +392,7 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
-        const screenshotData = (context.screenshot?.getData?.() ||
+        const screenshotData = (context.screenshot?.base64 ||
           context.screenshot ||
           '') as string;
         scripts.push({
@@ -450,7 +450,7 @@ export const generateAnimationScripts = (
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshot = planningTask.recorder[0]?.screenshot;
-        const screenshotData = (screenshot?.getData?.() ||
+        const screenshotData = (screenshot?.base64 ||
           screenshot ||
           '') as string;
         scripts.push({
@@ -490,7 +490,7 @@ export const generateAnimationScripts = (
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
-      const actionScreenshotData = (screenshot?.getData?.() ||
+      const actionScreenshotData = (screenshot?.base64 ||
         screenshot ||
         '') as string;
       scripts.push({
@@ -510,7 +510,7 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
-        const screenshotData = (screenshot?.getData?.() ||
+        const screenshotData = (screenshot?.base64 ||
           screenshot ||
           '') as string;
         scripts.push({
@@ -534,7 +534,7 @@ export const generateAnimationScripts = (
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
-      const errorScreenshotData = (screenshot?.getData?.() ||
+      const errorScreenshotData = (screenshot?.base64 ||
         screenshot ||
         '') as string;
       scripts.push({
