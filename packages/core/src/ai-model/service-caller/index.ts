@@ -590,7 +590,9 @@ export function resolveDeepThinkConfig({
         ? {
             reasoning: { effort: 'high' },
           }
-        : {},
+        : {
+            reasoning: { effort: 'low' },
+          },
       debugMessage: normalizedDeepThink
         ? 'deepThink mapped to reasoning.effort=high for gpt-5'
         : 'deepThink disabled for gpt-5',
