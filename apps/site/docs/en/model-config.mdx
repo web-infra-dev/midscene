@@ -169,12 +169,12 @@ For finer-grained control (e.g., enabling LangSmith only for specific tasks), us
 
 ### Using Langfuse
 
-Langfuse is another popular LLM observability platform. Integration is similar to LangSmith.
+Langfuse is another popular LLM observability platform. Midscene automatically handles OpenTelemetry initialization for you.
 
-**Step 1: Install dependency**
+**Step 1: Install dependencies**
 
 ```bash
-npm install @langfuse/openai
+npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
 ```
 
 **Step 2: Set environment variables**
@@ -184,8 +184,8 @@ npm install @langfuse/openai
 export MIDSCENE_LANGFUSE_DEBUG=1
 
 # Langfuse configuration
-export LANGFUSE_PUBLIC_KEY="your-langfuse-public-key-here"
-export LANGFUSE_SECRET_KEY="your-langfuse-secret-key-here"
+export LANGFUSE_PUBLIC_KEY="pk-lf-..."
+export LANGFUSE_SECRET_KEY="sk-lf-..."
 export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
 # export LANGFUSE_BASE_URL="https://us.cloud.langfuse.com" # 🇺🇸 US region
 ```
@@ -193,6 +193,7 @@ export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 EU region
 After starting Midscene, you should see logs similar to:
 
 ```log
+DEBUGGING MODE: OpenTelemetry SDK initialized for Langfuse
 DEBUGGING MODE: langfuse wrapper enabled
 ```
 

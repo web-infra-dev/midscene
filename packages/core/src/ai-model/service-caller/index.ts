@@ -25,6 +25,9 @@ import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM } from '../auto-glm/util';
 
+// Track whether OpenTelemetry SDK has been initialized for Langfuse
+let isOtelSdkInitialized = false;
+
 async function createChatClient({
   modelConfig,
 }: {
@@ -181,6 +184,35 @@ async function createChatClient({
       throw new Error('langfuse is not supported in browser');
     }
     console.log('DEBUGGING MODE: langfuse wrapper enabled');
+
+    // Initialize OpenTelemetry SDK if not already initialized
+    // Langfuse tracing is built on top of OpenTelemetry
+    if (!isOtelSdkInitialized) {
+      try {
+        // Use variable to prevent static analysis by bundlers
+        const nodeSdkModule = '@opentelemetry/sdk-node';
+        const langfuseOtelModule = '@langfuse/otel';
+        const { NodeSDK } = await import(nodeSdkModule);
+        const { LangfuseSpanProcessor } = await import(langfuseOtelModule);
+
+        const sdk = new NodeSDK({
+          spanProcessors: [new LangfuseSpanProcessor()],
+        });
+        sdk.start();
+
+        isOtelSdkInitialized = true;
+        console.log('DEBUGGING MODE: OpenTelemetry SDK initialized for Langfuse');
+      } catch (error) {
+        console.error(
+          'Failed to initialize OpenTelemetry SDK for Langfuse. Make sure to install @opentelemetry/sdk-node and @langfuse/otel:',
+          error,
+        );
+        throw new Error(
+          'Langfuse requires @opentelemetry/sdk-node and @langfuse/otel packages. Install them with: npm install @opentelemetry/sdk-node @langfuse/otel',
+        );
+      }
+    }
+
     // Use variable to prevent static analysis by bundlers
     const langfuseModule = '@langfuse/openai';
     const { observeOpenAI } = await import(langfuseModule);
