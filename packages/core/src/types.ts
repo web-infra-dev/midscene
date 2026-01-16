@@ -39,15 +39,6 @@ export type AIUsageInfo = Record<string, any> & {
 
 export type { LocateResultElement };
 
-/**
- * openai
- *
- */
-export enum AIResponseFormat {
-  JSON = 'json_object',
-  TEXT = 'text',
-}
-
 export type AISingleElementResponseByPosition = {
   position?: {
     x: number;
