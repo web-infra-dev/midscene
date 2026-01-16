@@ -294,10 +294,11 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
  * - 'qwen2.5-vl' is Qwen 2.5
  * - 'qwen3-vl' is Qwen 3
  */
-export type TModelFamily = TVlModeValues;
+export type TModelFamily = TVlModeValues | 'gpt-5';
 
-export const MODEL_FAMILY_VALUES: TVlModeValues[] = [
+export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   ...VL_MODE_RAW_VALID_VALUES,
+  'gpt-5',
 ];
 
 export interface IModelConfigForInsight {
@@ -315,7 +316,7 @@ export interface IModelConfigForInsight {
   // temperature
   [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
   // model family
-  [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TVlModeValues;
+  [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TModelFamily;
 }
 
 export interface IModelConfigForPlanning {
@@ -333,7 +334,7 @@ export interface IModelConfigForPlanning {
   // temperature
   [MIDSCENE_PLANNING_MODEL_TEMPERATURE]?: string;
   // model family
-  [MIDSCENE_PLANNING_MODEL_FAMILY]?: TVlModeValues;
+  [MIDSCENE_PLANNING_MODEL_FAMILY]?: TModelFamily;
 }
 
 /**
@@ -363,7 +364,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_API_KEY]?: string;
   [MIDSCENE_MODEL_INIT_CONFIG_JSON]?: string;
   // extra
-  [MIDSCENE_MODEL_FAMILY]?: TVlModeValues;
+  [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
 }

@@ -56,6 +56,13 @@ describe('modelFamilyToVLConfig', () => {
     });
   });
 
+  it('should allow gpt-5 without vlMode', () => {
+    expect(modelFamilyToVLConfig('gpt-5')).toEqual({
+      vlMode: undefined,
+      uiTarsVersion: undefined,
+    });
+  });
+
   it('should throw on invalid value', () => {
     expect(() => modelFamilyToVLConfig('invalid' as any)).toThrow(
       'Invalid MIDSCENE_MODEL_FAMILY value: invalid',

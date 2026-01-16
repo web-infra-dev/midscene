@@ -71,6 +71,10 @@ export const modelFamilyToVLConfig = (
     };
   }
 
+  if (modelFamily === 'gpt-5') {
+    return { vlMode: undefined, uiTarsVersion: undefined };
+  }
+
   // Check if the modelFamily is valid
   if (!MODEL_FAMILY_VALUES.includes(modelFamily as any)) {
     throw new Error(`Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}`);

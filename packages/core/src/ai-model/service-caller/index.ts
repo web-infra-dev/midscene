@@ -584,6 +584,21 @@ export function resolveDeepThinkConfig({
     };
   }
 
+  if (modelFamily === 'gpt-5') {
+    return {
+      config: normalizedDeepThink
+        ? {
+            reasoning: { effort: 'high' },
+          }
+        : {
+            reasoning: { effort: 'low' },
+          },
+      debugMessage: normalizedDeepThink
+        ? 'deepThink mapped to reasoning.effort=high for gpt-5'
+        : 'deepThink disabled for gpt-5',
+    };
+  }
+
   return {
     config: {},
     debugMessage: `deepThink ignored: unsupported model_family "${modelFamily ?? 'default'}"`,
