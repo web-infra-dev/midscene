@@ -10,7 +10,10 @@ import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
 
-const commonOutputFields = `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.`;
+const commonOutputFields = `"thought": string, // your thought process about the next action
+  "note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action.
+  "log": string, // a brief preamble to the user explaining what you’re about to do
+  "error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.`;
 
 const vlLocateParam = (vlMode: TVlModeTypes | undefined) => {
   if (vlMode) {
@@ -213,8 +216,6 @@ ${logFieldInstruction}
 
 Return in JSON format:
 {
-  "note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action.
-  "log": string, // a brief preamble to the user explaining what you’re about to do
   ${commonOutputFields}
   "action": 
     {
@@ -228,6 +229,7 @@ Return in JSON format:
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
 {
+  "thought": "The form has already been filled, I need to click the login button to login",
   "log": "Click the login button",
   "action": {
     "type": "Tap",
@@ -242,7 +244,8 @@ For example, if the instruction is to login and the form has already been filled
 For example, if the instruction is to find out every title in the screenshot, the return value should be:
 
 {
-  "note": "The titles in the screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
+  "thought": "I need to note the titles in the current screenshot for further processing and scroll to find more titles",
+  "note": "The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
   "log": "Scroll to find more titles",
   "action": {
     "type": "Scroll",
