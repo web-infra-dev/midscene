@@ -142,10 +142,6 @@ export async function plan(
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
-  if (!actions.length) {
-    debug('no actions planned and no sleep instruction, stop planning');
-    shouldContinuePlanning = false;
-  }
   if (actions[0]?.type === finalizeActionName) {
     debug('finalize action planned, stop planning');
     shouldContinuePlanning = false;

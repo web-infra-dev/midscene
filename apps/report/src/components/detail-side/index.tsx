@@ -678,7 +678,7 @@ const DetailSide = (): JSX.Element => {
       const planItems: JSX.Element[] = [];
 
       // Add Thought if exists
-      if ((task as ExecutionTaskPlanning).output?.log) {
+      if ((task as ExecutionTaskPlanning).output?.thought) {
         planItems.push(
           <Card
             key="thought"
@@ -688,7 +688,7 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             content={
               <pre className="description-content">
-                {(task as ExecutionTaskPlanning).output?.log}
+                {(task as ExecutionTaskPlanning).output?.thought || ''}
               </pre>
             }
           />,
