@@ -284,9 +284,7 @@ export class AndroidDevice implements AbstractInterface {
         },
       }),
       defineActionClearInput(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot clear input');
-        await this.clearInput(element as unknown as ElementInfo);
+        await this.clearInput(param.locate as ElementInfo | undefined);
       }),
     ];
 
@@ -983,16 +981,30 @@ ${Object.keys(size)
     return result;
   }
 
-  async clearInput(element: ElementInfo): Promise<void> {
+  async clearInput(element?: ElementInfo): Promise<void> {
+    if (element) {
+      await this.mouseClick(element.center[0], element.center[1]);
+    }
+
+    await this.clearInputWithKeyboard();
+
     if (!element) {
       return;
     }
 
+    const adb = await this.getAdb();
+
+    if (await adb.isSoftKeyboardPresent()) {
+      return;
+    }
+
+    await this.mouseClick(element.center[0], element.center[1]);
+  }
+
+  private async clearInputWithKeyboard(): Promise<void> {
     await this.ensureYadb();
 
     const adb = await this.getAdb();
-
-    await this.mouseClick(element.center[0], element.center[1]);
 
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
@@ -1000,21 +1012,13 @@ ${Object.keys(size)
       IME_STRATEGY_YADB_FOR_NON_ASCII;
 
     if (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII) {
-      // For yadb-for-non-ascii mode, use batch deletion of up to 100 characters
-      // clearTextField() batches all key events into a single shell command for better performance
       await adb.clearTextField(100);
-    } else {
-      // Use the yadb tool to clear the input box
-      await adb.shell(
-        `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
-      );
-    }
-
-    if (await adb.isSoftKeyboardPresent()) {
       return;
     }
 
-    await this.mouseClick(element.center[0], element.center[1]);
+    await adb.shell(
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "~CLEAR~"`,
+    );
   }
 
   async forceScreenshot(path: string): Promise<void> {
