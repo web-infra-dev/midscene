@@ -46,6 +46,5 @@ export {
   type TUserPrompt,
   findAllMidsceneLocatorField,
   dumpActionParam,
-  loadActionParam,
   parseActionParam,
 } from '../common';
