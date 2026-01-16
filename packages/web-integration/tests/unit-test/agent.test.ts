@@ -77,6 +77,7 @@ const modelConfigCalcByMockedModelConfig = {
   uiTarsModelVersion: undefined,
   vlMode: 'qwen3-vl',
   vlModeRaw: 'qwen3-vl',
+  modelFamily: 'qwen3-vl',
   createOpenAIClient: undefined,
   retryCount: 1,
   retryInterval: 2000,

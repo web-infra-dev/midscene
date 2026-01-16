@@ -53,7 +53,7 @@ describe(
     );
 
     it.skip(
-      'long task',
+      'drag and drop',
       async () => {
         const { originPage, reset } = await launchPage(
           'https://cpstest.org/drag-test.php',
@@ -66,14 +66,36 @@ describe(
 
         await sleep(10 * 1000);
 
-        await agent.aiAct(
+        const result = await agent.aiAct(
           // '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
           // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
-          '按住“dragMe”元素，往右拖动300像素',
+          '按住“dragMe”元素，往右拖动300像素。结束后，告诉我左上角网站的名字，全小写，如 example.com ',
+        );
+
+        expect(result).toBe('cpstest.org');
+      },
+      15 * 60 * 1000,
+    );
+
+    it.skip(
+      'take note',
+      async () => {
+        const { originPage, reset } = await launchPage(
+          'https://www.baidu.com/',
           {
-            deepThink: true,
+            headless: false,
           },
         );
+        resetFn = reset;
+        agent = new PuppeteerAgent(originPage);
+
+        await sleep(10 * 1000);
+
+        const result = await agent.aiAct(
+          '看下百度热搜的第五条标题（看一下，不用点击），查一下北京天气，再查下杭州天气，去 bing.com ，搜索关键字是百度热搜第五条 + 上海的最高气温',
+        );
+
+        expect(result).toBe('cpstest.org');
       },
       15 * 60 * 1000,
     );

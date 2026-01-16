@@ -695,6 +695,24 @@ const DetailSide = (): JSX.Element => {
         );
       }
 
+      // Add Note if exists
+      if ((task as ExecutionTaskPlanning).output?.note) {
+        planItems.push(
+          <Card
+            key="note"
+            liteMode={true}
+            title="Note"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                {(task as ExecutionTaskPlanning).output?.note}
+              </pre>
+            }
+          />,
+        );
+      }
+
       // Add each plan action
       actions.forEach((action, index) => {
         const paramToShow = isPlainObject(action.param) ? action.param : {};
@@ -788,19 +806,18 @@ const DetailSide = (): JSX.Element => {
       // Add More actions needed if exists
       if (
         typeof (task as ExecutionTaskPlanning).output
-          ?.more_actions_needed_by_instruction === 'boolean'
+          ?.shouldContinuePlanning === 'boolean'
       ) {
         planItems.push(
           <Card
             key="more-actions"
             liteMode={true}
-            title="More actions needed"
+            title="Should continue planning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
               <pre className="description-content">
-                {(task as ExecutionTaskPlanning).output
-                  ?.more_actions_needed_by_instruction
+                {(task as ExecutionTaskPlanning).output?.shouldContinuePlanning
                   ? 'true'
                   : 'false'}
               </pre>

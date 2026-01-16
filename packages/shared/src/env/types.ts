@@ -102,6 +102,7 @@ export const MIDSCENE_INSIGHT_MODEL_RETRY_COUNT =
   'MIDSCENE_INSIGHT_MODEL_RETRY_COUNT';
 export const MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL =
   'MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL';
+export const MIDSCENE_INSIGHT_MODEL_FAMILY = 'MIDSCENE_INSIGHT_MODEL_FAMILY';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -123,6 +124,7 @@ export const MIDSCENE_PLANNING_MODEL_RETRY_COUNT =
   'MIDSCENE_PLANNING_MODEL_RETRY_COUNT';
 export const MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL =
   'MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL';
+export const MIDSCENE_PLANNING_MODEL_FAMILY = 'MIDSCENE_PLANNING_MODEL_FAMILY';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -223,6 +225,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_TEMPERATURE,
   MIDSCENE_INSIGHT_MODEL_RETRY_COUNT,
   MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL,
+  MIDSCENE_INSIGHT_MODEL_FAMILY,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -234,6 +237,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_TEMPERATURE,
   MIDSCENE_PLANNING_MODEL_RETRY_COUNT,
   MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL,
+  MIDSCENE_PLANNING_MODEL_FAMILY,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -310,6 +314,8 @@ export interface IModelConfigForInsight {
   [MIDSCENE_INSIGHT_MODEL_TIMEOUT]?: string;
   // temperature
   [MIDSCENE_INSIGHT_MODEL_TEMPERATURE]?: string;
+  // model family
+  [MIDSCENE_INSIGHT_MODEL_FAMILY]?: TVlModeValues;
 }
 
 export interface IModelConfigForPlanning {
@@ -326,6 +332,8 @@ export interface IModelConfigForPlanning {
   [MIDSCENE_PLANNING_MODEL_TIMEOUT]?: string;
   // temperature
   [MIDSCENE_PLANNING_MODEL_TEMPERATURE]?: string;
+  // model family
+  [MIDSCENE_PLANNING_MODEL_FAMILY]?: TVlModeValues;
 }
 
 /**
@@ -464,6 +472,11 @@ export interface IModelConfig {
    */
   vlModeRaw?: string;
   vlMode?: TVlModeTypes;
+  /**
+   * Model family - unified model configuration
+   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', etc.
+   */
+  modelFamily?: TModelFamily;
   uiTarsModelVersion?: UITarsModelVersion;
   modelDescription: string;
   /**

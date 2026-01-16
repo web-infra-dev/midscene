@@ -68,13 +68,13 @@ export async function autoGLMPlanning(
     content: `<think>${parsedResponse.think}</think><answer>${parsedResponse.content}</answer>`,
   });
 
-  const shouldContinue = !parsedResponse.content.startsWith('finish(');
+  const shouldContinuePlanning = !parsedResponse.content.startsWith('finish(');
 
   return {
     actions: transformedActions,
     log: rawResponse,
     usage,
-    more_actions_needed_by_instruction: shouldContinue,
+    shouldContinuePlanning,
     rawResponse: JSON.stringify(rawResponse, undefined, 2),
   };
 }
