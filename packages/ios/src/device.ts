@@ -178,9 +178,8 @@ export class IOSDevice implements AbstractInterface {
           locate: LocateResultElement;
         }
       >({
-        name: 'IOSLongPress',
-        description:
-          'Trigger a long press on the screen at specified coordinates on iOS devices',
+        name: 'LongPress',
+        description: 'Trigger a long press on the screen at specified element',
         paramSchema: z.object({
           duration: z
             .number()
@@ -192,7 +191,7 @@ export class IOSDevice implements AbstractInterface {
         }),
         call: async (param) => {
           const element = param.locate;
-          assert(element, 'IOSLongPress requires an element to be located');
+          assert(element, 'LongPress requires an element to be located');
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },

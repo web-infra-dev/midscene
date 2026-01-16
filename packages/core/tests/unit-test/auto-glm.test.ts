@@ -352,7 +352,7 @@ describe('auto-glm actions transformation', () => {
     expect((result[0].param as any).distance).toBeGreaterThan(600);
   });
 
-  it('should transform Long Press action to AndroidLongPress PlanningAction', () => {
+  it('should transform Long Press action to LongPress PlanningAction', () => {
     const longPressAction: LongPressAction = {
       _metadata: 'do',
       action: 'Long Press',
@@ -362,7 +362,7 @@ describe('auto-glm actions transformation', () => {
 
     const result = transformAutoGLMAction(longPressAction, defaultSize);
     expect(result).toHaveLength(1);
-    expect(result[0].type).toBe('AndroidLongPress');
+    expect(result[0].type).toBe('LongPress');
   });
 
   it('should transform Launch action to Launch PlanningAction', () => {
