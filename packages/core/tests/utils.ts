@@ -2,6 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { localImg2Base64 } from '@/image';
+import { ScreenshotItem } from '@/screenshot-item';
 import Service from '@/service';
 import type { AIElementResponse, UIContext } from '@/types';
 
@@ -23,9 +24,11 @@ export function sleep(ms: number) {
 }
 
 export function fakeService(content: string) {
-  const screenshot = getFixture('baidu.png');
+  const screenshotPath = getFixture('baidu.png');
+  const screenshotBase64 = localImg2Base64(screenshotPath);
+  const screenshot = ScreenshotItem.create(screenshotBase64);
   const basicContext = {
-    screenshotBase64: localImg2Base64(screenshot),
+    screenshot,
     size: { width: 1920, height: 1080 },
   };
   const context: UIContext = {

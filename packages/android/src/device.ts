@@ -284,9 +284,7 @@ export class AndroidDevice implements AbstractInterface {
         },
       }),
       defineActionClearInput(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot clear input');
-        await this.clearInput(element as unknown as ElementInfo);
+        await this.clearInput(param.locate as ElementInfo | undefined);
       }),
     ];
 
@@ -983,16 +981,13 @@ ${Object.keys(size)
     return result;
   }
 
-  async clearInput(element: ElementInfo): Promise<void> {
-    if (!element) {
-      return;
+  async clearInput(element?: ElementInfo): Promise<void> {
+    if (element) {
+      await this.mouseClick(element.center[0], element.center[1]);
     }
 
     await this.ensureYadb();
-
     const adb = await this.getAdb();
-
-    await this.mouseClick(element.center[0], element.center[1]);
 
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
@@ -1014,7 +1009,9 @@ ${Object.keys(size)
       return;
     }
 
-    await this.mouseClick(element.center[0], element.center[1]);
+    if (element) {
+      await this.mouseClick(element.center[0], element.center[1]);
+    }
   }
 
   async forceScreenshot(path: string): Promise<void> {

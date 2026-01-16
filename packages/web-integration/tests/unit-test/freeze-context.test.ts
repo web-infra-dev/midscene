@@ -1,5 +1,6 @@
 import type { WebPage } from '@/web-element';
 import { WebPageContextParser } from '@/web-element';
+import { ScreenshotItem } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
 import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,8 +39,9 @@ describe('PageAgent freeze/unfreeze page context', () => {
     // Create mock contexts
     mockContext = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshotBase64:
+      screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      ),
       tree: [
         {
           id: 'element1',
@@ -54,8 +56,9 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     mockContext2 = {
       size: { width: 1920, height: 1080, dpr: 1 },
-      screenshotBase64:
+      screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+      ),
       tree: [
         {
           id: 'element2',
@@ -141,7 +144,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Frozen context should be marked
       const frozenContext = (agent as any).frozenUIContext;
       expect(frozenContext._isFrozen).toBe(true);
-      expect(frozenContext.screenshotBase64).toBe(
+      expect(frozenContext.screenshot.getData()).toBe(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       );
       expect(frozenContext.tree).toBe(mockContext.tree);

@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 
+// Mock us-keyboard-layout FIRST to avoid process.platform access at import time
+vi.mock('@midscene/shared/us-keyboard-layout', () => ({
+  isMac: false,
+  keyMap: {},
+  modifierKeys: [],
+  _keyCode: 0,
+}));
+
 // Mock console methods to avoid noise in tests
 vi.spyOn(console, 'warn').mockImplementation(() => {});
 vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -24,14 +32,22 @@ vi.mock('@midscene/shared/env', () => ({
   },
 }));
 
+// Mock findAllMidsceneLocatorField to detect locator fields in schema
 vi.mock('@midscene/core/ai-model', () => ({
-  findAllMidsceneLocatorField: vi.fn(() => ['locateField']),
-}));
-
-vi.mock('@midscene/core', () => ({
-  Puppeteer: vi.fn(),
-  Playwright: vi.fn(),
-  createPage: vi.fn(),
+  findAllMidsceneLocatorField: vi.fn((schema: any) => {
+    // Check if schema has a shape with locateField-like keys
+    if (schema && typeof schema === 'object' && 'shape' in schema) {
+      const shape = schema.shape as Record<string, unknown>;
+      if (shape && typeof shape === 'object') {
+        return Object.keys(shape).filter(
+          (key) =>
+            typeof key === 'string' &&
+            (key.includes('locate') || key.includes('Locate')),
+        );
+      }
+    }
+    return [];
+  }),
 }));
 
 vi.mock('@midscene/core/agent', () => ({

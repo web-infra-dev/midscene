@@ -1,4 +1,5 @@
 import type { DeviceAction, ExecutionDump, UIContext } from '@midscene/core';
+import { GroupedActionDump } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
 import { type PlaygroundSDK, noReplayAPIs } from '@midscene/playground';
 import type { ServerResponse } from '@midscene/playground';
@@ -119,6 +120,11 @@ export function StandardPlayground({
             if (!newAgent) {
               throw new Error('Failed to create agent');
             }
+            // Set up onTaskStartTip callback for the new agent
+            // This ensures progress tips are shown even when agent is recreated
+            newAgent.onTaskStartTip = (tip: string) => {
+              setLoadingProgressText(tip);
+            };
             return newAgent;
           },
         );
@@ -361,7 +367,9 @@ export function StandardPlayground({
         // Only override if not already set by PlaygroundSDK response
         if (!result.dump) {
           result.dump = activeAgent?.dumpDataString()
-            ? JSON.parse(activeAgent.dumpDataString())
+            ? GroupedActionDump.fromSerializedString(
+                activeAgent.dumpDataString(),
+              )
             : null;
         }
         if (!result.reportHTML) {

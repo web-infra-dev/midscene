@@ -200,9 +200,7 @@ export class IOSDevice implements AbstractInterface {
         },
       }),
       defineActionClearInput(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot clear input');
-        await this.clearInput(element as unknown as ElementInfo);
+        await this.clearInput(param.locate as ElementInfo | undefined);
       }),
     ];
 
@@ -399,14 +397,12 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
   }
 
-  async clearInput(element: ElementInfo): Promise<void> {
-    if (!element) {
-      return;
+  async clearInput(element?: ElementInfo): Promise<void> {
+    if (element) {
+      // Tap on the input field to focus it
+      await this.tap(element.center[0], element.center[1]);
+      await sleep(100);
     }
-
-    // Tap on the input field to focus it
-    await this.tap(element.center[0], element.center[1]);
-    await sleep(100);
 
     // For iOS, use WebDriver's standard clear API
     // This gets the currently focused element and clears it using the /element/{id}/clear endpoint

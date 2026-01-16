@@ -24,7 +24,13 @@ export {
 } from '@midscene/shared/env';
 
 export type * from './types';
-export { ServiceError } from './types';
+export {
+  ServiceError,
+  ExecutionDump,
+  GroupedActionDump,
+  type IExecutionDump,
+  type IGroupedActionDump,
+} from './types';
 
 export { z };
 
@@ -46,3 +52,18 @@ export type {
 } from './yaml';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';
+
+// Dump utilities
+export {
+  restoreImageReferences,
+  escapeContent,
+  unescapeContent,
+  parseImageScripts,
+  parseDumpScript,
+  parseDumpScriptAttributes,
+  generateImageScriptTag,
+  generateDumpScriptTag,
+} from './dump';
+
+// ScreenshotItem
+export { ScreenshotItem } from './screenshot-item';
