@@ -1,64 +1,91 @@
-/**
- * Serialized format for ScreenshotItem
- */
-export interface SerializedScreenshotItem {
-  base64: string;
-}
+import type { StorageProvider } from './storage';
+import { MemoryStorage } from './storage';
 
 /**
- * ScreenshotItem encapsulates screenshot data.
- * This is a simple wrapper class that prepares for future storage optimization.
+ * ScreenshotItem encapsulates screenshot data with storage abstraction.
+ * Uses async getData() to load images on demand, reducing memory usage.
  *
- * Current implementation: stores base64 string directly in memory
- * Future: can be extended to use storage providers (file system, IndexedDB, etc.)
+ * Serialization format: { $screenshot: "id" }
  */
 export class ScreenshotItem {
-  private _data: string;
+  private _id: string;
+  private _provider: StorageProvider;
 
-  private constructor(data: string) {
-    this._data = data;
+  private constructor(id: string, provider: StorageProvider) {
+    this._id = id;
+    this._provider = provider;
   }
 
   /** Create a new ScreenshotItem from base64 data */
-  static create(base64: string): ScreenshotItem {
-    return new ScreenshotItem(base64);
+  static async create(
+    base64: string,
+    provider: StorageProvider = new MemoryStorage(),
+  ): Promise<ScreenshotItem> {
+    const id = await provider.store(base64);
+    return new ScreenshotItem(id, provider);
   }
 
-  /** Get the base64 data */
-  get base64(): string {
-    return this._data;
+  /** Restore a ScreenshotItem from a stored ID (used when deserializing) */
+  static restore(id: string, provider: StorageProvider): ScreenshotItem {
+    return new ScreenshotItem(id, provider);
   }
 
-  /** Serialize to object format for JSON */
-  toSerializable(): SerializedScreenshotItem {
-    return { base64: this._data };
+  get id(): string {
+    return this._id;
   }
 
-  /**
-   * toJSON for automatic JSON.stringify support
-   * Ensures ScreenshotItem instances serialize correctly without custom replacer
-   */
-  toJSON(): SerializedScreenshotItem {
-    return this.toSerializable();
+  get provider(): StorageProvider {
+    return this._provider;
   }
 
-  /**
-   * Check if a value looks like serialized screenshot data
-   */
-  static isSerializedData(value: unknown): value is SerializedScreenshotItem {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      'base64' in value &&
-      typeof (value as SerializedScreenshotItem).base64 === 'string'
-    );
+  /** Asynchronously retrieve the base64 data */
+  async getData(): Promise<string> {
+    return this._provider.retrieve(this._id);
   }
 
   /**
-   * Deserialize from SerializedScreenshotItem back to ScreenshotItem
-   * This is the counterpart of toSerializable()
+   * Migrate data to a different storage provider.
+   *
+   * Migration process:
+   * 1. Copy data to new provider
+   * 2. Delete from old provider
+   * 3. Return new ScreenshotItem pointing to new provider
+   *
+   * If deletion from old provider fails, attempts rollback by removing from new provider.
+   * Note: If rollback also fails, data may exist in both providers (caller should handle cleanup).
+   *
+   * @throws Error if migration fails (old provider deletion failed)
    */
-  static fromSerializedData(data: SerializedScreenshotItem): ScreenshotItem {
-    return new ScreenshotItem(data.base64);
+  async migrateTo(newProvider: StorageProvider): Promise<ScreenshotItem> {
+    const data = await this.getData();
+    const newId = await newProvider.store(data);
+
+    try {
+      await this._provider.delete(this._id);
+      return new ScreenshotItem(newId, newProvider);
+    } catch (error) {
+      // Rollback: attempt to remove data from new provider
+      try {
+        await newProvider.delete(newId);
+      } catch {
+        // Rollback failed - data may exist in both providers
+        // Caller should handle cleanup if needed
+      }
+      throw error;
+    }
+  }
+
+  /** Serialize to { $screenshot: id } format for JSON */
+  toSerializable(): { $screenshot: string } {
+    return { $screenshot: this._id };
+  }
+
+  /** Check if a value is a serialized ScreenshotItem */
+  static isSerialized(value: unknown): value is { $screenshot: string } {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+    const obj = value as Record<string, unknown>;
+    return '$screenshot' in obj && typeof obj.$screenshot === 'string';
   }
 }

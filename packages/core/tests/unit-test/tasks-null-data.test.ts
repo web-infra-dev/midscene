@@ -4,16 +4,16 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
 // Helper function to create mock UIContext with ScreenshotItem
-const createMockUIContext = (screenshotData = 'mock-screenshot') => {
-  const screenshot = ScreenshotItem.create(screenshotData);
+const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
+  const screenshot = await ScreenshotItem.create(screenshotData);
   return {
     screenshot,
     size: { width: 1920, height: 1080 },
   };
 };
 
-const createEmptyUIContext = () => {
-  const screenshot = ScreenshotItem.create('');
+const createEmptyUIContext = async () => {
+  const screenshot = await ScreenshotItem.create('');
   return {
     screenshot,
     size: { width: 0, height: 0 },
@@ -29,7 +29,7 @@ describe('TaskExecutor - Null Data Handling', () => {
     it('should handle null data for WaitFor operation', async () => {
       // Mock service that returns null
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: null, // AI returns null
           usage: { totalTokens: 100 },
@@ -61,7 +61,7 @@ describe('TaskExecutor - Null Data Handling', () => {
       // Execute the task
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       // For WaitFor with null data, output should be false (condition not met)
@@ -71,7 +71,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle undefined data for WaitFor operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: undefined, // AI returns undefined
           usage: { totalTokens: 100 },
@@ -99,7 +99,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       expect(result.output).toBe(false);
@@ -108,7 +108,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for Assert operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
@@ -139,14 +139,14 @@ describe('TaskExecutor - Null Data Handling', () => {
       await expect(
         queryTask.executor({}, {
           task: queryTask,
-          uiContext: createEmptyUIContext(),
+          uiContext: await createEmptyUIContext(),
         } as any),
       ).rejects.toThrow('Assertion failed: Could not verify assertion');
     });
 
     it('should handle valid data for WaitFor operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: {
             StatementIsTruthy: true,
@@ -177,7 +177,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       expect(result.output).toBe(true);
@@ -186,7 +186,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle string data for WaitFor operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: 'true', // AI returns plain string instead of structured format
           usage: { totalTokens: 100 },
@@ -215,7 +215,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       // When AI returns a plain string, it should be used directly
@@ -224,7 +224,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for Query operation', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
@@ -253,7 +253,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       // For Query with null data, entire null object should be returned
@@ -262,7 +262,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for String type query', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
@@ -291,7 +291,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       expect(result.output).toBeNull();
@@ -299,7 +299,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
     it('should handle null data for Number type query', async () => {
       const mockInsight = {
-        contextRetrieverFn: vi.fn(async () => createMockUIContext()),
+        contextRetrieverFn: vi.fn(async () => await createMockUIContext()),
         extract: vi.fn(async () => ({
           data: null,
           usage: { totalTokens: 100 },
@@ -328,7 +328,7 @@ describe('TaskExecutor - Null Data Handling', () => {
 
       const result = await queryTask.executor({}, {
         task: queryTask,
-        uiContext: createEmptyUIContext(),
+        uiContext: await createEmptyUIContext(),
       } as any);
 
       expect(result.output).toBeNull();

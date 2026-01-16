@@ -27,7 +27,7 @@ export async function autoGLMPlanning(
       ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>`
       : '');
 
-  const imagePayload = context.screenshot;
+  const imagePayloadBase64 = await context.screenshot.getData();
 
   conversationHistory.append({
     role: 'user',
@@ -35,7 +35,7 @@ export async function autoGLMPlanning(
   });
   conversationHistory.append({
     role: 'user',
-    content: [{ type: 'image_url', image_url: { url: imagePayload.base64 } }],
+    content: [{ type: 'image_url', image_url: { url: imagePayloadBase64 } }],
   });
 
   const msgs: ChatCompletionMessageParam[] = [

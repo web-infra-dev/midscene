@@ -65,6 +65,9 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
+// Storage providers
+export type { StorageProvider, FileStorage } from './storage';
+export { MemoryStorage } from './storage';
+
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
-export type { SerializedScreenshotItem } from './screenshot-item';

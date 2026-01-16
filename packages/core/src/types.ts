@@ -402,13 +402,19 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that restores ScreenshotItem from base64 strings
- * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
+ * Reviver function for JSON deserialization that restores ScreenshotItem
+ * Automatically converts screenshot fields (in uiContext and recorder) back to ScreenshotItem
+ *
+ * Note: This reviver creates ScreenshotItem using MemoryStorage by default.
+ * For file-based storage, use GroupedActionDump.fromJSONWithImages() instead.
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
-  // Restore screenshot fields in uiContext and recorder
-  if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
-    return ScreenshotItem.fromSerializedData(value);
+  // Restore screenshot fields from new format { $screenshot: "id" }
+  if (key === 'screenshot' && ScreenshotItem.isSerialized(value)) {
+    // Use MemoryStorage as default provider for deserialization
+    // The actual data will be loaded later via storageProvider
+    const { MemoryStorage } = require('./storage');
+    return ScreenshotItem.restore(value.$screenshot, new MemoryStorage());
   }
   return value;
 }
@@ -467,6 +473,98 @@ export class ExecutionDump implements IExecutionDump {
    */
   static fromJSON(data: IExecutionDump): ExecutionDump {
     return new ExecutionDump(data);
+  }
+
+  /**
+   * Collect all ScreenshotItem instances from tasks.
+   * Scans through uiContext and recorder items to find screenshots.
+   *
+   * @returns Array of ScreenshotItem instances
+   */
+  collectScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
+
+    for (const task of this.tasks) {
+      // Collect uiContext.screenshot if present
+      if (task.uiContext?.screenshot instanceof ScreenshotItem) {
+        screenshots.push(task.uiContext.screenshot);
+      }
+
+      // Collect recorder screenshots
+      if (task.recorder) {
+        for (const record of task.recorder) {
+          if (record.screenshot instanceof ScreenshotItem) {
+            screenshots.push(record.screenshot);
+          }
+        }
+      }
+    }
+
+    return screenshots;
+  }
+
+  /**
+   * Convert to serializable format where ScreenshotItem instances
+   * are replaced with { $screenshot: "id" } placeholders.
+   *
+   * This is an async method because it needs to handle potential
+   * async operations in the serialization process.
+   *
+   * @returns Serializable version of the execution dump
+   */
+  async toSerializableFormat(options?: {
+    inlineScreenshots?: boolean;
+  }): Promise<IExecutionDump> {
+    const inlineScreenshots = options?.inlineScreenshots ?? false;
+
+    // Deep clone the data using JSON serialization with custom replacer
+    const replacer = async (key: string, value: any): Promise<any> => {
+      // Convert ScreenshotItem to { $screenshot: id } format or inline base64
+      if (value instanceof ScreenshotItem) {
+        if (inlineScreenshots) {
+          return await value.getData();
+        }
+        return value.toSerializable();
+      }
+      return value;
+    };
+
+    // If inlineScreenshots is true, we need to await all screenshot getData() calls
+    if (inlineScreenshots) {
+      const collectScreenshotPromises = (obj: any): Promise<any> => {
+        if (obj instanceof ScreenshotItem) {
+          return obj.getData();
+        }
+        if (Array.isArray(obj)) {
+          return Promise.all(obj.map(collectScreenshotPromises));
+        }
+        if (obj && typeof obj === 'object') {
+          const promises: Record<string, Promise<any>> = {};
+          for (const [key, value] of Object.entries(obj)) {
+            promises[key] = collectScreenshotPromises(value);
+          }
+          return (async () => {
+            const resolved: Record<string, any> = {};
+            for (const [key, promise] of Object.entries(promises)) {
+              resolved[key] = await promise;
+            }
+            return resolved;
+          })();
+        }
+        return Promise.resolve(obj);
+      };
+
+      const resolvedData = await collectScreenshotPromises(this.toJSON());
+      return resolvedData as IExecutionDump;
+    }
+
+    const jsonString = JSON.stringify(this.toJSON(), (_key, value) => {
+      if (value instanceof ScreenshotItem) {
+        return value.toSerializable();
+      }
+      return value;
+    });
+    return JSON.parse(jsonString);
   }
 }
 
@@ -610,7 +708,10 @@ export class GroupedActionDump implements IGroupedActionDump {
   modelBriefs: string[];
   executions: ExecutionDump[];
 
-  constructor(data: IGroupedActionDump) {
+  // Storage provider for screenshots (used in directory-based reports)
+  private _storageProvider?: any; // Import StorageProvider type dynamically to avoid circular deps
+
+  constructor(data: IGroupedActionDump, storageProvider?: any) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -618,6 +719,11 @@ export class GroupedActionDump implements IGroupedActionDump {
     this.executions = data.executions.map((exec) =>
       exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
     );
+    this._storageProvider = storageProvider;
+  }
+
+  get storageProvider(): any {
+    return this._storageProvider;
   }
 
   /**
@@ -656,6 +762,149 @@ export class GroupedActionDump implements IGroupedActionDump {
    */
   static fromJSON(data: IGroupedActionDump): GroupedActionDump {
     return new GroupedActionDump(data);
+  }
+
+  /**
+   * Collect all ScreenshotItem instances from all executions.
+   *
+   * @returns Array of all ScreenshotItem instances across all executions
+   */
+  collectAllScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
+    for (const execution of this.executions) {
+      screenshots.push(...execution.collectScreenshots());
+    }
+    return screenshots;
+  }
+
+  /**
+   * Convert to HTML format for report generation.
+   * This is an async method that handles screenshot data serialization.
+   *
+   * @returns HTML string containing the report data
+   */
+  async toHTML(): Promise<string> {
+    // Collect all screenshots and their data
+    const screenshots = this.collectAllScreenshots();
+    const imageDataMap = new Map<string, string>();
+
+    // Load all screenshot data
+    for (const screenshot of screenshots) {
+      const data = await screenshot.getData();
+      imageDataMap.set(screenshot.id, data);
+    }
+
+    // Serialize executions
+    const serializedExecutions: any[] = [];
+    for (const execution of this.executions) {
+      const serialized = await execution.toSerializableFormat();
+      serializedExecutions.push(serialized);
+    }
+
+    const dumpData = {
+      sdkVersion: this.sdkVersion,
+      groupName: this.groupName,
+      groupDescription: this.groupDescription,
+      modelBriefs: this.modelBriefs,
+      executions: serializedExecutions,
+    };
+
+    // Generate scripts for embedding
+    const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
+    const dumpScript = generateDumpScriptTag(dumpData);
+    const imageScripts = Array.from(imageDataMap.entries())
+      .map(([id, data]) => generateImageScriptTag(id, data))
+      .join('\n');
+
+    return `${dumpScript}\n${imageScripts}`;
+  }
+
+  /**
+   * Write report to a directory with separate image files.
+   * This is useful for reducing memory usage and report file size.
+   *
+   * @param outputDir - Directory path to write the report
+   * @returns Path to the generated index.html file
+   */
+  async writeToDirectory(outputDir: string): Promise<string> {
+    const { ifInBrowser } = require('@midscene/shared/utils');
+    if (ifInBrowser) {
+      console.warn(
+        'writeToDirectory is not supported in browser environment, skipping',
+      );
+      return '';
+    }
+
+    // Dynamic import to avoid bundling node modules
+    const [fs, path] = await Promise.all([
+      import('node:fs'),
+      import('node:path'),
+    ]);
+
+    // Create output directory
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    // Create screenshots subdirectory
+    const screenshotsDir = path.join(outputDir, 'screenshots');
+    if (!fs.existsSync(screenshotsDir)) {
+      fs.mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Collect all screenshots
+    const screenshots = this.collectAllScreenshots();
+
+    // Write each screenshot as a separate PNG file
+    for (const screenshot of screenshots) {
+      const data = await screenshot.getData();
+      const base64Data = data.replace(
+        /^data:image\/(png|jpeg|jpg);base64,/,
+        '',
+      );
+      const buffer = Buffer.from(base64Data, 'base64');
+      const filePath = path.join(screenshotsDir, `${screenshot.id}.png`);
+      fs.writeFileSync(filePath, buffer);
+    }
+
+    // Serialize executions with inline base64 screenshots
+    const serializedExecutions: any[] = [];
+    for (const execution of this.executions) {
+      const serialized = await execution.toSerializableFormat({
+        inlineScreenshots: true,
+      });
+      serializedExecutions.push(serialized);
+    }
+
+    const dumpData = {
+      sdkVersion: this.sdkVersion,
+      groupName: this.groupName,
+      groupDescription: this.groupDescription,
+      modelBriefs: this.modelBriefs,
+      executions: serializedExecutions,
+    };
+
+    // Generate HTML with embedded base64 image data
+    const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
+    const { getReportTpl } = require('./utils');
+
+    const dumpScript = generateDumpScriptTag(JSON.stringify(dumpData));
+
+    // Generate image reference scripts with base64 data (not file paths)
+    const imageScripts: string[] = [];
+    for (const screenshot of screenshots) {
+      const data = await screenshot.getData();
+      imageScripts.push(generateImageScriptTag(screenshot.id, data));
+    }
+    const imageScriptsString = imageScripts.join('\n');
+
+    const htmlContent = `${getReportTpl()}\n${dumpScript}\n${imageScriptsString}`;
+
+    // Write index.html
+    const indexPath = path.join(outputDir, 'index.html');
+    fs.writeFileSync(indexPath, htmlContent);
+
+    return indexPath;
   }
 }
 
@@ -764,6 +1013,37 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+
+  /**
+   * Use directory-based report format with separate image files.
+   *
+   * When enabled:
+   * - Screenshots are saved as PNG files in a `screenshots/` subdirectory
+   * - Report is generated as `index.html` with relative image paths
+   * - Reduces memory usage and report file size
+   *
+   * IMPORTANT: Directory reports must be served via HTTP server
+   * (e.g., `npx serve ./report-dir`). The file:// protocol will not
+   * work due to browser CORS restrictions.
+   *
+   * @default false
+   */
+  useDirectoryReport?: boolean;
+
+  /**
+   * Storage provider for screenshots.
+   * Defaults to MemoryStorage if not specified.
+   *
+   * @example
+   * ```typescript
+   * import { FileStorage } from '@midscene/core';
+   * const agent = new Agent(page, {
+   *   storageProvider: new FileStorage('/tmp/screenshots'),
+   * });
+   * ```
+   */
+  storageProvider?: any; // Use `any` to avoid circular dependency with storage module
+
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;
