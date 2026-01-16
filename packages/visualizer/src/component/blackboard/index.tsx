@@ -1,6 +1,11 @@
 'use client';
 import 'pixi.js/unsafe-eval';
-import type { BaseElement, Rect, UIContext } from '@midscene/core';
+import {
+  type BaseElement,
+  type Rect,
+  ScreenshotItem,
+  type UIContext,
+} from '@midscene/core';
 import { Checkbox } from 'antd';
 import type { CheckboxProps } from 'antd';
 import * as PIXI from 'pixi.js';
@@ -101,7 +106,9 @@ export const Blackboard = (props: {
 
   const context = props.uiContext;
   const { size, screenshot } = context;
-  const screenshotBase64 = screenshot.base64;
+
+  // Extract base64 string using ScreenshotItem helper
+  const screenshotBase64 = ScreenshotItem.toBase64String(screenshot);
 
   const screenWidth = size.width;
   const screenHeight = size.height;
@@ -223,8 +230,12 @@ export const Blackboard = (props: {
     img.onerror = (e) => {
       console.error('load screenshot failed', e);
     };
-    img.src = screenshotBase64;
-  }, [app.stage, appInitialed, screenWidth, screenHeight]);
+    if (screenshotBase64) {
+      img.src = screenshotBase64;
+    } else {
+      console.error('screenshotBase64 is empty, cannot load image');
+    }
+  }, [app.stage, appInitialed, screenWidth, screenHeight, screenshotBase64]);
 
   const { highlightElementRects } = useMemo(() => {
     const highlightElementRects: Rect[] = [];

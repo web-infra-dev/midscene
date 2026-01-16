@@ -35,6 +35,14 @@ export class ScreenshotItem {
   }
 
   /**
+   * toJSON for automatic JSON.stringify support
+   * Ensures ScreenshotItem instances serialize correctly without custom replacer
+   */
+  toJSON(): SerializedScreenshotItem {
+    return this.toSerializable();
+  }
+
+  /**
    * Check if a value looks like serialized screenshot data
    */
   static isSerializedData(value: unknown): value is SerializedScreenshotItem {
@@ -52,5 +60,31 @@ export class ScreenshotItem {
    */
   static fromSerializedData(data: SerializedScreenshotItem): ScreenshotItem {
     return new ScreenshotItem(data.base64);
+  }
+
+  /**
+   * Extract base64 string from any screenshot format
+   * Handles ScreenshotItem instances, SerializedScreenshotItem objects, and plain strings
+   *
+   * @param value - Screenshot data in any format
+   * @returns Base64 string, or empty string if invalid
+   */
+  static toBase64String(value: unknown): string {
+    if (!value) {
+      return '';
+    }
+
+    // Already a string
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    // ScreenshotItem instance or SerializedScreenshotItem object
+    if (typeof value === 'object' && 'base64' in value) {
+      const base64 = (value as any).base64;
+      return typeof base64 === 'string' ? base64 : '';
+    }
+
+    return '';
   }
 }

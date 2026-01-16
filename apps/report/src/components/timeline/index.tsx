@@ -3,7 +3,11 @@ import * as PIXI from 'pixi.js';
 import { useEffect, useMemo, useRef } from 'react';
 
 import './index.less';
-import type { ExecutionRecorderItem, ExecutionTask } from '@midscene/core';
+import {
+  type ExecutionRecorderItem,
+  type ExecutionTask,
+  ScreenshotItem,
+} from '@midscene/core';
 import { useTheme } from '@midscene/visualizer';
 import { getTextureFromCache, loadTexture } from '../pixi-loader';
 import { useAllCurrentTasks, useExecutionDump } from '../store';
@@ -495,20 +499,10 @@ const Timeline = () => {
       if (screenshotFromContext && current.timing?.start) {
         const idStr = `id_${idCount++}`;
         idTaskMap[idStr] = current;
-        // Extract base64 string from ScreenshotItem or SerializedScreenshotItem
-        let screenshotBase64: string;
-        if (typeof screenshotFromContext === 'string') {
-          screenshotBase64 = screenshotFromContext;
-        } else if ('base64' in screenshotFromContext) {
-          // SerializedScreenshotItem or ScreenshotItem with base64 getter
-          screenshotBase64 = (screenshotFromContext as any).base64;
-        } else {
-          return acc;
-        }
         uiContextRecorderItem.push({
           type: 'screenshot',
           ts: current.timing.start,
-          screenshot: screenshotBase64,
+          screenshot: screenshotFromContext,
           timing: 'before-calling',
           id: idStr,
         });
@@ -543,17 +537,10 @@ const Timeline = () => {
       return item.screenshot;
     })
     .map((recorderItem) => {
-      // Extract base64 string from screenshot
-      let screenshotBase64: string;
-      const screenshot = recorderItem.screenshot!;
-      if (typeof screenshot === 'string') {
-        screenshotBase64 = screenshot;
-      } else if ('base64' in screenshot) {
-        // SerializedScreenshotItem or ScreenshotItem with base64 getter
-        screenshotBase64 = (screenshot as any).base64;
-      } else {
-        screenshotBase64 = '';
-      }
+      // Extract base64 string using ScreenshotItem helper
+      const screenshotBase64 = ScreenshotItem.toBase64String(
+        recorderItem.screenshot,
+      );
       return {
         id: recorderItem.id,
         img: screenshotBase64,

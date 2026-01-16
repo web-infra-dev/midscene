@@ -40,6 +40,22 @@ describe('ScreenshotItem', () => {
     });
   });
 
+  describe('toJSON', () => {
+    it('should serialize with JSON.stringify without custom replacer', () => {
+      const item = ScreenshotItem.create(testBase64);
+      const json = JSON.stringify({ screenshot: item });
+      const parsed = JSON.parse(json);
+
+      expect(parsed.screenshot).toEqual({ base64: testBase64 });
+      expect(parsed.screenshot.base64).toBe(testBase64);
+    });
+
+    it('should match toSerializable output', () => {
+      const item = ScreenshotItem.create(testBase64);
+      expect(item.toJSON()).toEqual(item.toSerializable());
+    });
+  });
+
   describe('fromSerializedData', () => {
     it('should deserialize from serialized object', () => {
       const item = ScreenshotItem.fromSerializedData({ base64: testBase64 });
