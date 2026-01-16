@@ -6,6 +6,7 @@ import {
   type DeviceAction,
   type InterfaceType,
   type LocateResultElement,
+  type MidsceneLocationResultType,
   type Point,
   type Size,
   getMidsceneLocationSchema,
@@ -125,7 +126,9 @@ export class AndroidDevice implements AbstractInterface {
           const element = param.locate;
           if (element) {
             if (param.mode !== 'append') {
-              await this.clearInput(element as unknown as ElementInfo);
+              await this.clearInput(
+                element as unknown as MidsceneLocationResultType,
+              );
             }
           }
 
@@ -284,7 +287,9 @@ export class AndroidDevice implements AbstractInterface {
         },
       }),
       defineActionClearInput(async (param) => {
-        await this.clearInput(param.locate as ElementInfo | undefined);
+        await this.clearInput(
+          param.locate as unknown as MidsceneLocationResultType,
+        );
       }),
     ];
 
@@ -981,7 +986,7 @@ ${Object.keys(size)
     return result;
   }
 
-  async clearInput(element?: ElementInfo): Promise<void> {
+  async clearInput(element?: MidsceneLocationResultType): Promise<void> {
     if (element) {
       await this.mouseClick(element.center[0], element.center[1]);
     }

@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import type { Point } from '@midscene/core';
+import type { MidsceneLocationResultType, Point } from '@midscene/core';
 import { z } from '@midscene/core';
 import {
   AbstractInterface,
@@ -19,7 +19,6 @@ import {
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
-import type { ElementInfo } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 
@@ -404,7 +403,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
     };
   }
 
-  async clearInput(element?: ElementInfo): Promise<void> {}
+  async clearInput(element?: MidsceneLocationResultType): Promise<void> {}
 
   abstract scrollUntilTop(startingPoint?: Point): Promise<void>;
   abstract scrollUntilBottom(startingPoint?: Point): Promise<void>;
@@ -459,7 +458,9 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   defineActionInput(async (param) => {
     const element = param.locate;
     if (element && param.mode !== 'append') {
-      await page.clearInput(element as unknown as ElementInfo);
+      await page.clearInput(
+        element as unknown as MidsceneLocationResultType,
+      );
     }
 
     if (param.mode === 'clear') {
@@ -623,7 +624,9 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     : []),
 
   defineActionClearInput(async (param) => {
-    await page.clearInput(param.locate as ElementInfo | undefined);
+    await page.clearInput(
+      param.locate as unknown as MidsceneLocationResultType,
+    );
   }),
 
   defineAction({
