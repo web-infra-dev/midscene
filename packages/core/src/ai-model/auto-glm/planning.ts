@@ -35,9 +35,7 @@ export async function autoGLMPlanning(
   });
   conversationHistory.append({
     role: 'user',
-    content: [
-      { type: 'image_url', image_url: { url: imagePayload.getData() } },
-    ],
+    content: [{ type: 'image_url', image_url: { url: imagePayload.base64 } }],
   });
 
   const msgs: ChatCompletionMessageParam[] = [
