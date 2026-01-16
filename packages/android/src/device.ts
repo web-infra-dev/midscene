@@ -991,14 +991,6 @@ ${Object.keys(size)
     if (!element) {
       return;
     }
-
-    const adb = await this.getAdb();
-
-    if (await adb.isSoftKeyboardPresent()) {
-      return;
-    }
-
-    await this.mouseClick(element.center[0], element.center[1]);
   }
 
   private async clearInputWithKeyboard(): Promise<void> {
