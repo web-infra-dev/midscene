@@ -461,12 +461,7 @@ export class Page<
     };
   }
 
-  async clearInput(element: ElementInfo): Promise<void> {
-    if (!element) {
-      console.warn('No element to clear input');
-      return;
-    }
-
+  async clearInput(element?: ElementInfo): Promise<void> {
     const backspace = async () => {
       await sleep(100);
       await this.keyboard.press([{ key: 'Backspace' }]);
@@ -477,19 +472,20 @@ export class Page<
     if (isMac) {
       if (this.interfaceType === 'puppeteer') {
         // https://github.com/segment-boneyard/nightmare/issues/810#issuecomment-452669866
-        await this.mouse.click(element.center[0], element.center[1], {
-          count: 3,
-        });
+        element &&
+          (await this.mouse.click(element.center[0], element.center[1], {
+            count: 3,
+          }));
         await backspace();
       }
 
-      await this.mouse.click(element.center[0], element.center[1]);
+      element && (await this.mouse.click(element.center[0], element.center[1]));
       await this.underlyingPage.keyboard.down('Meta');
       await this.underlyingPage.keyboard.press('a');
       await this.underlyingPage.keyboard.up('Meta');
       await backspace();
     } else {
-      await this.mouse.click(element.center[0], element.center[1]);
+      element && (await this.mouse.click(element.center[0], element.center[1]));
       await this.underlyingPage.keyboard.down('Control');
       await this.underlyingPage.keyboard.press('a');
       await this.underlyingPage.keyboard.up('Control');

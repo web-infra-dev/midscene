@@ -395,10 +395,12 @@ export const defineActionSwipe = (
 
 // ClearInput
 export const actionClearInputParamSchema = z.object({
-  locate: getMidsceneLocationSchema().describe('The input field to be cleared'),
+  locate: getMidsceneLocationSchema()
+    .describe('The input field to be cleared')
+    .optional(),
 });
 export type ActionClearInputParam = {
-  locate: LocateResultElement;
+  locate?: LocateResultElement;
 };
 
 export const defineActionClearInput = (

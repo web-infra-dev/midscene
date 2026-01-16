@@ -404,7 +404,7 @@ export abstract class AbstractWebPage extends AbstractInterface {
     };
   }
 
-  async clearInput(element: ElementInfo): Promise<void> {}
+  async clearInput(element?: ElementInfo): Promise<void> {}
 
   abstract scrollUntilTop(startingPoint?: Point): Promise<void>;
   abstract scrollUntilBottom(startingPoint?: Point): Promise<void>;
@@ -623,9 +623,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     : []),
 
   defineActionClearInput(async (param) => {
-    const element = param.locate;
-    assert(element, 'Element not found, cannot clear input');
-    await page.clearInput(element as unknown as ElementInfo);
+    await page.clearInput(param.locate as ElementInfo | undefined);
   }),
 
   defineAction({
