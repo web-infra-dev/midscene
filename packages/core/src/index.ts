@@ -66,4 +66,7 @@ export {
 } from './dump';
 
 // ScreenshotItem
-export { ScreenshotItem } from './screenshot-item';
+export {
+  ScreenshotItem,
+  type SerializedScreenshotItem,
+} from './screenshot-item';
