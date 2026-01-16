@@ -10,6 +10,7 @@ import {
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
+  type TModelFamily,
   type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
@@ -33,6 +34,7 @@ async function createChatClient({
   modelDescription: string;
   uiTarsVersion?: UITarsModelVersion;
   vlMode: TVlModeTypes | undefined;
+  modelFamily: TModelFamily | undefined;
 }> {
   const {
     socksProxy,
@@ -44,6 +46,7 @@ async function createChatClient({
     modelDescription,
     uiTarsModelVersion: uiTarsVersion,
     vlMode,
+    modelFamily,
     createOpenAIClient,
     timeout,
   } = modelConfig;
@@ -197,6 +200,7 @@ async function createChatClient({
     modelDescription,
     uiTarsVersion,
     vlMode,
+    modelFamily,
   };
 }
 
@@ -214,10 +218,16 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
-  const { completion, modelName, modelDescription, uiTarsVersion, vlMode } =
-    await createChatClient({
-      modelConfig,
-    });
+  const {
+    completion,
+    modelName,
+    modelDescription,
+    uiTarsVersion,
+    vlMode,
+    modelFamily,
+  } = await createChatClient({
+    modelConfig,
+  });
 
   const maxTokens =
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
@@ -271,7 +281,7 @@ export async function callAI(
     warningMessage,
   } = resolveDeepThinkConfig({
     deepThink: options?.deepThink,
-    vlMode,
+    modelFamily,
   });
   if (debugMessage) {
     debugCall(debugMessage);
@@ -527,10 +537,10 @@ export function preprocessDoubaoBboxJson(input: string) {
 
 export function resolveDeepThinkConfig({
   deepThink,
-  vlMode,
+  modelFamily,
 }: {
   deepThink?: DeepThinkOption;
-  vlMode?: TVlModeTypes;
+  modelFamily?: TModelFamily;
 }): {
   config: Record<string, unknown>;
   debugMessage?: string;
@@ -542,14 +552,14 @@ export function resolveDeepThinkConfig({
     return { config: {}, debugMessage: undefined };
   }
 
-  if (vlMode === 'qwen3-vl') {
+  if (modelFamily === 'qwen3-vl') {
     return {
       config: { enable_thinking: normalizedDeepThink },
       debugMessage: `deepThink mapped to enable_thinking=${normalizedDeepThink} for qwen3-vl`,
     };
   }
 
-  if (vlMode === 'doubao-vision') {
+  if (modelFamily === 'doubao-vision') {
     return {
       config: {
         thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
@@ -558,7 +568,7 @@ export function resolveDeepThinkConfig({
     };
   }
 
-  if (vlMode === 'glm-v') {
+  if (modelFamily === 'glm-v') {
     return {
       config: {
         thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
@@ -569,8 +579,8 @@ export function resolveDeepThinkConfig({
 
   return {
     config: {},
-    debugMessage: `deepThink ignored: unsupported model_family "${vlMode ?? 'default'}"`,
-    warningMessage: `The "deepThink" option is not supported for model_family "${vlMode ?? 'default'}".`,
+    debugMessage: `deepThink ignored: unsupported model_family "${modelFamily ?? 'default'}"`,
+    warningMessage: `The "deepThink" option is not supported for model_family "${modelFamily ?? 'default'}".`,
   };
 }
 
