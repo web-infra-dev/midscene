@@ -34,6 +34,7 @@ export function usePlaygroundState(
   // Scroll management
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
   const [verticalMode, setVerticalMode] = useState(false);
 
   // Progress tracking
@@ -44,6 +45,7 @@ export function usePlaygroundState(
   const currentRunningIdRef = useRef<number | null>(null);
   const interruptedFlagRef = useRef<Record<number, boolean>>({});
   const initializedRef = useRef<boolean>(false);
+  const lastScrollTopRef = useRef<number>(0);
 
   // Initialize messages from storage (runs when storage becomes available)
   useEffect(() => {
@@ -209,6 +211,19 @@ export function usePlaygroundState(
       const { scrollTop, scrollHeight, clientHeight } = infoListRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
       setShowScrollToBottomButton(!isAtBottom);
+
+      // Check scroll direction: only disable auto-scroll if user scrolled up
+      const scrollingUp = scrollTop < lastScrollTopRef.current;
+      lastScrollTopRef.current = scrollTop;
+
+      if (isAtBottom) {
+        // User scrolled to bottom, re-enable auto scroll
+        setAutoScrollEnabled(true);
+      } else if (scrollingUp) {
+        // User scrolled up, disable auto scroll
+        setAutoScrollEnabled(false);
+      }
+      // If scrolling down but not at bottom, keep current state
     }
   }, []);
 
@@ -219,22 +234,28 @@ export function usePlaygroundState(
         behavior: 'smooth',
       });
       setShowScrollToBottomButton(false);
+      setAutoScrollEnabled(true);
     }
   }, []);
 
-  // Auto scroll when info list updates
+  // Auto scroll when info list updates (only if auto scroll is enabled)
   useEffect(() => {
-    if (infoList.length > 0) {
+    if (infoList.length > 0 && autoScrollEnabled) {
       scrollToBottom();
     }
-  }, [infoList, scrollToBottom]);
+  }, [infoList, scrollToBottom, autoScrollEnabled]);
 
   // Scroll event listener
   useEffect(() => {
     const container = infoListRef.current;
     if (container) {
       container.addEventListener('scroll', checkIfScrolledToBottom);
-      checkIfScrolledToBottom();
+
+      // Initial check - only update button visibility, not auto-scroll state
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      setShowScrollToBottomButton(!isAtBottom);
+      lastScrollTopRef.current = scrollTop;
 
       return () => {
         container.removeEventListener('scroll', checkIfScrolledToBottom);
