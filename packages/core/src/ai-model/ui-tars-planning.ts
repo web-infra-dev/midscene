@@ -301,7 +301,7 @@ export async function uiTarsPlanning(
     log,
     usage: res.usage,
     rawResponse: JSON.stringify(res.content, undefined, 2),
-    more_actions_needed_by_instruction: shouldContinue,
+    shouldContinuePlanning: shouldContinue,
   };
 }
 

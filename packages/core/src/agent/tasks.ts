@@ -1,5 +1,9 @@
 import { ConversationHistory, plan, uiTarsPlanning } from '@/ai-model';
-import type { TMultimodalPrompt, TUserPrompt } from '@/common';
+import {
+  type TMultimodalPrompt,
+  type TUserPrompt,
+  getReadableTimeString,
+} from '@/common';
 import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
@@ -15,7 +19,6 @@ import type {
   MidsceneYamlFlowItem,
   PlanningAIResponse,
   PlanningAction,
-  PlanningActionParamSleep,
   PlanningActionParamWaitFor,
   ServiceDump,
   ServiceExtractOption,
@@ -155,7 +158,7 @@ export class TaskExecutor {
         return {
           output: {
             actions: [],
-            more_actions_needed_by_instruction: false,
+            shouldContinuePlanning: false,
             log: '',
             yamlString,
           },
@@ -215,6 +218,7 @@ export class TaskExecutor {
     ExecutionResult<
       | {
           yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+          output?: string;
         }
       | undefined
     >
@@ -248,6 +252,7 @@ export class TaskExecutor {
     ExecutionResult<
       | {
           yamlFlow?: MidsceneYamlFlowItem[]; // for cache use
+          output?: string;
         }
       | undefined
     >
@@ -269,6 +274,7 @@ export class TaskExecutor {
     );
 
     let errorCountInOnePlanningLoop = 0; // count the number of errors in one planning loop
+    let outputString: string | undefined;
 
     // Main planning loop - unified plan/replan logic
     while (true) {
@@ -283,7 +289,6 @@ export class TaskExecutor {
             deepThink,
           },
           executor: async (param, executorContext) => {
-            const startTime = Date.now();
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
             const { vlMode } = modelConfigForPlanning;
@@ -322,11 +327,10 @@ export class TaskExecutor {
             const {
               actions,
               log,
-              more_actions_needed_by_instruction,
+              note,
               error,
               usage,
               rawResponse,
-              sleep,
               reasoning_content,
             } = planResult;
 
@@ -338,21 +342,13 @@ export class TaskExecutor {
             executorContext.task.reasoning_content = reasoning_content;
             executorContext.task.output = {
               actions: actions || [],
-              more_actions_needed_by_instruction,
               log,
+              note,
               yamlFlow: planResult.yamlFlow,
+              output: outputString,
+              shouldContinuePlanning: planResult.shouldContinuePlanning,
             };
             executorContext.uiContext = uiContext;
-
-            const finalActions = [...(actions || [])];
-
-            if (sleep) {
-              const timeNow = Date.now();
-              const timeRemaining = sleep - (timeNow - startTime);
-              if (timeRemaining > 0) {
-                finalActions.push(this.sleepPlan(timeRemaining));
-              }
-            }
 
             assert(!error, `Failed to continue: ${error}\n${log || ''}`);
 
@@ -398,13 +394,15 @@ export class TaskExecutor {
           this.conversationHistory.pendingFeedbackMessage,
         );
       }
-      let errorFlag = false;
+      // todo: set time string
+
       try {
-        await session.appendAndRun(executables.tasks);
+        const result = await session.appendAndRun(executables.tasks);
+        outputString = result?.output;
       } catch (error: any) {
-        errorFlag = true;
+        // errorFlag = true;
         errorCountInOnePlanningLoop++;
-        this.conversationHistory.pendingFeedbackMessage = `Error executing running tasks: ${error?.message || String(error)}`;
+        this.conversationHistory.pendingFeedbackMessage = `Time: ${getReadableTimeString()}, Error executing running tasks: ${error?.message || String(error)}`;
         debug(
           'error when executing running tasks, but continue to run if it is not too many errors:',
           error instanceof Error ? error.message : String(error),
@@ -417,15 +415,9 @@ export class TaskExecutor {
         return session.appendErrorPlan('Too many errors in one planning loop');
       }
 
-      // Check if task is complete
-      if (!planResult?.more_actions_needed_by_instruction) {
-        if (errorFlag) {
-          debug(
-            'more_actions_needed_by_instruction is false, but there are errors in one planning loop, continue to run',
-          );
-        } else {
-          break;
-        }
+      // // Check if task is complete
+      if (!planResult?.shouldContinuePlanning) {
+        break;
       }
 
       // Increment replan count for next iteration
@@ -437,14 +429,14 @@ export class TaskExecutor {
       }
 
       if (!this.conversationHistory.pendingFeedbackMessage) {
-        this.conversationHistory.pendingFeedbackMessage =
-          'I have finished the action previously planned.';
+        this.conversationHistory.pendingFeedbackMessage = `Time: ${getReadableTimeString()}, I have finished the action previously planned.`;
       }
     }
 
     return {
       output: {
         yamlFlow,
+        output: outputString,
       },
       runner,
     };
@@ -609,15 +601,6 @@ export class TaskExecutor {
       output,
       thought,
       runner,
-    };
-  }
-
-  private sleepPlan(timeMs: number): PlanningAction<PlanningActionParamSleep> {
-    return {
-      type: 'Sleep',
-      param: {
-        timeMs,
-      },
     };
   }
 

@@ -401,7 +401,6 @@ export async function markupImageForLLM(
 export function buildYamlFlowFromPlans(
   plans: PlanningAction[],
   actionSpace: DeviceAction<any>[],
-  sleep?: number,
 ): MidsceneYamlFlowItem[] {
   const flow: MidsceneYamlFlowItem[] = [];
 
@@ -427,12 +426,6 @@ export function buildYamlFlowFromPlans(
     };
 
     flow.push(flowItem);
-  }
-
-  if (sleep) {
-    flow.push({
-      sleep,
-    });
   }
 
   return flow;
@@ -725,4 +718,33 @@ export const parseActionParam = (
   }
 
   return validated;
+};
+
+export const finalizeActionName = 'Finalize';
+
+/**
+ * Get a readable time string for the current time
+ * @param format - Optional format string. Supports: YYYY, MM, DD, HH, mm, ss. Default: 'YYYY-MM-DD HH:mm:ss'
+ * @returns A formatted time string with format label
+ */
+export const getReadableTimeString = (
+  format = 'YYYY-MM-DD HH:mm:ss',
+): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  const timeString = format
+    .replace('YYYY', String(year))
+    .replace('MM', month)
+    .replace('DD', day)
+    .replace('HH', hours)
+    .replace('mm', minutes)
+    .replace('ss', seconds);
+
+  return `${timeString} (${format})`;
 };
