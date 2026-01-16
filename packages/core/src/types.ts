@@ -240,15 +240,16 @@ export interface PlanningLocateParam extends DetailedLocateParam {
 
 export interface PlanningAction<ParamType = any> {
   thought?: string;
+  log?: string; // a brief preamble to the user explaining what you’re about to do
   type: string;
   param: ParamType;
 }
 
 export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
-  more_actions_needed_by_instruction: boolean;
+  thought?: string;
   log: string;
-  sleep?: number;
+  note?: string;
   error?: string;
 }
 
@@ -261,6 +262,7 @@ export interface PlanningAIResponse
   yamlString?: string;
   error?: string;
   reasoning_content?: string;
+  shouldContinuePlanning: boolean;
 }
 
 export interface PlanningActionParamSleep {

@@ -13,6 +13,7 @@ import { actionParser } from '@ui-tars/action-parser';
 import type { ConversationHistory } from './conversation-history';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
+
 type ActionType =
   | 'click'
   | 'left_double'
@@ -58,7 +59,7 @@ export async function uiTarsPlanning(
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
-  const screenshotBase64 = context.screenshot.getData();
+  const screenshotBase64 = context.screenshot.base64;
   const imagePayload = await resizeImageForUiTars(
     screenshotBase64,
     context.size,
@@ -115,50 +116,59 @@ export async function uiTarsPlanning(
     if (actionType === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
       transformActions.push({
         type: 'Tap',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
       });
     } else if (actionType === 'left_double') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
       transformActions.push({
         type: 'DoubleClick',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
         thought: action.thought || '',
       });
     } else if (actionType === 'right_single') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
       transformActions.push({
         type: 'RightClick',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
         thought: action.thought || '',
       });
@@ -301,7 +311,7 @@ export async function uiTarsPlanning(
     log,
     usage: res.usage,
     rawResponse: JSON.stringify(res.content, undefined, 2),
-    more_actions_needed_by_instruction: shouldContinue,
+    shouldContinuePlanning: shouldContinue,
   };
 }
 

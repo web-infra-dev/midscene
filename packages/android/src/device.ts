@@ -123,10 +123,8 @@ export class AndroidDevice implements AbstractInterface {
         }),
         call: async (param) => {
           const element = param.locate;
-          if (element) {
-            if (param.mode !== 'append') {
-              await this.clearInput(element as unknown as ElementInfo);
-            }
+          if (param.mode !== 'append') {
+            await this.clearInput(element as unknown as ElementInfo);
           }
 
           if (param.mode === 'clear') {
@@ -213,9 +211,8 @@ export class AndroidDevice implements AbstractInterface {
           locate: LocateResultElement;
         }
       >({
-        name: 'AndroidLongPress',
-        description:
-          'Trigger a long press on the screen at specified coordinates on Android devices',
+        name: 'LongPress',
+        description: 'Trigger a long press on the screen at specified element',
         paramSchema: z.object({
           duration: z
             .number()
@@ -228,9 +225,7 @@ export class AndroidDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (!element) {
-            throw new Error(
-              'AndroidLongPress requires an element to be located',
-            );
+            throw new Error('LongPress requires an element to be located');
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
@@ -250,7 +245,7 @@ export class AndroidDevice implements AbstractInterface {
           locate?: LocateResultElement;
         }
       >({
-        name: 'AndroidPull',
+        name: 'PullGesture',
         description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
           direction: z.enum(['up', 'down']).describe('The direction to pull'),
@@ -272,7 +267,7 @@ export class AndroidDevice implements AbstractInterface {
             ? { left: element.center[0], top: element.center[1] }
             : undefined;
           if (!param || !param.direction) {
-            throw new Error('AndroidPull requires a direction parameter');
+            throw new Error('PullGesture requires a direction parameter');
           }
           if (param.direction === 'down') {
             await this.pullDown(startPoint, param.distance, param.duration);

@@ -25,6 +25,29 @@ const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
 type AdaptBboxInput = number[] | string[] | string | (number[] | string[])[];
 
+/**
+ * Convert a point coordinate [0, 1000] to a small bbox [0, 1000]
+ * Creates a small bbox around the center point in the same coordinate space
+ *
+ * @param x - X coordinate in [0, 1000] range
+ * @param y - Y coordinate in [0, 1000] range
+ * @param bboxSize - Size of the bbox to create (default: 20)
+ * @returns [x1, y1, x2, y2] bbox in [0, 1000] coordinate space
+ */
+export function pointToBbox(
+  x: number,
+  y: number,
+  bboxSize = defaultBboxSize,
+): [number, number, number, number] {
+  const halfSize = bboxSize / 2;
+  const x1 = Math.max(x - halfSize, 0);
+  const y1 = Math.max(y - halfSize, 0);
+  const x2 = Math.min(x + halfSize, 1000);
+  const y2 = Math.min(y + halfSize, 1000);
+
+  return [x1, y1, x2, y2];
+}
+
 // transform the param of locate from qwen mode
 export function fillBboxParam(
   locate: PlanningLocateParam,
@@ -196,10 +219,12 @@ export function adaptBbox(
     result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (vlMode === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
-  } else if (vlMode === 'qwen3-vl' || vlMode === 'glm-v') {
-    result = normalized01000(normalizedBbox as number[], width, height);
-  } else {
+  } else if (vlMode === 'qwen2.5-vl') {
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
+  } else {
+    // Default: normalized 0-1000 coordinate system
+    // Includes: qwen3-vl, glm-v, auto-glm, auto-glm-multilingual, and future models
+    result = normalized01000(normalizedBbox as number[], width, height);
   }
 
   result[2] = Math.min(result[2], rightLimit);
@@ -401,7 +426,6 @@ export async function markupImageForLLM(
 export function buildYamlFlowFromPlans(
   plans: PlanningAction[],
   actionSpace: DeviceAction<any>[],
-  sleep?: number,
 ): MidsceneYamlFlowItem[] {
   const flow: MidsceneYamlFlowItem[] = [];
 
@@ -427,12 +451,6 @@ export function buildYamlFlowFromPlans(
     };
 
     flow.push(flowItem);
-  }
-
-  if (sleep) {
-    flow.push({
-      sleep,
-    });
   }
 
   return flow;
@@ -725,4 +743,33 @@ export const parseActionParam = (
   }
 
   return validated;
+};
+
+export const finalizeActionName = 'Finalize';
+
+/**
+ * Get a readable time string for the current time
+ * @param format - Optional format string. Supports: YYYY, MM, DD, HH, mm, ss. Default: 'YYYY-MM-DD HH:mm:ss'
+ * @returns A formatted time string with format label
+ */
+export const getReadableTimeString = (
+  format = 'YYYY-MM-DD HH:mm:ss',
+): string => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+
+  const timeString = format
+    .replace('YYYY', String(year))
+    .replace('MM', month)
+    .replace('DD', day)
+    .replace('HH', hours)
+    .replace('mm', minutes)
+    .replace('ss', seconds);
+
+  return `${timeString} (${format})`;
 };

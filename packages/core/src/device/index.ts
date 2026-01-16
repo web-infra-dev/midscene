@@ -1,4 +1,4 @@
-import { getMidsceneLocationSchema } from '@/common';
+import { finalizeActionName, getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
@@ -437,7 +437,8 @@ export type ActionAssertParam = {
 export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
   return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
     name: 'Print_Assert_Result',
-    description: 'Print the result of the assertion',
+    description:
+      'Print the result of the assertion. Use this only when the user asks for an assertion',
     paramSchema: actionAssertParamSchema,
     call: async (param) => {
       if (typeof param?.result !== 'boolean') {
@@ -455,6 +456,61 @@ export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
           `Assertion failed: ${param.thought || '(no thought)'} (Assertion = ${param.condition})`,
         );
       }
+    },
+  });
+};
+
+// Sleep
+export const ActionSleepParamSchema = z.object({
+  millisecond: z
+    .number()
+    .default(1000)
+    .optional()
+    .describe('Sleep duration in milliseconds, defaults to 1000ms (1 second)'),
+});
+
+export type ActionSleepParam = {
+  millisecond?: number;
+};
+
+export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
+  return defineAction<typeof ActionSleepParamSchema, ActionSleepParam>({
+    name: 'Sleep',
+    description:
+      'Wait for a specified duration before continuing. Defaults to 1 second (1000ms) if not specified.',
+    paramSchema: ActionSleepParamSchema,
+    call: async (param) => {
+      const duration = param?.millisecond ?? 1000;
+      getDebug('device:common-action')(`Sleeping for ${duration}ms`);
+      await new Promise((resolve) => setTimeout(resolve, duration));
+    },
+  });
+};
+
+// Finalize
+export const actionFinalizeParamSchema = z.object({
+  message: z
+    .string()
+    .optional()
+    .describe(
+      'The conclusion, data, or return value that the user needs. This message will be provided to the user when the task is finalized.',
+    ),
+});
+export type ActionFinalizeParam = {
+  message?: string;
+};
+
+export const defineActionFinalize = (): DeviceAction<ActionFinalizeParam> => {
+  return defineAction<typeof actionFinalizeParamSchema, ActionFinalizeParam>({
+    name: finalizeActionName,
+    description:
+      'Finalize the task. You can provide the conclusion, data, or return value that the user needs in the message.',
+    paramSchema: actionFinalizeParamSchema,
+    call: async (param) => {
+      getDebug('device:common-action')(
+        `Task finalized${param?.message ? `: ${param.message}` : ''}`,
+      );
+      return param.message;
     },
   });
 };

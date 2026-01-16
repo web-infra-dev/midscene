@@ -81,10 +81,12 @@ describe('action space', () => {
               'untilRight',
               'untilLeft',
             ])
+            .default('once')
             .describe('The scroll type'),
           actionType: z
             .enum(['Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert'])
             .describe('The scroll type')
+            .default('Tap')
             .optional(),
           option: z.number().optional().describe('An optional option value'),
         }),
@@ -98,11 +100,11 @@ describe('action space', () => {
         - param:
           - value: string // The value to be tapped
           - value2?: number // The value to be tapped
-          - value3?: number // The value 3
+          - value3?: number // The value 3, default: 345
           - locate: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped
           - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped for the second time
-          - scrollType: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type
-          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type
+          - scrollType?: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type, default: "once"
+          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type, default: "Tap"
           - option?: number // An optional option value"
     `);
   });
@@ -116,6 +118,18 @@ describe('system prompts', () => {
       includeBbox: false,
     });
     expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - includeThought false removes thought field', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      vlMode: undefined,
+      includeBbox: false,
+      includeThought: false,
+    });
+
+    expect(prompt).not.toContain('"thought"');
+    expect(prompt).toContain('"log"');
   });
 
   it('planning - should throw error when includeBbox is true but vlMode is undefined', async () => {

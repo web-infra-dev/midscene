@@ -67,3 +67,4 @@ export {
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
+export type { SerializedScreenshotItem } from './screenshot-item';

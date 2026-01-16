@@ -38,6 +38,7 @@ export type TestStatus =
   | 'timedOut'
   | 'skipped'
   | 'interrupted';
+import { isAutoGLM } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
 import {
@@ -67,7 +68,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert } from '../device';
+import { defineActionAssert, defineActionFinalize } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -143,6 +144,7 @@ const normalizeScrollType = (
 
 const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+const defaultAutoGlmReplanningCycleLimit = 100;
 
 export type AiActOptions = {
   cacheable?: boolean;
@@ -227,6 +229,8 @@ export class Agent<
 
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
+  private fullActionSpace: DeviceAction[];
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -266,7 +270,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = context.screenshot.getData();
+        const screenshotBase64 = context.screenshot.base64;
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -306,7 +310,9 @@ export class Agent<
 
     return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
       ? defaultVlmUiTarsReplanningCycleLimit
-      : defaultReplanningCycleLimit;
+      : isAutoGLM(modelConfigForPlanning.vlMode)
+        ? defaultAutoGlmReplanningCycleLimit
+        : defaultReplanningCycleLimit;
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -375,13 +381,17 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    const fullActionSpace = [...baseActionSpace, defineActionAssert()];
+    this.fullActionSpace = [
+      ...baseActionSpace,
+      defineActionAssert(),
+      defineActionFinalize(),
+    ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
-      actionSpace: fullActionSpace,
+      actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
@@ -408,9 +418,7 @@ export class Agent<
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
-    const commonAssertionAction = defineActionAssert();
-
-    return [...this.interface.actionSpace(), commonAssertionAction];
+    return this.fullActionSpace;
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
@@ -447,7 +455,7 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = context.screenshot.getData();
+      const currentScreenshotBase64 = context.screenshot.base64;
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
@@ -863,7 +871,10 @@ export class Agent<
     });
   }
 
-  async aiAct(taskPrompt: string, opt?: AiActOptions) {
+  async aiAct(
+    taskPrompt: string,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const fileChooserAccept = opt?.fileChooserAccept
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
@@ -886,10 +897,11 @@ export class Agent<
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
-      // if vlm-ui-tars, plan cache is not used
+      // if vlm-ui-tars or auto-glm, plan cache is not used
       const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
+      const isAutoGlm = isAutoGLM(modelConfigForPlanning.vlMode);
       const matchedCache =
-        isVlmUiTars || cacheable === false
+        isVlmUiTars || isAutoGlm || cacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
@@ -905,7 +917,8 @@ export class Agent<
 
         debug('matched cache, will call .runYaml to run the action');
         const yaml = matchedCache.cacheContent.yamlWorkflow;
-        return this.runYaml(yaml);
+        await this.runYaml(yaml);
+        return;
       }
 
       // If cache matched but yamlWorkflow is empty, fall through to normal execution
@@ -917,7 +930,7 @@ export class Agent<
       const imagesIncludeCount: number | undefined = useDeepThink
         ? undefined
         : 2;
-      const { output } = await this.taskExecutor.action(
+      const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
         defaultIntentModelConfig,
@@ -931,12 +944,12 @@ export class Agent<
       );
 
       // update cache
-      if (this.taskCache && output?.yamlFlow && cacheable !== false) {
+      if (this.taskCache && actionOutput?.yamlFlow && cacheable !== false) {
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
               name: taskPrompt,
-              flow: output.yamlFlow,
+              flow: actionOutput.yamlFlow,
             },
           ],
         };
@@ -951,7 +964,7 @@ export class Agent<
         );
       }
 
-      return output;
+      return actionOutput?.output;
     };
 
     return await runAiAct();
