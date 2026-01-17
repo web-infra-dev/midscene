@@ -1,9 +1,11 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { getPreferredLanguage } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
 export function systemPromptToLocateSection(
   modelFamily: TModelFamily | undefined,
 ) {
+  const preferredLanguage = getPreferredLanguage();
   const bboxFormat = bboxDescription(modelFamily);
   return `
 ## Role:
@@ -28,7 +30,7 @@ You are an AI assistant that helps identify UI elements.
 Fields:
 * \`bbox\` - Bounding box of the section containing the target element
 * \`references_bbox\` - Optional array of bounding boxes for reference elements
-* \`error\` - Optional error message if the section cannot be found
+* \`error\` - Optional error message if the section cannot be found. Use ${preferredLanguage}.
 
 Example:
 If the description is "delete button on the second row with title 'Peter'", return:

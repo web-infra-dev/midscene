@@ -8,13 +8,18 @@ import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locat
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { getMidsceneLocationSchema } from '@/index';
 import { mockActionSpace } from 'tests/common';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
+
+// Mock getPreferredLanguage to ensure consistent test output
+vi.mock('@midscene/shared/env', () => ({
+  getPreferredLanguage: vi.fn().mockReturnValue('English'),
+}));
 
 const mockLocatorScheme =
   '{"bbox": [number, number, number, number], "prompt": string}';

@@ -1,5 +1,6 @@
 import type { DeviceAction } from '@/types';
 import type { TModelFamily } from '@midscene/shared/env';
+import { getPreferredLanguage } from '@midscene/shared/env';
 import {
   getZodDescription,
   getZodTypeName,
@@ -10,11 +11,14 @@ import { bboxDescription } from './common';
 
 // Note: put the log field first to trigger the CoT
 
-const buildCommonOutputFields = (includeThought: boolean) => {
+const buildCommonOutputFields = (
+  includeThought: boolean,
+  preferredLanguage: string,
+) => {
   const fields = [
-    `"note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action.`,
-    `"log": string, // a brief preamble to the user explaining what you’re about to do`,
-    `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use the same language as the user's instruction.`,
+    `"note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action. Use ${preferredLanguage}.`,
+    `"log": string, // a brief preamble to the user explaining what you're about to do. Use ${preferredLanguage}.`,
+    `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use ${preferredLanguage}.`,
   ];
 
   if (includeThought) {
@@ -174,6 +178,8 @@ export async function systemPromptToTaskPlanning({
   includeBbox: boolean;
   includeThought?: boolean;
 }) {
+  const preferredLanguage = getPreferredLanguage();
+
   // Validate parameters: if includeBbox is true, modelFamily must be defined
   if (includeBbox && !modelFamily) {
     throw new Error(
@@ -192,9 +198,9 @@ export async function systemPromptToTaskPlanning({
   const logFieldInstruction = `
 ## About the \`log\` field (preamble message)
 
-The \`log\` field is a brief preamble message to the user explaining what you’re about to do. It should follow these principles and examples:
+The \`log\` field is a brief preamble message to the user explaining what you're about to do. It should follow these principles and examples:
 
-- **Use the same language as the user's instruction**
+- **Use ${preferredLanguage}**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
 - **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what’s been done so far and create a sense of momentum and clarity for the user to understand your next actions.
 - **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
@@ -207,7 +213,10 @@ The \`log\` field is a brief preamble message to the user explaining what you’
 `;
 
   const shouldIncludeThought = includeThought ?? true;
-  const commonOutputFields = buildCommonOutputFields(shouldIncludeThought);
+  const commonOutputFields = buildCommonOutputFields(
+    shouldIncludeThought,
+    preferredLanguage,
+  );
   const exampleThoughtLine = shouldIncludeThought
     ? `  "thought": "The form has already been filled, I need to click the login button to login",
 `

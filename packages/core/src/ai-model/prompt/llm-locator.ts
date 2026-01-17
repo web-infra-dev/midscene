@@ -1,8 +1,10 @@
 import type { TModelFamily } from '@midscene/shared/env';
+import { getPreferredLanguage } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 export function systemPromptToLocateElement(
   modelFamily: TModelFamily | undefined,
 ) {
+  const preferredLanguage = getPreferredLanguage();
   const bboxComment = bboxDescription(modelFamily);
   return `
 ## Role:
@@ -36,7 +38,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found"]
+  "errors": ["I can see ..., but {some element} is not found. Use ${preferredLanguage}."]
 }
 \`\`\`
 `;

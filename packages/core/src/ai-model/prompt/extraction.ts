@@ -1,6 +1,9 @@
+import { getPreferredLanguage } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 
 export function systemPromptToExtract() {
+  const preferredLanguage = getPreferredLanguage();
+
   return `
 You are a versatile professional in software UI design and testing. Your outstanding contributions will impact the user experience of billions of users.
 
@@ -13,7 +16,7 @@ If the user provides multiple reference images, please carefully review the refe
 
 Return in the following JSON format:
 {
-  thought: string, // the thinking process of the extraction, less then 300 words
+  thought: string, // the thinking process of the extraction, less then 300 words. Use ${preferredLanguage} in this field.
   data: any, // the extracted data. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.
   errors: [], // string[], error message if any
 }
