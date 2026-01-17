@@ -99,7 +99,7 @@ MIDSCENE_MODEL_FAMILY="qwen2.5-vl"
 
 ### Zhipu GLM-V {#glm-v}
 
-Using Zhipu AI's GLM-4.6V as an example:
+Zhipu GLM-V is an open-source vision model from Zhipu AI. Using `GLM-4.6V` as an example:
 
 Obtain an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), and set:
 
@@ -109,6 +109,38 @@ MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="glm-4.6v"
 MIDSCENE_MODEL_FAMILY="glm-v"
 ```
+
+**Learn more about Zhipu GLM-V**
+
+- Github: [https://github.com/zai-org/GLM-V](https://github.com/zai-org/GLM-V)
+- Hugging Face: [https://huggingface.co/zai-org/GLM-4.6V](https://huggingface.co/zai-org/GLM-4.6V)
+
+### Zhipu AutoGLM {#auto-glm}
+
+Zhipu AutoGLM is an open-source mobile UI automation model from Zhipu AI.
+
+After obtaining an API key from [Z.AI (Global)](https://z.ai/manage-apikey/apikey-list) or [BigModel (CN)](https://bigmodel.cn/usercenter/proj-mgmt/apikeys), configure:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://api.z.ai/api/paas/v4" # Or https://open.bigmodel.cn/api/paas/v4
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="autoglm-phone"
+MIDSCENE_MODEL_FAMILY="auto-glm" # Or "auto-glm-multilingual"
+```
+
+**About `MIDSCENE_MODEL_FAMILY` Configuration**
+
+AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
+
+- `auto-glm` - Corresponds to AutoGLM-Phone-9B, optimized for **Chinese mobile applications**
+- `auto-glm-multilingual` - Corresponds to AutoGLM-Phone-9B-Multilingual, supports **English and other languages**
+
+Choose the appropriate version based on your application language.
+
+**Learn more about Zhipu AutoGLM**
+
+- Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
+- Hugging Face: [https://huggingface.co/zai-org/AutoGLM-Phone-9B](https://huggingface.co/zai-org/AutoGLM-Phone-9B)
 
 ### Gemini-3-Pro and Gemini-3-Flash {#gemini-3-pro}
 
