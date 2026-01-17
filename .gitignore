@@ -104,6 +104,9 @@ __ai_responses__/
 
 .nx/cache
 .nx/workspace-data
+nx-native-file-cache-*/
+jiti/
+node-compile-cache/
 # Midscene.js dump files
 midscene_run
 midscene_run/report

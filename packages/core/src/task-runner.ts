@@ -382,11 +382,12 @@ export class TaskRunner {
     if (this.status !== 'error') {
       return null;
     }
-    const errorTaskIndex = this.tasks.findIndex(
-      (task) => task.status === 'failed',
-    );
-    if (errorTaskIndex >= 0) {
-      return this.tasks[errorTaskIndex];
+    // Find the LAST failed task (not the first one)
+    // This is important when using allowWhenError to continue after errors
+    for (let i = this.tasks.length - 1; i >= 0; i--) {
+      if (this.tasks[i].status === 'failed') {
+        return this.tasks[i];
+      }
     }
     return null;
   }
