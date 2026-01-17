@@ -175,7 +175,7 @@ async function createChatClient({
     }
     console.log('DEBUGGING MODE: langfuse wrapper enabled');
     // Use variable to prevent static analysis by bundlers
-    const langfuseModule = 'langfuse';
+    const langfuseModule = '@langfuse/openai';
     const { observeOpenAI } = await import(langfuseModule);
     openai = observeOpenAI(openai);
   }
