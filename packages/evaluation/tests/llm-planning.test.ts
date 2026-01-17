@@ -27,15 +27,15 @@ const testSources = ['todo'];
 
 let actionSpace: DeviceAction[] = [];
 
-let globalVlMode = false;
+let globalModelFamily = false;
 
 beforeAll(async () => {
   const defaultModelConfig =
     globalModelConfigManager.getModelConfig('planning');
-  const { vlMode } = defaultModelConfig;
-  globalVlMode = !!vlMode;
+  const { modelFamily } = defaultModelConfig;
+  globalModelFamily = !!modelFamily;
 
-  expect(globalVlMode).toBeTruthy();
+  expect(globalModelFamily).toBeTruthy();
 
   actionSpace = [
     defineActionTap(async () => {}),
@@ -44,7 +44,7 @@ beforeAll(async () => {
   ];
 });
 
-describe.skipIf(globalVlMode)('ai planning - by element', () => {
+describe.skipIf(globalModelFamily)('ai planning - by element', () => {
   testSources.forEach((source) => {
     test(
       `${source}: planning`,
@@ -117,7 +117,7 @@ afterEach(async () => {
   await resultCollector.printSummary();
 });
 
-describe.skipIf(!globalVlMode)('ai planning - by coordinates', () => {
+describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
   vlCases.forEach((source) => {
     test(
       `${source}: planning`,
@@ -171,7 +171,7 @@ describe.skipIf(!globalVlMode)('ai planning - by coordinates', () => {
                   context.size.height,
                   0,
                   0,
-                  modelConfig.vlMode,
+                  modelConfig.modelFamily,
                 );
                 testCase.annotation_index_id = indexId;
                 annotations.push({

@@ -263,16 +263,6 @@ export type TVlModeValues =
   | 'auto-glm'
   | 'auto-glm-multilingual';
 
-export type TVlModeTypes =
-  | 'qwen2.5-vl'
-  | 'qwen3-vl'
-  | 'doubao-vision'
-  | 'gemini'
-  | 'vlm-ui-tars'
-  | 'glm-v'
-  | 'auto-glm'
-  | 'auto-glm-multilingual';
-
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
   'gemini',
@@ -467,12 +457,6 @@ export interface IModelConfig {
    * Default is 2000.
    */
   retryInterval?: number;
-  /**
-   * - vlModeRaw: exists only in non-legacy logic. value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars', 'vlm-ui-tars-doubao', 'vlm-ui-tars-doubao-1.5'
-   * - vlMode: based on the results of the vlModoRaw classification，value can be 'doubao-vision', 'gemini', 'qwen2.5-vl', 'vlm-ui-tars'
-   */
-  vlModeRaw?: string;
-  vlMode?: TVlModeTypes;
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', etc.

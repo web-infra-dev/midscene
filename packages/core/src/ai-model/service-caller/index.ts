@@ -7,7 +7,6 @@ import {
   MIDSCENE_MODEL_MAX_TOKENS,
   OPENAI_MAX_TOKENS,
   type TModelFamily,
-  type TVlModeTypes,
   type UITarsModelVersion,
   globalConfigManager,
 } from '@midscene/shared/env';
@@ -19,7 +18,7 @@ import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
-import { isAutoGLM } from '../auto-glm/util';
+import { isAutoGLM, isUITars } from '../auto-glm/util';
 
 async function createChatClient({
   modelConfig,
@@ -29,8 +28,7 @@ async function createChatClient({
   completion: OpenAI.Chat.Completions;
   modelName: string;
   modelDescription: string;
-  uiTarsVersion?: UITarsModelVersion;
-  vlMode: TVlModeTypes | undefined;
+  uiTarsModelVersion?: UITarsModelVersion;
   modelFamily: TModelFamily | undefined;
 }> {
   const {
@@ -41,8 +39,7 @@ async function createChatClient({
     openaiApiKey,
     openaiExtraConfig,
     modelDescription,
-    uiTarsModelVersion: uiTarsVersion,
-    vlMode,
+    uiTarsModelVersion,
     modelFamily,
     createOpenAIClient,
     timeout,
@@ -195,8 +192,7 @@ async function createChatClient({
     completion: openai.chat.completions,
     modelName,
     modelDescription,
-    uiTarsVersion,
-    vlMode,
+    uiTarsModelVersion,
     modelFamily,
   };
 }
@@ -219,8 +215,7 @@ export async function callAI(
     completion,
     modelName,
     modelDescription,
-    uiTarsVersion,
-    vlMode,
+    uiTarsModelVersion,
     modelFamily,
   } = await createChatClient({
     modelConfig,
@@ -266,14 +261,14 @@ export async function callAI(
     temperature,
     stream: !!isStreaming,
     max_tokens: maxTokens,
-    ...(vlMode === 'qwen2.5-vl' // qwen vl v2 specific config
+    ...(modelFamily === 'qwen2.5-vl' // qwen vl v2 specific config
       ? {
           vl_high_resolution_images: true,
         }
       : {}),
   };
 
-  if (isAutoGLM(vlMode)) {
+  if (isAutoGLM(modelFamily)) {
     (commonConfig as unknown as Record<string, number>).top_p = 0.85;
     (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
   }
@@ -369,7 +364,7 @@ export async function callAI(
       }
       content = accumulated;
       debugProfileStats(
-        `streaming model, ${modelName}, mode, ${vlMode || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
+        `streaming model, ${modelName}, mode, ${modelFamily || 'default'}, cost-ms, ${timeCost}, temperature, ${temperature ?? ''}`,
       );
     } else {
       // Non-streaming with retry logic
@@ -391,7 +386,7 @@ export async function callAI(
           timeCost = Date.now() - startTime;
 
           debugProfileStats(
-            `model, ${modelName}, mode, ${vlMode || 'default'}, ui-tars-version, ${uiTarsVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
+            `model, ${modelName}, mode, ${modelFamily || 'default'}, ui-tars-version, ${uiTarsModelVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
           );
 
           debugProfileDetail(
@@ -480,8 +475,8 @@ export async function callAIWithObjectResponse<T>(
     deepThink: options?.deepThink,
   });
   assert(response, 'empty response');
-  const vlMode = modelConfig.vlMode;
-  const jsonContent = safeParseJson(response.content, vlMode);
+  const modelFamily = modelConfig.modelFamily;
+  const jsonContent = safeParseJson(response.content, modelFamily);
   assert(
     typeof jsonContent === 'object',
     `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
@@ -650,7 +645,10 @@ function normalizeJsonObject(obj: any): any {
   return obj;
 }
 
-export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
+export function safeParseJson(
+  input: string,
+  modelFamily: TModelFamily | undefined,
+) {
   const cleanJsonString = extractJSONFromCodeBlock(input);
   // match the point
   if (cleanJsonString?.match(/\((\d+),(\d+)\)/)) {
@@ -675,7 +673,7 @@ export function safeParseJson(input: string, vlMode: TVlModeTypes | undefined) {
     lastError = error;
   }
 
-  if (vlMode === 'doubao-vision' || vlMode === 'vlm-ui-tars') {
+  if (modelFamily === 'doubao-vision' || isUITars(modelFamily)) {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     try {
       parsed = JSON.parse(jsonrepair(jsonString));

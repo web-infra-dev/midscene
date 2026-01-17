@@ -23,7 +23,7 @@
  * - Adapted prompts for Midscene.js integration
  */
 
-import type { TVlModeTypes } from '@midscene/shared/env';
+import type { TModelFamily } from '@midscene/shared/env';
 
 /**
  * Get formatted date string for system prompts
@@ -205,20 +205,22 @@ const getAutoGLMChinesePlanPrompt = (): string => {
 };
 
 export const getAutoGLMPlanPrompt = (
-  vlMode: TVlModeTypes | undefined,
+  modelFamily: TModelFamily | undefined,
 ): string => {
-  if (vlMode === 'auto-glm-multilingual') {
+  if (modelFamily === 'auto-glm-multilingual') {
     return getAutoGLMMultilingualPlanPrompt();
-  } else if (vlMode === 'auto-glm') {
+  } else if (modelFamily === 'auto-glm') {
     return getAutoGLMChinesePlanPrompt();
   }
-  throw new Error(`Unsupported vlMode for Auto-GLM plan prompt: ${vlMode}`);
+  throw new Error(
+    `Unsupported modelFamily for Auto-GLM plan prompt: ${modelFamily}`,
+  );
 };
 
 export const getAutoGLMLocatePrompt = (
-  vlMode: TVlModeTypes | undefined,
+  modelFamily: TModelFamily | undefined,
 ): string => {
-  if (vlMode === 'auto-glm-multilingual') {
+  if (modelFamily === 'auto-glm-multilingual') {
     return `
 The current date: ${getMultilingualFormattedDate()}
 
@@ -249,7 +251,7 @@ Your output should STRICTLY follow the format:
 REMEMBER:
 - Your goal is to locate and tap the UI element specified by the user (e.g., button, icon, link, etc.). Do not attempt any other actions.
   `;
-  } else if (vlMode === 'auto-glm') {
+  } else if (modelFamily === 'auto-glm') {
     return `
 今天的日期是: ${getChineseFormattedDate()}
 
@@ -270,5 +272,7 @@ REMEMBER:
 - 你的目标是定位并点击用户指定的UI元素（例如按钮、图标、链接等），请不要尝试任何其他的操作。
     `;
   }
-  throw new Error(`Unsupported vlMode for Auto-GLM locate prompt: ${vlMode}`);
+  throw new Error(
+    `Unsupported modelFamily for Auto-GLM locate prompt: ${modelFamily}`,
+  );
 };

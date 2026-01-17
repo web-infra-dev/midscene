@@ -20,7 +20,6 @@ import {
   OPENAI_BASE_URL,
   type TIntent,
   type TModelFamily,
-  type TVlModeTypes,
   UITarsModelVersion,
 } from './types';
 
@@ -42,46 +41,37 @@ const KEYS_MAP: Record<TIntent, TModelConfigKeys> = {
 } as const;
 
 /**
- * Convert model family to VL configuration
+ * Get UI-TARS model version from model family
  * @param modelFamily - The model family value
- * @returns Object containing vlMode and uiTarsVersion
+ * @returns UITarsModelVersion if the model family is a UI-TARS variant, undefined otherwise
  */
-export const modelFamilyToVLConfig = (
+export const getUITarsModelVersion = (
   modelFamily?: TModelFamily,
-): {
-  vlMode?: TVlModeTypes;
-  uiTarsVersion?: UITarsModelVersion;
-} => {
-  if (!modelFamily) {
-    return { vlMode: undefined, uiTarsVersion: undefined };
-  }
-
+): UITarsModelVersion | undefined => {
   // UI-TARS variants with version handling
   if (modelFamily === 'vlm-ui-tars') {
-    return { vlMode: 'vlm-ui-tars', uiTarsVersion: UITarsModelVersion.V1_0 };
+    return UITarsModelVersion.V1_0;
   }
 
   if (
     modelFamily === 'vlm-ui-tars-doubao' ||
     modelFamily === 'vlm-ui-tars-doubao-1.5'
   ) {
-    return {
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
-    };
+    return UITarsModelVersion.DOUBAO_1_5_20B;
   }
 
-  if (modelFamily === 'gpt-5') {
-    return { vlMode: undefined, uiTarsVersion: undefined };
-  }
+  return undefined;
+};
 
-  // Check if the modelFamily is valid
-  if (!MODEL_FAMILY_VALUES.includes(modelFamily as any)) {
+/**
+ * Validate model family value
+ * @param modelFamily - The model family value to validate
+ * @throws Error if the model family is invalid
+ */
+export const validateModelFamily = (modelFamily?: TModelFamily): void => {
+  if (modelFamily && !MODEL_FAMILY_VALUES.includes(modelFamily as any)) {
     throw new Error(`Invalid MIDSCENE_MODEL_FAMILY value: ${modelFamily}`);
   }
-
-  // For other model families, they directly map to vlMode
-  return { vlMode: modelFamily as TVlModeTypes, uiTarsVersion: undefined };
 };
 
 /**
@@ -92,7 +82,6 @@ export const modelFamilyToVLConfig = (
 export const legacyConfigToModelFamily = (
   provider: Record<string, string | undefined>,
 ): TModelFamily | undefined => {
-  // Step 1: Parse legacy environment variables to get vlMode and uiTarsVersion
   const isDoubao = provider[MIDSCENE_USE_DOUBAO_VISION];
   const isQwen = provider[MIDSCENE_USE_QWEN_VL];
   const isQwen3 = provider[MIDSCENE_USE_QWEN3_VL];
@@ -113,7 +102,6 @@ export const legacyConfigToModelFamily = (
     );
   }
 
-  // Step 2: Map to model family based on detected mode
   // Simple modes that directly map to model family
   if (isQwen3) return 'qwen3-vl';
   if (isQwen) return 'qwen2.5-vl';
@@ -133,6 +121,19 @@ export const legacyConfigToModelFamily = (
   }
 
   return undefined;
+};
+
+const getModelDescription = (
+  modelFamily: TModelFamily | undefined,
+  uiTarsModelVersion: UITarsModelVersion | undefined,
+) => {
+  if (uiTarsModelVersion) {
+    return `UI-TARS=${uiTarsModelVersion}`;
+  }
+  if (modelFamily) {
+    return `${modelFamily} mode`;
+  }
+  return '';
 };
 
 /**
@@ -187,35 +188,20 @@ export const parseOpenaiSdkConfig = ({
     ? Number(provider[keys.temperature])
     : 0;
 
-  const { vlMode, uiTarsVersion } = modelFamilyToVLConfig(
-    modelFamilyRaw as unknown as TModelFamily,
-  );
+  const modelFamily = modelFamilyRaw as unknown as TModelFamily;
+  validateModelFamily(modelFamily);
+  const uiTarsModelVersion = getUITarsModelVersion(modelFamily);
 
-  const getModelDescription = (
-    vlMode: TVlModeTypes | undefined,
-    uiTarsVersion: UITarsModelVersion | undefined,
-  ) => {
-    if (vlMode) {
-      if (uiTarsVersion) {
-        return `UI-TARS=${uiTarsVersion}`;
-      } else {
-        return `${vlMode} mode`;
-      }
-    }
-    return '';
-  };
-  const modelDescription = getModelDescription(vlMode, uiTarsVersion);
+  const modelDescription = getModelDescription(modelFamily, uiTarsModelVersion);
 
   return {
     socksProxy,
     httpProxy,
-    vlModeRaw: vlMode,
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig,
-    vlMode,
-    modelFamily: modelFamilyRaw as unknown as TModelFamily,
-    uiTarsModelVersion: uiTarsVersion,
+    modelFamily,
+    uiTarsModelVersion,
     modelName: modelName!,
     modelDescription,
     intent: '-' as any,

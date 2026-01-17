@@ -5,7 +5,6 @@ import type {
   UIContext,
 } from '@/types';
 import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
-import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
@@ -60,11 +59,6 @@ export async function uiTarsPlanning(
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
   const screenshotBase64 = context.screenshot.base64;
-  const imagePayload = await resizeImageForUiTars(
-    screenshotBase64,
-    context.size,
-    uiTarsModelVersion,
-  );
 
   conversationHistory.append({
     role: 'user',
@@ -72,7 +66,7 @@ export async function uiTarsPlanning(
       {
         type: 'image_url',
         image_url: {
-          url: imagePayload,
+          url: screenshotBase64,
         },
       },
     ],
@@ -434,31 +428,3 @@ export type Action =
   | ScrollAction
   | FinishedAction
   | WaitAction;
-
-export async function resizeImageForUiTars(
-  imageBase64: string,
-  size: Size,
-  uiTarsVersion: UITarsModelVersion | undefined,
-) {
-  if (uiTarsVersion === UITarsModelVersion.V1_5) {
-    debug('ui-tars-v1.5, will check image size', size);
-    const currentPixels = size.width * size.height;
-    const maxPixels = 16384 * 28 * 28; //
-    if (currentPixels > maxPixels) {
-      const resizeFactor = Math.sqrt(maxPixels / currentPixels);
-      const newWidth = Math.floor(size.width * resizeFactor);
-      const newHeight = Math.floor(size.height * resizeFactor);
-      debug(
-        'resize image for ui-tars, new width: %s, new height: %s',
-        newWidth,
-        newHeight,
-      );
-      const resizedImage = await resizeImgBase64(imageBase64, {
-        width: newWidth,
-        height: newHeight,
-      });
-      return resizedImage;
-    }
-  }
-  return imageBase64;
-}

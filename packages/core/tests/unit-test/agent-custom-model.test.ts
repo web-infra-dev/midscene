@@ -76,8 +76,6 @@ describe('Agent with custom OpenAI client', () => {
           "temperature": 0,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
-          "vlMode": "qwen2.5-vl",
-          "vlModeRaw": "qwen2.5-vl",
         }
       `);
 
@@ -101,8 +99,6 @@ describe('Agent with custom OpenAI client', () => {
           "temperature": 0,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
-          "vlMode": "qwen2.5-vl",
-          "vlModeRaw": "qwen2.5-vl",
         }
       `);
 
@@ -126,8 +122,6 @@ describe('Agent with custom OpenAI client', () => {
           "temperature": 0,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
-          "vlMode": "qwen2.5-vl",
-          "vlModeRaw": "qwen2.5-vl",
         }
       `);
     });
@@ -163,8 +157,6 @@ describe('Agent with custom OpenAI client', () => {
           "temperature": 0,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
-          "vlMode": "qwen2.5-vl",
-          "vlModeRaw": "qwen2.5-vl",
         }
       `);
 
@@ -188,8 +180,6 @@ describe('Agent with custom OpenAI client', () => {
           "temperature": 0,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
-          "vlMode": undefined,
-          "vlModeRaw": undefined,
         }
       `);
 
@@ -213,8 +203,6 @@ describe('Agent with custom OpenAI client', () => {
           "temperature": 0,
           "timeout": undefined,
           "uiTarsModelVersion": undefined,
-          "vlMode": undefined,
-          "vlModeRaw": undefined,
         }
       `);
     });

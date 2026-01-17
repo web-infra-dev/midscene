@@ -22,7 +22,7 @@ export async function autoGLMPlanning(
   const { conversationHistory, context, modelConfig, actionContext } = options;
 
   const systemPrompt =
-    getAutoGLMPlanPrompt(modelConfig.vlMode) +
+    getAutoGLMPlanPrompt(modelConfig.modelFamily) +
     (actionContext
       ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>`
       : '');

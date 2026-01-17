@@ -75,8 +75,6 @@ const modelConfigCalcByMockedModelConfig = {
   socksProxy: undefined,
   temperature: 0,
   uiTarsModelVersion: undefined,
-  vlMode: 'qwen3-vl',
-  vlModeRaw: 'qwen3-vl',
   modelFamily: 'qwen3-vl',
   createOpenAIClient: undefined,
   retryCount: 1,

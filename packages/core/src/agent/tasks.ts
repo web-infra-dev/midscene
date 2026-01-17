@@ -4,7 +4,7 @@ import {
   plan,
   uiTarsPlanning,
 } from '@/ai-model';
-import { isAutoGLM } from '@/ai-model/auto-glm/util';
+import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
   type TMultimodalPrompt,
   type TUserPrompt,
@@ -297,11 +297,7 @@ export class TaskExecutor {
           executor: async (param, executorContext) => {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
-            const { vlMode } = modelConfigForPlanning;
-            const uiTarsModelVersion =
-              vlMode === 'vlm-ui-tars'
-                ? modelConfigForPlanning.uiTarsModelVersion
-                : undefined;
+            const { modelFamily } = modelConfigForPlanning;
 
             const actionSpace = this.getActionSpace();
             debug(
@@ -315,9 +311,9 @@ export class TaskExecutor {
               );
             }
 
-            const planImpl = uiTarsModelVersion
+            const planImpl = isUITars(modelFamily)
               ? uiTarsPlanning
-              : isAutoGLM(vlMode)
+              : isAutoGLM(modelFamily)
                 ? autoGLMPlanning
                 : plan;
 

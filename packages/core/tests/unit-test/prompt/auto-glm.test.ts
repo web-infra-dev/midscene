@@ -26,11 +26,13 @@ describe('auto-glm prompts', () => {
       expect(prompt).toMatchSnapshot();
     });
 
-    it('auto-glm plan prompt - should throw error for unsupported vlMode', () => {
+    it('auto-glm plan prompt - should throw error for unsupported modelFamily', () => {
       expect(() => {
         // @ts-expect-error Testing invalid input
         getAutoGLMPlanPrompt('invalid-mode');
-      }).toThrow('Unsupported vlMode for Auto-GLM plan prompt: invalid-mode');
+      }).toThrow(
+        'Unsupported modelFamily for Auto-GLM plan prompt: invalid-mode',
+      );
     });
   });
 
@@ -45,11 +47,13 @@ describe('auto-glm prompts', () => {
       expect(prompt).toMatchSnapshot();
     });
 
-    it('auto-glm locate prompt - should throw error for unsupported vlMode', () => {
+    it('auto-glm locate prompt - should throw error for unsupported modelFamily', () => {
       expect(() => {
         // @ts-expect-error Testing invalid input
         getAutoGLMLocatePrompt('invalid-mode');
-      }).toThrow('Unsupported vlMode for Auto-GLM locate prompt: invalid-mode');
+      }).toThrow(
+        'Unsupported modelFamily for Auto-GLM locate prompt: invalid-mode',
+      );
     });
   });
 });

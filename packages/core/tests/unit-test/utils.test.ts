@@ -730,7 +730,7 @@ describe('search area', () => {
         undefined,
       );
 
-      // For all vlMode, minEdgeSize = 500, padding = 200 each side
+      // For all modelFamily, minEdgeSize = 500, padding = 200 each side
       expect(result).toEqual({
         left: 0, // 100 - 200 = -100, clamped to 0
         top: 0, // 100 - 200 = -100, clamped to 0
