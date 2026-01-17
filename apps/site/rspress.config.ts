@@ -136,6 +136,21 @@ export default defineConfig({
           link: '/ios-api-reference',
         },
         {
+          sectionHeaderText: 'PC Desktop',
+        },
+        {
+          text: 'Introduction',
+          link: '/computer-introduction',
+        },
+        {
+          text: 'Getting started',
+          link: '/computer-getting-started',
+        },
+        {
+          text: 'API reference (PC Desktop)',
+          link: '/computer-api-reference',
+        },
+        {
           sectionHeaderText: 'More features',
         },
         {
@@ -273,6 +288,21 @@ export default defineConfig({
         {
           text: 'API 参考（iOS）',
           link: '/zh/ios-api-reference',
+        },
+        {
+          sectionHeaderText: 'PC 桌面',
+        },
+        {
+          text: '介绍',
+          link: '/zh/computer-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/computer-getting-started',
+        },
+        {
+          text: 'API 参考（PC 桌面）',
+          link: '/zh/computer-api-reference',
         },
         {
           sectionHeaderText: '更多特性',

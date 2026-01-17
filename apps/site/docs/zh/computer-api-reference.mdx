@@ -1,0 +1,352 @@
+# API 参考（PC 桌面）
+
+本页记录了 `@midscene/computer` 提供的 PC 桌面特定 API。
+
+有关适用于所有平台的通用 API，请参阅 [通用 API 参考](./api)。
+
+## Agent 创建
+
+### `agentFromComputer(opts?): Promise<ComputerAgent>`
+
+创建用于桌面自动化的 agent。
+
+**参数：**
+
+```typescript
+interface ComputerAgentOpt {
+  // Agent 选项（继承自 AgentOpt）
+  aiActionContext?: string;
+  cache?: boolean;
+  // ... 其他 AgentOpt 属性
+
+  // 设备选项
+  displayId?: string;
+  customActions?: DeviceAction<any>[];
+}
+```
+
+- `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
+- `customActions`（可选）：向设备添加自定义操作。
+
+**示例：**
+
+```typescript
+import { agentFromComputer } from '@midscene/computer';
+
+// 连接到主显示器
+const agent = await agentFromComputer({
+  aiActionContext: '你正在自动化一个桌面应用。',
+});
+
+// 连接到特定显示器
+const displays = await ComputerDevice.listDisplays();
+const agent2 = await agentFromComputer({
+  displayId: displays[1].id,
+});
+```
+
+## 设备管理
+
+### `ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+
+列出所有可用显示器。
+
+**返回：**
+
+```typescript
+interface DisplayInfo {
+  id: string;
+  name: string;
+  primary?: boolean;
+}
+```
+
+**示例：**
+
+```typescript
+import { ComputerDevice } from '@midscene/computer';
+
+const displays = await ComputerDevice.listDisplays();
+console.log('可用显示器:', displays);
+// [
+//   { id: '0', name: '内置显示器', primary: true },
+//   { id: '1', name: '外接显示器', primary: false }
+// ]
+```
+
+### `checkComputerEnvironment(): Promise<EnvironmentCheck>`
+
+检查计算机环境是否正确配置。
+
+**返回：**
+
+```typescript
+interface EnvironmentCheck {
+  available: boolean;
+  error?: string;
+  platform: string;
+  displays: number;
+}
+```
+
+**示例：**
+
+```typescript
+import { checkComputerEnvironment } from '@midscene/computer';
+
+const env = await checkComputerEnvironment();
+console.log('环境检查:', env);
+
+if (!env.available) {
+  console.error('环境错误:', env.error);
+}
+```
+
+## ComputerAgent
+
+`ComputerAgent` 类继承自 `PageAgent<ComputerDevice>`，并继承所有通用 agent 方法：
+
+- `aiAct(action: string)`：使用 AI 执行操作
+- `aiQuery(query: string)`：使用 AI 提取信息
+- `aiAssert(assertion: string)`：使用 AI 断言条件
+- `aiWaitFor(condition: string)`：等待条件
+- `aiLocate(description: string)`：定位元素
+- 更多...
+
+详见 [通用 API 参考](./api)。
+
+## 可用操作
+
+`ComputerDevice` 支持以下操作：
+
+### 鼠标操作
+
+#### Tap（点击）
+
+在目标位置单击。
+
+```typescript
+await agent.aiAct('点击文件菜单');
+await agent.aiAct('点击屏幕中心');
+```
+
+#### DoubleClick（双击）
+
+在目标位置双击。
+
+```typescript
+await agent.aiAct('双击桌面图标');
+```
+
+#### RightClick（右键）
+
+右键点击打开上下文菜单。
+
+```typescript
+await agent.aiAct('右键点击桌面');
+await agent.aiAct('右键点击文件');
+```
+
+#### MouseMove（移动鼠标）
+
+移动鼠标到目标元素。
+
+```typescript
+await agent.aiAct('移动鼠标到菜单项');
+```
+
+#### DragAndDrop（拖放）
+
+从一个位置拖动并放到另一个位置。
+
+```typescript
+await agent.aiAct('将文件拖到文件夹');
+```
+
+### 键盘操作
+
+#### KeyboardPress（按键）
+
+按键盘按键，可选修饰键。
+
+**支持的按键：**
+- 普通键：`a-z`、`0-9`、`Enter`、`Escape`、`Space`、`Tab` 等
+- 方向键：`ArrowUp`、`ArrowDown`、`ArrowLeft`、`ArrowRight`
+- 功能键：`F1`-`F12`
+- 修饰键：`Command`/`Cmd`（macOS）、`Control`/`Ctrl`、`Alt`、`Shift`、`Win`（Windows）
+- 媒体键：`VolumeUp`、`VolumeDown`、`Mute` 等
+
+**示例：**
+
+```typescript
+// 简单按键
+await agent.aiAct('按 Enter');
+await agent.aiAct('按 Escape');
+
+// 组合键（平台特定）
+if (process.platform === 'darwin') {
+  // macOS
+  await agent.aiAct('按 Cmd+Space');  // 打开 Spotlight
+  await agent.aiAct('按 Cmd+Tab');    // 应用切换器
+  await agent.aiAct('按 Cmd+C');      // 复制
+  await agent.aiAct('按 Cmd+V');      // 粘贴
+} else {
+  // Windows/Linux
+  await agent.aiAct('按 Windows 键'); // 开始菜单
+  await agent.aiAct('按 Alt+Tab');    // 应用切换器
+  await agent.aiAct('按 Ctrl+C');     // 复制
+  await agent.aiAct('按 Ctrl+V');     // 粘贴
+}
+
+// 方向键
+await agent.aiAct('按 ArrowDown');
+await agent.aiAct('按 ArrowUp');
+
+// 功能键
+await agent.aiAct('按 F5');  // 刷新
+```
+
+#### Input（输入）
+
+在输入框中输入文本。
+
+```typescript
+await agent.aiAct('在搜索框输入 "你好世界"');
+await agent.aiAct('输入 "我的文档.txt"');
+```
+
+#### ClearInput（清空输入）
+
+清空输入框内容。
+
+```typescript
+await agent.aiAct('清空文本框');
+```
+
+### 滚动操作
+
+滚动屏幕或特定区域。
+
+```typescript
+// 滚动方向
+await agent.aiAct('向下滚动');
+await agent.aiAct('向上滚动');
+await agent.aiAct('向左滚动');
+await agent.aiAct('向右滚动');
+
+// 滚动到位置
+await agent.aiAct('滚动到顶部');
+await agent.aiAct('滚动到底部');
+```
+
+### 显示器操作
+
+#### ListDisplays（列出显示器）
+
+获取所有已连接显示器的信息。
+
+```typescript
+const displays = await ComputerDevice.listDisplays();
+```
+
+## 示例
+
+### 打开应用并导航
+
+```typescript
+import { agentFromComputer } from '@midscene/computer';
+
+const agent = await agentFromComputer();
+
+// 打开应用
+if (process.platform === 'darwin') {
+  await agent.aiAct('按 Cmd+Space');
+  await agent.aiAct('输入 "文本编辑" 并按回车');
+} else {
+  await agent.aiAct('按 Windows 键');
+  await agent.aiAct('输入 "记事本" 并按回车');
+}
+
+await agent.aiWaitFor('文本编辑器窗口可见');
+
+// 输入内容
+await agent.aiAct('输入 "你好，Midscene！"');
+
+// 保存文件
+if (process.platform === 'darwin') {
+  await agent.aiAct('按 Cmd+S');
+} else {
+  await agent.aiAct('按 Ctrl+S');
+}
+```
+
+### 多显示器工作流
+
+```typescript
+import { ComputerDevice, agentFromComputer } from '@midscene/computer';
+
+// 列出显示器
+const displays = await ComputerDevice.listDisplays();
+console.log(`找到 ${displays.length} 个显示器`);
+
+// 控制主显示器
+const agent1 = await agentFromComputer({
+  displayId: displays[0].id,
+});
+await agent1.aiAct('将鼠标移动到屏幕中心');
+
+// 控制副显示器
+if (displays.length > 1) {
+  const agent2 = await agentFromComputer({
+    displayId: displays[1].id,
+  });
+  await agent2.aiAct('将鼠标移动到屏幕中心');
+}
+```
+
+### Web 浏览器自动化
+
+```typescript
+import { agentFromComputer } from '@midscene/computer';
+
+const agent = await agentFromComputer();
+
+// 打开浏览器
+if (process.platform === 'darwin') {
+  await agent.aiAct('按 Cmd+Space');
+  await agent.aiAct('输入 "Safari" 并按回车');
+} else {
+  await agent.aiAct('按 Windows 键');
+  await agent.aiAct('输入 "Chrome" 并按回车');
+}
+
+await agent.aiWaitFor('浏览器窗口已打开');
+
+// 导航
+await agent.aiAct('点击地址栏');
+await agent.aiAct('输入 "example.com" 并按回车');
+await agent.aiWaitFor('页面已加载');
+
+// 提取信息
+const title = await agent.aiQuery('string, 获取页面标题');
+console.log('页面标题:', title);
+```
+
+## TypeScript 类型
+
+```typescript
+import type {
+  ComputerAgent,
+  ComputerAgentOpt,
+  ComputerDevice,
+  ComputerDeviceOpt,
+  DisplayInfo,
+  EnvironmentCheck,
+} from '@midscene/computer';
+```
+
+## 另请参阅
+
+- [通用 API 参考](./api) - 适用于所有平台的 API
+- [模型配置](./model-config) - 配置 AI 模型
+- [缓存](./caching) - 使用缓存提高性能

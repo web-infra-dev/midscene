@@ -131,6 +131,7 @@ We would like to thank the following projects:
 - [appium-adb](https://github.com/appium/appium-adb) for the javascript bridge of adb.
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) for the javascript operate XCTest。
 - [YADB](https://github.com/ysbing/YADB) for the yadb tool which improves the performance of text input.
+- [libnut-core](https://github.com/nut-tree/libnut-core) for the cross-platform native keyboard and mouse control.
 - [Puppeteer](https://github.com/puppeteer/puppeteer) for browser automation and control.
 - [Playwright](https://github.com/microsoft/playwright) for browser automation and control and testing.
 

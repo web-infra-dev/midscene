@@ -1,0 +1,25 @@
+{
+  "extends": "../../packages/shared/tsconfig.app.base.json",
+  "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../../packages/computer"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/shared"
+    },
+    {
+      "path": "../../packages/visualizer"
+    },
+    {
+      "path": "../../packages/playground"
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+import ShowcaseComputer from './showcases-computer.mdx';
+
+# PC Desktop Automation Support
+
+Midscene can drive native keyboard and mouse controls to support PC desktop automation on Windows, macOS, and Linux.
+
+By leveraging a visual model solution, the automation process works with any desktop application—whether built with Electron, Qt, WPF, or native technologies. Developers only need to focus on the final user experience when debugging UI automation scripts.
+
+The PC desktop automation solution comes with all the features of Midscene:
+
+- Supports JavaScript SDK for scripting
+- Supports automation scripts in YAML format and command-line tools
+- Supports HTML reports to replay all operation paths
+- Works across Windows, macOS, and Linux platforms
+- Multi-display support for complex setups
+
+## Showcases
+
+<ShowcaseComputer />
+
+See more showcases: [showcases](./showcases.mdx)
+
+## Key Features
+
+### Cross-platform Desktop Control
+
+- **Mouse Operations**: Click, double-click, right-click, mouse move, drag-and-drop
+- **Keyboard Input**: Type text, press keys with modifiers (Cmd/Ctrl/Alt/Shift)
+- **Screen Capture**: Take screenshots of any display
+- **Multi-display**: Work with multiple monitors simultaneously
+
+### AI-Powered Automation
+
+Using Midscene's AI capabilities, you can automate desktop applications with natural language:
+
+```typescript
+await agent.aiAct('open the File menu');
+await agent.aiAct('click on Save As');
+await agent.aiAct('type "my-document" in the filename field');
+await agent.aiAct('press Enter');
+```
+
+## Use Cases
+
+- **Desktop Application Testing**: Automate testing for Electron, Qt, or native apps
+- **Workflow Automation**: Automate repetitive tasks across desktop applications
+- **Cross-app Integration**: Control multiple applications in sequence
+- **UI Testing**: Test desktop applications with natural language descriptions
+
+## Next Steps
+
+* [Getting Started](./computer-getting-started)
+* [API Reference](./computer-api-reference)
+* [Use YAML format automation scripts](./automate-with-scripts-in-yaml) and [command-line tools](./command-line-tools)
