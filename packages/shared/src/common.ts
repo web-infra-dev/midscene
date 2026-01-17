@@ -30,7 +30,6 @@ export const getMidsceneRunBaseDir = () => {
     try {
       mkdirSync(basePath, { recursive: true });
     } catch (error) {
-      // console.error(`Failed to create ${runDirName} directory: ${error}`);
       basePath = path.join(tmpdir(), defaultRunDirName);
       mkdirSync(basePath, { recursive: true });
     }

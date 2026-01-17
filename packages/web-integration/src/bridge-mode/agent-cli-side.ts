@@ -104,7 +104,7 @@ export const getBridgePageInCliSide = (options?: {
             const caller = bridgeCaller('destroy');
             await caller(...args);
           } catch (e) {
-            // console.error('error calling destroy', e);
+            // Silently handle destroy errors
           }
           return server.close();
         };

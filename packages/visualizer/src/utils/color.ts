@@ -1,15 +1,12 @@
 import type { ThemeConfig } from 'antd';
 
 // https://coolors.co/palettes/popular/#01204e
-// const sectionColor = ['#028391'];
-// const elementColor = ['#fb6107'];
 const elementColor = ['#01204E'];
 const highlightColorForSearchArea = '#028391';
 const highlightColorForElement = '#fd5907'; // @main-orange
 
 function djb2Hash(str?: string): number {
   if (!str) {
-    // console.warn('djb2Hash: empty string');
     str = 'unnamed';
   }
   let hash = 5381;

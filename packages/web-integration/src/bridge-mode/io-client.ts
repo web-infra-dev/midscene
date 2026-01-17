@@ -41,7 +41,6 @@ export class BridgeClient {
 
       // on disconnect
       this.socket.on('disconnect', (reason: string) => {
-        // console.log('bridge-disconnected, reason:', reason);
         this.socket = null;
         this.onDisconnect?.();
       });
@@ -64,7 +63,7 @@ export class BridgeClient {
         try {
           this.socket?.disconnect();
         } catch (e) {
-          // console.warn('got error when disconnecting socket', e);
+          // Silently handle disconnect errors
         }
         reject(new Error(e || 'bridge refused'));
       });

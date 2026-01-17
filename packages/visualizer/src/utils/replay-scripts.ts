@@ -417,10 +417,6 @@ export const generateAnimationScripts = (
           //   ? insightCameraState
           //   : mergeTwoCameraState(currentCameraState, insightCameraState);
 
-          // console.log('insightCameraState', insightCameraState);
-          // console.log('currentCameraState', currentCameraState);
-          // console.log('newCameraState', newCameraState);
-
           scripts.push({
             type: 'insight',
             img: screenshotData,
@@ -550,8 +546,6 @@ export const generateAnimationScripts = (
       return;
     }
   });
-
-  // console.log('scripts', scripts);
 
   // end, back to full page
   if (!errorStateFlag) {

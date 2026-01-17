@@ -30,7 +30,6 @@ export function getLastModifiedReportHTMLFile(dirPath: string) {
             // Check if the content includes 'todo report'
             latestMtime = stats.mtimeMs;
             latestFile = filePath;
-            // console.log('filePath', filePath);
           } else {
             console.log('file not matching', filePath);
           }

@@ -266,20 +266,6 @@ ${errorMsg ? `Error: ${errorMsg}` : ''}
       return true;
     }
 
-    // if ('sectionBbox' in result) {
-    //   const expected = testCase.response_bbox;
-    //   const actual = result.sectionBbox;
-    //   if (!expected || !actual) {
-    //     const msg = `expected: ${expected} is not equal to actual: ${actual}, the prompt is: ${testCase.prompt}`;
-    //     return new Error(msg);
-    //   }
-    //   const distance = this.distanceOfTwoBbox(expected, actual);
-    //   if (distance > distanceThreshold) {
-    //     const msg = `distance: ${distance} is greater than threshold: ${distanceThreshold}, the prompt is: ${testCase.prompt}`;
-    //     return new Error(msg);
-    //   }
-    //   return true;
-    // }
     const msg = `unknown result type, can not compare, the prompt is: ${testCase.prompt}`;
     return new Error(msg);
   }

@@ -27,7 +27,7 @@ export const killRunningServer = async (port?: number, host = 'localhost') => {
     await sleep(100);
     await client.close();
   } catch (e) {
-    // console.error('failed to kill port', e);
+    // Silently handle port kill errors
   }
 };
 

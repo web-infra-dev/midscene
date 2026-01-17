@@ -47,8 +47,6 @@ export async function imageInfo(
 export async function imageInfoOfBase64(
   imageBase64: string,
 ): Promise<ImageInfo> {
-  // const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-  // Call the imageInfo function to get the dimensions of the image
   const buffer = await bufferFromBase64(imageBase64);
   return imageInfo(buffer);
 }

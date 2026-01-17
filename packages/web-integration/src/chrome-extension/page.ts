@@ -342,7 +342,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     try {
       await this.waitUntilNetworkIdle();
     } catch (error) {
-      // console.warn('Failed to wait until network idle', error);
+      // Silently handle network idle wait failures
     }
   }
 

@@ -104,7 +104,6 @@ describe('image utils', () => {
       base64Data: await jimpToBase64(result.image),
       outputPath: tmpFile,
     });
-    // console.log('tmpFile', tmpFile);
   });
 
   it('cropByRect, with padding', async () => {

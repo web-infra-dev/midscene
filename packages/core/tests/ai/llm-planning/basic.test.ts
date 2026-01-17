@@ -104,7 +104,6 @@ describe('planning', () => {
         includeBbox: true,
       });
       expect(actions).toBeTruthy();
-      // console.log(actions);
       expect(actions![0].param.locate).toBeTruthy();
       expect(actions![0].param.locate?.prompt).toBeTruthy();
       expect(

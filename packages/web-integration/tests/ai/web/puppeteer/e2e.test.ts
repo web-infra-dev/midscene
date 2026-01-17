@@ -309,7 +309,6 @@ describe(
         deepThink: true,
         centerDistanceThreshold: 50,
       });
-      // console.log('describeResult', describeResult);
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();
       expect(describeResult.verifyResult?.center).toBeTruthy();

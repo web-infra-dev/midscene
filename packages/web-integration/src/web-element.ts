@@ -106,24 +106,6 @@ export async function WebPageContextParser(
     uploadServerUrl: _opt.uploadServerUrl,
   });
 
-  // debug('will traverse element tree');
-  // const tree = (await page.getElementsNodeTree?.()) || {
-  //   node: null,
-  //   children: [],
-  // };
-  // // const webTree = traverseTree(tree!, (elementInfo) => {
-  // //   const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
-  // //   return new WebElementInfoImpl({
-  // //     rect,
-  // //     id,
-  // //     content,
-  // //     attributes,
-  // //     indexId,
-  // //     isVisible,
-  // //   });
-  // // });
-  // debug('traverse element tree end');
-
   return basicContext;
 }
 

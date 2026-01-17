@@ -664,11 +664,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
     // free the resources
     for (const fn of freeFn) {
       try {
-        // console.log('freeing', fn.name);
         await fn.fn();
-        // console.log('freed', fn.name);
       } catch (e) {
-        // console.error('error freeing', fn.name, e);
+        // Silently handle cleanup errors
       }
     }
   }

@@ -473,7 +473,6 @@ tasks:
 
     // Verify the player completed successfully
     expect(player.errorInSetup).toBeUndefined();
-    // console.log(player);
     expect(player.status).toBe('done');
 
     // Verify aiRightClick was called with correct parameters
@@ -617,7 +616,6 @@ tasks:
 
     // Verify the player completed successfully
     expect(player.errorInSetup).toBeUndefined();
-    // console.log(player.taskStatusList);
     expect(player.status).toBe('done');
 
     // Verify aiRightClick was called with correct parameters

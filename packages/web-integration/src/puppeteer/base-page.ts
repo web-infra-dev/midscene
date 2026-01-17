@@ -177,9 +177,6 @@ export class Page<
 
   // @deprecated
   async getElementsInfo() {
-    // const scripts = await getExtraReturnLogic();
-    // const captureElementSnapshot = await this.evaluate(scripts);
-    // return captureElementSnapshot as ElementInfo[];
     await this.waitForNavigation();
     debugPage('getElementsInfo begin');
     const tree = await this.getElementsNodeTree();

@@ -11,17 +11,6 @@ import type {
 } from '@/types';
 
 export function typeStr(task: ExecutionTask) {
-  // // For Action tasks with subType, show "Action Space / subType"
-  // if (task.type === 'Action' && task.subType) {
-  //   return `Action Space / ${task.subType}`;
-  // }
-
-  // // For all other cases with subType, show "type / subType"
-  // if (task.subType) {
-  //   return `${task.type} / ${task.subType}`;
-  // }
-
-  // No subType, just show type
   return task.subType || task.type;
 }
 

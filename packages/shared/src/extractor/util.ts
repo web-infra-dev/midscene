@@ -404,11 +404,6 @@ export function midsceneGenerateHash(
 }
 
 export function generateId(numberId: number) {
-  //   const letters = 'ABCDEFGHIJKLMNPRSTUVXYZ';
-  //   const numbers = '0123456789';
-  //   const randomLetter = letters.charAt(Math.floor(Math.random() * letters.length)).toUpperCase();
-  // const randomNumber = numbers.charAt(Math.floor(Math.random() * numbers.length));
-  // return randomLetter + numberId;
   return `${numberId}`;
 }
 
