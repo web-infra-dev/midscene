@@ -69,6 +69,11 @@ import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { defineActionAssert, defineActionFinalize } from '../device';
+import {
+  ShortMemoryManager,
+  type ShortMemoryOpt,
+  type ShortMemoryTokenPoint,
+} from './short-memory';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -207,6 +212,12 @@ export class Agent<
    * Frozen page context for consistent AI operations
    */
   private frozenUIContext?: UIContext;
+
+  private shortMemoryManager: ShortMemoryManager;
+
+  private buildShortMemoryAiContext(): string | undefined {
+    return this.shortMemoryManager.buildAiContext();
+  }
 
   private get aiActContext(): string | undefined {
     return this.opts.aiActContext ?? this.opts.aiActionContext;
@@ -366,6 +377,16 @@ export class Agent<
       return this.getUIContext();
     });
 
+    this.shortMemoryManager = new ShortMemoryManager({
+      interfaceInstance: this.interface,
+      service: this.service,
+      modelConfigManager: this.modelConfigManager,
+      locateAll: this.locateAll.bind(this),
+      getFrozenUIContext: () => this.frozenUIContext,
+      freezePageContext: this.freezePageContext.bind(this),
+      unfreezePageContext: this.unfreezePageContext.bind(this),
+    });
+
     // Process cache configuration
     const cacheConfigObj = this.processCacheConfig(opts || {});
     if (cacheConfigObj) {
@@ -381,8 +402,10 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
+    const shortMemoryActionSpace = this.shortMemoryManager.getActionSpace();
     this.fullActionSpace = [
       ...baseActionSpace,
+      ...shortMemoryActionSpace,
       defineActionAssert(),
       defineActionFinalize(),
     ];
@@ -659,7 +682,9 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'append' },
+    } & { mode?: 'replace' | 'clear' | 'append' } & {
+      useShortMemory?: boolean;
+    },
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -671,6 +696,7 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
       mode?: 'replace' | 'clear' | 'append';
+      useShortMemory?: boolean;
     }, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
@@ -690,7 +716,9 @@ export class Agent<
     let opt:
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
+        } & { mode?: 'replace' | 'clear' | 'append' } & {
+          useShortMemory?: boolean;
+        }) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
@@ -724,13 +752,38 @@ export class Agent<
     );
     assert(locatePrompt, 'missing locate prompt for input');
 
-    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
-
     // Convert value to string to ensure consistency
     const stringValue = typeof value === 'number' ? String(value) : value;
 
+    const { useShortMemory, ...optWithoutShortMemory } = (opt || {}) as {
+      useShortMemory?: boolean;
+      [key: string]: any;
+    };
+    const tokenPrompt =
+      typeof locatePrompt === 'string'
+        ? locatePrompt
+        : typeof locatePrompt?.prompt === 'string'
+          ? locatePrompt.prompt
+          : undefined;
+    const cachedPoint = tokenPrompt
+      ? this.shortMemoryManager.getPoints()[tokenPrompt]
+      : undefined;
+
+    if (useShortMemory !== false && tokenPrompt && cachedPoint) {
+      return this.callActionInActionSpace('InputWithShortMemory', {
+        token: tokenPrompt,
+        value: stringValue,
+        mode: optWithoutShortMemory?.mode,
+      });
+    }
+
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt,
+      optWithoutShortMemory,
+    );
+
     return this.callActionInActionSpace('Input', {
-      ...(opt || {}),
+      ...(optWithoutShortMemory || {}),
       value: stringValue,
       locate: detailedLocateParam,
     });
@@ -930,12 +983,17 @@ export class Agent<
       const imagesIncludeCount: number | undefined = useDeepThink
         ? undefined
         : 2;
+      const shortMemoryContext = this.buildShortMemoryAiContext();
+      const effectiveAiActContext = [this.aiActContext, shortMemoryContext]
+        .filter(Boolean)
+        .join('\n\n');
+
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
         defaultIntentModelConfig,
         includeBboxInPlanning,
-        this.aiActContext,
+        effectiveAiActContext || undefined,
         cacheable,
         replanningCycleLimit,
         imagesIncludeCount,
@@ -1170,6 +1228,125 @@ export class Agent<
     };
   }
 
+  private async locateAll(
+    prompts: TUserPrompt | TUserPrompt[],
+    opt?: LocateOption & {
+      freezeContext?: boolean;
+    },
+  ): Promise<
+    Array<{
+      rect?: Rect;
+      center?: [number, number];
+      dpr?: number;
+    }>
+  > {
+    const { freezeContext = true, ...locateOptRest } = opt || {};
+    const locateOpt: LocateOption | undefined = Object.keys(locateOptRest)
+      .length
+      ? (locateOptRest as LocateOption)
+      : undefined;
+
+    const alreadyFrozen = Boolean(this.frozenUIContext);
+    if (freezeContext && !alreadyFrozen) {
+      await this.freezePageContext();
+    }
+
+    try {
+      if (!Array.isArray(prompts)) {
+        const detailedParam = buildDetailedLocateParam(prompts, locateOpt);
+        assert(detailedParam, 'cannot get locate param for aiLocateAll');
+        const plan = {
+          type: 'LocateAll',
+          param: detailedParam,
+          thought: '',
+        };
+
+        const defaultIntentModelConfig =
+          this.modelConfigManager.getModelConfig('default');
+        const modelConfigForPlanning =
+          this.modelConfigManager.getModelConfig('planning');
+
+        const { output } = await this.taskExecutor.runPlans(
+          `Locate all elements for ${detailedParam.prompt}`,
+          [plan],
+          modelConfigForPlanning,
+          defaultIntentModelConfig,
+        );
+
+        const dprValue = await (this.interface.size() as any).dpr;
+        return (output || []).map((r: any) => {
+          if (!r) {
+            return {
+              rect: undefined,
+              center: undefined,
+            } as any;
+          }
+          return {
+            rect: r.rect,
+            center: r.center,
+            dpr: dprValue,
+          };
+        });
+      }
+
+      const BATCH_SIZE = 10;
+      const results: any[] = [];
+
+      const runBatch = async (batchPrompts: TUserPrompt[]) => {
+        const detailedParams = batchPrompts.map((p) =>
+          buildDetailedLocateParam(p, locateOpt),
+        );
+
+        const plan = {
+          type: 'LocateMulti',
+          param: detailedParams,
+          thought: '',
+        };
+
+        const defaultIntentModelConfig =
+          this.modelConfigManager.getModelConfig('default');
+        const modelConfigForPlanning =
+          this.modelConfigManager.getModelConfig('planning');
+
+        // Use runPlans to leverage TaskExecutor's pipeline (dump, log, etc)
+        // Note: we are passing a custom plan type 'LocateMulti', which must be supported by TaskBuilder
+        const { output } = await this.taskExecutor.runPlans(
+          `Locate ${batchPrompts.length} elements`,
+          [plan],
+          modelConfigForPlanning,
+          defaultIntentModelConfig,
+        );
+
+        return output;
+      };
+
+      for (let i = 0; i < prompts.length; i += BATCH_SIZE) {
+        const batch = prompts.slice(i, i + BATCH_SIZE);
+        const batchResults = await runBatch(batch);
+        results.push(...batchResults);
+      }
+
+      const dprValue = await (this.interface.size() as any).dpr;
+      return results.map((r) => {
+        if (!r) {
+          return {
+            rect: undefined,
+            center: undefined,
+          } as any;
+        }
+        return {
+          rect: r.rect,
+          center: r.center,
+          dpr: dprValue,
+        };
+      });
+    } finally {
+      if (freezeContext && !alreadyFrozen) {
+        await this.unfreezePageContext();
+      }
+    }
+  }
+
   async aiAssert(
     assertion: TUserPrompt,
     msg?: string,
@@ -1246,6 +1423,66 @@ export class Agent<
     }
   }
 
+  /**
+   * aiLocateAll with optional "shot memory" support.
+   *
+   * Typical usage (Android dialer keypad etc):
+   *   await agent.aiLocateAll(['1','2','3'], { useShortMemory: true })
+   *   await agent.aiLocateAll('所有关注按钮', { useShortMemory: true })
+   *   await agent.ai('连续点击 1,2,3')
+   */
+  async aiLocateAll(
+    prompts: TUserPrompt | TUserPrompt[],
+    opt?: ShortMemoryOpt,
+  ) {
+    const results = await this.locateAll(prompts, opt);
+
+    if (opt?.useShortMemory) {
+      const shouldClear =
+        opt.clearShortMemory !== undefined ? opt.clearShortMemory : true;
+      if (shouldClear) {
+        this.shortMemoryManager.clearPoints();
+      }
+
+      const points: Record<string, ShortMemoryTokenPoint> = {};
+      if (Array.isArray(prompts)) {
+        for (let i = 0; i < prompts.length; i += 1) {
+          const p = prompts[i];
+          const token = typeof p === 'string' ? p : p.prompt;
+          const center = results[i]?.center;
+          if (!token) {
+            continue;
+          }
+          if (Array.isArray(center) && center.length === 2) {
+            points[token] = [Number(center[0]), Number(center[1])];
+          } else {
+            console.warn(
+              `aiLocateAll(useShortMemory=true) failed to locate center for token: ${token}`,
+            );
+          }
+        }
+      } else {
+        const baseToken =
+          typeof prompts === 'string' ? prompts : prompts.prompt;
+        for (let i = 0; i < results.length; i += 1) {
+          const center = results[i]?.center;
+          if (Array.isArray(center) && center.length === 2) {
+            const token = `${baseToken}#${i + 1}`;
+            points[token] = [Number(center[0]), Number(center[1])];
+          } else {
+            console.warn(
+              `aiLocateAll(useShortMemory=true) failed to locate center for token: ${baseToken}#${i + 1}`,
+            );
+          }
+        }
+      }
+
+      this.shortMemoryManager.setPoints(points);
+    }
+
+    return results;
+  }
+
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {
     const modelConfig = this.modelConfigManager.getModelConfig('insight');
     await this.taskExecutor.waitFor(
@@ -1257,6 +1494,10 @@ export class Agent<
       },
       modelConfig,
     );
+  }
+
+  clearShortMemory() {
+    this.shortMemoryManager.clearPoints();
   }
 
   async ai(...args: Parameters<typeof this.aiAct>) {

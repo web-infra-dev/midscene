@@ -123,6 +123,22 @@ export class TaskBuilder {
             context,
           ),
       ],
+      [
+        'LocateMulti',
+        (plan) =>
+          this.handleLocateMultiPlan(
+            plan as PlanningAction<PlanningLocateParam[]>,
+            context,
+          ),
+      ],
+      [
+        'LocateAll',
+        (plan) =>
+          this.handleLocateAllPlan(
+            plan as PlanningAction<PlanningLocateParam>,
+            context,
+          ),
+      ],
       ['Finished', (plan) => this.handleFinishedPlan(plan, context)],
       [
         'Sleep',
@@ -590,6 +606,138 @@ export class TaskBuilder {
             element,
           },
           hitBy,
+        };
+      },
+    };
+
+    return taskLocator;
+  }
+
+  private async handleLocateMultiPlan(
+    plan: PlanningAction<PlanningLocateParam[]>,
+    context: PlanBuildContext,
+  ): Promise<void> {
+    const taskLocate = this.createLocateMultiTask(plan, plan.param, context);
+    context.tasks.push(taskLocate);
+  }
+
+  private async handleLocateAllPlan(
+    plan: PlanningAction<PlanningLocateParam>,
+    context: PlanBuildContext,
+  ): Promise<void> {
+    const taskLocate = this.createLocateAllTask(plan, plan.param, context);
+    context.tasks.push(taskLocate);
+  }
+
+  private createLocateMultiTask(
+    plan: PlanningAction<PlanningLocateParam[]>,
+    detailedLocateParams: DetailedLocateParam[],
+    context: PlanBuildContext,
+  ): ExecutionTaskApply {
+    const { modelConfigForDefaultIntent } = context;
+
+    // Use 'Planning' as main type, and 'LocateMulti' as subType
+    const taskLocator: ExecutionTaskApply = {
+      type: 'Planning',
+      subType: 'LocateMulti',
+      subTask: context.subTask || undefined,
+      param: detailedLocateParams,
+      thought: plan.thought,
+      executor: async (param: DetailedLocateParam[], taskContext: any) => {
+        const { task } = taskContext;
+        let { uiContext } = taskContext;
+
+        if (!uiContext) {
+          uiContext = await this.service.contextRetrieverFn();
+        }
+
+        assert(uiContext, 'uiContext is required for Service task');
+
+        const applyDump = (dump?: ServiceDump) => {
+          if (!dump) {
+            return;
+          }
+          task.log = {
+            dump,
+          };
+          task.usage = dump.taskInfo?.usage;
+        };
+
+        // For now, we skip cache logic for LocateMulti to keep it simple and focused on LLM optimization
+
+        let multiResult;
+        try {
+          multiResult = await this.service.locateMulti(
+            param,
+            { context: uiContext },
+            modelConfigForDefaultIntent,
+          );
+          applyDump(multiResult.dump);
+        } catch (error) {
+          if (error instanceof ServiceError) {
+            applyDump(error.dump);
+          }
+          throw error;
+        }
+
+        return {
+          output: multiResult.results,
+        };
+      },
+    };
+    return taskLocator;
+  }
+
+  private createLocateAllTask(
+    plan: PlanningAction<PlanningLocateParam>,
+    detailedLocateParam: DetailedLocateParam,
+    context: PlanBuildContext,
+  ): ExecutionTaskApply {
+    const { modelConfigForDefaultIntent } = context;
+
+    const taskLocator: ExecutionTaskApply = {
+      type: 'Planning',
+      subType: 'LocateAll',
+      subTask: context.subTask || undefined,
+      param: detailedLocateParam,
+      thought: plan.thought,
+      executor: async (param: DetailedLocateParam, taskContext: any) => {
+        const { task } = taskContext;
+        let { uiContext } = taskContext;
+
+        if (!uiContext) {
+          uiContext = await this.service.contextRetrieverFn();
+        }
+
+        assert(uiContext, 'uiContext is required for Service task');
+
+        const applyDump = (dump?: ServiceDump) => {
+          if (!dump) {
+            return;
+          }
+          task.log = {
+            dump,
+          };
+          task.usage = dump.taskInfo?.usage;
+        };
+
+        let locateResult;
+        try {
+          locateResult = await this.service.locateAll(
+            param,
+            { context: uiContext },
+            modelConfigForDefaultIntent,
+          );
+          applyDump(locateResult.dump);
+        } catch (error) {
+          if (error instanceof ServiceError) {
+            applyDump(error.dump);
+          }
+          throw error;
+        }
+
+        return {
+          output: locateResult.results,
         };
       },
     };

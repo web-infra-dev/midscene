@@ -174,6 +174,15 @@ export interface ServiceResultBase {
 
 export type LocateResultWithDump = LocateResult & ServiceResultBase;
 
+// Batch locate results with shared service dump (for locateMulti-style APIs).
+export type LocateResultsWithDump<TItem = LocateResultElement | null> = {
+  results: TItem[];
+} & ServiceResultBase;
+
+// locateAll returns only matched elements (no nulls), but still includes dump.
+export type LocateAllResultWithDump =
+  LocateResultsWithDump<LocateResultElement>;
+
 export interface ServiceExtractResult<T> extends ServiceResultBase {
   data: T;
   thought?: string;
@@ -707,7 +716,10 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
-  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
+  call: (
+    param: TParam,
+    context?: ExecutorContext,
+  ) => Promise<TReturn> | TReturn;
   delayAfterRunner?: number;
 }
 

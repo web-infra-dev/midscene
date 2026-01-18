@@ -1,7 +1,9 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
   AiExtractElementInfo,
+  AiLocateAllElements,
   AiLocateElement,
+  AiLocateMultiElements,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
@@ -11,7 +13,9 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  LocateAllResultWithDump,
   LocateResultWithDump,
+  LocateResultsWithDump,
   PartialServiceDumpFromSDK,
   Rect,
   ServiceExtractOption,
@@ -28,6 +32,7 @@ import {
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt } from '../common';
 import { createServiceDump } from './utils';
@@ -208,6 +213,121 @@ export default class Service {
     return {
       element: null,
       rect,
+      dump,
+    };
+  }
+
+  async locateMulti(
+    queries: DetailedLocateParam[],
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultsWithDump<LocateResultElement | null>> {
+    assert(queries.length > 0, 'queries must not be empty');
+    const queryPrompts = queries.map((q) =>
+      typeof q === 'string' ? q : q.prompt,
+    );
+    const context = opt?.context || (await this.contextRetrieverFn());
+
+    const startTime = Date.now();
+    const { parseResult, rawResponse, usage } = await AiLocateMultiElements({
+      callAIFn: this.aiVendorFn,
+      context,
+      targetElementDescriptions: queryPrompts,
+      modelConfig,
+    });
+
+    const timeCost = Date.now() - startTime;
+    const taskInfo: ServiceTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(rawResponse),
+      formatResponse: JSON.stringify(parseResult),
+      usage,
+    };
+
+    let errorLog: string | undefined;
+    if (parseResult.errors?.length) {
+      errorLog = `failed to locate elements: \n${parseResult.errors.join('\n')}`;
+    }
+
+    const matchedElements = parseResult.elements.filter(
+      (e): e is LocateResultElement => e !== null,
+    );
+
+    const dumpData: PartialServiceDumpFromSDK = {
+      type: 'locate',
+      userQuery: {
+        element: JSON.stringify(queryPrompts),
+      },
+      matchedElement: matchedElements,
+      data: null,
+      taskInfo,
+      deepThink: false,
+      error: errorLog,
+    };
+
+    const dump = createServiceDump(dumpData);
+
+    if (errorLog) {
+      throw new ServiceError(errorLog, dump);
+    }
+
+    return {
+      results: parseResult.elements,
+      dump,
+    };
+  }
+
+  async locateAll(
+    query: DetailedLocateParam,
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<LocateAllResultWithDump> {
+    const queryPrompt = typeof query === 'string' ? query : query.prompt;
+    const context = opt?.context || (await this.contextRetrieverFn());
+
+    const startTime = Date.now();
+    const { parseResult, rawResponse, usage } = await AiLocateAllElements({
+      callAIFn: this.aiVendorFn,
+      context,
+      targetElementDescription: queryPrompt,
+      modelConfig,
+    });
+
+    const timeCost = Date.now() - startTime;
+    const taskInfo: ServiceTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(rawResponse),
+      formatResponse: JSON.stringify(parseResult),
+      usage,
+    };
+
+    let errorLog: string | undefined;
+    if (parseResult.errors?.length) {
+      errorLog = `failed to locate elements: \n${parseResult.errors.join('\n')}`;
+    }
+
+    const dumpData: PartialServiceDumpFromSDK = {
+      type: 'locate',
+      userQuery: {
+        element: JSON.stringify(queryPrompt),
+      },
+      matchedElement: parseResult.elements,
+      data: null,
+      taskInfo,
+      deepThink: false,
+      error: errorLog,
+    };
+
+    const dump = createServiceDump(dumpData);
+
+    if (errorLog) {
+      throw new ServiceError(errorLog, dump);
+    }
+
+    return {
+      results: parseResult.elements,
       dump,
     };
   }

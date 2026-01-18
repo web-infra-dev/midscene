@@ -7,6 +7,7 @@ import {
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
 import { bboxDescription } from './common';
+import { shortMemoryInstruction } from './short-memory';
 
 // Note: put the log field first to trigger the CoT
 
@@ -235,6 +236,8 @@ Please tell what the next one action is (or null if no action should be done) to
 ${actionList}
 
 ${logFieldInstruction}
+
+${shortMemoryInstruction}
 
 ## Return format
 
