@@ -247,46 +247,38 @@ ${logFieldInstruction}
 
 ## Return format
 
-Return in JSON format:
-{
-  ${commonOutputFields}
-  "action": 
-    {
-      "type": string, // the type of the action
-      "param"?: { // The parameter of the action, if any
-         // k-v style parameter fields
-      }, 
-    } | null
-}
+Return in XML format with the following structure:
+${shouldIncludeThought ? '<thought>your thought process about the next action</thought>' : ''}
+<note>some important notes (optional)</note>
+<log>a brief preamble to the user</log>
+<error>error messages (optional)</error>
+<action-type>the type of the action, or null if no action</action-type>
+<action-param>JSON object containing the action parameters</action-param>
 
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
+${shouldIncludeThought ? '<thought>The form has already been filled, I need to click the login button to login</thought>' : ''}<log>Click the login button</log>
+<action-type>Tap</action-type>
+<action-param>
 {
-${exampleThoughtLine}  "log": "Click the login button",
-  "action": {
-    "type": "Tap",
-    "param": {
-      "locate": { 
-        "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
-      }
-    }
+  "locate": {
+    "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
   }
 }
+</action-param>
 
 For example, if the instruction is to find out every title in the screenshot, the return value should be:
 
+${shouldIncludeThought ? '<thought>I need to note the titles in the current screenshot for further processing and scroll to find more titles</thought>' : ''}<note>The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'</note>
+<log>Scroll to find more titles</log>
+<action-type>Scroll</action-type>
+<action-param>
 {
-${exampleThoughtLineWithNote}  "note": "The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
-  "log": "Scroll to find more titles",
-  "action": {
-    "type": "Scroll",
-    "param": {
-      "locate": {
-        "prompt": "The page content area"
-      },
-      "direction": "down"
-    }
-  }
+  "locate": {
+    "prompt": "The page content area"
+  },
+  "direction": "down"
 }
+</action-param>
 `;
 }
