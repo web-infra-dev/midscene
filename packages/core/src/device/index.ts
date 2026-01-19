@@ -184,18 +184,21 @@ export const actionInputParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe(inputLocateDescription)
     .optional(),
-  mode: z
-    .enum(['replace', 'clear', 'append'])
-    .default('replace')
-    .optional()
-    .describe(
-      'Input mode: "replace" (default) - clear the field and input the value; "append" - append the value to existing content; "clear" - clear the field without inputting new text.',
-    ),
+  mode: z.preprocess(
+    (val) => (val === 'append' ? 'typeOnly' : val),
+    z
+      .enum(['replace', 'clear', 'typeOnly'])
+      .default('replace')
+      .optional()
+      .describe(
+        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+      ),
+  ),
 });
 export type ActionInputParam = {
   value: string;
   locate?: LocateResultElement;
-  mode?: 'replace' | 'clear' | 'append';
+  mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
 };
 
 export const defineActionInput = (

@@ -110,20 +110,23 @@ export class AndroidDevice implements AbstractInterface {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
-          mode: z
-            .enum(['replace', 'clear', 'append'])
-            .default('replace')
-            .optional()
-            .describe(
-              'Input mode: "replace" (default) - clear the field and input the value; "append" - append the value to existing content; "clear" - clear the field without inputting new text.',
-            ),
+          mode: z.preprocess(
+            (val) => (val === 'append' ? 'typeOnly' : val),
+            z
+              .enum(['replace', 'clear', 'typeOnly'])
+              .default('replace')
+              .optional()
+              .describe(
+                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+              ),
+          ),
           locate: getMidsceneLocationSchema()
             .describe('The input field to be filled')
             .optional(),
         }),
         call: async (param) => {
           const element = param.locate;
-          if (param.mode !== 'append') {
+          if (param.mode !== 'typeOnly') {
             await this.clearInput(element as unknown as ElementInfo);
           }
 
