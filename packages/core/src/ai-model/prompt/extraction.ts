@@ -2,6 +2,7 @@ import type { AIDataExtractionResponse } from '@/types';
 import { getPreferredLanguage } from '@midscene/shared/env';
 import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import { safeParseJson } from '../service-caller/index';
+import { extractXMLTag } from './util';
 
 /**
  * Parse XML response from LLM and convert to AIDataExtractionResponse
@@ -9,16 +10,9 @@ import { safeParseJson } from '../service-caller/index';
 export function parseXMLExtractionResponse<T>(
   xmlString: string,
 ): AIDataExtractionResponse<T> {
-  // Extract content from XML tags
-  const extractTag = (tagName: string): string | undefined => {
-    const regex = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`, 'i');
-    const match = xmlString.match(regex);
-    return match ? match[1].trim() : undefined;
-  };
-
-  const thought = extractTag('thought');
-  const dataJsonStr = extractTag('data-json');
-  const errorsStr = extractTag('errors');
+  const thought = extractXMLTag(xmlString, 'thought');
+  const dataJsonStr = extractXMLTag(xmlString, 'data-json');
+  const errorsStr = extractXMLTag(xmlString, 'errors');
 
   // Parse data-json (required)
   if (!dataJsonStr) {
