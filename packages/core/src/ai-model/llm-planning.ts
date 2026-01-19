@@ -19,9 +19,63 @@ import {
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
-import { callAIWithObjectResponse } from './service-caller/index';
+import { callAI } from './service-caller/index';
+import { safeParseJson } from './service-caller/index';
 
 const debug = getDebug('planning');
+
+/**
+ * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
+ */
+export function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIResponse {
+  // Extract content from XML tags
+  const extractTag = (tagName: string): string | undefined => {
+    const regex = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`, 'i');
+    const match = xmlString.match(regex);
+    return match ? match[1].trim() : undefined;
+  };
+
+  const thought = extractTag('thought');
+  const note = extractTag('note');
+  const log = extractTag('log');
+  const error = extractTag('error');
+  const actionType = extractTag('action-type');
+  const actionParamStr = extractTag('action-param-json');
+
+  // Validate required fields
+  if (!log) {
+    throw new Error('Missing required field: log');
+  }
+
+  // Parse action
+  let action: any = null;
+  if (actionType && actionType.toLowerCase() !== 'null') {
+    const type = actionType.trim();
+    let param: any = undefined;
+
+    if (actionParamStr) {
+      try {
+        // Parse the JSON string in action-param-json
+        param = safeParseJson(actionParamStr, undefined);
+      } catch (e) {
+        throw new Error(`Failed to parse action-param-json: ${e}`);
+      }
+    }
+
+    action = {
+      type,
+      ...(param !== undefined ? { param } : {}),
+    };
+  }
+
+  return {
+    ...(thought ? { thought } : {}),
+    ...(note ? { note } : {}),
+    log,
+    ...(error ? { error } : {}),
+    action,
+  };
+}
 
 export async function plan(
   userInstruction: string,
@@ -129,17 +183,15 @@ export async function plan(
   ];
 
   const {
-    content: planFromAI,
-    contentString: rawResponse,
+    content: rawResponse,
     usage,
     reasoning_content,
-  } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
-    msgs,
-    modelConfig,
-    {
-      deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
-    },
-  );
+  } = await callAI(msgs, modelConfig, {
+    deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+  });
+
+  // Parse XML response to JSON object
+  const planFromAI = parseXMLPlanningResponse(rawResponse);
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;

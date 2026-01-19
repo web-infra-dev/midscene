@@ -9,27 +9,6 @@ import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
 import { bboxDescription } from './common';
 
-// Note: put the log field first to trigger the CoT
-
-const buildCommonOutputFields = (
-  includeThought: boolean,
-  preferredLanguage: string,
-) => {
-  const fields = [
-    `"note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action. Use ${preferredLanguage}.`,
-    `"log": string, // a brief preamble to the user explaining what you're about to do. Use ${preferredLanguage}.`,
-    `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use ${preferredLanguage}.`,
-  ];
-
-  if (includeThought) {
-    fields.unshift(
-      `"thought": string, // your thought process about the next action`,
-    );
-  }
-
-  return fields.join('\n  ');
-};
-
 const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
   if (modelFamily) {
     return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(modelFamily)}`;
@@ -213,18 +192,6 @@ The \`log\` field is a brief preamble message to the user explaining what you're
 `;
 
   const shouldIncludeThought = includeThought ?? true;
-  const commonOutputFields = buildCommonOutputFields(
-    shouldIncludeThought,
-    preferredLanguage,
-  );
-  const exampleThoughtLine = shouldIncludeThought
-    ? `  "thought": "The form has already been filled, I need to click the login button to login",
-`
-    : '';
-  const exampleThoughtLineWithNote = shouldIncludeThought
-    ? `  "thought": "I need to note the titles in the current screenshot for further processing and scroll to find more titles",
-`
-    : '';
 
   return `
 Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action according to current situation to accomplish the instruction.
@@ -247,46 +214,38 @@ ${logFieldInstruction}
 
 ## Return format
 
-Return in JSON format:
-{
-  ${commonOutputFields}
-  "action": 
-    {
-      "type": string, // the type of the action
-      "param"?: { // The parameter of the action, if any
-         // k-v style parameter fields
-      }, 
-    } | null
-}
+Return in XML format with the following structure:
+${shouldIncludeThought ? '<thought>your thought process about the next action</thought>' : ''}
+<note>CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Leave empty if no follow-up information is needed.</note>
+<log>a brief preamble to the user</log>
+<error>error messages (optional)</error>
+<action-type>the type of the action, or null if no action</action-type>
+<action-param-json>JSON object containing the action parameters</action-param-json>
 
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
+${shouldIncludeThought ? '<thought>The form has already been filled, I need to click the login button to login</thought>' : ''}<log>Click the login button</log>
+<action-type>Tap</action-type>
+<action-param-json>
 {
-${exampleThoughtLine}  "log": "Click the login button",
-  "action": {
-    "type": "Tap",
-    "param": {
-      "locate": { 
-        "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
-      }
-    }
+  "locate": {
+    "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
   }
 }
+</action-param-json>
 
 For example, if the instruction is to find out every title in the screenshot, the return value should be:
 
+${shouldIncludeThought ? '<thought>I need to note the titles in the current screenshot for further processing and scroll to find more titles</thought>' : ''}<note>The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'</note>
+<log>Scroll to find more titles</log>
+<action-type>Scroll</action-type>
+<action-param-json>
 {
-${exampleThoughtLineWithNote}  "note": "The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
-  "log": "Scroll to find more titles",
-  "action": {
-    "type": "Scroll",
-    "param": {
-      "locate": {
-        "prompt": "The page content area"
-      },
-      "direction": "down"
-    }
-  }
+  "locate": {
+    "prompt": "The page content area"
+  },
+  "direction": "down"
 }
+</action-param-json>
 `;
 }
