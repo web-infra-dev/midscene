@@ -9,27 +9,6 @@ import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
 import { bboxDescription } from './common';
 
-// Note: put the log field first to trigger the CoT
-
-const buildCommonOutputFields = (
-  includeThought: boolean,
-  preferredLanguage: string,
-) => {
-  const fields = [
-    `"note"?: string, // CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Use ${preferredLanguage}.`,
-    `"log": string, // a brief preamble to the user explaining what you're about to do. Use ${preferredLanguage}.`,
-    `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use ${preferredLanguage}.`,
-  ];
-
-  if (includeThought) {
-    fields.unshift(
-      `"thought": string, // your thought process about the next action`,
-    );
-  }
-
-  return fields.join('\n  ');
-};
-
 const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
   if (modelFamily) {
     return `{bbox: [number, number, number, number], prompt: string } // ${bboxDescription(modelFamily)}`;
@@ -213,18 +192,6 @@ The \`log\` field is a brief preamble message to the user explaining what you're
 `;
 
   const shouldIncludeThought = includeThought ?? true;
-  const commonOutputFields = buildCommonOutputFields(
-    shouldIncludeThought,
-    preferredLanguage,
-  );
-  const exampleThoughtLine = shouldIncludeThought
-    ? `  "thought": "The form has already been filled, I need to click the login button to login",
-`
-    : '';
-  const exampleThoughtLineWithNote = shouldIncludeThought
-    ? `  "thought": "I need to note the titles in the current screenshot for further processing and scroll to find more titles",
-`
-    : '';
 
   return `
 Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action according to current situation to accomplish the instruction.
