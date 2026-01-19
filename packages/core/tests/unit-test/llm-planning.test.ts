@@ -1,3 +1,4 @@
+import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
 import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
   adaptQwen2_5Bbox as adaptQwenBbox,
@@ -607,5 +608,224 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
         - param:
           - nested: string | object"
     `);
+  });
+});
+
+describe('parseXMLPlanningResponse', () => {
+  it('should parse complete XML response with all fields', () => {
+    const xml = `
+<thought>I need to click the login button</thought>
+<note>User credentials are already filled</note>
+<log>Click the login button</log>
+<error></error>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "The login button",
+    "bbox": [100, 200, 300, 400]
+  }
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result).toEqual({
+      thought: 'I need to click the login button',
+      note: 'User credentials are already filled',
+      log: 'Click the login button',
+      action: {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: 'The login button',
+            bbox: [100, 200, 300, 400],
+          },
+        },
+      },
+    });
+  });
+
+  it('should parse XML response with only required fields', () => {
+    const xml = `
+<log>Performing action</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Button"
+  }
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result).toEqual({
+      log: 'Performing action',
+      action: {
+        type: 'Tap',
+        param: {
+          locate: {
+            prompt: 'Button',
+          },
+        },
+      },
+    });
+  });
+
+  it('should parse XML response with null action', () => {
+    const xml = `
+<log>Task completed</log>
+<action-type>null</action-type>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result).toEqual({
+      log: 'Task completed',
+      action: null,
+    });
+  });
+
+  it('should parse XML response without action-type', () => {
+    const xml = `
+<log>Just logging</log>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result).toEqual({
+      log: 'Just logging',
+      action: null,
+    });
+  });
+
+  it('should parse XML response with error field', () => {
+    const xml = `
+<log>Attempting to recover</log>
+<error>Previous action failed</error>
+<action-type>Scroll</action-type>
+<action-param-json>
+{
+  "direction": "down"
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result).toEqual({
+      log: 'Attempting to recover',
+      error: 'Previous action failed',
+      action: {
+        type: 'Scroll',
+        param: {
+          direction: 'down',
+        },
+      },
+    });
+  });
+
+  it('should parse action without param', () => {
+    const xml = `
+<log>Waiting</log>
+<action-type>Wait</action-type>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result).toEqual({
+      log: 'Waiting',
+      action: {
+        type: 'Wait',
+      },
+    });
+  });
+
+  it('should handle multiline content in tags', () => {
+    const xml = `
+<thought>
+  This is a complex thought
+  spanning multiple lines
+</thought>
+<log>Executing complex action</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "test value",
+  "locate": {
+    "prompt": "input field"
+  }
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result.thought).toBe(
+      'This is a complex thought\n  spanning multiple lines',
+    );
+    expect(result.log).toBe('Executing complex action');
+    expect(result.action?.type).toBe('Input');
+  });
+
+  it('should throw error when log field is missing', () => {
+    const xml = `
+<thought>Some thought</thought>
+<action-type>Tap</action-type>
+    `.trim();
+
+    expect(() => parseXMLPlanningResponse(xml)).toThrow(
+      'Missing required field: log',
+    );
+  });
+
+  it('should throw error when action-param-json is invalid JSON', () => {
+    const xml = `
+<log>Action</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{invalid json}
+</action-param-json>
+    `.trim();
+
+    expect(() => parseXMLPlanningResponse(xml)).toThrow(
+      'Failed to parse action-param-json',
+    );
+  });
+
+  it('should handle case-insensitive tag matching', () => {
+    const xml = `
+<LOG>Case insensitive log</LOG>
+<ACTION-TYPE>Tap</ACTION-TYPE>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result.log).toBe('Case insensitive log');
+    expect(result.action?.type).toBe('Tap');
+  });
+
+  it('should parse XML with special characters in content', () => {
+    const xml = `
+<log>Click "Submit" button</log>
+<note>Values: <100 & >50</note>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Button with & symbol"
+  }
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml);
+
+    expect(result.log).toBe('Click "Submit" button');
+    expect(result.note).toBe('Values: <100 & >50');
+    expect(result.action?.param.locate.prompt).toBe('Button with & symbol');
   });
 });

@@ -27,7 +27,7 @@ const debug = getDebug('planning');
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
  */
-function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIResponse {
+export function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIResponse {
   // Extract content from XML tags
   const extractTag = (tagName: string): string | undefined => {
     const regex = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`, 'i');
