@@ -25,9 +25,6 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 - `report/` - 测试报告文件（HTML 格式）
 - `log/` - 调试日志文件
 - `cache/` - 缓存文件（详见 [缓存](./caching)）
-- `dump/` - 调试时的数据转储
-- `tmp/` - 临时文件
-- `output/` - 其他输出文件
 
 更多配置选项请参阅 [模型配置](./model-config)。
 

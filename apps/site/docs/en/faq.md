@@ -43,9 +43,6 @@ The directory contains the following subdirectories:
 - `report/` - Test report files (HTML format)
 - `log/` - Debug log files
 - `cache/` - Cache files (see [Caching](./caching))
-- `dump/` - Debug data dumps
-- `tmp/` - Temporary files
-- `output/` - Other output files
 
 For more configuration options, see [Model configuration](./model-config).
 
