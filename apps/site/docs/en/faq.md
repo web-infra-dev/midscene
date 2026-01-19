@@ -24,9 +24,30 @@ await page.setViewport({
 });
 ```
 
-## Where are the report files saved?
+## How do I configure the midscene_run directory?
 
-The report files are saved in `./midscene-run/report/` by default.
+Midscene saves runtime artifacts (reports, logs, cache, etc.) in the `midscene_run` directory. By default, this directory is created in the current working directory.
+
+You can customize the directory location using the `MIDSCENE_RUN_DIR` environment variable, which accepts both relative and absolute paths:
+
+```bash
+# Using a relative path
+export MIDSCENE_RUN_DIR="./my_custom_dir"
+
+# Using an absolute path
+export MIDSCENE_RUN_DIR="/tmp/midscene_output"
+```
+
+The directory contains the following subdirectories:
+
+- `report/` - Test report files (HTML format)
+- `log/` - Debug log files
+- `cache/` - Cache files (see [Caching](./caching))
+- `dump/` - Debug data dumps
+- `tmp/` - Temporary files
+- `output/` - Other output files
+
+For more configuration options, see [Model configuration](./model-config).
 
 ## How do I control the report player's default replay style via a link?
 
