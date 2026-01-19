@@ -16,7 +16,7 @@ const buildCommonOutputFields = (
   preferredLanguage: string,
 ) => {
   const fields = [
-    `"note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action. Use ${preferredLanguage}.`,
+    `"note"?: string, // CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Use ${preferredLanguage}.`,
     `"log": string, // a brief preamble to the user explaining what you're about to do. Use ${preferredLanguage}.`,
     `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use ${preferredLanguage}.`,
   ];
@@ -249,7 +249,7 @@ ${logFieldInstruction}
 
 Return in XML format with the following structure:
 ${shouldIncludeThought ? '<thought>your thought process about the next action</thought>' : ''}
-<note>some important notes (optional)</note>
+<note>CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Leave empty if no follow-up information is needed.</note>
 <log>a brief preamble to the user</log>
 <error>error messages (optional)</error>
 <action-type>the type of the action, or null if no action</action-type>
