@@ -40,7 +40,7 @@ function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIRespo
   const log = extractTag('log');
   const error = extractTag('error');
   const actionType = extractTag('action-type');
-  const actionParamStr = extractTag('action-param');
+  const actionParamStr = extractTag('action-param-json');
 
   // Validate required fields
   if (!log) {
@@ -55,10 +55,10 @@ function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIRespo
 
     if (actionParamStr) {
       try {
-        // Parse the JSON string in action-param
+        // Parse the JSON string in action-param-json
         param = safeParseJson(actionParamStr, undefined);
       } catch (e) {
-        throw new Error(`Failed to parse action-param JSON: ${e}`);
+        throw new Error(`Failed to parse action-param-json: ${e}`);
       }
     }
 

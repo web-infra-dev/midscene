@@ -253,32 +253,32 @@ ${shouldIncludeThought ? '<thought>your thought process about the next action</t
 <log>a brief preamble to the user</log>
 <error>error messages (optional)</error>
 <action-type>the type of the action, or null if no action</action-type>
-<action-param>JSON object containing the action parameters</action-param>
+<action-param-json>JSON object containing the action parameters</action-param-json>
 
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
 ${shouldIncludeThought ? '<thought>The form has already been filled, I need to click the login button to login</thought>' : ''}<log>Click the login button</log>
 <action-type>Tap</action-type>
-<action-param>
+<action-param-json>
 {
   "locate": {
     "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
   }
 }
-</action-param>
+</action-param-json>
 
 For example, if the instruction is to find out every title in the screenshot, the return value should be:
 
 ${shouldIncludeThought ? '<thought>I need to note the titles in the current screenshot for further processing and scroll to find more titles</thought>' : ''}<note>The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'</note>
 <log>Scroll to find more titles</log>
 <action-type>Scroll</action-type>
-<action-param>
+<action-param-json>
 {
   "locate": {
     "prompt": "The page content area"
   },
   "direction": "down"
 }
-</action-param>
+</action-param-json>
 `;
 }
