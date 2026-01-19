@@ -6,6 +6,28 @@ Midscene 会发送页面截图到 AI 模型。在某些场景下，例如调用 
 
 如果你担心数据隐私问题，请参阅 [数据隐私](./data-privacy)。
 
+## 如何配置 midscene_run 目录？
+
+Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。
+
+你可以通过环境变量 `MIDSCENE_RUN_DIR` 来自定义该目录的位置，支持相对路径或绝对路径：
+
+```bash
+# 使用相对路径
+export MIDSCENE_RUN_DIR="./my_custom_dir"
+
+# 使用绝对路径
+export MIDSCENE_RUN_DIR="/tmp/midscene_output"
+```
+
+该目录包含以下子目录：
+
+- `report/` - 测试报告文件（HTML 格式）
+- `log/` - 调试日志文件
+- `cache/` - 缓存文件（详见 [缓存](./caching)）
+
+更多配置选项请参阅 [模型配置](./model-config)。
+
 ## 如何提升运行效率？
 
 有几种方法可以提高运行效率：
