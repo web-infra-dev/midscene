@@ -201,6 +201,8 @@ export class Agent<
 
   destroyed = false;
 
+  private lastWritePromise: Promise<void> | null = null;
+
   modelConfigManager: ModelConfigManager;
 
   /**
@@ -270,7 +272,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = context.screenshot.base64;
+        const screenshotBase64 = await context.screenshot.getData();
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -403,7 +405,11 @@ export class Agent<
             }
           }
 
-          this.writeOutActionDumps();
+          // Fire and forget - don't block task execution
+          this.lastWritePromise = this.writeOutActionDumps().catch((error) => {
+            console.error('Error writing action dumps:', error);
+            debug('writeOutActionDumps error', error);
+          });
         },
       },
     });
@@ -451,12 +457,12 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = context.screenshot.base64;
+      const currentScreenshotBase64 = await context.screenshot.getData();
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
       });
-      context.screenshot = ScreenshotItem.create(resizedBase64);
+      context.screenshot = await ScreenshotItem.create(resizedBase64);
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
@@ -486,13 +492,16 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
-      sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
-      groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
-    });
+    this.dump = new GroupedActionDump(
+      {
+        sdkVersion: getVersion(),
+        groupName: this.opts.groupName!,
+        groupDescription: this.opts.groupDescription,
+        executions: [],
+        modelBriefs: [],
+      },
+      this.opts.storageProvider, // Pass storageProvider for directory-based reports
+    );
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
@@ -527,23 +536,82 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  writeOutActionDumps() {
+  async writeOutActionDumps() {
     if (this.destroyed) {
       throw new Error(
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
-    const { generateReport, autoPrintReportMsg } = this.opts;
-    this.reportFile = writeLogFile({
-      fileName: this.reportFileName!,
-      fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
-      type: 'dump',
-      generateReport,
-    });
-    debug('writeOutActionDumps', this.reportFile);
-    if (generateReport && autoPrintReportMsg && this.reportFile) {
-      printReportMsg(this.reportFile);
+
+    const {
+      generateReport = true,
+      autoPrintReportMsg = true,
+      useDirectoryReport = false,
+    } = this.opts;
+
+    if (useDirectoryReport) {
+      // Use directory-based report format with separate PNG files
+      const { getMidsceneRunSubDir } = await import('@midscene/shared/common');
+      const path = await import('node:path');
+
+      const outputDir = path.join(
+        getMidsceneRunSubDir('report'),
+        this.reportFileName!,
+      );
+
+      this.reportFile = await this.dump.writeToDirectory(outputDir);
+      debug('writeOutActionDumps (directory)', this.reportFile);
+
+      if (generateReport && autoPrintReportMsg && this.reportFile) {
+        console.log('\n[Midscene] Directory report generated.');
+        console.log(
+          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
+        );
+        console.log(
+          `[Midscene] Example: npx serve ${path.dirname(this.reportFile)}`,
+        );
+      }
+    } else {
+      // Use traditional single HTML file with embedded base64 images
+      if (generateReport) {
+        // Generate HTML with inline screenshots using toHTML()
+        const { getMidsceneRunSubDir } = await import(
+          '@midscene/shared/common'
+        );
+        const { getReportTpl } = await import('../utils');
+        const path = await import('node:path');
+        const fs = await import('node:fs');
+
+        const htmlScripts = await this.dump.toHTML();
+        const htmlContent = `${getReportTpl()}\n${htmlScripts}`;
+
+        const reportPath = path.join(
+          getMidsceneRunSubDir('report'),
+          `${this.reportFileName}.html`,
+        );
+
+        fs.writeFileSync(reportPath, htmlContent);
+        this.reportFile = reportPath;
+
+        debug(
+          'writeOutActionDumps (single file with inline screenshots)',
+          this.reportFile,
+        );
+
+        if (autoPrintReportMsg) {
+          printReportMsg(this.reportFile);
+        }
+      } else {
+        // Only write dump data without generating report
+        this.reportFile = writeLogFile({
+          fileName: this.reportFileName!,
+          fileExt: groupedActionDumpFileExt,
+          fileContent: this.dumpDataString(),
+          type: 'dump',
+          generateReport: false,
+        });
+        debug('writeOutActionDumps (dump only)', this.reportFile);
+      }
     }
   }
 
@@ -1333,6 +1401,11 @@ export class Agent<
       return;
     }
 
+    // Wait for any pending write operations to complete
+    if (this.lastWritePromise) {
+      await this.lastWritePromise;
+    }
+
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
@@ -1346,7 +1419,7 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = ScreenshotItem.create(base64);
+    const screenshot = await ScreenshotItem.create(base64);
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
@@ -1392,7 +1465,8 @@ export class Agent<
       }
     }
 
-    this.writeOutActionDumps();
+    this.lastWritePromise = this.writeOutActionDumps();
+    await this.lastWritePromise;
   }
 
   /**

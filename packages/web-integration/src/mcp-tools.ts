@@ -1,4 +1,4 @@
-import { ScreenshotItem, z } from '@midscene/core';
+import { z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from './bridge-mode';
 import { StaticPage } from './static';
@@ -10,9 +10,9 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   protected createTemporaryDevice() {
     // Use require to avoid type incompatibility with DeviceAction vs ActionSpaceItem
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
-    const screenshot = ScreenshotItem.create('');
+    // Use screenshotBase64 field to avoid async ScreenshotItem.create()
     return new StaticPage({
-      screenshot,
+      screenshotBase64: '',
       size: { width: 1920, height: 1080 },
     });
   }

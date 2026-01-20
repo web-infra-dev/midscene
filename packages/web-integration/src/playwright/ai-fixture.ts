@@ -109,16 +109,34 @@ export const PlaywrightAiFixture = (options?: {
       page.on('close', () => {
         debugPage('page closed');
 
-        // Note: We don't clean up temp files here because the reporter
-        // needs to read them in onTestEnd. The reporter will clean them up
-        // after reading. If the test is interrupted (Ctrl+C), the process
-        // exit handlers will clean up remaining temp files.
-
-        // However, we do clean up the pageTempFiles Map entry to avoid memory leaks
-        pageTempFiles.delete(idForPage);
-
-        pageAgentMap[idForPage].destroy();
-        delete pageAgentMap[idForPage];
+        // Generate final dump with inline screenshots before destroying the agent
+        (async () => {
+          try {
+            const agent = pageAgentMap[idForPage];
+            if (agent) {
+              // Get dump with inline screenshots
+              const dumpWithInlineScreenshots =
+                await agent.dump.serializeWithInlineScreenshots();
+              // Update the temp file with inline screenshot data
+              const tempFilePath = pageTempFiles.get(idForPage);
+              if (tempFilePath) {
+                writeFileSync(tempFilePath, dumpWithInlineScreenshots, 'utf-8');
+                debugPage(
+                  `Updated temp file with inline screenshots: ${tempFilePath}`,
+                );
+              }
+            }
+          } catch (error) {
+            debugPage('Error generating dump with inline screenshots:', error);
+          } finally {
+            // Clean up
+            pageTempFiles.delete(idForPage);
+            pageAgentMap[idForPage]?.destroy();
+            delete pageAgentMap[idForPage];
+          }
+        })().catch((error) => {
+          console.error('Error in page close handler:', error);
+        });
       });
     }
 

@@ -58,7 +58,7 @@ export async function uiTarsPlanning(
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
-  const screenshotBase64 = context.screenshot.base64;
+  const screenshotBase64 = await context.screenshot.getData();
 
   conversationHistory.append({
     role: 'user',

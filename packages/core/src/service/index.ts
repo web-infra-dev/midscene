@@ -292,7 +292,7 @@ export default class Service {
     assert(target, 'target is required for service.describe');
     const context = await this.contextRetrieverFn();
     const { size } = context;
-    const screenshotBase64 = context.screenshot.base64;
+    const screenshotBase64 = await context.screenshot.getData();
     assert(screenshotBase64, 'screenshot is required for service.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
     const { modelFamily } = modelConfig;

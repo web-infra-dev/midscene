@@ -102,7 +102,16 @@ export const Blackboard = (props: {
   const context = props.uiContext;
   const { size, screenshot } = context;
 
-  const screenshotBase64 = screenshot?.base64 ?? '';
+  const [screenshotBase64, setScreenshotBase64] = useState<string>('');
+
+  useEffect(() => {
+    const screenshotData = screenshot as unknown as
+      | { base64: string }
+      | undefined;
+    if (screenshotData?.base64) {
+      setScreenshotBase64(screenshotData.base64);
+    }
+  }, [screenshot]);
 
   const screenWidth = size.width;
   const screenHeight = size.height;
