@@ -1,5 +1,5 @@
-import { writeFileSync } from 'node:fs';
 import type { Buffer } from 'node:buffer';
+import { writeFileSync } from 'node:fs';
 import type Jimp from 'jimp';
 import { getDebug } from '../logger';
 

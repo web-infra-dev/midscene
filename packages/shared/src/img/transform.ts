@@ -8,8 +8,8 @@ import { getDebug } from '../logger';
 import { ifInNode } from '../utils';
 import getJimp from './get-jimp';
 import getPhoton from './get-photon';
-import { safeJimpRead } from './safe-jimp';
 import getSharp from './get-sharp';
+import { safeJimpRead } from './safe-jimp';
 
 const imgDebug = getDebug('img');
 
