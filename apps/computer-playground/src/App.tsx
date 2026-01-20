@@ -8,8 +8,8 @@ import {
   safeOverrideAIConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider, Layout, notification } from 'antd';
-import { useEffect, useMemo } from 'react';
+import { ConfigProvider, Layout, Modal, notification } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const { Content } = Layout;
 
@@ -18,11 +18,33 @@ declare const __APP_VERSION__: string;
 export default function App() {
   const { config } = useEnvConfig();
   const [notificationApi, contextHolder] = notification.useNotification();
+  const [countdown, setCountdown] = useState<number | string | null>(null);
 
   // Override AI configuration when config changes
   useEffect(() => {
     safeOverrideAIConfig(config);
   }, [config]);
+
+  // Show countdown modal
+  const showCountdownModal = useCallback(async () => {
+    return new Promise<void>((resolve) => {
+      let count = 3;
+      setCountdown(count);
+
+      const timer = setInterval(() => {
+        count--;
+        if (count > 0) {
+          setCountdown(count);
+        } else if (count === 0) {
+          setCountdown('GO!');
+        } else {
+          clearInterval(timer);
+          setCountdown(null);
+          resolve();
+        }
+      }, 1000);
+    });
+  }, []);
 
   // Initialize PlaygroundSDK for remote execution
   const playgroundSDK = useMemo(() => {
@@ -30,27 +52,22 @@ export default function App() {
       type: 'remote-execution',
     });
 
-    // Wrap the executeAction method to show notifications
+    // Wrap the executeAction method to show countdown
     const originalExecuteAction = sdk.executeAction.bind(sdk);
     sdk.executeAction = async (
       actionType: string,
       value: any,
       options: any,
     ) => {
-      // Show notification when execution starts
-      notificationApi.info({
-        message: '自动化开始',
-        description: '窗口将在 1.5 秒后自动最小化，请勿操作',
-        duration: 2,
-        placement: 'top',
-      });
+      // Show countdown modal
+      await showCountdownModal();
 
       const result = await originalExecuteAction(actionType, value, options);
       return result;
     };
 
     return sdk;
-  }, [notificationApi]);
+  }, [showCountdownModal]);
 
   // Check server status on mount
   useEffect(() => {
@@ -86,6 +103,56 @@ export default function App() {
   return (
     <ConfigProvider theme={globalThemeConfig()}>
       {contextHolder}
+      <Modal
+        open={countdown !== null}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+        centered
+        width={400}
+        style={{ top: '30%' }}
+        styles={{
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.75)' },
+        }}
+      >
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '72px',
+              fontWeight: 'bold',
+              color: countdown === 'GO!' ? '#52c41a' : '#1890ff',
+              marginBottom: '24px',
+              lineHeight: 1,
+            }}
+          >
+            {countdown}
+          </div>
+          <div
+            style={{
+              fontSize: '18px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Automation Starting Soon
+          </div>
+          <div
+            style={{
+              fontSize: '14px',
+              color: 'rgba(0, 0, 0, 0.65)',
+            }}
+          >
+            The window will minimize automatically.
+            <br />
+            Please do not interact with the screen.
+          </div>
+        </div>
+      </Modal>
       <Layout className="app-container">
         <Content className="app-content">
           <div className="playground-panel">

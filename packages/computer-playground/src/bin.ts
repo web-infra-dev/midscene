@@ -136,12 +136,26 @@ const main = async () => {
 
     console.log('Launching browser in standalone window mode...');
 
+    // Get screen size and calculate window dimensions
+    const device = new ComputerDevice();
+    await device.connect();
+    const screenSize = await device.size();
+    await device.destroy();
+
+    const windowWidth = 500;
+    const maxWindowHeight = 1200;
+    const windowHeight = Math.min(screenSize.height, maxWindowHeight);
+
+    console.log(
+      `Screen size: ${screenSize.width}x${screenSize.height}, window size: ${windowWidth}x${windowHeight}`,
+    );
+
     const browser = await puppeteer.launch({
       headless: false,
       defaultViewport: null,
       args: [
         `--app=${url}`,
-        '--window-size=1400,1000',
+        `--window-size=${windowWidth},${windowHeight}`,
         '--no-first-run',
         '--no-default-browser-check',
       ],
