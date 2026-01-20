@@ -5,7 +5,6 @@ import { getVersion } from './utils';
 
 export {
   plan,
-  describeUserPage,
   AiLocateElement,
   getMidsceneLocationSchema,
   type MidsceneLocationResultType,
