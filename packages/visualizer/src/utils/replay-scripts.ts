@@ -145,14 +145,14 @@ const capitalizeFirstLetter = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-export const allScriptsFromDump = (
+export const allScriptsFromDump = async (
   dump:
     | GroupedActionDump
     | IGroupedActionDump
     | ExecutionDump
     | null
     | undefined,
-): ReplayScriptsInfo | null => {
+): Promise<ReplayScriptsInfo | null> => {
   if (!dump) {
     console.warn('[allScriptsFromDump] dump is empty');
     return {
@@ -205,8 +205,9 @@ export const allScriptsFromDump = (
 
   // Use first dimensions as default for the overall player size
   const allScripts: AnimationScript[] = [];
-  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
-    const scripts = generateAnimationScripts(
+  const executions = normalizedDump.executions?.filter(Boolean) || [];
+  for (const execution of executions) {
+    const scripts = await generateAnimationScripts(
       execution,
       -1,
       firstWidth!,
@@ -227,7 +228,7 @@ export const allScriptsFromDump = (
         }
       }
     });
-  });
+  }
 
   const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
     (script, index) => {
@@ -270,12 +271,12 @@ export const allScriptsFromDump = (
   };
 };
 
-export const generateAnimationScripts = (
+export const generateAnimationScripts = async (
   execution: ExecutionDump | IExecutionDump | null,
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
-): AnimationScript[] | null => {
+): Promise<AnimationScript[] | null> => {
   if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
     return null;
@@ -298,7 +299,11 @@ export const generateAnimationScripts = (
     }
 
     for (let i = startIndex; i < execution.tasks.length; i++) {
-      if (i > startIndex && execution.tasks[i].type === 'Planning') {
+      if (
+        i > startIndex &&
+        execution.tasks[i].type === 'Planning' &&
+        execution.tasks[i].subType === 'Plan'
+      ) {
         break;
       }
 
@@ -342,8 +347,9 @@ export const generateAnimationScripts = (
   const taskCount = tasksIncluded.length;
   let initSubTitle = '';
   let errorStateFlag = false;
-  tasksIncluded.forEach((task, index) => {
-    if (errorStateFlag) return;
+  for (let index = 0; index < tasksIncluded.length; index++) {
+    const task = tasksIncluded[index];
+    if (errorStateFlag) continue;
 
     if (index === 0) {
       initSubTitle = paramStr(task);
@@ -392,10 +398,9 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
-        const screenshotData =
-          typeof context.screenshot === 'string'
-            ? context.screenshot
-            : context.screenshot.getData();
+        const screenshotData = (
+          context.screenshot as unknown as { base64: string }
+        ).base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -450,8 +455,10 @@ export const generateAnimationScripts = (
 
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
+        const screenshot = planningTask.recorder[0]?.screenshot;
         const screenshotData =
-          planningTask.recorder[0]?.screenshot?.getData() || '';
+          (screenshot as unknown as { base64: string } | undefined)?.base64 ||
+          '';
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -488,8 +495,9 @@ export const generateAnimationScripts = (
 
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
+      const screenshot = task.recorder?.[0]?.screenshot;
       const actionScreenshotData =
-        task.recorder?.[0]?.screenshot?.getData() || '';
+        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -507,8 +515,8 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
-        const screenshotData =
-          typeof screenshot === 'string' ? screenshot : screenshot.getData();
+        const screenshotData = (screenshot as unknown as { base64: string })
+          .base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -529,10 +537,9 @@ export const generateAnimationScripts = (
         errorMsg.indexOf('NOT_IMPLEMENTED_AS_DESIGNED') > 0
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
+      const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
       const errorScreenshotData =
-        task.recorder && task.recorder.length > 0
-          ? task.recorder[task.recorder.length - 1].screenshot?.getData() || ''
-          : '';
+        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
       scripts.push({
         type: 'img',
         img: errorScreenshotData,
@@ -543,9 +550,9 @@ export const generateAnimationScripts = (
         imageWidth: task.uiContext?.size?.width || imageWidth,
         imageHeight: task.uiContext?.size?.height || imageHeight,
       });
-      return;
+      continue;
     }
-  });
+  }
 
   // console.log('scripts', scripts);
 

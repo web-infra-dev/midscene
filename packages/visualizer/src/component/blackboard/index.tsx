@@ -101,7 +101,17 @@ export const Blackboard = (props: {
 
   const context = props.uiContext;
   const { size, screenshot } = context;
-  const screenshotBase64 = screenshot.getData();
+
+  const [screenshotBase64, setScreenshotBase64] = useState<string>('');
+
+  useEffect(() => {
+    const screenshotData = screenshot as unknown as
+      | { base64: string }
+      | undefined;
+    if (screenshotData?.base64) {
+      setScreenshotBase64(screenshotData.base64);
+    }
+  }, [screenshot]);
 
   const screenWidth = size.width;
   const screenHeight = size.height;
@@ -223,8 +233,12 @@ export const Blackboard = (props: {
     img.onerror = (e) => {
       console.error('load screenshot failed', e);
     };
-    img.src = screenshotBase64;
-  }, [app.stage, appInitialed, screenWidth, screenHeight]);
+    if (screenshotBase64) {
+      img.src = screenshotBase64;
+    } else {
+      console.error('screenshotBase64 is empty, cannot load image');
+    }
+  }, [app.stage, appInitialed, screenWidth, screenHeight, screenshotBase64]);
 
   const { highlightElementRects } = useMemo(() => {
     const highlightElementRects: Rect[] = [];

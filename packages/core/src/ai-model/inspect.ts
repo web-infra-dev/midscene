@@ -24,6 +24,9 @@ import type {
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
 import { adaptBboxToRect, expandSearchArea, mergeRects } from '../common';
+import { parseAutoGLMLocateResponse } from './auto-glm/parser';
+import { getAutoGLMLocatePrompt } from './auto-glm/prompt';
+import { isAutoGLM } from './auto-glm/util';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
@@ -40,7 +43,10 @@ import {
   orderSensitiveJudgePrompt,
   systemPromptToJudgeOrderSensitive,
 } from './prompt/order-sensitive-judge';
-import { callAIWithObjectResponse } from './service-caller/index';
+import {
+  callAIWithObjectResponse,
+  callAIWithStringResponse,
+} from './service-caller/index';
 
 export type AIArgs = [
   ChatCompletionSystemMessageParam,
@@ -109,7 +115,6 @@ const promptsToChatParam = async (
 export async function AiLocateElement(options: {
   context: UIContext;
   targetElementDescription: TUserPrompt;
-  referenceImage?: ReferenceImage;
   callAIFn: typeof callAIWithObjectResponse<
     AIElementResponse | [number, number]
   >;
@@ -126,8 +131,8 @@ export async function AiLocateElement(options: {
   reasoning_content?: string;
 }> {
   const { context, targetElementDescription, callAIFn, modelConfig } = options;
-  const { vlMode } = modelConfig;
-  const screenshotBase64 = context.screenshot.getData();
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = await context.screenshot.getData();
 
   assert(
     targetElementDescription,
@@ -137,7 +142,9 @@ export async function AiLocateElement(options: {
     targetElementDescription,
   );
   const userInstructionPrompt = findElementPrompt(targetElementDescriptionText);
-  const systemPrompt = systemPromptToLocateElement(vlMode);
+  const systemPrompt = isAutoGLM(modelFamily)
+    ? getAutoGLMLocatePrompt(modelFamily)
+    : systemPromptToLocateElement(modelFamily);
 
   let imagePayload = screenshotBase64;
   let imageWidth = context.size.width;
@@ -160,7 +167,7 @@ export async function AiLocateElement(options: {
     imageHeight = options.searchConfig.rect?.height;
     originalImageWidth = imageWidth;
     originalImageHeight = imageHeight;
-  } else if (vlMode === 'qwen2.5-vl') {
+  } else if (modelFamily === 'qwen2.5-vl') {
     const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
     imageWidth = paddedResult.width;
     imageHeight = paddedResult.height;
@@ -181,7 +188,9 @@ export async function AiLocateElement(options: {
         },
         {
           type: 'text',
-          text: userInstructionPrompt,
+          text: isAutoGLM(modelFamily)
+            ? `Tap: ${userInstructionPrompt}`
+            : userInstructionPrompt,
         },
       ],
     },
@@ -193,6 +202,86 @@ export async function AiLocateElement(options: {
       convertHttpImage2Base64: targetElementDescription.convertHttpImage2Base64,
     });
     msgs.push(...addOns);
+  }
+
+  if (isAutoGLM(modelFamily)) {
+    const { content: rawResponseContent, usage } =
+      await callAIWithStringResponse(msgs, modelConfig);
+
+    debugInspect('auto-glm rawResponse:', rawResponseContent);
+
+    const parsed = parseAutoGLMLocateResponse(rawResponseContent);
+
+    debugInspect('auto-glm thinking:', parsed.think);
+    debugInspect('auto-glm coordinates:', parsed.coordinates);
+
+    let resRect: Rect | undefined;
+    let matchedElements: LocateResultElement[] = [];
+    let errors: string[] = [];
+
+    if (parsed.error || !parsed.coordinates) {
+      errors = [parsed.error || 'Failed to parse auto-glm response'];
+      debugInspect('auto-glm parse error:', errors[0]);
+    } else {
+      const { x, y } = parsed.coordinates;
+
+      debugInspect('auto-glm coordinates [0-999]:', { x, y });
+
+      // Convert auto-glm coordinates [0,999] to pixel bbox
+      // Map from [0,999] to pixel coordinates
+      const pixelX = Math.round((x * imageWidth) / 1000);
+      const pixelY = Math.round((y * imageHeight) / 1000);
+
+      debugInspect('auto-glm pixel coordinates:', { pixelX, pixelY });
+
+      // Create a small bbox around the point
+      const bboxSize = 10;
+      const x1 = Math.max(pixelX - bboxSize / 2, 0);
+      const y1 = Math.max(pixelY - bboxSize / 2, 0);
+      const x2 = Math.min(pixelX + bboxSize / 2, imageWidth);
+      const y2 = Math.min(pixelY + bboxSize / 2, imageHeight);
+
+      // Convert to Rect format
+      resRect = {
+        left: x1,
+        top: y1,
+        width: x2 - x1,
+        height: y2 - y1,
+      };
+
+      // Apply offset if searching in a cropped area
+      if (options.searchConfig?.rect) {
+        resRect.left += options.searchConfig.rect.left;
+        resRect.top += options.searchConfig.rect.top;
+      }
+
+      debugInspect('auto-glm resRect:', resRect);
+
+      const rectCenter = {
+        x: resRect.left + resRect.width / 2,
+        y: resRect.top + resRect.height / 2,
+      };
+
+      const element: LocateResultElement = generateElementByPosition(
+        rectCenter,
+        targetElementDescriptionText as string,
+      );
+
+      if (element) {
+        matchedElements = [element];
+      }
+    }
+
+    return {
+      rect: resRect,
+      parseResult: {
+        elements: matchedElements,
+        errors,
+      },
+      rawResponse: rawResponseContent,
+      usage,
+      reasoning_content: parsed.think,
+    };
   }
 
   const res = await callAIFn(msgs, modelConfig);
@@ -217,7 +306,7 @@ export async function AiLocateElement(options: {
         options.searchConfig?.rect?.top,
         originalImageWidth,
         originalImageHeight,
-        vlMode,
+        modelFamily,
       );
 
       debugInspect('resRect', resRect);
@@ -273,10 +362,10 @@ export async function AiLocateSection(options: {
   usage?: AIUsageInfo;
 }> {
   const { context, sectionDescription, modelConfig } = options;
-  const { vlMode } = modelConfig;
-  const screenshotBase64 = context.screenshot.getData();
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = await context.screenshot.getData();
 
-  const systemPrompt = systemPromptToLocateSection(vlMode);
+  const systemPrompt = systemPromptToLocateSection(modelFamily);
   const sectionLocatorInstructionText = sectionLocatorInstruction(
     extraTextFromUserPrompt(sectionDescription),
   );
@@ -324,7 +413,7 @@ export async function AiLocateSection(options: {
       0,
       context.size.width,
       context.size.height,
-      vlMode,
+      modelFamily,
     );
     debugSection('original targetRect %j', targetRect);
 
@@ -342,7 +431,7 @@ export async function AiLocateSection(options: {
           0,
           context.size.width,
           context.size.height,
-          vlMode,
+          modelFamily,
         );
       });
     debugSection('referenceRects %j', referenceRects);
@@ -352,7 +441,7 @@ export async function AiLocateSection(options: {
     debugSection('mergedRect %j', mergedRect);
 
     // expand search area to at least 200 x 200
-    sectionRect = expandSearchArea(mergedRect, context.size, vlMode);
+    sectionRect = expandSearchArea(mergedRect, context.size, modelFamily);
     debugSection('expanded sectionRect %j', sectionRect);
   }
 
@@ -361,7 +450,7 @@ export async function AiLocateSection(options: {
     const croppedResult = await cropByRect(
       screenshotBase64,
       sectionRect,
-      vlMode === 'qwen2.5-vl',
+      modelFamily === 'qwen2.5-vl',
     );
     imageBase64 = croppedResult.imageBase64;
     sectionRect.width = croppedResult.width;
@@ -388,7 +477,7 @@ export async function AiExtractElementInfo<T>(options: {
   const { dataQuery, context, extractOption, multimodalPrompt, modelConfig } =
     options;
   const systemPrompt = systemPromptToExtract();
-  const screenshotBase64 = context.screenshot.getData();
+  const screenshotBase64 = await context.screenshot.getData();
 
   const extractDataPromptText = extractDataQueryPrompt(
     options.pageDescription || '',

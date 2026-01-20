@@ -168,15 +168,31 @@ DEBUGGING MODE: langsmith wrapper enabled
 
 ### 使用 Langfuse
 
-Langfuse 是另一个流行的 LLM 可观测性平台。集成方式与 LangSmith 类似。
+[Langfuse](https://langfuse.com) 是另一个流行的 LLM 可观测性平台。Midscene 已经集成了 Langfuse 的 `observeOpenAI` wrapper，自动追踪所有 OpenAI API 调用。
+
+由于 Langfuse 的追踪基于 OpenTelemetry，你需要在应用启动时初始化 OpenTelemetry SDK。
 
 **步骤 1：安装依赖**
 
 ```bash
-npm install langfuse
+npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
 ```
 
-**步骤 2：设置环境变量**
+**步骤 2：初始化 OpenTelemetry（必需）**
+
+在应用入口文件的**最顶部**添加以下代码：
+
+```typescript
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+
+const sdk = new NodeSDK({
+  spanProcessors: [new LangfuseSpanProcessor()],
+});
+sdk.start();
+```
+
+**步骤 3：设置环境变量**
 
 ```bash
 # 启用 Midscene 的 Langfuse 自动集成
@@ -192,8 +208,11 @@ export LANGFUSE_BASE_URL="https://cloud.langfuse.com" # 🇪🇺 欧洲区域
 启动 Midscene 后，你应该会看到类似如下的日志：
 
 ```log
+OpenTelemetry SDK initialized for Langfuse tracing
 DEBUGGING MODE: langfuse wrapper enabled
 ```
+
+**了解更多**：查看 [Langfuse OpenAI 集成文档](https://langfuse.com/integrations/model-providers/openai-js) 获取更多配置选项和最佳实践。
 
 注意：
 - LangSmith 和 Langfuse 可以同时启用

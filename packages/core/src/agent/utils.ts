@@ -46,7 +46,7 @@ export async function commonContextParser(
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
-  const screenshot = ScreenshotItem.create(screenshotBase64!);
+  const screenshot = await ScreenshotItem.create(screenshotBase64!);
 
   return {
     size,

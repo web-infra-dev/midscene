@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  getUITarsModelVersion,
   legacyConfigToModelFamily,
-  modelFamilyToVLConfig,
+  validateModelFamily,
 } from '../../../src/env/parse-model-config';
 import { UITarsModelVersion } from '../../../src/env/types';
 import {
@@ -12,52 +13,43 @@ import {
   MIDSCENE_USE_VLM_UI_TARS,
 } from '../../../src/env/types';
 
-describe('modelFamilyToVLConfig', () => {
-  it('should return empty values when model family is missing', () => {
-    expect(modelFamilyToVLConfig()).toEqual({
-      vlMode: undefined,
-      uiTarsVersion: undefined,
-    });
+describe('getUITarsModelVersion', () => {
+  it('should return undefined when model family is missing', () => {
+    expect(getUITarsModelVersion()).toBeUndefined();
   });
 
   it('should map ui-tars variants to correct version', () => {
-    expect(modelFamilyToVLConfig('vlm-ui-tars')).toEqual({
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.V1_0,
-    });
-
-    expect(modelFamilyToVLConfig('vlm-ui-tars-doubao')).toEqual({
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
-    });
-
-    expect(modelFamilyToVLConfig('vlm-ui-tars-doubao-1.5')).toEqual({
-      vlMode: 'vlm-ui-tars',
-      uiTarsVersion: UITarsModelVersion.DOUBAO_1_5_20B,
-    });
+    expect(getUITarsModelVersion('vlm-ui-tars')).toBe(UITarsModelVersion.V1_0);
+    expect(getUITarsModelVersion('vlm-ui-tars-doubao')).toBe(
+      UITarsModelVersion.DOUBAO_1_5_20B,
+    );
+    expect(getUITarsModelVersion('vlm-ui-tars-doubao-1.5')).toBe(
+      UITarsModelVersion.DOUBAO_1_5_20B,
+    );
   });
 
-  it('should map other model families directly', () => {
-    expect(modelFamilyToVLConfig('qwen3-vl')).toEqual({
-      vlMode: 'qwen3-vl',
-      uiTarsVersion: undefined,
-    });
-    expect(modelFamilyToVLConfig('doubao-vision')).toEqual({
-      vlMode: 'doubao-vision',
-      uiTarsVersion: undefined,
-    });
-    expect(modelFamilyToVLConfig('gemini')).toEqual({
-      vlMode: 'gemini',
-      uiTarsVersion: undefined,
-    });
-    expect(modelFamilyToVLConfig('glm-v')).toEqual({
-      vlMode: 'glm-v',
-      uiTarsVersion: undefined,
-    });
+  it('should return undefined for non-UI-TARS models', () => {
+    expect(getUITarsModelVersion('qwen3-vl')).toBeUndefined();
+    expect(getUITarsModelVersion('doubao-vision')).toBeUndefined();
+    expect(getUITarsModelVersion('gemini')).toBeUndefined();
+    expect(getUITarsModelVersion('glm-v')).toBeUndefined();
+    expect(getUITarsModelVersion('gpt-5')).toBeUndefined();
+  });
+});
+
+describe('validateModelFamily', () => {
+  it('should not throw on valid model families', () => {
+    expect(() => validateModelFamily('qwen3-vl')).not.toThrow();
+    expect(() => validateModelFamily('doubao-vision')).not.toThrow();
+    expect(() => validateModelFamily('gemini')).not.toThrow();
+    expect(() => validateModelFamily('glm-v')).not.toThrow();
+    expect(() => validateModelFamily('gpt-5')).not.toThrow();
+    expect(() => validateModelFamily('vlm-ui-tars')).not.toThrow();
+    expect(() => validateModelFamily(undefined)).not.toThrow();
   });
 
   it('should throw on invalid value', () => {
-    expect(() => modelFamilyToVLConfig('invalid' as any)).toThrow(
+    expect(() => validateModelFamily('invalid' as any)).toThrow(
       'Invalid MIDSCENE_MODEL_FAMILY value: invalid',
     );
   });

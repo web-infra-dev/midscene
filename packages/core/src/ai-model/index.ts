@@ -24,8 +24,9 @@ export {
 } from './inspect';
 
 export { plan } from './llm-planning';
+export { autoGLMPlanning } from './auto-glm/planning';
 export { adaptBboxToRect } from '../common';
-export { uiTarsPlanning, resizeImageForUiTars } from './ui-tars-planning';
+export { uiTarsPlanning } from './ui-tars-planning';
 export {
   ConversationHistory,
   type ConversationHistoryOptions,
@@ -45,6 +46,5 @@ export {
   type TUserPrompt,
   findAllMidsceneLocatorField,
   dumpActionParam,
-  loadActionParam,
   parseActionParam,
 } from '../common';

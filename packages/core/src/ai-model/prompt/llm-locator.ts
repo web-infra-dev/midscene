@@ -1,7 +1,11 @@
-import type { TVlModeTypes } from '@midscene/shared/env';
+import type { TModelFamily } from '@midscene/shared/env';
+import { getPreferredLanguage } from '@midscene/shared/env';
 import { bboxDescription } from './common';
-export function systemPromptToLocateElement(vlMode: TVlModeTypes | undefined) {
-  const bboxComment = bboxDescription(vlMode);
+export function systemPromptToLocateElement(
+  modelFamily: TModelFamily | undefined,
+) {
+  const preferredLanguage = getPreferredLanguage();
+  const bboxComment = bboxDescription(modelFamily);
   return `
 ## Role:
 You are an AI assistant that helps identify UI elements.
@@ -34,7 +38,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found"]
+  "errors": ["I can see ..., but {some element} is not found. Use ${preferredLanguage}."]
 }
 \`\`\`
 `;

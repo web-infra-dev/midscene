@@ -97,7 +97,7 @@ describe('VL Model Check for Different Interface Types', () => {
     }).not.toThrow();
   });
 
-  it('should require VL model for android interface without vlMode', () => {
+  it('should require VL model for android interface without modelFamily', () => {
     const mockPage = createMockInterface('android');
 
     // This should not throw at construction time, but would throw when

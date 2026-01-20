@@ -678,7 +678,7 @@ const DetailSide = (): JSX.Element => {
       const planItems: JSX.Element[] = [];
 
       // Add Thought if exists
-      if ((task as ExecutionTaskPlanning).output?.log) {
+      if ((task as ExecutionTaskPlanning).output?.thought) {
         planItems.push(
           <Card
             key="thought"
@@ -688,7 +688,25 @@ const DetailSide = (): JSX.Element => {
             onMouseLeave={noop}
             content={
               <pre className="description-content">
-                {(task as ExecutionTaskPlanning).output?.log}
+                {(task as ExecutionTaskPlanning).output?.thought || ''}
+              </pre>
+            }
+          />,
+        );
+      }
+
+      // Add Note if exists
+      if ((task as ExecutionTaskPlanning).output?.note) {
+        planItems.push(
+          <Card
+            key="note"
+            liteMode={true}
+            title="Note"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                {(task as ExecutionTaskPlanning).output?.note}
               </pre>
             }
           />,
@@ -788,19 +806,18 @@ const DetailSide = (): JSX.Element => {
       // Add More actions needed if exists
       if (
         typeof (task as ExecutionTaskPlanning).output
-          ?.more_actions_needed_by_instruction === 'boolean'
+          ?.shouldContinuePlanning === 'boolean'
       ) {
         planItems.push(
           <Card
             key="more-actions"
             liteMode={true}
-            title="More actions needed"
+            title="Should continue planning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
               <pre className="description-content">
-                {(task as ExecutionTaskPlanning).output
-                  ?.more_actions_needed_by_instruction
+                {(task as ExecutionTaskPlanning).output?.shouldContinuePlanning
                   ? 'true'
                   : 'false'}
               </pre>

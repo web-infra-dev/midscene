@@ -22,7 +22,8 @@ const GlobalHoverPreview = () => {
       }
       return valid;
     })
-    .map((item) => item.screenshot);
+    .map((item) => item.screenshot?.base64)
+    .filter((base64): base64 is string => Boolean(base64));
 
   const { x, y } = hoverPreviewConfig || {};
   let left = 0;

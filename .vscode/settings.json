@@ -3,6 +3,7 @@
     "source.organizeImports.biome": "explicit"
   },
   "editor.defaultFormatter": "biomejs.biome",
+  "biome.enabled": true,
   "editor.formatOnSave": true,
   "cSpell.words": [
     "AITEST",

@@ -140,7 +140,7 @@ export class ModelConfigManager {
   throwErrorIfNonVLModel() {
     const modelConfig = this.getModelConfig('default');
 
-    if (!modelConfig.vlMode) {
+    if (!modelConfig.modelFamily) {
       throw new Error(
         'MIDSCENE_MODEL_FAMILY is not set to a visual language model (VL model), the element localization can not be achieved. Check your model configuration. See https://midscenejs.com/model-strategy.html',
       );

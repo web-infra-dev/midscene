@@ -9,7 +9,7 @@ describe('Input action with mode option', () => {
     typeTextMock: ReturnType<typeof vi.fn>,
   ) =>
     defineActionInput(async (param) => {
-      if (param.locate && param.mode !== 'append') {
+      if (param.locate && param.mode !== 'typeOnly') {
         clearInputMock();
       }
 
@@ -64,24 +64,24 @@ describe('Input action with mode option', () => {
     expect(typeTextMock).not.toHaveBeenCalled();
   });
 
-  it('should skip clearInput when mode is append', async () => {
+  it('should skip clearInput when mode is typeOnly', async () => {
     const clearInputMock = vi.fn();
     const typeTextMock = vi.fn();
 
     const inputAction = createInputAction(clearInputMock, typeTextMock);
 
-    // Test with mode = 'append'
+    // Test with mode = 'typeOnly'
     await inputAction.call(
       {
-        value: ' appended text',
+        value: 'typed text',
         locate: { id: 'test-id' } as any,
-        mode: 'append',
+        mode: 'typeOnly',
       },
       mockContext,
     );
 
     expect(clearInputMock).not.toHaveBeenCalled();
-    expect(typeTextMock).toHaveBeenCalledWith(' appended text');
+    expect(typeTextMock).toHaveBeenCalledWith('typed text');
   });
 
   it('should clear input by default when mode is not specified (defaults to replace)', async () => {
@@ -117,7 +117,7 @@ describe('Input action with mode option', () => {
     // Parse the schema to check if mode field exists
     const result = schema.safeParse({
       value: 'test',
-      mode: 'append',
+      mode: 'typeOnly',
     });
 
     expect(result.success).toBe(true);

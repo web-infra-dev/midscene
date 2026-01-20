@@ -110,23 +110,24 @@ export class AndroidDevice implements AbstractInterface {
             .describe(
               'If true, the keyboard will be dismissed after the input is completed. Do not set it unless the user asks you to do so.',
             ),
-          mode: z
-            .enum(['replace', 'clear', 'append'])
-            .default('replace')
-            .optional()
-            .describe(
-              'Input mode: "replace" (default) - clear the field and input the value; "append" - append the value to existing content; "clear" - clear the field without inputting new text.',
-            ),
+          mode: z.preprocess(
+            (val) => (val === 'append' ? 'typeOnly' : val),
+            z
+              .enum(['replace', 'clear', 'typeOnly'])
+              .default('replace')
+              .optional()
+              .describe(
+                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+              ),
+          ),
           locate: getMidsceneLocationSchema()
             .describe('The input field to be filled')
             .optional(),
         }),
         call: async (param) => {
           const element = param.locate;
-          if (element) {
-            if (param.mode !== 'append') {
-              await this.clearInput(element as unknown as ElementInfo);
-            }
+          if (param.mode !== 'typeOnly') {
+            await this.clearInput(element as unknown as ElementInfo);
           }
 
           if (param.mode === 'clear') {
@@ -213,9 +214,8 @@ export class AndroidDevice implements AbstractInterface {
           locate: LocateResultElement;
         }
       >({
-        name: 'AndroidLongPress',
-        description:
-          'Trigger a long press on the screen at specified coordinates on Android devices',
+        name: 'LongPress',
+        description: 'Trigger a long press on the screen at specified element',
         paramSchema: z.object({
           duration: z
             .number()
@@ -228,9 +228,7 @@ export class AndroidDevice implements AbstractInterface {
         call: async (param) => {
           const element = param.locate;
           if (!element) {
-            throw new Error(
-              'AndroidLongPress requires an element to be located',
-            );
+            throw new Error('LongPress requires an element to be located');
           }
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
@@ -250,7 +248,7 @@ export class AndroidDevice implements AbstractInterface {
           locate?: LocateResultElement;
         }
       >({
-        name: 'AndroidPull',
+        name: 'PullGesture',
         description: 'Trigger pull down to refresh or pull up actions',
         paramSchema: z.object({
           direction: z.enum(['up', 'down']).describe('The direction to pull'),
@@ -272,7 +270,7 @@ export class AndroidDevice implements AbstractInterface {
             ? { left: element.center[0], top: element.center[1] }
             : undefined;
           if (!param || !param.direction) {
-            throw new Error('AndroidPull requires a direction parameter');
+            throw new Error('PullGesture requires a direction parameter');
           }
           if (param.direction === 'down') {
             await this.pullDown(startPoint, param.distance, param.duration);
@@ -284,9 +282,7 @@ export class AndroidDevice implements AbstractInterface {
         },
       }),
       defineActionClearInput(async (param) => {
-        const element = param.locate;
-        assert(element, 'Element not found, cannot clear input');
-        await this.clearInput(element as unknown as ElementInfo);
+        await this.clearInput(param.locate as ElementInfo | undefined);
       }),
     ];
 
@@ -983,16 +979,13 @@ ${Object.keys(size)
     return result;
   }
 
-  async clearInput(element: ElementInfo): Promise<void> {
-    if (!element) {
-      return;
+  async clearInput(element?: ElementInfo): Promise<void> {
+    if (element) {
+      await this.mouseClick(element.center[0], element.center[1]);
     }
 
     await this.ensureYadb();
-
     const adb = await this.getAdb();
-
-    await this.mouseClick(element.center[0], element.center[1]);
 
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
@@ -1014,7 +1007,9 @@ ${Object.keys(size)
       return;
     }
 
-    await this.mouseClick(element.center[0], element.center[1]);
+    if (element) {
+      await this.mouseClick(element.center[0], element.center[1]);
+    }
   }
 
   async forceScreenshot(path: string): Promise<void> {

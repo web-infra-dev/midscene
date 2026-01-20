@@ -66,7 +66,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 
   useEffect(() => {
     if (dumps?.[0]) {
-      setGroupedDump(dumps[0].get(), dumps[0].attributes);
+      void setGroupedDump(dumps[0].get(), dumps[0].attributes);
     }
     return () => {
       reset();

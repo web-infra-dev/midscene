@@ -491,7 +491,7 @@ const Timeline = () => {
       // Extract uiContext screenshot FIRST (before recorder processing)
       const uiContextRecorderItem: (ExecutionRecorderItem & { id: string })[] =
         [];
-      const screenshotFromContext = current.uiContext?.screenshotBase64;
+      const screenshotFromContext = current.uiContext?.screenshot;
       if (screenshotFromContext && current.timing?.start) {
         const idStr = `id_${idCount++}`;
         idTaskMap[idStr] = current;
@@ -533,9 +533,10 @@ const Timeline = () => {
       return item.screenshot;
     })
     .map((recorderItem) => {
+      const screenshotBase64 = recorderItem.screenshot?.base64 || '';
       return {
         id: recorderItem.id,
-        img: recorderItem.screenshot!,
+        img: screenshotBase64,
         timeOffset: recorderItem.ts - startingTime,
       };
     })

@@ -307,7 +307,7 @@ describe('service-caller', () => {
     });
 
     it('should work with doubao-vision mode and trim spaces', () => {
-      // Test that normalization works correctly even when vlMode is set
+      // Test that normalization works correctly even when modelFamily is set
       const input = '{"  type  ": "  Tap  ", "param": {"  prompt  ": "Click"}}';
       const result = safeParseJson(input, 'doubao-vision');
 
@@ -319,7 +319,7 @@ describe('service-caller', () => {
   describe('resolveDeepThinkConfig', () => {
     it('maps deepThink false for qwen3-vl', () => {
       expect(
-        resolveDeepThinkConfig({ deepThink: false, vlMode: 'qwen3-vl' }),
+        resolveDeepThinkConfig({ deepThink: false, modelFamily: 'qwen3-vl' }),
       ).toMatchObject({
         config: { enable_thinking: false },
       });
@@ -328,7 +328,7 @@ describe('service-caller', () => {
     it('maps deepThink for qwen3-vl', () => {
       const result = resolveDeepThinkConfig({
         deepThink: true,
-        vlMode: 'qwen3-vl',
+        modelFamily: 'qwen3-vl',
       });
 
       expect(result.config).toEqual({ enable_thinking: true });
@@ -339,7 +339,7 @@ describe('service-caller', () => {
     it('maps deepThink for doubao-vision', () => {
       const result = resolveDeepThinkConfig({
         deepThink: true,
-        vlMode: 'doubao-vision',
+        modelFamily: 'doubao-vision',
       });
 
       expect(result.config).toEqual({ thinking: { type: 'enabled' } });
@@ -350,7 +350,7 @@ describe('service-caller', () => {
     it('maps deepThink false for doubao-vision', () => {
       const result = resolveDeepThinkConfig({
         deepThink: false,
-        vlMode: 'doubao-vision',
+        modelFamily: 'doubao-vision',
       });
 
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
@@ -361,7 +361,7 @@ describe('service-caller', () => {
     it('maps deepThink for glm-v', () => {
       const result = resolveDeepThinkConfig({
         deepThink: true,
-        vlMode: 'glm-v',
+        modelFamily: 'glm-v',
       });
 
       expect(result.config).toEqual({ thinking: { type: 'enabled' } });
@@ -372,7 +372,7 @@ describe('service-caller', () => {
     it('maps deepThink false for glm-v', () => {
       const result = resolveDeepThinkConfig({
         deepThink: false,
-        vlMode: 'glm-v',
+        modelFamily: 'glm-v',
       });
 
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
@@ -383,7 +383,7 @@ describe('service-caller', () => {
     it('warns when deepThink is unsupported', () => {
       const result = resolveDeepThinkConfig({
         deepThink: true,
-        vlMode: 'vlm-ui-tars',
+        modelFamily: 'vlm-ui-tars',
       });
 
       expect(result.config).toEqual({});

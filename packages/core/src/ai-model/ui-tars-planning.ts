@@ -5,7 +5,6 @@ import type {
   UIContext,
 } from '@/types';
 import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
-import { resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
@@ -13,6 +12,7 @@ import { actionParser } from '@ui-tars/action-parser';
 import type { ConversationHistory } from './conversation-history';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
 import { callAIWithStringResponse } from './service-caller/index';
+
 type ActionType =
   | 'click'
   | 'left_double'
@@ -58,12 +58,7 @@ export async function uiTarsPlanning(
 
   const systemPrompt = getUiTarsPlanningPrompt() + instruction;
 
-  const screenshotBase64 = context.screenshot.getData();
-  const imagePayload = await resizeImageForUiTars(
-    screenshotBase64,
-    context.size,
-    uiTarsModelVersion,
-  );
+  const screenshotBase64 = await context.screenshot.getData();
 
   conversationHistory.append({
     role: 'user',
@@ -71,7 +66,7 @@ export async function uiTarsPlanning(
       {
         type: 'image_url',
         image_url: {
-          url: imagePayload,
+          url: screenshotBase64,
         },
       },
     ],
@@ -115,50 +110,59 @@ export async function uiTarsPlanning(
     if (actionType === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
       transformActions.push({
         type: 'Tap',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
       });
     } else if (actionType === 'left_double') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
       transformActions.push({
         type: 'DoubleClick',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
         thought: action.thought || '',
       });
     } else if (actionType === 'right_single') {
       assert(action.action_inputs.start_box, 'start_box is required');
       const point = getPoint(action.action_inputs.start_box, size);
+
+      const locate = {
+        prompt: action.thought || '',
+        bbox: pointToBbox(
+          { x: point[0], y: point[1] },
+          size.width,
+          size.height,
+        ),
+      };
+
       transformActions.push({
         type: 'RightClick',
         param: {
-          locate: {
-            prompt: action.thought || '',
-            bbox: pointToBbox(
-              { x: point[0], y: point[1] },
-              size.width,
-              size.height,
-            ),
-          },
+          locate: locate,
         },
         thought: action.thought || '',
       });
@@ -301,7 +305,7 @@ export async function uiTarsPlanning(
     log,
     usage: res.usage,
     rawResponse: JSON.stringify(res.content, undefined, 2),
-    more_actions_needed_by_instruction: shouldContinue,
+    shouldContinuePlanning: shouldContinue,
   };
 }
 
@@ -424,31 +428,3 @@ export type Action =
   | ScrollAction
   | FinishedAction
   | WaitAction;
-
-export async function resizeImageForUiTars(
-  imageBase64: string,
-  size: Size,
-  uiTarsVersion: UITarsModelVersion | undefined,
-) {
-  if (uiTarsVersion === UITarsModelVersion.V1_5) {
-    debug('ui-tars-v1.5, will check image size', size);
-    const currentPixels = size.width * size.height;
-    const maxPixels = 16384 * 28 * 28; //
-    if (currentPixels > maxPixels) {
-      const resizeFactor = Math.sqrt(maxPixels / currentPixels);
-      const newWidth = Math.floor(size.width * resizeFactor);
-      const newHeight = Math.floor(size.height * resizeFactor);
-      debug(
-        'resize image for ui-tars, new width: %s, new height: %s',
-        newWidth,
-        newHeight,
-      );
-      const resizedImage = await resizeImgBase64(imageBase64, {
-        width: newWidth,
-        height: newHeight,
-      });
-      return resizedImage;
-    }
-  }
-  return imageBase64;
-}

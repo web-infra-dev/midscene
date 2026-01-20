@@ -581,7 +581,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
       "- DefaultTransform, Field with default and transform
         - type: "DefaultTransform"
         - param:
-          - withDefault?: string"
+          - withDefault?: string // default: "default""
     `);
   });
 

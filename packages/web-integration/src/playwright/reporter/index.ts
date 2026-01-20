@@ -1,8 +1,13 @@
-import { readFileSync, rmSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
-import { writeDumpReport } from '@midscene/core/utils';
-import { replaceIllegalPathCharsAndSpace } from '@midscene/shared/utils';
+import { getReportTpl } from '@midscene/core/utils';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  escapeScriptTag,
+  replaceIllegalPathCharsAndSpace,
+} from '@midscene/shared/utils';
 import type {
   FullConfig,
   Reporter,
@@ -22,6 +27,12 @@ class MidsceneReporter implements Reporter {
 
   // Track all temp files created during this test run for cleanup
   private tempFiles = new Set<string>();
+
+  // Track pending report updates
+  private pendingReports = new Set<Promise<void>>();
+
+  // Track whether the merged report file has been initialized
+  private mergedReportInitialized = false;
 
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
@@ -62,17 +73,53 @@ class MidsceneReporter implements Reporter {
     throw new Error(`Unknown mode: ${this.mode}`);
   }
 
-  private updateReport(testData: ReportDumpWithAttributes) {
+  private async updateReport(testData: ReportDumpWithAttributes) {
     if (!testData || !this.mode) return;
     const fileName = this.getReportFilename(
       testData.attributes?.playwright_test_title,
     );
-    const reportPath = writeDumpReport(
-      fileName,
-      testData,
-      this.mode === 'merged',
-    );
-    reportPath && printReportMsg(reportPath);
+
+    const reportPath = join(getMidsceneRunSubDir('report'), `${fileName}.html`);
+
+    // Get report template
+    const tpl = getReportTpl();
+    if (!tpl) {
+      console.warn('reportTpl is not set, will not write report');
+      return;
+    }
+
+    // Parse the dump string (which already contains inline screenshots)
+    // and generate dump script tag
+    let dumpScript = `<script type="midscene_web_dump" type="application/json">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
+
+    // Add attributes to the dump script if this is merged report
+    if (this.mode === 'merged' && testData.attributes) {
+      const attributesArr = Object.keys(testData.attributes).map((key) => {
+        return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
+      });
+      // Add attributes to the script tag
+      dumpScript = dumpScript.replace(
+        '<script type="midscene_web_dump"',
+        `<script type="midscene_web_dump" ${attributesArr.join(' ')}`,
+      );
+    }
+
+    // Write or append to file
+    if (this.mode === 'merged') {
+      // For merged report, write template + dump on first write, then only append dumps
+      if (!this.mergedReportInitialized) {
+        writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+        this.mergedReportInitialized = true;
+      } else {
+        // Append only the dump scripts for subsequent tests
+        writeFileSync(reportPath, dumpScript, { flag: 'a' });
+      }
+    } else {
+      // For separate reports, write each test to its own file with template
+      writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+    }
+
+    printReportMsg(reportPath);
   }
 
   async onBegin(config: FullConfig, suite: Suite) {}
@@ -118,7 +165,15 @@ class MidsceneReporter implements Reporter {
         },
       };
 
-      this.updateReport(testData);
+      // Start async report update and track it
+      const reportPromise = this.updateReport(testData)
+        .catch((error) => {
+          console.error('Error updating report:', error);
+        })
+        .finally(() => {
+          this.pendingReports.delete(reportPromise);
+        });
+      this.pendingReports.add(reportPromise);
     }
 
     // Always try to clean up temp file
@@ -135,7 +190,15 @@ class MidsceneReporter implements Reporter {
     }
   }
 
-  onEnd() {
+  async onEnd() {
+    // Wait for all pending report updates to complete
+    if (this.pendingReports.size > 0) {
+      console.log(
+        `Midscene: Waiting for ${this.pendingReports.size} pending report(s) to complete...`,
+      );
+      await Promise.all(Array.from(this.pendingReports));
+    }
+
     // Clean up any remaining temp files that weren't deleted in onTestEnd
     if (this.tempFiles.size > 0) {
       console.log(

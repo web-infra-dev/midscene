@@ -23,7 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const insight = fakeService('test-task-runner');
+      const insight = await fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
@@ -49,8 +49,8 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = () => {
-  const screenshot = ScreenshotItem.create('');
+const fakeUIContextBuilder = async () => {
+  const screenshot = await ScreenshotItem.create('');
   return {
     screenshot,
     tree: { node: null, children: [] },
@@ -220,8 +220,8 @@ describe(
     });
 
     it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = (id: string) => {
-        const screenshot = ScreenshotItem.create(id);
+      const baseUIContext = async (id: string) => {
+        const screenshot = await ScreenshotItem.create(id);
         return {
           screenshot,
           tree: { node: null, children: [] },
@@ -229,8 +229,8 @@ describe(
         } as unknown as UIContext;
       };
 
-      const firstContext = baseUIContext('first');
-      const screenshotContext = baseUIContext('screenshot');
+      const firstContext = await baseUIContext('first');
+      const screenshotContext = await baseUIContext('screenshot');
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValueOnce(firstContext)
@@ -269,11 +269,14 @@ describe(
     it('subTask - throws when previous uiContext missing', async () => {
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
-        .mockResolvedValue({
-          screenshot: ScreenshotItem.create(''),
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext);
+        .mockImplementation(
+          async () =>
+            ({
+              screenshot: await ScreenshotItem.create(''),
+              tree: { node: null, children: [] },
+              size: { width: 0, height: 0 },
+            }) as unknown as UIContext,
+        );
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [
@@ -295,6 +298,67 @@ describe(
       await expect(runner.flush()).rejects.toThrowError(
         'task runner is in error state',
       );
+    });
+
+    it('error message should be from the last failed task when using allowWhenError', async () => {
+      const runner = new TaskRunner('error-message-test', fakeUIContextBuilder);
+
+      // First task - will fail with "first-error"
+      const firstTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          throw new Error('first-error');
+        },
+      };
+
+      // Second task - will succeed
+      const secondTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          return { output: 'success' };
+        },
+      };
+
+      // Third task - will fail with "third-error"
+      const thirdTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          throw new Error('third-error');
+        },
+      };
+
+      // Add first task and let it fail
+      await runner.append(firstTask);
+      await expect(runner.flush()).rejects.toThrowError('first-error');
+      expect(runner.status).toBe('error');
+      expect(runner.tasks[0].status).toBe('failed');
+
+      // Continue with allowWhenError, add second task (success)
+      await runner.append(secondTask, { allowWhenError: true });
+      await runner.flush({ allowWhenError: true });
+      expect(runner.status).toBe('completed');
+      expect(runner.tasks[1].status).toBe('finished');
+
+      // Add third task and let it fail
+      await runner.append(thirdTask);
+      let caughtError: Error | undefined;
+      try {
+        await runner.flush();
+      } catch (error) {
+        caughtError = error as Error;
+      }
+
+      // The error message should be from the LAST failed task (third-error), not the first one
+      expect(caughtError).toBeDefined();
+      expect(caughtError?.message).toContain('third-error');
+      expect(caughtError?.message).not.toContain('first-error');
+      expect(runner.tasks[2].status).toBe('failed');
+      expect(runner.tasks[2].errorMessage).toBe('third-error');
+
+      // latestErrorTask should return the third task, not the first one
+      const latestError = runner.latestErrorTask();
+      expect(latestError).toBe(runner.tasks[2]);
+      expect(latestError?.errorMessage).toBe('third-error');
     });
   },
 );

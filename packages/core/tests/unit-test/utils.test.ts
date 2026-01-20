@@ -15,9 +15,9 @@ import {
   dumpActionParam,
   expandSearchArea,
   findAllMidsceneLocatorField,
-  loadActionParam,
   mergeRects,
   normalized01000,
+  pointToBbox,
 } from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -387,7 +387,16 @@ describe('qwen-vl-2.5', () => {
   });
 
   it('adaptBboxToRect - size exceed image size - 2', () => {
-    const result = adaptBboxToRect([158, 114, 526, 179], 684, 301, 611, 221);
+    const result = adaptBboxToRect(
+      [158, 114, 526, 179],
+      684,
+      301,
+      611,
+      221,
+      684,
+      301,
+      'qwen2.5-vl',
+    );
     expect(result).toMatchInlineSnapshot(`
       {
         "height": 65,
@@ -399,7 +408,16 @@ describe('qwen-vl-2.5', () => {
   });
 
   it('adaptBboxToRect - size exceed image size - 3', () => {
-    const result = adaptBboxToRect([25, 154, 153, 186], 301, 164, 0, 752);
+    const result = adaptBboxToRect(
+      [25, 154, 153, 186],
+      301,
+      164,
+      0,
+      752,
+      301,
+      164,
+      'qwen2.5-vl',
+    );
     expect(result).toMatchInlineSnapshot(`
       {
         "height": 10,
@@ -419,6 +437,7 @@ describe('qwen-vl-2.5', () => {
       752,
       140,
       910,
+      'qwen2.5-vl',
     );
     expect(result).toMatchInlineSnapshot(`
       {
@@ -651,6 +670,42 @@ describe('normalized-0-1000 and gemini', () => {
   });
 });
 
+describe('pointToBbox', () => {
+  it('should convert point to bbox in [0, 1000] space with default size (20)', () => {
+    const bbox = pointToBbox(500, 500);
+    expect(bbox).toEqual([490, 490, 510, 510]);
+  });
+
+  it('should convert point to bbox with custom size', () => {
+    const bbox = pointToBbox(500, 500, 10);
+    expect(bbox).toEqual([495, 495, 505, 505]);
+  });
+
+  it('should handle boundary at origin (0, 0)', () => {
+    const bbox = pointToBbox(0, 0);
+    expect(bbox[0]).toBe(0);
+    expect(bbox[1]).toBe(0);
+    expect(bbox[2]).toBe(10);
+    expect(bbox[3]).toBe(10);
+  });
+
+  it('should handle boundary at max (1000, 1000)', () => {
+    const bbox = pointToBbox(1000, 1000);
+    expect(bbox[0]).toBe(990);
+    expect(bbox[1]).toBe(990);
+    expect(bbox[2]).toBe(1000);
+    expect(bbox[3]).toBe(1000);
+  });
+
+  it('should clamp to [0, 1000] range', () => {
+    const bbox = pointToBbox(5, 995);
+    expect(bbox[0]).toBe(0);
+    expect(bbox[1]).toBe(985);
+    expect(bbox[2]).toBe(15);
+    expect(bbox[3]).toBe(1000);
+  });
+});
+
 describe('search area', () => {
   it('mergeRects', () => {
     const result = mergeRects([
@@ -675,7 +730,7 @@ describe('search area', () => {
         undefined,
       );
 
-      // For all vlMode, minEdgeSize = 500, padding = 200 each side
+      // For all modelFamily, minEdgeSize = 500, padding = 200 each side
       expect(result).toEqual({
         left: 0, // 100 - 200 = -100, clamped to 0
         top: 0, // 100 - 200 = -100, clamped to 0
@@ -1231,343 +1286,6 @@ describe('dumpActionParam', () => {
     expect(dumpActionParam(['a', 'b', 'c'] as any, schema)).toEqual({});
     expect(dumpActionParam(null as any, schema)).toEqual({});
     expect(dumpActionParam(12345 as any, schema)).toEqual({});
-  });
-});
-
-describe('loadActionParam', () => {
-  it('should convert string values to MidsceneLocation objects for locator fields', () => {
-    const schema = z.object({
-      foo: z.string(),
-      locator1: getMidsceneLocationSchema(),
-      locator2: getMidsceneLocationSchema().optional(),
-      bar: z.number(),
-      baz: z.boolean().optional(),
-    });
-
-    // Test case 1: String values for locator fields
-    const input1 = {
-      foo: 'test',
-      locator1: 'first locator',
-      locator2: 'second locator',
-      bar: 42,
-      baz: true,
-    };
-
-    const result1 = loadActionParam(input1, schema);
-    expect(result1).toMatchInlineSnapshot(`
-      {
-        "bar": 42,
-        "baz": true,
-        "foo": "test",
-        "locator1": {
-          "midscene_location_field_flag": true,
-          "prompt": "first locator",
-        },
-        "locator2": {
-          "midscene_location_field_flag": true,
-          "prompt": "second locator",
-        },
-      }
-    `);
-
-    // Test case 2: Mixed string and object values
-    const input2 = {
-      foo: 'test2',
-      locator1: 'string locator',
-      locator2: {
-        midscene_location_field_flag: true,
-        prompt: 'already object locator',
-        center: [100, 200],
-        rect: { left: 50, top: 100, width: 100, height: 50 },
-      },
-      bar: 24,
-    };
-
-    const result2 = loadActionParam(input2, schema);
-    expect(result2).toMatchInlineSnapshot(`
-      {
-        "bar": 24,
-        "foo": "test2",
-        "locator1": {
-          "midscene_location_field_flag": true,
-          "prompt": "string locator",
-        },
-        "locator2": {
-          "center": [
-            100,
-            200,
-          ],
-          "midscene_location_field_flag": true,
-          "prompt": "already object locator",
-          "rect": {
-            "height": 50,
-            "left": 50,
-            "top": 100,
-            "width": 100,
-          },
-        },
-      }
-    `);
-  });
-
-  it('should handle missing and optional locator fields', () => {
-    const schema = z.object({
-      foo: z.string(),
-      locator1: getMidsceneLocationSchema(),
-      locator2: getMidsceneLocationSchema().optional(),
-      locator3: getMidsceneLocationSchema().optional(),
-      bar: z.number().optional(),
-    });
-
-    // Test case 1: Missing optional locator
-    const input1 = {
-      foo: 'test',
-      locator1: 'required locator',
-      bar: 123,
-    };
-
-    const result1 = loadActionParam(input1, schema);
-    expect(result1).toMatchInlineSnapshot(`
-      {
-        "bar": 123,
-        "foo": "test",
-        "locator1": {
-          "midscene_location_field_flag": true,
-          "prompt": "required locator",
-        },
-      }
-    `);
-
-    // Test case 2: All locators present
-    const input2 = {
-      foo: 'test2',
-      locator1: 'first locator',
-      locator2: 'second locator',
-      locator3: 'third locator',
-    };
-
-    const result2 = loadActionParam(input2, schema);
-    expect(result2).toMatchInlineSnapshot(`
-      {
-        "foo": "test2",
-        "locator1": {
-          "midscene_location_field_flag": true,
-          "prompt": "first locator",
-        },
-        "locator2": {
-          "midscene_location_field_flag": true,
-          "prompt": "second locator",
-        },
-        "locator3": {
-          "midscene_location_field_flag": true,
-          "prompt": "third locator",
-        },
-      }
-    `);
-  });
-
-  it('should handle edge cases and invalid inputs', () => {
-    const schema = z.object({
-      foo: z.string(),
-      locator1: getMidsceneLocationSchema(),
-      locator2: getMidsceneLocationSchema().optional(),
-      bar: z.number().optional(),
-    });
-
-    // Test case 1: Non-string values for locator fields should remain unchanged
-    const input1 = {
-      foo: 'test',
-      locator1: null,
-      locator2: undefined,
-      bar: 123,
-    };
-
-    const result1 = loadActionParam(input1, schema);
-    expect(result1).toMatchInlineSnapshot(`
-      {
-        "bar": 123,
-        "foo": "test",
-        "locator1": null,
-        "locator2": undefined,
-      }
-    `);
-
-    // Test case 2: Empty string should be converted
-    const input2 = {
-      foo: 'test2',
-      locator1: '',
-      locator2: 'valid locator',
-    };
-
-    const result2 = loadActionParam(input2, schema);
-    expect(result2).toMatchInlineSnapshot(`
-      {
-        "foo": "test2",
-        "locator1": "",
-        "locator2": {
-          "midscene_location_field_flag": true,
-          "prompt": "valid locator",
-        },
-      }
-    `);
-
-    // Test case 3: Numeric values should remain unchanged
-    const input3 = {
-      foo: 'test3',
-      locator1: 123,
-      locator2: 'string locator',
-    };
-
-    const result3 = loadActionParam(input3, schema);
-    expect(result3).toMatchInlineSnapshot(`
-      {
-        "foo": "test3",
-        "locator1": 123,
-        "locator2": {
-          "midscene_location_field_flag": true,
-          "prompt": "string locator",
-        },
-      }
-    `);
-  });
-
-  it('should handle non-locator fields unchanged', () => {
-    const schema = z.object({
-      stringField: z.string(),
-      numberField: z.number(),
-      booleanField: z.boolean(),
-      optionalString: z.string().optional(),
-      arrayField: z.array(z.string()),
-      objectField: z.object({
-        nested: z.string(),
-      }),
-    });
-
-    const input = {
-      stringField: 'test string',
-      numberField: 42,
-      booleanField: true,
-      optionalString: 'optional value',
-      arrayField: ['item1', 'item2'],
-      objectField: {
-        nested: 'nested value',
-      },
-    };
-
-    const result = loadActionParam(input, schema);
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "arrayField": [
-          "item1",
-          "item2",
-        ],
-        "booleanField": true,
-        "numberField": 42,
-        "objectField": {
-          "nested": "nested value",
-        },
-        "optionalString": "optional value",
-        "stringField": "test string",
-      }
-    `);
-  });
-
-  it('should handle empty objects and schemas', () => {
-    // Test case 1: Empty input object
-    const schema1 = z.object({
-      foo: z.string().optional(),
-      locator: getMidsceneLocationSchema().optional(),
-    });
-    const emptyInput = {};
-
-    const result1 = loadActionParam(emptyInput, schema1);
-    expect(result1).toMatchInlineSnapshot('{}');
-
-    // Test case 2: Schema with no locator fields
-    const schema2 = z.object({
-      foo: z.string(),
-      bar: z.number(),
-    });
-    const input2 = {
-      foo: 'test',
-      bar: 123,
-    };
-
-    const result2 = loadActionParam(input2, schema2);
-    expect(result2).toMatchInlineSnapshot(`
-      {
-        "bar": 123,
-        "foo": "test",
-      }
-    `);
-  });
-});
-
-describe('loadActionParam and dumpActionParam integration', () => {
-  it('should be inverse operations for valid data', () => {
-    const schema = z.object({
-      foo: z.string(),
-      locator1: getMidsceneLocationSchema(),
-      locator2: getMidsceneLocationSchema().optional(),
-      bar: z.number(),
-    });
-
-    // Start with a "dumped" format (string locators)
-    const dumpedData = {
-      foo: 'test',
-      locator1: 'first locator',
-      locator2: 'second locator',
-      bar: 42,
-    };
-
-    // Load it (convert strings to objects)
-    const loadedData = loadActionParam(dumpedData, schema);
-
-    // Dump it back (convert objects to strings)
-    const redumpedData = dumpActionParam(loadedData, schema);
-
-    // Should match the original dumped format
-    expect(redumpedData).toEqual(dumpedData);
-  });
-
-  it('should handle partial round-trip scenarios', () => {
-    const schema = z.object({
-      foo: z.string(),
-      locator1: getMidsceneLocationSchema(),
-      locator2: getMidsceneLocationSchema().optional(),
-    });
-
-    // Start with mixed format
-    const mixedData = {
-      foo: 'test',
-      locator1: {
-        midscene_location_field_flag: true,
-        prompt: 'object locator',
-        center: [100, 200],
-        rect: { left: 50, top: 100, width: 100, height: 50 },
-      },
-      locator2: 'string locator',
-    };
-
-    // Load should only affect string locators
-    const loadedData = loadActionParam(mixedData, schema);
-    expect(loadedData.locator1).toEqual(mixedData.locator1); // unchanged
-    expect(loadedData.locator2).toMatchInlineSnapshot(`
-      {
-        "midscene_location_field_flag": true,
-        "prompt": "string locator",
-      }
-    `);
-
-    // Dump should convert both to strings
-    const dumpedData = dumpActionParam(loadedData, schema);
-    expect(dumpedData).toMatchInlineSnapshot(`
-      {
-        "foo": "test",
-        "locator1": "object locator",
-        "locator2": "string locator",
-      }
-    `);
   });
 });
 

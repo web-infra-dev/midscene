@@ -38,6 +38,7 @@ export type TestStatus =
   | 'timedOut'
   | 'skipped'
   | 'interrupted';
+import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
 import {
@@ -67,7 +68,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert } from '../device';
+import { defineActionAssert, defineActionFinalize } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -143,6 +144,7 @@ const normalizeScrollType = (
 
 const defaultReplanningCycleLimit = 20;
 const defaultVlmUiTarsReplanningCycleLimit = 40;
+const defaultAutoGlmReplanningCycleLimit = 100;
 
 export type AiActOptions = {
   cacheable?: boolean;
@@ -199,6 +201,8 @@ export class Agent<
 
   destroyed = false;
 
+  private lastWritePromise: Promise<void> | null = null;
+
   modelConfigManager: ModelConfigManager;
 
   /**
@@ -226,6 +230,8 @@ export class Agent<
   private screenshotScalePromise?: Promise<number>;
 
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+
+  private fullActionSpace: DeviceAction[];
 
   // @deprecated use .interface instead
   get page() {
@@ -266,7 +272,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = context.screenshot.getData();
+        const screenshotBase64 = await context.screenshot.getData();
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -304,9 +310,11 @@ export class Agent<
       return this.opts.replanningCycleLimit;
     }
 
-    return modelConfigForPlanning.vlMode === 'vlm-ui-tars'
+    return isUITars(modelConfigForPlanning.modelFamily)
       ? defaultVlmUiTarsReplanningCycleLimit
-      : defaultReplanningCycleLimit;
+      : isAutoGLM(modelConfigForPlanning.modelFamily)
+        ? defaultAutoGlmReplanningCycleLimit
+        : defaultReplanningCycleLimit;
   }
 
   constructor(interfaceInstance: InterfaceType, opts?: AgentOpt) {
@@ -375,13 +383,17 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    const fullActionSpace = [...baseActionSpace, defineActionAssert()];
+    this.fullActionSpace = [
+      ...baseActionSpace,
+      defineActionAssert(),
+      defineActionFinalize(),
+    ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
-      actionSpace: fullActionSpace,
+      actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
@@ -397,7 +409,11 @@ export class Agent<
             }
           }
 
-          this.writeOutActionDumps();
+          // Fire and forget - don't block task execution
+          this.lastWritePromise = this.writeOutActionDumps().catch((error) => {
+            console.error('Error writing action dumps:', error);
+            debug('writeOutActionDumps error', error);
+          });
         },
       },
     });
@@ -408,9 +424,7 @@ export class Agent<
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
-    const commonAssertionAction = defineActionAssert();
-
-    return [...this.interface.actionSpace(), commonAssertionAction];
+    return this.fullActionSpace;
   }
 
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
@@ -447,12 +461,12 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = context.screenshot.getData();
+      const currentScreenshotBase64 = await context.screenshot.getData();
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
       });
-      context.screenshot = ScreenshotItem.create(resizedBase64);
+      context.screenshot = await ScreenshotItem.create(resizedBase64);
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
@@ -482,13 +496,16 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
-      sdkVersion: getVersion(),
-      groupName: this.opts.groupName!,
-      groupDescription: this.opts.groupDescription,
-      executions: [],
-      modelBriefs: [],
-    });
+    this.dump = new GroupedActionDump(
+      {
+        sdkVersion: getVersion(),
+        groupName: this.opts.groupName!,
+        groupDescription: this.opts.groupDescription,
+        executions: [],
+        modelBriefs: [],
+      },
+      this.opts.storageProvider, // Pass storageProvider for directory-based reports
+    );
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
@@ -523,23 +540,82 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  writeOutActionDumps() {
+  async writeOutActionDumps() {
     if (this.destroyed) {
       throw new Error(
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
-    const { generateReport, autoPrintReportMsg } = this.opts;
-    this.reportFile = writeLogFile({
-      fileName: this.reportFileName!,
-      fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
-      type: 'dump',
-      generateReport,
-    });
-    debug('writeOutActionDumps', this.reportFile);
-    if (generateReport && autoPrintReportMsg && this.reportFile) {
-      printReportMsg(this.reportFile);
+
+    const {
+      generateReport = true,
+      autoPrintReportMsg = true,
+      useDirectoryReport = false,
+    } = this.opts;
+
+    if (useDirectoryReport) {
+      // Use directory-based report format with separate PNG files
+      const { getMidsceneRunSubDir } = await import('@midscene/shared/common');
+      const path = await import('node:path');
+
+      const outputDir = path.join(
+        getMidsceneRunSubDir('report'),
+        this.reportFileName!,
+      );
+
+      this.reportFile = await this.dump.writeToDirectory(outputDir);
+      debug('writeOutActionDumps (directory)', this.reportFile);
+
+      if (generateReport && autoPrintReportMsg && this.reportFile) {
+        console.log('\n[Midscene] Directory report generated.');
+        console.log(
+          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
+        );
+        console.log(
+          `[Midscene] Example: npx serve ${path.dirname(this.reportFile)}`,
+        );
+      }
+    } else {
+      // Use traditional single HTML file with embedded base64 images
+      if (generateReport) {
+        // Generate HTML with inline screenshots using toHTML()
+        const { getMidsceneRunSubDir } = await import(
+          '@midscene/shared/common'
+        );
+        const { getReportTpl } = await import('../utils');
+        const path = await import('node:path');
+        const fs = await import('node:fs');
+
+        const htmlScripts = await this.dump.toHTML();
+        const htmlContent = `${getReportTpl()}\n${htmlScripts}`;
+
+        const reportPath = path.join(
+          getMidsceneRunSubDir('report'),
+          `${this.reportFileName}.html`,
+        );
+
+        fs.writeFileSync(reportPath, htmlContent);
+        this.reportFile = reportPath;
+
+        debug(
+          'writeOutActionDumps (single file with inline screenshots)',
+          this.reportFile,
+        );
+
+        if (autoPrintReportMsg) {
+          printReportMsg(this.reportFile);
+        }
+      } else {
+        // Only write dump data without generating report
+        this.reportFile = writeLogFile({
+          fileName: this.reportFileName!,
+          fileExt: groupedActionDumpFileExt,
+          fileContent: this.dumpDataString(),
+          type: 'dump',
+          generateReport: false,
+        });
+        debug('writeOutActionDumps (dump only)', this.reportFile);
+      }
     }
   }
 
@@ -651,7 +727,7 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'append' },
+    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' },
   ): Promise<any>;
 
   // Legacy signature - deprecated
@@ -662,7 +738,7 @@ export class Agent<
     value: string | number,
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
-      mode?: 'replace' | 'clear' | 'append';
+      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
     }, // AndroidDeviceInputOpt &
   ): Promise<any>;
 
@@ -673,7 +749,7 @@ export class Agent<
       | TUserPrompt
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
+        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
       | undefined,
     optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
@@ -682,7 +758,7 @@ export class Agent<
     let opt:
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
+        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
       | undefined;
 
     // Check if using new signature (first param is locatePrompt, second has value)
@@ -863,7 +939,10 @@ export class Agent<
     });
   }
 
-  async aiAct(taskPrompt: string, opt?: AiActOptions) {
+  async aiAct(
+    taskPrompt: string,
+    opt?: AiActOptions,
+  ): Promise<string | undefined> {
     const fileChooserAccept = opt?.fileChooserAccept
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
@@ -886,10 +965,11 @@ export class Agent<
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
-      // if vlm-ui-tars, plan cache is not used
-      const isVlmUiTars = modelConfigForPlanning.vlMode === 'vlm-ui-tars';
+      // if vlm-ui-tars or auto-glm, plan cache is not used
+      const isVlmUiTars = isUITars(modelConfigForPlanning.modelFamily);
+      const isAutoGlm = isAutoGLM(modelConfigForPlanning.modelFamily);
       const matchedCache =
-        isVlmUiTars || cacheable === false
+        isVlmUiTars || isAutoGlm || cacheable === false
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
@@ -905,7 +985,8 @@ export class Agent<
 
         debug('matched cache, will call .runYaml to run the action');
         const yaml = matchedCache.cacheContent.yamlWorkflow;
-        return this.runYaml(yaml);
+        await this.runYaml(yaml);
+        return;
       }
 
       // If cache matched but yamlWorkflow is empty, fall through to normal execution
@@ -917,7 +998,7 @@ export class Agent<
       const imagesIncludeCount: number | undefined = useDeepThink
         ? undefined
         : 2;
-      const { output } = await this.taskExecutor.action(
+      const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
         defaultIntentModelConfig,
@@ -931,12 +1012,12 @@ export class Agent<
       );
 
       // update cache
-      if (this.taskCache && output?.yamlFlow && cacheable !== false) {
+      if (this.taskCache && actionOutput?.yamlFlow && cacheable !== false) {
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
               name: taskPrompt,
-              flow: output.yamlFlow,
+              flow: actionOutput.yamlFlow,
             },
           ],
         };
@@ -951,7 +1032,7 @@ export class Agent<
         );
       }
 
-      return output;
+      return actionOutput?.output;
     };
 
     return await runAiAct();
@@ -1324,6 +1405,11 @@ export class Agent<
       return;
     }
 
+    // Wait for any pending write operations to complete
+    if (this.lastWritePromise) {
+      await this.lastWritePromise;
+    }
+
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
@@ -1337,7 +1423,7 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = ScreenshotItem.create(base64);
+    const screenshot = await ScreenshotItem.create(base64);
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
@@ -1383,7 +1469,8 @@ export class Agent<
       }
     }
 
-    this.writeOutActionDumps();
+    this.lastWritePromise = this.writeOutActionDumps();
+    await this.lastWritePromise;
   }
 
   /**

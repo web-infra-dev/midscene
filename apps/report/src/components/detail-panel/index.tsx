@@ -18,7 +18,7 @@ import { useEffect, useState } from 'react';
 import { fullTimeStrWithMilliseconds } from '../../../../../packages/visualizer/src/utils';
 import OpenInPlayground from '../open-in-playground';
 
-const ScreenshotItem = (props: {
+const ScreenshotDisplay = (props: {
   title: string;
   img?: string;
   children?: React.ReactNode;
@@ -160,7 +160,7 @@ const DetailPanel = (): JSX.Element => {
 
     contextLocatorView =
       highlightElements.length > 0 && activeTask.uiContext?.size ? (
-        <ScreenshotItem
+        <ScreenshotDisplay
           title={isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'}
         >
           <Blackboard
@@ -169,25 +169,25 @@ const DetailPanel = (): JSX.Element => {
             highlightElements={highlightElements}
             highlightRect={insightDump?.taskInfo?.searchArea}
           />
-        </ScreenshotItem>
+        </ScreenshotDisplay>
       ) : null;
 
     // screenshot view
-    const screenshotFromContext = activeTask.uiContext?.screenshotBase64;
-    if (screenshotFromContext) {
+    const screenshotFromContext = activeTask.uiContext?.screenshot;
+    if (screenshotFromContext?.base64) {
       screenshotItems.push({
         timestamp: activeTask.timing?.start ?? undefined,
-        screenshot: screenshotFromContext,
+        screenshot: screenshotFromContext.base64,
         timing: 'before-calling',
       });
     }
 
     if (activeTask.recorder?.length) {
       for (const item of activeTask.recorder) {
-        if (item.screenshot) {
+        if (item.screenshot?.base64) {
           screenshotItems.push({
             timestamp: item.ts,
-            screenshot: item.screenshot,
+            screenshot: item.screenshot.base64,
             timing: item.timing,
           });
         }
@@ -203,7 +203,7 @@ const DetailPanel = (): JSX.Element => {
               ? `${fullTimeStrWithMilliseconds(item.timestamp)} / ${item.timing}`
               : fullTimeStrWithMilliseconds(item.timestamp);
             return (
-              <ScreenshotItem
+              <ScreenshotDisplay
                 key={item.timestamp}
                 title={time}
                 img={item.screenshot}

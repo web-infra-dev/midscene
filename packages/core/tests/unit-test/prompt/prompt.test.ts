@@ -8,13 +8,18 @@ import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locat
 import { getUiTarsPlanningPrompt } from '@/ai-model/prompt/ui-tars-planning';
 import { getMidsceneLocationSchema } from '@/index';
 import { mockActionSpace } from 'tests/common';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   extractDataQueryPrompt,
   systemPromptToExtract,
 } from '../../../src/ai-model/prompt/extraction';
 import { mockNonChinaTimeZone, restoreIntl } from '../mocks/intl-mock';
+
+// Mock getPreferredLanguage to ensure consistent test output
+vi.mock('@midscene/shared/env', () => ({
+  getPreferredLanguage: vi.fn().mockReturnValue('English'),
+}));
 
 const mockLocatorScheme =
   '{"bbox": [number, number, number, number], "prompt": string}';
@@ -81,10 +86,12 @@ describe('action space', () => {
               'untilRight',
               'untilLeft',
             ])
+            .default('once')
             .describe('The scroll type'),
           actionType: z
             .enum(['Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert'])
             .describe('The scroll type')
+            .default('Tap')
             .optional(),
           option: z.number().optional().describe('An optional option value'),
         }),
@@ -98,11 +105,11 @@ describe('action space', () => {
         - param:
           - value: string // The value to be tapped
           - value2?: number // The value to be tapped
-          - value3?: number // The value 3
+          - value3?: number // The value 3, default: 345
           - locate: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped
           - locate2?: {"bbox": [number, number, number, number], "prompt": string} // The element to be tapped for the second time
-          - scrollType: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type
-          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type
+          - scrollType?: enum('once', 'untilBottom', 'untilTop', 'untilRight', 'untilLeft') // The scroll type, default: "once"
+          - actionType?: enum('Tap', 'DragAndDrop', 'Scroll', 'Input', 'Assert') // The scroll type, default: "Tap"
           - option?: number // An optional option value"
     `);
   });
@@ -112,28 +119,40 @@ describe('system prompts', () => {
   it('planning - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: undefined,
+      modelFamily: undefined,
       includeBbox: false,
     });
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - should throw error when includeBbox is true but vlMode is undefined', async () => {
+  it('planning - includeThought false removes thought field', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeThought: false,
+    });
+
+    expect(prompt).not.toContain('"thought"');
+    expect(prompt).toContain('"log"');
+  });
+
+  it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
     await expect(
       systemPromptToTaskPlanning({
         actionSpace: mockActionSpace,
-        vlMode: undefined,
+        modelFamily: undefined,
         includeBbox: true,
       }),
     ).rejects.toThrow(
-      'vlMode cannot be undefined when includeBbox is true. A valid vlMode is required for bbox-based location.',
+      'modelFamily cannot be undefined when includeBbox is true. A valid modelFamily is required for bbox-based location.',
     );
   });
 
   it('planning - qwen - cot', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen2.5-vl',
+      modelFamily: 'qwen2.5-vl',
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
@@ -142,7 +161,7 @@ describe('system prompts', () => {
   it('planning - qwen - cot without bbox', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen2.5-vl',
+      modelFamily: 'qwen2.5-vl',
       includeBbox: false,
     });
 
@@ -152,7 +171,7 @@ describe('system prompts', () => {
   it('planning - gemini', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'gemini',
+      modelFamily: 'gemini',
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
@@ -161,7 +180,7 @@ describe('system prompts', () => {
   it('planning - android', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
-      vlMode: 'qwen2.5-vl',
+      modelFamily: 'qwen2.5-vl',
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
