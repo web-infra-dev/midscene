@@ -220,6 +220,9 @@ The \`log\` field is a brief preamble message to the user explaining what you're
     "prompt": "Cart icon in top right corner"
   }`;
 
+  const thoughtTag = (content: string) =>
+    shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
+
   return `
 Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to accomplish the instruction.
 
@@ -260,8 +263,7 @@ user: <user_instruction>Add first two items to the cart and tell me the total pr
 user: this is the latest screenshot
 (image ignored due to size optimization)
 
-assistant: <thought>The instruction is to add the first two items to the cart and report the total price (number only). The screenshot shows a product listing page with the first two items being "Sauce Labs Backpack" ($29.99) and "Sauce Labs Bike Light" ($9.99), both with "Add to cart" buttons visible. I should click the "Add to cart" button for the first item (Sauce Labs Backpack) using the Tap action.</thought>
-<log>Click 'Add to cart' for the Sauce Labs Backpack</log>
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). The screenshot shows a product listing page with the first two items being "Sauce Labs Backpack" ($29.99) and "Sauce Labs Bike Light" ($9.99), both with "Add to cart" buttons visible. I should click the "Add to cart" button for the first item (Sauce Labs Backpack) using the Tap action.')}<log>Click 'Add to cart' for the Sauce Labs Backpack</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -272,8 +274,7 @@ assistant: <thought>The instruction is to add the first two items to the cart an
 user: Time: 2026-01-20 14:38:03 (YYYY-MM-DD HH:mm:ss), I have finished the action previously planned.. The last screenshot is attached. Please going on according to the instruction.
 (image ignored due to size optimization)
 
-assistant: <thought>The instruction is to add the first two items to the cart and report the total price (number only). The first item (Sauce Labs Backpack) has been successfully added - its button now shows "Remove" and the cart icon displays 1 item. The second item (Sauce Labs Bike Light) still shows "Add to cart" button. I should now click the "Add to cart" button for the second item using the Tap action.</thought>
-<log>Click 'Add to cart' for the Sauce Labs Bike Light</log>
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). The first item (Sauce Labs Backpack) has been successfully added - its button now shows "Remove" and the cart icon displays 1 item. The second item (Sauce Labs Bike Light) still shows "Add to cart" button. I should now click the "Add to cart" button for the second item using the Tap action.')}<log>Click 'Add to cart' for the Sauce Labs Bike Light</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -283,8 +284,7 @@ assistant: <thought>The instruction is to add the first two items to the cart an
 
 user: Time: 2026-01-20 14:38:08 (YYYY-MM-DD HH:mm:ss), I have finished the action previously planned.. The last screenshot is attached. Please going on according to the instruction.
 
-assistant: <thought>The instruction is to add the first two items to the cart and report the total price (number only). Both items have been successfully added - both show "Remove" buttons and the cart icon displays 2 items. The total should be $29.99 + $9.99 = $39.98, but I need to verify by viewing the cart. I should click the cart icon to view the cart details and confirm the total price using the Tap action.</thought>
-<log>Click the cart icon to view the cart and confirm the total price</log>
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). Both items have been successfully added - both show "Remove" buttons and the cart icon displays 2 items. The total should be $29.99 + $9.99 = $39.98, but I need to verify by viewing the cart. I should click the cart icon to view the cart details and confirm the total price using the Tap action.')}<log>Click the cart icon to view the cart and confirm the total price</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -294,8 +294,7 @@ assistant: <thought>The instruction is to add the first two items to the cart an
 
 user: Time: 2026-01-20 14:38:13 (YYYY-MM-DD HH:mm:ss), I have finished the action previously planned.. The last screenshot is attached. Please going on according to the instruction.
 
-assistant: <thought>The instruction is to add the first two items to the cart and report the total price (number only). The cart now displays both items: Sauce Labs Backpack ($29.99) and Sauce Labs Bike Light ($9.99). The total price is $29.99 + $9.99 = $39.98. All required actions are complete. I should use complete-task with success="true" to return the total price as requested (just the number 39.98).</thought>
-<log>Report the total price: 39.98</log>
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). The cart now displays both items: Sauce Labs Backpack ($29.99) and Sauce Labs Bike Light ($9.99). The total price is $29.99 + $9.99 = $39.98. All required actions are complete. I should use complete-task with success="true" to return the total price as requested (just the number 39.98).')}<log>Report the total price: 39.98</log>
 <complete-task success="true">39.98</complete-task>
 `;
 }
