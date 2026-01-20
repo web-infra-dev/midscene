@@ -14,7 +14,6 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
   fillBboxParam,
-  finalizeActionName,
   findAllMidsceneLocatorField,
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
@@ -38,6 +37,17 @@ export function parseXMLPlanningResponse(
   const error = extractXMLTag(xmlString, 'error');
   const actionType = extractXMLTag(xmlString, 'action-type');
   const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
+
+  // Parse complete-task tag with success attribute
+  const completeTaskRegex = /<complete-task\s+success="(true|false)">([\s\S]*?)<\/complete-task>/i;
+  const completeTaskMatch = xmlString.match(completeTaskRegex);
+  let finalizeMessage: string | undefined;
+  let finalizeSuccess: boolean | undefined;
+
+  if (completeTaskMatch) {
+    finalizeSuccess = completeTaskMatch[1] === 'true';
+    finalizeMessage = completeTaskMatch[2]?.trim() || undefined;
+  }
 
   // Validate required fields
   if (!log) {
@@ -71,6 +81,8 @@ export function parseXMLPlanningResponse(
     log,
     ...(error ? { error } : {}),
     action,
+    ...(finalizeMessage !== undefined ? { finalizeMessage } : {}),
+    ...(finalizeSuccess !== undefined ? { finalizeSuccess } : {}),
   };
 }
 
@@ -192,10 +204,13 @@ export async function plan(
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
-  if (actions[0]?.type === finalizeActionName) {
-    debug('finalize action planned, stop planning');
+
+  // Check if task is finalized via complete-task tag
+  if (planFromAI.finalizeSuccess !== undefined) {
+    debug('task finalized via complete-task tag, stop planning');
     shouldContinuePlanning = false;
   }
+
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,

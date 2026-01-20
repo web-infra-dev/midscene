@@ -839,4 +839,114 @@ describe('parseXMLPlanningResponse', () => {
     expect(result.note).toBe('Values: <100 & >50');
     expect(result.action?.param.locate.prompt).toBe('Button with & symbol');
   });
+
+  it('should parse complete-task tag with success=true and message', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Task completed successfully</log>
+<complete-task success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete-task>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      log: 'Task completed successfully',
+      action: null,
+      finalizeMessage: "The product names are: 'Product A', 'Product B', 'Product C'",
+      finalizeSuccess: true,
+    });
+  });
+
+  it('should parse complete-task tag with success=false and error message', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Task failed</log>
+<complete-task success="false">Unable to find the required element on the page</complete-task>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      log: 'Task failed',
+      action: null,
+      finalizeMessage: 'Unable to find the required element on the page',
+      finalizeSuccess: false,
+    });
+  });
+
+  it('should parse complete-task tag with empty message', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Task completed</log>
+<complete-task success="true"></complete-task>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      log: 'Task completed',
+      action: null,
+      finalizeSuccess: true,
+    });
+  });
+
+  it('should parse complete-task tag with multiline message', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Data extraction completed</log>
+<complete-task success="true">
+Extracted data:
+- Item 1: Value A
+- Item 2: Value B
+- Item 3: Value C
+</complete-task>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      log: 'Data extraction completed',
+      action: null,
+      finalizeMessage: 'Extracted data:\n- Item 1: Value A\n- Item 2: Value B\n- Item 3: Value C',
+      finalizeSuccess: true,
+    });
+  });
+
+  it('should parse complete-task tag along with other optional fields', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<thought>All tasks completed successfully</thought>
+<note>Total items processed: 10</note>
+<log>Finalize the task</log>
+<complete-task success="true">All 10 items have been processed</complete-task>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      thought: 'All tasks completed successfully',
+      note: 'Total items processed: 10',
+      log: 'Finalize the task',
+      action: null,
+      finalizeMessage: 'All 10 items have been processed',
+      finalizeSuccess: true,
+    });
+  });
+
+  it('should handle complete-task tag case insensitively', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<log>Task done</log>
+<COMPLETE-TASK success="true">Success message</COMPLETE-TASK>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      log: 'Task done',
+      action: null,
+      finalizeMessage: 'Success message',
+      finalizeSuccess: true,
+    });
+  });
 });

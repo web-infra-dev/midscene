@@ -339,6 +339,8 @@ export class TaskExecutor {
               usage,
               rawResponse,
               reasoning_content,
+              finalizeSuccess,
+              finalizeMessage,
             } = planResult;
 
             executorContext.task.log = {
@@ -359,6 +361,14 @@ export class TaskExecutor {
             executorContext.uiContext = uiContext;
 
             assert(!error, `Failed to continue: ${error}\n${log || ''}`);
+
+            // Check if task was finalized with failure
+            if (finalizeSuccess === false) {
+              assert(
+                false,
+                `Task failed: ${finalizeMessage || 'No error message provided'}\n${log || ''}`,
+              );
+            }
 
             return {
               cache: {
@@ -425,6 +435,10 @@ export class TaskExecutor {
 
       // // Check if task is complete
       if (!planResult?.shouldContinuePlanning) {
+        // Set finalizeMessage as output if task completed via complete-task tag
+        if (planResult.finalizeMessage !== undefined) {
+          outputString = planResult.finalizeMessage;
+        }
         break;
       }
 
