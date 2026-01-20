@@ -413,11 +413,30 @@ function reviverForDumpDeserialization(key: string, value: any): any {
   if (key === 'screenshot' && ScreenshotItem.isSerialized(value)) {
     // Use MemoryStorage as default provider for deserialization
     // The actual data will be loaded later via storageProvider
+    // Note: Import here to avoid circular dependency issues
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { MemoryStorage } = require('./storage');
     return ScreenshotItem.restore(value.$screenshot, new MemoryStorage());
   }
   return value;
 }
+
+/**
+ * Helper to ensure all tasks have recorder field (even if empty)
+ */
+function normalizeTaskRecorder(
+  tasks: IExecutionDump['tasks'],
+): IExecutionDump['tasks'] {
+  return tasks.map((task: any) => ({
+    ...task,
+    recorder: task.recorder || [],
+  }));
+}
+
+/**
+ * Type for screenshot serialization result
+ */
+type SerializedScreenshot = { base64: string };
 
 /**
  * ExecutionDump class for serializing and deserializing execution dumps
@@ -524,43 +543,37 @@ export class ExecutionDump implements IExecutionDump {
 
     // Use async processing for screenshots (inline or file path mode)
     if (inlineScreenshots || screenshotsPath) {
-      const collectScreenshotPromises = (obj: any): Promise<any> => {
+      const processValue = async (
+        obj: unknown,
+      ): Promise<
+        unknown | SerializedScreenshot | unknown[] | Record<string, unknown>
+      > => {
         if (obj instanceof ScreenshotItem) {
           if (screenshotsPath) {
             // Directory mode: return file path
-            return Promise.resolve({
-              base64: `${screenshotsPath}/${obj.id}.png`,
-            });
+            return { base64: `${screenshotsPath}/${obj.id}.png` };
           }
           // Inline mode: return base64 data
-          return obj.getData().then((base64) => ({ base64 }));
+          const base64 = await obj.getData();
+          return { base64 };
         }
         if (Array.isArray(obj)) {
-          return Promise.all(obj.map(collectScreenshotPromises));
+          return Promise.all(obj.map(processValue));
         }
         if (obj && typeof obj === 'object') {
-          const promises: Record<string, Promise<any>> = {};
-          for (const [key, value] of Object.entries(obj)) {
-            promises[key] = collectScreenshotPromises(value);
-          }
-          return (async () => {
-            const resolved: Record<string, any> = {};
-            for (const [key, promise] of Object.entries(promises)) {
-              resolved[key] = await promise;
-            }
-            return resolved;
-          })();
+          const entries = await Promise.all(
+            Object.entries(obj).map(async ([key, value]) => [
+              key,
+              await processValue(value),
+            ]),
+          );
+          return Object.fromEntries(entries);
         }
-        return Promise.resolve(obj);
+        return obj;
       };
 
-      const resolvedData = await collectScreenshotPromises(this.toJSON());
-      const result = resolvedData as IExecutionDump;
-      // Ensure all tasks have recorder field (even if empty)
-      result.tasks = result.tasks.map((task: any) => ({
-        ...task,
-        recorder: task.recorder || [],
-      }));
+      const result = (await processValue(this.toJSON())) as IExecutionDump;
+      result.tasks = normalizeTaskRecorder(result.tasks);
       return result;
     }
 
@@ -571,12 +584,8 @@ export class ExecutionDump implements IExecutionDump {
       }
       return value;
     });
-    const result = JSON.parse(jsonString);
-    // Ensure all tasks have recorder field (even if empty)
-    result.tasks = result.tasks.map((task: any) => ({
-      ...task,
-      recorder: task.recorder || [],
-    }));
+    const result = JSON.parse(jsonString) as IExecutionDump;
+    result.tasks = normalizeTaskRecorder(result.tasks);
     return result;
   }
 }

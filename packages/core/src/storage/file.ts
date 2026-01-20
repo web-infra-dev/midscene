@@ -68,10 +68,14 @@ export class FileStorage implements StorageProvider {
   async retrieve(id: string): Promise<string> {
     const filePath = this.registry.get(id);
     if (!filePath) {
-      throw new Error(`FileStorage: File not found for id: ${id}`);
+      throw new Error(
+        `FileStorage: Data not found for id: ${id} (not in registry)`,
+      );
     }
     if (!fs.existsSync(filePath)) {
-      throw new Error(`FileStorage: File does not exist: ${filePath}`);
+      throw new Error(
+        `FileStorage: Data not found for id: ${id} (file missing at: ${filePath})`,
+      );
     }
     return fs.readFileSync(filePath, 'utf-8');
   }

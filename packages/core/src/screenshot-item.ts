@@ -82,10 +82,11 @@ export class ScreenshotItem {
 
   /** Check if a value is a serialized ScreenshotItem */
   static isSerialized(value: unknown): value is { $screenshot: string } {
-    if (typeof value !== 'object' || value === null) {
-      return false;
-    }
-    const obj = value as Record<string, unknown>;
-    return '$screenshot' in obj && typeof obj.$screenshot === 'string';
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      '$screenshot' in value &&
+      typeof (value as Record<string, unknown>).$screenshot === 'string'
+    );
   }
 }
