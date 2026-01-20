@@ -68,7 +68,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert, defineActionFinalize } from '../device';
+import { defineActionAssert } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -381,11 +381,7 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [
-      ...baseActionSpace,
-      defineActionAssert(),
-      defineActionFinalize(),
-    ];
+    this.fullActionSpace = [...baseActionSpace, defineActionAssert()];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,

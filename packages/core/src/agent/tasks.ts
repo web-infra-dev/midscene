@@ -344,7 +344,10 @@ export class TaskExecutor {
               usage,
               rawResponse,
               reasoning_content,
+              finalizeSuccess,
+              finalizeMessage,
             } = planResult;
+            outputString = finalizeMessage;
 
             executorContext.task.log = {
               ...(executorContext.task.log || {}),
@@ -358,12 +361,20 @@ export class TaskExecutor {
               thought,
               note,
               yamlFlow: planResult.yamlFlow,
-              output: outputString,
+              output: finalizeMessage,
               shouldContinuePlanning: planResult.shouldContinuePlanning,
             };
             executorContext.uiContext = uiContext;
 
             assert(!error, `Failed to continue: ${error}\n${log || ''}`);
+
+            // Check if task was finalized with failure
+            if (finalizeSuccess === false) {
+              assert(
+                false,
+                `Task failed: ${finalizeMessage || 'No error message provided'}\n${log || ''}`,
+              );
+            }
 
             return {
               cache: {
@@ -410,8 +421,7 @@ export class TaskExecutor {
       // todo: set time string
 
       try {
-        const result = await session.appendAndRun(executables.tasks);
-        outputString = result?.output;
+        await session.appendAndRun(executables.tasks);
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;

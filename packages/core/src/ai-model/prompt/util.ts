@@ -2,6 +2,21 @@ import type { BaseElement, ElementTreeNode, Size, UIContext } from '@/types';
 import { NodeType } from '@midscene/shared/constants';
 import { assert } from '@midscene/shared/utils';
 
+/**
+ * Extract content from an XML tag in a string
+ * @param xmlString - The XML string to parse
+ * @param tagName - The name of the tag to extract (case-insensitive)
+ * @returns The trimmed content of the tag, or undefined if not found
+ */
+export function extractXMLTag(
+  xmlString: string,
+  tagName: string,
+): string | undefined {
+  const regex = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`, 'i');
+  const match = xmlString.match(regex);
+  return match ? match[1].trim() : undefined;
+}
+
 export function describeSize(size: Size) {
   return `${size.width} x ${size.height}`;
 }

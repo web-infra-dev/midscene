@@ -1,4 +1,4 @@
-import { finalizeActionName, getMidsceneLocationSchema } from '@/common';
+import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
@@ -486,34 +486,6 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
       const duration = param?.millisecond ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
       await new Promise((resolve) => setTimeout(resolve, duration));
-    },
-  });
-};
-
-// Finalize
-export const actionFinalizeParamSchema = z.object({
-  message: z
-    .string()
-    .optional()
-    .describe(
-      'The conclusion, data, or return value that the user needs. This message will be provided to the user when the task is finalized.',
-    ),
-});
-export type ActionFinalizeParam = {
-  message?: string;
-};
-
-export const defineActionFinalize = (): DeviceAction<ActionFinalizeParam> => {
-  return defineAction<typeof actionFinalizeParamSchema, ActionFinalizeParam>({
-    name: finalizeActionName,
-    description:
-      'Finalize the task. You can provide the conclusion, data, or return value that the user needs in the message.',
-    paramSchema: actionFinalizeParamSchema,
-    call: async (param) => {
-      getDebug('device:common-action')(
-        `Task finalized${param?.message ? `: ${param.message}` : ''}`,
-      );
-      return param.message;
     },
   });
 };
