@@ -3,6 +3,7 @@ import type Jimp from 'jimp';
 import type { BaseElement, Rect } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64, imageInfoOfBase64 } from './index';
+import { safeJimpRead } from './safe-jimp';
 
 let cachedFont: any = null;
 
@@ -271,7 +272,7 @@ export const compositeElementInfoImg = async (options: {
     jimpImage = info.jimpImage;
   } else {
     const imageBuffer = await bufferFromBase64(options.inputImgBase64);
-    jimpImage = await Jimp.read(imageBuffer);
+    jimpImage = await safeJimpRead(imageBuffer, Jimp);
     const imageBitmap = jimpImage.bitmap;
     // Resize the image to the specified width and height if it's not already the same. It usually happens when dpr is not 1
     if (imageBitmap.width !== width || imageBitmap.height !== height) {

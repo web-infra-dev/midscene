@@ -1,6 +1,7 @@
 import type { Rect } from '../types';
 import getJimp from './get-jimp';
 import { bufferFromBase64 } from './info';
+import { safeJimpRead } from './safe-jimp';
 import { saveBase64Image } from './transform';
 
 export async function drawBoxOnImage(options: {
@@ -12,7 +13,7 @@ export async function drawBoxOnImage(options: {
 
   const Jimp = await getJimp();
   const imageBuffer = await bufferFromBase64(inputImgBase64);
-  const image = await Jimp.read(imageBuffer);
+  const image = await safeJimpRead(imageBuffer, Jimp);
 
   // Draw a circle dot at the center of the rect
   const centerX = rect.x;

@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import type Jimp from 'jimp';
 import type { Size } from '../types';
 import getJimp from './get-jimp';
+import { safeJimpRead } from './safe-jimp';
 
 export interface ImageInfo extends Size {
   jimpImage: Jimp;
@@ -23,7 +24,7 @@ export async function imageInfo(
   if (typeof image === 'string') {
     jimpImage = await Jimp.read(image);
   } else if (Buffer.isBuffer(image)) {
-    jimpImage = await Jimp.read(image);
+    jimpImage = await safeJimpRead(image, Jimp);
   } else if (image instanceof Jimp) {
     jimpImage = image;
   } else {
