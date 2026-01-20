@@ -342,6 +342,7 @@ export class TaskExecutor {
               finalizeSuccess,
               finalizeMessage,
             } = planResult;
+            outputString = finalizeMessage;
 
             executorContext.task.log = {
               ...(executorContext.task.log || {}),
@@ -355,7 +356,7 @@ export class TaskExecutor {
               thought,
               note,
               yamlFlow: planResult.yamlFlow,
-              output: outputString,
+              output: finalizeMessage,
               shouldContinuePlanning: planResult.shouldContinuePlanning,
             };
             executorContext.uiContext = uiContext;
@@ -415,8 +416,7 @@ export class TaskExecutor {
       // todo: set time string
 
       try {
-        const result = await session.appendAndRun(executables.tasks);
-        outputString = result?.output;
+        await session.appendAndRun(executables.tasks);
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
@@ -435,10 +435,6 @@ export class TaskExecutor {
 
       // // Check if task is complete
       if (!planResult?.shouldContinuePlanning) {
-        // Set finalizeMessage as output if task completed via complete-task tag
-        if (planResult.finalizeMessage !== undefined) {
-          outputString = planResult.finalizeMessage;
-        }
         break;
       }
 

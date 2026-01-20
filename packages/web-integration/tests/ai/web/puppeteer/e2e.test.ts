@@ -119,6 +119,9 @@ describe(
     it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
+        {
+          headless: false,
+        },
       );
       resetFn = reset;
       const onTaskStartTip = vi.fn();
@@ -135,13 +138,18 @@ describe(
 
       await agent.aiAssert('this is a login page');
 
-      await agent.ai(
-        'type "standard_user" in user name input, type "secret_sauce" in password',
+      const pw = await agent.aiAct(
+        'do nothing and tell me the what the password is',
       );
+      expect(pw).toBe('secret_sauce');
 
-      await agent.aiTap('Login', {
-        // deepThink: true,
-      });
+      await agent.ai('login with "standard_user" and "secret_sauce"');
+
+      const price = await agent.ai(
+        'Add first two items to the cart and tell me the total price of the cart. Just the price number, no other text',
+      );
+      console.log('price', price);
+      expect(price).toBeDefined();
 
       // Legacy scroll param compatibility: ensure old scrollType values still work
       await agent.aiScroll('', {
