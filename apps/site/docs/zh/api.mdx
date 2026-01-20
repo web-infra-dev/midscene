@@ -260,7 +260,7 @@ function aiInput(
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
-    mode?: 'replace' | 'clear' | 'append';
+    mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
 
@@ -279,15 +279,15 @@ function aiInput(
   - `opt: Object` - 配置对象，包含：
     - `value: string | number` - **必填**，要输入的文本内容。
       - 当 `mode` 为 `'replace'` 时：文本将替换输入框中的所有现有内容。
-      - 当 `mode` 为 `'append'` 时：文本将追加到现有内容后面。
+      - 当 `mode` 为 `'typeOnly'` 时：直接输入文本，不会先清空输入框。
       - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS 中有效。默认值为 true。
-    - `mode?: 'replace' | 'clear' | 'append'` - 输入模式。(默认值: 'replace')
+    - `mode?: 'replace' | 'clear' | 'typeOnly'` - 输入模式。(默认值: 'replace')
       - `'replace'`: 先清空输入框，然后输入文本。
-      - `'append'`: 将文本追加到现有内容后面，不清空输入框。
+      - `'typeOnly'`: 直接输入文本，不会先清空输入框。
       - `'clear'`: 清空输入框，不会输入新的文本。
 
   **兼容用法**（已过时，但仍然支持）：

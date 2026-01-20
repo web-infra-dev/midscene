@@ -682,7 +682,7 @@ export class Agent<
     locatePrompt: TUserPrompt,
     opt: LocateOption & { value: string | number } & {
       autoDismissKeyboard?: boolean;
-    } & { mode?: 'replace' | 'clear' | 'append' } & {
+    } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' } & {
       useShortMemory?: boolean;
     },
   ): Promise<any>;
@@ -695,7 +695,7 @@ export class Agent<
     value: string | number,
     locatePrompt: TUserPrompt,
     opt?: LocateOption & { autoDismissKeyboard?: boolean } & {
-      mode?: 'replace' | 'clear' | 'append';
+      mode?: 'replace' | 'clear' | 'typeOnly' | 'append';
       useShortMemory?: boolean;
     }, // AndroidDeviceInputOpt &
   ): Promise<any>;
@@ -707,7 +707,7 @@ export class Agent<
       | TUserPrompt
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'append' }) // AndroidDeviceInputOpt &
+        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' }) // AndroidDeviceInputOpt &
       | undefined,
     optOrUndefined?: LocateOption, // AndroidDeviceInputOpt &
   ) {
@@ -716,7 +716,7 @@ export class Agent<
     let opt:
       | (LocateOption & { value: string | number } & {
           autoDismissKeyboard?: boolean;
-        } & { mode?: 'replace' | 'clear' | 'append' } & {
+        } & { mode?: 'replace' | 'clear' | 'typeOnly' | 'append' } & {
           useShortMemory?: boolean;
         }) // AndroidDeviceInputOpt &
       | undefined;

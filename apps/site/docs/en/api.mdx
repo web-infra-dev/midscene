@@ -266,7 +266,7 @@ function aiInput(
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
-    mode?: 'replace' | 'clear' | 'append';
+    mode?: 'replace' | 'clear' | 'typeOnly';
   },
 ): Promise<void>;
 
@@ -285,15 +285,15 @@ function aiInput(
   - `opt: Object` - Configuration object containing:
     - `value: string | number` - **Required**. The text content to input.
       - When `mode` is `'replace'`: The text will replace all existing content in the input field.
-      - When `mode` is `'append'`: The text will be appended to the existing content.
+      - When `mode` is `'typeOnly'`: The text will be typed directly without clearing the field first.
       - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS. (Default: true)
-    - `mode?: 'replace' | 'clear' | 'append'` - Input mode. (Default: 'replace')
+    - `mode?: 'replace' | 'clear' | 'typeOnly'` - Input mode. (Default: 'replace')
       - `'replace'`: Clear the input field first, then input the text.
-      - `'append'`: Append the text to existing content without clearing.
+      - `'typeOnly'`: Type the value directly without clearing the field first.
       - `'clear'`: Clear the input field without entering new text.
 
   **Backward compatible usage (deprecated but still supported):**

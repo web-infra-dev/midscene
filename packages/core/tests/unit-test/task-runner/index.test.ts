@@ -296,5 +296,66 @@ describe(
         'task runner is in error state',
       );
     });
+
+    it('error message should be from the last failed task when using allowWhenError', async () => {
+      const runner = new TaskRunner('error-message-test', fakeUIContextBuilder);
+
+      // First task - will fail with "first-error"
+      const firstTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          throw new Error('first-error');
+        },
+      };
+
+      // Second task - will succeed
+      const secondTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          return { output: 'success' };
+        },
+      };
+
+      // Third task - will fail with "third-error"
+      const thirdTask: ExecutionTaskActionApply = {
+        type: 'Action Space',
+        executor: async () => {
+          throw new Error('third-error');
+        },
+      };
+
+      // Add first task and let it fail
+      await runner.append(firstTask);
+      await expect(runner.flush()).rejects.toThrowError('first-error');
+      expect(runner.status).toBe('error');
+      expect(runner.tasks[0].status).toBe('failed');
+
+      // Continue with allowWhenError, add second task (success)
+      await runner.append(secondTask, { allowWhenError: true });
+      await runner.flush({ allowWhenError: true });
+      expect(runner.status).toBe('completed');
+      expect(runner.tasks[1].status).toBe('finished');
+
+      // Add third task and let it fail
+      await runner.append(thirdTask);
+      let caughtError: Error | undefined;
+      try {
+        await runner.flush();
+      } catch (error) {
+        caughtError = error as Error;
+      }
+
+      // The error message should be from the LAST failed task (third-error), not the first one
+      expect(caughtError).toBeDefined();
+      expect(caughtError?.message).toContain('third-error');
+      expect(caughtError?.message).not.toContain('first-error');
+      expect(runner.tasks[2].status).toBe('failed');
+      expect(runner.tasks[2].errorMessage).toBe('third-error');
+
+      // latestErrorTask should return the third task, not the first one
+      const latestError = runner.latestErrorTask();
+      expect(latestError).toBe(runner.tasks[2]);
+      expect(latestError?.errorMessage).toBe('third-error');
+    });
   },
 );
