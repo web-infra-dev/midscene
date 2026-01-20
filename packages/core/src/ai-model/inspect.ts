@@ -1,10 +1,8 @@
 import type {
-  AIDataExtractionResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
   Rect,
-  ReferenceImage,
   ServiceExtractOption,
   UIContext,
 } from '@/types';
@@ -519,10 +517,11 @@ export async function AiExtractElementInfo<T>(options: {
     msgs.push(...addOns);
   }
 
-  const { content: rawResponse, usage, reasoning_content } = await callAI(
-    msgs,
-    modelConfig,
-  );
+  const {
+    content: rawResponse,
+    usage,
+    reasoning_content,
+  } = await callAI(msgs, modelConfig);
 
   // Parse XML response to JSON object
   const parseResult = parseXMLExtractionResponse<T>(rawResponse);

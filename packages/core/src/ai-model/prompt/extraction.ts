@@ -153,29 +153,3 @@ ${dataQueryText}
 </DATA_DEMAND>
   `;
 };
-
-export const extractDataSchema: ResponseFormatJSONSchema = {
-  type: 'json_schema',
-  json_schema: {
-    name: 'extract_data',
-    strict: true,
-    schema: {
-      type: 'object',
-      properties: {
-        data: {
-          type: 'object',
-          description: 'The extracted data',
-        },
-        errors: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          description: 'Error messages, if any',
-        },
-      },
-      required: ['data', 'errors'],
-      additionalProperties: false,
-    },
-  },
-};
