@@ -6,7 +6,7 @@ import type {
   RawResponsePlanningAIResponse,
   UIContext,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
+import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -28,7 +28,10 @@ const debug = getDebug('planning');
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
  */
-export function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIResponse {
+export function parseXMLPlanningResponse(
+  xmlString: string,
+  modelFamily: TModelFamily | undefined,
+): RawResponsePlanningAIResponse {
   const thought = extractXMLTag(xmlString, 'thought');
   const note = extractXMLTag(xmlString, 'note');
   const log = extractXMLTag(xmlString, 'log');
@@ -50,7 +53,7 @@ export function parseXMLPlanningResponse(xmlString: string): RawResponsePlanning
     if (actionParamStr) {
       try {
         // Parse the JSON string in action-param-json
-        param = safeParseJson(actionParamStr, undefined);
+        param = safeParseJson(actionParamStr, modelFamily);
       } catch (e) {
         throw new Error(`Failed to parse action-param-json: ${e}`);
       }
@@ -185,7 +188,7 @@ export async function plan(
   });
 
   // Parse XML response to JSON object
-  const planFromAI = parseXMLPlanningResponse(rawResponse);
+  const planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;

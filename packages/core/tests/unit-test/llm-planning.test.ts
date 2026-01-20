@@ -613,6 +613,7 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
 
 describe('parseXMLPlanningResponse', () => {
   it('should parse complete XML response with all fields', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <thought>I need to click the login button</thought>
 <note>User credentials are already filled</note>
@@ -629,7 +630,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result).toEqual({
       thought: 'I need to click the login button',
@@ -648,6 +649,7 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response with only required fields', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Performing action</log>
 <action-type>Tap</action-type>
@@ -660,7 +662,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result).toEqual({
       log: 'Performing action',
@@ -676,12 +678,13 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response with null action', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Task completed</log>
 <action-type>null</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result).toEqual({
       log: 'Task completed',
@@ -690,11 +693,12 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response without action-type', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Just logging</log>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result).toEqual({
       log: 'Just logging',
@@ -703,6 +707,7 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse XML response with error field', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Attempting to recover</log>
 <error>Previous action failed</error>
@@ -714,7 +719,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result).toEqual({
       log: 'Attempting to recover',
@@ -729,12 +734,13 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should parse action without param', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Waiting</log>
 <action-type>Wait</action-type>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result).toEqual({
       log: 'Waiting',
@@ -745,6 +751,7 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should handle multiline content in tags', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <thought>
   This is a complex thought
@@ -762,7 +769,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result.thought).toBe(
       'This is a complex thought\n  spanning multiple lines',
@@ -772,17 +779,19 @@ describe('parseXMLPlanningResponse', () => {
   });
 
   it('should throw error when log field is missing', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Some thought</thought>
 <action-type>Tap</action-type>
     `.trim();
 
-    expect(() => parseXMLPlanningResponse(xml)).toThrow(
+    expect(() => parseXMLPlanningResponse(xml, modelFamily)).toThrow(
       'Missing required field: log',
     );
   });
 
   it('should throw error when action-param-json is invalid JSON', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Action</log>
 <action-type>Tap</action-type>
@@ -791,24 +800,26 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    expect(() => parseXMLPlanningResponse(xml)).toThrow(
+    expect(() => parseXMLPlanningResponse(xml, modelFamily)).toThrow(
       'Failed to parse action-param-json',
     );
   });
 
   it('should handle case-insensitive tag matching', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <LOG>Case insensitive log</LOG>
 <ACTION-TYPE>Tap</ACTION-TYPE>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result.log).toBe('Case insensitive log');
     expect(result.action?.type).toBe('Tap');
   });
 
   it('should parse XML with special characters in content', () => {
+    const modelFamily = 'doubao-vision';
     const xml = `
 <log>Click "Submit" button</log>
 <note>Values: <100 & >50</note>
@@ -822,7 +833,7 @@ describe('parseXMLPlanningResponse', () => {
 </action-param-json>
     `.trim();
 
-    const result = parseXMLPlanningResponse(xml);
+    const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result.log).toBe('Click "Submit" button');
     expect(result.note).toBe('Values: <100 & >50');
