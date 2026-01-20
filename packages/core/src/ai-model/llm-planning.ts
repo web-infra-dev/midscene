@@ -6,7 +6,7 @@ import type {
   RawResponsePlanningAIResponse,
   UIContext,
 } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
+import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -14,14 +14,78 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
   fillBboxParam,
-  finalizeActionName,
   findAllMidsceneLocatorField,
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
-import { callAIWithObjectResponse } from './service-caller/index';
+import { extractXMLTag } from './prompt/util';
+import { callAI } from './service-caller/index';
+import { safeParseJson } from './service-caller/index';
 
 const debug = getDebug('planning');
+
+/**
+ * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
+ */
+export function parseXMLPlanningResponse(
+  xmlString: string,
+  modelFamily: TModelFamily | undefined,
+): RawResponsePlanningAIResponse {
+  const thought = extractXMLTag(xmlString, 'thought');
+  const note = extractXMLTag(xmlString, 'note');
+  const log = extractXMLTag(xmlString, 'log');
+  const error = extractXMLTag(xmlString, 'error');
+  const actionType = extractXMLTag(xmlString, 'action-type');
+  const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
+
+  // Parse complete-task tag with success attribute
+  const completeTaskRegex =
+    /<complete-task\s+success="(true|false)">([\s\S]*?)<\/complete-task>/i;
+  const completeTaskMatch = xmlString.match(completeTaskRegex);
+  let finalizeMessage: string | undefined;
+  let finalizeSuccess: boolean | undefined;
+
+  if (completeTaskMatch) {
+    finalizeSuccess = completeTaskMatch[1] === 'true';
+    finalizeMessage = completeTaskMatch[2]?.trim() || undefined;
+  }
+
+  // Validate required fields
+  if (!log) {
+    throw new Error('Missing required field: log');
+  }
+
+  // Parse action
+  let action: any = null;
+  if (actionType && actionType.toLowerCase() !== 'null') {
+    const type = actionType.trim();
+    let param: any = undefined;
+
+    if (actionParamStr) {
+      try {
+        // Parse the JSON string in action-param-json
+        param = safeParseJson(actionParamStr, modelFamily);
+      } catch (e) {
+        throw new Error(`Failed to parse action-param-json: ${e}`);
+      }
+    }
+
+    action = {
+      type,
+      ...(param !== undefined ? { param } : {}),
+    };
+  }
+
+  return {
+    ...(thought ? { thought } : {}),
+    ...(note ? { note } : {}),
+    log,
+    ...(error ? { error } : {}),
+    action,
+    ...(finalizeMessage !== undefined ? { finalizeMessage } : {}),
+    ...(finalizeSuccess !== undefined ? { finalizeSuccess } : {}),
+  };
+}
 
 export async function plan(
   userInstruction: string,
@@ -129,24 +193,25 @@ export async function plan(
   ];
 
   const {
-    content: planFromAI,
-    contentString: rawResponse,
+    content: rawResponse,
     usage,
     reasoning_content,
-  } = await callAIWithObjectResponse<RawResponsePlanningAIResponse>(
-    msgs,
-    modelConfig,
-    {
-      deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
-    },
-  );
+  } = await callAI(msgs, modelConfig, {
+    deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+  });
+
+  // Parse XML response to JSON object
+  const planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
-  if (actions[0]?.type === finalizeActionName) {
-    debug('finalize action planned, stop planning');
+
+  // Check if task is finalized via complete-task tag
+  if (planFromAI.finalizeSuccess !== undefined) {
+    debug('task finalized via complete-task tag, stop planning');
     shouldContinuePlanning = false;
   }
+
   const returnValue: PlanningAIResponse = {
     ...planFromAI,
     actions,

@@ -18,11 +18,6 @@ export interface ServiceExtractOption {
   [key: string]: unknown;
 }
 
-export interface ReferenceImage {
-  base64: string;
-  rect?: Rect;
-}
-
 export interface DetailedLocateParam extends LocateOption {
   prompt: TUserPrompt;
 }
