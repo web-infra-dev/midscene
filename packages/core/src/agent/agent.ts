@@ -391,6 +391,7 @@ export class Agent<
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      waitAfterAction: this.opts.waitAfterAction,
       actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {

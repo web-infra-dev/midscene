@@ -59,6 +59,7 @@ interface TaskBuilderDeps {
   service: Service;
   taskCache?: TaskCache;
   actionSpace: DeviceAction[];
+  waitAfterAction?: number;
 }
 
 interface BuildOptions {
@@ -83,16 +84,20 @@ export class TaskBuilder {
 
   private readonly actionSpace: DeviceAction[];
 
+  private readonly waitAfterAction?: number;
+
   constructor({
     interfaceInstance,
     service,
     taskCache,
     actionSpace,
+    waitAfterAction,
   }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
+    this.waitAfterAction = waitAfterAction;
   }
 
   public async build(
@@ -314,7 +319,7 @@ export class TaskBuilder {
         const actionResult = await actionFn(param, taskContext);
         debug('called action', action.name, 'result:', actionResult);
 
-        const delayAfterRunner = action.delayAfterRunner ?? 300;
+        const delayAfterRunner = action.delayAfterRunner ?? this.waitAfterAction ?? 300;
         if (delayAfterRunner > 0) {
           await sleep(delayAfterRunner);
         }
