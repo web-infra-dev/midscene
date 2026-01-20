@@ -19,6 +19,7 @@ import {
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
+import { extractXMLTag } from './prompt/util';
 import { callAI } from './service-caller/index';
 import { safeParseJson } from './service-caller/index';
 
@@ -28,19 +29,12 @@ const debug = getDebug('planning');
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
  */
 export function parseXMLPlanningResponse(xmlString: string): RawResponsePlanningAIResponse {
-  // Extract content from XML tags
-  const extractTag = (tagName: string): string | undefined => {
-    const regex = new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`, 'i');
-    const match = xmlString.match(regex);
-    return match ? match[1].trim() : undefined;
-  };
-
-  const thought = extractTag('thought');
-  const note = extractTag('note');
-  const log = extractTag('log');
-  const error = extractTag('error');
-  const actionType = extractTag('action-type');
-  const actionParamStr = extractTag('action-param-json');
+  const thought = extractXMLTag(xmlString, 'thought');
+  const note = extractXMLTag(xmlString, 'note');
+  const log = extractXMLTag(xmlString, 'log');
+  const error = extractXMLTag(xmlString, 'error');
+  const actionType = extractXMLTag(xmlString, 'action-type');
+  const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
 
   // Validate required fields
   if (!log) {

@@ -174,21 +174,6 @@ export async function systemPromptToTaskPlanning({
   });
   const actionList = actionDescriptionList.join('\n');
 
-  const thoughtFieldInstruction = `
-## About the \`thought\` field (reasoning process)
-
-The \`thought\` field captures your structured reasoning about the next action. It should include:
-
-1. **Overall task**: What is the overall instruction/goal?
-2. **Current observation**: What do I see on the current screen?
-3. **Progress**: What steps have been completed so far?
-4. **Next step**: What should the next step be and why?
-5. **Action selection**: Which Action Type should be used to accomplish this step?
-
-**Example thought structure:**
-"The overall task is to [task]. On the current screen, I can see [observations]. We have completed [steps]. The next step should be [next action] because [reason]. I will use [Action Type] to accomplish this."
-`;
-
   const logFieldInstruction = `
 ## About the \`log\` field (preamble message)
 
@@ -225,14 +210,12 @@ Please tell what the next one action is (or null if no action should be done) to
 ## Supporting actions
 ${actionList}
 
-${shouldIncludeThought ? thoughtFieldInstruction : ''}
-
 ${logFieldInstruction}
 
 ## Return format
 
 Return in XML format with the following structure:
-${shouldIncludeThought ? '<thought>Structured reasoning: overall task, current observation, progress, next step, action selection</thought>' : ''}
+${shouldIncludeThought ? '<thought>your thought process about the next action</thought>' : ''}
 <note>CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Leave empty if no follow-up information is needed.</note>
 <log>a brief preamble to the user</log>
 <error>error messages (optional)</error>
@@ -241,7 +224,7 @@ ${shouldIncludeThought ? '<thought>Structured reasoning: overall task, current o
 
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
-${shouldIncludeThought ? '<thought>The overall task is to login. On the current screen, I can see a login form with username and password fields already filled, and a login button. We have completed filling in the credentials. The next step should be to submit the login form by clicking the login button. I will use Tap action to click it.</thought>' : ''}<log>Click the login button</log>
+${shouldIncludeThought ? '<thought>The form has already been filled, I need to click the login button to login</thought>' : ''}<log>Click the login button</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -253,7 +236,7 @@ ${shouldIncludeThought ? '<thought>The overall task is to login. On the current 
 
 For example, if the instruction is to find out every title in the screenshot, the return value should be:
 
-${shouldIncludeThought ? '<thought>The overall task is to find out every title in the screenshot. On the current screen, I can see several article titles: \'Hello, world!\', \'Midscene 101\', and \'Model strategy\'. We have just started and observed the visible titles. The next step should be to scroll down to find more titles that may not be currently visible. I will use Scroll action to reveal more content.</thought>' : ''}<note>The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'</note>
+${shouldIncludeThought ? '<thought>I need to note the titles in the current screenshot for further processing and scroll to find more titles</thought>' : ''}<note>The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'</note>
 <log>Scroll to find more titles</log>
 <action-type>Scroll</action-type>
 <action-param-json>
