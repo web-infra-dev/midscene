@@ -221,7 +221,7 @@ ${shouldIncludeThought ? '<thought>your thought process about the next action</t
 <error>error messages (optional)</error>
 <action-type>the type of the action, or null if no action</action-type>
 <action-param-json>JSON object containing the action parameters</action-param-json>
-<complete-task success="true|false">Optional: Use this tag to finalize the task when all instructions have been completed. Set success="true" if the task succeeded, or success="false" if it failed. The message inside the tag should contain the conclusion, data, or return value that the user needs. When this tag is present, no action-type or action-param-json is needed.</complete-task>
+<complete-task success="true|false">Optional: Use this tag to finalize the task when all instructions have been completed. Set success="true" if the task succeeded, or success="false" if it failed. When success="true", the message should contain the conclusion, data, or return value that the user needs. When success="false", the message MUST explain why the task failed and what went wrong. When this tag is present, no action-type or action-param-json is needed.</complete-task>
 
 For example, if the instruction is to login and the form has already been filled, this is a valid return value:
 
@@ -253,5 +253,10 @@ For example, if the instruction was to extract all product names and you have su
 
 ${shouldIncludeThought ? '<thought>I have successfully collected all product names from the page. The task is complete.</thought>' : ''}<log>Task completed successfully</log>
 <complete-task success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete-task>
+
+For example, if the instruction was to click a specific button but the button could not be found after scrolling, the return value should be:
+
+${shouldIncludeThought ? '<thought>I have scrolled through the entire page but cannot find the requested button. The task cannot be completed.</thought>' : ''}<log>Task failed</log>
+<complete-task success="false">Unable to find the requested button on the page. I have scrolled through the entire visible area but the element does not exist.</complete-task>
 `;
 }
