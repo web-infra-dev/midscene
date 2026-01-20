@@ -490,7 +490,6 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
   });
 };
 
-
 export type { DeviceAction } from '../types';
 export type {
   AndroidDeviceOpt,

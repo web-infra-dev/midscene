@@ -852,7 +852,8 @@ describe('parseXMLPlanningResponse', () => {
     expect(result).toEqual({
       log: 'Task completed successfully',
       action: null,
-      finalizeMessage: "The product names are: 'Product A', 'Product B', 'Product C'",
+      finalizeMessage:
+        "The product names are: 'Product A', 'Product B', 'Product C'",
       finalizeSuccess: true,
     });
   });
@@ -907,7 +908,8 @@ Extracted data:
     expect(result).toEqual({
       log: 'Data extraction completed',
       action: null,
-      finalizeMessage: 'Extracted data:\n- Item 1: Value A\n- Item 2: Value B\n- Item 3: Value C',
+      finalizeMessage:
+        'Extracted data:\n- Item 1: Value A\n- Item 2: Value B\n- Item 3: Value C',
       finalizeSuccess: true,
     });
   });

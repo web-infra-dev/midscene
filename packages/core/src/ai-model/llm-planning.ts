@@ -39,7 +39,8 @@ export function parseXMLPlanningResponse(
   const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
 
   // Parse complete-task tag with success attribute
-  const completeTaskRegex = /<complete-task\s+success="(true|false)">([\s\S]*?)<\/complete-task>/i;
+  const completeTaskRegex =
+    /<complete-task\s+success="(true|false)">([\s\S]*?)<\/complete-task>/i;
   const completeTaskMatch = xmlString.match(completeTaskRegex);
   let finalizeMessage: string | undefined;
   let finalizeSuccess: boolean | undefined;

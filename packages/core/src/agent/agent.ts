@@ -381,10 +381,7 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [
-      ...baseActionSpace,
-      defineActionAssert(),
-    ];
+    this.fullActionSpace = [...baseActionSpace, defineActionAssert()];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
