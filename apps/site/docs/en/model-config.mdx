@@ -169,15 +169,17 @@ For finer-grained control (e.g., enabling LangSmith only for specific tasks), us
 
 ### Using Langfuse
 
-Langfuse is another popular LLM observability platform. Langfuse tracing is built on top of OpenTelemetry and requires initialization at application startup.
+[Langfuse](https://langfuse.com) is another popular LLM observability platform. Midscene has integrated Langfuse's `observeOpenAI` wrapper to automatically trace all OpenAI API calls.
+
+Since Langfuse tracing is built on top of OpenTelemetry, you need to initialize the OpenTelemetry SDK at application startup.
 
 **Step 1: Install dependencies**
 
 ```bash
-npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node @langfuse/tracing
+npm install @langfuse/openai @langfuse/otel @opentelemetry/sdk-node
 ```
 
-**Step 2: Initialize OpenTelemetry**
+**Step 2: Initialize OpenTelemetry (Required)**
 
 Add the following code at the **very top** of your application entry file:
 
@@ -210,6 +212,8 @@ After starting Midscene, you should see logs similar to:
 OpenTelemetry SDK initialized for Langfuse tracing
 DEBUGGING MODE: langfuse wrapper enabled
 ```
+
+**Learn More**: Check out the [Langfuse OpenAI Integration documentation](https://langfuse.com/integrations/model-providers/openai-js) for additional configuration options and best practices.
 
 Notes:
 - LangSmith and Langfuse can be enabled simultaneously.
