@@ -239,6 +239,7 @@ Please tell what the next one action is (or null if no action should be done) to
 - Make sure the previous actions are completed successfully before performing the next step
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
 - Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion by calling the "Print_Assert_Result" action.
+- Call the "Finalize" action when the task is completed and no more actions should be done.
 
 ## Supporting actions
 ${actionList}
