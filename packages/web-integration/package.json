@@ -123,8 +123,6 @@
     "socket.io-client": "4.8.1"
   },
   "devDependencies": {
-    "@langfuse/openai": "4.5.1",
-    "@langfuse/tracing": "4.5.1",
     "@playwright/test": "^1.44.1",
     "@rslib/core": "^0.18.3",
     "@types/chrome": "0.0.279",
