@@ -98,7 +98,7 @@ describe('ExecutionDump', () => {
   });
 
   describe('toJSON', () => {
-    it('should return a plain object', () => {
+    it('should return a plain object with recorder fields normalized', () => {
       const data = createMockExecutionDumpData();
       const dump = new ExecutionDump(data);
       const json = dump.toJSON();
@@ -107,7 +107,10 @@ describe('ExecutionDump', () => {
         logTime: data.logTime,
         name: data.name,
         description: data.description,
-        tasks: data.tasks,
+        tasks: data.tasks.map((task) => ({
+          ...task,
+          recorder: task.recorder || [],
+        })),
         aiActContext: data.aiActContext,
       });
     });
