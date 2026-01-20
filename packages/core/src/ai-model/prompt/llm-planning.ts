@@ -5,31 +5,9 @@ import {
   getZodDescription,
   getZodTypeName,
 } from '@midscene/shared/zod-schema-utils';
-import type { ResponseFormatJSONSchema } from 'openai/resources/index';
 import type { z } from 'zod';
 import { bboxDescription } from './common';
 import { shortMemoryInstruction } from './short-memory';
-
-// Note: put the log field first to trigger the CoT
-
-const buildCommonOutputFields = (
-  includeThought: boolean,
-  preferredLanguage: string,
-) => {
-  const fields = [
-    `"note"?: string, // some important notes to finish the follow-up action should be written here, and the agent executing the subsequent steps will focus on this information. For example, the data extracted from the current screenshot which will be used in the follow-up action. Use ${preferredLanguage}.`,
-    `"log": string, // a brief preamble to the user explaining what you're about to do. Use ${preferredLanguage}.`,
-    `"error"?: string, // Error messages about unexpected situations, if any. Only think it is an error when the situation is not foreseeable according to the instruction. Use ${preferredLanguage}.`,
-  ];
-
-  if (includeThought) {
-    fields.unshift(
-      `"thought": string, // your thought process about the next action`,
-    );
-  }
-
-  return fields.join('\n  ');
-};
 
 const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
   if (modelFamily) {
@@ -203,7 +181,7 @@ The \`log\` field is a brief preamble message to the user explaining what you're
 
 - **Use ${preferredLanguage}**
 - **Keep it concise**: be no more than 1-2 sentences, focused on immediate, tangible next steps. (8–12 words or Chinese characters for quick updates).
-- **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what’s been done so far and create a sense of momentum and clarity for the user to understand your next actions.
+- **Build on prior context**: if this is not the first action to be done, use the preamble message to connect the dots with what's been done so far and create a sense of momentum and clarity for the user to understand your next actions.
 - **Keep your tone light, friendly and curious**: add small touches of personality in preambles feel collaborative and engaging.
 
 **Examples:**
@@ -214,21 +192,40 @@ The \`log\` field is a brief preamble message to the user explaining what you're
 `;
 
   const shouldIncludeThought = includeThought ?? true;
-  const commonOutputFields = buildCommonOutputFields(
-    shouldIncludeThought,
-    preferredLanguage,
-  );
-  const exampleThoughtLine = shouldIncludeThought
-    ? `  "thought": "The form has already been filled, I need to click the login button to login",
-`
-    : '';
-  const exampleThoughtLineWithNote = shouldIncludeThought
-    ? `  "thought": "I need to note the titles in the current screenshot for further processing and scroll to find more titles",
-`
-    : '';
+
+  // Generate locate object examples based on includeBbox
+  const locateExample1 = includeBbox
+    ? `{
+    "prompt": "Add to cart button for Sauce Labs Backpack",
+    "bbox": [345, 442, 458, 483]
+  }`
+    : `{
+    "prompt": "Add to cart button for Sauce Labs Backpack"
+  }`;
+
+  const locateExample2 = includeBbox
+    ? `{
+    "prompt": "Add to cart button for Sauce Labs Bike Light",
+    "bbox": [732, 442, 844, 483]
+  }`
+    : `{
+    "prompt": "Add to cart button for Sauce Labs Bike Light"
+  }`;
+
+  const locateExample3 = includeBbox
+    ? `{
+    "prompt": "Cart icon in top right corner",
+    "bbox": [956, 17, 982, 54]
+  }`
+    : `{
+    "prompt": "Cart icon in top right corner"
+  }`;
+
+  const thoughtTag = (content: string) =>
+    shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
 
   return `
-Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to plan the next one action according to current situation to accomplish the instruction.
+Target: User will give you an instruction, some screenshots and previous logs indicating what have been done. Your task is to accomplish the instruction.
 
 Please tell what the next one action is (or null if no action should be done) to do the tasks the instruction requires. 
 
@@ -238,8 +235,9 @@ Please tell what the next one action is (or null if no action should be done) to
 - Give just the next ONE action you should do
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
 - Make sure the previous actions are completed successfully before performing the next step
-- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 5 times, you should think this is an error and set the "error" field to the error message.
+- If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 - Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion by calling the "Print_Assert_Result" action.
+- Return the "complete-task" tag when the task is completed and no more actions should be done.
 
 ## Supporting actions
 ${actionList}
@@ -250,46 +248,56 @@ ${shortMemoryInstruction}
 
 ## Return format
 
-Return in JSON format:
+Return in XML format with the following structure:
+${shouldIncludeThought ? "<thought>Think through the following: What is the user's requirement? What is the current state based on the screenshot? What should be the next action and which action-type to use (or error, or complete-task)? Write your thoughts naturally without numbering or section headers.</thought>" : ''}
+<note>CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Leave empty if no follow-up information is needed.</note>
+<log>a brief preamble to the user</log>
+<error>error messages (optional)</error>
+<action-type>the type of the action, or null if no action</action-type>
+<action-param-json>JSON object containing the action parameters</action-param-json>
+<complete-task success="true|false">Optional: Use this tag to finalize the task when all instructions have been completed. Set success="true" if the task succeeded, or success="false" if it failed. When success="true", the message should contain the conclusion, data, or return value that the user needs. When success="false", the message MUST explain why the task failed and what went wrong. When this tag is present, no action-type or action-param-json is needed.</complete-task>
+
+## Example 
+
+This is an example of a complete interaction flow:
+
+user: <user_instruction>Add first two items to the cart and tell me the total price of the cart. Just the price number, no other text</user_instruction>
+
+user: this is the latest screenshot
+(image ignored due to size optimization)
+
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). The screenshot shows a product listing page with the first two items being "Sauce Labs Backpack" ($29.99) and "Sauce Labs Bike Light" ($9.99), both with "Add to cart" buttons visible. I should click the "Add to cart" button for the first item (Sauce Labs Backpack) using the Tap action.')}<log>Click 'Add to cart' for the Sauce Labs Backpack</log>
+<action-type>Tap</action-type>
+<action-param-json>
 {
-  ${commonOutputFields}
-  "action": 
-    {
-      "type": string, // the type of the action
-      "param"?: { // The parameter of the action, if any
-         // k-v style parameter fields
-      }, 
-    } | null
+  "locate": ${locateExample1}
 }
+</action-param-json>
 
-For example, if the instruction is to login and the form has already been filled, this is a valid return value:
+user: Time: 2026-01-20 14:38:03 (YYYY-MM-DD HH:mm:ss), I have finished the action previously planned.. The last screenshot is attached. Please going on according to the instruction.
+(image ignored due to size optimization)
 
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). The first item (Sauce Labs Backpack) has been successfully added - its button now shows "Remove" and the cart icon displays 1 item. The second item (Sauce Labs Bike Light) still shows "Add to cart" button. I should now click the "Add to cart" button for the second item using the Tap action.')}<log>Click 'Add to cart' for the Sauce Labs Bike Light</log>
+<action-type>Tap</action-type>
+<action-param-json>
 {
-${exampleThoughtLine}  "log": "Click the login button",
-  "action": {
-    "type": "Tap",
-    "param": {
-      "locate": { 
-        "prompt": "The login button"${modelFamily && includeBbox ? `, "bbox": [100, 200, 300, 400]` : ''}
-      }
-    }
-  }
+  "locate": ${locateExample2}
 }
+</action-param-json>
 
-For example, if the instruction is to find out every title in the screenshot, the return value should be:
+user: Time: 2026-01-20 14:38:08 (YYYY-MM-DD HH:mm:ss), I have finished the action previously planned.. The last screenshot is attached. Please going on according to the instruction.
 
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). Both items have been successfully added - both show "Remove" buttons and the cart icon displays 2 items. The total should be $29.99 + $9.99 = $39.98, but I need to verify by viewing the cart. I should click the cart icon to view the cart details and confirm the total price using the Tap action.')}<log>Click the cart icon to view the cart and confirm the total price</log>
+<action-type>Tap</action-type>
+<action-param-json>
 {
-${exampleThoughtLineWithNote}  "note": "The titles in the current screenshot are: 'Hello, world!', 'Midscene 101', 'Model strategy'",
-  "log": "Scroll to find more titles",
-  "action": {
-    "type": "Scroll",
-    "param": {
-      "locate": {
-        "prompt": "The page content area"
-      },
-      "direction": "down"
-    }
-  }
+  "locate": ${locateExample3}
 }
+</action-param-json>
+
+user: Time: 2026-01-20 14:38:13 (YYYY-MM-DD HH:mm:ss), I have finished the action previously planned.. The last screenshot is attached. Please going on according to the instruction.
+
+assistant: ${thoughtTag('The instruction is to add the first two items to the cart and report the total price (number only). The cart now displays both items: Sauce Labs Backpack ($29.99) and Sauce Labs Bike Light ($9.99). The total price is $29.99 + $9.99 = $39.98. All required actions are complete. I should use complete-task with success="true" to return the total price as requested (just the number 39.98).')}<log>Report the total price: 39.98</log>
+<complete-task success="true">39.98</complete-task>
 `;
 }

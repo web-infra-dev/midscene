@@ -251,6 +251,8 @@ export interface RawResponsePlanningAIResponse {
   log: string;
   note?: string;
   error?: string;
+  finalizeMessage?: string;
+  finalizeSuccess?: boolean;
 }
 
 export interface PlanningAIResponse

@@ -68,7 +68,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert, defineActionFinalize } from '../device';
+import { defineActionAssert } from '../device';
 import {
   ShortMemoryManager,
   type ShortMemoryOpt,
@@ -407,7 +407,6 @@ export class Agent<
       ...baseActionSpace,
       ...shortMemoryActionSpace,
       defineActionAssert(),
-      defineActionFinalize(),
     ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {

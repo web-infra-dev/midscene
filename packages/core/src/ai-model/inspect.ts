@@ -1,10 +1,8 @@
 import type {
-  AIDataExtractionResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
   Rect,
-  ReferenceImage,
   ServiceExtractOption,
   UIContext,
 } from '@/types';
@@ -29,6 +27,7 @@ import { getAutoGLMLocatePrompt } from './auto-glm/prompt';
 import { isAutoGLM } from './auto-glm/util';
 import {
   extractDataQueryPrompt,
+  parseXMLExtractionResponse,
   systemPromptToExtract,
 } from './prompt/extraction';
 import {
@@ -52,6 +51,7 @@ import {
   systemPromptToJudgeOrderSensitive,
 } from './prompt/order-sensitive-judge';
 import {
+  callAI,
   callAIWithObjectResponse,
   callAIWithStringResponse,
 } from './service-caller/index';
@@ -525,14 +525,19 @@ export async function AiExtractElementInfo<T>(options: {
     msgs.push(...addOns);
   }
 
-  const result = await callAIWithObjectResponse<AIDataExtractionResponse<T>>(
-    msgs,
-    modelConfig,
-  );
+  const {
+    content: rawResponse,
+    usage,
+    reasoning_content,
+  } = await callAI(msgs, modelConfig);
+
+  // Parse XML response to JSON object
+  const parseResult = parseXMLExtractionResponse<T>(rawResponse);
+
   return {
-    parseResult: result.content,
-    usage: result.usage,
-    reasoning_content: result.reasoning_content,
+    parseResult,
+    usage,
+    reasoning_content,
   };
 }
 

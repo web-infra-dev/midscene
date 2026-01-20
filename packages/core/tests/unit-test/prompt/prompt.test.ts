@@ -133,8 +133,8 @@ describe('system prompts', () => {
       includeThought: false,
     });
 
-    expect(prompt).not.toContain('"thought"');
-    expect(prompt).toContain('"log"');
+    expect(prompt).not.toContain('<thought>');
+    expect(prompt).toContain('<log>');
   });
 
   it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {

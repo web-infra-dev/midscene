@@ -298,7 +298,11 @@ export const generateAnimationScripts = (
     }
 
     for (let i = startIndex; i < execution.tasks.length; i++) {
-      if (i > startIndex && execution.tasks[i].type === 'Planning') {
+      if (
+        i > startIndex &&
+        execution.tasks[i].type === 'Planning' &&
+        execution.tasks[i].subType === 'Plan'
+      ) {
         break;
       }
 
