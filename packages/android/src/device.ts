@@ -928,8 +928,8 @@ ${Object.keys(size)
       // Additional validation: check buffer size
       // Real device screenshots are typically 100KB+, so 10KB is a safe threshold
       // to catch corrupted/invalid buffers while allowing even very small test images
-      const minBufferSize = 10 * 1024; // 10KB
-      if (screenshotBuffer.length < minBufferSize) {
+      const minBufferSize = this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
+      if (minBufferSize > 0 && screenshotBuffer.length < minBufferSize) {
         debugDevice(
           `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${minBufferSize})`,
         );
@@ -968,8 +968,12 @@ ${Object.keys(size)
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
 
         // Validate the fallback screenshot buffer as well
-        const minBufferSize = 10 * 1024; // 10KB
-        if (!screenshotBuffer || screenshotBuffer.length < minBufferSize) {
+        const minBufferSize =
+          this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
+        if (
+          !screenshotBuffer ||
+          (minBufferSize > 0 && screenshotBuffer.length < minBufferSize)
+        ) {
           throw new Error(
             `Fallback screenshot validation failed: buffer size ${screenshotBuffer?.length || 0} bytes (minimum: ${minBufferSize})`,
           );
