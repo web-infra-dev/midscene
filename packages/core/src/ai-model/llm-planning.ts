@@ -14,7 +14,6 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
   buildYamlFlowFromPlans,
   fillBboxParam,
-  finalizeActionName,
   findAllMidsceneLocatorField,
 } from '../common';
 import type { ConversationHistory } from './conversation-history';
@@ -206,12 +205,9 @@ export async function plan(
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
 
-  // Check if task is finalized via complete-task tag or Finalize action
+  // Check if task is finalized via complete-task tag
   if (planFromAI.finalizeSuccess !== undefined) {
     debug('task finalized via complete-task tag, stop planning');
-    shouldContinuePlanning = false;
-  } else if (actions[0]?.type === finalizeActionName) {
-    debug('finalize action planned, stop planning');
     shouldContinuePlanning = false;
   }
 
