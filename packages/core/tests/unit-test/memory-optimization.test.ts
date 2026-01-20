@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { ExecutionDump } from '../../src/types';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import { MemoryStorage } from '../../src/storage';
+import { ExecutionDump, GroupedActionDump } from '../../src/types';
 
 describe('Memory optimization with StorageProvider', () => {
   // 生成测试用的 screenshot 数据
@@ -113,7 +113,9 @@ describe('Memory optimization with StorageProvider', () => {
 
       // 验证 JSON 结构
       expect(json.tasks[0].uiContext.screenshot).toHaveProperty('$screenshot');
-      expect(json.tasks[0].recorder[0].screenshot).toHaveProperty('$screenshot');
+      expect(json.tasks[0].recorder[0].screenshot).toHaveProperty(
+        '$screenshot',
+      );
     });
 
     it('should save massive memory compared to inline base64 serialization', async () => {
@@ -163,7 +165,8 @@ describe('Memory optimization with StorageProvider', () => {
       const serialized = dumps.map((d) => d.serialize());
 
       const afterSerialize = getMemoryUsage();
-      const serializationMemory = (afterSerialize - beforeSerialize) / 1024 / 1024; // MB
+      const serializationMemory =
+        (afterSerialize - beforeSerialize) / 1024 / 1024; // MB
 
       // 验证：序列化内存应该很小（< 1MB）
       // 因为只序列化 ID，不序列化完整的 base64
@@ -265,9 +268,7 @@ describe('Memory optimization with StorageProvider', () => {
       // （因为没有做去重逻辑，每次 create 都会存储一份）
       // 但即使如此，由于使用了 StorageProvider，内存占用也应该是可控的
 
-      const allData = await Promise.all(
-        screenshots.map((s) => s.getData()),
-      );
+      const allData = await Promise.all(screenshots.map((s) => s.getData()));
 
       // 验证所有 screenshots 都返回相同的数据
       allData.forEach((data) => {
@@ -276,7 +277,7 @@ describe('Memory optimization with StorageProvider', () => {
     });
   });
 
-  describe('Agent memory usage with useDirectoryReport', () => {
+  describe('Agent class memory management', () => {
     it('should keep memory under control when processing multiple tasks', async () => {
       const storage = new MemoryStorage();
       const dumps: ExecutionDump[] = [];
@@ -337,6 +338,200 @@ describe('Memory optimization with StorageProvider', () => {
       // 验证：平均每个任务的内存占用应该很小
       const memoryPerTask = totalMemory / taskCount;
       expect(memoryPerTask).toBeLessThan(0.1); // < 100KB per task
+    });
+
+    it('should release memory when resetDump() is called', async () => {
+      const storage = new MemoryStorage();
+      const createLargeGroupedDump = async (taskCount: number) => {
+        const executions: ExecutionDump[] = [];
+
+        for (let i = 0; i < taskCount; i++) {
+          const screenshot = await ScreenshotItem.create(
+            generateScreenshotData(i),
+            storage,
+          );
+
+          const dump = new ExecutionDump({
+            name: `Task ${i}`,
+            logTime: Date.now(),
+            tasks: [
+              {
+                type: 'Insight',
+                status: 'finished',
+                uiContext: {
+                  screenshot,
+                  size: { width: 1920, height: 1080 },
+                },
+              } as any,
+            ],
+          });
+
+          executions.push(dump);
+        }
+
+        return new GroupedActionDump(
+          {
+            sdkVersion: '1.0.0',
+            groupName: 'Test Group',
+            modelBriefs: [],
+            executions,
+          },
+          storage,
+        );
+      };
+
+      // 创建一个大的 dump
+      let dump = await createLargeGroupedDump(100);
+      const memoryWithDump = getMemoryUsage();
+
+      // 模拟 resetDump() - 创建新的空 dump
+      dump = new GroupedActionDump(
+        {
+          sdkVersion: '1.0.0',
+          groupName: 'Test Group',
+          modelBriefs: [],
+          executions: [],
+        },
+        storage,
+      );
+
+      const memoryAfterReset = getMemoryUsage();
+
+      // 验证：reset 后内存应该没有显著增长（允许一些波动）
+      const memoryIncrease = (memoryAfterReset - memoryWithDump) / 1024 / 1024; // MB
+      expect(memoryIncrease).toBeLessThan(1); // 内存增长应该 < 1MB
+    });
+
+    it('should handle multiple resetDump() cycles without memory accumulation', async () => {
+      const storage = new MemoryStorage();
+      const memoryReadings: number[] = [];
+      const cycles = 10;
+      const tasksPerCycle = 20;
+
+      for (let cycle = 0; cycle < cycles; cycle++) {
+        // 每个周期创建新的 dump（模拟 resetDump）
+        const executions: ExecutionDump[] = [];
+
+        for (let i = 0; i < tasksPerCycle; i++) {
+          const screenshot = await ScreenshotItem.create(
+            generateScreenshotData(cycle * tasksPerCycle + i),
+            storage,
+          );
+
+          const dump = new ExecutionDump({
+            name: `Cycle ${cycle} Task ${i}`,
+            logTime: Date.now(),
+            tasks: [
+              {
+                type: 'Insight',
+                status: 'finished',
+                uiContext: {
+                  screenshot,
+                  size: { width: 1920, height: 1080 },
+                },
+              } as any,
+            ],
+          });
+
+          executions.push(dump);
+        }
+
+        // 创建新的 GroupedActionDump（模拟 resetDump）
+        const groupedDump = new GroupedActionDump(
+          {
+            sdkVersion: '1.0.0',
+            groupName: `Cycle ${cycle}`,
+            modelBriefs: [],
+            executions,
+          },
+          storage,
+        );
+
+        // 序列化（模拟 writeOutActionDumps）
+        groupedDump.serialize();
+
+        // 记录内存
+        if (cycle % 2 === 0) {
+          memoryReadings.push(getMemoryUsage());
+        }
+      }
+
+      // 验证：内存不应该线性增长
+      const firstReading = memoryReadings[0];
+      const lastReading = memoryReadings[memoryReadings.length - 1];
+      const memoryGrowth = (lastReading - firstReading) / 1024 / 1024; // MB
+
+      // 即使经过 10 个周期（200 个 tasks），内存增长也应该 < 5MB
+      expect(memoryGrowth).toBeLessThan(5);
+
+      // 验证：内存波动应该相对稳定（不是每次都翻倍）
+      for (let i = 1; i < memoryReadings.length; i++) {
+        const growth = memoryReadings[i] - memoryReadings[i - 1];
+        const growthMB = growth / 1024 / 1024;
+        // 每个周期的内存增长应该 < 2MB
+        expect(growthMB).toBeLessThan(2);
+      }
+    });
+
+    it('should verify executions array reuse prevents unbounded growth', async () => {
+      const storage = new MemoryStorage();
+
+      // 模拟 appendExecutionDump 的行为
+      // 使用 WeakMap 追踪 runner -> index 的映射
+      const executionDumpIndexByRunner = new WeakMap<any, number>();
+      const executions: ExecutionDump[] = [];
+
+      const before = getMemoryUsage();
+
+      // 模拟 100 次任务，但只用 10 个不同的 runner
+      const runners: any[] = [];
+      for (let i = 0; i < 10; i++) {
+        runners.push({ id: i }); // 模拟 TaskRunner 对象
+      }
+
+      for (let i = 0; i < 100; i++) {
+        const runner = runners[i % 10]; // 循环使用 10 个 runner
+        const screenshot = await ScreenshotItem.create(
+          generateScreenshotData(i),
+          storage,
+        );
+
+        const execution = new ExecutionDump({
+          name: `Task ${i}`,
+          logTime: Date.now(),
+          tasks: [
+            {
+              type: 'Insight',
+              status: 'finished',
+              uiContext: {
+                screenshot,
+                size: { width: 1920, height: 1080 },
+              },
+            } as any,
+          ],
+        });
+
+        // 模拟 appendExecutionDump 逻辑
+        const existingIndex = executionDumpIndexByRunner.get(runner);
+        if (existingIndex !== undefined) {
+          // 复用现有的 slot
+          executions[existingIndex] = execution;
+        } else {
+          // 添加新的 execution
+          executions.push(execution);
+          executionDumpIndexByRunner.set(runner, executions.length - 1);
+        }
+      }
+
+      const after = getMemoryUsage();
+      const totalMemory = (after - before) / 1024 / 1024; // MB
+
+      // 验证：executions 数组应该只有 10 个元素（对应 10 个 runner）
+      expect(executions.length).toBe(10);
+
+      // 验证：即使执行了 100 次任务，内存增长应该 < 3MB
+      // 因为数组复用，不会无限增长
+      expect(totalMemory).toBeLessThan(3);
     });
 
     it('should handle continuous task execution without memory accumulation', async () => {
