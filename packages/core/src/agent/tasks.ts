@@ -435,6 +435,10 @@ export class TaskExecutor {
 
       // // Check if task is complete
       if (!planResult?.shouldContinuePlanning) {
+        // Set finalizeMessage as output if task completed via complete-task tag
+        if (planResult.finalizeMessage !== undefined) {
+          outputString = planResult.finalizeMessage;
+        }
         break;
       }
 
