@@ -1,6 +1,7 @@
 import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type { AbstractInterface } from '@/device';
 import { ScreenshotItem } from '@/screenshot-item';
+import type { StorageProvider } from '@/storage';
 import type {
   ElementCacheFeature,
   LocateResultElement,
@@ -24,7 +25,7 @@ const debugProfile = getDebug('web:tool:profile');
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
+  _opt: { uploadServerUrl?: string; storageProvider?: StorageProvider },
 ): Promise<UIContext> {
   assert(interfaceInstance, 'interfaceInstance is required');
 
@@ -46,7 +47,10 @@ export async function commonContextParser(
   const size = await interfaceInstance.size();
   debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
 
-  const screenshot = await ScreenshotItem.create(screenshotBase64!);
+  const screenshot = await ScreenshotItem.create(
+    screenshotBase64!,
+    _opt.storageProvider,
+  );
 
   return {
     size,

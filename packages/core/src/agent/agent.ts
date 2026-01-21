@@ -29,6 +29,7 @@ import {
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
+  type StorageProvider,
   type TUserPrompt,
   type UIContext,
 } from '../index';
@@ -58,6 +59,7 @@ import {
 import { existsSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
+import { MemoryStorage } from '@/storage';
 import type { TaskRunner } from '@/task-runner';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
@@ -235,6 +237,14 @@ export class Agent<
 
   private fullActionSpace: DeviceAction[];
 
+  /**
+   * Shared storage provider for all ScreenshotItems created by this Agent.
+   * Initialized from opts.storageProvider or defaults to a new MemoryStorage.
+   * Using a shared storage reduces memory overhead when multiple screenshots
+   * are created during agent execution.
+   */
+  private storageProvider: StorageProvider;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -366,6 +376,10 @@ export class Agent<
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
+    // Initialize shared storage provider for all screenshots
+    // Use provided storage or create a new MemoryStorage for this agent instance
+    this.storageProvider = this.opts.storageProvider || new MemoryStorage();
+
     this.service = new Service(async () => {
       return this.getUIContext();
     });
@@ -444,6 +458,7 @@ export class Agent<
       debug('Using commonContextParser');
       context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+        storageProvider: this.storageProvider,
       });
     }
 
@@ -464,7 +479,10 @@ export class Agent<
         width: targetWidth,
         height: targetHeight,
       });
-      context.screenshot = await ScreenshotItem.create(resizedBase64);
+      context.screenshot = await ScreenshotItem.create(
+        resizedBase64,
+        this.storageProvider,
+      );
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
@@ -1411,7 +1429,10 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = await ScreenshotItem.create(base64);
+    const screenshot = await ScreenshotItem.create(
+      base64,
+      this.storageProvider,
+    );
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
