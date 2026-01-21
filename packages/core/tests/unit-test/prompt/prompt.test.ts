@@ -113,6 +113,59 @@ describe('action space', () => {
           - option?: number // An optional option value"
     `);
   });
+
+  it('action with z.preprocess for backward compatibility', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Launch',
+        description: 'Launch an app or URL',
+        paramSchema: z.object({
+          uri: z.preprocess(
+            (val) => (typeof val === 'string' ? { uri: val } : val),
+            z.object({
+              uri: z.string().describe('The URI to launch'),
+            }),
+          ),
+          command: z.preprocess(
+            (val) => (typeof val === 'string' ? val.toUpperCase() : val),
+            z.string().describe('The command to execute'),
+          ),
+        }),
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Launch, Launch an app or URL
+        - type: "Launch"
+        - param:
+          - uri: object // The URI to launch
+          - command: string // The command to execute"
+    `);
+  });
+
+  it('action with z.preprocess wrapping simple types', () => {
+    const action = descriptionForAction(
+      {
+        name: 'RunAdbShell',
+        description: 'Execute ADB shell command',
+        paramSchema: z.preprocess(
+          (val) => (typeof val === 'string' ? { command: val } : val),
+          z.object({
+            command: z.string().describe('ADB shell command to execute'),
+          }),
+        ),
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- RunAdbShell, Execute ADB shell command
+        - type: "RunAdbShell"
+        - param:
+          - command: string // ADB shell command to execute"
+    `);
+  });
 });
 
 describe('system prompts', () => {
