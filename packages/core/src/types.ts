@@ -405,22 +405,27 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that restores ScreenshotItem
- * Automatically converts screenshot fields (in uiContext and recorder) back to ScreenshotItem
+ * Reviver function for JSON deserialization that partially restores ScreenshotItem
  *
- * IMPORTANT LIMITATION:
- * - This reviver creates ScreenshotItem instances with empty MemoryStorage
- * - The actual screenshot data is NOT restored and will be missing
- * - Calling getData() on restored screenshots will fail with "Data not found" error
+ * BEHAVIOR:
+ * - For { $screenshot: "id" } format: Creates ScreenshotItem with empty MemoryStorage
+ *   WARNING: Screenshot data will NOT be available - getData() will fail
+ * - For { base64: "..." } format: Returns as plain object (not ScreenshotItem)
+ *   Consumer code must handle conversion if needed
+ *
+ * LIMITATIONS:
+ * - Cannot restore actual screenshot data from ID-only serialization
+ * - Does not automatically convert inline base64 format to ScreenshotItem
+ *   (requires async creation which reviver cannot perform)
  *
  * RECOMMENDED APPROACH:
- * - Use serializeWithInlineScreenshots() for serialization (includes base64 data)
- * - For { base64: "..." } format, screenshots will have data available
- * - For { $screenshot: "id" } format (from serialize()), data cannot be recovered
+ * - Serialize: Use serializeWithInlineScreenshots() to include base64 data
+ * - Deserialize: Handle { base64 } format in consumer code with async conversion
+ * - For production: Use directory-based format (writeToDirectory) with separate PNG files
  *
  * @param key - JSON key being processed
  * @param value - JSON value being processed
- * @returns Restored value (ScreenshotItem for screenshot fields, original value otherwise)
+ * @returns Restored value (ScreenshotItem for ID format, plain object for base64 format)
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
   // Only process screenshot fields
