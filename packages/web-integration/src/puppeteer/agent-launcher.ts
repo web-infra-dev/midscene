@@ -5,7 +5,7 @@ import { assert } from '@midscene/shared/utils';
 import { PuppeteerAgent } from '@/puppeteer/index';
 import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
-import puppeteer, { type Browser } from 'puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 
 export const defaultUA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36';
@@ -169,6 +169,7 @@ export async function launchPuppeteerPage(
     keepWindow?: boolean;
   },
   browser?: Browser,
+  existingPage?: Page,
 ) {
   assert(target.url, 'url is required');
   const freeFn: FreeFn[] = [];
@@ -241,30 +242,46 @@ export async function launchPuppeteerPage(
     'preference',
     preference,
   );
+  // If an existing page is provided, reuse it instead of creating a new one
+  // This allows sharing localStorage and sessionStorage between YAML files
+  let page: Page;
   let browserInstance = browser;
-  if (!browserInstance) {
-    browserInstance = await puppeteer.launch({
-      headless: !preference?.headed,
-      defaultViewport: defaultViewportConfig,
-      args,
-      acceptInsecureCerts: target.acceptInsecureCerts,
-    });
-    freeFn.push({
-      name: 'puppeteer_browser',
-      fn: () => {
-        if (!preference?.keepWindow) {
-          if (process.platform === 'win32') {
-            setTimeout(() => {
+
+  if (existingPage) {
+    // Reuse the existing page - this preserves localStorage and sessionStorage
+    page = existingPage;
+    launcherDebug('reusing existing page for shared browser context');
+
+    // Get the browser instance from the existing page
+    if (!browserInstance) {
+      browserInstance = page.browser();
+    }
+  } else {
+    // Create a new browser and page
+    if (!browserInstance) {
+      browserInstance = await puppeteer.launch({
+        headless: !preference?.headed,
+        defaultViewport: defaultViewportConfig,
+        args,
+        acceptInsecureCerts: target.acceptInsecureCerts,
+      });
+      freeFn.push({
+        name: 'puppeteer_browser',
+        fn: () => {
+          if (!preference?.keepWindow) {
+            if (process.platform === 'win32') {
+              setTimeout(() => {
+                browserInstance?.close();
+              }, 800);
+            } else {
               browserInstance?.close();
-            }, 800);
-          } else {
-            browserInstance?.close();
+            }
           }
-        }
-      },
-    });
+        },
+      });
+    }
+    page = await browserInstance.newPage();
   }
-  const page = await browserInstance.newPage();
 
   if (target.cookie) {
     const cookieFileContent = readFileSync(target.cookie, 'utf-8');
@@ -331,11 +348,13 @@ export async function puppeteerAgentForTarget(
     >
   >,
   browser?: Browser,
+  existingPage?: Page,
 ) {
   const { page, freeFn } = await launchPuppeteerPage(
     target,
     preference,
     browser,
+    existingPage,
   );
   const aiActContext = resolveAiActionContext(target, preference);
 
