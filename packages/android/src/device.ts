@@ -1635,8 +1635,10 @@ const launchParamSchema = z.preprocess(
   }),
 );
 
-type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
-type LaunchParam = z.infer<typeof launchParamSchema>;
+// Explicitly define param types as string for public API
+// z.preprocess handles runtime conversion to object internally
+type RunAdbShellParam = string;
+type LaunchParam = string;
 
 export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
@@ -1658,7 +1660,9 @@ const createPlatformActions = (
       paramSchema: runAdbShellParamSchema,
       call: async (param) => {
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        // param is converted to object by z.preprocess at runtime
+        const command = (param as any).command as string;
+        return await adb.shell(command);
       },
     }),
     Launch: defineAction({
@@ -1667,7 +1671,9 @@ const createPlatformActions = (
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
       call: async (param) => {
-        await device.launch(param.uri);
+        // param is converted to object by z.preprocess at runtime
+        const uri = (param as any).uri as string;
+        await device.launch(uri);
       },
     }),
     AndroidBackButton: defineAction({
