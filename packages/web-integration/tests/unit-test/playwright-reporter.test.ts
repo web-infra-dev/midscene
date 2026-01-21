@@ -215,6 +215,87 @@ describe('MidsceneReporter', () => {
       );
     });
 
+    it('should include project name in test title when available', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Create a temp file
+      const tempFile = join(tempDir, 'browser-test-dump.json');
+      writeFileSync(tempFile, 'browser-test-data', 'utf-8');
+
+      // Mock test with parent suite that has a project
+      const mockProject = { name: 'chromium' };
+      const mockParent = {
+        project: () => mockProject,
+      };
+
+      const mockTest: TestCase = {
+        id: 'test-id-5',
+        title: 'Browser Compatibility Test',
+        parent: mockParent,
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
+        ],
+      } as any;
+      const mockResult: TestResult = {
+        status: 'passed',
+        duration: 789,
+      } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            playwright_test_id: 'test-id-5',
+            playwright_test_title: 'Browser Compatibility Test [chromium]',
+          }),
+        }),
+        true,
+      );
+    });
+
+    it('should include both project name and retry in test title', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Create a temp file
+      const tempFile = join(tempDir, 'retry-browser-dump.json');
+      writeFileSync(tempFile, 'retry-browser-data', 'utf-8');
+
+      // Mock test with parent suite that has a project
+      const mockProject = { name: 'webkit' };
+      const mockParent = {
+        project: () => mockProject,
+      };
+
+      const mockTest: TestCase = {
+        id: 'test-id-6',
+        title: 'Flaky Browser Test',
+        parent: mockParent,
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
+        ],
+      } as any;
+      const mockResult: TestResult = {
+        status: 'passed',
+        duration: 999,
+        retry: 2,
+      } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            playwright_test_id: 'test-id-6(retry #2)',
+            playwright_test_title: 'Flaky Browser Test [webkit](retry #2)',
+          }),
+        }),
+        true,
+      );
+    });
+
     it('should handle missing temp file gracefully', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
       const consoleSpy = vi

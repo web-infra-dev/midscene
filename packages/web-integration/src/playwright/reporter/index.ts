@@ -108,11 +108,16 @@ class MidsceneReporter implements Reporter {
     if (dumpString) {
       const retry = result.retry ? `(retry #${result.retry})` : '';
       const testId = `${test.id}${retry}`;
+      
+      // Get the project name (browser name) to distinguish between different browser runs
+      const projectName = test.parent?.project()?.name;
+      const projectSuffix = projectName ? ` [${projectName}]` : '';
+      
       const testData: ReportDumpWithAttributes = {
         dumpString,
         attributes: {
           playwright_test_id: testId,
-          playwright_test_title: `${test.title}${retry}`,
+          playwright_test_title: `${test.title}${projectSuffix}${retry}`,
           playwright_test_status: result.status,
           playwright_test_duration: result.duration,
         },
