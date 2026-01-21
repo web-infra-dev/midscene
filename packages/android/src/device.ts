@@ -1651,6 +1651,11 @@ const createPlatformActions = (
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
       call: async (param) => {
+        if (!param.command || param.command.trim() === '') {
+          throw new Error(
+            'RunAdbShell requires a non-empty command parameter',
+          );
+        }
         const adb = await device.getAdb();
         return await adb.shell(param.command);
       },
@@ -1661,6 +1666,9 @@ const createPlatformActions = (
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
       call: async (param) => {
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Launch requires a non-empty uri parameter');
+        }
         await device.launch(param.uri);
       },
     }),

@@ -538,6 +538,74 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           if (result !== undefined) {
             this.setResult(resultName, result);
           }
+        } else if (
+          typeof actionParamForMatchedAction === 'string' &&
+          !schemaIsStringParam
+        ) {
+          // Handle platform-specific actions (launch, runAdbShell) that accept string in agent
+          // but have object schemas in device layer
+          const actionName = matchedAction.name;
+          const interfaceAlias = matchedAction.interfaceAlias;
+
+          let result: any;
+          if (
+            (actionName === 'Launch' || interfaceAlias === 'launch') &&
+            typeof (agent as any).launch === 'function'
+          ) {
+            debug(
+              `Calling agent.launch directly with string param: ${actionParamForMatchedAction}`,
+            );
+            result = await (agent as any).launch(actionParamForMatchedAction);
+          } else if (
+            (actionName === 'RunAdbShell' || interfaceAlias === 'runAdbShell') &&
+            typeof (agent as any).runAdbShell === 'function'
+          ) {
+            debug(
+              `Calling agent.runAdbShell directly with string param: ${actionParamForMatchedAction}`,
+            );
+            result = await (agent as any).runAdbShell(
+              actionParamForMatchedAction,
+            );
+          } else {
+            // Fallback to building object params
+            debug(
+              `No direct agent method found for ${actionName}, building object params`,
+            );
+            const sourceForParams =
+              locatePromptShortcut &&
+              typeof actionParamForMatchedAction === 'string'
+                ? { ...flowItem, prompt: locatePromptShortcut }
+                : typeof actionParamForMatchedAction === 'object' &&
+                    actionParamForMatchedAction !== null
+                  ? actionParamForMatchedAction
+                  : flowItem;
+
+            const { locateParam, restParams } =
+              buildDetailedLocateParamAndRestParams(
+                locatePromptShortcut || '',
+                sourceForParams as LocateOption,
+                [
+                  matchedAction.name,
+                  matchedAction.interfaceAlias || '_never_mind_',
+                ],
+              );
+
+            const flowParams = {
+              ...restParams,
+              locate: locateParam,
+            };
+
+            result = await agent.callActionInActionSpace(
+              matchedAction.name,
+              flowParams,
+            );
+          }
+
+          // Store result if there's a name property in flowItem
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
         } else {
           // Determine the source for parameter extraction:
           // - If we have a locatePromptShortcut, use the flowItem (for actions like aiTap with prompt)
