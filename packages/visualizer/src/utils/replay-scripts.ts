@@ -554,18 +554,13 @@ export const generateAnimationScripts = (
     }
   });
 
-  // console.log('scripts', scripts);
-
-  // end, back to full page
-  if (!errorStateFlag) {
-    scripts.push({
-      title: 'Done',
-      subTitle: initSubTitle,
-      type: 'img',
-      duration: lastFrameDuration,
-      camera: fullPageCameraState,
-    });
-  }
+  scripts.push({
+    title: 'End',
+    subTitle: initSubTitle,
+    type: 'img',
+    duration: lastFrameDuration,
+    camera: fullPageCameraState,
+  });
 
   return scripts;
 };
