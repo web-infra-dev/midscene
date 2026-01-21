@@ -154,7 +154,7 @@ export class TaskExecutor {
 
   async loadYamlFlowAsPlanning(userInstruction: string, yamlString: string) {
     const session = this.createExecutionSession(
-      taskTitleStr('Action', userInstruction),
+      taskTitleStr('Act', userInstruction),
     );
 
     const task: ExecutionTaskPlanningApply = {
@@ -271,7 +271,7 @@ export class TaskExecutor {
     this.conversationHistory.reset();
 
     const session = this.createExecutionSession(
-      taskTitleStr('Action', userPrompt),
+      taskTitleStr('Act', userPrompt),
     );
     const runner = session.getRunner();
 
