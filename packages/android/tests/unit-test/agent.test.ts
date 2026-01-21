@@ -107,7 +107,8 @@ describe('AndroidAgent', () => {
 
       await agent.launch(uri);
 
-      expect(launchSpy).toHaveBeenCalledWith(uri);
+      // agent.launch(uri) converts string to { uri } object before calling device action
+      expect(launchSpy).toHaveBeenCalledWith({ uri });
     });
   });
 
