@@ -865,7 +865,7 @@ export class GroupedActionDump implements IGroupedActionDump {
    * @returns HTML string containing the report data
    */
   async toHTML(): Promise<string> {
-    // Collect all screenshots and their data
+    // Collect all screenshots and their data ONCE
     const screenshots = this.collectAllScreenshots();
     const imageDataMap = new Map<string, string>();
 
@@ -875,12 +875,11 @@ export class GroupedActionDump implements IGroupedActionDump {
       imageDataMap.set(screenshot.id, data);
     }
 
-    // Serialize executions with inline base64 screenshots
+    // Serialize executions with ID references (not inline)
+    // This avoids redundant getData() calls since we already loaded all data above
     const serializedExecutions: any[] = [];
     for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({
-        inlineScreenshots: true,
-      });
+      const serialized = await execution.toSerializableFormat();
       serializedExecutions.push(serialized);
     }
 
