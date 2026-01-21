@@ -1621,24 +1621,16 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z.preprocess(
-  (val) => (typeof val === 'string' ? { command: val } : val),
-  z.object({
-    command: z.string().describe('ADB shell command to execute'),
-  }),
-);
+const runAdbShellParamSchema = z.object({
+  command: z.string().describe('ADB shell command to execute'),
+});
 
-const launchParamSchema = z.preprocess(
-  (val) => (typeof val === 'string' ? { uri: val } : val),
-  z.object({
-    uri: z.string().describe('App package name or URL or app name to launch'),
-  }),
-);
+const launchParamSchema = z.object({
+  uri: z.string().describe('App package name or URL or app name to launch'),
+});
 
-// Explicitly define param types as string for public API
-// z.preprocess handles runtime conversion to object internally
-type RunAdbShellParam = string;
-type LaunchParam = string;
+type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
+type LaunchParam = z.infer<typeof launchParamSchema>;
 
 export type DeviceActionRunAdbShell = DeviceAction<RunAdbShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
@@ -1660,9 +1652,7 @@ const createPlatformActions = (
       paramSchema: runAdbShellParamSchema,
       call: async (param) => {
         const adb = await device.getAdb();
-        // param is converted to object by z.preprocess at runtime
-        const command = (param as any).command as string;
-        return await adb.shell(command);
+        return await adb.shell(param.command);
       },
     }),
     Launch: defineAction({
@@ -1671,9 +1661,7 @@ const createPlatformActions = (
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
       call: async (param) => {
-        // param is converted to object by z.preprocess at runtime
-        const uri = (param as any).uri as string;
-        await device.launch(uri);
+        await device.launch(param.uri);
       },
     }),
     AndroidBackButton: defineAction({
