@@ -42,6 +42,7 @@ import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
 import {
+  getReportTpl,
   getVersion,
   groupedActionDumpFileExt,
   processCacheConfig,
@@ -54,10 +55,11 @@ import {
   parseYamlScript,
 } from '../yaml/index';
 
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import type { TaskRunner } from '@/task-runner';
+import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -551,10 +553,7 @@ export class Agent<
 
     if (useDirectoryReport) {
       // Use directory-based report format with separate PNG files
-      const { getMidsceneRunSubDir } = await import('@midscene/shared/common');
-      const path = await import('node:path');
-
-      const outputDir = path.join(
+      const outputDir = join(
         getMidsceneRunSubDir('report'),
         this.reportFileName!,
       );
@@ -568,29 +567,22 @@ export class Agent<
           '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
         );
         console.log(
-          `[Midscene] Example: npx serve ${path.dirname(this.reportFile)}`,
+          `[Midscene] Example: npx serve ${dirname(this.reportFile)}`,
         );
       }
     } else {
       // Use traditional single HTML file with embedded base64 images
       if (generateReport) {
         // Generate HTML with inline screenshots using toHTML()
-        const { getMidsceneRunSubDir } = await import(
-          '@midscene/shared/common'
-        );
-        const { getReportTpl } = await import('../utils');
-        const path = await import('node:path');
-        const fs = await import('node:fs');
-
         const htmlScripts = await this.dump.toHTML();
         const htmlContent = `${getReportTpl()}\n${htmlScripts}`;
 
-        const reportPath = path.join(
+        const reportPath = join(
           getMidsceneRunSubDir('report'),
           `${this.reportFileName}.html`,
         );
 
-        fs.writeFileSync(reportPath, htmlContent);
+        writeFileSync(reportPath, htmlContent);
         this.reportFile = reportPath;
 
         debug(
