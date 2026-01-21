@@ -90,7 +90,7 @@ class MidsceneReporter implements Reporter {
 
     // Parse the dump string (which already contains inline screenshots)
     // and generate dump script tag
-    let dumpScript = `<script type="midscene_web_dump" type="application/json">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
+    let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
 
     // Add attributes to the dump script if this is merged report
     if (this.mode === 'merged' && testData.attributes) {

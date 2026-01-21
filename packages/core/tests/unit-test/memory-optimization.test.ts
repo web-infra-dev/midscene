@@ -21,7 +21,7 @@ describe('Memory optimization with StorageProvider', () => {
   describe('ScreenshotItem with StorageProvider', () => {
     it('should store only IDs in memory, not full base64 data', async () => {
       const storage = new MemoryStorage();
-      const largeBase64 = 'data:image/png;base64,' + 'A'.repeat(500000); // ~500KB
+      const largeBase64 = `data:image/png;base64,${'A'.repeat(500000)}`; // ~500KB
 
       const screenshot = await ScreenshotItem.create(largeBase64, storage);
 

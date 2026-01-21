@@ -17,7 +17,9 @@ const require = createRequire(import.meta.url);
 
 // Mock core utilities - getReportTpl returns a template string
 vi.mock('@midscene/core/utils', () => ({
-  getReportTpl: vi.fn(() => '<html><body><!-- reports will be appended here --></body></html>'),
+  getReportTpl: vi.fn(
+    () => '<html><body><!-- reports will be appended here --></body></html>',
+  ),
 }));
 
 describe('MidsceneReporter', () => {

@@ -105,12 +105,41 @@ export const Blackboard = (props: {
   const [screenshotBase64, setScreenshotBase64] = useState<string>('');
 
   useEffect(() => {
-    const screenshotData = screenshot as unknown as
-      | { base64: string }
-      | undefined;
-    if (screenshotData?.base64) {
-      setScreenshotBase64(screenshotData.base64);
-    }
+    // Handle different screenshot formats:
+    // 1. ScreenshotItem instance (runtime) - need to call getData()
+    // 2. { base64: "..." } (serialized inline format)
+    // 3. undefined/null
+
+    const loadScreenshot = async () => {
+      if (!screenshot) {
+        return;
+      }
+
+      // Check if it's a ScreenshotItem instance with getData method
+      if (
+        typeof screenshot === 'object' &&
+        'getData' in screenshot &&
+        typeof screenshot.getData === 'function'
+      ) {
+        try {
+          const data = await screenshot.getData();
+          setScreenshotBase64(data);
+        } catch (error) {
+          console.error('Failed to load screenshot data:', error);
+        }
+        return;
+      }
+
+      // Check if it's serialized inline format { base64: "..." }
+      const screenshotData = screenshot as unknown as
+        | { base64: string }
+        | undefined;
+      if (screenshotData?.base64) {
+        setScreenshotBase64(screenshotData.base64);
+      }
+    };
+
+    loadScreenshot();
   }, [screenshot]);
 
   const screenWidth = size.width;

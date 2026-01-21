@@ -11,6 +11,7 @@ import type {
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
 import { ScreenshotItem } from './screenshot-item';
+import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -407,19 +408,46 @@ function replacerForDumpSerialization(_key: string, value: any): any {
  * Reviver function for JSON deserialization that restores ScreenshotItem
  * Automatically converts screenshot fields (in uiContext and recorder) back to ScreenshotItem
  *
- * Note: This reviver creates ScreenshotItem using MemoryStorage by default.
- * For file-based storage, use GroupedActionDump.fromJSONWithImages() instead.
+ * IMPORTANT LIMITATION:
+ * - This reviver creates ScreenshotItem instances with empty MemoryStorage
+ * - The actual screenshot data is NOT restored and will be missing
+ * - Calling getData() on restored screenshots will fail with "Data not found" error
+ *
+ * RECOMMENDED APPROACH:
+ * - Use serializeWithInlineScreenshots() for serialization (includes base64 data)
+ * - For { base64: "..." } format, screenshots will have data available
+ * - For { $screenshot: "id" } format (from serialize()), data cannot be recovered
+ *
+ * @param key - JSON key being processed
+ * @param value - JSON value being processed
+ * @returns Restored value (ScreenshotItem for screenshot fields, original value otherwise)
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
-  // Restore screenshot fields from new format { $screenshot: "id" }
-  if (key === 'screenshot' && ScreenshotItem.isSerialized(value)) {
-    // Use MemoryStorage as default provider for deserialization
-    // The actual data will be loaded later via storageProvider
-    // Note: Import here to avoid circular dependency issues
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { MemoryStorage } = require('./storage');
-    return ScreenshotItem.restore(value.$screenshot, new MemoryStorage());
+  // Only process screenshot fields
+  if (key !== 'screenshot' || typeof value !== 'object' || value === null) {
+    return value;
   }
+
+  // Note: Import here to avoid circular dependency issues
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { MemoryStorage } = require('./storage');
+
+  // Handle serialized format: { $screenshot: "id" }
+  if (ScreenshotItem.isSerialized(value)) {
+    // WARNING: Creates ScreenshotItem with empty storage - data is NOT available
+    // This is a limitation of the ID-only serialization format
+    const storage = new MemoryStorage();
+    return ScreenshotItem.restore(value.$screenshot, storage);
+  }
+
+  // Handle inline base64 format: { base64: "..." }
+  // This format contains actual data, so screenshot will work correctly
+  if ('base64' in value && typeof value.base64 === 'string') {
+    // For inline data, we need async creation, but reviver must be sync
+    // Leave as plain object - will be handled by consumer code
+    return value;
+  }
+
   return value;
 }
 
@@ -733,9 +761,9 @@ export class GroupedActionDump implements IGroupedActionDump {
   executions: ExecutionDump[];
 
   // Storage provider for screenshots (used in directory-based reports)
-  private _storageProvider?: any; // Import StorageProvider type dynamically to avoid circular deps
+  private _storageProvider?: StorageProvider;
 
-  constructor(data: IGroupedActionDump, storageProvider?: any) {
+  constructor(data: IGroupedActionDump, storageProvider?: StorageProvider) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -746,7 +774,7 @@ export class GroupedActionDump implements IGroupedActionDump {
     this._storageProvider = storageProvider;
   }
 
-  get storageProvider(): any {
+  get storageProvider(): StorageProvider | undefined {
     return this._storageProvider;
   }
 
@@ -1084,7 +1112,7 @@ export interface AgentOpt {
    * });
    * ```
    */
-  storageProvider?: any; // Use `any` to avoid circular dependency with storage module
+  storageProvider?: StorageProvider;
 
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;

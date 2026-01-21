@@ -46,6 +46,10 @@ export class ScreenshotItem {
   /**
    * Migrate data to a different storage provider.
    *
+   * **IMPORTANT**: This method returns a NEW ScreenshotItem instance. The original
+   * instance becomes invalid after successful migration, as its data is deleted from
+   * the old provider. Always use the returned instance and discard the old one.
+   *
    * Migration process:
    * 1. Copy data to new provider
    * 2. Delete from old provider
@@ -54,7 +58,16 @@ export class ScreenshotItem {
    * If deletion from old provider fails, attempts rollback by removing from new provider.
    * Note: If rollback also fails, data may exist in both providers (caller should handle cleanup).
    *
+   * @param newProvider - The target storage provider to migrate to
+   * @returns A new ScreenshotItem instance pointing to the new provider
    * @throws Error if migration fails (old provider deletion failed)
+   *
+   * @example
+   * ```typescript
+   * const oldItem = await ScreenshotItem.create(data, memoryStorage);
+   * const newItem = await oldItem.migrateTo(fileStorage);
+   * // IMPORTANT: Use newItem, not oldItem from this point forward
+   * ```
    */
   async migrateTo(newProvider: StorageProvider): Promise<ScreenshotItem> {
     const data = await this.getData();

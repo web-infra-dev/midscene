@@ -550,7 +550,6 @@ export const generateAnimationScripts = async (
         imageWidth: task.uiContext?.size?.width || imageWidth,
         imageHeight: task.uiContext?.size?.height || imageHeight,
       });
-      continue;
     }
   }
 

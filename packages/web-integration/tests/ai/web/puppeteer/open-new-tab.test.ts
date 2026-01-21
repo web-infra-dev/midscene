@@ -25,6 +25,8 @@ describe('agent with forceSameTabNavigation', () => {
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
+      // Use directory-based report format: screenshots saved as separate PNG files
+      // instead of being inlined as base64. Report must be served via HTTP server.
       useDirectoryReport: true,
     });
     const inputXpath = '//*[@id="sb_form_q"]';
