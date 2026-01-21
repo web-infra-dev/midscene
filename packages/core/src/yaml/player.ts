@@ -99,24 +99,6 @@ const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
       return false;
   }
 };
-
-/**
- * Platform-specific actions that accept string params in agent methods
- * but have object schemas in device layer
- */
-const STRING_PARAM_AGENT_METHODS: Record<
-  string,
-  { agentMethod: string; names: string[] }
-> = {
-  launch: {
-    agentMethod: 'launch',
-    names: ['Launch', 'launch'],
-  },
-  runAdbShell: {
-    agentMethod: 'runAdbShell',
-    names: ['RunAdbShell', 'runAdbShell'],
-  },
-};
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
@@ -541,15 +523,6 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           }
         }
 
-        // Check if this is a platform-specific action that needs direct agent method call
-        const stringParamAgentMethod = Object.values(
-          STRING_PARAM_AGENT_METHODS,
-        ).find((config) =>
-          config.names.includes(
-            matchedAction.name || matchedAction.interfaceAlias || '',
-          ),
-        );
-
         if (stringParamToCall !== undefined) {
           debug(
             `matchedAction: ${matchedAction.name}`,
@@ -567,19 +540,34 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           }
         } else if (
           typeof actionParamForMatchedAction === 'string' &&
-          stringParamAgentMethod &&
-          typeof (agent as any)[stringParamAgentMethod.agentMethod] ===
-            'function'
+          (matchedAction.name === 'Launch' ||
+            matchedAction.interfaceAlias === 'launch') &&
+          typeof (agent as any).launch === 'function'
         ) {
-          // Call agent method directly for platform-specific actions
-          debug(
-            `Calling agent.${stringParamAgentMethod.agentMethod} with string param: ${actionParamForMatchedAction}`,
+          // Call agent.launch directly for Launch action with string param
+          debug(`Calling agent.launch with: ${actionParamForMatchedAction}`);
+          const result = await (agent as any).launch(
+            actionParamForMatchedAction,
           );
-          const result = await (agent as any)[
-            stringParamAgentMethod.agentMethod
-          ](actionParamForMatchedAction);
 
-          // Store result if there's a name property in flowItem
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+        } else if (
+          typeof actionParamForMatchedAction === 'string' &&
+          (matchedAction.name === 'RunAdbShell' ||
+            matchedAction.interfaceAlias === 'runAdbShell') &&
+          typeof (agent as any).runAdbShell === 'function'
+        ) {
+          // Call agent.runAdbShell directly for RunAdbShell action with string param
+          debug(
+            `Calling agent.runAdbShell with: ${actionParamForMatchedAction}`,
+          );
+          const result = await (agent as any).runAdbShell(
+            actionParamForMatchedAction,
+          );
+
           const resultName = (flowItem as any).name;
           if (result !== undefined) {
             this.setResult(resultName, result);
