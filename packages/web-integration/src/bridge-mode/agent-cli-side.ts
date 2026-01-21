@@ -110,6 +110,15 @@ export const getBridgePageInCliSide = (options?: {
         };
       }
 
+      // Special handling for methods that support timeout in options
+      if (prop === 'connectNewTabWithUrl' || prop === 'connectCurrentTab') {
+        return async (url: string, options?: BridgeConnectTabOptions) => {
+          const timeout = options?.timeout;
+          const response = await server.call(prop, [url, options], timeout);
+          return response;
+        };
+      }
+
       return bridgeCaller(prop);
     },
   }) as ChromeExtensionPageCliSide;

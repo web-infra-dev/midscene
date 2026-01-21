@@ -42,6 +42,11 @@ export interface BridgeConnectTabOptions {
    * @default true
    */
   forceSameTabNavigation?: boolean;
+  /**
+   * Custom timeout for this specific operation in milliseconds.
+   * @default 30000 (30 seconds)
+   */
+  timeout?: number;
 }
 
 export enum MouseEvent {
