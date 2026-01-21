@@ -34,6 +34,9 @@ class MidsceneReporter implements Reporter {
   // Track whether the merged report file has been initialized
   private mergedReportInitialized = false;
 
+  // Write queue to serialize file writes and prevent concurrent write conflicts
+  private writeQueue: Promise<void> = Promise.resolve();
+
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
     this.mode = MidsceneReporter.getMode(options.type ?? 'merged');
@@ -75,51 +78,60 @@ class MidsceneReporter implements Reporter {
 
   private async updateReport(testData: ReportDumpWithAttributes) {
     if (!testData || !this.mode) return;
-    const fileName = this.getReportFilename(
-      testData.attributes?.playwright_test_title,
-    );
 
-    const reportPath = join(getMidsceneRunSubDir('report'), `${fileName}.html`);
-
-    // Get report template
-    const tpl = getReportTpl();
-    if (!tpl) {
-      console.warn('reportTpl is not set, will not write report');
-      return;
-    }
-
-    // Parse the dump string (which already contains inline screenshots)
-    // and generate dump script tag
-    let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
-
-    // Add attributes to the dump script if this is merged report
-    if (this.mode === 'merged' && testData.attributes) {
-      const attributesArr = Object.keys(testData.attributes).map((key) => {
-        return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
-      });
-      // Add attributes to the script tag
-      dumpScript = dumpScript.replace(
-        '<script type="midscene_web_dump"',
-        `<script type="midscene_web_dump" ${attributesArr.join(' ')}`,
+    // Queue the write operation to prevent concurrent writes to the same file
+    this.writeQueue = this.writeQueue.then(async () => {
+      const fileName = this.getReportFilename(
+        testData.attributes?.playwright_test_title,
       );
-    }
 
-    // Write or append to file
-    if (this.mode === 'merged') {
-      // For merged report, write template + dump on first write, then only append dumps
-      if (!this.mergedReportInitialized) {
-        writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
-        this.mergedReportInitialized = true;
-      } else {
-        // Append only the dump scripts for subsequent tests
-        writeFileSync(reportPath, dumpScript, { flag: 'a' });
+      const reportPath = join(
+        getMidsceneRunSubDir('report'),
+        `${fileName}.html`,
+      );
+
+      // Get report template
+      const tpl = getReportTpl();
+      if (!tpl) {
+        console.warn('reportTpl is not set, will not write report');
+        return;
       }
-    } else {
-      // For separate reports, write each test to its own file with template
-      writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
-    }
 
-    printReportMsg(reportPath);
+      // Parse the dump string (which already contains inline screenshots)
+      // and generate dump script tag
+      let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
+
+      // Add attributes to the dump script if this is merged report
+      if (this.mode === 'merged' && testData.attributes) {
+        const attributesArr = Object.keys(testData.attributes).map((key) => {
+          return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
+        });
+        // Add attributes to the script tag
+        dumpScript = dumpScript.replace(
+          '<script type="midscene_web_dump"',
+          `<script type="midscene_web_dump" ${attributesArr.join(' ')}`,
+        );
+      }
+
+      // Write or append to file
+      if (this.mode === 'merged') {
+        // For merged report, write template + dump on first write, then only append dumps
+        if (!this.mergedReportInitialized) {
+          writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+          this.mergedReportInitialized = true;
+        } else {
+          // Append only the dump scripts for subsequent tests
+          writeFileSync(reportPath, dumpScript, { flag: 'a' });
+        }
+      } else {
+        // For separate reports, write each test to its own file with template
+        writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
+      }
+
+      printReportMsg(reportPath);
+    });
+
+    await this.writeQueue;
   }
 
   async onBegin(config: FullConfig, suite: Suite) {}
