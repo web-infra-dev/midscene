@@ -1621,13 +1621,19 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z.object({
-  command: z.string().describe('ADB shell command to execute'),
-});
+const runAdbShellParamSchema = z.preprocess(
+  (val) => (typeof val === 'string' ? { command: val } : val),
+  z.object({
+    command: z.string().describe('ADB shell command to execute'),
+  }),
+);
 
-const launchParamSchema = z.object({
-  uri: z.string().describe('App package name or URL or app name to launch'),
-});
+const launchParamSchema = z.preprocess(
+  (val) => (typeof val === 'string' ? { uri: val } : val),
+  z.object({
+    uri: z.string().describe('App package name or URL or app name to launch'),
+  }),
+);
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
