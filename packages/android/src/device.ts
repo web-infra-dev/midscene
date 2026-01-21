@@ -1219,13 +1219,32 @@ ${Object.keys(size)
     }
   }
 
+  /**
+   * Check if text contains characters that may cause issues with ADB inputText
+   * This includes:
+   * - Non-ASCII characters (Unicode characters like ö, é, ñ, Chinese, Japanese, etc.)
+   * - Format specifiers that may be interpreted by shell (%, $)
+   * - Special shell characters that need escaping
+   */
+  private shouldUseYadbForText(text: string): boolean {
+    // Check for any non-ASCII characters (code point > 127)
+    // This covers Latin Unicode characters (ö, é, ñ), Chinese, Japanese, etc.
+    const hasNonAscii = /[^\x00-\x7F]/.test(text);
+
+    // Check for format specifiers that may cause issues in shell
+    // % can be interpreted as format specifier in some contexts
+    const hasFormatSpecifiers = /%[a-zA-Z]/.test(text);
+
+    return hasNonAscii || hasFormatSpecifiers;
+  }
+
   async keyboardType(
     text: string,
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
-    const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
+    const shouldUseYadb = this.shouldUseYadbForText(text);
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
@@ -1235,7 +1254,7 @@ ${Object.keys(size)
 
     if (
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
-      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && isChinese)
+      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && shouldUseYadb)
     ) {
       await this.execYadb(text);
     } else {

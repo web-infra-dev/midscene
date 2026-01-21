@@ -47,6 +47,8 @@ const device = new AndroidDevice(deviceId, {
 - `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/YADB) 进行文本输入，默认 `'yadb-for-non-ascii'`。
+  - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
+  - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
 - `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放，默认 `1 / devicePixelRatio`。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。

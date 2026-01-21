@@ -47,6 +47,8 @@ const device = new AndroidDevice(deviceId, {
 - `androidAdbPath?: string` &mdash; Custom path to the adb executable.
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
+  - `'yadb-for-non-ascii'` (default) &mdash; Uses yadb for Unicode characters (including Latin Unicode like ö, é, ñ), Chinese, Japanese, and format specifiers (like %s, %d). Pure ASCII text uses the faster native `adb input text`.
+  - `'always-yadb'` &mdash; Always uses yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII text.
 - `displayId?: number` &mdash; Target a specific virtual display if the device mirrors multiple displays.
 - `screenshotResizeScale?: number` &mdash; Downscale screenshots before sending them to the model. Defaults to `1 / devicePixelRatio`.
 - `alwaysRefreshScreenInfo?: boolean` &mdash; Re-query rotation and screen size every step. Default `false`.
