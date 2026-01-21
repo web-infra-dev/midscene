@@ -1621,13 +1621,13 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z
-  .string()
-  .describe('ADB shell command to execute');
+const runAdbShellParamSchema = z.object({
+  command: z.string().describe('ADB shell command to execute'),
+});
 
-const launchParamSchema = z
-  .string()
-  .describe('App package name or URL or app name to launch,');
+const launchParamSchema = z.object({
+  uri: z.string().describe('App package name or URL or app name to launch'),
+});
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
@@ -1652,7 +1652,7 @@ const createPlatformActions = (
       paramSchema: runAdbShellParamSchema,
       call: async (param) => {
         const adb = await device.getAdb();
-        return await adb.shell(param);
+        return await adb.shell(param.command);
       },
     }),
     Launch: defineAction({
@@ -1661,7 +1661,7 @@ const createPlatformActions = (
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
       call: async (param) => {
-        await device.launch(param);
+        await device.launch(param.uri);
       },
     }),
     AndroidBackButton: defineAction({
