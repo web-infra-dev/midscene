@@ -1652,9 +1652,7 @@ const createPlatformActions = (
       paramSchema: runAdbShellParamSchema,
       call: async (param) => {
         if (!param.command || param.command.trim() === '') {
-          throw new Error(
-            'RunAdbShell requires a non-empty command parameter',
-          );
+          throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
         return await adb.shell(param.command);
