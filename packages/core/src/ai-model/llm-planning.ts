@@ -207,15 +207,8 @@ export async function plan(
     console.warn(
       'Planning response included both an action and complete-task; ignoring complete-task output.',
     );
-    delete planFromAI.finalizeMessage;
-    delete planFromAI.finalizeSuccess;
-  }
-
-  if (planFromAI.action?.type?.toLowerCase?.() === 'complete-task') {
-    console.warn(
-      'Planning response used action-type=complete-task; ignoring action-type and relying on complete-task tag.',
-    );
-    delete planFromAI.action;
+    planFromAI.finalizeMessage = undefined;
+    planFromAI.finalizeSuccess = undefined;
   }
 
   const actions = planFromAI.action ? [planFromAI.action] : [];
