@@ -43,7 +43,7 @@ export interface BridgeConnectTabOptions {
    */
   forceSameTabNavigation?: boolean;
   /**
-   * Custom timeout for this specific operation in milliseconds.
+   * Custom timeout for connecting to the tab in milliseconds.
    * @default 30000 (30 seconds)
    */
   timeout?: number;
