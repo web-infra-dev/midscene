@@ -237,6 +237,8 @@ Please tell what the next one action is (or null if no action should be done) to
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 - Assertions are also important steps. When getting the assertion instruction, a solid conclusion is required. You should explicitly state your conclusion by calling the "Print_Assert_Result" action.
 - Return the "complete-task" tag when the task is completed and no more actions should be done.
+- If you output an action (action-type/action-param-json), do NOT output complete-task.
+- The action-type must be one of the Supported actions below. "complete-task" is NOT a valid action-type.
 
 ## Supporting actions
 ${actionList}
@@ -250,9 +252,9 @@ ${shouldIncludeThought ? "<thought>Think through the following: What is the user
 <note>CRITICAL: If any information from the current screenshot will be needed in follow-up actions, you MUST record it here completely. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information for later use. Examples: extracted data, element states, content that needs to be referenced. Leave empty if no follow-up information is needed.</note>
 <log>a brief preamble to the user</log>
 <error>error messages (optional)</error>
-<action-type>the type of the action, or null if no action</action-type>
+<action-type>the type of the action (must be from Supported actions), or null if no action</action-type>
 <action-param-json>JSON object containing the action parameters</action-param-json>
-<complete-task success="true|false">Optional: Use this tag to finalize the task when all instructions have been completed. Set success="true" if the task succeeded, or success="false" if it failed. When success="true", the message should contain the conclusion, data, or return value that the user needs. When success="false", the message MUST explain why the task failed and what went wrong. When this tag is present, no action-type or action-param-json is needed.</complete-task>
+<complete-task success="true|false">Optional: Use this tag to finalize the task when all instructions have been completed. Set success="true" if the task succeeded, or success="false" if it failed. When success="true", the message should contain the conclusion, data, or return value that the user needs. When success="false", the message MUST explain why the task failed and what went wrong. When this tag is present, do not include action-type or action-param-json.</complete-task>
 
 ## Example 
 

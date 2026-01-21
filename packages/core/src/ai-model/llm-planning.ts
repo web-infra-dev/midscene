@@ -203,6 +203,21 @@ export async function plan(
   // Parse XML response to JSON object
   const planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
+  if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+    console.warn(
+      'Planning response included both an action and complete-task; ignoring complete-task output.',
+    );
+    delete planFromAI.finalizeMessage;
+    delete planFromAI.finalizeSuccess;
+  }
+
+  if (planFromAI.action?.type?.toLowerCase?.() === 'complete-task') {
+    console.warn(
+      'Planning response used action-type=complete-task; ignoring action-type and relying on complete-task tag.',
+    );
+    delete planFromAI.action;
+  }
+
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
 
