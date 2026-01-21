@@ -79,6 +79,8 @@ export class TaskExecutor {
 
   replanningCycleLimit?: number;
 
+  waitAfterAction?: number;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -91,6 +93,7 @@ export class TaskExecutor {
       taskCache?: TaskCache;
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
+      waitAfterAction?: number;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
     },
@@ -100,6 +103,7 @@ export class TaskExecutor {
     this.taskCache = opts.taskCache;
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
+    this.waitAfterAction = opts.waitAfterAction;
     this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
     this.providedActionSpace = opts.actionSpace;
@@ -108,6 +112,7 @@ export class TaskExecutor {
       service,
       taskCache: opts.taskCache,
       actionSpace: this.getActionSpace(),
+      waitAfterAction: opts.waitAfterAction,
     });
   }
 

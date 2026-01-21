@@ -781,6 +781,13 @@ export interface AgentOpt {
   replanningCycleLimit?: number;
 
   /**
+   * Wait time in milliseconds after each action execution.
+   * This allows the UI to settle and stabilize before the next action.
+   * Defaults to 300ms when not provided.
+   */
+  waitAfterAction?: number;
+
+  /**
    * Custom OpenAI client factory function
    *
    * If provided, this function will be called to create OpenAI client instances
