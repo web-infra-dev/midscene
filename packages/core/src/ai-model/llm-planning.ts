@@ -203,6 +203,14 @@ export async function plan(
   // Parse XML response to JSON object
   const planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
+  if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+    console.warn(
+      'Planning response included both an action and complete-task; ignoring complete-task output.',
+    );
+    delete planFromAI.finalizeMessage;
+    delete planFromAI.finalizeSuccess;
+  }
+
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
 
