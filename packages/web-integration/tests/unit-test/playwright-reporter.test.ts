@@ -83,9 +83,6 @@ describe('MidsceneReporter', () => {
       // Manually clear mode to simulate the old behavior where mode could be undefined
       reporter.mode = undefined;
 
-      // Spy on the private updateReport method
-      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
-
       const mockTest: TestCase = {
         id: 'test-id-0',
         title: 'Should Not Report',
