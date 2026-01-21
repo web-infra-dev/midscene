@@ -148,18 +148,4 @@ export class WDAManager extends BaseServiceManager {
 
     throw new Error(`WebDriverAgent did not start within ${timeout}ms`);
   }
-
-  private async killWDAProcesses(): Promise<void> {
-    try {
-      // Kill xcodebuild processes
-      await execAsync('pkill -f "xcodebuild.*WebDriverAgent"').catch(() => {});
-
-      // Kill WebDriverAgentRunner processes
-      await execAsync('pkill -f "WebDriverAgentRunner"').catch(() => {});
-
-      debugWDA('Killed WDA processes');
-    } catch (error) {
-      // Ignore errors, processes might not exist
-    }
-  }
 }

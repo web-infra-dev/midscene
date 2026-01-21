@@ -10,7 +10,6 @@ import {
   IOSDevice,
   type IOSDeviceOpt,
 } from './device';
-import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
 
@@ -94,13 +93,7 @@ export class IOSAgent extends PageAgent<IOSDevice> {
 export async function agentFromWebDriverAgent(
   opts?: IOSAgentOpt & IOSDeviceOpt,
 ) {
-  debugAgent('Creating iOS agent with WebDriverAgent auto-detection');
-
-  // Check iOS environment first
-  const envCheck = await checkIOSEnvironment();
-  if (!envCheck.available) {
-    throw new Error(`iOS environment not available: ${envCheck.error}`);
-  }
+  debugAgent('Creating iOS agent with WebDriverAgent');
 
   // Pass all device options to IOSDevice constructor, ensuring we pass an empty object if opts is undefined
   const device = new IOSDevice(opts || {});
