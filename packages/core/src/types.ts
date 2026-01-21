@@ -333,7 +333,7 @@ export interface ExecutionTaskApply<
   executor: (
     param: TaskParam,
     context: ExecutorContext,
-  ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+  ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
     | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
