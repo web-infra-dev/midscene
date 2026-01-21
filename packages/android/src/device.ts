@@ -1227,9 +1227,10 @@ ${Object.keys(size)
    * - Special shell characters that need escaping
    */
   private shouldUseYadbForText(text: string): boolean {
-    // Check for any non-ASCII characters (code point > 127)
+    // Check for any non-ASCII characters (code point >= 128)
     // This covers Latin Unicode characters (ö, é, ñ), Chinese, Japanese, etc.
-    const hasNonAscii = /[^\x00-\x7F]/.test(text);
+    // Using positive match to avoid control character in regex
+    const hasNonAscii = /[\x80-\uFFFF]/.test(text);
 
     // Check for format specifiers that may cause issues in shell
     // % can be interpreted as format specifier in some contexts
