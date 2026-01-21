@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Context Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 4px;
+    }
+    .logged-in {
+      color: green;
+      font-weight: bold;
+    }
+    .logged-out {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Share Browser Context Test Page</h1>
+
+  <div class="section">
+    <h2>Login Status</h2>
+    <div id="login-status" class="status">
+      <p>Status: <span id="status-text" class="logged-out">Not logged in</span></p>
+      <p>Cookie: <span id="cookie-value">None</span></p>
+      <p>LocalStorage: <span id="localstorage-value">None</span></p>
+      <p>SessionStorage: <span id="sessionstorage-value">None</span></p>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Actions</h2>
+    <button id="login-btn">Login (Set All Storage)</button>
+    <button id="check-btn">Check Login Status</button>
+    <button id="logout-btn">Logout (Clear All Storage)</button>
+  </div>
+
+  <script>
+    // Login function - sets cookie, localStorage, and sessionStorage
+    function login() {
+      // Set cookie
+      document.cookie = 'authToken=test-token-12345; path=/; max-age=3600';
+
+      // Set localStorage
+      localStorage.setItem('userId', 'user-123');
+      localStorage.setItem('userName', 'Test User');
+      localStorage.setItem('loginTime', new Date().toISOString());
+
+      // Set sessionStorage
+      sessionStorage.setItem('sessionId', 'session-xyz-789');
+      sessionStorage.setItem('sessionStart', new Date().toISOString());
+
+      checkLoginStatus();
+      alert('Login successful! All storage mechanisms have been set.');
+    }
+
+    // Check login status
+    function checkLoginStatus() {
+      // Check cookie
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+      const hasAuthToken = !!cookies.authToken;
+
+      // Check localStorage
+      const userId = localStorage.getItem('userId');
+      const userName = localStorage.getItem('userName');
+      const loginTime = localStorage.getItem('loginTime');
+
+      // Check sessionStorage
+      const sessionId = sessionStorage.getItem('sessionId');
+      const sessionStart = sessionStorage.getItem('sessionStart');
+
+      // Determine overall login status
+      const isLoggedIn = hasAuthToken && userId && sessionId;
+
+      // Update UI
+      const statusText = document.getElementById('status-text');
+      const cookieValue = document.getElementById('cookie-value');
+      const localstorageValue = document.getElementById('localstorage-value');
+      const sessionstorageValue = document.getElementById('sessionstorage-value');
+
+      if (isLoggedIn) {
+        statusText.textContent = 'Logged in';
+        statusText.className = 'logged-in';
+      } else {
+        statusText.textContent = 'Not logged in';
+        statusText.className = 'logged-out';
+      }
+
+      cookieValue.textContent = hasAuthToken ? `authToken=${cookies.authToken}` : 'None';
+      localstorageValue.textContent = userId ? `userId=${userId}, userName=${userName}` : 'None';
+      sessionstorageValue.textContent = sessionId ? `sessionId=${sessionId}` : 'None';
+
+      // Log to console for test verification
+      console.log('=== Login Status Check ===');
+      console.log('Cookie authToken:', cookies.authToken || 'MISSING');
+      console.log('LocalStorage userId:', userId || 'MISSING');
+      console.log('LocalStorage userName:', userName || 'MISSING');
+      console.log('SessionStorage sessionId:', sessionId || 'MISSING');
+      console.log('Overall Status:', isLoggedIn ? 'LOGGED IN' : 'NOT LOGGED IN');
+      console.log('========================');
+
+      return isLoggedIn;
+    }
+
+    // Logout function
+    function logout() {
+      // Clear cookie
+      document.cookie = 'authToken=; path=/; max-age=0';
+
+      // Clear localStorage
+      localStorage.clear();
+
+      // Clear sessionStorage
+      sessionStorage.clear();
+
+      checkLoginStatus();
+      alert('Logged out! All storage has been cleared.');
+    }
+
+    // Event listeners
+    document.getElementById('login-btn').addEventListener('click', login);
+    document.getElementById('check-btn').addEventListener('click', checkLoginStatus);
+    document.getElementById('logout-btn').addEventListener('click', logout);
+
+    // Check status on page load
+    window.addEventListener('load', () => {
+      checkLoginStatus();
+    });
+  </script>
+</body>
+</html>

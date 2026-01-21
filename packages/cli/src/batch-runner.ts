@@ -14,7 +14,7 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { buildChromeArgs } from '@midscene/web/puppeteer-agent-launcher';
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
-import puppeteer, { type Browser } from 'puppeteer';
+import puppeteer, { type Browser, type Page } from 'puppeteer';
 import { createYamlPlayer } from './create-yaml-player';
 import {
   type MidsceneYamlFileContext,
@@ -51,6 +51,7 @@ interface BatchFileContext {
     headed?: boolean;
     keepWindow?: boolean;
     browser?: Browser;
+    page?: Page;
   };
 }
 
@@ -71,6 +72,7 @@ class BatchRunner {
     // Prepare file contexts
     const fileContextList: BatchFileContext[] = [];
     let browser: Browser | null = null;
+    let sharedPage: Page | null = null;
 
     try {
       // First, create all file contexts without a browser instance
@@ -102,9 +104,15 @@ class BatchRunner {
           args,
           acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
         });
-        // Assign the browser instance to all contexts
+
+        // Create a shared page instance that will be reused across all YAML files
+        // This ensures localStorage and sessionStorage are preserved between files
+        sharedPage = await browser.newPage();
+
+        // Assign the browser instance and shared page to all contexts
         for (const context of fileContextList) {
           context.options.browser = browser;
+          context.options.page = sharedPage;
         }
       }
 

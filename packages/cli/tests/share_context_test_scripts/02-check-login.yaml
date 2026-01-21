@@ -1,0 +1,41 @@
+# Second YAML file - Checks if login state is preserved
+web:
+  serve: ../server_root
+  url: /share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Check if login state is preserved
+    flow:
+      # Click check status button to refresh the display
+      - aiAction: click the "Check Login Status" button
+
+      # Wait a moment for status to update
+      - sleep: 500
+
+      # Log the storage state in this second file
+      - evaluateJavaScript: |
+          console.log('=== Second YAML File - After Navigation ===');
+          console.log('Cookies:', document.cookie);
+          console.log('LocalStorage:', JSON.stringify(localStorage));
+          console.log('SessionStorage:', JSON.stringify(sessionStorage));
+          const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          }, {});
+          return {
+            cookie_authToken: cookies.authToken || 'MISSING',
+            localStorage_userId: localStorage.getItem('userId') || 'MISSING',
+            localStorage_userName: localStorage.getItem('userName') || 'MISSING',
+            sessionStorage_sessionId: sessionStorage.getItem('sessionId') || 'MISSING',
+            summary: 'Cookie: ' + (cookies.authToken ? 'EXISTS' : 'MISSING') +
+                     ', LocalStorage: ' + (localStorage.getItem('userId') ? 'EXISTS' : 'MISSING') +
+                     ', SessionStorage: ' + (sessionStorage.getItem('sessionId') ? 'EXISTS' : 'MISSING')
+          };
+        name: second_file_storage_state
+
+      # After the fix, this should PASS because the page is reused
+      # All storage types (cookie, localStorage, sessionStorage) should be preserved
+      - aiAssert: the status shows "Logged in"
