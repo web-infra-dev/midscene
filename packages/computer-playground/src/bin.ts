@@ -1,4 +1,5 @@
 import { createServer } from 'node:net';
+import os from 'node:os';
 import path from 'node:path';
 import { ComputerDevice, agentFromComputer } from '@midscene/computer';
 import { PlaygroundServer } from '@midscene/playground';
@@ -24,7 +25,7 @@ async function findAvailablePort(startPort: number): Promise<number> {
     attempts++;
     if (attempts >= maxAttempts) {
       console.error(
-        `Unable to find available port after ${maxAttempts} attempts starting from ${startPort}`,
+        `❌ Unable to find available port after ${maxAttempts} attempts starting from ${startPort}`,
       );
       process.exit(1);
     }
@@ -40,10 +41,10 @@ const main = async () => {
     // List available displays
     const displays = await ComputerDevice.listDisplays();
     if (displays.length > 0) {
-      console.log('Available displays:');
+      console.log('🖥️  Available displays:');
       for (const display of displays) {
         console.log(
-          `  - ${display.name} (${display.id})${display.primary ? ' [Primary]' : ''}`,
+          `  ${display.primary ? '✅' : '  '} ${display.name} (${display.id})${display.primary ? ' [Primary]' : ''}`,
         );
       }
     }
@@ -66,7 +67,7 @@ const main = async () => {
       // Check if window controller is initialized
       if (!windowController) {
         console.warn(
-          'Window controller not initialized yet, skipping window control',
+          '⚠️  Window controller not initialized yet, skipping window control',
         );
         next();
         return;
@@ -83,9 +84,9 @@ const main = async () => {
           windowId,
           bounds: { windowState: 'minimized' },
         });
-        console.log('Window minimized via CDP, starting task execution...');
+        console.log('🔽 Window minimized, starting task execution...');
       } catch (error) {
-        console.warn('Failed to minimize window:', error);
+        console.warn('⚠️  Failed to minimize window:', error);
       }
 
       // Store original res.send to wrap it
@@ -100,10 +101,10 @@ const main = async () => {
           page.bringToFront(),
         ])
           .then(() => {
-            console.log('Window restored via CDP');
+            console.log('🔼 Window restored');
           })
           .catch((error) => {
-            console.warn('Failed to restore window:', error);
+            console.warn('⚠️  Failed to restore window:', error);
           });
 
         return originalSend(body);
@@ -112,29 +113,29 @@ const main = async () => {
       next();
     });
 
-    console.log('Starting server...');
+    console.log('🚀 Starting server...');
 
     // Find available port
     const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
 
     if (availablePort !== PLAYGROUND_SERVER_PORT) {
       console.log(
-        `Port ${PLAYGROUND_SERVER_PORT} is busy, using port ${availablePort} instead`,
+        `⚠️  Port ${PLAYGROUND_SERVER_PORT} is busy, using port ${availablePort} instead`,
       );
     }
 
     await playgroundServer.launch(availablePort);
 
     console.log('');
-    console.log('Midscene Computer Playground is ready!');
-    console.log(`Playground: http://localhost:${playgroundServer.port}`);
-    console.log(`Server ID: ${playgroundServer.id}`);
+    console.log('✨ Midscene Computer Playground is ready!');
+    console.log(`🎮 Playground: http://localhost:${playgroundServer.port}`);
+    console.log(`🔑 Server ID: ${playgroundServer.id}`);
     console.log('');
 
     // Open browser in app mode using Puppeteer
     const url = `http://localhost:${playgroundServer.port}`;
 
-    console.log('Launching browser in standalone window mode...');
+    console.log('🌐 Launching browser in standalone window mode...');
 
     // Get screen size and calculate window dimensions
     const device = new ComputerDevice();
@@ -147,12 +148,21 @@ const main = async () => {
     const windowHeight = Math.min(screenSize.height, maxWindowHeight);
 
     console.log(
-      `Screen size: ${screenSize.width}x${screenSize.height}, window size: ${windowWidth}x${windowHeight}`,
+      `📐 Screen size: ${screenSize.width}x${screenSize.height}, window size: ${windowWidth}x${windowHeight}`,
     );
+
+    // Use persistent user data directory to preserve localStorage
+    const userDataDir = path.join(
+      os.homedir(),
+      '.midscene',
+      'computer-playground',
+    );
+    console.log(`💾 User data directory: ${userDataDir}`);
 
     const browser = await puppeteer.launch({
       headless: false,
       defaultViewport: null,
+      userDataDir,
       args: [
         `--app=${url}`,
         `--window-size=${windowWidth},${windowHeight}`,
@@ -161,7 +171,7 @@ const main = async () => {
       ],
     });
 
-    console.log('Browser launched successfully.');
+    console.log('✅ Browser launched successfully');
 
     // Get page and create CDP session for window control
     const pages = await browser.pages();
@@ -170,20 +180,20 @@ const main = async () => {
     const windowInfo = await session.send('Browser.getWindowForTarget');
     const windowId = windowInfo.windowId;
 
-    console.log(`Window ID: ${windowId}`);
+    console.log(`🪟 Window ID: ${windowId}`);
 
     // Initialize window controller
     windowController = { session, page, windowId };
-    console.log('Window controller initialized');
+    console.log('✅ Window controller initialized');
 
     // Handle cleanup on process exit
     process.on('SIGINT', async () => {
-      console.log('\nShutting down...');
+      console.log('\n👋 Shutting down...');
       await browser.close();
       process.exit(0);
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };
