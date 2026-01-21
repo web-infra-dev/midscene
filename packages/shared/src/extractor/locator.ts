@@ -87,16 +87,35 @@ export const getElementXpath = (
   if (el === document.documentElement) return '/html';
   if (el === document.body) return '/html/body';
 
-  // if the element is any SVG element, find the nearest non-SVG ancestor
+  // if the element is any SVG element, handle based on tag type
   if (isSvgElement(el)) {
+    const tagName = el.nodeName.toLowerCase();
+
+    // For top-level <svg> tag, include it in the path to distinguish between multiple SVG icons
+    // This is important when there are multiple SVG elements under the same parent (e.g., td[34]/svg[1], td[34]/svg[2])
+    if (tagName === 'svg') {
+      // Include the <svg> tag with its index in the XPath
+      return buildCurrentElementXpath(el, isOrderSensitive, isLeafElement);
+    }
+
+    // For SVG child elements (path, circle, rect, etc.), skip to the nearest <svg> ancestor
+    // These internal elements are usually decorative and can change frequently
     let parent = el.parentNode;
     while (parent && parent.nodeType === Node.ELEMENT_NODE) {
-      if (!isSvgElement(parent)) {
-        return getElementXpath(parent, isOrderSensitive, isLeafElement);
+      const parentEl = parent as Element;
+      if (isSvgElement(parentEl)) {
+        const parentTag = parentEl.nodeName.toLowerCase();
+        if (parentTag === 'svg') {
+          // Found the <svg> container, return its path
+          return getElementXpath(parentEl, isOrderSensitive, isLeafElement);
+        }
+      } else {
+        // Found a non-SVG ancestor, return its path
+        return getElementXpath(parentEl, isOrderSensitive, isLeafElement);
       }
       parent = parent.parentNode;
     }
-    // fallback if no non-SVG parent found
+    // fallback if no suitable parent found
     return getElementXpath(el.parentNode!, isOrderSensitive, isLeafElement);
   }
 
