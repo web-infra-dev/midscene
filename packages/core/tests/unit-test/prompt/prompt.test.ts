@@ -114,22 +114,13 @@ describe('action space', () => {
     `);
   });
 
-  it('action with z.preprocess for backward compatibility', () => {
+  it('action with object param schema (Launch-like)', () => {
     const action = descriptionForAction(
       {
         name: 'Launch',
         description: 'Launch an app or URL',
         paramSchema: z.object({
-          uri: z.preprocess(
-            (val) => (typeof val === 'string' ? { uri: val } : val),
-            z.object({
-              uri: z.string().describe('The URI to launch'),
-            }),
-          ),
-          command: z.preprocess(
-            (val) => (typeof val === 'string' ? val.toUpperCase() : val),
-            z.string().describe('The command to execute'),
-          ),
+          uri: z.string().describe('The URI to launch'),
         }),
         call: async () => {},
       },
@@ -139,22 +130,18 @@ describe('action space', () => {
       "- Launch, Launch an app or URL
         - type: "Launch"
         - param:
-          - uri: object // The URI to launch
-          - command: string // The command to execute"
+          - uri: string // The URI to launch"
     `);
   });
 
-  it('action with z.preprocess wrapping simple types', () => {
+  it('action with object param schema (RunAdbShell-like)', () => {
     const action = descriptionForAction(
       {
         name: 'RunAdbShell',
         description: 'Execute ADB shell command',
-        paramSchema: z.preprocess(
-          (val) => (typeof val === 'string' ? { command: val } : val),
-          z.object({
-            command: z.string().describe('ADB shell command to execute'),
-          }),
-        ),
+        paramSchema: z.object({
+          command: z.string().describe('ADB shell command to execute'),
+        }),
         call: async () => {},
       },
       mockLocatorScheme,
