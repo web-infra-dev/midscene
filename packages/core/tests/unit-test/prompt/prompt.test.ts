@@ -113,6 +113,46 @@ describe('action space', () => {
           - option?: number // An optional option value"
     `);
   });
+
+  it('action with object param schema (Launch-like)', () => {
+    const action = descriptionForAction(
+      {
+        name: 'Launch',
+        description: 'Launch an app or URL',
+        paramSchema: z.object({
+          uri: z.string().describe('The URI to launch'),
+        }),
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- Launch, Launch an app or URL
+        - type: "Launch"
+        - param:
+          - uri: string // The URI to launch"
+    `);
+  });
+
+  it('action with object param schema (RunAdbShell-like)', () => {
+    const action = descriptionForAction(
+      {
+        name: 'RunAdbShell',
+        description: 'Execute ADB shell command',
+        paramSchema: z.object({
+          command: z.string().describe('ADB shell command to execute'),
+        }),
+        call: async () => {},
+      },
+      mockLocatorScheme,
+    );
+    expect(action).toMatchInlineSnapshot(`
+      "- RunAdbShell, Execute ADB shell command
+        - type: "RunAdbShell"
+        - param:
+          - command: string // ADB shell command to execute"
+    `);
+  });
 });
 
 describe('system prompts', () => {
