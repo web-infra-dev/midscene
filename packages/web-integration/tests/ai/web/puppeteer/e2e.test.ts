@@ -134,7 +134,7 @@ describe(
         afterInvokeAction,
       });
 
-      await sleep(10 * 1000);
+      await agent.aiAct('等10秒');
 
       await agent.aiAssert('this is a login page');
 
