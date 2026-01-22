@@ -134,9 +134,33 @@ export function isPlainObject(value: unknown): value is Record<string, any> {
 }
 
 /**
- * Normalize string for comparison: lowercase and remove spaces.
+ * Normalize string for comparison: lowercase and remove spaces, dashes, and underscores.
  * Useful for flexible app name matching.
  */
 export function normalizeForComparison(str: string): string {
-  return str.toLowerCase().replace(/\s+/g, '');
+  return str.toLowerCase().replace(/[\s\-_]+/g, '');
+}
+
+/**
+ * Merge and normalize app name mappings.
+ * Keys are normalized (lowercase, no spaces/dashes/underscores) for flexible matching.
+ * User-provided mapping takes precedence over default mapping.
+ */
+export function mergeAndNormalizeAppNameMapping(
+  defaultMapping: Record<string, string>,
+  userMapping?: Record<string, string>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const [key, value] of Object.entries(defaultMapping)) {
+    result[normalizeForComparison(key)] = value;
+  }
+
+  if (userMapping) {
+    for (const [key, value] of Object.entries(userMapping)) {
+      result[normalizeForComparison(key)] = value;
+    }
+  }
+
+  return result;
 }
