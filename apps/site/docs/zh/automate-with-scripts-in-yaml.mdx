@@ -510,3 +510,11 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
+
+## 注意事项
+
+### `agent.runYaml` 只会解析 `tasks` 字段
+
+当使用 `agent.runYaml()` api 时，YAML 文件中只有 `tasks` 字段会被解析和执行。
+
+因为此时 agent 已经在 js 脚本中完成初始化，无法根据 YAML 中的 `agent` 配置再次初始化。

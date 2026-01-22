@@ -503,3 +503,11 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
+
+## Notes
+
+### `agent.runYaml` only parses the `tasks` field
+
+When using the `agent.runYaml()` API, only the `tasks` field in the YAML file is parsed and executed.
+
+At that point the agent has already been initialized in the JS script, so it cannot be reinitialized based on the `agent` configuration in the YAML file.
