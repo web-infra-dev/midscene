@@ -328,5 +328,133 @@ describe('MidsceneReporter', () => {
 
       consoleSpy.mockRestore();
     });
+
+    it('should not add project suffix when only one project exists', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Simulate single project configuration
+      const mockConfig = {
+        projects: [{ name: 'chromium' }],
+      } as any;
+      const mockSuite = {} as any;
+      await reporter.onBegin(mockConfig, mockSuite);
+
+      // Create a temp file
+      const tempFile = join(tempDir, 'single-project-dump.json');
+      writeFileSync(tempFile, 'single-project-data', 'utf-8');
+
+      const mockTest: TestCase = {
+        id: 'test-id-5',
+        title: 'Single Project Test',
+        parent: {
+          project: () => ({ name: 'chromium' }),
+        },
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
+        ],
+      } as any;
+      const mockResult: TestResult = {
+        status: 'passed',
+        duration: 100,
+      } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            playwright_test_title: 'Single Project Test',
+          }),
+        }),
+        true,
+      );
+    });
+
+    it('should add project suffix when multiple projects exist', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Simulate multi-project configuration
+      const mockConfig = {
+        projects: [{ name: 'chromium' }, { name: 'webkit' }],
+      } as any;
+      const mockSuite = {} as any;
+      await reporter.onBegin(mockConfig, mockSuite);
+
+      // Create a temp file
+      const tempFile = join(tempDir, 'multi-project-dump.json');
+      writeFileSync(tempFile, 'multi-project-data', 'utf-8');
+
+      const mockTest: TestCase = {
+        id: 'test-id-6',
+        title: 'Multi Project Test',
+        parent: {
+          project: () => ({ name: 'webkit' }),
+        },
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
+        ],
+      } as any;
+      const mockResult: TestResult = {
+        status: 'passed',
+        duration: 150,
+      } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            playwright_test_title: 'Multi Project Test [webkit]',
+          }),
+        }),
+        true,
+      );
+    });
+
+    it('should handle project suffix with retry in multi-project setup', async () => {
+      const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Simulate multi-project configuration
+      const mockConfig = {
+        projects: [{ name: 'chromium' }, { name: 'webkit' }],
+      } as any;
+      const mockSuite = {} as any;
+      await reporter.onBegin(mockConfig, mockSuite);
+
+      // Create a temp file
+      const tempFile = join(tempDir, 'retry-multi-project-dump.json');
+      writeFileSync(tempFile, 'retry-multi-project-data', 'utf-8');
+
+      const mockTest: TestCase = {
+        id: 'test-id-7',
+        title: 'Retry Multi Project Test',
+        parent: {
+          project: () => ({ name: 'chromium' }),
+        },
+        annotations: [
+          { type: 'MIDSCENE_DUMP_ANNOTATION', description: tempFile },
+        ],
+      } as any;
+      const mockResult: TestResult = {
+        status: 'passed',
+        duration: 200,
+        retry: 2,
+      } as any;
+
+      reporter.onTestEnd(mockTest, mockResult);
+
+      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            playwright_test_title:
+              'Retry Multi Project Test [chromium](retry #2)',
+          }),
+        }),
+        true,
+      );
+    });
   });
 });
