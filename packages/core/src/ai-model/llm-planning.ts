@@ -111,7 +111,7 @@ export async function plan(
     actionSpace: opts.actionSpace,
     modelFamily,
     includeBbox: opts.includeBbox,
-    includeThought: opts.deepThink !== true,
+    includeThought: true, // always include thought
   });
 
   let imagePayload = screenshotBase64;

@@ -465,7 +465,7 @@ export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
 
 // Sleep
 export const ActionSleepParamSchema = z.object({
-  millisecond: z
+  timeMs: z
     .number()
     .default(1000)
     .optional()
@@ -473,7 +473,7 @@ export const ActionSleepParamSchema = z.object({
 });
 
 export type ActionSleepParam = {
-  millisecond?: number;
+  timeMs?: number;
 };
 
 export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
@@ -483,7 +483,7 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
       'Wait for a specified duration before continuing. Defaults to 1 second (1000ms) if not specified.',
     paramSchema: ActionSleepParamSchema,
     call: async (param) => {
-      const duration = param?.millisecond ?? 1000;
+      const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
       await new Promise((resolve) => setTimeout(resolve, duration));
     },
