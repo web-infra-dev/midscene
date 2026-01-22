@@ -181,7 +181,6 @@ export const defaultAppNameMapping: Record<string, string> = {
   电话: 'com.apple.mobilephone',
   通讯录: 'com.apple.MobileAddressBook',
   信息: 'com.apple.MobileSMS',
-  Facetime: 'com.apple.facetime',
   FaceTime: 'com.apple.facetime',
   计算器: 'com.apple.calculator',
   家庭: 'com.apple.Home',
