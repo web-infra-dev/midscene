@@ -160,7 +160,8 @@ describe('SVG Icon Cache Tests', () => {
       console.log('Cache content after first run:\n', cacheContent1);
 
       // Verify cache contains svg[4] in the XPath
-      expect(cacheContent1).toContain('svg[4]');
+      // Note: SVG elements use *[name()="svg"] syntax due to namespace
+      expect(cacheContent1).toContain('*[name()="svg"][4]');
       expect(cacheContent1).toMatch(/edit.*icon/i);
 
       // Clean up first agent
@@ -297,7 +298,8 @@ describe('SVG Icon Cache Tests', () => {
       if (fs.existsSync(multipleCachePath)) {
         const cacheContent = fs.readFileSync(multipleCachePath, 'utf-8');
         console.log('Cache for multiple icons:\n', cacheContent);
-        expect(cacheContent).toContain('svg[2]');
+        // Note: SVG elements use *[name()="svg"] syntax due to namespace
+        expect(cacheContent).toContain('*[name()="svg"][2]');
         fs.unlinkSync(multipleCachePath);
       }
 

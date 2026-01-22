@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PuppeteerAgent } from '@/puppeteer';
+import type { PuppeteerAgent } from '@/puppeteer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -43,8 +43,12 @@ describe('SVG XPath Generation Test', () => {
 </html>
     `;
 
-    const testHtmlPath = path.join(process.cwd(), 'midscene_run', 'test-svg-xpath-gen.html');
-    fs.mkdirSync(path.dirname(testHtmlPath), { recursive: true});
+    const testHtmlPath = path.join(
+      process.cwd(),
+      'midscene_run',
+      'test-svg-xpath-gen.html',
+    );
+    fs.mkdirSync(path.dirname(testHtmlPath), { recursive: true });
     fs.writeFileSync(testHtmlPath, testHtml);
 
     try {
@@ -58,7 +62,9 @@ describe('SVG XPath Generation Test', () => {
           let index = 1;
           let prev = element.previousElementSibling;
           while (prev) {
-            if (prev.nodeName.toLowerCase() === element.nodeName.toLowerCase()) {
+            if (
+              prev.nodeName.toLowerCase() === element.nodeName.toLowerCase()
+            ) {
               index++;
             }
             prev = prev.previousElementSibling;
@@ -67,13 +73,18 @@ describe('SVG XPath Generation Test', () => {
         }
 
         function buildCurrentElementXpath(element: Element): string {
-          const parentPath = element.parentNode ? getElementXpath(element.parentNode as Element) : '';
+          const parentPath = element.parentNode
+            ? getElementXpath(element.parentNode as Element)
+            : '';
           const prefix = parentPath ? `${parentPath}/` : '/';
           const tagName = element.nodeName.toLowerCase();
 
           // Check if this is an SVG element
-          const isSVGNamespace = element.namespaceURI === 'http://www.w3.org/2000/svg';
-          const tagSelector = isSVGNamespace ? `*[name()="${tagName}"]` : tagName;
+          const isSVGNamespace =
+            element.namespaceURI === 'http://www.w3.org/2000/svg';
+          const tagSelector = isSVGNamespace
+            ? `*[name()="${tagName}"]`
+            : tagName;
 
           const index = getElementXpathIndex(element);
           return `${prefix}${tagSelector}[${index}]`;
@@ -99,17 +110,23 @@ describe('SVG XPath Generation Test', () => {
           document,
           null,
           XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-          null
+          null,
         );
 
         return {
           generatedXPath: xpath,
           canQueryBack: result.snapshotLength > 0,
-          foundElementId: result.snapshotLength > 0 ? (result.snapshotItem(0) as any)?.id : null,
+          foundElementId:
+            result.snapshotLength > 0
+              ? (result.snapshotItem(0) as any)?.id
+              : null,
         };
       });
 
-      console.log('XPath generation result:', JSON.stringify(xpathGenResult, null, 2));
+      console.log(
+        'XPath generation result:',
+        JSON.stringify(xpathGenResult, null, 2),
+      );
 
       expect(xpathGenResult.generatedXPath).toContain('*[name()="svg"]');
       expect(xpathGenResult.canQueryBack).toBe(true);
@@ -117,7 +134,11 @@ describe('SVG XPath Generation Test', () => {
 
       fs.unlinkSync(testHtmlPath);
     } catch (error) {
-      const testHtmlPath = path.join(process.cwd(), 'midscene_run', 'test-svg-xpath-gen.html');
+      const testHtmlPath = path.join(
+        process.cwd(),
+        'midscene_run',
+        'test-svg-xpath-gen.html',
+      );
       if (fs.existsSync(testHtmlPath)) {
         fs.unlinkSync(testHtmlPath);
       }

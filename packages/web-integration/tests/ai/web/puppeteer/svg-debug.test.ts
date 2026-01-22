@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PuppeteerAgent } from '@/puppeteer';
+import type { PuppeteerAgent } from '@/puppeteer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -76,7 +76,11 @@ describe('SVG XPath Debug', () => {
 </html>
     `;
 
-    const testHtmlPath = path.join(process.cwd(), 'midscene_run', 'test-svg-debug.html');
+    const testHtmlPath = path.join(
+      process.cwd(),
+      'midscene_run',
+      'test-svg-debug.html',
+    );
     fs.mkdirSync(path.dirname(testHtmlPath), { recursive: true });
     fs.writeFileSync(testHtmlPath, testHtml);
 
@@ -105,9 +109,9 @@ describe('SVG XPath Debug', () => {
       // Test different XPath variations
       const xpathVariations = [
         xpathToTest,
-        '/html/body/table[1]/tbody[1]/tr[1]/td[1]/*[4]',  // Use * instead of svg
-        '/html/body/table[1]/tbody[1]/tr[1]/td[1]/*[name()="svg"][4]',  // Use name()
-        '//svg[@id="icon4"]',  // Use ID
+        '/html/body/table[1]/tbody[1]/tr[1]/td[1]/*[4]', // Use * instead of svg
+        '/html/body/table[1]/tbody[1]/tr[1]/td[1]/*[name()="svg"][4]', // Use name()
+        '//svg[@id="icon4"]', // Use ID
       ];
 
       for (const xpath of xpathVariations) {
@@ -117,15 +121,18 @@ describe('SVG XPath Debug', () => {
             document,
             null,
             XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-            null
+            null,
           );
           return {
             xpath: xp,
             count: res.snapshotLength,
-            element: res.snapshotLength > 0 ? {
-              nodeName: res.snapshotItem(0)?.nodeName,
-              id: (res.snapshotItem(0) as any)?.id,
-            } : null,
+            element:
+              res.snapshotLength > 0
+                ? {
+                    nodeName: res.snapshotItem(0)?.nodeName,
+                    id: (res.snapshotItem(0) as any)?.id,
+                  }
+                : null,
           };
         }, xpath);
         console.log('XPath test:', JSON.stringify(result, null, 2));
@@ -137,7 +144,7 @@ describe('SVG XPath Debug', () => {
           document,
           null,
           XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-          null
+          null,
         );
 
         if (result.snapshotLength === 0) {
@@ -183,12 +190,12 @@ describe('SVG XPath Debug', () => {
           document,
           null,
           XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-          null
+          null,
         );
 
         if (xpathResult.snapshotLength !== 1) {
           return {
-            error: `XPath matched ${xpathResult.snapshotLength} elements`
+            error: `XPath matched ${xpathResult.snapshotLength} elements`,
           };
         }
 
@@ -230,7 +237,11 @@ describe('SVG XPath Debug', () => {
 
       fs.unlinkSync(testHtmlPath);
     } catch (error) {
-      const testHtmlPath = path.join(process.cwd(), 'midscene_run', 'test-svg-debug.html');
+      const testHtmlPath = path.join(
+        process.cwd(),
+        'midscene_run',
+        'test-svg-debug.html',
+      );
       if (fs.existsSync(testHtmlPath)) {
         fs.unlinkSync(testHtmlPath);
       }
