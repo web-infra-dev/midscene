@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { replaceIllegalPathCharsAndSpace } from '../../src/utils';
+import {
+  normalizeForComparison,
+  replaceIllegalPathCharsAndSpace,
+} from '../../src/utils';
 
 describe('replaceIllegalPathCharsAndSpace', () => {
   it('should preserve Unix path separators', () => {
@@ -83,5 +86,50 @@ describe('replaceIllegalPathCharsAndSpace', () => {
     const input = 'file#with#hash#symbols.txt';
     const result = replaceIllegalPathCharsAndSpace(input);
     expect(result).toBe('file-with-hash-symbols.txt');
+  });
+});
+
+describe('normalizeForComparison', () => {
+  it('should convert to lowercase', () => {
+    expect(normalizeForComparison('MockApp')).toBe('mockapp');
+    expect(normalizeForComparison('MOCKAPP')).toBe('mockapp');
+    expect(normalizeForComparison('mockapp')).toBe('mockapp');
+  });
+
+  it('should remove spaces', () => {
+    expect(normalizeForComparison('Mock App')).toBe('mockapp');
+    expect(normalizeForComparison('mock app')).toBe('mockapp');
+    expect(normalizeForComparison('Mock  App')).toBe('mockapp');
+  });
+
+  it('should handle multiple spaces', () => {
+    expect(normalizeForComparison('Mock   App   Name')).toBe('mockappname');
+    expect(normalizeForComparison('  Mock App  ')).toBe('mockapp');
+  });
+
+  it('should handle tabs and newlines', () => {
+    expect(normalizeForComparison('Mock\tApp')).toBe('mockapp');
+    expect(normalizeForComparison('Mock\nApp')).toBe('mockapp');
+  });
+
+  it('should match different variations of the same app name', () => {
+    const mappingKey = 'Mock App';
+    const normalizedKey = normalizeForComparison(mappingKey);
+
+    // All these user inputs should match the mapping key
+    const userInputs = [
+      'mockapp',
+      'MockApp',
+      'MOCKAPP',
+      'Mock App',
+      'mock app',
+      'MOCK APP',
+      'Mock  App',
+      '  MockApp  ',
+    ];
+
+    for (const input of userInputs) {
+      expect(normalizeForComparison(input)).toBe(normalizedKey);
+    }
   });
 });
