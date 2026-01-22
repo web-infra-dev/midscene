@@ -1,0 +1,9 @@
+# Test shareBrowserContext with sessionStorage preservation
+# This verifies that sessionStorage is preserved across YAML files
+concurrent: 1
+continueOnError: false
+shareBrowserContext: true
+
+files:
+  - 01-set-session.yaml
+  - 02-check-session.yaml

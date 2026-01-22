@@ -1,0 +1,9 @@
+# Test WITHOUT shareBrowserContext (control group)
+# This should FAIL because sessionStorage is NOT preserved
+concurrent: 1
+continueOnError: true  # Allow to continue to see the failure
+shareBrowserContext: false
+
+files:
+  - 01-set-session.yaml
+  - 02-check-session.yaml

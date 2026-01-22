@@ -1,0 +1,44 @@
+# Second file - Check if sessionStorage is preserved
+web:
+  url: /session-storage-test.html
+
+tasks:
+  - name: Verify session token is preserved
+    flow:
+      # First, check storage via JavaScript before any interaction
+      - evaluateJavaScript: |
+          const token = sessionStorage.getItem('authToken');
+          const userId = sessionStorage.getItem('userId');
+          const prefs = localStorage.getItem('preferences');
+
+          console.log('=== Second YAML File - Before Click ===');
+          console.log('authToken:', token);
+          console.log('userId:', userId);
+          console.log('preferences:', prefs);
+
+          if (!token) {
+            throw new Error('sessionStorage.authToken was lost! Expected "test-token-12345", got null');
+          }
+
+          if (!userId) {
+            throw new Error('sessionStorage.userId was lost! Expected "user-999", got null');
+          }
+
+          if (!prefs) {
+            throw new Error('localStorage.preferences was lost! Expected "dark-mode", got null');
+          }
+
+          return {
+            sessionToken: token,
+            sessionUserId: userId,
+            localPreferences: prefs,
+            allPreserved: token === 'test-token-12345' && userId === 'user-999' && prefs === 'dark-mode',
+            summary: `Token: ${token}, User: ${userId}, Prefs: ${prefs}`
+          };
+        name: second_file_storage_check
+
+      # Click the check button to verify UI also shows the token
+      - aiAction: click "Check Session Token" button
+
+      # Verify the UI shows success
+      - aiAssert: the status shows "Token found"

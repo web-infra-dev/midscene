@@ -3,7 +3,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 
 import { PuppeteerAgent } from '@/puppeteer/index';
-import type { AgentOpt, Cache, MidsceneYamlScriptWebEnv } from '@midscene/core';
+import type { AgentOpt, MidsceneYamlScriptWebEnv } from '@midscene/core';
 import { DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT } from '@midscene/shared/constants';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 
@@ -171,7 +171,12 @@ export async function launchPuppeteerPage(
   browser?: Browser,
   existingPage?: Page,
 ) {
-  assert(target.url, 'url is required');
+  // URL is required unless continueFromPreviousPage is true with an existing page
+  const shouldContinueFromPreviousPage =
+    target.continueFromPreviousPage && existingPage;
+  if (!shouldContinueFromPreviousPage) {
+    assert(target.url, 'url is required');
+  }
   const freeFn: FreeFn[] = [];
 
   // prepare the environment
@@ -296,33 +301,42 @@ export async function launchPuppeteerPage(
     await page.setViewport(viewportConfig);
   }
 
-  const waitForNetworkIdleTimeout =
-    typeof target.waitForNetworkIdle?.timeout === 'number'
-      ? target.waitForNetworkIdle.timeout
-      : defaultWaitForNetworkIdleTimeout;
+  // Skip navigation if continueFromPreviousPage is true and we're reusing a page
+  if (shouldContinueFromPreviousPage) {
+    launcherDebug(
+      'skipping navigation (continueFromPreviousPage=true), current URL:',
+      page.url(),
+    );
+  } else {
+    // Normal navigation flow
+    const waitForNetworkIdleTimeout =
+      typeof target.waitForNetworkIdle?.timeout === 'number'
+        ? target.waitForNetworkIdle.timeout
+        : defaultWaitForNetworkIdleTimeout;
 
-  try {
-    launcherDebug('goto', target.url);
-    await page.goto(target.url);
-    if (waitForNetworkIdleTimeout > 0) {
-      launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
-      await page.waitForNetworkIdle({
-        timeout: waitForNetworkIdleTimeout,
-      });
+    try {
+      launcherDebug('goto', target.url);
+      await page.goto(target.url);
+      if (waitForNetworkIdleTimeout > 0) {
+        launcherDebug('waitForNetworkIdle', waitForNetworkIdleTimeout);
+        await page.waitForNetworkIdle({
+          timeout: waitForNetworkIdleTimeout,
+        });
+      }
+    } catch (e) {
+      if (
+        typeof target.waitForNetworkIdle?.continueOnNetworkIdleError ===
+          'boolean' &&
+        !target.waitForNetworkIdle?.continueOnNetworkIdleError
+      ) {
+        const newError = new Error(`failed to wait for network idle: ${e}`, {
+          cause: e,
+        });
+        throw newError;
+      }
+      const newMessage = `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`;
+      console.warn(newMessage);
     }
-  } catch (e) {
-    if (
-      typeof target.waitForNetworkIdle?.continueOnNetworkIdleError ===
-        'boolean' &&
-      !target.waitForNetworkIdle?.continueOnNetworkIdleError
-    ) {
-      const newError = new Error(`failed to wait for network idle: ${e}`, {
-        cause: e,
-      });
-      throw newError;
-    }
-    const newMessage = `failed to wait for network idle after ${waitForNetworkIdleTimeout}ms, but the script will continue.`;
-    console.warn(newMessage);
   }
 
   return { page, freeFn };

@@ -135,6 +135,37 @@ export interface MidsceneYamlScriptWebEnv
   forceSameTabNavigation?: boolean; // if track the newly opened tab, true for default in yaml script
 
   /**
+   * Continue from the previous page without navigation.
+   * Only effective when shareBrowserContext is true and a shared page exists.
+   *
+   * When true:
+   * - Skips page.goto() to preserve full JavaScript runtime state
+   * - Keeps the current page URL and DOM state
+   * - Useful for multi-step workflows within the same page
+   *
+   * When false (default):
+   * - Navigates to the specified URL (preserves localStorage/sessionStorage but resets JS state)
+   *
+   * @default false
+   * @example
+   * ```yaml
+   * # 01-login.yaml
+   * web:
+   *   url: /app.html
+   * tasks:
+   *   - aiAction: login and open modal
+   *
+   * # 02-continue.yaml
+   * web:
+   *   url: /app.html  # Can be same or different, will be ignored if continueFromPreviousPage is true
+   *   continueFromPreviousPage: true
+   * tasks:
+   *   - aiAction: interact with the modal  # Modal state preserved
+   * ```
+   */
+  continueFromPreviousPage?: boolean;
+
+  /**
    * Custom Chrome launch arguments (Puppeteer only, not supported in bridge mode).
    *
    * Allows passing custom command-line arguments to Chrome/Chromium when launching the browser.

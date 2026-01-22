@@ -1,0 +1,9 @@
+# Test shareBrowserContext with continueFromPreviousPage
+# This demonstrates preserving full JavaScript runtime state across files
+concurrent: 1
+continueOnError: true
+shareBrowserContext: true
+
+files:
+  - 01-login.yaml
+  - 03-continue-state.yaml
