@@ -705,7 +705,7 @@ export class TaskExecutor {
           modelConfig,
         );
         if (sleepTasks[0]) {
-          await session.append(sleepTasks[0]);
+          await session.appendAndRun(sleepTasks[0]);
         }
       }
     }

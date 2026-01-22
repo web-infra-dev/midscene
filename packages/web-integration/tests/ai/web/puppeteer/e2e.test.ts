@@ -116,7 +116,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.only('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
         {
@@ -144,6 +144,10 @@ describe(
       expect(pw).toBe('secret_sauce');
 
       await agent.ai('login with "standard_user" and "secret_sauce"');
+
+      await agent.aiWaitFor('there shows a cookie prompt in the UI', {
+        checkIntervalMs: 10000,
+      });
 
       const price = await agent.ai(
         'Add first two items to the cart and tell me the total price of the cart. Just the price number, no other text',
