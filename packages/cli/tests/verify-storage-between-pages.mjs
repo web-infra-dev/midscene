@@ -1,6 +1,6 @@
+import { createServer } from 'http';
 // Test to verify storage sharing between different Page instances
 import puppeteer from 'puppeteer';
-import { createServer } from 'http';
 
 const server = createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -65,8 +65,12 @@ server.listen(0, '127.0.0.1', async () => {
 
   console.log('\nResults:');
   console.log(`Cookie shared between pages: ${storage2.cookie ? '✅' : '❌'}`);
-  console.log(`localStorage shared between pages: ${storage2.local ? '✅' : '❌'}`);
-  console.log(`sessionStorage shared between pages: ${storage2.session ? '✅' : '❌'}`);
+  console.log(
+    `localStorage shared between pages: ${storage2.local ? '✅' : '❌'}`,
+  );
+  console.log(
+    `sessionStorage shared between pages: ${storage2.session ? '✅' : '❌'}`,
+  );
 
   // Test 2: Same Page instance with goto
   console.log('\n=== Test 2: Same Page instance (page.goto()) ===');
@@ -97,9 +101,15 @@ server.listen(0, '127.0.0.1', async () => {
   console.log('After goto:', storage3After);
 
   console.log('\nResults:');
-  console.log(`Cookie preserved after goto: ${storage3After.cookie ? '✅' : '❌'}`);
-  console.log(`localStorage preserved after goto: ${storage3After.local ? '✅' : '❌'}`);
-  console.log(`sessionStorage preserved after goto: ${storage3After.session ? '✅' : '❌'}`);
+  console.log(
+    `Cookie preserved after goto: ${storage3After.cookie ? '✅' : '❌'}`,
+  );
+  console.log(
+    `localStorage preserved after goto: ${storage3After.local ? '✅' : '❌'}`,
+  );
+  console.log(
+    `sessionStorage preserved after goto: ${storage3After.session ? '✅' : '❌'}`,
+  );
 
   await browser.close();
   server.close();
@@ -107,13 +117,25 @@ server.listen(0, '127.0.0.1', async () => {
   // Final summary
   console.log('\n=== Summary ===');
   console.log('Between different Page instances:');
-  console.log(`  - Cookies: ${storage2.cookie ? '✅ Shared' : '❌ Not shared'}`);
-  console.log(`  - localStorage: ${storage2.local ? '✅ Shared' : '❌ Not shared'}`);
-  console.log(`  - sessionStorage: ${storage2.session ? '✅ Shared' : '❌ Not shared'}`);
+  console.log(
+    `  - Cookies: ${storage2.cookie ? '✅ Shared' : '❌ Not shared'}`,
+  );
+  console.log(
+    `  - localStorage: ${storage2.local ? '✅ Shared' : '❌ Not shared'}`,
+  );
+  console.log(
+    `  - sessionStorage: ${storage2.session ? '✅ Shared' : '❌ Not shared'}`,
+  );
   console.log('\nWithin same Page instance (after goto):');
-  console.log(`  - Cookies: ${storage3After.cookie ? '✅ Preserved' : '❌ Not preserved'}`);
-  console.log(`  - localStorage: ${storage3After.local ? '✅ Preserved' : '❌ Not preserved'}`);
-  console.log(`  - sessionStorage: ${storage3After.session ? '✅ Preserved' : '❌ Not preserved'}`);
+  console.log(
+    `  - Cookies: ${storage3After.cookie ? '✅ Preserved' : '❌ Not preserved'}`,
+  );
+  console.log(
+    `  - localStorage: ${storage3After.local ? '✅ Preserved' : '❌ Not preserved'}`,
+  );
+  console.log(
+    `  - sessionStorage: ${storage3After.session ? '✅ Preserved' : '❌ Not preserved'}`,
+  );
 
   process.exit(0);
 });

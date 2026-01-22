@@ -1,0 +1,32 @@
+# Third YAML file - Continue from previous page without navigation
+# This preserves full JavaScript runtime state (not just storage)
+web:
+  continueFromPreviousPage: true
+  url: /share-context-test.html  # Will be ignored due to continueFromPreviousPage
+
+tasks:
+  - name: Continue from previous page state
+    flow:
+      # Verify we're still on the same page without reload
+      - evaluateJavaScript: |
+          console.log('=== Third YAML File - No Navigation ===');
+          console.log('Current URL:', window.location.href);
+          console.log('Page was reloaded:', window.performance.navigation.type === 1);
+
+          const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          }, {});
+
+          return {
+            cookie_authToken: cookies.authToken || 'MISSING',
+            localStorage_userId: localStorage.getItem('userId') || 'MISSING',
+            sessionStorage_sessionId: sessionStorage.getItem('sessionId') || 'MISSING',
+            pageReloaded: window.performance.navigation.type === 1,
+            summary: 'Page reloaded: ' + (window.performance.navigation.type === 1 ? 'YES' : 'NO')
+          };
+        name: third_file_state_check
+
+      # The status should still show "Logged in" without any button clicks
+      - aiAssert: the status shows "Logged in"

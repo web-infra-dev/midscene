@@ -1,0 +1,28 @@
+# First file - Set sessionStorage
+web:
+  url: /session-storage-test.html
+
+tasks:
+  - name: Set session token
+    flow:
+      - aiAction: click "Set Session Token" button
+
+      - evaluateJavaScript: |
+          const token = sessionStorage.getItem('authToken');
+          const userId = sessionStorage.getItem('userId');
+          const prefs = localStorage.getItem('preferences');
+
+          console.log('=== First YAML File - After Setting ===');
+          console.log('authToken:', token);
+          console.log('userId:', userId);
+          console.log('preferences:', prefs);
+
+          return {
+            sessionToken: token,
+            sessionUserId: userId,
+            localPreferences: prefs,
+            summary: `Token: ${token}, User: ${userId}, Prefs: ${prefs}`
+          };
+        name: first_file_check
+
+      - aiAssert: the status shows "Session token and user ID set"
