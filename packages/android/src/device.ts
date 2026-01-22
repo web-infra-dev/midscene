@@ -1688,7 +1688,11 @@ const runAdbShellParamSchema = z.object({
 });
 
 const launchParamSchema = z.object({
-  uri: z.string().describe('App package name or URL or app name to launch'),
+  uri: z
+    .string()
+    .describe(
+      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+    ),
 });
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
