@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { PuppeteerAgent } from '@/puppeteer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -10,16 +9,8 @@ vi.setConfig({
 
 describe('SVG XPath Generation Test', () => {
   let resetFn: () => Promise<void>;
-  let agent: PuppeteerAgent;
 
   afterEach(async () => {
-    if (agent) {
-      try {
-        await agent.destroy();
-      } catch (e) {
-        console.warn('agent destroy error', e);
-      }
-    }
     if (resetFn) {
       await resetFn();
     }

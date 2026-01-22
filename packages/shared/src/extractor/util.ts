@@ -135,9 +135,8 @@ export function getRect(
   let originalRect: DOMRect;
   let newZoom = 1;
 
-  // Check if element has getBoundingClientRect method (HTMLElement and SVGElement both have it)
-  const hasGetBoundingClientRect =
-    el instanceof Element && 'getBoundingClientRect' in el;
+  // Check if node is an Element (HTMLElement and SVGElement both have getBoundingClientRect)
+  const hasGetBoundingClientRect = el instanceof Element;
 
   if (!hasGetBoundingClientRect) {
     // For text nodes and other nodes without getBoundingClientRect, use Range API
