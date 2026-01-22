@@ -78,7 +78,7 @@ describe('locator - multiple SVG icons', () => {
         const svg3 = new MockSVGElement('svg', '');
         const svg4 = new MockSVGElement('svg', ''); // The edit icon
 
-        // Create internal path elements for each SVG
+        // Create internal path element for the 4th SVG
         const path4 = new MockSVGElement('path', '');
 
         // Set up parent chain
@@ -117,8 +117,6 @@ describe('locator - multiple SVG icons', () => {
 
     // Should include the td and svg with proper indices
     expect(xpaths?.[0]).toMatch(/\/td\[1\]\/\*\[name\(\)="svg"\]\[4\]$/);
-
-    console.log('XPath for svg[4]:', xpaths?.[0]);
   });
 
   it('should distinguish between different SVG icons in the same cell', () => {
@@ -161,9 +159,5 @@ describe('locator - multiple SVG icons', () => {
     expect(xpath1?.[0]).toMatch(/\*\[name\(\)="svg"\]\[1\]$/);
     expect(xpath2?.[0]).toMatch(/\*\[name\(\)="svg"\]\[2\]$/);
     expect(xpath3?.[0]).toMatch(/\*\[name\(\)="svg"\]\[3\]$/);
-
-    console.log('XPath for svg[1]:', xpath1?.[0]);
-    console.log('XPath for svg[2]:', xpath2?.[0]);
-    console.log('XPath for svg[3]:', xpath3?.[0]);
   });
 });

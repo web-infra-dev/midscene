@@ -122,7 +122,15 @@ export const getElementXpath = (
       parent = parent.parentNode;
     }
     // fallback if no suitable parent found
-    return getElementXpath(el.parentNode!, isOrderSensitive, isLeafElement);
+    const fallbackParent = el.parentNode;
+    if (fallbackParent && fallbackParent.nodeType === Node.ELEMENT_NODE) {
+      return getElementXpath(
+        fallbackParent as Element,
+        isOrderSensitive,
+        isLeafElement,
+      );
+    }
+    return '';
   }
 
   // decide which format to use
