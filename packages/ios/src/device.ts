@@ -26,6 +26,7 @@ import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 
@@ -288,22 +289,15 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   /**
-   * Normalize string for comparison: lowercase and remove spaces
-   */
-  private normalizeForComparison(str: string): string {
-    return str.toLowerCase().replace(/\s+/g, '');
-  }
-
-  /**
    * Resolve app name to bundle ID using the mapping.
    * Comparison is case-insensitive and ignores spaces.
    *
    * @param appName The app name to resolve.
    */
   private resolveBundleId(appName: string): string | undefined {
-    const normalizedAppName = this.normalizeForComparison(appName);
+    const normalizedAppName = normalizeForComparison(appName);
     for (const [key, value] of Object.entries(this.appNameMapping)) {
-      if (this.normalizeForComparison(key) === normalizedAppName) {
+      if (normalizeForComparison(key) === normalizedAppName) {
         return value;
       }
     }

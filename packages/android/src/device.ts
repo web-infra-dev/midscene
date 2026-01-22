@@ -38,8 +38,7 @@ import {
   isValidPNGImageBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { uuid } from '@midscene/shared/utils';
-import { repeat } from '@midscene/shared/utils';
+import { normalizeForComparison, repeat, uuid } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
 
@@ -429,21 +428,14 @@ ${Object.keys(size)
   }
 
   /**
-   * Normalize string for comparison: lowercase and remove spaces
-   */
-  private normalizeForComparison(str: string): string {
-    return str.toLowerCase().replace(/\s+/g, '');
-  }
-
-  /**
    * Resolve app name to package name using the mapping
    * Comparison is case-insensitive and ignores spaces
    * @param appName The app name to resolve
    */
   private resolvePackageName(appName: string): string | undefined {
-    const normalizedAppName = this.normalizeForComparison(appName);
+    const normalizedAppName = normalizeForComparison(appName);
     for (const [key, value] of Object.entries(this.appNameMapping)) {
-      if (this.normalizeForComparison(key) === normalizedAppName) {
+      if (normalizeForComparison(key) === normalizedAppName) {
         return value;
       }
     }
