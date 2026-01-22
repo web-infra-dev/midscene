@@ -134,14 +134,20 @@ export function getRect(
 ): ExtractedRect {
   let originalRect: DOMRect;
   let newZoom = 1;
-  if (!(el instanceof currentWindow.HTMLElement)) {
+
+  // Check if element has getBoundingClientRect method (HTMLElement and SVGElement both have it)
+  const hasGetBoundingClientRect = el instanceof Element && 'getBoundingClientRect' in el;
+
+  if (!hasGetBoundingClientRect) {
+    // For text nodes and other nodes without getBoundingClientRect, use Range API
     const range = currentWindow.document.createRange();
     range.selectNodeContents(el);
     originalRect = range.getBoundingClientRect();
   } else {
-    originalRect = el.getBoundingClientRect();
+    // For HTMLElement and SVGElement, use getBoundingClientRect directly
+    originalRect = (el as Element).getBoundingClientRect();
     // from Chrome v128, the API would return differently https://docs.google.com/document/d/1AcnDShjT-kEuRaMchZPm5uaIgNZ4OiYtM4JI9qiV8Po/edit
-    if (!('currentCSSZoom' in el)) {
+    if (el instanceof currentWindow.HTMLElement && !('currentCSSZoom' in el)) {
       newZoom =
         Number.parseFloat((currentWindow.getComputedStyle(el) as any).zoom) ||
         1;
