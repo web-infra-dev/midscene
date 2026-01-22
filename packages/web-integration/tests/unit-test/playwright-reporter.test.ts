@@ -218,6 +218,13 @@ describe('MidsceneReporter', () => {
     it('should include project name in test title when available', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
+      // Simulate multi-project configuration to enable browser labels
+      const mockConfig = {
+        projects: [{ name: 'chromium' }, { name: 'webkit' }],
+      } as any;
+      const mockSuite = {} as any;
+      await reporter.onBegin(mockConfig, mockSuite);
+
       // Create a temp file
       const tempFile = join(tempDir, 'browser-test-dump.json');
       writeFileSync(tempFile, 'browser-test-data', 'utf-8');
@@ -257,6 +264,13 @@ describe('MidsceneReporter', () => {
 
     it('should include both project name and retry in test title', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Simulate multi-project configuration to enable browser labels
+      const mockConfig = {
+        projects: [{ name: 'chromium' }, { name: 'webkit' }],
+      } as any;
+      const mockSuite = {} as any;
+      await reporter.onBegin(mockConfig, mockSuite);
 
       // Create a temp file
       const tempFile = join(tempDir, 'retry-browser-dump.json');
