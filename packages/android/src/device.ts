@@ -38,9 +38,10 @@ import {
   isValidPNGImageBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { normalizeForComparison, repeat, uuid } from '@midscene/shared/utils';
+import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
+import type { ScrcpyScreenshotManager } from './scrcpy-manager';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -77,7 +78,7 @@ export class AndroidDevice implements AbstractInterface {
   } | null = null;
   private cachedOrientation: number | null = null;
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
-  private scrcpyManager: any = null; // ScrcpyScreenshotManager instance
+  private scrcpyManager: ScrcpyScreenshotManager | null = null;
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
@@ -423,40 +424,34 @@ ${Object.keys(size)
   }
 
   /**
-   * Get or create Scrcpy manager
-   * Note: This creates a @yume-chan/adb instance, which is different from appium-adb
+   * Get or create Scrcpy manager for high-performance screenshots
+   * Creates a @yume-chan/adb connection (separate from appium-adb)
    */
-  private async getScrcpyManager(): Promise<any> {
+  private async getScrcpyManager(): Promise<ScrcpyScreenshotManager> {
     if (this.scrcpyManager) {
       return this.scrcpyManager;
     }
 
-    try {
-      debugDevice('Initializing Scrcpy manager...');
+    debugDevice('Initializing Scrcpy manager...');
 
-      // Import dependencies dynamically
-      const { Adb } = await import('@yume-chan/adb');
-      const { AdbServerClient } = await import('@yume-chan/adb');
+    try {
+      const { Adb, AdbServerClient } = await import('@yume-chan/adb');
       const { AdbServerNodeTcpConnector } = await import(
         '@yume-chan/adb-server-node-tcp'
       );
-      const { ScrcpyScreenshotManager } = await import('./scrcpy-manager');
-
-      // Create @yume-chan/adb client
-      const adbClient = new AdbServerClient(
-        new AdbServerNodeTcpConnector({
-          host: '127.0.0.1',
-          port: 5037,
-        }),
+      const { ScrcpyScreenshotManager: ScrcpyManager } = await import(
+        './scrcpy-manager'
       );
 
-      // Connect to device
+      const adbClient = new AdbServerClient(
+        new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 }),
+      );
+
       const adb = new Adb(
         await adbClient.createTransport({ serial: this.deviceId }),
       );
 
-      // Create Scrcpy manager
-      this.scrcpyManager = new ScrcpyScreenshotManager(adb, {
+      this.scrcpyManager = new ScrcpyManager(adb, {
         maxSize: this.options?.scrcpyMaxSize,
         videoBitRate: this.options?.scrcpyVideoBitRate,
         idleTimeoutMs: this.options?.scrcpyIdleTimeoutMs,
@@ -467,7 +462,8 @@ ${Object.keys(size)
     } catch (error) {
       debugDevice(`Failed to initialize Scrcpy manager: ${error}`);
       throw new Error(
-        `Failed to initialize Scrcpy for device ${this.deviceId}: ${error}`,
+        `Failed to initialize Scrcpy for device ${this.deviceId}. ` +
+          `Ensure ADB server is running and device is connected. Error: ${error}`,
       );
     }
   }

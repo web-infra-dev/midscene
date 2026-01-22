@@ -36,13 +36,30 @@ export type AndroidDeviceOpt = {
   alwaysRefreshScreenInfo?: boolean;
   /** Minimum screenshot buffer size in bytes (default: 10240 = 10KB). Set to 0 to disable validation. */
   minScreenshotBufferSize?: number;
-  /** Use scrcpy for screenshots (experimental, high performance) */
+  /**
+   * Use scrcpy for screenshots (high performance mode).
+   * Provides 6-8x faster screenshots by streaming video from device.
+   * Requires ffmpeg to be installed for PNG conversion.
+   * @default false
+   */
   useScrcpyForScreenshot?: boolean;
-  /** Maximum screenshot size for scrcpy mode (default: 1024) */
+  /**
+   * Maximum screenshot dimension (width or height) for scrcpy mode.
+   * Lower values reduce bandwidth but may affect image quality.
+   * @default 1024
+   */
   scrcpyMaxSize?: number;
-  /** Idle timeout in ms before disconnecting scrcpy (default: 30000) */
+  /**
+   * Idle timeout in milliseconds before disconnecting scrcpy.
+   * Scrcpy auto-disconnects after this period of inactivity to save resources.
+   * @default 30000
+   */
   scrcpyIdleTimeoutMs?: number;
-  /** Video bit rate for scrcpy (default: 2000000) */
+  /**
+   * Video bit rate for scrcpy in bits per second.
+   * Higher values improve quality but increase bandwidth usage.
+   * @default 2000000 (2 Mbps)
+   */
   scrcpyVideoBitRate?: number;
 } & AndroidDeviceInputOpt;
 

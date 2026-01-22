@@ -7,6 +7,30 @@ import { h264SearchConfiguration } from '@yume-chan/scrcpy';
 
 const debugScrcpy = getDebug('android:scrcpy');
 
+// H.264 NAL unit types
+const NAL_TYPE_IDR = 5; // IDR slice (keyframe/I-frame)
+const NAL_TYPE_SPS = 7; // Sequence Parameter Set
+const NAL_TYPE_PPS = 8; // Picture Parameter Set
+const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
+
+// H.264 start codes
+const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
+
+// Configuration defaults
+const DEFAULT_MAX_SIZE = 1024;
+const DEFAULT_VIDEO_BIT_RATE = 2_000_000;
+const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
+
+// Timeouts and limits
+const MAX_KEYFRAME_WAIT_MS = 5_000;
+const KEYFRAME_POLL_INTERVAL_MS = 200;
+const FRAME_AGE_WARNING_THRESHOLD_MS = 1_000;
+const FRAME_AGE_PNG_WARNING_THRESHOLD_MS = 2_000;
+const MAX_RECENT_FRAMES = 10;
+const MAX_SCAN_BYTES = 1_000;
+const CONNECTION_WAIT_MS = 1_000;
+const FRAME_LOG_INTERVAL = 20;
+
 export interface ScrcpyScreenshotOptions {
   maxSize?: number;
   videoBitRate?: number;
@@ -14,37 +38,44 @@ export interface ScrcpyScreenshotOptions {
 }
 
 /**
+ * Check if NAL unit type indicates a keyframe (IDR, SPS, or PPS)
+ */
+function isKeyFrameNalType(nalUnitType: number): boolean {
+  return (
+    nalUnitType === NAL_TYPE_IDR ||
+    nalUnitType === NAL_TYPE_SPS ||
+    nalUnitType === NAL_TYPE_PPS
+  );
+}
+
+/**
  * Detect if H.264 frame contains keyframe (IDR) or SPS/PPS
- * H.264 NAL unit types:
- * - 1: non-IDR slice (P/B frame)
- * - 5: IDR slice (keyframe/I-frame)
- * - 7: SPS (Sequence Parameter Set)
- * - 8: PPS (Picture Parameter Set)
+ * Scans for H.264 start codes (0x00 0x00 0x00 0x01 or 0x00 0x00 0x01)
  */
 function detectH264KeyFrame(buffer: Buffer): boolean {
-  // H.264 uses start codes: 0x00 0x00 0x00 0x01 or 0x00 0x00 0x01
-  for (let i = 0; i < Math.min(buffer.length - 4, 1000); i++) {
-    // Look for 4-byte start code: 0x00 0x00 0x00 0x01
+  const scanLimit = Math.min(buffer.length - 4, MAX_SCAN_BYTES);
+
+  for (let i = 0; i < scanLimit; i++) {
+    // Check for 4-byte start code: 0x00 0x00 0x00 0x01
     if (
       buffer[i] === 0x00 &&
       buffer[i + 1] === 0x00 &&
       buffer[i + 2] === 0x00 &&
       buffer[i + 3] === 0x01
     ) {
-      const nalUnitType = buffer[i + 4] & 0x1f; // Lower 5 bits
-      // Type 5 = IDR (keyframe), Type 7 = SPS, Type 8 = PPS
-      if (nalUnitType === 5 || nalUnitType === 7 || nalUnitType === 8) {
+      const nalUnitType = buffer[i + 4] & NAL_TYPE_MASK;
+      if (isKeyFrameNalType(nalUnitType)) {
         return true;
       }
     }
-    // Look for 3-byte start code: 0x00 0x00 0x01
+    // Check for 3-byte start code: 0x00 0x00 0x01
     else if (
       buffer[i] === 0x00 &&
       buffer[i + 1] === 0x00 &&
       buffer[i + 2] === 0x01
     ) {
-      const nalUnitType = buffer[i + 3] & 0x1f;
-      if (nalUnitType === 5 || nalUnitType === 7 || nalUnitType === 8) {
+      const nalUnitType = buffer[i + 3] & NAL_TYPE_MASK;
+      if (isKeyFrameNalType(nalUnitType)) {
         return true;
       }
     }
@@ -52,28 +83,57 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
   return false;
 }
 
+/**
+ * Video packet from scrcpy stream
+ */
+interface VideoPacket {
+  data: Uint8Array;
+  keyframe?: boolean;
+}
+
+/**
+ * Video stream from scrcpy (simplified interface)
+ */
+interface VideoStream {
+  metadata: { width?: number; height?: number };
+  stream: { getReader(): ReadableStreamDefaultReader<VideoPacket> };
+}
+
+/**
+ * Required options after applying defaults
+ */
+interface ResolvedScrcpyOptions {
+  maxSize: number;
+  videoBitRate: number;
+  idleTimeoutMs: number;
+}
+
 export class ScrcpyScreenshotManager {
   private adb: Adb;
-  private scrcpyClient: any = null;
-  private videoStream: any = null;
+  // Using 'unknown' for external library types to avoid tight coupling
+  private scrcpyClient: {
+    videoStream?: Promise<VideoStream>;
+    close(): Promise<void>;
+  } | null = null;
+  private videoStream: VideoStream | null = null;
   private lastFrameBuffer: Buffer | null = null;
   private lastFrameTimestamp = 0;
-  private spsHeader: Buffer | null = null; // SPS/PPS header from first keyframe
+  private spsHeader: Buffer | null = null;
   private latestFrameBuffer: Buffer | null = null;
   private latestFrameTimestamp = 0;
   private idleTimer: NodeJS.Timeout | null = null;
   private isConnecting = false;
   private isInitialized = false;
-  private options: ScrcpyScreenshotOptions;
+  private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
-  private recentFrames: Buffer[] = []; // Keep recent frames for GOP
+  private recentFrames: Buffer[] = [];
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
     this.options = {
-      maxSize: options.maxSize ?? 1024,
-      videoBitRate: options.videoBitRate ?? 2_000_000,
-      idleTimeoutMs: options.idleTimeoutMs ?? 30000,
+      maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
+      videoBitRate: options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE,
+      idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
     };
   }
 
@@ -89,8 +149,7 @@ export class ScrcpyScreenshotManager {
 
     if (this.isConnecting) {
       debugScrcpy('Connection in progress, waiting...');
-      // Wait for connection to complete (simple implementation)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, CONNECTION_WAIT_MS));
       return this.ensureConnected();
     }
 
@@ -98,7 +157,6 @@ export class ScrcpyScreenshotManager {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
 
-      // Import dependencies dynamically
       const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
         '@yume-chan/adb-scrcpy'
       );
@@ -107,26 +165,18 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/scrcpy'
       );
 
-      // Push server binary
-      const currentDir =
-        typeof __dirname !== 'undefined'
-          ? __dirname
-          : path.dirname(fileURLToPath(import.meta.url));
-      // Go up two levels from dist/lib or dist/es to reach package root
-      const serverBinPath = path.resolve(currentDir, '../../bin/server.bin');
-
+      const serverBinPath = this.resolveServerBinPath();
       await AdbScrcpyClient.pushServer(
         this.adb,
         ReadableStream.from(createReadStream(serverBinPath)),
       );
 
-      // Start scrcpy with optimized options
       const scrcpyOptions = new ScrcpyOptions3_1({
         audio: false,
-        control: false, // Screenshot mode doesn't need control
+        control: false,
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
-        sendFrameMeta: false, // Reduce overhead
+        sendFrameMeta: false,
       });
 
       this.scrcpyClient = await AdbScrcpyClient.start(
@@ -135,13 +185,14 @@ export class ScrcpyScreenshotManager {
         new AdbScrcpyOptions2_1(scrcpyOptions),
       );
 
-      // Get video stream
-      this.videoStream = await this.scrcpyClient.videoStream;
-      debugScrcpy(
-        `Video stream started: ${this.videoStream.metadata.width}x${this.videoStream.metadata.height}`,
-      );
+      const videoStreamPromise = this.scrcpyClient.videoStream;
+      if (!videoStreamPromise) {
+        throw new Error('Scrcpy client did not provide video stream');
+      }
+      this.videoStream = await videoStreamPromise;
+      const { width = 0, height = 0 } = this.videoStream.metadata;
+      debugScrcpy(`Video stream started: ${width}x${height}`);
 
-      // Start consuming frames
       this.startFrameConsumer();
       this.resetIdleTimer();
       this.isInitialized = true;
@@ -157,111 +208,141 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
+   * Resolve path to scrcpy server binary
+   */
+  private resolveServerBinPath(): string {
+    const currentDir =
+      typeof __dirname !== 'undefined'
+        ? __dirname
+        : path.dirname(fileURLToPath(import.meta.url));
+    return path.resolve(currentDir, '../../bin/server.bin');
+  }
+
+  /**
    * Consume video frames and keep latest frame
    */
-  private async startFrameConsumer(): Promise<void> {
+  private startFrameConsumer(): void {
     if (!this.videoStream) return;
 
     const reader = this.videoStream.stream.getReader();
+    this.consumeFramesLoop(reader);
+  }
 
-    const consumeFrames = async () => {
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+  /**
+   * Main frame consumption loop
+   */
+  private async consumeFramesLoop(
+    reader: ReadableStreamDefaultReader<VideoPacket>,
+  ): Promise<void> {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          // Handle data packets (frames)
-          const frameBuffer = Buffer.from(value.data);
-          const reportedKeyFrame = (value as any).keyframe || false;
-
-          // Manual keyframe detection (more reliable)
-          const actualKeyFrame = detectH264KeyFrame(frameBuffer);
-
-          // Store all frames for general use
-          this.lastFrameBuffer = frameBuffer;
-          this.lastFrameTimestamp = Date.now();
-
-          // Extract SPS/PPS from keyframe using @yume-chan/scrcpy's parser
-          if (actualKeyFrame && !this.spsHeader) {
-            try {
-              const config = h264SearchConfiguration(
-                new Uint8Array(frameBuffer),
-              );
-              if (config.sequenceParameterSet && config.pictureParameterSet) {
-                // H.264 Annex B format requires start codes (0x00 0x00 0x00 0x01)
-                const startCode = Buffer.from([0x00, 0x00, 0x00, 0x01]);
-
-                // Build complete configuration buffer with start codes: [SC][SPS][SC][PPS]
-                this.spsHeader = Buffer.concat([
-                  startCode,
-                  Buffer.from(config.sequenceParameterSet),
-                  startCode,
-                  Buffer.from(config.pictureParameterSet),
-                ]);
-                debugScrcpy(
-                  `Extracted SPS/PPS configuration: SPS=${config.sequenceParameterSet.length}B, PPS=${config.pictureParameterSet.length}B, total=${this.spsHeader.length}B (with start codes)`,
-                );
-              }
-            } catch (error) {
-              debugScrcpy(`Failed to extract SPS/PPS from keyframe: ${error}`);
-            }
-          }
-
-          // Update latest frame buffer: prepend SPS/PPS to keyframe for ffmpeg
-          if (actualKeyFrame && this.spsHeader) {
-            // Combine: [SPS with SC][PPS with SC][Keyframe]
-            this.latestFrameBuffer = Buffer.concat([
-              this.spsHeader,
-              frameBuffer,
-            ]);
-            this.latestFrameTimestamp = Date.now();
-            debugScrcpy(
-              `Updated frame buffer: config=${this.spsHeader.length}B + keyframe=${frameBuffer.length}B = ${this.latestFrameBuffer.length}B`,
-            );
-          }
-
-          // Keep recent frames for potential future use
-          this.recentFrames.push(frameBuffer);
-          if (this.recentFrames.length > 10) {
-            this.recentFrames.shift();
-          }
-
-          // Log keyframes and every 20th frame to reduce spam
-          if (actualKeyFrame || this.recentFrames.length % 20 === 0) {
-            debugScrcpy(
-              `Frame: ${frameBuffer.length} bytes, keyFrame=${actualKeyFrame} (reported=${reportedKeyFrame}), hasConfig=${!!this.spsHeader}, recentFrames=${this.recentFrames.length}`,
-            );
-          }
-        }
-      } catch (error) {
-        debugScrcpy(`Frame consumer error: ${error}`);
-        await this.disconnect();
+        this.processFrame(value);
       }
-    };
+    } catch (error) {
+      debugScrcpy(`Frame consumer error: ${error}`);
+      await this.disconnect();
+    }
+  }
 
-    // Consume frames asynchronously
-    consumeFrames().catch((error) => {
-      debugScrcpy(`Frame consumer crashed: ${error}`);
-    });
+  /**
+   * Process a single video frame
+   */
+  private processFrame(packet: VideoPacket): void {
+    const frameBuffer = Buffer.from(packet.data);
+    const reportedKeyFrame = packet.keyframe ?? false;
+    const actualKeyFrame = detectH264KeyFrame(frameBuffer);
+
+    this.lastFrameBuffer = frameBuffer;
+    this.lastFrameTimestamp = Date.now();
+
+    if (actualKeyFrame && !this.spsHeader) {
+      this.extractSpsHeader(frameBuffer);
+    }
+
+    if (actualKeyFrame && this.spsHeader) {
+      this.latestFrameBuffer = Buffer.concat([this.spsHeader, frameBuffer]);
+      this.latestFrameTimestamp = Date.now();
+      debugScrcpy(
+        `Updated frame buffer: config=${this.spsHeader.length}B + keyframe=${frameBuffer.length}B = ${this.latestFrameBuffer.length}B`,
+      );
+    }
+
+    this.updateRecentFrames(frameBuffer);
+    this.logFrameIfNeeded(frameBuffer, actualKeyFrame, reportedKeyFrame);
+  }
+
+  /**
+   * Extract SPS/PPS header from keyframe
+   */
+  private extractSpsHeader(frameBuffer: Buffer): void {
+    try {
+      const config = h264SearchConfiguration(new Uint8Array(frameBuffer));
+      if (!config.sequenceParameterSet || !config.pictureParameterSet) {
+        return;
+      }
+
+      this.spsHeader = Buffer.concat([
+        START_CODE_4_BYTE,
+        Buffer.from(config.sequenceParameterSet),
+        START_CODE_4_BYTE,
+        Buffer.from(config.pictureParameterSet),
+      ]);
+
+      debugScrcpy(
+        `Extracted SPS/PPS: SPS=${config.sequenceParameterSet.length}B, PPS=${config.pictureParameterSet.length}B, total=${this.spsHeader.length}B`,
+      );
+    } catch (error) {
+      debugScrcpy(`Failed to extract SPS/PPS from keyframe: ${error}`);
+    }
+  }
+
+  /**
+   * Update recent frames buffer with size limit
+   */
+  private updateRecentFrames(frameBuffer: Buffer): void {
+    this.recentFrames.push(frameBuffer);
+    if (this.recentFrames.length > MAX_RECENT_FRAMES) {
+      this.recentFrames.shift();
+    }
+  }
+
+  /**
+   * Log frame information for debugging (keyframes and periodic frames)
+   */
+  private logFrameIfNeeded(
+    frameBuffer: Buffer,
+    actualKeyFrame: boolean,
+    reportedKeyFrame: boolean,
+  ): void {
+    const shouldLog =
+      actualKeyFrame || this.recentFrames.length % FRAME_LOG_INTERVAL === 0;
+    if (!shouldLog) return;
+
+    debugScrcpy(
+      `Frame: ${frameBuffer.length} bytes, keyFrame=${actualKeyFrame} (reported=${reportedKeyFrame}), hasConfig=${!!this.spsHeader}, recentFrames=${this.recentFrames.length}`,
+    );
   }
 
   /**
    * Get current screenshot from video stream
-   * Note: This returns raw H.264 encoded data
+   * Returns raw H.264 encoded data
    */
   async getScreenshot(): Promise<Buffer> {
     await this.ensureConnected();
 
     if (!this.lastFrameBuffer) {
-      throw new Error('No frame available yet, please retry');
+      throw new Error(
+        'No frame available yet. The video stream may still be initializing. Please retry.',
+      );
     }
 
-    // Check if frame is too old (more than 1 second)
-    const frameAge = Date.now() - this.lastFrameTimestamp;
-    if (frameAge > 1000) {
-      debugScrcpy(`Warning: Frame is ${frameAge}ms old`);
-    }
-
+    this.warnIfFrameStale(
+      this.lastFrameTimestamp,
+      FRAME_AGE_WARNING_THRESHOLD_MS,
+    );
     this.resetIdleTimer();
 
     return this.lastFrameBuffer;
@@ -273,62 +354,85 @@ export class ScrcpyScreenshotManager {
    */
   async getScreenshotPng(): Promise<Buffer> {
     await this.ensureConnected();
+    await this.ensureFfmpegAvailable();
+    await this.waitForKeyframe();
 
-    // Check ffmpeg availability
+    if (!this.latestFrameBuffer) {
+      throw new Error(
+        'No decodable frames available. Keyframe may not have been captured yet.',
+      );
+    }
+
+    this.warnIfFrameStale(
+      this.latestFrameTimestamp,
+      FRAME_AGE_PNG_WARNING_THRESHOLD_MS,
+    );
+    this.resetIdleTimer();
+
+    debugScrcpy(
+      `Decoding H.264 stream: ${this.latestFrameBuffer.length} bytes (header: ${this.spsHeader?.length ?? 0}, recent: ${this.recentFrames.length} frames)`,
+    );
+    return this.decodeH264ToPng(this.latestFrameBuffer);
+  }
+
+  /**
+   * Log warning if frame is older than threshold
+   */
+  private warnIfFrameStale(timestamp: number, thresholdMs: number): void {
+    const frameAge = Date.now() - timestamp;
+    if (frameAge > thresholdMs) {
+      debugScrcpy(`Warning: Frame is ${frameAge}ms old`);
+    }
+  }
+
+  /**
+   * Ensure ffmpeg is available for PNG conversion
+   */
+  private async ensureFfmpegAvailable(): Promise<void> {
     if (this.ffmpegAvailable === null) {
       this.ffmpegAvailable = await this.checkFfmpegAvailable();
     }
 
     if (!this.ffmpegAvailable) {
       throw new Error(
-        'ffmpeg is not available. Please install ffmpeg to use scrcpy screenshot mode.',
+        'ffmpeg is required for PNG screenshot conversion but is not installed. ' +
+          'Please install ffmpeg (https://ffmpeg.org) to use scrcpy screenshot mode.',
       );
     }
+  }
 
-    // Wait for SPS/PPS header (first keyframe) - up to 5 seconds
-    const maxWaitTime = 5000;
+  /**
+   * Wait for first keyframe with SPS/PPS header
+   */
+  private async waitForKeyframe(): Promise<void> {
     const startTime = Date.now();
-    while (!this.spsHeader && Date.now() - startTime < maxWaitTime) {
+
+    while (!this.spsHeader && Date.now() - startTime < MAX_KEYFRAME_WAIT_MS) {
+      const elapsed = Date.now() - startTime;
       debugScrcpy(
-        `Waiting for first keyframe (SPS/PPS header)... ${Date.now() - startTime}ms`,
+        `Waiting for first keyframe (SPS/PPS header)... ${elapsed}ms`,
       );
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      await new Promise((resolve) =>
+        setTimeout(resolve, KEYFRAME_POLL_INTERVAL_MS),
+      );
     }
 
     if (!this.spsHeader) {
       throw new Error(
-        'No keyframe received yet. Device may have long GOP interval. Please retry.',
+        `No keyframe received within ${MAX_KEYFRAME_WAIT_MS}ms. Device may have a long GOP interval or video encoding issues. Please retry.`,
       );
     }
-
-    if (!this.latestFrameBuffer) {
-      throw new Error('No frames available for decoding');
-    }
-
-    // Check if frame is too old (more than 2 seconds)
-    const frameAge = Date.now() - this.latestFrameTimestamp;
-    if (frameAge > 2000) {
-      debugScrcpy(`Warning: Frame is ${frameAge}ms old`);
-    }
-
-    this.resetIdleTimer();
-
-    // Decode H.264 stream to PNG using ffmpeg
-    debugScrcpy(
-      `Decoding H.264 stream: ${this.latestFrameBuffer.length} bytes (header: ${this.spsHeader.length}, recent: ${this.recentFrames.length} frames)`,
-    );
-    return this.decodeH264ToPng(this.latestFrameBuffer);
   }
 
   /**
    * Check if ffmpeg is available in the system
    */
   private async checkFfmpegAvailable(): Promise<boolean> {
-    try {
-      const { execFile } = await import('node:child_process');
-      const { promisify } = await import('node:util');
-      const execFileAsync = promisify(execFile);
+    const { execFile } = await import('node:child_process');
+    const { promisify } = await import('node:util');
+    const execFileAsync = promisify(execFile);
 
+    try {
       await execFileAsync('ffmpeg', ['-version']);
       debugScrcpy('ffmpeg is available');
       return true;
@@ -345,27 +449,25 @@ export class ScrcpyScreenshotManager {
     const { spawn } = await import('node:child_process');
 
     return new Promise((resolve, reject) => {
-      const ffmpeg = spawn(
-        'ffmpeg',
-        [
-          '-f',
-          'h264', // Input format
-          '-i',
-          'pipe:0', // Input from stdin
-          '-vframes',
-          '1', // Extract 1 frame
-          '-f',
-          'image2pipe', // Output as image
-          '-vcodec',
-          'png', // PNG codec
-          '-loglevel',
-          'error', // Only show errors
-          'pipe:1', // Output to stdout
-        ],
-        {
-          stdio: ['pipe', 'pipe', 'pipe'],
-        },
-      );
+      const ffmpegArgs = [
+        '-f',
+        'h264',
+        '-i',
+        'pipe:0',
+        '-vframes',
+        '1',
+        '-f',
+        'image2pipe',
+        '-vcodec',
+        'png',
+        '-loglevel',
+        'error',
+        'pipe:1',
+      ];
+
+      const ffmpeg = spawn('ffmpeg', ffmpegArgs, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
 
       const chunks: Buffer[] = [];
       let stderrOutput = '';
@@ -388,15 +490,14 @@ export class ScrcpyScreenshotManager {
         } else {
           const errorMsg = stderrOutput || `FFmpeg exited with code ${code}`;
           debugScrcpy(`FFmpeg decode failed: ${errorMsg}`);
-          reject(new Error(`FFmpeg decode failed: ${errorMsg}`));
+          reject(new Error(`H.264 to PNG decode failed: ${errorMsg}`));
         }
       });
 
       ffmpeg.on('error', (error) => {
-        reject(new Error(`FFmpeg spawn error: ${error.message}`));
+        reject(new Error(`Failed to spawn ffmpeg process: ${error.message}`));
       });
 
-      // Write H.264 data to ffmpeg stdin
       ffmpeg.stdin.write(h264Buffer);
       ffmpeg.stdin.end();
     });
