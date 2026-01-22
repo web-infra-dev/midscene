@@ -165,7 +165,9 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     return null;
   }
 
-  if (node instanceof HTMLElement) {
+  // Check if the node is an element that can be scrolled into view
+  // This includes both HTMLElement and SVGElement
+  if (node instanceof Element) {
     // only when the element is not completely in the viewport, call scrollIntoView
     const rect = getRect(node, 1, window);
     const isVisible = isElementPartiallyInViewport(rect, window, document, 1);
