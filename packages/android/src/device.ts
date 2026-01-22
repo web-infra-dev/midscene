@@ -1691,7 +1691,7 @@ const launchParamSchema = z.object({
   uri: z
     .string()
     .describe(
-      'Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
     ),
 });
 
