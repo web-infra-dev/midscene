@@ -76,6 +76,8 @@ export class AndroidDevice implements AbstractInterface {
     isCurrentOrientation?: boolean;
   } | null = null;
   private cachedOrientation: number | null = null;
+  private cachedPhysicalDisplayId: string | null | undefined = undefined;
+  private scrcpyManager: any = null; // ScrcpyScreenshotManager instance
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
@@ -339,7 +341,7 @@ export class AndroidDevice implements AbstractInterface {
           this.options?.remoteAdbPort ||
           globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_REMOTE_PORT);
 
-        this.adb = await new ADB({
+        this.adb = new ADB({
           udid: this.deviceId,
           adbExecTimeout: 60000,
           executable: androidAdbPath
@@ -418,6 +420,56 @@ ${Object.keys(size)
         };
       },
     });
+  }
+
+  /**
+   * Get or create Scrcpy manager
+   * Note: This creates a @yume-chan/adb instance, which is different from appium-adb
+   */
+  private async getScrcpyManager(): Promise<any> {
+    if (this.scrcpyManager) {
+      return this.scrcpyManager;
+    }
+
+    try {
+      debugDevice('Initializing Scrcpy manager...');
+
+      // Import dependencies dynamically
+      const { Adb } = await import('@yume-chan/adb');
+      const { AdbServerClient } = await import('@yume-chan/adb');
+      const { AdbServerNodeTcpConnector } = await import(
+        '@yume-chan/adb-server-node-tcp'
+      );
+      const { ScrcpyScreenshotManager } = await import('./scrcpy-manager');
+
+      // Create @yume-chan/adb client
+      const adbClient = new AdbServerClient(
+        new AdbServerNodeTcpConnector({
+          host: '127.0.0.1',
+          port: 5037,
+        }),
+      );
+
+      // Connect to device
+      const adb = new Adb(
+        await adbClient.createTransport({ serial: this.deviceId }),
+      );
+
+      // Create Scrcpy manager
+      this.scrcpyManager = new ScrcpyScreenshotManager(adb, {
+        maxSize: this.options?.scrcpyMaxSize,
+        videoBitRate: this.options?.scrcpyVideoBitRate,
+        idleTimeoutMs: this.options?.scrcpyIdleTimeoutMs,
+      });
+
+      debugDevice('Scrcpy manager initialized');
+      return this.scrcpyManager;
+    } catch (error) {
+      debugDevice(`Failed to initialize Scrcpy manager: ${error}`);
+      throw new Error(
+        `Failed to initialize Scrcpy for device ${this.deviceId}: ${error}`,
+      );
+    }
   }
 
   /**
@@ -891,37 +943,61 @@ ${Object.keys(size)
 
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
+
+    // Try scrcpy mode first (if enabled)
+    if (this.options?.useScrcpyForScreenshot) {
+      try {
+        debugDevice('Attempting scrcpy screenshot...');
+        const scrcpyManager = await this.getScrcpyManager();
+        const screenshotBuffer = await scrcpyManager.getScreenshotPng();
+        debugDevice('Scrcpy screenshot successful');
+
+        const result = createImgBase64ByFormat(
+          'png',
+          screenshotBuffer.toString('base64'),
+        );
+        debugDevice('screenshotBase64 end (scrcpy mode)');
+        return result;
+      } catch (error) {
+        debugDevice(`Scrcpy screenshot failed, falling back to ADB: ${error}`);
+        // Continue to standard ADB path
+      }
+    }
+
+    // Standard ADB screenshot path
     const adb = await this.getAdb();
     let screenshotBuffer: Buffer | undefined;
     let localScreenshotPath: string | null = null;
-    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
+    const screenshotId = Date.now().toString(36);
+    const androidScreenshotPath = `/data/local/tmp/ms_${screenshotId}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
     try {
-      if (useShellScreencap) {
-        // appium-adb's takeScreenshot does not support specifying a display.
-        // Throw an error to jump directly to the shell-based screencap logic.
-        throw new Error(
-          `Display ${this.options?.displayId} requires shell screencap`,
-        );
-      }
-      debugDevice('Taking screenshot via adb.takeScreenshot');
-      screenshotBuffer = await adb.takeScreenshot(null);
-      debugDevice('adb.takeScreenshot completed');
+      // Directly check condition instead of throwing error
+      if (!useShellScreencap) {
+        debugDevice('Taking screenshot via adb.takeScreenshot');
+        screenshotBuffer = await adb.takeScreenshot(null);
+        debugDevice('adb.takeScreenshot completed');
 
-      // make sure screenshotBuffer is not null
-      if (!screenshotBuffer) {
-        throw new Error(
-          'Failed to capture screenshot: screenshotBuffer is null',
-        );
-      }
+        // make sure screenshotBuffer is not null
+        if (!screenshotBuffer) {
+          throw new Error(
+            'Failed to capture screenshot: screenshotBuffer is null',
+          );
+        }
 
-      // check if the buffer is a valid PNG image, it might be a error string
-      if (!isValidPNGImageBuffer(screenshotBuffer)) {
-        debugDevice('Invalid image buffer detected: not a valid image format');
-        throw new Error(
-          'Screenshot buffer has invalid format: could not find valid image signature',
-        );
+        // check if the buffer is a valid PNG image, it might be a error string
+        if (!isValidPNGImageBuffer(screenshotBuffer)) {
+          debugDevice(
+            'Invalid image buffer detected: not a valid image format',
+          );
+          throw new Error(
+            'Screenshot buffer has invalid format: could not find valid image signature',
+          );
+        }
+      } else {
+        // Jump directly to shell screencap logic for displayId
+        throw new Error('Using shell screencap for displayId');
       }
 
       // Additional validation: check buffer size
@@ -991,11 +1067,12 @@ ${Object.keys(size)
           `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
         );
       } finally {
-        try {
-          await adb.shell(`rm ${androidScreenshotPath}`);
-        } catch (error) {
-          debugDevice(`Failed to delete remote screenshot: ${error}`);
-        }
+        // Asynchronously delete remote screenshot (don't block)
+        Promise.resolve()
+          .then(() => adb.shell(`rm ${androidScreenshotPath}`))
+          .catch((error) => {
+            debugDevice(`Failed to delete remote screenshot: ${error}`);
+          });
       }
     }
 
@@ -1479,6 +1556,21 @@ ${Object.keys(size)
 
     this.destroyed = true;
 
+    // Clear cached values
+    this.cachedPhysicalDisplayId = undefined;
+    this.cachedScreenSize = null;
+    this.cachedOrientation = null;
+
+    // Disconnect scrcpy if active
+    if (this.scrcpyManager) {
+      try {
+        await this.scrcpyManager.disconnect();
+      } catch (error) {
+        debugDevice(`Error disconnecting scrcpy: ${error}`);
+      }
+      this.scrcpyManager = null;
+    }
+
     try {
       if (this.adb) {
         this.adb = null;
@@ -1582,7 +1674,13 @@ ${Object.keys(size)
   }
 
   async getPhysicalDisplayId(): Promise<string | null> {
+    // Return cached value if available
+    if (this.cachedPhysicalDisplayId !== undefined) {
+      return this.cachedPhysicalDisplayId;
+    }
+
     if (typeof this.options?.displayId !== 'number') {
+      this.cachedPhysicalDisplayId = null;
       return null;
     }
 
@@ -1599,18 +1697,21 @@ ${Object.keys(size)
       );
       const displayMatch = stdout.match(regex);
       if (displayMatch?.[1]) {
+        this.cachedPhysicalDisplayId = displayMatch[1];
         debugDevice(
-          `Found physical display ID: ${displayMatch[1]} for display ID: ${this.options.displayId}`,
+          `Found and cached physical display ID: ${displayMatch[1]} for display ID: ${this.options.displayId}`,
         );
-        return displayMatch[1];
+        return this.cachedPhysicalDisplayId;
       }
 
+      this.cachedPhysicalDisplayId = null;
       debugDevice(
         `Could not find physical display ID for display ID: ${this.options.displayId}`,
       );
       return null;
     } catch (error) {
       debugDevice(`Error getting physical display ID: ${error}`);
+      this.cachedPhysicalDisplayId = null;
       return null;
     }
   }

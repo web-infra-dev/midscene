@@ -82,7 +82,13 @@ const main = async () => {
     const playgroundServer = new PlaygroundServer(
       // Agent factory - creates new agent with device each time
       async () => {
-        const device = new AndroidDevice(selectedDeviceId);
+        const device = new AndroidDevice(selectedDeviceId, {
+          // Scrcpy screenshot is experimental - enabled for testing
+          useScrcpyForScreenshot: true,
+          scrcpyMaxSize: 1024,
+          scrcpyIdleTimeoutMs: 30000,
+          scrcpyVideoBitRate: 2_000_000,
+        });
         await device.connect();
         return new AndroidAgent(device);
       },

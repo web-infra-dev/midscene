@@ -36,6 +36,14 @@ export type AndroidDeviceOpt = {
   alwaysRefreshScreenInfo?: boolean;
   /** Minimum screenshot buffer size in bytes (default: 10240 = 10KB). Set to 0 to disable validation. */
   minScreenshotBufferSize?: number;
+  /** Use scrcpy for screenshots (experimental, high performance) */
+  useScrcpyForScreenshot?: boolean;
+  /** Maximum screenshot size for scrcpy mode (default: 1024) */
+  scrcpyMaxSize?: number;
+  /** Idle timeout in ms before disconnecting scrcpy (default: 30000) */
+  scrcpyIdleTimeoutMs?: number;
+  /** Video bit rate for scrcpy (default: 2000000) */
+  scrcpyVideoBitRate?: number;
 } & AndroidDeviceInputOpt;
 
 /**

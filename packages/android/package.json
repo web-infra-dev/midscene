@@ -39,7 +39,13 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "appium-adb": "12.12.1"
+    "@yume-chan/adb": "^1.1.0",
+    "@yume-chan/adb-scrcpy": "^1.1.0",
+    "@yume-chan/adb-server-node-tcp": "^1.1.0",
+    "@yume-chan/scrcpy": "^1.1.0",
+    "@yume-chan/stream-extra": "^1.0.0",
+    "appium-adb": "12.12.1",
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "@midscene/playground": "workspace:*",
