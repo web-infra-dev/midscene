@@ -7,7 +7,6 @@ import {
 } from '@midscene/shared/zod-schema-utils';
 import type { z } from 'zod';
 import { bboxDescription } from './common';
-import { shortMemoryInstruction } from './short-memory';
 
 const vlLocateParam = (modelFamily: TModelFamily | undefined) => {
   if (modelFamily) {
@@ -245,8 +244,6 @@ Please tell what the next one action is (or null if no action should be done) to
 ${actionList}
 
 ${logFieldInstruction}
-
-${shortMemoryInstruction}
 
 ## Return format
 

@@ -718,10 +718,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   description?: string;
   interfaceAlias?: string;
   paramSchema?: z.ZodType<TParam>;
-  call: (
-    param: TParam,
-    context?: ExecutorContext,
-  ) => Promise<TReturn> | TReturn;
+  call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
   delayAfterRunner?: number;
 }
 
