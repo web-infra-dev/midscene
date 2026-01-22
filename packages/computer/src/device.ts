@@ -25,6 +25,7 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import clipboardy from 'clipboardy';
 import screenshot from 'screenshot-desktop';
 
 // Type definitions
@@ -62,6 +63,10 @@ const INPUT_CLEAR_DELAY = 150;
 const SCROLL_REPEAT_COUNT = 10;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
+
+// Input strategy constants
+const INPUT_STRATEGY_ALWAYS_CLIPBOARD = 'always-clipboard';
+const INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII = 'clipboard-for-non-ascii';
 
 // Lazy load libnut with fallback
 let libnut: LibNut | null = null;
@@ -185,6 +190,7 @@ export interface ComputerDeviceOpt {
   displayId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customActions?: DeviceAction<any>[];
+  inputStrategy?: 'always-clipboard' | 'clipboard-for-non-ascii';
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -286,6 +292,87 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     } catch (error) {
       debugDevice(`Failed to get screen size: ${error}`);
       throw new Error(`Failed to get screen size: ${error}`);
+    }
+  }
+
+  /**
+   * Check if text contains non-ASCII characters
+   * Matches: Chinese, Japanese, Korean, Latin extended characters (café, niño), emoji, etc.
+   */
+  private shouldUseClipboardForText(text: string): boolean {
+    // Check for any character with code point >= 128 (non-ASCII)
+    const hasNonAscii = /[\x80-\uFFFF]/.test(text);
+    return hasNonAscii;
+  }
+
+  /**
+   * Type text via clipboard (paste)
+   * This method:
+   * 1. Saves the old clipboard content
+   * 2. Writes new content to clipboard
+   * 3. Simulates paste shortcut (Ctrl+V / Cmd+V)
+   * 4. Restores old clipboard content
+   */
+  private async typeViaClipboard(text: string): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+    debugDevice('Using clipboard to input text', {
+      textLength: text.length,
+      preview: text.substring(0, 20),
+    });
+
+    // 1. Save old clipboard content
+    const oldClipboard = await clipboardy.read().catch(() => '');
+
+    try {
+      // 2. Write new content to clipboard
+      await clipboardy.write(text);
+      await sleep(50);
+
+      // 3. Simulate paste shortcut
+      const modifier = process.platform === 'darwin' ? 'command' : 'control';
+      libnut.keyTap('v', [modifier]);
+      await sleep(100);
+    } finally {
+      // 4. Restore old clipboard content
+      if (oldClipboard) {
+        await clipboardy.write(oldClipboard).catch(() => {
+          // Silent fail - don't affect main flow
+          debugDevice('Failed to restore clipboard content');
+        });
+      }
+    }
+  }
+
+  /**
+   * Smart type string with platform-specific strategy
+   * - macOS: Always use libnut (native support for non-ASCII)
+   * - Windows/Linux: Use clipboard for non-ASCII characters
+   */
+  private async smartTypeString(text: string): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+
+    // macOS: use libnut directly (native Chinese support)
+    if (process.platform === 'darwin') {
+      libnut.typeString(text);
+      return;
+    }
+
+    // Windows/Linux: use smart strategy
+    const inputStrategy =
+      this.options?.inputStrategy ?? INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII;
+
+    if (inputStrategy === INPUT_STRATEGY_ALWAYS_CLIPBOARD) {
+      await this.typeViaClipboard(text);
+      return;
+    }
+
+    // clipboard-for-non-ascii strategy: intelligent detection
+    const shouldUseClipboard = this.shouldUseClipboardForText(text);
+
+    if (shouldUseClipboard) {
+      await this.typeViaClipboard(text);
+    } else {
+      libnut.typeString(text);
     }
   }
 
@@ -401,7 +488,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             return;
           }
 
-          libnut.typeString(param.value);
+          await this.smartTypeString(param.value);
         },
       }),
 
