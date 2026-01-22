@@ -6,7 +6,7 @@ import { getDebug } from '../logger';
 const imgDebug = getDebug('img');
 
 /**
- * Wrapper for Jimp.read that saves problematic buffers to /tmp for debugging
+ * Reads an image buffer using Jimp and saves problematic buffers to /tmp for debugging
  * when "Could not find MIME" errors occur
  *
  * @param imageBuffer - The image buffer to read
@@ -14,7 +14,7 @@ const imgDebug = getDebug('img');
  * @returns Promise resolving to Jimp image
  * @throws Error with additional context if MIME detection fails
  */
-export async function safeJimpRead(
+export async function readImageBuffer(
   imageBuffer: Buffer,
   Jimp: typeof import('jimp'),
 ): Promise<Jimp> {

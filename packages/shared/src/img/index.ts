@@ -22,4 +22,4 @@ export {
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';
-export { safeJimpRead } from './safe-jimp';
+export { readImageBuffer } from './safe-jimp';
