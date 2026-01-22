@@ -257,10 +257,17 @@ export class Page<
     const webFeature = feature as WebElementCacheFeature;
     const xpaths = sanitizeXpaths(webFeature.xpaths);
 
+    debugPage('rectMatchesCacheFeature: trying %d xpath(s)', xpaths.length);
+
     for (const xpath of xpaths) {
       try {
+        debugPage('rectMatchesCacheFeature: evaluating xpath: %s', xpath);
         const elementInfo = await this.getElementInfoByXpath(xpath);
         if (elementInfo?.rect) {
+          debugPage(
+            'rectMatchesCacheFeature: found element, rect: %o',
+            elementInfo.rect,
+          );
           const matchedRect: Rect = {
             left: elementInfo.rect.left,
             top: elementInfo.rect.top,
@@ -274,6 +281,10 @@ export class Page<
 
           return matchedRect;
         }
+        debugPage(
+          'rectMatchesCacheFeature: element found but no rect (elementInfo: %o)',
+          elementInfo,
+        );
       } catch (error) {
         debugPage(
           'rectMatchesCacheFeature failed for xpath %s: %s',
@@ -284,7 +295,7 @@ export class Page<
     }
 
     throw new Error(
-      'No matching element rect found for the provided cache feature',
+      `No matching element rect found for the provided cache feature (tried ${xpaths.length} xpath(s): ${xpaths.join(', ')})`,
     );
   }
 
