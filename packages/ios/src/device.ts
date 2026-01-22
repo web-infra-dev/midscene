@@ -288,14 +288,24 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   /**
+   * Normalize string for comparison: lowercase and remove spaces
+   */
+  private normalizeForComparison(str: string): string {
+    return str.toLowerCase().replace(/\s+/g, '');
+  }
+
+  /**
    * Resolve app name to bundle ID using the mapping.
-   * Returns the bundle ID if found, otherwise undefined.
+   * Comparison is case-insensitive and ignores spaces.
    *
    * @param appName The app name to resolve.
    */
   private resolveBundleId(appName: string): string | undefined {
-    if (appName in this.appNameMapping) {
-      return this.appNameMapping[appName];
+    const normalizedAppName = this.normalizeForComparison(appName);
+    for (const [key, value] of Object.entries(this.appNameMapping)) {
+      if (this.normalizeForComparison(key) === normalizedAppName) {
+        return value;
+      }
     }
     return undefined;
   }
