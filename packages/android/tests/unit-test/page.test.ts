@@ -76,7 +76,8 @@ describe('AndroidDevice', () => {
     }
     // Create a new mock instance for each test
     mockAdb = new (ADB as any)() as Mocked<ADB>;
-    device = new AndroidDevice('test-device');
+    // Disable buffer size validation for tests to allow small mock buffers
+    device = new AndroidDevice('test-device', { minScreenshotBufferSize: 0 });
     // Manually assign the mocked adb instance
     vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });
@@ -1497,6 +1498,7 @@ describe('AndroidDevice', () => {
     it('should use display ID for screenshots by default when displayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
+        minScreenshotBufferSize: 0,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1537,6 +1539,7 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
+        minScreenshotBufferSize: 0,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1574,6 +1577,7 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 2,
         usePhysicalDisplayIdForScreenshot: false,
+        minScreenshotBufferSize: 0,
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1707,6 +1711,7 @@ describe('AndroidDevice', () => {
     it('should not use display ID for screenshots when displayId is not set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         usePhysicalDisplayIdForScreenshot: true, // This should be ignored when no displayId
+        minScreenshotBufferSize: 0,
       });
 
       setupMockAdb(mockAdbInstance);

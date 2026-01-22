@@ -893,7 +893,7 @@ ${Object.keys(size)
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
     const adb = await this.getAdb();
-    let screenshotBuffer;
+    let screenshotBuffer: Buffer | undefined;
     let localScreenshotPath: string | null = null;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
@@ -922,6 +922,23 @@ ${Object.keys(size)
         debugDevice('Invalid image buffer detected: not a valid image format');
         throw new Error(
           'Screenshot buffer has invalid format: could not find valid image signature',
+        );
+      }
+
+      // Additional validation: check buffer size
+      // Real device screenshots are typically 100KB+, so 10KB is a safe threshold
+      // to catch corrupted/invalid buffers while allowing even very small test images
+      const validScreenshotBufferSize =
+        this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
+      if (
+        validScreenshotBufferSize > 0 &&
+        screenshotBuffer.length < validScreenshotBufferSize
+      ) {
+        debugDevice(
+          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
+        );
+        throw new Error(
+          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
         );
       }
     } catch (error) {
@@ -953,6 +970,27 @@ ${Object.keys(size)
         await adb.pull(androidScreenshotPath, screenshotPath);
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
+
+        // Validate the fallback screenshot buffer as well
+        const validScreenshotBufferSize =
+          this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
+        if (
+          !screenshotBuffer ||
+          (validScreenshotBufferSize > 0 &&
+            screenshotBuffer.length < validScreenshotBufferSize)
+        ) {
+          throw new Error(
+            `Fallback screenshot validation failed: buffer size ${screenshotBuffer?.length || 0} bytes (minimum: ${validScreenshotBufferSize})`,
+          );
+        }
+
+        if (!isValidPNGImageBuffer(screenshotBuffer)) {
+          throw new Error('Fallback screenshot buffer has invalid PNG format');
+        }
+
+        debugDevice(
+          `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
+        );
       } finally {
         try {
           await adb.shell(`rm ${androidScreenshotPath}`);
@@ -960,6 +998,10 @@ ${Object.keys(size)
           debugDevice(`Failed to delete remote screenshot: ${error}`);
         }
       }
+    }
+
+    if (!screenshotBuffer) {
+      throw new Error('Failed to capture screenshot: all methods failed');
     }
 
     debugDevice('Converting to base64');

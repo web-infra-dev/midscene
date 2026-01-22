@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer';
 import type Jimp from 'jimp';
 import type { Size } from '../types';
 import getJimp from './get-jimp';
+import { readImageBuffer } from './safe-jimp';
 
 export interface ImageInfo extends Size {
   jimpImage: Jimp;
@@ -23,7 +24,7 @@ export async function imageInfo(
   if (typeof image === 'string') {
     jimpImage = await Jimp.read(image);
   } else if (Buffer.isBuffer(image)) {
-    jimpImage = await Jimp.read(image);
+    jimpImage = await readImageBuffer(image, Jimp);
   } else if (image instanceof Jimp) {
     jimpImage = image;
   } else {
@@ -68,12 +69,17 @@ export function isValidPNGImageBuffer(buffer: Buffer): boolean {
     return false;
   }
 
-  // Check if the Buffer is a valid PNG image (signature: 89 50 4E 47...)
+  // Check PNG signature (8 bytes): 89 50 4E 47 0D 0A 1A 0A
+  // This is more robust than just checking the first 4 bytes
   const isPNG =
     buffer[0] === 0x89 &&
     buffer[1] === 0x50 &&
     buffer[2] === 0x4e &&
-    buffer[3] === 0x47;
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a;
 
   return isPNG;
 }
