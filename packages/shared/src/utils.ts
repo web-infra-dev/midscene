@@ -132,3 +132,11 @@ export function replaceIllegalPathCharsAndSpace(str: string) {
 export function isPlainObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
+/**
+ * Normalize string for comparison: lowercase and remove spaces.
+ * Useful for flexible app name matching.
+ */
+export function normalizeForComparison(str: string): string {
+  return str.toLowerCase().replace(/\s+/g, '');
+}
