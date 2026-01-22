@@ -1691,7 +1691,7 @@ const launchParamSchema = z.object({
   uri: z
     .string()
     .describe(
-      'App name (prioritized, will be resolved to package name), or package name, or URL to launch',
+      'App name, package name, or URL to launch. Prioritize inferring as app name when uncertain',
     ),
 });
 
