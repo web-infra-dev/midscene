@@ -12,7 +12,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
-  PlanningActionParamSleep,
   PlanningLocateParam,
   Rect,
   ServiceDump,
@@ -129,14 +128,6 @@ export class TaskBuilder {
           ),
       ],
       ['Finished', (plan) => this.handleFinishedPlan(plan, context)],
-      [
-        'Sleep',
-        (plan) =>
-          this.handleSleepPlan(
-            plan as PlanningAction<PlanningActionParamSleep>,
-            context,
-          ),
-      ],
     ]);
 
     const defaultHandler: PlanHandler = (plan) =>
@@ -165,34 +156,6 @@ export class TaskBuilder {
       executor: async () => {},
     };
     context.tasks.push(taskActionFinished);
-  }
-
-  private handleSleepPlan(
-    plan: PlanningAction<PlanningActionParamSleep>,
-    context: PlanBuildContext,
-  ): void {
-    const sleepTask = this.createSleepTask(plan.param, {
-      thought: plan.thought,
-    });
-    if (context.subTask) {
-      sleepTask.subTask = true;
-    }
-    context.tasks.push(sleepTask);
-  }
-
-  public createSleepTask(
-    param: PlanningActionParamSleep,
-    meta?: { thought?: string },
-  ): ExecutionTaskActionApply<PlanningActionParamSleep> {
-    return {
-      type: 'Action Space',
-      subType: 'Sleep',
-      param,
-      thought: meta?.thought,
-      executor: async (taskParam) => {
-        await sleep(taskParam?.timeMs || 3000);
-      },
-    };
   }
 
   private async handleLocatePlan(
