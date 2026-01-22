@@ -1,4 +1,5 @@
 import { TaskExecutor } from '@midscene/core/agent';
+import { defineActionSleep } from '@midscene/core/device';
 import type { IModelConfig } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -59,7 +60,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot-base64'),
       url: vi.fn().mockResolvedValue('https://example.com'),
       title: vi.fn().mockResolvedValue('Test Page'),
-      actionSpace: vi.fn(() => []),
+      actionSpace: vi.fn(() => [defineActionSleep()]),
     };
 
     // Create mock insight with extract method

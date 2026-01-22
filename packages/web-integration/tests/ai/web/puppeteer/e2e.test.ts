@@ -116,7 +116,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it.only('Sauce Demo by Swag Lab', async () => {
+    it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
         {
@@ -133,8 +133,6 @@ describe(
         beforeInvokeAction,
         afterInvokeAction,
       });
-
-      await agent.aiAct('等10秒');
 
       await agent.aiAssert('this is a login page');
 
