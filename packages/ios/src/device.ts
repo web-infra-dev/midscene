@@ -962,7 +962,9 @@ type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
 
 const launchParamSchema = z
   .string()
-  .describe('App bundle ID, URL, or app name');
+  .describe(
+    'App name (prioritized, will be resolved to bundle ID from appNameMapping), or bundle ID, or URL to launch',
+  );
 
 type LaunchParam = z.infer<typeof launchParamSchema>;
 
