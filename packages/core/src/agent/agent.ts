@@ -68,12 +68,12 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert } from '../device';
 import {
   ShortMemoryManager,
   type ShortMemoryOpt,
   type ShortMemoryTokenPoint,
 } from './short-memory';
+import { defineActionAssert, defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -402,17 +402,17 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    const shortMemoryActionSpace = this.shortMemoryManager.getActionSpace();
     this.fullActionSpace = [
       ...baseActionSpace,
-      ...shortMemoryActionSpace,
       defineActionAssert(),
+      defineActionSleep(),
     ];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      waitAfterAction: this.opts.waitAfterAction,
       actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {

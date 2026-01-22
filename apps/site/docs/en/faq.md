@@ -61,8 +61,8 @@ The default timeout is configured as follows:
 
 You can also customize or disable the timeout by options:
 
-- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api.html#constructors).
-- Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml.html#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright.html#step-2-extend-the-test-instance).
+- Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api#constructors).
+- Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright#step-2-extend-the-test-instance).
 
 ## Get an error 403 when using Ollama model in Chrome extension
 

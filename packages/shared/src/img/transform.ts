@@ -9,6 +9,7 @@ import { ifInNode } from '../utils';
 import getJimp from './get-jimp';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
+import { readImageBuffer } from './safe-jimp';
 
 const imgDebug = getDebug('img');
 
@@ -33,7 +34,7 @@ export async function saveBase64Image(options: {
 
   // Use Jimp to process the image and save it to the specified location
   const Jimp = await getJimp();
-  const image = await Jimp.read(imageBuffer);
+  const image = await readImageBuffer(imageBuffer, Jimp);
   await image.writeAsync(outputPath);
 }
 
@@ -221,7 +222,7 @@ export async function jimpFromBase64(base64: string): Promise<Jimp> {
   const Jimp = await getJimp();
   const { body } = parseBase64(base64);
   const imageBuffer = Buffer.from(body, 'base64');
-  return Jimp.read(imageBuffer);
+  return readImageBuffer(imageBuffer, Jimp);
 }
 
 // https://help.aliyun.com/zh/model-studio/user-guide/vision/

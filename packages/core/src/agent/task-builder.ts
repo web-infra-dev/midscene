@@ -12,7 +12,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
-  PlanningActionParamSleep,
   PlanningLocateParam,
   Rect,
   ServiceDump,
@@ -59,6 +58,7 @@ interface TaskBuilderDeps {
   service: Service;
   taskCache?: TaskCache;
   actionSpace: DeviceAction[];
+  waitAfterAction?: number;
 }
 
 interface BuildOptions {
@@ -83,16 +83,20 @@ export class TaskBuilder {
 
   private readonly actionSpace: DeviceAction[];
 
+  private readonly waitAfterAction?: number;
+
   constructor({
     interfaceInstance,
     service,
     taskCache,
     actionSpace,
+    waitAfterAction,
   }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
+    this.waitAfterAction = waitAfterAction;
   }
 
   public async build(
@@ -140,14 +144,6 @@ export class TaskBuilder {
           ),
       ],
       ['Finished', (plan) => this.handleFinishedPlan(plan, context)],
-      [
-        'Sleep',
-        (plan) =>
-          this.handleSleepPlan(
-            plan as PlanningAction<PlanningActionParamSleep>,
-            context,
-          ),
-      ],
     ]);
 
     const defaultHandler: PlanHandler = (plan) =>
@@ -176,34 +172,6 @@ export class TaskBuilder {
       executor: async () => {},
     };
     context.tasks.push(taskActionFinished);
-  }
-
-  private handleSleepPlan(
-    plan: PlanningAction<PlanningActionParamSleep>,
-    context: PlanBuildContext,
-  ): void {
-    const sleepTask = this.createSleepTask(plan.param, {
-      thought: plan.thought,
-    });
-    if (context.subTask) {
-      sleepTask.subTask = true;
-    }
-    context.tasks.push(sleepTask);
-  }
-
-  public createSleepTask(
-    param: PlanningActionParamSleep,
-    meta?: { thought?: string },
-  ): ExecutionTaskActionApply<PlanningActionParamSleep> {
-    return {
-      type: 'Action Space',
-      subType: 'Sleep',
-      param,
-      thought: meta?.thought,
-      executor: async (taskParam) => {
-        await sleep(taskParam?.timeMs || 3000);
-      },
-    };
   }
 
   private async handleLocatePlan(
@@ -330,7 +298,8 @@ export class TaskBuilder {
         const actionResult = await actionFn(param, taskContext);
         debug('called action', action.name, 'result:', actionResult);
 
-        const delayAfterRunner = action.delayAfterRunner ?? 300;
+        const delayAfterRunner =
+          action.delayAfterRunner ?? this.waitAfterAction ?? 300;
         if (delayAfterRunner > 0) {
           await sleep(delayAfterRunner);
         }

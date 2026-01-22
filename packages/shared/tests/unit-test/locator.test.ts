@@ -201,12 +201,13 @@ describe('locator', () => {
 
       expect(xpaths).toBeDefined();
       expect(xpaths).toHaveLength(1);
-      // Should return the xpath of the button (non-SVG ancestor), not the path element
+      // Should include the <svg> tag in the xpath to distinguish between multiple SVG icons
+      // but skip internal SVG child elements (path)
       expect(xpaths?.[0]).toMatch(/button/);
+      expect(xpaths?.[0]).toMatch(/svg/);
       expect(xpaths?.[0]).not.toMatch(/path/);
-      expect(xpaths?.[0]).not.toMatch(/svg/);
-      // Should be the button's xpath
-      expect(xpaths?.[0]).toBe('/html/body/button[1]');
+      // For SVG elements, XPath uses *[name()="svg"] syntax due to namespace issues
+      expect(xpaths?.[0]).toBe('/html/body/button[1]/*[name()="svg"][1]');
     });
 
     it('should handle text nodes with order-sensitive mode', () => {

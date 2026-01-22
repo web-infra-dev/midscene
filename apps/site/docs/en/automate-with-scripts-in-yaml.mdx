@@ -459,7 +459,7 @@ tasks:
 
 #### Prompting with images
 
-For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api.html#prompting-with-images)), replace the string value with an object that contains:
+For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api#prompting-with-images)), replace the string value with an object that contains:
 
 - `prompt`: The text prompt.
 - `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
@@ -503,3 +503,11 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
+
+## Notes
+
+### `agent.runYaml` only parses the `tasks` field
+
+When using the `agent.runYaml()` API, only the `tasks` field in the YAML file is parsed and executed.
+
+At that point the agent has already been initialized in the JS script, so it cannot be reinitialized based on the `agent` configuration in the YAML file.

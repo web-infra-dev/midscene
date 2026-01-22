@@ -466,7 +466,7 @@ tasks:
 
 #### 使用图像提示
 
-对于支持在提示词中附带图像的步骤（参见 [API 参考](./api.html#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
+对于支持在提示词中附带图像的步骤（参见 [API 参考](./api#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
 
 - `prompt`：发送给模型的文本描述。
 - `images`（可选）：提示词引用的参考图像，每一项需要提供 `name` 和 `url`。
@@ -510,3 +510,11 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
+
+## 注意事项
+
+### `agent.runYaml` 只会解析 `tasks` 字段
+
+当使用 `agent.runYaml()` api 时，YAML 文件中只有 `tasks` 字段会被解析和执行。
+
+因为此时 agent 已经在 js 脚本中完成初始化，无法根据 YAML 中的 `agent` 配置再次初始化。

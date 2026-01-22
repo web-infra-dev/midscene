@@ -39,22 +39,28 @@ const buildCurrentElementXpath = (
   const tagName = element.nodeName.toLowerCase();
   const textContent = element.textContent?.trim();
 
+  // Check if this is an SVG element (has SVG namespace)
+  const isSVGNamespace = element.namespaceURI === 'http://www.w3.org/2000/svg';
+  // For SVG elements, we need to use *[name()="tagname"] syntax because
+  // XPath's element matching doesn't work with namespaced elements in HTML documents
+  const tagSelector = isSVGNamespace ? `*[name()="${tagName}"]` : tagName;
+
   // Order-sensitive mode: always use index
   if (isOrderSensitive) {
     const index = getElementXpathIndex(element);
-    return `${prefix}${tagName}[${index}]`;
+    return `${prefix}${tagSelector}[${index}]`;
   }
 
   // Order-insensitive mode:
   // - Leaf elements: try text first, fallback to index if no text
   // - Non-leaf elements: always use index
   if (isLeafElement && textContent) {
-    return `${prefix}${tagName}[normalize-space()="${normalizeXpathText(textContent)}"]`;
+    return `${prefix}${tagSelector}[normalize-space()="${normalizeXpathText(textContent)}"]`;
   }
 
   // Fallback to index (for non-leaf elements or leaf elements without text)
   const index = getElementXpathIndex(element);
-  return `${prefix}${tagName}[${index}]`;
+  return `${prefix}${tagSelector}[${index}]`;
 };
 
 export const getElementXpath = (
@@ -87,17 +93,44 @@ export const getElementXpath = (
   if (el === document.documentElement) return '/html';
   if (el === document.body) return '/html/body';
 
-  // if the element is any SVG element, find the nearest non-SVG ancestor
+  // if the element is any SVG element, handle based on tag type
   if (isSvgElement(el)) {
+    const tagName = el.nodeName.toLowerCase();
+
+    // For top-level <svg> tag, include it in the path to distinguish between multiple SVG icons
+    // This is important when there are multiple SVG elements under the same parent (e.g., td[34]/svg[1], td[34]/svg[2])
+    if (tagName === 'svg') {
+      // Include the <svg> tag with its index in the XPath
+      return buildCurrentElementXpath(el, isOrderSensitive, isLeafElement);
+    }
+
+    // For SVG child elements (path, circle, rect, etc.), skip to the nearest <svg> ancestor
+    // These internal elements are usually decorative and can change frequently
     let parent = el.parentNode;
     while (parent && parent.nodeType === Node.ELEMENT_NODE) {
-      if (!isSvgElement(parent)) {
-        return getElementXpath(parent, isOrderSensitive, isLeafElement);
+      const parentEl = parent as Element;
+      if (isSvgElement(parentEl)) {
+        const parentTag = parentEl.nodeName.toLowerCase();
+        if (parentTag === 'svg') {
+          // Found the <svg> container, return its path
+          return getElementXpath(parentEl, isOrderSensitive, isLeafElement);
+        }
+      } else {
+        // Found a non-SVG ancestor, return its path
+        return getElementXpath(parentEl, isOrderSensitive, isLeafElement);
       }
       parent = parent.parentNode;
     }
-    // fallback if no non-SVG parent found
-    return getElementXpath(el.parentNode!, isOrderSensitive, isLeafElement);
+    // fallback if no suitable parent found
+    const fallbackParent = el.parentNode;
+    if (fallbackParent && fallbackParent.nodeType === Node.ELEMENT_NODE) {
+      return getElementXpath(
+        fallbackParent as Element,
+        isOrderSensitive,
+        isLeafElement,
+      );
+    }
+    return '';
   }
 
   // decide which format to use
@@ -146,7 +179,9 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     return null;
   }
 
-  if (node instanceof HTMLElement) {
+  // Check if the node is an element that can be scrolled into view
+  // This includes both HTMLElement and SVGElement
+  if (node instanceof Element) {
     // only when the element is not completely in the viewport, call scrollIntoView
     const rect = getRect(node, 1, window);
     const isVisible = isElementPartiallyInViewport(rect, window, document, 1);

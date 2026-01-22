@@ -34,6 +34,8 @@ export type AndroidDeviceOpt = {
   screenshotResizeScale?: number;
   /** Always fetch screen info on each call; if false, cache the first result */
   alwaysRefreshScreenInfo?: boolean;
+  /** Minimum screenshot buffer size in bytes (default: 10240 = 10KB). Set to 0 to disable validation. */
+  minScreenshotBufferSize?: number;
 } & AndroidDeviceInputOpt;
 
 /**

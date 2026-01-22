@@ -38,8 +38,7 @@ import {
   isValidPNGImageBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { uuid } from '@midscene/shared/utils';
-import { repeat } from '@midscene/shared/utils';
+import { normalizeForComparison, repeat, uuid } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
 
@@ -430,11 +429,15 @@ ${Object.keys(size)
 
   /**
    * Resolve app name to package name using the mapping
+   * Comparison is case-insensitive and ignores spaces
    * @param appName The app name to resolve
    */
   private resolvePackageName(appName: string): string | undefined {
-    if (appName in this.appNameMapping) {
-      return this.appNameMapping[appName];
+    const normalizedAppName = normalizeForComparison(appName);
+    for (const [key, value] of Object.entries(this.appNameMapping)) {
+      if (normalizeForComparison(key) === normalizedAppName) {
+        return value;
+      }
     }
     return undefined;
   }
@@ -893,7 +896,7 @@ ${Object.keys(size)
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
     const adb = await this.getAdb();
-    let screenshotBuffer;
+    let screenshotBuffer: Buffer | undefined;
     let localScreenshotPath: string | null = null;
     const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
@@ -922,6 +925,23 @@ ${Object.keys(size)
         debugDevice('Invalid image buffer detected: not a valid image format');
         throw new Error(
           'Screenshot buffer has invalid format: could not find valid image signature',
+        );
+      }
+
+      // Additional validation: check buffer size
+      // Real device screenshots are typically 100KB+, so 10KB is a safe threshold
+      // to catch corrupted/invalid buffers while allowing even very small test images
+      const validScreenshotBufferSize =
+        this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
+      if (
+        validScreenshotBufferSize > 0 &&
+        screenshotBuffer.length < validScreenshotBufferSize
+      ) {
+        debugDevice(
+          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
+        );
+        throw new Error(
+          `Screenshot buffer too small: ${screenshotBuffer.length} bytes (minimum: ${validScreenshotBufferSize})`,
         );
       }
     } catch (error) {
@@ -953,6 +973,27 @@ ${Object.keys(size)
         await adb.pull(androidScreenshotPath, screenshotPath);
         debugDevice(`adb.pull completed, local path: ${screenshotPath}`);
         screenshotBuffer = await fs.promises.readFile(screenshotPath);
+
+        // Validate the fallback screenshot buffer as well
+        const validScreenshotBufferSize =
+          this.options?.minScreenshotBufferSize ?? 10 * 1024; // Default 10KB
+        if (
+          !screenshotBuffer ||
+          (validScreenshotBufferSize > 0 &&
+            screenshotBuffer.length < validScreenshotBufferSize)
+        ) {
+          throw new Error(
+            `Fallback screenshot validation failed: buffer size ${screenshotBuffer?.length || 0} bytes (minimum: ${validScreenshotBufferSize})`,
+          );
+        }
+
+        if (!isValidPNGImageBuffer(screenshotBuffer)) {
+          throw new Error('Fallback screenshot buffer has invalid PNG format');
+        }
+
+        debugDevice(
+          `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
+        );
       } finally {
         try {
           await adb.shell(`rm ${androidScreenshotPath}`);
@@ -960,6 +1001,10 @@ ${Object.keys(size)
           debugDevice(`Failed to delete remote screenshot: ${error}`);
         }
       }
+    }
+
+    if (!screenshotBuffer) {
+      throw new Error('Failed to capture screenshot: all methods failed');
     }
 
     debugDevice('Converting to base64');
@@ -1219,13 +1264,33 @@ ${Object.keys(size)
     }
   }
 
+  /**
+   * Check if text contains characters that may cause issues with ADB inputText
+   * This includes:
+   * - Non-ASCII characters (Unicode characters like ö, é, ñ, Chinese, Japanese, etc.)
+   * - Format specifiers that may be interpreted by shell (%, $)
+   * - Special shell characters that need escaping
+   */
+  private shouldUseYadbForText(text: string): boolean {
+    // Check for any non-ASCII characters (code point >= 128)
+    // This covers Latin Unicode characters (ö, é, ñ), Chinese, Japanese, etc.
+    // Using positive match to avoid control character in regex
+    const hasNonAscii = /[\x80-\uFFFF]/.test(text);
+
+    // Check for format specifiers that may cause issues in shell
+    // % can be interpreted as format specifier in some contexts
+    const hasFormatSpecifiers = /%[a-zA-Z]/.test(text);
+
+    return hasNonAscii || hasFormatSpecifiers;
+  }
+
   async keyboardType(
     text: string,
     options?: AndroidDeviceInputOpt,
   ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
-    const isChinese = /[\p{Script=Han}\p{sc=Hani}]/u.test(text);
+    const shouldUseYadb = this.shouldUseYadbForText(text);
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
@@ -1235,7 +1300,7 @@ ${Object.keys(size)
 
     if (
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
-      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && isChinese)
+      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && shouldUseYadb)
     ) {
       await this.execYadb(text);
     } else {
@@ -1621,13 +1686,17 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z
-  .string()
-  .describe('ADB shell command to execute');
+const runAdbShellParamSchema = z.object({
+  command: z.string().describe('ADB shell command to execute'),
+});
 
-const launchParamSchema = z
-  .string()
-  .describe('App package name or URL or app name to launch,');
+const launchParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+    ),
+});
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
@@ -1651,8 +1720,11 @@ const createPlatformActions = (
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
       call: async (param) => {
+        if (!param.command || param.command.trim() === '') {
+          throw new Error('RunAdbShell requires a non-empty command parameter');
+        }
         const adb = await device.getAdb();
-        return await adb.shell(param);
+        return await adb.shell(param.command);
       },
     }),
     Launch: defineAction({
@@ -1661,7 +1733,10 @@ const createPlatformActions = (
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
       call: async (param) => {
-        await device.launch(param);
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Launch requires a non-empty uri parameter');
+        }
+        await device.launch(param.uri);
       },
     }),
     AndroidBackButton: defineAction({

@@ -144,7 +144,7 @@ export function taskTitleStr(
     | 'RightClick'
     | 'KeyboardPress'
     | 'Scroll'
-    | 'Action'
+    | 'Act'
     | 'Query'
     | 'Assert'
     | 'WaitFor'

@@ -23,6 +23,9 @@ class MidsceneReporter implements Reporter {
   // Track all temp files created during this test run for cleanup
   private tempFiles = new Set<string>();
 
+  // Track whether we have multiple projects (browsers)
+  private hasMultipleProjects = false;
+
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
     this.mode = MidsceneReporter.getMode(options.type ?? 'merged');
@@ -75,7 +78,10 @@ class MidsceneReporter implements Reporter {
     reportPath && printReportMsg(reportPath);
   }
 
-  async onBegin(config: FullConfig, suite: Suite) {}
+  async onBegin(config: FullConfig, suite: Suite) {
+    // Check if we have multiple projects to determine if we need browser labels
+    this.hasMultipleProjects = (config.projects?.length || 0) > 1;
+  }
 
   onTestBegin(_test: TestCase, _result: TestResult) {
     // logger(`Starting test ${test.title}`);
@@ -108,11 +114,18 @@ class MidsceneReporter implements Reporter {
     if (dumpString) {
       const retry = result.retry ? `(retry #${result.retry})` : '';
       const testId = `${test.id}${retry}`;
+
+      // Get the project name (browser name) only if we have multiple projects
+      const projectName = this.hasMultipleProjects
+        ? test.parent?.project()?.name
+        : undefined;
+      const projectSuffix = projectName ? ` [${projectName}]` : '';
+
       const testData: ReportDumpWithAttributes = {
         dumpString,
         attributes: {
           playwright_test_id: testId,
-          playwright_test_title: `${test.title}${retry}`,
+          playwright_test_title: `${test.title}${projectSuffix}${retry}`,
           playwright_test_status: result.status,
           playwright_test_duration: result.duration,
         },

@@ -1,10 +1,7 @@
 import { distance } from '@/ai-model/prompt/util';
 import Service from '@/service';
 import { sleep } from '@/utils';
-import {
-  globalConfigManager,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { getContextFromFixture } from 'tests/evaluation';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
