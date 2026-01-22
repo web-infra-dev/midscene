@@ -39,22 +39,28 @@ const buildCurrentElementXpath = (
   const tagName = element.nodeName.toLowerCase();
   const textContent = element.textContent?.trim();
 
+  // Check if this is an SVG element (has SVG namespace)
+  const isSVGNamespace = element.namespaceURI === 'http://www.w3.org/2000/svg';
+  // For SVG elements, we need to use *[name()="tagname"] syntax because
+  // XPath's element matching doesn't work with namespaced elements in HTML documents
+  const tagSelector = isSVGNamespace ? `*[name()="${tagName}"]` : tagName;
+
   // Order-sensitive mode: always use index
   if (isOrderSensitive) {
     const index = getElementXpathIndex(element);
-    return `${prefix}${tagName}[${index}]`;
+    return `${prefix}${tagSelector}[${index}]`;
   }
 
   // Order-insensitive mode:
   // - Leaf elements: try text first, fallback to index if no text
   // - Non-leaf elements: always use index
   if (isLeafElement && textContent) {
-    return `${prefix}${tagName}[normalize-space()="${normalizeXpathText(textContent)}"]`;
+    return `${prefix}${tagSelector}[normalize-space()="${normalizeXpathText(textContent)}"]`;
   }
 
   // Fallback to index (for non-leaf elements or leaf elements without text)
   const index = getElementXpathIndex(element);
-  return `${prefix}${tagName}[${index}]`;
+  return `${prefix}${tagSelector}[${index}]`;
 };
 
 export const getElementXpath = (

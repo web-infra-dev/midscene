@@ -117,14 +117,20 @@ describe('SVG Icon Cache Tests', () => {
     `;
 
     // Write test HTML to temporary file
-    const testHtmlPath = path.join(process.cwd(), 'midscene_run', 'test-svg-icons.html');
+    const testHtmlPath = path.join(
+      process.cwd(),
+      'midscene_run',
+      'test-svg-icons.html',
+    );
     fs.mkdirSync(path.dirname(testHtmlPath), { recursive: true });
     fs.writeFileSync(testHtmlPath, testHtml);
 
     try {
       // === First run: Generate cache ===
       console.log('=== First Run: Generating cache ===');
-      const { originPage: page1, reset: reset1 } = await launchPage(`file://${testHtmlPath}`);
+      const { originPage: page1, reset: reset1 } = await launchPage(
+        `file://${testHtmlPath}`,
+      );
       resetFn = reset1;
 
       agent = new PuppeteerAgent(page1, {
@@ -136,7 +142,9 @@ describe('SVG Icon Cache Tests', () => {
       });
 
       // Click the 4th SVG icon (edit icon)
-      await agent.aiAction('click the edit icon (the 4th icon in the action cell)');
+      await agent.aiAction(
+        'click the edit icon (the 4th icon in the action cell)',
+      );
 
       // Verify the click worked
       const result1 = await page1.evaluate(() => {
@@ -161,7 +169,9 @@ describe('SVG Icon Cache Tests', () => {
 
       // === Second run: Use cache ===
       console.log('\n=== Second Run: Using cache ===');
-      const { originPage: page2, reset: reset2 } = await launchPage(`file://${testHtmlPath}`);
+      const { originPage: page2, reset: reset2 } = await launchPage(
+        `file://${testHtmlPath}`,
+      );
       resetFn = reset2;
 
       agent = new PuppeteerAgent(page2, {
@@ -173,7 +183,9 @@ describe('SVG Icon Cache Tests', () => {
       });
 
       // Click the same icon using cache
-      await agent.aiAction('click the edit icon (the 4th icon in the action cell)');
+      await agent.aiAction(
+        'click the edit icon (the 4th icon in the action cell)',
+      );
 
       // Verify the click worked again
       const result2 = await page2.evaluate(() => {
@@ -248,7 +260,11 @@ describe('SVG Icon Cache Tests', () => {
 </html>
     `;
 
-    const testHtmlPath = path.join(process.cwd(), 'midscene_run', 'test-multiple-svg-icons.html');
+    const testHtmlPath = path.join(
+      process.cwd(),
+      'midscene_run',
+      'test-multiple-svg-icons.html',
+    );
     fs.mkdirSync(path.dirname(testHtmlPath), { recursive: true });
     fs.writeFileSync(testHtmlPath, testHtml);
 
@@ -274,7 +290,10 @@ describe('SVG Icon Cache Tests', () => {
       expect(result).toBe('Clicked: Icon 2');
 
       // Verify cache contains svg[2]
-      const multipleCachePath = path.join(cacheDir, `${cacheId}-multiple.cache.yaml`);
+      const multipleCachePath = path.join(
+        cacheDir,
+        `${cacheId}-multiple.cache.yaml`,
+      );
       if (fs.existsSync(multipleCachePath)) {
         const cacheContent = fs.readFileSync(multipleCachePath, 'utf-8');
         console.log('Cache for multiple icons:\n', cacheContent);

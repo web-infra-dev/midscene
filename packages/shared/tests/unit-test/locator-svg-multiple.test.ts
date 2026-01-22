@@ -109,13 +109,14 @@ describe('locator - multiple SVG icons', () => {
     expect(xpaths).toHaveLength(1);
 
     // Should include svg[4] to distinguish from other SVG icons
-    expect(xpaths?.[0]).toMatch(/svg\[4\]/);
+    // Note: SVG elements use *[name()="svg"] syntax due to namespace
+    expect(xpaths?.[0]).toMatch(/\*\[name\(\)="svg"\]\[4\]/);
 
     // Should not include the internal path element
     expect(xpaths?.[0]).not.toMatch(/path/);
 
     // Should include the td and svg with proper indices
-    expect(xpaths?.[0]).toMatch(/\/td\[1\]\/svg\[4\]$/);
+    expect(xpaths?.[0]).toMatch(/\/td\[1\]\/\*\[name\(\)="svg"\]\[4\]$/);
 
     console.log('XPath for svg[4]:', xpaths?.[0]);
   });
@@ -156,10 +157,10 @@ describe('locator - multiple SVG icons', () => {
     expect(xpath2?.[0]).not.toBe(xpath3?.[0]);
     expect(xpath1?.[0]).not.toBe(xpath3?.[0]);
 
-    // Each should have the correct index
-    expect(xpath1?.[0]).toMatch(/svg\[1\]$/);
-    expect(xpath2?.[0]).toMatch(/svg\[2\]$/);
-    expect(xpath3?.[0]).toMatch(/svg\[3\]$/);
+    // Each should have the correct index (with *[name()="svg"] syntax)
+    expect(xpath1?.[0]).toMatch(/\*\[name\(\)="svg"\]\[1\]$/);
+    expect(xpath2?.[0]).toMatch(/\*\[name\(\)="svg"\]\[2\]$/);
+    expect(xpath3?.[0]).toMatch(/\*\[name\(\)="svg"\]\[3\]$/);
 
     console.log('XPath for svg[1]:', xpath1?.[0]);
     console.log('XPath for svg[2]:', xpath2?.[0]);

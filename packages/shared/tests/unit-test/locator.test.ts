@@ -206,8 +206,8 @@ describe('locator', () => {
       expect(xpaths?.[0]).toMatch(/button/);
       expect(xpaths?.[0]).toMatch(/svg/);
       expect(xpaths?.[0]).not.toMatch(/path/);
-      // Should include the svg tag with its index
-      expect(xpaths?.[0]).toBe('/html/body/button[1]/svg[1]');
+      // For SVG elements, XPath uses *[name()="svg"] syntax due to namespace issues
+      expect(xpaths?.[0]).toBe('/html/body/button[1]/*[name()="svg"][1]');
     });
 
     it('should handle text nodes with order-sensitive mode', () => {
