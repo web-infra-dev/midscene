@@ -29,12 +29,14 @@ export function parseSubGoalsFromXML(xmlContent: string): SubGoal[] {
     /<sub-goal\s+index="(\d+)"\s+status="(pending|finished)"(?:\s*\/>|>([\s\S]*?)<\/sub-goal>)/gi;
 
   let match: RegExpExecArray | null;
-  while ((match = regex.exec(xmlContent)) !== null) {
+  match = regex.exec(xmlContent);
+  while (match !== null) {
     const index = Number.parseInt(match[1], 10);
     const status = match[2] as SubGoalStatus;
     const description = match[3]?.trim() || '';
 
     subGoals.push({ index, status, description });
+    match = regex.exec(xmlContent);
   }
 
   return subGoals;
@@ -50,8 +52,10 @@ export function parseMarkFinishedIndexes(xmlContent: string): number[] {
   const regex = /<sub-goal\s+index="(\d+)"\s+status="finished"\s*\/>/gi;
 
   let match: RegExpExecArray | null;
-  while ((match = regex.exec(xmlContent)) !== null) {
+  match = regex.exec(xmlContent);
+  while (match !== null) {
     indexes.push(Number.parseInt(match[1], 10));
+    match = regex.exec(xmlContent);
   }
 
   return indexes;

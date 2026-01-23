@@ -192,7 +192,9 @@ describe('ConversationHistory', () => {
 
   it('returns false when updating non-existent sub-goal', () => {
     const history = new ConversationHistory();
-    history.setSubGoals([{ index: 1, status: 'pending', description: 'First' }]);
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'First' },
+    ]);
 
     const result = history.updateSubGoal(99, { status: 'finished' });
 

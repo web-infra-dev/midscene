@@ -290,7 +290,8 @@ export class TaskExecutor {
     // Main planning loop - unified plan/replan logic
     while (true) {
       // Get sub-goal status text if available
-      const subGoalStatus = this.conversationHistory.subGoalsToText() || undefined;
+      const subGoalStatus =
+        this.conversationHistory.subGoalsToText() || undefined;
 
       const result = await session.appendAndRun(
         {
