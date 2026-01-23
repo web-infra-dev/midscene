@@ -128,4 +128,108 @@ describe('ConversationHistory', () => {
     );
     expect(snapshotWithoutLimit[2]).toEqual(messageWithTwoImages);
   });
+
+  // Sub-goal management tests
+
+  it('initializes with empty sub-goals', () => {
+    const history = new ConversationHistory();
+    expect(history.subGoalsToText()).toBe('');
+  });
+
+  it('sets all sub-goals', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Done task' },
+      { index: 2, status: 'pending', description: 'Todo task' },
+    ]);
+
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. Done task (finished)\n2. Todo task (pending)',
+    );
+  });
+
+  it('replaces existing sub-goals when setSubGoals is called', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Old goal' },
+    ]);
+
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'New goal 1' },
+      { index: 2, status: 'pending', description: 'New goal 2' },
+    ]);
+
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. New goal 1 (pending)\n2. New goal 2 (pending)',
+    );
+  });
+
+  it('updates a single sub-goal by index', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'First' },
+      { index: 2, status: 'pending', description: 'Second' },
+    ]);
+
+    const result = history.updateSubGoal(1, { status: 'finished' });
+
+    expect(result).toBe(true);
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. First (finished)\n2. Second (pending)',
+    );
+  });
+
+  it('updates description of a sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([{ index: 1, status: 'pending', description: 'Old' }]);
+
+    history.updateSubGoal(1, { description: 'Updated description' });
+
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. Updated description (pending)',
+    );
+  });
+
+  it('returns false when updating non-existent sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([{ index: 1, status: 'pending', description: 'First' }]);
+
+    const result = history.updateSubGoal(99, { status: 'finished' });
+
+    expect(result).toBe(false);
+  });
+
+  it('marks a sub-goal as finished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    const result = history.markSubGoalFinished(1);
+
+    expect(result).toBe(true);
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (pending)',
+    );
+  });
+
+  it('returns false when marking non-existent sub-goal as finished', () => {
+    const history = new ConversationHistory();
+    const result = history.markSubGoalFinished(1);
+    expect(result).toBe(false);
+  });
+
+  it('subGoalsToText shows all sub-goals with their status', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Log in to the system' },
+      { index: 2, status: 'finished', description: 'Complete to-do items' },
+      { index: 3, status: 'pending', description: 'Submit the form' },
+    ]);
+
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. Log in to the system (finished)\n2. Complete to-do items (finished)\n3. Submit the form (pending)',
+    );
+  });
 });

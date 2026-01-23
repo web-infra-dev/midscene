@@ -405,6 +405,9 @@ const DetailSide = (): JSX.Element => {
     const locateParam = (planningTask as any)?.param;
     const images = extractTaskImages(locateParam);
 
+    // Get subGoalStatus from param
+    const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
+
     if (planningTask.param?.userInstruction) {
       // Ensure userInstruction is a string
       const instructionContent =
@@ -419,6 +422,14 @@ const DetailSide = (): JSX.Element => {
             content: instructionContent,
             images: images,
           },
+          ...(subGoalStatus
+            ? [
+                {
+                  key: 'sub-goal status',
+                  content: subGoalStatus,
+                },
+              ]
+            : []),
           ...(isPageContextFrozen
             ? [
                 {
@@ -444,6 +455,14 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
+          ...(subGoalStatus
+            ? [
+                {
+                  key: 'sub-goal status',
+                  content: subGoalStatus,
+                },
+              ]
+            : []),
           ...(isPageContextFrozen
             ? [
                 {
@@ -707,6 +726,50 @@ const DetailSide = (): JSX.Element => {
             content={
               <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output?.note}
+              </pre>
+            }
+          />,
+        );
+      }
+
+      // Add Sub-goals if exists
+      const updateSubGoals = (task as ExecutionTaskPlanning).output
+        ?.updateSubGoals;
+      if (updateSubGoals && updateSubGoals.length > 0) {
+        const subGoalsContent = updateSubGoals
+          .map(
+            (goal: { index: number; status: string; description: string }) =>
+              `${goal.index}. ${goal.description} (${goal.status})`,
+          )
+          .join('\n');
+        planItems.push(
+          <Card
+            key="sub-goals"
+            liteMode={true}
+            title="Sub-goals"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{subGoalsContent}</pre>
+            }
+          />,
+        );
+      }
+
+      // Add Mark Finished Indexes if exists
+      const markFinishedIndexes = (task as ExecutionTaskPlanning).output
+        ?.markFinishedIndexes;
+      if (markFinishedIndexes && markFinishedIndexes.length > 0) {
+        planItems.push(
+          <Card
+            key="mark-finished"
+            liteMode={true}
+            title="Marked Finished"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                Sub-goal indexes: {markFinishedIndexes.join(', ')}
               </pre>
             }
           />,

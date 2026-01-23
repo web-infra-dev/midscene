@@ -30,6 +30,7 @@ export {
   ConversationHistory,
   type ConversationHistoryOptions,
 } from './conversation-history';
+export type { SubGoal, SubGoalStatus } from '@/types';
 
 export type { AIArgs } from '../common';
 
