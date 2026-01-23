@@ -244,6 +244,177 @@ function createErrorResult(message: string): ToolResult {
   };
 }
 
+
+
+/**
+ * Check if agent has a specific method by name
+ */
+function hasAgentMethod(agent: BaseAgent, methodName: string): boolean {
+  return (
+    typeof agent === 'object' &&
+    agent !== null &&
+    methodName in agent &&
+    typeof (agent as unknown as Record<string, unknown>)[methodName] ===
+      'function'
+  );
+}
+
+/**
+ * Extract locate prompt from args
+ * Supports both direct prompt string and locate object with prompt field
+ */
+function extractLocatePrompt(args: Record<string, unknown>): string | undefined {
+  // Check for locate.prompt
+  if (
+    args.locate &&
+    typeof args.locate === 'object' &&
+    'prompt' in args.locate &&
+    typeof args.locate.prompt === 'string'
+  ) {
+    return args.locate.prompt;
+  }
+  // Check for direct prompt field (for backward compatibility)
+  if (typeof args.prompt === 'string') {
+    return args.prompt;
+  }
+  return undefined;
+}
+
+/**
+ * Convert MCP args to parameters for specific agent methods
+ */
+function convertArgsForMethod(
+  methodName: string,
+  args: Record<string, unknown>,
+): [string | undefined, Record<string, unknown>] {
+  const locatePrompt = extractLocatePrompt(args);
+
+  switch (methodName) {
+    case 'aiTap':
+    case 'aiRightClick':
+    case 'aiDoubleClick':
+    case 'aiHover': {
+      // These methods take: (locatePrompt, opt?)
+      const opt: Record<string, unknown> = {};
+      if (args.deepThink !== undefined) opt.deepThink = args.deepThink;
+      if (args.cacheable !== undefined) opt.cacheable = args.cacheable;
+      if (args.fileChooserAccept !== undefined)
+        opt.fileChooserAccept = args.fileChooserAccept;
+      return [locatePrompt, opt];
+    }
+
+    case 'aiInput': {
+      // aiInput(locatePrompt, opt) where opt contains value
+      // value is required for aiInput, use empty string as default if not provided
+      const opt: Record<string, unknown> = {
+        value: args.value ?? '',
+      };
+      if (args.mode !== undefined) opt.mode = args.mode;
+      if (args.autoDismissKeyboard !== undefined)
+        opt.autoDismissKeyboard = args.autoDismissKeyboard;
+      if (args.deepThink !== undefined) opt.deepThink = args.deepThink;
+      if (args.cacheable !== undefined) opt.cacheable = args.cacheable;
+      return [locatePrompt, opt];
+    }
+
+    case 'aiKeyboardPress': {
+      // aiKeyboardPress(locatePrompt, opt) where opt contains keyName
+      // keyName is required for aiKeyboardPress
+      if (!args.keyName || typeof args.keyName !== 'string') {
+        throw new Error('keyName is required for aiKeyboardPress');
+      }
+      const opt: Record<string, unknown> = {
+        keyName: args.keyName,
+      };
+      if (args.deepThink !== undefined) opt.deepThink = args.deepThink;
+      if (args.cacheable !== undefined) opt.cacheable = args.cacheable;
+      return [locatePrompt, opt];
+    }
+
+    case 'aiScroll': {
+      // aiScroll(locatePrompt | undefined, opt) where opt contains scroll parameters
+      // Note: locatePrompt is optional for aiScroll, but opt is required
+      const opt: Record<string, unknown> = {};
+      if (args.direction !== undefined) opt.direction = args.direction;
+      if (args.scrollType !== undefined) opt.scrollType = args.scrollType;
+      if (args.distance !== undefined) opt.distance = args.distance;
+      if (args.deepThink !== undefined) opt.deepThink = args.deepThink;
+      if (args.cacheable !== undefined) opt.cacheable = args.cacheable;
+      // aiScroll requires opt parameter even if locatePrompt is undefined
+      return [locatePrompt, opt];
+    }
+
+    default:
+      // For unknown methods, return args as-is
+      return [locatePrompt, args];
+  }
+}
+
+/**
+ * Call specific agent method if available, otherwise fall back to aiAction
+ */
+async function executeActionWithMethod(
+  agent: BaseAgent,
+  action: ActionSpaceItem,
+  args: Record<string, unknown>,
+): Promise<void> {
+  // Check if action has interfaceAlias and agent has the corresponding method
+  if (action.interfaceAlias && hasAgentMethod(agent, action.interfaceAlias)) {
+    const method = (agent as unknown as Record<string, unknown>)[
+      action.interfaceAlias
+    ] as (...args: unknown[]) => Promise<unknown>;
+
+    // Bind the method to agent to preserve 'this' context
+    const boundMethod = method.bind(agent);
+
+    try {
+      const [locatePrompt, opt] = convertArgsForMethod(
+        action.interfaceAlias,
+        args,
+      );
+
+      // Call the method with appropriate parameters
+      // Special handling for methods that require opt parameter even without locatePrompt
+      if (action.interfaceAlias === 'aiScroll') {
+        // aiScroll requires opt parameter, locatePrompt is optional
+        await boundMethod(locatePrompt, opt);
+      } else if (locatePrompt !== undefined) {
+        // Methods that require locatePrompt
+        if (Object.keys(opt).length > 0) {
+          await boundMethod(locatePrompt, opt);
+        } else {
+          await boundMethod(locatePrompt);
+        }
+      } else {
+        // Methods that don't require locatePrompt (shouldn't happen for most actions)
+        if (Object.keys(opt).length > 0) {
+          await boundMethod(opt);
+        } else {
+          await boundMethod();
+        }
+      }
+      return;
+    } catch (error: unknown) {
+      const errorMessage = getErrorMessage(error);
+      console.error(
+        `Error calling ${action.interfaceAlias} for action "${action.name}":`,
+        errorMessage,
+      );
+      // Fall through to aiAction as fallback
+    }
+  }
+
+  // Fallback to aiAction if method doesn't exist or call failed
+  if (agent.aiAction) {
+    const instruction = buildActionInstruction(action.name, args);
+    await agent.aiAction(instruction);
+  } else {
+    throw new Error(
+      `No method available to execute action "${action.name}". Neither ${action.interfaceAlias || 'specific method'} nor aiAction is available.`,
+    );
+  }
+}
+
 /**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
@@ -262,11 +433,10 @@ export function generateToolsFromActionSpace(
       handler: async (args: Record<string, unknown>) => {
         try {
           const agent = await getAgent();
-
+          
           if (agent.aiAction) {
-            const instruction = buildActionInstruction(action.name, args);
             try {
-              await agent.aiAction(instruction);
+              await executeActionWithMethod(agent, action, args);
             } catch (error: unknown) {
               const errorMessage = getErrorMessage(error);
               console.error(
