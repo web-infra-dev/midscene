@@ -37,30 +37,63 @@ export type AndroidDeviceOpt = {
   /** Minimum screenshot buffer size in bytes (default: 10240 = 10KB). Set to 0 to disable validation. */
   minScreenshotBufferSize?: number;
   /**
-   * Use scrcpy for screenshots (high performance mode).
-   * Provides 6-8x faster screenshots by streaming video from device.
-   * Requires ffmpeg to be installed for PNG conversion.
-   * @default false
+   * Scrcpy screenshot configuration for high-performance screen capture.
+   *
+   * Scrcpy provides 6-8x faster screenshots by streaming H.264 video from the device.
+   * When enabled, scrcpy will:
+   * 1. Start a video stream from the device on first screenshot request
+   * 2. Keep the connection alive for subsequent screenshots (16-50ms each)
+   * 3. Automatically disconnect after idle timeout to save resources
+   * 4. Fallback to standard ADB mode if unavailable
+   *
+   * @example
+   * ```typescript
+   * // Default configuration (enabled with auto-fallback)
+   * const device = new AndroidDevice(deviceId);
+   *
+   * // Custom configuration
+   * const device = new AndroidDevice(deviceId, {
+   *   scrcpyConfig: {
+   *     enabled: true,
+   *     maxSize: 1024,
+   *     idleTimeoutMs: 30000,
+   *     videoBitRate: 2_000_000,
+   *   },
+   * });
+   *
+   * // Disable scrcpy (force ADB mode)
+   * const device = new AndroidDevice(deviceId, {
+   *   scrcpyConfig: { enabled: false },
+   * });
+   * ```
    */
-  useScrcpyForScreenshot?: boolean;
-  /**
-   * Maximum screenshot dimension (width or height) for scrcpy mode.
-   * Lower values reduce bandwidth but may affect image quality.
-   * @default 1024
-   */
-  scrcpyMaxSize?: number;
-  /**
-   * Idle timeout in milliseconds before disconnecting scrcpy.
-   * Scrcpy auto-disconnects after this period of inactivity to save resources.
-   * @default 30000
-   */
-  scrcpyIdleTimeoutMs?: number;
-  /**
-   * Video bit rate for scrcpy in bits per second.
-   * Higher values improve quality but increase bandwidth usage.
-   * @default 2000000 (2 Mbps)
-   */
-  scrcpyVideoBitRate?: number;
+  scrcpyConfig?: {
+    /**
+     * Enable scrcpy for high-performance screenshots.
+     * @default true - Automatically enabled with fallback to ADB if unavailable
+     */
+    enabled?: boolean;
+    /**
+     * Maximum video dimension (width or height).
+     * Video stream will be scaled down if device resolution exceeds this value.
+     * Lower values reduce bandwidth but may affect image quality.
+     * @default 1024
+     */
+    maxSize?: number;
+    /**
+     * Idle timeout in milliseconds before disconnecting scrcpy.
+     * Connection auto-closes after this period of inactivity to save resources.
+     * Set to 0 to disable auto-disconnect.
+     * @default 30000 (30 seconds)
+     */
+    idleTimeoutMs?: number;
+    /**
+     * Video bit rate for H.264 encoding in bits per second.
+     * Higher values improve quality but increase bandwidth usage.
+     * @default 2000000 (2 Mbps)
+     */
+    videoBitRate?: number;
+  };
 } & AndroidDeviceInputOpt;
 
 /**

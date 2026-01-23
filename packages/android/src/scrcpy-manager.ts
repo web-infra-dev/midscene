@@ -31,6 +31,14 @@ const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 const FRAME_LOG_INTERVAL = 20;
 
+// Scrcpy default configuration (默认启用,自动 fallback)
+export const DEFAULT_SCRCPY_CONFIG = {
+  enabled: true, // 默认启用,失败时自动降级到 ADB
+  maxSize: DEFAULT_MAX_SIZE,
+  idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
+  videoBitRate: DEFAULT_VIDEO_BIT_RATE,
+} as const;
+
 export interface ScrcpyScreenshotOptions {
   maxSize?: number;
   videoBitRate?: number;
@@ -92,14 +100,6 @@ interface VideoPacket {
 }
 
 /**
- * Video stream from scrcpy (simplified interface)
- */
-interface VideoStream {
-  metadata: { width?: number; height?: number };
-  stream: { getReader(): ReadableStreamDefaultReader<VideoPacket> };
-}
-
-/**
  * Required options after applying defaults
  */
 interface ResolvedScrcpyOptions {
@@ -110,12 +110,9 @@ interface ResolvedScrcpyOptions {
 
 export class ScrcpyScreenshotManager {
   private adb: Adb;
-  // Using 'unknown' for external library types to avoid tight coupling
-  private scrcpyClient: {
-    videoStream?: Promise<VideoStream>;
-    close(): Promise<void>;
-  } | null = null;
-  private videoStream: VideoStream | null = null;
+  // Using 'any' for external library types to avoid type compatibility issues
+  private scrcpyClient: any = null;
+  private videoStream: any = null;
   private lastFrameBuffer: Buffer | null = null;
   private lastFrameTimestamp = 0;
   private spsHeader: Buffer | null = null;
@@ -165,6 +162,7 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/scrcpy'
       );
 
+      // Use local server.bin file
       const serverBinPath = this.resolveServerBinPath();
       await AdbScrcpyClient.pushServer(
         this.adb,
@@ -219,6 +217,22 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
+   * Get ffmpeg executable path
+   * Priority: @ffmpeg-installer/ffmpeg > system ffmpeg
+   */
+  private getFfmpegPath(): string {
+    try {
+      // Try npm-installed ffmpeg first
+      const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+      debugScrcpy(`Using ffmpeg from npm package: ${ffmpegInstaller.path}`);
+      return ffmpegInstaller.path;
+    } catch (error) {
+      debugScrcpy('Using system ffmpeg (npm package not found)');
+      return 'ffmpeg'; // Fallback to system ffmpeg
+    }
+  }
+
+  /**
    * Consume video frames and keep latest frame
    */
   private startFrameConsumer(): void {
@@ -231,9 +245,7 @@ export class ScrcpyScreenshotManager {
   /**
    * Main frame consumption loop
    */
-  private async consumeFramesLoop(
-    reader: ReadableStreamDefaultReader<VideoPacket>,
-  ): Promise<void> {
+  private async consumeFramesLoop(reader: any): Promise<void> {
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -250,7 +262,7 @@ export class ScrcpyScreenshotManager {
   /**
    * Process a single video frame
    */
-  private processFrame(packet: VideoPacket): void {
+  private processFrame(packet: any): void {
     const frameBuffer = Buffer.from(packet.data);
     const reportedKeyFrame = packet.keyframe ?? false;
     const actualKeyFrame = detectH264KeyFrame(frameBuffer);
@@ -389,14 +401,26 @@ export class ScrcpyScreenshotManager {
    * Ensure ffmpeg is available for PNG conversion
    */
   private async ensureFfmpegAvailable(): Promise<void> {
-    if (this.ffmpegAvailable === null) {
+    if (this.ffmpegAvailable !== null) return;
+
+    try {
       this.ffmpegAvailable = await this.checkFfmpegAvailable();
+      if (!this.ffmpegAvailable) {
+        debugScrcpy(
+          'Warning: ffmpeg is not available. Scrcpy screenshot will be disabled.\n' +
+            'To enable high-performance screenshots:\n' +
+            '  1. Install optional dependency: pnpm add -D @ffmpeg-installer/ffmpeg\n' +
+            '  2. Or install system ffmpeg: https://ffmpeg.org',
+        );
+      }
+    } catch (error) {
+      this.ffmpegAvailable = false;
+      debugScrcpy(`Error checking ffmpeg availability: ${error}`);
     }
 
     if (!this.ffmpegAvailable) {
       throw new Error(
-        'ffmpeg is required for PNG screenshot conversion but is not installed. ' +
-          'Please install ffmpeg (https://ffmpeg.org) to use scrcpy screenshot mode.',
+        'ffmpeg is not available, please use standard ADB screenshot mode',
       );
     }
   }
@@ -433,8 +457,9 @@ export class ScrcpyScreenshotManager {
     const execFileAsync = promisify(execFile);
 
     try {
-      await execFileAsync('ffmpeg', ['-version']);
-      debugScrcpy('ffmpeg is available');
+      const ffmpegPath = this.getFfmpegPath();
+      await execFileAsync(ffmpegPath, ['-version']);
+      debugScrcpy(`ffmpeg is available at: ${ffmpegPath}`);
       return true;
     } catch (error) {
       debugScrcpy(`ffmpeg is not available: ${error}`);
@@ -465,7 +490,8 @@ export class ScrcpyScreenshotManager {
         'pipe:1',
       ];
 
-      const ffmpeg = spawn('ffmpeg', ffmpegArgs, {
+      const ffmpegPath = this.getFfmpegPath();
+      const ffmpeg = spawn(ffmpegPath, ffmpegArgs, {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 

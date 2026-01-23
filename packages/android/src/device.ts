@@ -42,6 +42,7 @@ import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
 import type { ScrcpyScreenshotManager } from './scrcpy-manager';
+import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -424,6 +425,31 @@ ${Object.keys(size)
   }
 
   /**
+   * Normalize scrcpy configuration with defaults and environment variable support
+   */
+  private normalizeScrcpyConfig(): {
+    enabled: boolean;
+    maxSize: number;
+    videoBitRate: number;
+    idleTimeoutMs: number;
+  } {
+    const config = this.options?.scrcpyConfig;
+
+    // Environment variable can explicitly disable scrcpy
+    const envDisabled = process.env.MIDSCENE_SCRCPY_ENABLED === 'false';
+
+    return {
+      enabled: envDisabled
+        ? false
+        : (config?.enabled ?? DEFAULT_SCRCPY_CONFIG.enabled),
+      maxSize: config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize,
+      idleTimeoutMs:
+        config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
+      videoBitRate: config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
+    };
+  }
+
+  /**
    * Get or create Scrcpy manager for high-performance screenshots
    * Creates a @yume-chan/adb connection (separate from appium-adb)
    */
@@ -451,10 +477,11 @@ ${Object.keys(size)
         await adbClient.createTransport({ serial: this.deviceId }),
       );
 
+      const scrcpyConfig = this.normalizeScrcpyConfig();
       this.scrcpyManager = new ScrcpyManager(adb, {
-        maxSize: this.options?.scrcpyMaxSize,
-        videoBitRate: this.options?.scrcpyVideoBitRate,
-        idleTimeoutMs: this.options?.scrcpyIdleTimeoutMs,
+        maxSize: scrcpyConfig.maxSize,
+        videoBitRate: scrcpyConfig.videoBitRate,
+        idleTimeoutMs: scrcpyConfig.idleTimeoutMs,
       });
 
       debugDevice('Scrcpy manager initialized');
@@ -941,7 +968,8 @@ ${Object.keys(size)
     debugDevice('screenshotBase64 begin');
 
     // Try scrcpy mode first (if enabled)
-    if (this.options?.useScrcpyForScreenshot) {
+    const scrcpyConfig = this.normalizeScrcpyConfig();
+    if (scrcpyConfig.enabled) {
       try {
         debugDevice('Attempting scrcpy screenshot...');
         const scrcpyManager = await this.getScrcpyManager();
@@ -955,7 +983,11 @@ ${Object.keys(size)
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
-        debugDevice(`Scrcpy screenshot failed, falling back to ADB: ${error}`);
+        debugDevice(
+          'Scrcpy screenshot failed, falling back to standard ADB method.\n' +
+            `Error: ${error}\n` +
+            'Tip: Ensure ffmpeg is installed and scrcpy server is accessible.',
+        );
         // Continue to standard ADB path
       }
     }

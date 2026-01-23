@@ -47,6 +47,9 @@
     "appium-adb": "12.12.1",
     "sharp": "^0.34.3"
   },
+  "optionalDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+  },
   "devDependencies": {
     "@midscene/playground": "workspace:*",
     "@rslib/core": "^0.18.3",
