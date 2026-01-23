@@ -165,7 +165,11 @@ describe('planning', () => {
       },
     );
 
-    expect(res.more_actions_needed_by_instruction).toBeTruthy();
+    // The instruction mentions future actions that can't be completed in this step
+    // So the task should not be finalized yet (shouldContinuePlanning should be true)
+    expect(res.shouldContinuePlanning).toBeTruthy();
     expect(res.log).toBeDefined();
+    // Task should not be completed with success
+    expect(res.finalizeSuccess).not.toBe(true);
   });
 });
