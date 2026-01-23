@@ -145,6 +145,11 @@ export class ConversationHistory {
       return `${goal.index}. ${goal.description} (${goal.status})`;
     });
 
-    return `Sub-goals:\n${lines.join('\n')}`;
+    const currentGoal = this.subGoals.find((goal) => goal.status === 'pending');
+    const currentGoalText = currentGoal
+      ? `\nCurrent sub-goal is: ${currentGoal.description}`
+      : '';
+
+    return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
   }
 }

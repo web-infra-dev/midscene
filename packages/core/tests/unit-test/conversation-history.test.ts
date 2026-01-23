@@ -144,7 +144,7 @@ describe('ConversationHistory', () => {
     ]);
 
     expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Done task (finished)\n2. Todo task (pending)',
+      'Sub-goals:\n1. Done task (finished)\n2. Todo task (pending)\nCurrent sub-goal is: Todo task',
     );
   });
 
@@ -160,7 +160,7 @@ describe('ConversationHistory', () => {
     ]);
 
     expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. New goal 1 (pending)\n2. New goal 2 (pending)',
+      'Sub-goals:\n1. New goal 1 (pending)\n2. New goal 2 (pending)\nCurrent sub-goal is: New goal 1',
     );
   });
 
@@ -175,7 +175,7 @@ describe('ConversationHistory', () => {
 
     expect(result).toBe(true);
     expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. First (finished)\n2. Second (pending)',
+      'Sub-goals:\n1. First (finished)\n2. Second (pending)\nCurrent sub-goal is: Second',
     );
   });
 
@@ -186,7 +186,7 @@ describe('ConversationHistory', () => {
     history.updateSubGoal(1, { description: 'Updated description' });
 
     expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Updated description (pending)',
+      'Sub-goals:\n1. Updated description (pending)\nCurrent sub-goal is: Updated description',
     );
   });
 
@@ -212,7 +212,7 @@ describe('ConversationHistory', () => {
 
     expect(result).toBe(true);
     expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (pending)',
+      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (pending)\nCurrent sub-goal is: Task 2',
     );
   });
 
@@ -231,7 +231,7 @@ describe('ConversationHistory', () => {
     ]);
 
     expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Log in to the system (finished)\n2. Complete to-do items (finished)\n3. Submit the form (pending)',
+      'Sub-goals:\n1. Log in to the system (finished)\n2. Complete to-do items (finished)\n3. Submit the form (pending)\nCurrent sub-goal is: Submit the form',
     );
   });
 });
