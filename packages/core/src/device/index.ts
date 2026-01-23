@@ -2,7 +2,6 @@ import { getMidsceneLocationSchema } from '@/common';
 import type {
   ActionScrollParam,
   DeviceAction,
-  ExecutorContext,
   LocateResultElement,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -71,10 +70,7 @@ export const defineAction = <
     description: string;
     interfaceAlias?: string;
     paramSchema?: TSchema;
-    call: (
-      param: TRuntime,
-      context?: ExecutorContext,
-    ) => Promise<TReturn> | TReturn;
+    call: (param: TRuntime) => Promise<TReturn> | TReturn;
   } & Partial<
     Omit<
       DeviceAction<TRuntime, TReturn>,
