@@ -30,7 +30,7 @@ describe(
       }
     });
 
-    it.only(
+    it(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(

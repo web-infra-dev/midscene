@@ -235,6 +235,8 @@ Use this structure to mark a sub-goal as done:
   <sub-goal index="1" status="finished" />
 </mark-sub-goal-done>
 
+IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
+
 * Note
 
 During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
