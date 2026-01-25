@@ -13,9 +13,10 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
-    "prebuild": "node ../android/scripts/download-scrcpy-server.js --target=bin/server.bin || true",
+    "prebuild": "node scripts/download-scrcpy-server.js --target=bin/server.bin || true",
     "build": "rslib build",
-    "build:watch": "rslib build --watch --no-clean"
+    "build:watch": "rslib build --watch --no-clean",
+    "prepack": "node scripts/download-scrcpy-server.js --target=bin/server.bin || true"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
@@ -38,6 +39,7 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
+    "gh-release-fetch": "^4.0.3",
     "typescript": "^5.8.3"
   },
   "license": "MIT"

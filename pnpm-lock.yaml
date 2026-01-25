@@ -748,6 +748,9 @@ importers:
       '@types/node':
         specifier: ^18.0.0
         version: 18.19.62
+      gh-release-fetch:
+        specifier: ^4.0.3
+        version: 4.0.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
