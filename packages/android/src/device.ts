@@ -984,9 +984,7 @@ ${Object.keys(size)
         return result;
       } catch (error) {
         debugDevice(
-          'Scrcpy screenshot failed, falling back to standard ADB method.\n' +
-            `Error: ${error}\n` +
-            'Tip: Ensure ffmpeg is installed and scrcpy server is accessible.',
+          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}\nTip: Ensure ffmpeg is installed and scrcpy server is accessible.`,
         );
         // Continue to standard ADB path
       }

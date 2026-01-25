@@ -2,3 +2,6 @@
 # Midscene.js dump files
 midscene_run/report
 midscene_run/tmp
+
+# Scrcpy server binary (downloaded by postinstall script)
+bin/server.bin
