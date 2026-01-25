@@ -31,6 +31,7 @@
     "prebuild": "node scripts/download-scrcpy-server.js || true",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
+    "prepack": "node scripts/download-scrcpy-server.js || true",
     "playground": "DEBUG=midscene:* tsx demo/playground.ts",
     "test": "vitest --run",
     "test:u": "vitest --run -u",
