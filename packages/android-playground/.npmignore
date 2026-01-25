@@ -1,0 +1,11 @@
+# This file overrides .gitignore for npm packaging
+# We want to include bin/server.bin in the npm package
+
+# Exclude these from npm package
+node_modules/
+.DS_Store
+*.log
+midscene_run/
+
+# NOTE: bin/server.bin is NOT excluded here (unlike .gitignore)
+# This ensures it gets packaged even though it's in .gitignore
