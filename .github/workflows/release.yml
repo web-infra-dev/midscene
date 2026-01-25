@@ -56,6 +56,12 @@ jobs:
     - name: Install Puppeteer browser
       run: cd packages/web-integration && npx puppeteer browsers install chrome
 
+    - name: Download scrcpy server binaries
+      run: |
+        cd packages/android && node scripts/download-scrcpy-server.js || true
+        cd ../android-playground && node scripts/download-scrcpy-server.js --target=bin/server.bin || true
+        cd ../..
+
     - name: release
       run: node ./scripts/release.js --version=${{ github.event.inputs.version }}
       env:
