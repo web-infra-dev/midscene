@@ -184,40 +184,12 @@ export default class ScrcpyServer {
     const { ScrcpyOptions3_1, DefaultServerPath } = await import(
       '@yume-chan/scrcpy'
     );
-    const { existsSync } = await import('node:fs');
-
     // Use __dirname in a way that works for both ESM and CommonJS
     const currentDir =
       typeof __dirname !== 'undefined'
         ? __dirname
         : path.dirname(fileURLToPath(import.meta.url));
-
-    // Reuse server.bin from @midscene/android package (avoid duplication)
-    let serverBinPath: string;
-
-    try {
-      // Use require.resolve to find @midscene/android package location
-      // This works reliably in both monorepo and production environments
-      const androidPackageJson = require.resolve(
-        '@midscene/android/package.json',
-      );
-      const androidPackageRoot = path.dirname(androidPackageJson);
-      serverBinPath = path.join(androidPackageRoot, 'bin/server.bin');
-
-      if (!existsSync(serverBinPath)) {
-        throw new Error(`server.bin not found at: ${serverBinPath}`);
-      }
-
-      debugPage(
-        `Using scrcpy server from @midscene/android: ${path.relative(process.cwd(), serverBinPath)}`,
-      );
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      throw new Error(
-        `Failed to locate scrcpy server.bin from @midscene/android package.\nError: ${errorMessage}\nPlease ensure @midscene/android is properly installed.`,
-      );
-    }
+    const serverBinPath = path.resolve(currentDir, '../../bin/server.bin');
 
     try {
       // Push server - use file path directly for createReadStream

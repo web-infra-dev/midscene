@@ -3,3 +3,6 @@
 midscene_run/report
 midscene_run/tmp
 static/
+
+# Scrcpy server binary (downloaded by prebuild script)
+bin/server.bin

@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
+    "prebuild": "node ../android/scripts/download-scrcpy-server.js --target=bin/server.bin || true",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean"
   },
