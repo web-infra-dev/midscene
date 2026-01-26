@@ -35,7 +35,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '24'
+        node-version: '24.13.0'
 
     - name: Cache Puppeteer dependencies
       uses: actions/cache@v3
