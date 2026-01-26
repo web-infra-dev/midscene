@@ -204,6 +204,10 @@ export async function plan(
     };
   }
   conversationHistory.append(latestFeedbackMessage);
+
+  // Compress history if it exceeds the threshold to avoid context overflow
+  conversationHistory.compressHistory(50, 20);
+
   const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
   const msgs: ChatCompletionMessageParam[] = [

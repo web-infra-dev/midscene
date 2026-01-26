@@ -218,4 +218,35 @@ export class ConversationHistory {
   clearNotes(): void {
     this.notes.length = 0;
   }
+
+  /**
+   * Compress the conversation history if it exceeds the threshold.
+   * Removes the oldest messages and replaces them with a single placeholder message.
+   * @param threshold - The number of messages that triggers compression.
+   * @param keepCount - The number of recent messages to keep after compression.
+   * @returns true if compression was performed, false otherwise.
+   */
+  compressHistory(threshold: number, keepCount: number): boolean {
+    if (this.messages.length <= threshold) {
+      return false;
+    }
+
+    const omittedCount = this.messages.length - keepCount;
+    const omittedPlaceholder: ChatCompletionMessageParam = {
+      role: 'user',
+      content: `(${omittedCount} previous conversation messages have been omitted)`,
+    };
+
+    // Keep only the last `keepCount` messages
+    const recentMessages = this.messages.slice(-keepCount);
+
+    // Reset and rebuild with placeholder + recent messages
+    this.messages.length = 0;
+    this.messages.push(omittedPlaceholder);
+    for (const msg of recentMessages) {
+      this.messages.push(msg);
+    }
+
+    return true;
+  }
 }

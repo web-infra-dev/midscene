@@ -371,7 +371,7 @@ describe('ConversationHistory', () => {
       User logged in successfully
       ---
       Found 3 items in the cart
-      ---"
+      "
     `);
   });
 
@@ -394,5 +394,104 @@ describe('ConversationHistory', () => {
     notes.push('Mutated note');
 
     expect(history.getNotes()).toEqual(['Original note']);
+  });
+
+  // Compress history tests
+
+  it('does not compress when message count is below threshold', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('msg1'));
+    history.append(userMessage('msg2'));
+    history.append(userMessage('msg3'));
+
+    const result = history.compressHistory(5, 2);
+
+    expect(result).toBe(false);
+    expect(history.length).toBe(3);
+    expect(history.snapshot()).toEqual([
+      userMessage('msg1'),
+      userMessage('msg2'),
+      userMessage('msg3'),
+    ]);
+  });
+
+  it('does not compress when message count equals threshold', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('msg1'));
+    history.append(userMessage('msg2'));
+    history.append(userMessage('msg3'));
+
+    const result = history.compressHistory(3, 2);
+
+    expect(result).toBe(false);
+    expect(history.length).toBe(3);
+  });
+
+  it('compresses history when message count exceeds threshold', () => {
+    const history = new ConversationHistory();
+    for (let i = 1; i <= 25; i++) {
+      history.append(userMessage(`msg${i}`));
+    }
+
+    const result = history.compressHistory(20, 10);
+
+    expect(result).toBe(true);
+    // 10 kept messages + 1 placeholder
+    expect(history.length).toBe(11);
+  });
+
+  it('keeps the most recent messages after compression', () => {
+    const history = new ConversationHistory();
+    for (let i = 1; i <= 25; i++) {
+      history.append(userMessage(`msg${i}`));
+    }
+
+    history.compressHistory(20, 10);
+
+    const snapshot = history.snapshot();
+    // First message should be the placeholder
+    expect(snapshot[0]).toEqual({
+      role: 'user',
+      content: '(15 previous conversation messages have been omitted)',
+    });
+    // Remaining messages should be the last 10 (msg16 to msg25)
+    for (let i = 1; i <= 10; i++) {
+      expect(snapshot[i]).toEqual(userMessage(`msg${15 + i}`));
+    }
+  });
+
+  it('preserves message order after compression', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('old1'));
+    history.append(assistantMessage('old2'));
+    history.append(userMessage('old3'));
+    history.append(assistantMessage('keep1'));
+    history.append(userMessage('keep2'));
+
+    history.compressHistory(4, 2);
+
+    const snapshot = history.snapshot();
+    expect(snapshot).toEqual([
+      { role: 'user', content: '(3 previous conversation messages have been omitted)' },
+      assistantMessage('keep1'),
+      userMessage('keep2'),
+    ]);
+  });
+
+  it('handles compression with image messages', () => {
+    const history = new ConversationHistory();
+    history.append(userMessageWithImage('old', 'data:old-image'));
+    history.append(assistantMessage('old response'));
+    history.append(userMessageWithImage('new', 'data:new-image'));
+
+    history.compressHistory(2, 1);
+
+    const snapshot = history.snapshot();
+    expect(snapshot.length).toBe(2);
+    expect(snapshot[0]).toEqual({
+      role: 'user',
+      content: '(2 previous conversation messages have been omitted)',
+    });
+    expect(snapshot[1]).toEqual(userMessageWithImage('new', 'data:new-image'));
   });
 });

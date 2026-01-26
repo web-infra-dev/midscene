@@ -56,7 +56,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it.only(
+    it(
       'long task',
       async () => {
         const agent = new AgentOverChromeBridge();
