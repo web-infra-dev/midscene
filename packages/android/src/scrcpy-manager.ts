@@ -17,8 +17,8 @@ const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
 // Configuration defaults
-const DEFAULT_MAX_SIZE = 1024;
-const DEFAULT_VIDEO_BIT_RATE = 2_000_000;
+const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
+const DEFAULT_VIDEO_BIT_RATE = 8_000_000; // 8Mbps for high-quality screenshots
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits

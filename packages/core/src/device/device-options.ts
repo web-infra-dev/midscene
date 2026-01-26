@@ -55,9 +55,9 @@ export type AndroidDeviceOpt = {
    * const device = new AndroidDevice(deviceId, {
    *   scrcpyConfig: {
    *     enabled: true,
-   *     maxSize: 1024,
+   *     maxSize: 0,        // 0 = no scaling
    *     idleTimeoutMs: 30000,
-   *     videoBitRate: 2_000_000,
+   *     videoBitRate: 8_000_000,
    *   },
    * });
    *
