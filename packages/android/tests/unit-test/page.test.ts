@@ -77,7 +77,11 @@ describe('AndroidDevice', () => {
     // Create a new mock instance for each test
     mockAdb = new (ADB as any)() as Mocked<ADB>;
     // Disable buffer size validation for tests to allow small mock buffers
-    device = new AndroidDevice('test-device', { minScreenshotBufferSize: 0 });
+    // Disable scrcpy to avoid shell calls during normalizeScrcpyConfig
+    device = new AndroidDevice('test-device', {
+      minScreenshotBufferSize: 0,
+      scrcpyConfig: { enabled: false },
+    });
     // Manually assign the mocked adb instance
     vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });

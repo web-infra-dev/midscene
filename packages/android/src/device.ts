@@ -438,6 +438,23 @@ ${Object.keys(size)
     // Environment variable can explicitly disable scrcpy
     const envDisabled = process.env.MIDSCENE_SCRCPY_ENABLED === 'false';
 
+    // Check if scrcpy is enabled first
+    const enabled = envDisabled
+      ? false
+      : (config?.enabled ?? DEFAULT_SCRCPY_CONFIG.enabled);
+
+    // If scrcpy is disabled, return early with defaults (no need to calculate maxSize)
+    if (!enabled) {
+      return {
+        enabled: false,
+        maxSize: config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize,
+        idleTimeoutMs:
+          config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
+        videoBitRate:
+          config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
+      };
+    }
+
     // Calculate maxSize based on screenshotResizeScale if not explicitly set
     let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
@@ -451,7 +468,7 @@ ${Object.keys(size)
         // Get device physical resolution
         const adb = await this.getAdb();
         const output = await adb.shell('wm size');
-        const match = output.match(/Physical size: (\d+)x(\d+)/);
+        const match = output.match(/Physical size: (\d{1,5})x(\d{1,5})/);
         if (match) {
           const width = Number.parseInt(match[1], 10);
           const height = Number.parseInt(match[2], 10);
@@ -478,9 +495,7 @@ ${Object.keys(size)
     }
 
     return {
-      enabled: envDisabled
-        ? false
-        : (config?.enabled ?? DEFAULT_SCRCPY_CONFIG.enabled),
+      enabled: true,
       maxSize,
       idleTimeoutMs:
         config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
