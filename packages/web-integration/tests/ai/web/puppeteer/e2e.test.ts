@@ -56,7 +56,7 @@ describe(
       15 * 60 * 1000,
     );
 
-    it(
+    it.only(
       'long task',
       async () => {
         const agent = new AgentOverChromeBridge();
@@ -69,25 +69,6 @@ describe(
           },
         );
         console.log('lang', lang);
-
-        await sleep(10 * 1000);
-      },
-      15 * 60 * 1000,
-    );
-
-    it.only(
-      'long task',
-      async () => {
-        const agent = new AgentOverChromeBridge();
-
-        await agent.connectCurrentTab();
-        const ads = await agent.aiAct(
-          '访问百度，点击热搜置顶、第一、第二条内容，告诉我这些新闻页面上分别有什么东西的广告',
-          {
-            deepThink: true,
-          },
-        );
-        console.log('ads', ads);
 
         await sleep(10 * 1000);
       },
