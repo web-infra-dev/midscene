@@ -8,6 +8,7 @@ export interface ConversationHistoryOptions {
 export class ConversationHistory {
   private readonly messages: ChatCompletionMessageParam[] = [];
   private subGoals: SubGoal[] = [];
+  private notes: string[] = [];
 
   public pendingFeedbackMessage: string;
 
@@ -96,10 +97,12 @@ export class ConversationHistory {
   // Sub-goal management methods
 
   /**
-   * Set all sub-goals, replacing any existing ones
+   * Set all sub-goals, replacing any existing ones.
+   * Automatically marks the first pending goal as running.
    */
   setSubGoals(subGoals: SubGoal[]): void {
     this.subGoals = subGoals.map((goal) => ({ ...goal }));
+    this.markFirstPendingAsRunning();
   }
 
   /**
@@ -126,11 +129,26 @@ export class ConversationHistory {
   }
 
   /**
-   * Mark a sub-goal as finished
+   * Mark the first pending sub-goal as running
+   */
+  markFirstPendingAsRunning(): void {
+    const firstPending = this.subGoals.find((g) => g.status === 'pending');
+    if (firstPending) {
+      firstPending.status = 'running';
+    }
+  }
+
+  /**
+   * Mark a sub-goal as finished.
+   * Automatically marks the next pending goal as running.
    * @returns true if the sub-goal was found and updated, false otherwise
    */
   markSubGoalFinished(index: number): boolean {
-    return this.updateSubGoal(index, { status: 'finished' });
+    const result = this.updateSubGoal(index, { status: 'finished' });
+    if (result) {
+      this.markFirstPendingAsRunning();
+    }
+    return result;
   }
 
   /**
@@ -154,11 +172,50 @@ export class ConversationHistory {
       return `${goal.index}. ${goal.description} (${goal.status})`;
     });
 
-    const currentGoal = this.subGoals.find((goal) => goal.status === 'pending');
+    // Running goal takes priority, otherwise show first pending
+    const currentGoal =
+      this.subGoals.find((goal) => goal.status === 'running') ||
+      this.subGoals.find((goal) => goal.status === 'pending');
     const currentGoalText = currentGoal
       ? `\nCurrent sub-goal is: ${currentGoal.description}`
       : '';
 
     return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
+  }
+
+  // Notes management methods
+
+  /**
+   * Append a note to the notes list
+   */
+  appendNote(note: string): void {
+    if (note) {
+      this.notes.push(note);
+    }
+  }
+
+  /**
+   * Get all notes
+   */
+  getNotes(): string[] {
+    return [...this.notes];
+  }
+
+  /**
+   * Convert notes to text representation
+   */
+  notesToText(): string {
+    if (this.notes.length === 0) {
+      return '';
+    }
+
+    return `Notes from previous steps:\n---\n${this.notes.join('\n---\n')}\n`;
+  }
+
+  /**
+   * Clear all notes
+   */
+  clearNotes(): void {
+    this.notes.length = 0;
   }
 }

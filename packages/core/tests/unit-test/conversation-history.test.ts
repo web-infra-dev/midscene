@@ -133,19 +133,23 @@ describe('ConversationHistory', () => {
 
   it('initializes with empty sub-goals', () => {
     const history = new ConversationHistory();
-    expect(history.subGoalsToText()).toBe('');
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`""`);
   });
 
-  it('sets all sub-goals', () => {
+  it('sets all sub-goals and marks first pending as running', () => {
     const history = new ConversationHistory();
     history.setSubGoals([
       { index: 1, status: 'finished', description: 'Done task' },
       { index: 2, status: 'pending', description: 'Todo task' },
     ]);
 
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Done task (finished)\n2. Todo task (pending)\nCurrent sub-goal is: Todo task',
-    );
+    // First pending is automatically marked as running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Done task (finished)
+      2. Todo task (running)
+      Current sub-goal is: Todo task"
+    `);
   });
 
   it('replaces existing sub-goals when setSubGoals is called', () => {
@@ -159,9 +163,13 @@ describe('ConversationHistory', () => {
       { index: 2, status: 'pending', description: 'New goal 2' },
     ]);
 
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. New goal 1 (pending)\n2. New goal 2 (pending)\nCurrent sub-goal is: New goal 1',
-    );
+    // First pending is automatically marked as running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. New goal 1 (running)
+      2. New goal 2 (pending)
+      Current sub-goal is: New goal 1"
+    `);
   });
 
   it('updates a single sub-goal by index', () => {
@@ -171,12 +179,17 @@ describe('ConversationHistory', () => {
       { index: 2, status: 'pending', description: 'Second' },
     ]);
 
+    // After setSubGoals, first is running, second is pending
     const result = history.updateSubGoal(1, { status: 'finished' });
 
     expect(result).toBe(true);
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. First (finished)\n2. Second (pending)\nCurrent sub-goal is: Second',
-    );
+    // updateSubGoal doesn't auto-promote, only markSubGoalFinished does
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. First (finished)
+      2. Second (pending)
+      Current sub-goal is: Second"
+    `);
   });
 
   it('updates description of a sub-goal', () => {
@@ -185,9 +198,12 @@ describe('ConversationHistory', () => {
 
     history.updateSubGoal(1, { description: 'Updated description' });
 
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Updated description (pending)\nCurrent sub-goal is: Updated description',
-    );
+    // First pending was marked as running by setSubGoals
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Updated description (running)
+      Current sub-goal is: Updated description"
+    `);
   });
 
   it('returns false when updating non-existent sub-goal', () => {
@@ -201,19 +217,24 @@ describe('ConversationHistory', () => {
     expect(result).toBe(false);
   });
 
-  it('marks a sub-goal as finished', () => {
+  it('marks a sub-goal as finished and promotes next pending to running', () => {
     const history = new ConversationHistory();
     history.setSubGoals([
       { index: 1, status: 'pending', description: 'Task 1' },
       { index: 2, status: 'pending', description: 'Task 2' },
     ]);
 
+    // After setSubGoals: Task 1 is running, Task 2 is pending
     const result = history.markSubGoalFinished(1);
 
     expect(result).toBe(true);
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (pending)\nCurrent sub-goal is: Task 2',
-    );
+    // After markSubGoalFinished: Task 1 is finished, Task 2 is promoted to running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (running)
+      Current sub-goal is: Task 2"
+    `);
   });
 
   it('returns false when marking non-existent sub-goal as finished', () => {
@@ -232,9 +253,12 @@ describe('ConversationHistory', () => {
 
     history.markAllSubGoalsFinished();
 
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (finished)\n3. Task 3 (finished)',
-    );
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)
+      3. Task 3 (finished)"
+    `);
   });
 
   it('marks all sub-goals as finished when some are already finished', () => {
@@ -246,15 +270,51 @@ describe('ConversationHistory', () => {
 
     history.markAllSubGoalsFinished();
 
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (finished)',
-    );
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
   });
 
   it('handles markAllSubGoalsFinished with empty sub-goals', () => {
     const history = new ConversationHistory();
     history.markAllSubGoalsFinished();
-    expect(history.subGoalsToText()).toBe('');
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('markFirstPendingAsRunning only affects first pending goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+      { index: 3, status: 'pending', description: 'Task 3' },
+    ]);
+
+    // setSubGoals already called markFirstPendingAsRunning, so Task 2 is running
+    // Task 3 should still be pending
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (running)
+      3. Task 3 (pending)
+      Current sub-goal is: Task 2"
+    `);
+  });
+
+  it('does not change status when no pending goals exist', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'finished', description: 'Task 2' },
+    ]);
+
+    // No pending goals, so no change
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
   });
 
   it('subGoalsToText shows all sub-goals with their status', () => {
@@ -265,8 +325,74 @@ describe('ConversationHistory', () => {
       { index: 3, status: 'pending', description: 'Submit the form' },
     ]);
 
-    expect(history.subGoalsToText()).toBe(
-      'Sub-goals:\n1. Log in to the system (finished)\n2. Complete to-do items (finished)\n3. Submit the form (pending)\nCurrent sub-goal is: Submit the form',
-    );
+    // First pending is automatically marked as running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Log in to the system (finished)
+      2. Complete to-do items (finished)
+      3. Submit the form (running)
+      Current sub-goal is: Submit the form"
+    `);
+  });
+
+  // Notes management tests
+
+  it('initializes with empty notes', () => {
+    const history = new ConversationHistory();
+    expect(history.getNotes()).toEqual([]);
+    expect(history.notesToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('appends notes to the list', () => {
+    const history = new ConversationHistory();
+    history.appendNote('First note');
+    history.appendNote('Second note');
+
+    expect(history.getNotes()).toEqual(['First note', 'Second note']);
+  });
+
+  it('ignores empty notes when appending', () => {
+    const history = new ConversationHistory();
+    history.appendNote('Valid note');
+    history.appendNote('');
+    history.appendNote('Another valid note');
+
+    expect(history.getNotes()).toEqual(['Valid note', 'Another valid note']);
+  });
+
+  it('converts notes to text representation', () => {
+    const history = new ConversationHistory();
+    history.appendNote('User logged in successfully');
+    history.appendNote('Found 3 items in the cart');
+
+    expect(history.notesToText()).toMatchInlineSnapshot(`
+      "Notes from previous steps:
+      ---
+      User logged in successfully
+      ---
+      Found 3 items in the cart
+      ---"
+    `);
+  });
+
+  it('clears all notes', () => {
+    const history = new ConversationHistory();
+    history.appendNote('Note 1');
+    history.appendNote('Note 2');
+
+    history.clearNotes();
+
+    expect(history.getNotes()).toEqual([]);
+    expect(history.notesToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('returns independent copy of notes array', () => {
+    const history = new ConversationHistory();
+    history.appendNote('Original note');
+
+    const notes = history.getNotes();
+    notes.push('Mutated note');
+
+    expect(history.getNotes()).toEqual(['Original note']);
   });
 });

@@ -162,13 +162,17 @@ export async function plan(
   const subGoalsText = conversationHistory.subGoalsToText();
   const subGoalsSection = subGoalsText ? `\n\n${subGoalsText}` : '';
 
+  // Build notes text to include in the message
+  const notesText = conversationHistory.notesToText();
+  const notesSection = notesText ? `\n\n${notesText}` : '';
+
   if (conversationHistory.pendingFeedbackMessage) {
     latestFeedbackMessage = {
       role: 'user',
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The last screenshot is attached. Please going on according to the instruction.${subGoalsSection}`,
+          text: `${conversationHistory.pendingFeedbackMessage}. The last screenshot is attached. Please going on according to the instruction.${notesSection}${subGoalsSection}`,
         },
         {
           type: 'image_url',
@@ -187,7 +191,7 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `this is the latest screenshot${subGoalsSection}`,
+          text: `this is the latest screenshot${notesSection}${subGoalsSection}`,
         },
         {
           type: 'image_url',
@@ -287,6 +291,11 @@ export async function plan(
     for (const index of planFromAI.markFinishedIndexes) {
       conversationHistory.markSubGoalFinished(index);
     }
+  }
+
+  // Append note to conversation history if present
+  if (planFromAI.note) {
+    conversationHistory.appendNote(planFromAI.note);
   }
 
   conversationHistory.append({

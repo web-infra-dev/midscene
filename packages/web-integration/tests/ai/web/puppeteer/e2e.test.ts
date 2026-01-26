@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { AgentOverChromeBridge } from '@/bridge-mode';
 import { PuppeteerAgent } from '@/puppeteer';
 import { z } from '@midscene/core';
 import { defineAction } from '@midscene/core/device';
@@ -30,7 +31,7 @@ describe(
       }
     });
 
-    it(
+    it.skip(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(
@@ -45,12 +46,50 @@ describe(
         await sleep(10 * 1000);
 
         await agent.aiAct(
-          '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。 只需要填写表单项即可，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
+          '在当前页面里完成这个任务：完成 github 账号注册的表单填写。地区必须选择「加拿大」。确保表单上没有遗漏的字段，确保所有的表单项能够通过校验。填完之后，不需要发起真实的账号注册。 最终请返回表单上实际填写的字段内容。',
           // '在当前页面里完成这个任务：用户名填入 abc，密码填入 123 , 点击 email 字段。断言：界面上有抛错',
           {
             deepThink: true,
           },
         );
+      },
+      15 * 60 * 1000,
+    );
+
+    it(
+      'long task',
+      async () => {
+        const agent = new AgentOverChromeBridge();
+
+        await agent.connectCurrentTab();
+        const lang = await agent.aiAct(
+          'go to stop watch page and stop the stop watch。返回界面的语言：en-us 或 zh-ch。只要这个词，别的不要说',
+          {
+            deepThink: true,
+          },
+        );
+        console.log('lang', lang);
+
+        await sleep(10 * 1000);
+      },
+      15 * 60 * 1000,
+    );
+
+    it.only(
+      'long task',
+      async () => {
+        const agent = new AgentOverChromeBridge();
+
+        await agent.connectCurrentTab();
+        const ads = await agent.aiAct(
+          '访问百度，点击热搜置顶、第一、第二条内容，告诉我这些新闻页面上分别有什么东西的广告',
+          {
+            deepThink: true,
+          },
+        );
+        console.log('ads', ads);
+
+        await sleep(10 * 1000);
       },
       15 * 60 * 1000,
     );

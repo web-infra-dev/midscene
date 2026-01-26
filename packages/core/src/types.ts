@@ -236,7 +236,7 @@ export interface PlanningAction<ParamType = any> {
   param: ParamType;
 }
 
-export type SubGoalStatus = 'pending' | 'finished';
+export type SubGoalStatus = 'pending' | 'running' | 'finished';
 
 export interface SubGoal {
   index: number;

@@ -405,8 +405,9 @@ const DetailSide = (): JSX.Element => {
     const locateParam = (planningTask as any)?.param;
     const images = extractTaskImages(locateParam);
 
-    // Get subGoalStatus from param
+    // Get subGoalStatus and notesStatus from param
     const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
+    const notesStatus = (planningTask.param as any)?.notesStatus;
 
     if (planningTask.param?.userInstruction) {
       // Ensure userInstruction is a string
@@ -422,6 +423,14 @@ const DetailSide = (): JSX.Element => {
             content: instructionContent,
             images: images,
           },
+          ...(notesStatus
+            ? [
+                {
+                  key: 'notes',
+                  content: notesStatus,
+                },
+              ]
+            : []),
           ...(subGoalStatus
             ? [
                 {
@@ -455,6 +464,14 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
+          ...(notesStatus
+            ? [
+                {
+                  key: 'notes',
+                  content: notesStatus,
+                },
+              ]
+            : []),
           ...(subGoalStatus
             ? [
                 {
@@ -876,9 +893,7 @@ const DetailSide = (): JSX.Element => {
             title="Output"
             onMouseEnter={noop}
             onMouseLeave={noop}
-            content={
-              <pre className="description-content">{outputMessage}</pre>
-            }
+            content={<pre className="description-content">{outputMessage}</pre>}
           />,
         );
       }

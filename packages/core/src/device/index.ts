@@ -257,7 +257,7 @@ export const actionScrollParamSchema = z.object({
     ])
     .default('singleAction')
     .describe(
-      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling all the way to the bottom by rapidly scrolling 5-10 times (skipping intermediate content until reaching the bottom), "scrollToTop" for scrolling all the way to the top by rapidly scrolling 5-10 times (skipping intermediate content until reaching the top), "scrollToRight" for scrolling all the way to the right by rapidly scrolling multiple times, "scrollToLeft" for scrolling all the way to the left by rapidly scrolling multiple times',
     ),
   direction: z
     .enum(['down', 'up', 'right', 'left'])

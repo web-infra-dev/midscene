@@ -293,6 +293,9 @@ export class TaskExecutor {
       const subGoalStatus =
         this.conversationHistory.subGoalsToText() || undefined;
 
+      // Get notes text if available
+      const notesStatus = this.conversationHistory.notesToText() || undefined;
+
       const result = await session.appendAndRun(
         {
           type: 'Planning',
@@ -303,6 +306,7 @@ export class TaskExecutor {
             imagesIncludeCount,
             deepThink,
             ...(subGoalStatus ? { subGoalStatus } : {}),
+            ...(notesStatus ? { notesStatus } : {}),
           },
           executor: async (param, executorContext) => {
             const { uiContext } = executorContext;
