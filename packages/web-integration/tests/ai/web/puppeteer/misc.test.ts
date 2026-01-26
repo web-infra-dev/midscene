@@ -87,11 +87,12 @@ describe(
     });
 
     it('input xss content', async () => {
-      const { originPage, reset } = await launchPage('https://www.google.com/');
+      const htmlPath = getFixturePath('input-test.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.agent = new PuppeteerAgent(originPage);
       await ctx.agent.aiInput(
         '<html>hello world</html><script>alert("xss")</script><button>click me</button>',
-        'the search box',
+        'the search input box',
       );
       await reset();
 

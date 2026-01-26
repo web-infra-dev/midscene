@@ -61,7 +61,8 @@ describe(
     it(
       'search engine',
       async () => {
-        const { originPage, reset } = await launchPage('https://www.bing.com/');
+        const htmlPath = getFixturePath('search-engine.html');
+        const { originPage, reset } = await launchPage(`file://${htmlPath}`);
         ctx.resetFn = reset;
         ctx.agent = new PuppeteerAgent(originPage);
         await ctx.agent.aiAct('type "AI 101" in search box');

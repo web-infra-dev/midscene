@@ -1,7 +1,11 @@
+import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
+
+const FIXTURES_DIR = path.join(__dirname, '../../fixtures');
+const getFixturePath = (filename: string) => path.join(FIXTURES_DIR, filename);
 
 vi.setConfig({
   testTimeout: 120 * 1000,
@@ -21,12 +25,13 @@ describe('agent with forceSameTabNavigation', () => {
   });
 
   it('open new tab', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const htmlPath = getFixturePath('search-engine.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'puppeteer-open-new-tab',
     });
-    const inputXpath = '//*[@id="sb_form_q"]';
+    const inputXpath = '//*[@id="search-input"]';
     await agent.aiInput('The search input box', {
       value: 'midscene github',
       xpath: inputXpath,
@@ -38,14 +43,16 @@ describe('agent with forceSameTabNavigation', () => {
       keyName: 'Enter',
       xpath: inputXpath,
     });
-    await sleep(5000);
+    await sleep(2000);
     const log1 = await agent._unstableLogContent();
     expect(log1.executions[1].tasks[0].hitBy?.from).toBe('User expected path');
     expect(log1.executions[1].tasks[0].hitBy?.context?.xpath).toBe(inputXpath);
     await agent.aiTap('The search result link for "midscene" project');
     const log2 = await agent._unstableLogContent();
     expect(log2.executions[2].tasks[0].hitBy?.from).toBe(undefined); // AI model
-    await sleep(5000);
-    await agent.aiAssert('the page is about "midscene" project');
+    await sleep(2000);
+    await agent.aiAssert(
+      'the page shows search results about "midscene" project',
+    );
   });
 });

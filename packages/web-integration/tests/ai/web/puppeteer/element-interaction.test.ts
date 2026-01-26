@@ -26,8 +26,7 @@ describe(
       );
     });
 
-    // Skip on CI - swipe gesture recognition can be unreliable in headless environments
-    it.skipIf(process.env.CI)('swipe', async () => {
+    it('swipe', async () => {
       const htmlPath = getFixturePath('local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
         viewport: {
@@ -86,9 +85,8 @@ describe(
     });
 
     it('double click', async () => {
-      const { originPage, reset } = await launchPage(
-        'https://cpstest.us/double-click-test/',
-      );
+      const htmlPath = getFixturePath('double-click.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
       await ctx.agent.aiAct('double click the "Click Me" button once');
