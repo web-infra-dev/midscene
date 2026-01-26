@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SCRCPY_VERSION = 'v3.0';
+const SCRCPY_VERSION = 'v3.1';
 
 async function main() {
   const args = process.argv.slice(2);
