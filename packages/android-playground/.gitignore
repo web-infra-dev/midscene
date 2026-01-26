@@ -5,4 +5,4 @@ midscene_run/tmp
 static/
 
 # Scrcpy server binary (downloaded during build)
-bin/server.bin
+bin/scrcpy-server

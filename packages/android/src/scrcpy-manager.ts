@@ -162,7 +162,7 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/scrcpy'
       );
 
-      // Use local server.bin file
+      // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
       await AdbScrcpyClient.pushServer(
         this.adb,
@@ -213,7 +213,7 @@ export class ScrcpyScreenshotManager {
       typeof __dirname !== 'undefined'
         ? __dirname
         : path.dirname(fileURLToPath(import.meta.url));
-    return path.resolve(currentDir, '../../bin/server.bin');
+    return path.resolve(currentDir, '../../bin/scrcpy-server');
   }
 
   /**

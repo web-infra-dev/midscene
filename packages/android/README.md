@@ -32,7 +32,7 @@ wget https://github.com/Genymobile/scrcpy/releases/download/v3.0/scrcpy-server-v
 
 # Place it in the correct location
 mkdir -p packages/android/bin
-mv scrcpy-server-v3.0 packages/android/bin/server.bin
+mv scrcpy-server-v3.0 packages/android/bin/scrcpy-server
 ```
 
 Then run the build:
@@ -87,7 +87,7 @@ If scrcpy fails, the package automatically falls back to standard ADB mode witho
 Common issues:
 - **First run slow**: Initial scrcpy connection setup takes 1-2 seconds
 - **ffmpeg errors**: Ensure `@ffmpeg-installer/ffmpeg` is installed (already in optionalDependencies)
-- **Server download failed**: Check network connectivity or manually place server.bin
+- **Server download failed**: Check network connectivity or manually place scrcpy-server
 
 ## License
 

@@ -20,7 +20,7 @@ async function main() {
     binDir = path.dirname(serverBinPath);
   } else {
     binDir = path.resolve(__dirname, '../bin');
-    serverBinPath = path.resolve(binDir, 'server.bin');
+    serverBinPath = path.resolve(binDir, 'scrcpy-server');
   }
 
   try {

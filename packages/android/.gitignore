@@ -4,5 +4,5 @@ midscene_run/report
 midscene_run/tmp
 
 # Binaries (downloaded during build)
-bin/server.bin
+bin/scrcpy-server
 bin/yadb
