@@ -3,7 +3,6 @@ import { ModelConfigManager } from './model-config-manager';
 import {
   type GLOBAL_ENV_KEYS,
   MIDSCENE_PREFERRED_LANGUAGE,
-  MIDSCENE_USE_DEVICE_TIME,
   type MODEL_ENV_KEYS,
 } from './types';
 
@@ -15,17 +14,17 @@ globalConfigManager.registerModelConfigManager(globalModelConfigManager);
 globalModelConfigManager.registerGlobalConfigManager(globalConfigManager);
 
 /**
- * Interface for devices that support getDeviceTime method.
+ * Interface for devices that support getTimestamp method.
  * This is a minimal interface to avoid circular dependencies with @midscene/core.
  */
-export interface DeviceWithTime {
-  getDeviceTime?: () => Promise<number>;
+export interface DeviceWithTimestamp {
+  getTimestamp?: () => Promise<number>;
 }
 
 /**
  * Get the current timestamp, optionally from the target device.
  *
- * When MIDSCENE_USE_DEVICE_TIME is enabled and a device with getDeviceTime is provided,
+ * When useDeviceTimestamp is enabled and a device with getTimestamp is provided,
  * this function will return the device's time. Otherwise, it returns the system time.
  *
  * This is useful when:
@@ -33,7 +32,8 @@ export interface DeviceWithTime {
  * - Debugging time-sensitive features
  * - The system clock and device clock are not synchronized
  *
- * @param device Optional device interface that supports getDeviceTime
+ * @param device Optional device interface that supports getTimestamp
+ * @param useDeviceTimestamp Whether to use device timestamp (from agent config)
  * @returns Timestamp in milliseconds
  *
  * @example
@@ -42,16 +42,15 @@ export interface DeviceWithTime {
  *
  * @example
  * // With device and config enabled - returns device time
- * const deviceTime = await getCurrentTime(androidDevice);
+ * const deviceTime = await getCurrentTime(androidDevice, true);
  */
-export async function getCurrentTime(device?: DeviceWithTime): Promise<number> {
-  const useDeviceTime = globalConfigManager.getEnvConfigInBoolean(
-    MIDSCENE_USE_DEVICE_TIME,
-  );
-
-  if (useDeviceTime && device?.getDeviceTime) {
+export async function getCurrentTime(
+  device?: DeviceWithTimestamp,
+  useDeviceTimestamp?: boolean,
+): Promise<number> {
+  if (useDeviceTimestamp && device?.getTimestamp) {
     try {
-      return await device.getDeviceTime();
+      return await device.getTimestamp();
     } catch (error) {
       // Fall back to system time if device time retrieval fails
       console.warn(

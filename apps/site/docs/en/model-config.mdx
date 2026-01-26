@@ -33,7 +33,6 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |
 | `MIDSCENE_RUN_DIR` | Run artifact directory, like report and logs. Defaults to `midscene_run` in the current working directory; accepts absolute or relative paths |
 | `MIDSCENE_PREFERRED_LANGUAGE` | Optional. Preferred response language. Defaults to `Chinese` if timezone is GMT+8, otherwise `English` |
-| `MIDSCENE_USE_DEVICE_TIME` | When set to `true`, Midscene will use the target device's time (Android/iOS) instead of the system time. Useful when the device time differs from the host machine. Default: `false` |
 
 > Note: Control replanning behavior with the agent option `replanningCycleLimit` (defaults to 20, or 40 for `vlm-ui-tars`), not with environment variables.
 

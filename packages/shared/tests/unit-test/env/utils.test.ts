@@ -1,10 +1,9 @@
 import { getBasicEnvValue } from 'src/env/basic';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MIDSCENE_RUN_DIR,
-  MIDSCENE_USE_DEVICE_TIME,
   getCurrentTime,
-  type DeviceWithTime,
+  type DeviceWithTimestamp,
 } from '../../../src/env';
 
 describe('getBasicEnvValue', () => {
@@ -27,15 +26,7 @@ describe('getBasicEnvValue', () => {
 });
 
 describe('getCurrentTime', () => {
-  beforeEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it('should return system time when MIDSCENE_USE_DEVICE_TIME is not set', async () => {
+  it('should return system time when useDeviceTimestamp is not set', async () => {
     const before = Date.now();
     const result = await getCurrentTime();
     const after = Date.now();
@@ -44,11 +35,9 @@ describe('getCurrentTime', () => {
     expect(result).toBeLessThanOrEqual(after);
   });
 
-  it('should return system time when MIDSCENE_USE_DEVICE_TIME is false', async () => {
-    vi.stubEnv(MIDSCENE_USE_DEVICE_TIME, 'false');
-
+  it('should return system time when useDeviceTimestamp is false', async () => {
     const before = Date.now();
-    const result = await getCurrentTime();
+    const result = await getCurrentTime(undefined, false);
     const after = Date.now();
 
     expect(result).toBeGreaterThanOrEqual(before);
@@ -56,54 +45,46 @@ describe('getCurrentTime', () => {
   });
 
   it('should return system time when device is not provided', async () => {
-    vi.stubEnv(MIDSCENE_USE_DEVICE_TIME, 'true');
-
     const before = Date.now();
-    const result = await getCurrentTime();
+    const result = await getCurrentTime(undefined, true);
     const after = Date.now();
 
     expect(result).toBeGreaterThanOrEqual(before);
     expect(result).toBeLessThanOrEqual(after);
   });
 
-  it('should return system time when device does not have getDeviceTime method', async () => {
-    vi.stubEnv(MIDSCENE_USE_DEVICE_TIME, 'true');
-
-    const deviceWithoutTime: DeviceWithTime = {};
+  it('should return system time when device does not have getTimestamp method', async () => {
+    const deviceWithoutTime: DeviceWithTimestamp = {};
 
     const before = Date.now();
-    const result = await getCurrentTime(deviceWithoutTime);
+    const result = await getCurrentTime(deviceWithoutTime, true);
     const after = Date.now();
 
     expect(result).toBeGreaterThanOrEqual(before);
     expect(result).toBeLessThanOrEqual(after);
   });
 
-  it('should return device time when MIDSCENE_USE_DEVICE_TIME is true and device has getDeviceTime', async () => {
-    vi.stubEnv(MIDSCENE_USE_DEVICE_TIME, 'true');
-
+  it('should return device time when useDeviceTimestamp is true and device has getTimestamp', async () => {
     const mockDeviceTime = 1700000000000;
-    const deviceWithTime: DeviceWithTime = {
-      getDeviceTime: vi.fn().mockResolvedValue(mockDeviceTime),
+    const deviceWithTime: DeviceWithTimestamp = {
+      getTimestamp: vi.fn().mockResolvedValue(mockDeviceTime),
     };
 
-    const result = await getCurrentTime(deviceWithTime);
+    const result = await getCurrentTime(deviceWithTime, true);
 
     expect(result).toBe(mockDeviceTime);
-    expect(deviceWithTime.getDeviceTime).toHaveBeenCalledOnce();
+    expect(deviceWithTime.getTimestamp).toHaveBeenCalledOnce();
   });
 
-  it('should fall back to system time when getDeviceTime throws an error', async () => {
-    vi.stubEnv(MIDSCENE_USE_DEVICE_TIME, 'true');
-
-    const deviceWithError: DeviceWithTime = {
-      getDeviceTime: vi.fn().mockRejectedValue(new Error('Device error')),
+  it('should fall back to system time when getTimestamp throws an error', async () => {
+    const deviceWithError: DeviceWithTimestamp = {
+      getTimestamp: vi.fn().mockRejectedValue(new Error('Device error')),
     };
 
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const before = Date.now();
-    const result = await getCurrentTime(deviceWithError);
+    const result = await getCurrentTime(deviceWithError, true);
     const after = Date.now();
 
     expect(result).toBeGreaterThanOrEqual(before);

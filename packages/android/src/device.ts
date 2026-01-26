@@ -1496,7 +1496,7 @@ ${Object.keys(size)
    * Returns the device's current timestamp in milliseconds.
    * This is useful when the system time and device time are not synchronized.
    */
-  async getDeviceTime(): Promise<number> {
+  async getTimestamp(): Promise<number> {
     const adb = await this.getAdb();
     try {
       // Get time in milliseconds using date command
