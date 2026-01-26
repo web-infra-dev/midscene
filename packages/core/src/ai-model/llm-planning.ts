@@ -234,6 +234,8 @@ export async function plan(
   if (planFromAI.finalizeSuccess !== undefined) {
     debug('goal completed via complete-goal tag, stop planning');
     shouldContinuePlanning = false;
+    // Mark all sub-goals as finished when goal is completed
+    conversationHistory.markAllSubGoalsFinished();
   }
 
   const returnValue: PlanningAIResponse = {

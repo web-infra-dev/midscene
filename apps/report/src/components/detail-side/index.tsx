@@ -866,6 +866,23 @@ const DetailSide = (): JSX.Element => {
         }
       });
 
+      // Add output message if exists (from complete-goal)
+      const outputMessage = (task as ExecutionTaskPlanning).output?.output;
+      if (outputMessage) {
+        planItems.push(
+          <Card
+            key="output-message"
+            liteMode={true}
+            title="Output"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{outputMessage}</pre>
+            }
+          />,
+        );
+      }
+
       // Add More actions needed if exists
       if (
         typeof (task as ExecutionTaskPlanning).output

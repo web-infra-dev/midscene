@@ -222,6 +222,41 @@ describe('ConversationHistory', () => {
     expect(result).toBe(false);
   });
 
+  it('marks all sub-goals as finished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+      { index: 3, status: 'pending', description: 'Task 3' },
+    ]);
+
+    history.markAllSubGoalsFinished();
+
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (finished)\n3. Task 3 (finished)',
+    );
+  });
+
+  it('marks all sub-goals as finished when some are already finished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    history.markAllSubGoalsFinished();
+
+    expect(history.subGoalsToText()).toBe(
+      'Sub-goals:\n1. Task 1 (finished)\n2. Task 2 (finished)',
+    );
+  });
+
+  it('handles markAllSubGoalsFinished with empty sub-goals', () => {
+    const history = new ConversationHistory();
+    history.markAllSubGoalsFinished();
+    expect(history.subGoalsToText()).toBe('');
+  });
+
   it('subGoalsToText shows all sub-goals with their status', () => {
     const history = new ConversationHistory();
     history.setSubGoals([

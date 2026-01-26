@@ -134,6 +134,15 @@ export class ConversationHistory {
   }
 
   /**
+   * Mark all sub-goals as finished
+   */
+  markAllSubGoalsFinished(): void {
+    for (const goal of this.subGoals) {
+      goal.status = 'finished';
+    }
+  }
+
+  /**
    * Convert sub-goals to text representation
    */
   subGoalsToText(): string {

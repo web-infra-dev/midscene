@@ -266,6 +266,7 @@ export interface PlanningAIResponse
   error?: string;
   reasoning_content?: string;
   shouldContinuePlanning: boolean;
+  output?: string; // Output message from complete-goal (same as finalizeMessage)
 }
 
 export interface PlanningActionParamSleep {
