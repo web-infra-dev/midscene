@@ -25,6 +25,8 @@ describe(
         onTaskStartTip,
         beforeInvokeAction,
         afterInvokeAction,
+        aiActContext:
+          'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
       });
 
       await ctx.agent.aiAssert('this is a login page');
@@ -40,6 +42,17 @@ describe(
       await ctx.agent.aiWaitFor('there are products displayed on the page', {
         checkIntervalMs: 5000,
       });
+
+      // find the items
+      const items = await ctx.agent.aiQuery(
+        '{name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like "Remove")',
+        { domIncluded: true, screenshotIncluded: false },
+      );
+      console.log('item list', items);
+      expect(items[0].imageUrl).toContain('/static/media/');
+      expect(items.length).toBeGreaterThanOrEqual(2);
+
+      await ctx.agent.aiAssert('The price of "Sauce Labs Backpack" is 29.99');
 
       const price = await ctx.agent.ai(
         'Add first two items to the cart and tell me the total price of the cart. Just the price number, no other text',
@@ -67,24 +80,10 @@ describe(
 
       // Test that aiWaitFor correctly times out for non-existent elements
       await expect(async () => {
-        await ctx.agent!.aiWaitFor(
-          'there is a non-existent element XYZ123 in the UI',
-          {
-            timeoutMs: 10 * 1000,
-          },
-        );
+        await ctx.agent!.aiWaitFor('there is a element XYZ123 in the UI', {
+          timeoutMs: 10 * 1000,
+        });
       }).rejects.toThrowError();
-
-      // find the items
-      const items = await ctx.agent.aiQuery(
-        '{name: string, price: number, actionBtnName: string, imageUrl: string}[], return item name, price and the action button name on the lower right corner of each item, and the image url of each item (like "Remove")',
-        { domIncluded: true, screenshotIncluded: false },
-      );
-      console.log('item list', items);
-      expect(items[0].imageUrl).toContain('/static/media/');
-      expect(items.length).toBeGreaterThanOrEqual(2);
-
-      await ctx.agent.aiAssert('The price of "Sauce Labs Backpack" is 29.99');
     });
 
     it('Sauce Demo by Swag Lab - aiQuery', async () => {
