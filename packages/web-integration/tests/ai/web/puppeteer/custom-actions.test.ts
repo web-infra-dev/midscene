@@ -14,33 +14,33 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it('append custom action - UploadFile is invoked', async () => {
+    it('append custom action - DoAJob is invoked', async () => {
       const htmlPath = getFixturePath('local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.resetFn = reset;
 
-      const uploadCalled = vi.fn();
-      const UploadFile = defineAction({
-        name: 'UploadFile',
-        description: 'Upload a local file to current page',
+      const doAJobCalled = vi.fn();
+      const DoAJob = defineAction({
+        name: 'DoAJob',
+        description: 'Do a job on the current page',
         paramSchema: z.object({
-          filePath: z.string().describe('Absolute or relative local file path'),
+          job: z.string().describe('Job to be done'),
         }),
         call: async (param) => {
-          uploadCalled(param.filePath);
+          doAJobCalled(param.job);
         },
       });
 
       ctx.agent = new PuppeteerAgent(originPage, {
-        customActions: [UploadFile],
+        customActions: [DoAJob],
       });
 
       await ctx.agent.aiAct(
-        'Upload a local file to current page, which path is /tmp/demo.txt',
+        'Do a job on the current page, which job is say hello',
       );
 
-      expect(uploadCalled).toHaveBeenCalledTimes(1);
-      expect(uploadCalled).toHaveBeenCalledWith('/tmp/demo.txt');
+      expect(doAJobCalled).toHaveBeenCalledTimes(1);
+      expect(doAJobCalled).toHaveBeenCalledWith('say hello');
     });
   },
   DEFAULT_TEST_TIMEOUT,
