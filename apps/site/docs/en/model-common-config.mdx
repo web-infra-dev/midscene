@@ -137,6 +137,10 @@ AutoGLM provides two model versions, distinguished by `MIDSCENE_MODEL_FAMILY`:
 
 Choose the appropriate version based on your application language.
 
+:::note
+AutoGLM is best suited for mobile interactions and operations. If you need to use `aiAssert`, `aiQuery`, or other APIs requiring page understanding/assertions, you should configure separate `MIDSCENE_INSIGHT_MODEL_...` environment variables to let an independent Insight model handle page comprehension. See [Model Strategy](./model-strategy) for more information about multi-model configuration.
+:::
+
 **Learn more about Zhipu AutoGLM**
 
 - Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
