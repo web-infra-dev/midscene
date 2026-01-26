@@ -1,4 +1,3 @@
-import { createServer } from 'node:net';
 import path from 'node:path';
 import { input, select } from '@inquirer/prompts';
 import { PlaygroundServer } from '@midscene/playground';
@@ -6,36 +5,9 @@ import {
   DEFAULT_WDA_PORT,
   PLAYGROUND_SERVER_PORT,
 } from '@midscene/shared/constants';
+import { findAvailablePort } from '@midscene/shared/node';
 import { IOSAgent } from './agent';
 import { IOSDevice } from './device';
-
-async function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = createServer();
-    server.on('error', () => resolve(false));
-    server.listen(port, () => {
-      server.close(() => resolve(true));
-    });
-  });
-}
-
-async function findAvailablePort(startPort: number): Promise<number> {
-  let port = startPort;
-  let attempts = 0;
-  const maxAttempts = 15;
-
-  while (!(await isPortAvailable(port))) {
-    attempts++;
-    if (attempts >= maxAttempts) {
-      console.error(
-        `❌ Unable to find available port after ${maxAttempts} attempts starting from ${startPort}`,
-      );
-      process.exit(1);
-    }
-    port++;
-  }
-  return port;
-}
 
 // Function to configure WebDriverAgent connection
 async function configureWebDriverAgent(): Promise<{

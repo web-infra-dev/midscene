@@ -141,6 +141,7 @@ Midscene.js 在 UI 操作上采用纯视觉（pure-vision）路线：元素定�
 - [appium-adb](https://github.com/appium/appium-adb) 用于 javascript 桥接 adb。
 - [appium-webdriveragent](https://github.com/appium/WebDriverAgent) 用于 javascript 操作 XCTest。
 - [YADB](https://github.com/ysbing/YADB) 用于提高文本输入的兼容性。
+- [libnut-core](https://github.com/nut-tree/libnut-core) 用于跨平台的原生键盘和鼠标控制。
 - [Puppeteer](https://github.com/puppeteer/puppeteer) 用于浏览器自动化与控制。
 - [Playwright](https://github.com/microsoft/playwright) 用于浏览器自动化与控制和测试。
 

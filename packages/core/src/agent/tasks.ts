@@ -31,7 +31,7 @@ import type {
   ServiceExtractParam,
 } from '@/types';
 import { ServiceError } from '@/types';
-import type { IModelConfig } from '@midscene/shared/env';
+import { type IModelConfig, getCurrentTime } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import { ExecutionSession } from './execution-session';
@@ -81,6 +81,8 @@ export class TaskExecutor {
 
   waitAfterAction?: number;
 
+  useDeviceTimestamp?: boolean;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -94,6 +96,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
+      useDeviceTimestamp?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
     },
@@ -104,6 +107,7 @@ export class TaskExecutor {
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.waitAfterAction = opts.waitAfterAction;
+    this.useDeviceTimestamp = opts.useDeviceTimestamp;
     this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
     this.providedActionSpace = opts.actionSpace;
@@ -133,6 +137,20 @@ export class TaskExecutor {
 
   private getActionSpace(): DeviceAction[] {
     return this.providedActionSpace;
+  }
+
+  /**
+   * Get a readable time string using device time when configured.
+   * This method respects the useDeviceTimestamp configuration.
+   * @param format - Optional format string
+   * @returns A formatted time string
+   */
+  private async getTimeString(format?: string): Promise<string> {
+    const timestamp = await getCurrentTime(
+      this.interface,
+      this.useDeviceTimestamp,
+    );
+    return getReadableTimeString(format, timestamp);
   }
 
   public async convertPlanToExecutable(
@@ -431,14 +449,18 @@ export class TaskExecutor {
           this.conversationHistory.pendingFeedbackMessage,
         );
       }
-      // todo: set time string
+
+      // Set initial time context for the first planning call
+      const initialTimeString = await this.getTimeString();
+      this.conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
       try {
         await session.appendAndRun(executables.tasks);
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
-        this.conversationHistory.pendingFeedbackMessage = `Time: ${getReadableTimeString()}, Error executing running tasks: ${error?.message || String(error)}`;
+        const timeString = await this.getTimeString();
+        this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
         debug(
           'error when executing running tasks, but continue to run if it is not too many errors:',
           error instanceof Error ? error.message : String(error),
@@ -465,7 +487,8 @@ export class TaskExecutor {
       }
 
       if (!this.conversationHistory.pendingFeedbackMessage) {
-        this.conversationHistory.pendingFeedbackMessage = `Time: ${getReadableTimeString()}, I have finished the action previously planned.`;
+        const timeString = await this.getTimeString();
+        this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
       }
     }
 
