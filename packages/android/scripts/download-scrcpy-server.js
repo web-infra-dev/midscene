@@ -49,16 +49,13 @@ async function main() {
 
     console.log('[scrcpy] Server downloaded successfully');
   } catch (error) {
-    console.warn('[scrcpy] Warning: Failed to download server');
-    console.warn(`[scrcpy] Error: ${error.message}`);
-    console.warn('[scrcpy] Scrcpy screenshot will be disabled');
-    console.warn(
-      '[scrcpy] The package will fallback to standard ADB screenshot mode',
-    );
+    console.error('[scrcpy] Failed to download server');
+    console.error(`[scrcpy] Error: ${error.message}`);
+    process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.warn('[scrcpy] Unexpected error:', error);
-  process.exit(0);
+  console.error('[scrcpy] Unexpected error:', error);
+  process.exit(1);
 });
