@@ -17,8 +17,8 @@ const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
 // Configuration defaults
-const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
-const DEFAULT_VIDEO_BIT_RATE = 8_000_000; // 8Mbps for high-quality screenshots
+const DEFAULT_MAX_SIZE = 1024; // Scale to 1024 for performance
+const DEFAULT_VIDEO_BIT_RATE = 2_000_000; // 2Mbps - balanced quality and performance
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
@@ -365,9 +365,19 @@ export class ScrcpyScreenshotManager {
    * Decodes H.264 video stream to PNG using ffmpeg
    */
   async getScreenshotPng(): Promise<Buffer> {
+    const perfStart = Date.now();
+
+    const t1 = Date.now();
     await this.ensureConnected();
+    const connectTime = Date.now() - t1;
+
+    const t2 = Date.now();
     await this.ensureFfmpegAvailable();
+    const ffmpegCheckTime = Date.now() - t2;
+
+    const t3 = Date.now();
     await this.waitForKeyframe();
+    const keyframeWaitTime = Date.now() - t3;
 
     if (!this.latestFrameBuffer) {
       throw new Error(
@@ -384,7 +394,17 @@ export class ScrcpyScreenshotManager {
     debugScrcpy(
       `Decoding H.264 stream: ${this.latestFrameBuffer.length} bytes (header: ${this.spsHeader?.length ?? 0}, recent: ${this.recentFrames.length} frames)`,
     );
-    return this.decodeH264ToPng(this.latestFrameBuffer);
+
+    const t4 = Date.now();
+    const result = await this.decodeH264ToPng(this.latestFrameBuffer);
+    const decodeTime = Date.now() - t4;
+
+    const totalTime = Date.now() - perfStart;
+    debugScrcpy(
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, ffmpegCheck=${ffmpegCheckTime}ms, keyframeWait=${keyframeWaitTime}ms, decode=${decodeTime}ms)`,
+    );
+
+    return result;
   }
 
   /**
