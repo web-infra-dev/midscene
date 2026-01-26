@@ -136,3 +136,5 @@ tsconfig.build.tsbuildinfo
 .webx
 .mcp.json
 package-lock.json
+packages/android/bin
+packages/android-playground/bin
