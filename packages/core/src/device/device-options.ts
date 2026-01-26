@@ -77,7 +77,17 @@ export type AndroidDeviceOpt = {
      * Maximum video dimension (width or height).
      * Video stream will be scaled down if device resolution exceeds this value.
      * Lower values reduce bandwidth but may affect image quality.
-     * @default 1024
+     *
+     * If not specified and `screenshotResizeScale` is set, maxSize will be
+     * automatically calculated to match the target resolution.
+     *
+     * @default 0 (no scaling, use original resolution)
+     * @example
+     * // Manual control
+     * { maxSize: 1024 } // Always scale to 1024
+     *
+     * // Auto-calculated from screenshotResizeScale
+     * { screenshotResizeScale: 0.5 } // Device 1080p → scrcpy maxSize will be 1200
      */
     maxSize?: number;
     /**

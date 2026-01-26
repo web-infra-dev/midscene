@@ -17,7 +17,7 @@ const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
 // Configuration defaults
-const DEFAULT_MAX_SIZE = 1024; // Scale to 1024 for performance
+const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
 const DEFAULT_VIDEO_BIT_RATE = 2_000_000; // 2Mbps - balanced quality and performance
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
@@ -124,6 +124,7 @@ export class ScrcpyScreenshotManager {
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
   private recentFrames: Buffer[] = [];
+  private videoResolution: { width: number; height: number } | null = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -190,6 +191,9 @@ export class ScrcpyScreenshotManager {
       this.videoStream = await videoStreamPromise;
       const { width = 0, height = 0 } = this.videoStream.metadata;
       debugScrcpy(`Video stream started: ${width}x${height}`);
+
+      // Store the actual video resolution
+      this.videoResolution = { width, height };
 
       this.startFrameConsumer();
       this.resetIdleTimer();
@@ -405,6 +409,14 @@ export class ScrcpyScreenshotManager {
     );
 
     return result;
+  }
+
+  /**
+   * Get the actual video stream resolution
+   * Returns null if scrcpy is not connected yet
+   */
+  getResolution(): { width: number; height: number } | null {
+    return this.videoResolution;
   }
 
   /**
