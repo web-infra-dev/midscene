@@ -26,6 +26,7 @@ import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
 import { IOSWebDriverClient as WebDriverAgentBackend } from './ios-webdriver-client';
 
@@ -289,15 +290,14 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   /**
    * Resolve app name to bundle ID using the mapping.
-   * Returns the bundle ID if found, otherwise undefined.
+   * Comparison is case-insensitive and ignores spaces, dashes, and underscores.
+   * Keys in appNameMapping are pre-normalized, so we only need to normalize the input.
    *
    * @param appName The app name to resolve.
    */
   private resolveBundleId(appName: string): string | undefined {
-    if (appName in this.appNameMapping) {
-      return this.appNameMapping[appName];
-    }
-    return undefined;
+    const normalizedAppName = normalizeForComparison(appName);
+    return this.appNameMapping[normalizedAppName];
   }
 
   public async launch(uri: string): Promise<IOSDevice> {
@@ -962,7 +962,9 @@ type RunWdaRequestReturn = Awaited<ReturnType<IOSDevice['runWdaRequest']>>;
 
 const launchParamSchema = z
   .string()
-  .describe('App bundle ID, URL, or app name');
+  .describe(
+    'App name, bundle ID, or URL to launch. Prioritize using the exact bundle ID or URL the user has provided. If none provided, use the accurate app name.',
+  );
 
 type LaunchParam = z.infer<typeof launchParamSchema>;
 

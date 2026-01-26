@@ -640,12 +640,6 @@ export class TaskExecutor {
     };
   }
 
-  async taskForSleep(timeMs: number, _modelConfig: IModelConfig) {
-    return this.taskBuilder.createSleepTask({
-      timeMs,
-    });
-  }
-
   async waitFor(
     assertion: TUserPrompt,
     opt: PlanningActionParamWaitFor,
@@ -715,11 +709,17 @@ export class TaskExecutor {
         `unknown error when waiting for assertion: ${textPrompt}`;
       const now = Date.now();
       if (now - currentCheckStart < checkIntervalMs) {
-        const timeRemaining = checkIntervalMs - (now - currentCheckStart);
-        const sleepTask = this.taskBuilder.createSleepTask({
-          timeMs: timeRemaining,
-        });
-        await session.append(sleepTask);
+        const elapsed = now - currentCheckStart;
+        const timeRemaining = checkIntervalMs - elapsed;
+        const thought = `Check interval is ${checkIntervalMs}ms, ${elapsed}ms elapsed since last check, sleeping for ${timeRemaining}ms`;
+        const { tasks: sleepTasks } = await this.convertPlanToExecutable(
+          [{ type: 'Sleep', param: { timeMs: timeRemaining }, thought }],
+          modelConfig,
+          modelConfig,
+        );
+        if (sleepTasks[0]) {
+          await session.appendAndRun(sleepTasks[0]);
+        }
       }
     }
 

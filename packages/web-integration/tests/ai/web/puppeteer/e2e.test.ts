@@ -176,8 +176,6 @@ describe(
         afterInvokeAction,
       });
 
-      await sleep(10 * 1000);
-
       await agent.aiAssert('this is a login page');
 
       const pw = await agent.aiAct(
@@ -186,6 +184,10 @@ describe(
       expect(pw).toBe('secret_sauce');
 
       await agent.ai('login with "standard_user" and "secret_sauce"');
+
+      await agent.aiWaitFor('there shows a cookie prompt in the UI', {
+        checkIntervalMs: 10000,
+      });
 
       const price = await agent.ai(
         'Add first two items to the cart and tell me the total price of the cart. Just the price number, no other text',

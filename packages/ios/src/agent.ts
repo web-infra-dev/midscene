@@ -1,6 +1,7 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
+import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
 import {
   type DeviceActionIOSAppSwitcher,
@@ -63,11 +64,12 @@ export class IOSAgent extends PageAgent<IOSDevice> {
   constructor(device: IOSDevice, opts?: IOSAgentOpt) {
     super(device, opts);
     // Merge user-provided mapping with default mapping
+    // Normalize keys to allow flexible matching (case-insensitive, ignore spaces/dashes/underscores)
     // User-provided mapping has higher priority
-    this.appNameMapping = {
-      ...defaultAppNameMapping,
-      ...(opts?.appNameMapping || {}),
-    };
+    this.appNameMapping = mergeAndNormalizeAppNameMapping(
+      defaultAppNameMapping,
+      opts?.appNameMapping,
+    );
 
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);

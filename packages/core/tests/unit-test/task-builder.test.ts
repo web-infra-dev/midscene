@@ -1,6 +1,6 @@
 import { TaskBuilder } from '@/agent/task-builder';
 import { getMidsceneLocationSchema } from '@/ai-model';
-import { AbstractInterface } from '@/device';
+import { AbstractInterface, defineActionSleep } from '@/device';
 import type Service from '@/insight';
 import type { DeviceAction, PlanningAction } from '@/types';
 import { describe, expect, it, vi } from 'vitest';
@@ -39,7 +39,7 @@ describe('TaskBuilder', () => {
       call: vi.fn(),
     };
 
-    const mockInterface = new MockInterface([mockAction]);
+    const mockInterface = new MockInterface([mockAction, defineActionSleep()]);
 
     const insightService = {
       contextRetrieverFn: vi.fn(),

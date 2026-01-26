@@ -38,8 +38,7 @@ import {
   isValidPNGImageBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { uuid } from '@midscene/shared/utils';
-import { repeat } from '@midscene/shared/utils';
+import { normalizeForComparison, repeat, uuid } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
 
@@ -430,13 +429,13 @@ ${Object.keys(size)
 
   /**
    * Resolve app name to package name using the mapping
+   * Comparison is case-insensitive and ignores spaces, dashes, and underscores.
+   * Keys in appNameMapping are pre-normalized, so we only need to normalize the input.
    * @param appName The app name to resolve
    */
   private resolvePackageName(appName: string): string | undefined {
-    if (appName in this.appNameMapping) {
-      return this.appNameMapping[appName];
-    }
-    return undefined;
+    const normalizedAppName = normalizeForComparison(appName);
+    return this.appNameMapping[normalizedAppName];
   }
 
   public async launch(uri: string): Promise<AndroidDevice> {
@@ -1688,7 +1687,11 @@ const runAdbShellParamSchema = z.object({
 });
 
 const launchParamSchema = z.object({
-  uri: z.string().describe('App package name or URL or app name to launch'),
+  uri: z
+    .string()
+    .describe(
+      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+    ),
 });
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
