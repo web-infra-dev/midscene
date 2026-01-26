@@ -1,9 +1,9 @@
 import { getBasicEnvValue } from 'src/env/basic';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  type DeviceWithTimestamp,
   MIDSCENE_RUN_DIR,
   getCurrentTime,
-  type DeviceWithTimestamp,
 } from '../../../src/env';
 
 describe('getBasicEnvValue', () => {

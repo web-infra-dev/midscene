@@ -943,22 +943,6 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     this.destroyed = true;
     debugDevice(`iOS device ${this.deviceId} destroyed`);
   }
-
-  /**
-   * Get the current time from the iOS device.
-   * Returns the device's current timestamp in milliseconds.
-   * Uses the Appium XCUITest driver's device time API.
-   */
-  async getTimestamp(): Promise<number> {
-    try {
-      const timestamp = await this.wdaBackend.getTimestamp();
-      debugDevice(`Got device time: ${timestamp}`);
-      return timestamp;
-    } catch (error) {
-      debugDevice(`Failed to get device time: ${error}`);
-      throw new Error(`Failed to get iOS device time: ${error}`);
-    }
-  }
 }
 
 const runWdaRequestParamSchema = z.object({
