@@ -19,7 +19,7 @@ describe(
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
       await ctx.agent.aiAct(
-        'find the "Vertical 2" element, scroll down 200px, find the "Horizontal 2" element, scroll right 100px',
+        'Scroll the vertical scroll area down until the "Vertical 5" tile is visible, then in the horizontal scroll area scroll right until the "Horizontal 4" tile is visible while keeping "Horizontal 2" in view',
       );
       await ctx.agent.aiAssert(
         'the "Horizontal 2", "Horizontal 4" and "Vertical 5" elements are visible',
