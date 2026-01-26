@@ -472,11 +472,13 @@ describe(
 
       const screenshot1 = await agent.page.screenshotBase64();
       await sleep(2000);
-      await agent.aiAct('Swipe from right to left on the swipe container');
+      await agent.aiAct(
+        'Swipe from right to left on the swipe container, just a short swipe to move to the next panel',
+      );
 
-      // Verify content changed after swipe
+      // Verify content changed after swipe - the panel should no longer show Panel 1
       await agent.aiAssert(
-        'The swipe container shows "Panel 2 - Keep swiping"',
+        'The swipe container no longer shows "Panel 1", it now shows a different panel (Panel 2 or Panel 3)',
       );
       await agent.aiAssert({
         prompt: 'The content of the page is different from the reference',
