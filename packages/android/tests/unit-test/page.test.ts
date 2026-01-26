@@ -1769,12 +1769,12 @@ describe('AndroidDevice', () => {
     });
   });
 
-  describe('getDeviceTime', () => {
+  describe('getTimestamp', () => {
     it('should return device timestamp in milliseconds', async () => {
       const mockTimestamp = '1706262645123';
       mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
 
-      const result = await device.getDeviceTime();
+      const result = await device.getTimestamp();
 
       expect(mockAdb.shell).toHaveBeenCalledWith('date +%s%3N');
       expect(result).toBe(1706262645123);
@@ -1784,7 +1784,7 @@ describe('AndroidDevice', () => {
       const mockTimestamp = '  1706262645123  \n';
       mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
 
-      const result = await device.getDeviceTime();
+      const result = await device.getTimestamp();
 
       expect(result).toBe(1706262645123);
     });
@@ -1792,7 +1792,7 @@ describe('AndroidDevice', () => {
     it('should throw error for invalid timestamp format', async () => {
       mockAdb.shell.mockResolvedValueOnce('invalid-timestamp');
 
-      await expect(device.getDeviceTime()).rejects.toThrow(
+      await expect(device.getTimestamp()).rejects.toThrow(
         'Invalid timestamp format',
       );
     });
@@ -1800,7 +1800,7 @@ describe('AndroidDevice', () => {
     it('should throw error when shell command fails', async () => {
       mockAdb.shell.mockRejectedValueOnce(new Error('Shell command failed'));
 
-      await expect(device.getDeviceTime()).rejects.toThrow(
+      await expect(device.getTimestamp()).rejects.toThrow(
         'Failed to get device time',
       );
     });
@@ -1808,7 +1808,7 @@ describe('AndroidDevice', () => {
     it('should throw error for empty response', async () => {
       mockAdb.shell.mockResolvedValueOnce('');
 
-      await expect(device.getDeviceTime()).rejects.toThrow(
+      await expect(device.getTimestamp()).rejects.toThrow(
         'Invalid timestamp format',
       );
     });
@@ -1817,7 +1817,7 @@ describe('AndroidDevice', () => {
       const mockTimestamp = '1893456000000'; // Year 2030
       mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
 
-      const result = await device.getDeviceTime();
+      const result = await device.getTimestamp();
 
       expect(result).toBe(1893456000000);
     });

@@ -538,7 +538,7 @@ export class IOSWebDriverClient extends WebDriverClient {
    * @param format Optional format string (default: 'YYYY-MM-DDTHH:mm:ssZ')
    * @returns Device time as a timestamp in milliseconds
    */
-  async getDeviceTime(format?: string): Promise<number> {
+  async getTimestamp(format?: string): Promise<number> {
     this.ensureSession();
 
     try {

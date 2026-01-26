@@ -31,7 +31,6 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务�
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON |
 | `MIDSCENE_RUN_DIR` | 运行产物目录，默认值为当前工作目录下的 `midscene_run`，支持设置绝对路径或相对路径 |
 | `MIDSCENE_PREFERRED_LANGUAGE` | 可选，模型响应的语言；如果当前系统时区是 GMT+8 则默认是 `Chinese`，否则是 `English` |
-| `MIDSCENE_USE_DEVICE_TIME` | 设置为 `true` 时，Midscene 会使用目标设备（Android/iOS）的时间而非系统时间。当设备时间与主机时间不一致时非常有用。默认值：`false` |
 
 > 提示：通过 Agent 的 `replanningCycleLimit` 入参控制重规划次数（默认 20，`vlm-ui-tars` 为 40），不再使用环境变量。
 

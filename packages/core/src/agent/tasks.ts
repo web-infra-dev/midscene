@@ -81,6 +81,8 @@ export class TaskExecutor {
 
   waitAfterAction?: number;
 
+  useDeviceTimestamp?: boolean;
+
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -94,6 +96,7 @@ export class TaskExecutor {
       onTaskStart?: ExecutionTaskProgressOptions['onTaskStart'];
       replanningCycleLimit?: number;
       waitAfterAction?: number;
+      useDeviceTimestamp?: boolean;
       hooks?: TaskExecutorHooks;
       actionSpace: DeviceAction[];
     },
@@ -104,6 +107,7 @@ export class TaskExecutor {
     this.onTaskStartCallback = opts?.onTaskStart;
     this.replanningCycleLimit = opts.replanningCycleLimit;
     this.waitAfterAction = opts.waitAfterAction;
+    this.useDeviceTimestamp = opts.useDeviceTimestamp;
     this.hooks = opts.hooks;
     this.conversationHistory = new ConversationHistory();
     this.providedActionSpace = opts.actionSpace;
@@ -137,12 +141,15 @@ export class TaskExecutor {
 
   /**
    * Get a readable time string using device time when configured.
-   * This method respects the MIDSCENE_USE_DEVICE_TIME configuration.
+   * This method respects the useDeviceTimestamp configuration.
    * @param format - Optional format string
    * @returns A formatted time string
    */
   private async getTimeString(format?: string): Promise<string> {
-    const timestamp = await getCurrentTime(this.interface);
+    const timestamp = await getCurrentTime(
+      this.interface,
+      this.useDeviceTimestamp,
+    );
     return getReadableTimeString(format, timestamp);
   }
 

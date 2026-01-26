@@ -233,13 +233,13 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
     });
   });
 
-  describe('getDeviceTime()', () => {
+  describe('getTimestamp()', () => {
     it('should return timestamp when appium endpoint succeeds', async () => {
       const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
       const mockTimeString = '2024-01-26T15:30:45+08:00';
       makeRequestSpy.mockResolvedValueOnce({ value: mockTimeString });
 
-      const result = await client.getDeviceTime();
+      const result = await client.getTimestamp();
 
       expect(makeRequestSpy).toHaveBeenCalledTimes(1);
       expect(makeRequestSpy).toHaveBeenCalledWith(
@@ -258,7 +258,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
       // Second call (execute method) succeeds
       makeRequestSpy.mockResolvedValueOnce({ value: mockTimeString });
 
-      const result = await client.getDeviceTime();
+      const result = await client.getTimestamp();
 
       expect(makeRequestSpy).toHaveBeenCalledTimes(2);
       expect(makeRequestSpy).toHaveBeenNthCalledWith(
@@ -284,7 +284,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
       makeRequestSpy.mockRejectedValueOnce(new Error('Appium endpoint failed'));
       makeRequestSpy.mockRejectedValueOnce(new Error('Execute method failed'));
 
-      await expect(client.getDeviceTime()).rejects.toThrow(
+      await expect(client.getTimestamp()).rejects.toThrow(
         'Failed to get device time',
       );
 
@@ -295,7 +295,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
       const makeRequestSpy = vi.spyOn(client as any, 'makeRequest');
       makeRequestSpy.mockResolvedValueOnce({ value: 'invalid-time-string' });
 
-      await expect(client.getDeviceTime()).rejects.toThrow(
+      await expect(client.getTimestamp()).rejects.toThrow(
         'Invalid time format received',
       );
     });
@@ -305,7 +305,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
       const mockTimeString = '2024-01-26T15:30:45+08:00';
       makeRequestSpy.mockResolvedValueOnce(mockTimeString);
 
-      const result = await client.getDeviceTime();
+      const result = await client.getTimestamp();
 
       expect(result).toBe(new Date(mockTimeString).getTime());
     });
@@ -317,7 +317,7 @@ describe('IOSWebDriverClient - WDA 5.x-7.x Compatibility', () => {
       makeRequestSpy.mockRejectedValueOnce(new Error('Endpoint not found'));
       makeRequestSpy.mockResolvedValueOnce({ value: '2024-01-26' });
 
-      await client.getDeviceTime('YYYY-MM-DD');
+      await client.getTimestamp('YYYY-MM-DD');
 
       expect(makeRequestSpy).toHaveBeenNthCalledWith(
         2,

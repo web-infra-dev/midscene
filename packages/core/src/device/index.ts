@@ -61,7 +61,7 @@ export abstract class AbstractInterface {
    * Returns the device's current timestamp in milliseconds.
    * This is useful when the system time and device time are not synchronized.
    */
-  getDeviceTime?(): Promise<number>;
+  getTimestamp?(): Promise<number>;
 }
 
 // Generic function to define actions with proper type inference

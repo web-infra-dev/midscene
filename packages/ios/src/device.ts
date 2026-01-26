@@ -949,9 +949,9 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
    * Returns the device's current timestamp in milliseconds.
    * Uses the Appium XCUITest driver's device time API.
    */
-  async getDeviceTime(): Promise<number> {
+  async getTimestamp(): Promise<number> {
     try {
-      const timestamp = await this.wdaBackend.getDeviceTime();
+      const timestamp = await this.wdaBackend.getTimestamp();
       debugDevice(`Got device time: ${timestamp}`);
       return timestamp;
     } catch (error) {
