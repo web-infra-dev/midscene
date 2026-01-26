@@ -32,7 +32,7 @@
     "vitest": "3.0.5"
   },
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=18.19.0"
   },
   "publishConfig": {
     "access": "public",
