@@ -13,8 +13,10 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
-    "build": "(node scripts/download-scrcpy-server.js --target=bin/server.bin || true) && rslib build",
-    "build:watch": "rslib build --watch --no-clean"
+    "prebuild": "node scripts/download-scrcpy-server.js --target=bin/server.bin || true",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean",
+    "prepack": "node scripts/download-scrcpy-server.js --target=bin/server.bin || true"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",
