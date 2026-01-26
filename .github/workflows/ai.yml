@@ -15,18 +15,33 @@ permissions:
   contents: read
 
 jobs:
-  main:
+  e2e-tests:
     runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         node-version: [24.13.0]
+        test-type:
+          - name: 'basic'
+            command: 'pnpm run e2e'
+            artifact: 'e2e-report'
+          - name: 'cache'
+            command: 'pnpm run e2e:cache'
+            artifact: 'e2e-cache-report'
+          - name: 'report'
+            command: 'pnpm run e2e:report'
+            artifact: 'e2e-report-output'
+
+    name: E2E (${{ matrix.test-type.name }})
 
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      DEBUG: midscene:*
+      MIDSCENE_MODEL_RETRY_COUNT: "3"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "10000"
+      # DEBUG: midscene:* # Disabled to prevent log overflow
       CI: 1
       # MIDSCENE_DEBUG_AI_PROFILE: 1
 
@@ -40,13 +55,13 @@ jobs:
       uses: pnpm/action-setup@v2
       with:
         version: 9.3.0
-  
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '24.13.0'
         cache: 'pnpm'
-    
+
     - name: Cache Playwright dependencies
       uses: actions/cache@v3
       id: cache-playwright
@@ -72,46 +87,20 @@ jobs:
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
-    
-    - name: Run e2e tests
-      run: pnpm run e2e
+
+    - name: Run ${{ matrix.test-type.name }} tests
+      run: ${{ matrix.test-type.command }}
       id: e2e-tests
       continue-on-error: true
 
-    - name: Upload e2e report
+    - name: Upload ${{ matrix.test-type.name }} report
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: e2e-report
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
-      
-    - name: Run e2e tests cache
-      run: pnpm run e2e:cache
-      id: e2e-tests-cache
-      continue-on-error: true
-
-    - name: Upload e2e cache report
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: e2e-cache-report
+        name: ${{ matrix.test-type.artifact }}
         path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
         if-no-files-found: ignore
 
-    - name: Run e2e tests report
-      run: pnpm run e2e:report
-      id: e2e-tests-report
-      continue-on-error: true
-
-    - name: Upload e2e report output
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: e2e-report-output
-        path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
-        if-no-files-found: ignore
-
-    - name: Check if script failed
-      if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
+    - name: Check if tests failed
+      if: steps.e2e-tests.outcome == 'failure'
       run: exit 1
