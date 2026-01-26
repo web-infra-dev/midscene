@@ -173,7 +173,9 @@ If you use Midscene.js in your research or project, please cite:
 
 Midscene.js is [MIT licensed](https://github.com/web-infra-dev/midscene/blob/main/LICENSE).
 
+
 ---
+
 
 <div align="center">
   If this project helps you or inspires you, please give us a ⭐️
