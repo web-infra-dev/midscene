@@ -50,16 +50,31 @@ export async function autoGLMPlanning(
 
   debug('autoGLMPlanning rawResponse:', rawResponse);
 
-  const parsedResponse = parseAutoGLMResponse(rawResponse);
-  debug('thinking in response:', parsedResponse.think);
-  debug('action in response:', parsedResponse.content);
+  let parsedResponse: ReturnType<typeof parseAutoGLMResponse>;
+  let transformedActions: ReturnType<typeof transformAutoGLMAction>;
 
-  let transformedActions = [] as ReturnType<typeof transformAutoGLMAction>;
+  try {
+    parsedResponse = parseAutoGLMResponse(rawResponse);
+    debug('thinking in response:', parsedResponse.think);
+    debug('action in response:', parsedResponse.content);
 
-  const parsedAction = parseAction(parsedResponse);
-  debug('Parsed action object:', parsedAction);
-  transformedActions = transformAutoGLMAction(parsedAction, context.size);
-  debug('Transformed actions:', transformedActions);
+    const parsedAction = parseAction(parsedResponse);
+    debug('Parsed action object:', parsedAction);
+    transformedActions = transformAutoGLMAction(parsedAction, context.size);
+    debug('Transformed actions:', transformedActions);
+  } catch (parseError) {
+    // Return error with usage and rawResponse recorded
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    return {
+      actions: [],
+      error: `Parse error: ${errorMessage}`,
+      log: rawResponse,
+      usage,
+      shouldContinuePlanning: false,
+      rawResponse: JSON.stringify(rawResponse, undefined, 2),
+    };
+  }
 
   conversationHistory.append({
     role: 'assistant',

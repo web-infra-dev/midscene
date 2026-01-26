@@ -82,18 +82,39 @@ export async function uiTarsPlanning(
     ],
     modelConfig,
   );
-  const convertedText = convertBboxToCoordinates(res.content);
+
+  let convertedText: string;
+  let parsed: ReturnType<typeof actionParser>['parsed'];
+
+  try {
+    convertedText = convertBboxToCoordinates(res.content);
+
+    const { size } = context;
+    const parseResult = actionParser({
+      prediction: convertedText,
+      factor: [1000, 1000],
+      screenContext: {
+        width: size.width,
+        height: size.height,
+      },
+      modelVer: uiTarsModelVersion,
+    });
+    parsed = parseResult.parsed;
+  } catch (parseError) {
+    // Return error with usage and rawResponse recorded
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    return {
+      actions: [],
+      error: `Parse error: ${errorMessage}`,
+      log: '',
+      rawResponse: JSON.stringify(res.content, undefined, 2),
+      usage: res.usage,
+      shouldContinuePlanning: false,
+    };
+  }
 
   const { size } = context;
-  const { parsed } = actionParser({
-    prediction: convertedText,
-    factor: [1000, 1000],
-    screenContext: {
-      width: size.width,
-      height: size.height,
-    },
-    modelVer: uiTarsModelVersion,
-  });
 
   debug(
     'ui-tars modelVer',
@@ -279,17 +300,17 @@ export async function uiTarsPlanning(
     const errorMessage = [
       'No actions found in UI-TARS response.',
       ...errorDetails,
-      `\nRaw response: ${res.content}`,
     ].join('\n');
 
-    throw new Error(errorMessage, {
-      cause: {
-        prediction: res.content,
-        parsed,
-        unhandledActions,
-        convertedText,
-      },
-    });
+    // Return error with usage and rawResponse recorded instead of throwing
+    return {
+      actions: [],
+      error: errorMessage,
+      log: '',
+      rawResponse: JSON.stringify(res.content, undefined, 2),
+      usage: res.usage,
+      shouldContinuePlanning: false,
+    };
   }
 
   debug('transformActions', JSON.stringify(transformActions, null, 2));

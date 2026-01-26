@@ -227,7 +227,7 @@ export default class Service {
 
     const startTime = Date.now();
 
-    const { parseResult, usage, reasoning_content } =
+    const { parseResult, rawResponse, usage, reasoning_content } =
       await AiExtractElementInfo<T>({
         context,
         dataQuery: dataDemand,
@@ -241,7 +241,9 @@ export default class Service {
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(parseResult),
+      rawResponse,
+      formatResponse: JSON.stringify(parseResult),
+      usage,
       reasoning_content,
     };
 

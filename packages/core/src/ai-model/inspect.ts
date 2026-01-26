@@ -1,4 +1,5 @@
 import type {
+  AIDataExtractionResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
@@ -523,11 +524,23 @@ export async function AiExtractElementInfo<T>(options: {
     reasoning_content,
   } = await callAI(msgs, modelConfig);
 
-  // Parse XML response to JSON object
-  const parseResult = parseXMLExtractionResponse<T>(rawResponse);
+  // Parse XML response to JSON object, capture parsing errors
+  let parseResult: AIDataExtractionResponse<T>;
+  try {
+    parseResult = parseXMLExtractionResponse<T>(rawResponse);
+  } catch (parseError) {
+    // Return error in parseResult so that usage and rawResponse can be recorded
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    parseResult = {
+      data: null as T,
+      errors: [`XML parse error: ${errorMessage}`],
+    };
+  }
 
   return {
     parseResult,
+    rawResponse,
     usage,
     reasoning_content,
   };

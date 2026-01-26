@@ -563,6 +563,12 @@ export class TaskExecutor {
         } catch (error) {
           if (error instanceof ServiceError) {
             applyDump(error.dump);
+            // Record usage and rawResponse even when error occurs
+            task.usage = error.dump.taskInfo?.usage;
+            task.log = {
+              ...task.log,
+              rawResponse: error.dump.taskInfo?.rawResponse,
+            };
           }
           throw error;
         }

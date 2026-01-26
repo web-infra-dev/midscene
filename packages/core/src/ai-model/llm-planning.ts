@@ -200,8 +200,24 @@ export async function plan(
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
   });
 
-  // Parse XML response to JSON object
-  const planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+  // Parse XML response to JSON object, capture parsing errors
+  let planFromAI: RawResponsePlanningAIResponse;
+  try {
+    planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+  } catch (parseError) {
+    // Return error with usage and rawResponse recorded
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    return {
+      actions: [],
+      error: `XML parse error: ${errorMessage}`,
+      log: '',
+      rawResponse,
+      usage,
+      reasoning_content,
+      shouldContinuePlanning: false,
+    };
+  }
 
   if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
     console.warn(
