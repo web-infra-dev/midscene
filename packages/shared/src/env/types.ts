@@ -64,6 +64,13 @@ export const MIDSCENE_ANDROID_IME_STRATEGY = 'MIDSCENE_ANDROID_IME_STRATEGY';
 export const MIDSCENE_IOS_DEVICE_UDID = 'MIDSCENE_IOS_DEVICE_UDID';
 export const MIDSCENE_IOS_SIMULATOR_UDID = 'MIDSCENE_IOS_SIMULATOR_UDID';
 
+/**
+ * Time source configuration for Midscene.
+ * When set to 'true', Midscene will use the target device's time instead of the system time.
+ * This is useful when the system time and device time are not synchronized.
+ */
+export const MIDSCENE_USE_DEVICE_TIME = 'MIDSCENE_USE_DEVICE_TIME';
+
 export const MIDSCENE_CACHE = 'MIDSCENE_CACHE';
 export const MIDSCENE_USE_VLM_UI_TARS = 'MIDSCENE_USE_VLM_UI_TARS';
 export const MIDSCENE_USE_QWEN_VL = 'MIDSCENE_USE_QWEN_VL';
@@ -150,6 +157,7 @@ export const BOOLEAN_ENV_KEYS = [
   MIDSCENE_MCP_ANDROID_MODE,
   MIDSCENE_LANGSMITH_DEBUG,
   MIDSCENE_LANGFUSE_DEBUG,
+  MIDSCENE_USE_DEVICE_TIME,
 ] as const;
 
 export const NUMBER_ENV_KEYS = [

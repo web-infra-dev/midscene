@@ -55,6 +55,13 @@ export abstract class AbstractInterface {
 
   // @deprecated do NOT extend this method
   abstract getContext?(): Promise<UIContext>;
+
+  /**
+   * Get the current time from the device.
+   * Returns the device's current timestamp in milliseconds.
+   * This is useful when the system time and device time are not synchronized.
+   */
+  getDeviceTime?(): Promise<number>;
 }
 
 // Generic function to define actions with proper type inference

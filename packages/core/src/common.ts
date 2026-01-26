@@ -729,14 +729,16 @@ export const parseActionParam = (
 export const finalizeActionName = 'Finalize';
 
 /**
- * Get a readable time string for the current time
+ * Get a readable time string for a given timestamp or the current time
  * @param format - Optional format string. Supports: YYYY, MM, DD, HH, mm, ss. Default: 'YYYY-MM-DD HH:mm:ss'
+ * @param timestamp - Optional timestamp in milliseconds. If not provided, uses current system time.
  * @returns A formatted time string with format label
  */
 export const getReadableTimeString = (
   format = 'YYYY-MM-DD HH:mm:ss',
+  timestamp?: number,
 ): string => {
-  const now = new Date();
+  const now = timestamp !== undefined ? new Date(timestamp) : new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');

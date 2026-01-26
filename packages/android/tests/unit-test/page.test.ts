@@ -1768,4 +1768,58 @@ describe('AndroidDevice', () => {
       expect((device as any).destroyed).toBe(true);
     });
   });
+
+  describe('getDeviceTime', () => {
+    it('should return device timestamp in milliseconds', async () => {
+      const mockTimestamp = '1706262645123';
+      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+
+      const result = await device.getDeviceTime();
+
+      expect(mockAdb.shell).toHaveBeenCalledWith('date +%s%3N');
+      expect(result).toBe(1706262645123);
+    });
+
+    it('should handle timestamp with whitespace', async () => {
+      const mockTimestamp = '  1706262645123  \n';
+      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+
+      const result = await device.getDeviceTime();
+
+      expect(result).toBe(1706262645123);
+    });
+
+    it('should throw error for invalid timestamp format', async () => {
+      mockAdb.shell.mockResolvedValueOnce('invalid-timestamp');
+
+      await expect(device.getDeviceTime()).rejects.toThrow(
+        'Invalid timestamp format',
+      );
+    });
+
+    it('should throw error when shell command fails', async () => {
+      mockAdb.shell.mockRejectedValueOnce(new Error('Shell command failed'));
+
+      await expect(device.getDeviceTime()).rejects.toThrow(
+        'Failed to get device time',
+      );
+    });
+
+    it('should throw error for empty response', async () => {
+      mockAdb.shell.mockResolvedValueOnce('');
+
+      await expect(device.getDeviceTime()).rejects.toThrow(
+        'Invalid timestamp format',
+      );
+    });
+
+    it('should handle large timestamp values', async () => {
+      const mockTimestamp = '1893456000000'; // Year 2030
+      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+
+      const result = await device.getDeviceTime();
+
+      expect(result).toBe(1893456000000);
+    });
+  });
 });
