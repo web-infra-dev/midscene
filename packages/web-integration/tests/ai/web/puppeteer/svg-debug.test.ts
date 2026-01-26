@@ -80,7 +80,9 @@ describe('SVG XPath Debug', () => {
       resetFn = reset;
 
       // Test XPath query directly in the page
-      const xpathToTest = '/html/body/table[1]/tbody[1]/tr[1]/td[1]/svg[4]';
+      // Note: SVG elements are in a different namespace, so we use *[name()="svg"] instead of svg
+      const xpathToTest =
+        '/html/body/table[1]/tbody[1]/tr[1]/td[1]/*[name()="svg"][4]';
 
       console.log(`\n=== Testing XPath: ${xpathToTest} ===`);
 
