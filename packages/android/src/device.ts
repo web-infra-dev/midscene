@@ -463,7 +463,31 @@ ${Object.keys(size)
         // Assume it's just a package name or app name
         // Auto-resolve friendly app name to package name if mapping exists
         const resolvedUri = this.resolvePackageName(uri) ?? uri;
-        await adb.activateApp(resolvedUri);
+
+        try {
+          await adb.activateApp(resolvedUri);
+        } catch (activateError: any) {
+          // If activateApp fails due to activity resolution issues in appium-adb,
+          // try to resolve the launchable activity manually
+          debugDevice(
+            `activateApp failed, trying manual resolution: ${activateError.message}`,
+          );
+
+          const launchActivity =
+            await this.resolveLaunchableActivity(resolvedUri);
+          if (launchActivity) {
+            debugDevice(
+              `Resolved launchable activity: ${resolvedUri}/${launchActivity}`,
+            );
+            await adb.startApp({
+              pkg: resolvedUri,
+              activity: launchActivity,
+            });
+          } else {
+            // Re-throw the original error if we can't resolve the activity
+            throw activateError;
+          }
+        }
       }
       debugDevice(`Successfully launched: ${uri}`);
     } catch (error: any) {
@@ -474,6 +498,136 @@ ${Object.keys(size)
     }
 
     return this;
+  }
+
+  /**
+   * Manually resolve the launchable activity for a package.
+   * This is a fallback when appium-adb's activateApp fails due to
+   * parsing issues with the resolve-activity output format.
+   */
+  private async resolveLaunchableActivity(
+    packageName: string,
+  ): Promise<string | null> {
+    const adb = await this.getAdb();
+
+    try {
+      // Use cmd package resolve-activity to get the launchable activity
+      const output = await adb.shell(
+        `cmd package resolve-activity --brief -c android.intent.category.LAUNCHER ${packageName}`,
+      );
+
+      // The output format on newer Android versions is:
+      // priority=0 preferredOrder=0 match=0x108000 specificIndex=-1 isDefault=true
+      // com.package.name/.ActivityName
+      //
+      // We need to extract the activity from the line that contains '/'
+      const lines = output
+        .trim()
+        .split('\n')
+        .filter((line) => line.trim());
+
+      if (lines.length === 0) {
+        debugDevice(`No output from resolve-activity for ${packageName}`);
+        return null;
+      }
+
+      // Check if output indicates no activity found
+      const outputLower = output.toLowerCase();
+      if (outputLower.includes('no activity found')) {
+        debugDevice(`No launchable activity found for ${packageName}`);
+        return null;
+      }
+
+      // Check if resolve-activity returned ResolverActivity (multiple activities available)
+      // In this case, we need to use dumpsys to find the first LAUNCHER activity
+      if (output.includes('ResolverActivity')) {
+        debugDevice(
+          `Multiple launcher activities found for ${packageName}, using dumpsys fallback`,
+        );
+        return this.resolveLaunchableActivityViaDumpsys(packageName);
+      }
+
+      // Find the line that contains the activity (has package/activity format)
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        // Check if this line contains an activity reference (package/activity format)
+        if (trimmedLine.includes('/')) {
+          // Extract just the activity part (after the '/')
+          const activityMatch = trimmedLine.match(/\/(.+)$/);
+          if (activityMatch) {
+            return activityMatch[1];
+          }
+        }
+      }
+
+      debugDevice(
+        `Could not parse launchable activity from output for ${packageName}`,
+      );
+      return null;
+    } catch (error) {
+      debugDevice(
+        `Failed to resolve launchable activity for ${packageName}: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Resolve launchable activity by parsing dumpsys package output.
+   * This is used when resolve-activity returns ResolverActivity (multiple activities).
+   */
+  private async resolveLaunchableActivityViaDumpsys(
+    packageName: string,
+  ): Promise<string | null> {
+    const adb = await this.getAdb();
+
+    try {
+      // Use dumpsys to find activities with LAUNCHER category
+      const output = await adb.shell(
+        `dumpsys package ${packageName} | grep -B 2 "android.intent.category.LAUNCHER"`,
+      );
+
+      // Parse output to find activity lines
+      // Format is like:
+      //   bccfa46 com.google.android.googlequicksearchbox/.VoiceSearchActivity filter 2ac1407
+      //     Action: "android.intent.action.MAIN"
+      //     Category: "android.intent.category.LAUNCHER"
+      const lines = output.trim().split('\n');
+
+      for (const line of lines) {
+        const trimmedLine = line.trim();
+
+        // Look for lines containing package/activity format
+        if (
+          trimmedLine.includes(packageName) &&
+          trimmedLine.includes('/') &&
+          trimmedLine.includes('filter')
+        ) {
+          // Extract the activity from format like "hash package/.Activity filter hash"
+          const activityMatch = trimmedLine.match(
+            new RegExp(`${packageName.replace(/\./g, '\\.')}(/[^\\s]+)`),
+          );
+          if (activityMatch) {
+            const activity = activityMatch[1];
+            debugDevice(
+              `Found launcher activity via dumpsys: ${packageName}${activity}`,
+            );
+            return activity;
+          }
+        }
+      }
+
+      debugDevice(
+        `Could not find launcher activity via dumpsys for ${packageName}`,
+      );
+      return null;
+    } catch (error) {
+      debugDevice(
+        `Failed to resolve launchable activity via dumpsys for ${packageName}: ${error}`,
+      );
+      return null;
+    }
   }
 
   async execYadb(keyboardContent: string): Promise<void> {
