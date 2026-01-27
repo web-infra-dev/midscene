@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Input Test Page</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      .search-container {
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        text-align: center;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 24px;
+      }
+      .search-box {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+      input[type='text'] {
+        width: 400px;
+        padding: 16px 20px;
+        font-size: 18px;
+        border: 2px solid #ddd;
+        border-radius: 24px;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+      input[type='text']:focus {
+        border-color: #667eea;
+      }
+      button {
+        padding: 16px 32px;
+        font-size: 18px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 24px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+      button:hover {
+        background: #5a6fd6;
+      }
+      .clear-btn {
+        background: #e74c3c;
+        padding: 16px 24px;
+      }
+      .clear-btn:hover {
+        background: #c0392b;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="search-container">
+      <h1>Search Input Test</h1>
+      <div class="search-box">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Enter your search query..."
+          aria-label="search input box"
+        />
+        <button type="button" onclick="search()">Search</button>
+        <button type="button" class="clear-btn" onclick="clearInput()">
+          Clear
+        </button>
+      </div>
+      <div class="result" id="result">Type something and click Search</div>
+    </div>
+
+    <script>
+      function search() {
+        const input = document.getElementById('searchInput');
+        const result = document.getElementById('result');
+        if (input.value.trim()) {
+          result.textContent = 'Searching for: ' + input.value;
+        } else {
+          result.textContent = 'Please enter a search query';
+        }
+      }
+
+      function clearInput() {
+        const input = document.getElementById('searchInput');
+        const result = document.getElementById('result');
+        input.value = '';
+        result.textContent = 'Input cleared';
+      }
+
+      // Allow Enter key to trigger search
+      document
+        .getElementById('searchInput')
+        .addEventListener('keypress', function (e) {
+          if (e.key === 'Enter') {
+            search();
+          }
+        });
+    </script>
+  </body>
+</html>

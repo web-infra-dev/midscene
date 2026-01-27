@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drag and Drop Test</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px;
+      }
+      h1 {
+        margin-bottom: 30px;
+        color: #333;
+      }
+      .container {
+        display: flex;
+        gap: 20px;
+      }
+      .column {
+        width: 150px;
+        height: 150px;
+        background: #fff;
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        font-weight: bold;
+        color: #666;
+        cursor: grab;
+        transition: all 0.2s ease;
+        user-select: none;
+      }
+      .column:hover {
+        border-color: #0078d4;
+        background: #f0f7ff;
+      }
+      .column.dragging {
+        opacity: 0.5;
+        cursor: grabbing;
+      }
+      .column.over {
+        border-color: #0078d4;
+        border-style: solid;
+        background: #e6f3ff;
+      }
+      .instructions {
+        margin-top: 30px;
+        color: #666;
+        text-align: center;
+      }
+      .status {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background: #e8f5e9;
+        border-radius: 4px;
+        color: #2e7d32;
+        display: none;
+      }
+      .status.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Drag and Drop</h1>
+
+    <div class="container" id="container">
+      <div class="column" id="column-a" draggable="true">A</div>
+      <div class="column" id="column-b" draggable="true">B</div>
+    </div>
+
+    <div class="instructions">
+      <p>Drag element A to element B's position</p>
+    </div>
+
+    <div class="status" id="status">Elements have been swapped!</div>
+
+    <script>
+      const container = document.getElementById('container');
+      const columns = document.querySelectorAll('.column');
+      let draggedElement = null;
+
+      columns.forEach((column) => {
+        column.addEventListener('dragstart', (e) => {
+          draggedElement = e.target;
+          e.target.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', e.target.id);
+        });
+
+        column.addEventListener('dragend', (e) => {
+          e.target.classList.remove('dragging');
+          columns.forEach((col) => col.classList.remove('over'));
+        });
+
+        column.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (
+            e.target !== draggedElement &&
+            e.target.classList.contains('column')
+          ) {
+            e.target.classList.add('over');
+          }
+        });
+
+        column.addEventListener('dragleave', (e) => {
+          e.target.classList.remove('over');
+        });
+
+        column.addEventListener('drop', (e) => {
+          e.preventDefault();
+          e.target.classList.remove('over');
+
+          if (
+            e.target !== draggedElement &&
+            e.target.classList.contains('column')
+          ) {
+            // Swap the content
+            const draggedContent = draggedElement.textContent;
+            const targetContent = e.target.textContent;
+
+            draggedElement.textContent = targetContent;
+            e.target.textContent = draggedContent;
+
+            // Update IDs to reflect the swap
+            const draggedId = draggedElement.id;
+            const targetId = e.target.id;
+
+            draggedElement.id = targetId;
+            e.target.id = draggedId;
+
+            // Show status
+            document.getElementById('status').classList.add('visible');
+          }
+        });
+      });
+
+      // Also support mouse-based drag and drop for better compatibility
+      let isDragging = false;
+      let currentDrag = null;
+      let startX, startY;
+      let offsetX, offsetY;
+      let placeholder = null;
+
+      function createPlaceholder(element) {
+        const rect = element.getBoundingClientRect();
+        const clone = element.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.left = rect.left + 'px';
+        clone.style.top = rect.top + 'px';
+        clone.style.width = rect.width + 'px';
+        clone.style.height = rect.height + 'px';
+        clone.style.zIndex = '1000';
+        clone.style.opacity = '0.8';
+        clone.style.pointerEvents = 'none';
+        clone.id = '';
+        return clone;
+      }
+
+      columns.forEach((column) => {
+        column.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return;
+
+          isDragging = true;
+          currentDrag = column;
+
+          const rect = column.getBoundingClientRect();
+          offsetX = e.clientX - rect.left;
+          offsetY = e.clientY - rect.top;
+
+          placeholder = createPlaceholder(column);
+          document.body.appendChild(placeholder);
+
+          column.classList.add('dragging');
+          e.preventDefault();
+        });
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging || !placeholder) return;
+
+        placeholder.style.left = e.clientX - offsetX + 'px';
+        placeholder.style.top = e.clientY - offsetY + 'px';
+
+        columns.forEach((col) => {
+          if (col !== currentDrag) {
+            const rect = col.getBoundingClientRect();
+            if (
+              e.clientX >= rect.left &&
+              e.clientX <= rect.right &&
+              e.clientY >= rect.top &&
+              e.clientY <= rect.bottom
+            ) {
+              col.classList.add('over');
+            } else {
+              col.classList.remove('over');
+            }
+          }
+        });
+      });
+
+      document.addEventListener('mouseup', (e) => {
+        if (!isDragging) return;
+
+        isDragging = false;
+
+        if (placeholder) {
+          document.body.removeChild(placeholder);
+          placeholder = null;
+        }
+
+        currentDrag.classList.remove('dragging');
+
+        // Find target
+        columns.forEach((col) => {
+          if (col !== currentDrag && col.classList.contains('over')) {
+            // Swap content
+            const draggedContent = currentDrag.textContent;
+            const targetContent = col.textContent;
+
+            currentDrag.textContent = targetContent;
+            col.textContent = draggedContent;
+
+            // Update IDs
+            const draggedId = currentDrag.id;
+            const targetId = col.id;
+
+            currentDrag.id = targetId;
+            col.id = draggedId;
+
+            document.getElementById('status').classList.add('visible');
+          }
+          col.classList.remove('over');
+        });
+
+        currentDrag = null;
+      });
+    </script>
+  </body>
+</html>

@@ -50,6 +50,25 @@ describe(
 
       expect(items.length).toBeGreaterThan(4); // only 1 items show in the viewport, but we should get more from the DOM
     });
+
+    it('query non-existent data should throw error with usage recorded', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://www.saucedemo.com/',
+        {
+          viewport: {
+            width: 1024,
+            height: 400,
+          },
+        },
+      );
+      resetFn = reset;
+      agent = new PuppeteerAgent(originPage);
+
+      // Query something that doesn't exist on the page - should cause an error
+      await expect(
+        agent.aiQuery("today's weather forecast temperature in celsius"),
+      ).rejects.toThrow();
+    });
   },
   4 * 60 * 1000,
 );

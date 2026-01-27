@@ -5,5 +5,6 @@ import { test as base } from '@playwright/test';
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     waitForNetworkIdleTimeout: 10000,
+    cache: { id: 'playwright-cache-test', strategy: 'write-only' },
   }),
 );

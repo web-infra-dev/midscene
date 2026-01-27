@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Test Search Engine</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: #f5f5f5;
+        min-height: 100vh;
+      }
+      .header {
+        background: #fff;
+        padding: 10px 20px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+      .logo {
+        font-size: 24px;
+        font-weight: bold;
+        color: #0078d4;
+      }
+      .search-container {
+        display: flex;
+        flex: 1;
+        max-width: 600px;
+      }
+      #search-input {
+        flex: 1;
+        padding: 12px 16px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 24px 0 0 24px;
+        outline: none;
+      }
+      #search-input:focus {
+        border-color: #0078d4;
+      }
+      #search-button {
+        padding: 12px 24px;
+        background: #0078d4;
+        color: white;
+        border: none;
+        border-radius: 0 24px 24px 0;
+        cursor: pointer;
+        font-size: 16px;
+      }
+      #search-button:hover {
+        background: #005a9e;
+      }
+      .main-container {
+        padding: 20px;
+        display: none;
+      }
+      .main-container.visible {
+        display: block;
+      }
+      .search-info {
+        color: #666;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      .search-result {
+        background: #fff;
+        padding: 20px;
+        margin-bottom: 16px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .result-title {
+        font-size: 18px;
+        color: #0078d4;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .result-title:hover {
+        text-decoration: underline;
+      }
+      .result-url {
+        color: #006621;
+        font-size: 14px;
+        margin: 4px 0;
+      }
+      .result-description {
+        color: #444;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      .no-results {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+      }
+      .landing {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-top: 120px;
+      }
+      .landing .logo {
+        font-size: 48px;
+        margin-bottom: 30px;
+      }
+      .landing .search-container {
+        max-width: 600px;
+        width: 100%;
+      }
+      .landing #search-input {
+        width: calc(100% - 100px);
+      }
+      .settings-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 20px;
+        color: #666;
+        padding: 8px;
+      }
+      .settings-popup {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        min-width: 300px;
+      }
+      .settings-popup.visible {
+        display: block;
+      }
+      .settings-popup h3 {
+        margin-bottom: 16px;
+      }
+      .settings-popup .option {
+        padding: 12px 16px;
+        margin: 4px 0;
+        cursor: pointer;
+        border-radius: 4px;
+        font-size: 16px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+      .settings-popup .option:hover {
+        background: #f0f0f0;
+      }
+      .close-popup {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+      }
+      .overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+      }
+      .overlay.visible {
+        display: block;
+      }
+      .weather-widget {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 16px;
+      }
+      .weather-widget h4 {
+        margin-bottom: 8px;
+      }
+      .weather-temp {
+        font-size: 36px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="landing-page" class="landing">
+      <div class="logo">TestSearch</div>
+      <div class="search-container">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Search the web..."
+          aria-label="Search input box"
+        />
+        <button id="search-button">Search</button>
+      </div>
+    </div>
+
+    <div id="results-page" style="display: none">
+      <div class="header">
+        <div class="logo">TestSearch</div>
+        <div class="search-container">
+          <input
+            type="text"
+            id="search-input-header"
+            placeholder="Search the web..."
+            aria-label="input box"
+          />
+          <button id="search-button-header">Search</button>
+        </div>
+        <button class="settings-btn" id="settings-button" title="Settings">
+          ⚙️
+        </button>
+      </div>
+
+      <div class="main-container visible" id="results-container">
+        <!-- Results will be inserted here -->
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="settings-popup" id="settings-popup">
+      <button class="close-popup" id="close-popup" aria-label="Close popup">
+        &times;
+      </button>
+      <h3>Settings</h3>
+      <div class="option" id="search-settings" role="button">搜索设置</div>
+      <div class="option" id="language-settings" role="button">Language</div>
+      <div class="option" id="privacy-settings" role="button">Privacy</div>
+      <div class="option" id="theme-settings" role="button">Theme</div>
+    </div>
+
+    <script>
+      const searchResults = {
+        'ai 101': [
+          {
+            title: "AI 101: A Beginner's Guide to Artificial Intelligence",
+            url: 'https://example.com/ai-101',
+            description:
+              'Learn the basics of artificial intelligence, machine learning, and how AI is transforming the world around us.',
+          },
+          {
+            title: 'Introduction to Machine Learning - AI Course',
+            url: 'https://example.com/ml-course',
+            description:
+              'A comprehensive course covering neural networks, deep learning, and practical AI applications.',
+          },
+          {
+            title: 'Understanding AI: From Theory to Practice',
+            url: 'https://example.com/ai-theory',
+            description:
+              'Explore the theoretical foundations and real-world implementations of artificial intelligence systems.',
+          },
+        ],
+        'hello world': [
+          {
+            title: 'Hello World - The Classic Programming Tutorial',
+            url: 'https://example.com/hello-world',
+            description:
+              'The iconic first program that every programmer writes. Learn how to write "Hello, World!" in different languages.',
+          },
+          {
+            title: 'Hello World in 100 Programming Languages',
+            url: 'https://example.com/hello-100',
+            description:
+              'A collection of Hello World programs in various programming languages including Python, Java, C++, and more.',
+          },
+          {
+            title: 'Why "Hello World"? - Programming History',
+            url: 'https://example.com/hello-history',
+            description:
+              'Discover the origin of the famous Hello World program and its significance in computer science education.',
+          },
+        ],
+        'weather today': [
+          {
+            title: 'Weather Today - Local Forecast',
+            url: 'https://example.com/weather',
+            description:
+              'Get accurate weather forecasts for your location. Current conditions and weekly outlook.',
+            isWeather: true,
+          },
+          {
+            title: 'Weather.com - Accurate Forecasts',
+            url: 'https://weather.com',
+            description:
+              'Detailed weather information including temperature, humidity, wind speed, and precipitation chances.',
+          },
+        ],
+        'weather tomorrow': [
+          {
+            title: "Tomorrow's Weather Forecast",
+            url: 'https://example.com/tomorrow-weather',
+            description:
+              "Plan ahead with tomorrow's weather forecast. Get hourly and daily predictions.",
+            isWeather: true,
+          },
+        ],
+        'food service': [
+          {
+            title: 'Local Food Delivery Services',
+            url: 'https://example.com/food-delivery',
+            description:
+              'Order food online from the best local restaurants. Fast delivery, great prices.',
+          },
+          {
+            title: 'Restaurant Near Me - Food Service',
+            url: 'https://example.com/restaurants',
+            description:
+              'Find top-rated restaurants and food services in your area.',
+          },
+        ],
+        'midscene github': [
+          {
+            title: 'Midscene - GitHub Repository',
+            url: 'https://github.com/web-infra-dev/midscene',
+            description:
+              'Midscene is an AI-based web automation testing framework. Automate browser testing with natural language.',
+            isMidscene: true,
+          },
+          {
+            title: 'Getting Started with Midscene',
+            url: 'https://midscenejs.com',
+            description:
+              'Official documentation for Midscene - the AI-powered browser automation tool.',
+          },
+        ],
+      };
+
+      function getSearchResults(query) {
+        const normalizedQuery = query.toLowerCase().trim();
+
+        // Check for exact match first
+        if (searchResults[normalizedQuery]) {
+          return searchResults[normalizedQuery];
+        }
+
+        // Check for partial match
+        for (const key of Object.keys(searchResults)) {
+          if (normalizedQuery.includes(key) || key.includes(normalizedQuery)) {
+            return searchResults[key];
+          }
+        }
+
+        // Default generic results
+        return [
+          {
+            title: `Search results for "${query}"`,
+            url: `https://example.com/search?q=${encodeURIComponent(query)}`,
+            description: `Found results matching your search for "${query}". Click to learn more.`,
+          },
+          {
+            title: `More about ${query}`,
+            url: `https://example.com/more/${encodeURIComponent(query)}`,
+            description: `Detailed information and resources about ${query}.`,
+          },
+        ];
+      }
+
+      function renderResults(query) {
+        const results = getSearchResults(query);
+        const container = document.getElementById('results-container');
+
+        let html = `<div class="search-info">About ${results.length * 1000} results for "${query}"</div>`;
+
+        // Add weather widget for weather queries
+        if (query.toLowerCase().includes('weather')) {
+          html += `
+          <div class="weather-widget">
+            <h4>Weather in Test City</h4>
+            <div class="weather-temp">72°F</div>
+            <div>Partly Cloudy</div>
+          </div>
+        `;
+        }
+
+        for (const result of results) {
+          html += `
+          <div class="search-result" data-is-midscene="${result.isMidscene || false}">
+            <a class="result-title" href="${result.url}">${result.title}</a>
+            <div class="result-url">${result.url}</div>
+            <div class="result-description">${result.description}</div>
+          </div>
+        `;
+        }
+
+        container.innerHTML = html;
+      }
+
+      function performSearch(query) {
+        if (!query.trim()) return;
+
+        document.getElementById('landing-page').style.display = 'none';
+        document.getElementById('results-page').style.display = 'block';
+        document.getElementById('search-input-header').value = query;
+
+        renderResults(query);
+      }
+
+      // Landing page search
+      document.getElementById('search-button').addEventListener('click', () => {
+        const query = document.getElementById('search-input').value;
+        performSearch(query);
+      });
+
+      document
+        .getElementById('search-input')
+        .addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            const query = document.getElementById('search-input').value;
+            performSearch(query);
+          }
+        });
+
+      // Header search
+      document
+        .getElementById('search-button-header')
+        .addEventListener('click', () => {
+          const query = document.getElementById('search-input-header').value;
+          performSearch(query);
+        });
+
+      document
+        .getElementById('search-input-header')
+        .addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            const query = document.getElementById('search-input-header').value;
+            performSearch(query);
+          }
+        });
+
+      // Settings popup
+      document
+        .getElementById('settings-button')
+        .addEventListener('click', () => {
+          document.getElementById('settings-popup').classList.add('visible');
+          document.getElementById('overlay').classList.add('visible');
+        });
+
+      document.getElementById('close-popup').addEventListener('click', () => {
+        document.getElementById('settings-popup').classList.remove('visible');
+        document.getElementById('overlay').classList.remove('visible');
+      });
+
+      document.getElementById('overlay').addEventListener('click', () => {
+        document.getElementById('settings-popup').classList.remove('visible');
+        document.getElementById('overlay').classList.remove('visible');
+      });
+    </script>
+  </body>
+</html>

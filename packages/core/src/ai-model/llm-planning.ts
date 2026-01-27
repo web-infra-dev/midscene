@@ -23,8 +23,11 @@ import {
   parseMarkFinishedIndexes,
   parseSubGoalsFromXML,
 } from './prompt/util';
-import { callAI } from './service-caller/index';
-import { safeParseJson } from './service-caller/index';
+import {
+  AIResponseParseError,
+  callAI,
+  safeParseJson,
+} from './service-caller/index';
 
 const debug = getDebug('planning');
 
@@ -230,8 +233,20 @@ export async function plan(
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
   });
 
-  // Parse XML response to JSON object
-  const planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+  // Parse XML response to JSON object, capture parsing errors
+  let planFromAI: RawResponsePlanningAIResponse;
+  try {
+    planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+  } catch (parseError) {
+    // Throw AIResponseParseError with usage and rawResponse preserved
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    throw new AIResponseParseError(
+      `XML parse error: ${errorMessage}`,
+      rawResponse,
+      usage,
+    );
+  }
 
   if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
     console.warn(
