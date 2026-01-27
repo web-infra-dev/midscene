@@ -26,8 +26,8 @@ describe('automation - planning input', () => {
   it('input value', async () => {
     const { context } = await getContextFromFixture('todo');
     const instructions = [
-      'In the taskbar, type learning english',
-      'In the taskbar, type learning english and hit Enter key',
+      'In the task input box, type learning english',
+      'In the task input box, type learning english and hit Enter key',
     ];
 
     for (const instruction of instructions) {
