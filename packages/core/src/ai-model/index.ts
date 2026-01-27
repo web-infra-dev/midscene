@@ -1,4 +1,5 @@
 export {
+  AIResponseParseError,
   callAIWithStringResponse,
   callAIWithObjectResponse,
   callAI,

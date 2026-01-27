@@ -542,6 +542,19 @@ describe(
       expect(Math.abs(rectFromXpath.left - rect.left)).toBeLessThan(50);
       expect(Math.abs(rectFromXpath.top - rect.top)).toBeLessThan(50);
     });
+
+    it('aiAct with non-existent task should throw error with usage recorded', async () => {
+      const { originPage, reset } = await launchPage(
+        'https://www.saucedemo.com/',
+      );
+      resetFn = reset;
+      agent = new PuppeteerAgent(originPage);
+
+      // Request an impossible task - should cause an error but usage should still be recorded
+      await expect(
+        agent.aiAct('Click the food delivery service on the page'),
+      ).rejects.toThrow();
+    });
   },
   4 * 60 * 1000,
 );

@@ -1,4 +1,5 @@
 import type {
+  AIDataExtractionResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
@@ -43,6 +44,7 @@ import {
   systemPromptToJudgeOrderSensitive,
 } from './prompt/order-sensitive-judge';
 import {
+  AIResponseParseError,
   callAI,
   callAIWithObjectResponse,
   callAIWithStringResponse,
@@ -284,7 +286,30 @@ export async function AiLocateElement(options: {
     };
   }
 
-  const res = await callAIFn(msgs, modelConfig);
+  let res: Awaited<ReturnType<typeof callAIFn>>;
+  try {
+    res = await callAIFn(msgs, modelConfig);
+  } catch (callError) {
+    // Return error with usage and rawResponse if available
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    const rawResponse =
+      callError instanceof AIResponseParseError
+        ? callError.rawResponse
+        : errorMessage;
+    const usage =
+      callError instanceof AIResponseParseError ? callError.usage : undefined;
+    return {
+      rect: undefined,
+      parseResult: {
+        elements: [],
+        errors: [`AI call error: ${errorMessage}`],
+      },
+      rawResponse,
+      usage,
+      reasoning_content: undefined,
+    };
+  }
 
   const rawResponse = JSON.stringify(res.content);
 
@@ -397,10 +422,32 @@ export async function AiLocateSection(options: {
     msgs.push(...addOns);
   }
 
-  const result = await callAIWithObjectResponse<AISectionLocatorResponse>(
-    msgs,
-    modelConfig,
-  );
+  let result: Awaited<
+    ReturnType<typeof callAIWithObjectResponse<AISectionLocatorResponse>>
+  >;
+  try {
+    result = await callAIWithObjectResponse<AISectionLocatorResponse>(
+      msgs,
+      modelConfig,
+    );
+  } catch (callError) {
+    // Return error with usage and rawResponse if available
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    const rawResponse =
+      callError instanceof AIResponseParseError
+        ? callError.rawResponse
+        : errorMessage;
+    const usage =
+      callError instanceof AIResponseParseError ? callError.usage : undefined;
+    return {
+      rect: undefined,
+      imageBase64: undefined,
+      error: `AI call error: ${errorMessage}`,
+      rawResponse,
+      usage,
+    };
+  }
 
   let sectionRect: Rect | undefined;
   const sectionBbox = result.content.bbox;
@@ -524,10 +571,23 @@ export async function AiExtractElementInfo<T>(options: {
   } = await callAI(msgs, modelConfig);
 
   // Parse XML response to JSON object
-  const parseResult = parseXMLExtractionResponse<T>(rawResponse);
+  let parseResult: AIDataExtractionResponse<T>;
+  try {
+    parseResult = parseXMLExtractionResponse<T>(rawResponse);
+  } catch (parseError) {
+    // Throw AIResponseParseError with usage and rawResponse preserved
+    const errorMessage =
+      parseError instanceof Error ? parseError.message : String(parseError);
+    throw new AIResponseParseError(
+      `XML parse error: ${errorMessage}`,
+      rawResponse,
+      usage,
+    );
+  }
 
   return {
     parseResult,
+    rawResponse,
     usage,
     reasoning_content,
   };

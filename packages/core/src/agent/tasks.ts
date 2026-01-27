@@ -1,4 +1,5 @@
 import {
+  AIResponseParseError,
   ConversationHistory,
   autoGLMPlanning,
   plan,
@@ -340,17 +341,30 @@ export class TaskExecutor {
                 ? autoGLMPlanning
                 : plan;
 
-            const planResult = await planImpl(param.userInstruction, {
-              context: uiContext,
-              actionContext: param.aiActContext,
-              interfaceType: this.interface.interfaceType as InterfaceType,
-              actionSpace,
-              modelConfig: modelConfigForPlanning,
-              conversationHistory: this.conversationHistory,
-              includeBbox: includeBboxInPlanning,
-              imagesIncludeCount,
-              deepThink,
-            });
+            let planResult: Awaited<ReturnType<typeof planImpl>>;
+            try {
+              planResult = await planImpl(param.userInstruction, {
+                context: uiContext,
+                actionContext: param.aiActContext,
+                interfaceType: this.interface.interfaceType as InterfaceType,
+                actionSpace,
+                modelConfig: modelConfigForPlanning,
+                conversationHistory: this.conversationHistory,
+                includeBbox: includeBboxInPlanning,
+                imagesIncludeCount,
+                deepThink,
+              });
+            } catch (planError) {
+              if (planError instanceof AIResponseParseError) {
+                // Record usage and rawResponse even when parsing fails
+                executorContext.task.usage = planError.usage;
+                executorContext.task.log = {
+                  ...(executorContext.task.log || {}),
+                  rawResponse: planError.rawResponse,
+                };
+              }
+              throw planError;
+            }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
             const {
@@ -513,7 +527,12 @@ export class TaskExecutor {
           queryDump = dump;
           task.log = {
             dump,
+            rawResponse: dump.taskInfo?.rawResponse,
           };
+          task.usage = dump.taskInfo?.usage;
+          if (dump.taskInfo?.reasoning_content) {
+            task.reasoning_content = dump.taskInfo.reasoning_content;
+          }
         };
 
         // Get context for query operations
@@ -567,9 +586,8 @@ export class TaskExecutor {
           throw error;
         }
 
-        const { data, usage, thought, dump, reasoning_content } = extractResult;
+        const { data, thought, dump } = extractResult;
         applyDump(dump);
-        task.reasoning_content = reasoning_content;
 
         let outputResult = data;
         if (ifTypeRestricted) {
@@ -594,7 +612,6 @@ export class TaskExecutor {
         }
 
         if (type === 'Assert' && !outputResult) {
-          task.usage = usage;
           task.thought = thought;
           throw new Error(`Assertion failed: ${thought}`);
         }
@@ -602,7 +619,6 @@ export class TaskExecutor {
         return {
           output: outputResult,
           log: queryDump,
-          usage,
           thought,
         };
       },
