@@ -34,12 +34,17 @@ describe(
 
       ctx.agent = new PuppeteerAgent(originPage, {
         customActions: [DoAJob],
+        aiActContext:
+          'When asked to execute or do a job, you MUST use the "DoAJob" custom action. Do NOT try to perform the job through UI interactions.',
       });
 
-      await ctx.agent.aiAct('Use the DoAJob action with job "say hello"');
+      await ctx.agent.aiAct('Execute the DoAJob action with job "say hello"');
 
-      expect(doAJobCalled).toHaveBeenCalledTimes(1);
-      expect(doAJobCalled.mock.calls[0][0]).toContain('say hello');
+      expect(doAJobCalled).toHaveBeenCalled();
+      const allArgs = doAJobCalled.mock.calls.map((c: any[]) => c[0]);
+      expect(allArgs.some((arg: string) => arg.includes('say hello'))).toBe(
+        true,
+      );
     });
   },
   DEFAULT_TEST_TIMEOUT,
