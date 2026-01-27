@@ -189,7 +189,7 @@ export default class ScrcpyServer {
       typeof __dirname !== 'undefined'
         ? __dirname
         : path.dirname(fileURLToPath(import.meta.url));
-    const serverBinPath = path.resolve(currentDir, '../../bin/server.bin');
+    const serverBinPath = path.resolve(currentDir, '../../bin/scrcpy-server');
 
     try {
       // Push server - use file path directly for createReadStream
