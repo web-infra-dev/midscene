@@ -467,7 +467,7 @@ ${Object.keys(size)
     await this.initializeDevicePixelRatio();
     const screenSize = await this.getScreenSize();
     const sizeStr = screenSize.override || screenSize.physical;
-    const match = sizeStr.match(/(\d+)x(\d+)/);
+    const match = sizeStr.match(/(\d{1,5})x(\d{1,5})/);
     if (!match) {
       throw new Error(`Unable to parse screen size: ${sizeStr}`);
     }
