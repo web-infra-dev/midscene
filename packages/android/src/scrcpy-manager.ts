@@ -364,10 +364,7 @@ export class ScrcpyScreenshotManager {
     const callTimestamp = Date.now();
     await this.ensureConnected();
 
-    if (
-      !this.lastFrameBuffer ||
-      this.lastFrameTimestamp < callTimestamp
-    ) {
+    if (!this.lastFrameBuffer || this.lastFrameTimestamp < callTimestamp) {
       debugScrcpy(
         `Waiting for frame captured after call (callTs=${callTimestamp}, frameTs=${this.lastFrameTimestamp})...`,
       );
@@ -401,10 +398,7 @@ export class ScrcpyScreenshotManager {
     await this.waitForKeyframe();
     const keyframeWaitTime = Date.now() - t3;
 
-    if (
-      !this.latestFrameBuffer ||
-      this.latestFrameTimestamp < callTimestamp
-    ) {
+    if (!this.latestFrameBuffer || this.latestFrameTimestamp < callTimestamp) {
       debugScrcpy(
         `Waiting for keyframe captured after call (callTs=${callTimestamp}, frameTs=${this.latestFrameTimestamp})...`,
       );
@@ -417,7 +411,9 @@ export class ScrcpyScreenshotManager {
       );
     }
 
-    debugScrcpy(`Keyframe captured ${Date.now() - this.latestFrameTimestamp}ms ago`);
+    debugScrcpy(
+      `Keyframe captured ${Date.now() - this.latestFrameTimestamp}ms ago`,
+    );
     this.resetIdleTimer();
 
     debugScrcpy(
