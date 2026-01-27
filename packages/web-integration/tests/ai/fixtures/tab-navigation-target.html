@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Forecast Page</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #e3f2fd;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .logo {
+        font-size: 36px;
+        color: #1976d2;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+      .weather-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      .weather-header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e3f2fd;
+      }
+      .weather-header h2 {
+        color: #1976d2;
+        margin: 0 0 10px 0;
+        font-size: 24px;
+      }
+      .weather-header .location {
+        color: #666;
+        font-size: 14px;
+      }
+      .weather-current {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        margin-bottom: 25px;
+      }
+      .weather-icon {
+        font-size: 64px;
+      }
+      .weather-temp {
+        font-size: 48px;
+        font-weight: bold;
+        color: #333;
+      }
+      .weather-desc {
+        color: #666;
+        font-size: 18px;
+      }
+      .weather-forecast {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+      }
+      .forecast-day {
+        text-align: center;
+        padding: 15px;
+        background: #f5f5f5;
+        border-radius: 8px;
+      }
+      .forecast-day .day-name {
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 8px;
+      }
+      .forecast-day .day-icon {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      .forecast-day .day-temp {
+        color: #666;
+        font-size: 14px;
+      }
+      .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        color: #1976d2;
+        text-decoration: none;
+      }
+      .back-link:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">Weather Portal</div>
+    </div>
+
+    <div class="weather-container">
+      <div class="weather-header">
+        <h2>Weather Forecast</h2>
+        <div class="location">Beijing, China</div>
+      </div>
+
+      <div class="weather-current">
+        <div class="weather-icon">☀️</div>
+        <div>
+          <div class="weather-temp">25°C</div>
+          <div class="weather-desc">Sunny</div>
+        </div>
+      </div>
+
+      <div class="weather-forecast">
+        <div class="forecast-day">
+          <div class="day-name">Today</div>
+          <div class="day-icon">☀️</div>
+          <div class="day-temp">15° - 25°</div>
+        </div>
+        <div class="forecast-day">
+          <div class="day-name">Tomorrow</div>
+          <div class="day-icon">⛅</div>
+          <div class="day-temp">12° - 22°</div>
+        </div>
+        <div class="forecast-day">
+          <div class="day-name">Wednesday</div>
+          <div class="day-icon">🌧️</div>
+          <div class="day-temp">10° - 18°</div>
+        </div>
+      </div>
+
+      <a href="tab-navigation.html" class="back-link"
+        >← Back to Navigation Test</a
+      >
+    </div>
+  </body>
+</html>

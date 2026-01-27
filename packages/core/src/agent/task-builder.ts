@@ -368,6 +368,7 @@ export class TaskBuilder {
           locateDump = dump;
           task.log = {
             dump,
+            rawResponse: dump.taskInfo?.rawResponse,
           };
           task.usage = dump.taskInfo?.usage;
           if (dump.taskInfo?.searchAreaUsage) {

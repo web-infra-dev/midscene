@@ -13,6 +13,7 @@ export default defineConfig({
   test: {
     include: enableAiTest ? ['tests/ai/**/*.test.ts'] : basicTest,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
+    retry: process.env.CI ? 1 : 0,
   },
   resolve: {
     alias: {

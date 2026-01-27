@@ -1585,6 +1585,31 @@ ${Object.keys(size)
     this.yadbPushed = false;
   }
 
+  /**
+   * Get the current time from the Android device.
+   * Returns the device's current timestamp in milliseconds.
+   * This is useful when the system time and device time are not synchronized.
+   */
+  async getTimestamp(): Promise<number> {
+    const adb = await this.getAdb();
+    try {
+      // Get time in milliseconds using date command
+      // %s gives seconds since epoch, %3N gives milliseconds
+      const stdout = await adb.shell('date +%s%3N');
+      const timestamp = Number.parseInt(stdout.trim(), 10);
+
+      if (Number.isNaN(timestamp)) {
+        throw new Error(`Invalid timestamp format: ${stdout}`);
+      }
+
+      debugDevice(`Got device time: ${timestamp}`);
+      return timestamp;
+    } catch (error) {
+      debugDevice(`Failed to get device time: ${error}`);
+      throw new Error(`Failed to get device time: ${error}`);
+    }
+  }
+
   async back(): Promise<void> {
     const adb = await this.getAdb();
     await adb.shell(`input${this.getDisplayArg()} keyevent 4`);

@@ -1,20 +1,13 @@
-import { sleep } from '@midscene/core/utils';
+import { join } from 'node:path';
 import { test } from './fixture';
 
-test.beforeEach(async ({ page }) => {
-  await page.goto('https://cn.bing.com');
-});
+test('test open new tab', async ({ page, ai, aiAssert }) => {
+  const htmlPath = join(__dirname, '../../fixtures/tab-navigation.html');
+  await page.goto(`file://${htmlPath}`);
 
-const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
+  // forceSameTabNavigation defaults to true in fixture,
+  // so the popup should be intercepted and navigated in the same tab
+  await ai('Click on the "Open in New Tab" link');
 
-test('test open new tab', async ({ page, ai, aiAssert, aiQuery }) => {
-  if (CACHE_TIME_OUT) {
-    test.setTimeout(200 * 1000);
-  }
-  await ai(
-    'type "midscene github" in search box, hit Enter, sleep 5s, and open the github page in result list',
-  );
-
-  await sleep(5000);
-  await aiAssert('the page is "midscene github"');
+  await aiAssert('There is a weather forecast in the page');
 });

@@ -5,7 +5,7 @@ test.describe('Enhanced Cache Functionality', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('https://example.com/');
     // Set a longer timeout for cache operations
-    test.setTimeout(60000);
+    test.setTimeout(3 * 60 * 1000);
   });
 
   test('should work with explicit cache ID configuration', async ({

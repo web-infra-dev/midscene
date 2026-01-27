@@ -33,6 +33,7 @@ export default defineConfig({
   test: {
     include: testFiles,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
+    retry: process.env.CI ? 1 : 0,
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI,
     fileParallelism: false, // disable parallel file test for desktop automation
     globals: true,

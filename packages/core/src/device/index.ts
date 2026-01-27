@@ -55,6 +55,13 @@ export abstract class AbstractInterface {
 
   // @deprecated do NOT extend this method
   abstract getContext?(): Promise<UIContext>;
+
+  /**
+   * Get the current time from the device.
+   * Returns the device's current timestamp in milliseconds.
+   * This is useful when the system time and device time are not synchronized.
+   */
+  getTimestamp?(): Promise<number>;
 }
 
 // Generic function to define actions with proper type inference
@@ -257,7 +264,7 @@ export const actionScrollParamSchema = z.object({
     ])
     .default('singleAction')
     .describe(
-      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling all the way to the bottom by rapidly scrolling 5-10 times (skipping intermediate content until reaching the bottom), "scrollToTop" for scrolling all the way to the top by rapidly scrolling 5-10 times (skipping intermediate content until reaching the top), "scrollToRight" for scrolling all the way to the right by rapidly scrolling multiple times, "scrollToLeft" for scrolling all the way to the left by rapidly scrolling multiple times',
     ),
   direction: z
     .enum(['down', 'up', 'right', 'left'])
