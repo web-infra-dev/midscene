@@ -27,7 +27,7 @@ jobs:
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
       MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "10000"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
       MIDSCENE_REPORT_QUIET: "true"
       # DEBUG: midscene:* # Disabled to prevent log overflow
       CI: 1
