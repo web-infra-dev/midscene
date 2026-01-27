@@ -51,8 +51,6 @@ describe('agent with forceSameTabNavigation', () => {
     const log2 = await agent._unstableLogContent();
     expect(log2.executions[2].tasks[0].hitBy?.from).toBe(undefined); // AI model
     await sleep(2000);
-    await agent.aiAssert(
-      'the page shows search results about "midscene" project',
-    );
+    await agent.aiAssert('the page is "midscene github"');
   });
 });
