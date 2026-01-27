@@ -1,0 +1,49 @@
+{
+  "name": "@midscene/computer",
+  "version": "1.1.0",
+  "description": "Midscene.js Computer Desktop Automation",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/computer"
+  },
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./mcp-server": {
+      "types": "./dist/types/mcp-server.d.ts",
+      "import": "./dist/es/mcp-server.mjs",
+      "require": "./dist/lib/mcp-server.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch",
+    "test": "vitest run",
+    "test:ai": "AI_TEST_TYPE=computer vitest run"
+  },
+  "dependencies": {
+    "@computer-use/libnut": "^4.2.0",
+    "@midscene/core": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "clipboardy": "^4.0.0",
+    "screenshot-desktop": "^1.15.3"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.18.3",
+    "@types/node": "^18.0.0",
+    "@types/screenshot-desktop": "1.15.0",
+    "dotenv": "^16.4.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3",
+    "vitest": "3.0.5"
+  }
+}

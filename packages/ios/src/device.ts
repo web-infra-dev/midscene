@@ -290,18 +290,14 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   /**
    * Resolve app name to bundle ID using the mapping.
-   * Comparison is case-insensitive and ignores spaces.
+   * Comparison is case-insensitive and ignores spaces, dashes, and underscores.
+   * Keys in appNameMapping are pre-normalized, so we only need to normalize the input.
    *
    * @param appName The app name to resolve.
    */
   private resolveBundleId(appName: string): string | undefined {
     const normalizedAppName = normalizeForComparison(appName);
-    for (const [key, value] of Object.entries(this.appNameMapping)) {
-      if (normalizeForComparison(key) === normalizedAppName) {
-        return value;
-      }
-    }
-    return undefined;
+    return this.appNameMapping[normalizedAppName];
   }
 
   public async launch(uri: string): Promise<IOSDevice> {

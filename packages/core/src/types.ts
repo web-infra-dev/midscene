@@ -797,6 +797,13 @@ export interface AgentOpt {
   waitAfterAction?: number;
 
   /**
+   * When set to true, Midscene will use the target device's time (Android/iOS)
+   * instead of the system time. Useful when the device time differs from the
+   * host machine. Default: false
+   */
+  useDeviceTimestamp?: boolean;
+
+  /**
    * Custom OpenAI client factory function
    *
    * If provided, this function will be called to create OpenAI client instances

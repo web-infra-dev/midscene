@@ -429,17 +429,13 @@ ${Object.keys(size)
 
   /**
    * Resolve app name to package name using the mapping
-   * Comparison is case-insensitive and ignores spaces
+   * Comparison is case-insensitive and ignores spaces, dashes, and underscores.
+   * Keys in appNameMapping are pre-normalized, so we only need to normalize the input.
    * @param appName The app name to resolve
    */
   private resolvePackageName(appName: string): string | undefined {
     const normalizedAppName = normalizeForComparison(appName);
-    for (const [key, value] of Object.entries(this.appNameMapping)) {
-      if (normalizeForComparison(key) === normalizedAppName) {
-        return value;
-      }
-    }
-    return undefined;
+    return this.appNameMapping[normalizedAppName];
   }
 
   public async launch(uri: string): Promise<AndroidDevice> {
@@ -1493,6 +1489,31 @@ ${Object.keys(size)
 
     this.connectingAdb = null;
     this.yadbPushed = false;
+  }
+
+  /**
+   * Get the current time from the Android device.
+   * Returns the device's current timestamp in milliseconds.
+   * This is useful when the system time and device time are not synchronized.
+   */
+  async getTimestamp(): Promise<number> {
+    const adb = await this.getAdb();
+    try {
+      // Get time in milliseconds using date command
+      // %s gives seconds since epoch, %3N gives milliseconds
+      const stdout = await adb.shell('date +%s%3N');
+      const timestamp = Number.parseInt(stdout.trim(), 10);
+
+      if (Number.isNaN(timestamp)) {
+        throw new Error(`Invalid timestamp format: ${stdout}`);
+      }
+
+      debugDevice(`Got device time: ${timestamp}`);
+      return timestamp;
+    } catch (error) {
+      debugDevice(`Failed to get device time: ${error}`);
+      throw new Error(`Failed to get device time: ${error}`);
+    }
   }
 
   async back(): Promise<void> {

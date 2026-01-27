@@ -147,6 +147,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       script.web ||
       script.android ||
       script.ios ||
+      script.computer ||
       script.config;
 
     if (ifInBrowser || ifInWorker) {
@@ -623,11 +624,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   }
 
   async run() {
-    const { target, web, android, ios, tasks } = this.script;
+    const { target, web, android, ios, computer, tasks } = this.script;
     const webEnv = web || target;
     const androidEnv = android;
     const iosEnv = ios;
-    const platform = webEnv || androidEnv || iosEnv;
+    const computerEnv = computer;
+    const platform = webEnv || androidEnv || iosEnv || computerEnv;
 
     this.setPlayerStatus('running');
 

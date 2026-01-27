@@ -139,6 +139,10 @@ AutoGLM 提供了两个版本的模型，通过 `MIDSCENE_MODEL_FAMILY` 区分�
 
 请根据你的应用语言选择合适的版本。
 
+:::note
+AutoGLM 更适合移动端的交互与操作流程。如果要使用 `aiAssert`、`aiQuery` 等需要页面理解/断言的 API，请额外配置一组 `MIDSCENE_INSIGHT_MODEL_...` 环境变量，让独立的 Insight 模型负责页面理解，具体可参考[模型策略](./model-strategy) 中对于多模型配合的介绍。
+:::
+
 **了解更多关于智谱 AutoGLM**
 
 - Github: [https://github.com/zai-org/Open-AutoGLM](https://github.com/zai-org/Open-AutoGLM)
