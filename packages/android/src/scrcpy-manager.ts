@@ -374,6 +374,8 @@ export class ScrcpyScreenshotManager {
         `Frame is stale or missing (${frameAge}ms old), waiting for fresh frame...`,
       );
       await this.waitForNextFrame(FRESH_FRAME_WAIT_TIMEOUT_MS);
+    } else {
+      debugScrcpy(`Frame is fresh (${frameAge}ms old)`);
     }
 
     if (!this.lastFrameBuffer) {
@@ -413,6 +415,8 @@ export class ScrcpyScreenshotManager {
         `Keyframe is stale or missing (${keyframeAge}ms old), waiting for fresh keyframe...`,
       );
       await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
+    } else {
+      debugScrcpy(`Keyframe is fresh (${keyframeAge}ms old)`);
     }
 
     if (!this.latestFrameBuffer) {
