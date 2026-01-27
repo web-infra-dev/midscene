@@ -128,6 +128,15 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
+   * Validate environment prerequisites (ffmpeg, scrcpy-server, etc.)
+   * Must be called once after construction, before any screenshot operations.
+   * Throws if prerequisites are not met.
+   */
+  async validateEnvironment(): Promise<void> {
+    await this.ensureFfmpegAvailable();
+  }
+
+  /**
    * Ensure scrcpy connection is active
    */
   async ensureConnected(): Promise<void> {
@@ -146,9 +155,6 @@ export class ScrcpyScreenshotManager {
     try {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
-
-      // Check ffmpeg availability early to fail fast
-      await this.ensureFfmpegAvailable();
 
       const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
         '@yume-chan/adb-scrcpy'

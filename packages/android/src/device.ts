@@ -82,6 +82,7 @@ export class AndroidDevice implements AbstractInterface {
   private cachedOrientation: number | null = null;
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
   private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
+  private scrcpyStatusLogged = false;
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
@@ -946,9 +947,22 @@ ${Object.keys(size)
         debugDevice('Attempting scrcpy screenshot...');
         const deviceInfo = await this.getDevicePhysicalInfo();
         const result = await adapter.screenshotBase64(deviceInfo);
+        if (!this.scrcpyStatusLogged) {
+          this.scrcpyStatusLogged = true;
+          console.log(
+            `[midscene] Using scrcpy for screenshots (device: ${this.deviceId})`,
+          );
+        }
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
+        if (!this.scrcpyStatusLogged) {
+          this.scrcpyStatusLogged = true;
+          const msg = error instanceof Error ? error.message : String(error);
+          console.warn(
+            `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}`,
+          );
+        }
         debugDevice(
           `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}\nTip: Ensure ffmpeg is installed and scrcpy server is accessible.`,
         );

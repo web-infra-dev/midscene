@@ -112,12 +112,18 @@ export class ScrcpyDeviceAdapter {
       );
 
       const config = this.resolveConfig(deviceInfo);
-      this.manager = new ScrcpyManager(adb, {
+      const manager = new ScrcpyManager(adb, {
         maxSize: config.maxSize,
         videoBitRate: config.videoBitRate,
         idleTimeoutMs: config.idleTimeoutMs,
       });
 
+      // Validate environment prerequisites (ffmpeg, etc.) once before caching.
+      // If validation fails, the manager is not cached and the error propagates
+      // to the caller, which falls back to ADB.
+      await manager.validateEnvironment();
+
+      this.manager = manager;
       debugAdapter('Scrcpy manager initialized');
       return this.manager;
     } catch (error) {

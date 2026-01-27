@@ -1503,6 +1503,7 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1544,6 +1545,7 @@ describe('AndroidDevice', () => {
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1582,6 +1584,7 @@ describe('AndroidDevice', () => {
         displayId: 2,
         usePhysicalDisplayIdForScreenshot: false,
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1716,6 +1719,7 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         usePhysicalDisplayIdForScreenshot: true, // This should be ignored when no displayId
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
