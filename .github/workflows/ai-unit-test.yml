@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       branch:
@@ -36,7 +39,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        ref: ${{ github.event.inputs.branch || 'main' }}
+        ref: ${{ github.event.inputs.branch || github.ref }}
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
