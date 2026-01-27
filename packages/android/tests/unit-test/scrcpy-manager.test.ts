@@ -105,6 +105,39 @@ describe('ScrcpyScreenshotManager', () => {
     });
   });
 
+  describe('ensureConnected', () => {
+    it('should throw instead of recursing when isConnecting is true', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).isConnecting = true;
+
+      await expect(manager.ensureConnected()).rejects.toThrow(
+        /another connection attempt/,
+      );
+    });
+
+    it('should return immediately if already connected', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).scrcpyClient = {};
+      (manager as any).videoStream = {};
+
+      // Should not throw
+      await expect(manager.ensureConnected()).resolves.toBeUndefined();
+    });
+
+    it('should succeed if another connection finishes while waiting', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      (manager as any).isConnecting = true;
+
+      // Simulate the other connection finishing during the wait
+      setTimeout(() => {
+        (manager as any).scrcpyClient = {};
+        (manager as any).videoStream = {};
+      }, 100);
+
+      await expect(manager.ensureConnected()).resolves.toBeUndefined();
+    });
+  });
+
   describe('disconnect', () => {
     it('should reset all state', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);

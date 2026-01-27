@@ -18,6 +18,7 @@ vi.mock('@yume-chan/adb-server-node-tcp', () => ({
 // Mock ScrcpyScreenshotManager returned by dynamic import in ensureManager
 const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
+  ensureConnected: vi.fn().mockResolvedValue(undefined),
   getScreenshotPng: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: vi.fn().mockReturnValue(null),
   disconnect: vi.fn().mockResolvedValue(undefined),
@@ -80,6 +81,13 @@ describe('ScrcpyDeviceAdapter', () => {
         undefined,
       );
       expect(adapter.isEnabled()).toBe(true);
+    });
+
+    it('should return false when initFailed is true', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      expect(adapter.isEnabled()).toBe(true);
+      (adapter as any).initFailed = true;
+      expect(adapter.isEnabled()).toBe(false);
     });
   });
 
@@ -288,6 +296,67 @@ describe('ScrcpyDeviceAdapter', () => {
       const result = await adapter.screenshotBase64(defaultDeviceInfo);
       expect(result).toBe('data:image/png;base64,test');
       expect(currentMockManager.getScreenshotPng).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('initialize', () => {
+    it('should call ensureManager and manager.ensureConnected', async () => {
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        undefined,
+      );
+
+      await adapter.initialize(defaultDeviceInfo);
+
+      expect(currentMockManager.validateEnvironment).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.ensureConnected).toHaveBeenCalledTimes(1);
+      expect((adapter as any).manager).toBe(currentMockManager);
+    });
+
+    it('should set initFailed=true when ensureManager fails', async () => {
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        undefined,
+      );
+      currentMockManager.validateEnvironment.mockRejectedValue(
+        new Error('ffmpeg not found'),
+      );
+
+      await expect(adapter.initialize(defaultDeviceInfo)).rejects.toThrow();
+      expect((adapter as any).initFailed).toBe(true);
+      expect(adapter.isEnabled()).toBe(false);
+    });
+
+    it('should set initFailed=true when ensureConnected fails', async () => {
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        undefined,
+      );
+      currentMockManager.ensureConnected.mockRejectedValue(
+        new Error('scrcpy connection failed'),
+      );
+
+      await expect(adapter.initialize(defaultDeviceInfo)).rejects.toThrow(
+        'scrcpy connection failed',
+      );
+      expect((adapter as any).initFailed).toBe(true);
+      expect(adapter.isEnabled()).toBe(false);
+    });
+
+    it('should not set initFailed on success', async () => {
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        undefined,
+      );
+
+      await adapter.initialize(defaultDeviceInfo);
+
+      expect((adapter as any).initFailed).toBe(false);
+      expect(adapter.isEnabled()).toBe(true);
     });
   });
 

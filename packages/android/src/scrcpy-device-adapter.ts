@@ -35,6 +35,7 @@ export interface DevicePhysicalInfo {
 export class ScrcpyDeviceAdapter {
   private manager: ScrcpyScreenshotManager | null = null;
   private resolvedConfig: ResolvedScrcpyConfig | null = null;
+  private initFailed = false;
 
   constructor(
     private deviceId: string,
@@ -43,7 +44,22 @@ export class ScrcpyDeviceAdapter {
   ) {}
 
   isEnabled(): boolean {
+    if (this.initFailed) return false;
     return this.scrcpyConfig?.enabled ?? DEFAULT_SCRCPY_CONFIG.enabled;
+  }
+
+  /**
+   * Initialize scrcpy connection. Called once during device.connect().
+   * If initialization fails, marks scrcpy as permanently disabled (no further retries).
+   */
+  async initialize(deviceInfo: DevicePhysicalInfo): Promise<void> {
+    try {
+      const manager = await this.ensureManager(deviceInfo);
+      await manager.ensureConnected();
+    } catch (error) {
+      this.initFailed = true;
+      throw error;
+    }
   }
 
   /**

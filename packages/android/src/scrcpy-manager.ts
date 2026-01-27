@@ -147,9 +147,16 @@ export class ScrcpyScreenshotManager {
     }
 
     if (this.isConnecting) {
-      debugScrcpy('Connection in progress, waiting...');
+      debugScrcpy('Connection already in progress, waiting...');
       await new Promise((resolve) => setTimeout(resolve, CONNECTION_WAIT_MS));
-      return this.ensureConnected();
+      // After waiting, check if the other connection attempt succeeded
+      if (this.scrcpyClient && this.videoStream) {
+        this.resetIdleTimer();
+        return;
+      }
+      throw new Error(
+        'Scrcpy connection failed: another connection attempt did not complete in time',
+      );
     }
 
     try {

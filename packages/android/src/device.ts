@@ -82,7 +82,6 @@ export class AndroidDevice implements AbstractInterface {
   private cachedOrientation: number | null = null;
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
   private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
-  private scrcpyStatusLogged = false;
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
@@ -311,7 +310,27 @@ export class AndroidDevice implements AbstractInterface {
   }
 
   public async connect(): Promise<ADB> {
-    return this.getAdb();
+    const adb = await this.getAdb();
+
+    // Initialize scrcpy connection (if enabled)
+    // If it fails, scrcpy is permanently disabled and ADB fallback is used
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
+      try {
+        const deviceInfo = await this.getDevicePhysicalInfo();
+        await adapter.initialize(deviceInfo);
+        console.log(
+          `[midscene] Using scrcpy for screenshots (device: ${this.deviceId})`,
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(
+          `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}`,
+        );
+      }
+    }
+
+    return adb;
   }
 
   public async getAdb(): Promise<ADB> {
@@ -940,31 +959,18 @@ ${Object.keys(size)
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
 
-    // Try scrcpy mode first (if enabled)
+    // Try scrcpy mode first (if enabled and initialized)
     const adapter = this.getScrcpyAdapter();
     if (adapter.isEnabled()) {
       try {
         debugDevice('Attempting scrcpy screenshot...');
         const deviceInfo = await this.getDevicePhysicalInfo();
         const result = await adapter.screenshotBase64(deviceInfo);
-        if (!this.scrcpyStatusLogged) {
-          this.scrcpyStatusLogged = true;
-          console.log(
-            `[midscene] Using scrcpy for screenshots (device: ${this.deviceId})`,
-          );
-        }
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
-        if (!this.scrcpyStatusLogged) {
-          this.scrcpyStatusLogged = true;
-          const msg = error instanceof Error ? error.message : String(error);
-          console.warn(
-            `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}`,
-          );
-        }
         debugDevice(
-          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}\nTip: Ensure ffmpeg is installed and scrcpy server is accessible.`,
+          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}`,
         );
         // Continue to standard ADB path
       }
