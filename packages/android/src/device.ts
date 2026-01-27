@@ -38,9 +38,13 @@ import {
   isValidPNGImageBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { normalizeForComparison, repeat, uuid } from '@midscene/shared/utils';
+import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
+import {
+  type DevicePhysicalInfo,
+  ScrcpyDeviceAdapter,
+} from './scrcpy-device-adapter';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -76,6 +80,8 @@ export class AndroidDevice implements AbstractInterface {
     isCurrentOrientation?: boolean;
   } | null = null;
   private cachedOrientation: number | null = null;
+  private cachedPhysicalDisplayId: string | null | undefined = undefined;
+  private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
@@ -304,7 +310,27 @@ export class AndroidDevice implements AbstractInterface {
   }
 
   public async connect(): Promise<ADB> {
-    return this.getAdb();
+    const adb = await this.getAdb();
+
+    // Initialize scrcpy connection (if enabled)
+    // If it fails, scrcpy is permanently disabled and ADB fallback is used
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
+      try {
+        const deviceInfo = await this.getDevicePhysicalInfo();
+        await adapter.initialize(deviceInfo);
+        console.log(
+          `[midscene] Using scrcpy for screenshots (device: ${this.deviceId})`,
+        );
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(
+          `[midscene] Scrcpy unavailable, using ADB fallback (device: ${this.deviceId}): ${msg}`,
+        );
+      }
+    }
+
+    return adb;
   }
 
   public async getAdb(): Promise<ADB> {
@@ -339,7 +365,7 @@ export class AndroidDevice implements AbstractInterface {
           this.options?.remoteAdbPort ||
           globalConfigManager.getEnvConfigValue(MIDSCENE_ADB_REMOTE_PORT);
 
-        this.adb = await new ADB({
+        this.adb = new ADB({
           udid: this.deviceId,
           adbExecTimeout: 60000,
           executable: androidAdbPath
@@ -418,6 +444,40 @@ ${Object.keys(size)
         };
       },
     });
+  }
+
+  /**
+   * Get or create the scrcpy adapter (lazy initialization)
+   */
+  private getScrcpyAdapter(): ScrcpyDeviceAdapter {
+    if (!this.scrcpyAdapter) {
+      this.scrcpyAdapter = new ScrcpyDeviceAdapter(
+        this.deviceId,
+        this.options?.scrcpyConfig,
+        this.options?.screenshotResizeScale,
+      );
+    }
+    return this.scrcpyAdapter;
+  }
+
+  /**
+   * Get device physical info needed by scrcpy adapter
+   */
+  private async getDevicePhysicalInfo(): Promise<DevicePhysicalInfo> {
+    await this.initializeDevicePixelRatio();
+    const screenSize = await this.getScreenSize();
+    const sizeStr = screenSize.override || screenSize.physical;
+    const match = sizeStr.match(/(\d{1,5})x(\d{1,5})/);
+    if (!match) {
+      throw new Error(`Unable to parse screen size: ${sizeStr}`);
+    }
+    return {
+      physicalWidth: Number.parseInt(match[1], 10),
+      physicalHeight: Number.parseInt(match[2], 10),
+      dpr: this.devicePixelRatio,
+      orientation: screenSize.orientation,
+      isCurrentOrientation: screenSize.isCurrentOrientation,
+    };
   }
 
   /**
@@ -773,37 +833,44 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
-    // Ensure device pixel ratio is initialized first
-    await this.initializeDevicePixelRatio();
+    const deviceInfo = await this.getDevicePhysicalInfo();
 
-    // Use custom getScreenSize method instead of adb.getScreenSize()
-    const screenSize = await this.getScreenSize();
-    // screenSize is a string like "width x height"
-
-    // handle string format "width x height"
-    const match = (screenSize.override || screenSize.physical).match(
-      /(\d+)x(\d+)/,
-    );
-    if (!match || match.length < 3) {
-      throw new Error(`Unable to parse screen size: ${screenSize}`);
+    // If scrcpy is enabled and connected, return its actual resolution
+    // This ensures size() matches the screenshot resolution exactly, avoiding Agent-layer resize
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
+      const scrcpySize = adapter.getSize(deviceInfo);
+      if (scrcpySize) {
+        const isLandscape =
+          deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
+        const shouldSwap =
+          deviceInfo.isCurrentOrientation !== true && isLandscape;
+        const physicalWidth = shouldSwap
+          ? deviceInfo.physicalHeight
+          : deviceInfo.physicalWidth;
+        this.scalingRatio =
+          adapter.getScalingRatio(physicalWidth) ?? this.scalingRatio;
+        return scrcpySize;
+      }
     }
 
-    // Only swap dimensions if size is in native orientation (from wm size)
-    // If size is already in current orientation (from dumpsys display), no swap needed
+    // Standard path: calculate logical size from physical size and DPR/screenshotResizeScale
     const isLandscape =
-      screenSize.orientation === 1 || screenSize.orientation === 3;
-    const shouldSwap = screenSize.isCurrentOrientation !== true && isLandscape;
-    const width = Number.parseInt(match[shouldSwap ? 2 : 1], 10);
-    const height = Number.parseInt(match[shouldSwap ? 1 : 2], 10);
+      deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
+    const shouldSwap = deviceInfo.isCurrentOrientation !== true && isLandscape;
+    const width = shouldSwap
+      ? deviceInfo.physicalHeight
+      : deviceInfo.physicalWidth;
+    const height = shouldSwap
+      ? deviceInfo.physicalWidth
+      : deviceInfo.physicalHeight;
 
     // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
-    // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
     const scale =
       this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
     this.scalingRatio = scale;
 
     // Apply scale to get logical dimensions for AI processing
-    // adjustCoordinates() will convert back to physical pixels when needed for touch operations
     const logicalWidth = Math.round(width * scale);
     const logicalHeight = Math.round(height * scale);
 
@@ -891,37 +958,58 @@ ${Object.keys(size)
 
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
+
+    // Try scrcpy mode first (if enabled and initialized)
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
+      try {
+        debugDevice('Attempting scrcpy screenshot...');
+        const deviceInfo = await this.getDevicePhysicalInfo();
+        const result = await adapter.screenshotBase64(deviceInfo);
+        debugDevice('screenshotBase64 end (scrcpy mode)');
+        return result;
+      } catch (error) {
+        debugDevice(
+          `Scrcpy screenshot failed, falling back to standard ADB method.\nError: ${error}`,
+        );
+        // Continue to standard ADB path
+      }
+    }
+
+    // Standard ADB screenshot path
     const adb = await this.getAdb();
     let screenshotBuffer: Buffer | undefined;
     let localScreenshotPath: string | null = null;
-    const androidScreenshotPath = `/data/local/tmp/midscene_screenshot_${uuid()}.png`;
+    const screenshotId = Date.now().toString(36);
+    const androidScreenshotPath = `/data/local/tmp/ms_${screenshotId}.png`;
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
     try {
-      if (useShellScreencap) {
-        // appium-adb's takeScreenshot does not support specifying a display.
-        // Throw an error to jump directly to the shell-based screencap logic.
-        throw new Error(
-          `Display ${this.options?.displayId} requires shell screencap`,
-        );
-      }
-      debugDevice('Taking screenshot via adb.takeScreenshot');
-      screenshotBuffer = await adb.takeScreenshot(null);
-      debugDevice('adb.takeScreenshot completed');
+      // Directly check condition instead of throwing error
+      if (!useShellScreencap) {
+        debugDevice('Taking screenshot via adb.takeScreenshot');
+        screenshotBuffer = await adb.takeScreenshot(null);
+        debugDevice('adb.takeScreenshot completed');
 
-      // make sure screenshotBuffer is not null
-      if (!screenshotBuffer) {
-        throw new Error(
-          'Failed to capture screenshot: screenshotBuffer is null',
-        );
-      }
+        // make sure screenshotBuffer is not null
+        if (!screenshotBuffer) {
+          throw new Error(
+            'Failed to capture screenshot: screenshotBuffer is null',
+          );
+        }
 
-      // check if the buffer is a valid PNG image, it might be a error string
-      if (!isValidPNGImageBuffer(screenshotBuffer)) {
-        debugDevice('Invalid image buffer detected: not a valid image format');
-        throw new Error(
-          'Screenshot buffer has invalid format: could not find valid image signature',
-        );
+        // check if the buffer is a valid PNG image, it might be a error string
+        if (!isValidPNGImageBuffer(screenshotBuffer)) {
+          debugDevice(
+            'Invalid image buffer detected: not a valid image format',
+          );
+          throw new Error(
+            'Screenshot buffer has invalid format: could not find valid image signature',
+          );
+        }
+      } else {
+        // Jump directly to shell screencap logic for displayId
+        throw new Error('Using shell screencap for displayId');
       }
 
       // Additional validation: check buffer size
@@ -991,11 +1079,12 @@ ${Object.keys(size)
           `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
         );
       } finally {
-        try {
-          await adb.shell(`rm ${androidScreenshotPath}`);
-        } catch (error) {
-          debugDevice(`Failed to delete remote screenshot: ${error}`);
-        }
+        // Asynchronously delete remote screenshot (don't block)
+        Promise.resolve()
+          .then(() => adb.shell(`rm ${androidScreenshotPath}`))
+          .catch((error) => {
+            debugDevice(`Failed to delete remote screenshot: ${error}`);
+          });
       }
     }
 
@@ -1479,6 +1568,17 @@ ${Object.keys(size)
 
     this.destroyed = true;
 
+    // Clear cached values
+    this.cachedPhysicalDisplayId = undefined;
+    this.cachedScreenSize = null;
+    this.cachedOrientation = null;
+
+    // Disconnect scrcpy if active
+    if (this.scrcpyAdapter) {
+      await this.scrcpyAdapter.disconnect();
+      this.scrcpyAdapter = null;
+    }
+
     try {
       if (this.adb) {
         this.adb = null;
@@ -1607,7 +1707,13 @@ ${Object.keys(size)
   }
 
   async getPhysicalDisplayId(): Promise<string | null> {
+    // Return cached value if available
+    if (this.cachedPhysicalDisplayId !== undefined) {
+      return this.cachedPhysicalDisplayId;
+    }
+
     if (typeof this.options?.displayId !== 'number') {
+      this.cachedPhysicalDisplayId = null;
       return null;
     }
 
@@ -1624,18 +1730,21 @@ ${Object.keys(size)
       );
       const displayMatch = stdout.match(regex);
       if (displayMatch?.[1]) {
+        this.cachedPhysicalDisplayId = displayMatch[1];
         debugDevice(
-          `Found physical display ID: ${displayMatch[1]} for display ID: ${this.options.displayId}`,
+          `Found and cached physical display ID: ${displayMatch[1]} for display ID: ${this.options.displayId}`,
         );
-        return displayMatch[1];
+        return this.cachedPhysicalDisplayId;
       }
 
+      this.cachedPhysicalDisplayId = null;
       debugDevice(
         `Could not find physical display ID for display ID: ${this.options.displayId}`,
       );
       return null;
     } catch (error) {
       debugDevice(`Error getting physical display ID: ${error}`);
+      this.cachedPhysicalDisplayId = null;
       return null;
     }
   }

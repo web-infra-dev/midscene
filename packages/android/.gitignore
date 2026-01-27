@@ -2,3 +2,7 @@
 # Midscene.js dump files
 midscene_run/report
 midscene_run/tmp
+
+# Binaries (downloaded during build)
+bin/scrcpy-server
+bin/yadb
