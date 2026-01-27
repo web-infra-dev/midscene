@@ -302,8 +302,6 @@ export async function plan(
           locateResult,
           imageWidth,
           imageHeight,
-          rightLimit,
-          bottomLimit,
           modelFamily,
         );
       }

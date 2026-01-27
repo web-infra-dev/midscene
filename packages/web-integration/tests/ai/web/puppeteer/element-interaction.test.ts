@@ -106,7 +106,9 @@ describe(
       const element = await ctx.agent.aiLocate('the "Search" button');
       const { rect } = element;
 
-      const feature = await ctx.agent.interface.cacheFeatureForRect(rect);
+      const feature = await ctx.agent.interface.cacheFeatureForPoint(
+        element.center,
+      );
       expect(feature).toBeTruthy();
 
       const rectFromXpath =

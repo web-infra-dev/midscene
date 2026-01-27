@@ -203,16 +203,16 @@ export class Page<
     );
   }
 
-  async cacheFeatureForRect(
-    rect: Rect,
+  async cacheFeatureForPoint(
+    center: [number, number],
     options?: {
       targetDescription?: string;
       modelConfig?: IModelConfig;
     },
   ): Promise<ElementCacheFeature> {
-    const center: Point = {
-      left: Math.floor(rect.left + rect.width / 2),
-      top: Math.floor(rect.top + rect.height / 2),
+    const point: Point = {
+      left: center[0],
+      top: center[1],
     };
 
     try {
@@ -237,16 +237,16 @@ export class Page<
         }
       }
 
-      const xpaths = await this.getXpathsByPoint(center, isOrderSensitive);
+      const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
       const sanitized = sanitizeXpaths(xpaths);
       if (!sanitized.length) {
-        debugPage('cacheFeatureForRect: no xpath found at rect %o', rect);
+        debugPage('cacheFeatureForPoint: no xpath found at point %o', center);
       }
       return {
         xpaths: sanitized,
       };
     } catch (error) {
-      debugPage('cacheFeatureForRect failed: %s', error);
+      debugPage('cacheFeatureForPoint failed: %s', error);
       return {
         xpaths: [],
       };

@@ -8,7 +8,10 @@ import type {
   UIContext,
 } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
-import { generateElementByPosition } from '@midscene/shared/extractor/dom-util';
+import {
+  generateElementByPoint,
+  generateElementByRect,
+} from '@midscene/shared/extractor/dom-util';
 import {
   cropByRect,
   paddingToMatchBlockByBase64,
@@ -236,38 +239,21 @@ export async function AiLocateElement(options: {
 
       debugInspect('auto-glm pixel coordinates:', { pixelX, pixelY });
 
-      // Create a small bbox around the point
-      const bboxSize = 10;
-      const x1 = Math.max(pixelX - bboxSize / 2, 0);
-      const y1 = Math.max(pixelY - bboxSize / 2, 0);
-      const x2 = Math.min(pixelX + bboxSize / 2, imageWidth);
-      const y2 = Math.min(pixelY + bboxSize / 2, imageHeight);
-
-      // Convert to Rect format
-      resRect = {
-        left: x1,
-        top: y1,
-        width: x2 - x1,
-        height: y2 - y1,
-      };
-
       // Apply offset if searching in a cropped area
+      let finalX = pixelX;
+      let finalY = pixelY;
       if (options.searchConfig?.rect) {
-        resRect.left += options.searchConfig.rect.left;
-        resRect.top += options.searchConfig.rect.top;
+        finalX += options.searchConfig.rect.left;
+        finalY += options.searchConfig.rect.top;
       }
 
-      debugInspect('auto-glm resRect:', resRect);
-
-      const rectCenter = {
-        x: resRect.left + resRect.width / 2,
-        y: resRect.top + resRect.height / 2,
-      };
-
-      const element: LocateResultElement = generateElementByPosition(
-        rectCenter,
+      const element: LocateResultElement = generateElementByPoint(
+        [finalX, finalY],
         targetElementDescriptionText as string,
       );
+
+      resRect = element.rect;
+      debugInspect('auto-glm resRect:', resRect);
 
       if (element) {
         matchedElements = [element];
@@ -336,13 +322,8 @@ export async function AiLocateElement(options: {
 
       debugInspect('resRect', resRect);
 
-      const rectCenter = {
-        x: resRect.left + resRect.width / 2,
-        y: resRect.top + resRect.height / 2,
-      };
-
-      const element: LocateResultElement = generateElementByPosition(
-        rectCenter,
+      const element: LocateResultElement = generateElementByRect(
+        resRect,
         targetElementDescriptionText as string,
       );
       errors = [];
