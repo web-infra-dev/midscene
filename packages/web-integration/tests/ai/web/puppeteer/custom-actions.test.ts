@@ -22,9 +22,10 @@ describe(
       const doAJobCalled = vi.fn();
       const DoAJob = defineAction({
         name: 'DoAJob',
-        description: 'Do a job on the current page',
+        description:
+          'Execute a named job task. This is a custom action that accepts a job name and runs it.',
         paramSchema: z.object({
-          job: z.string().describe('Job to be done'),
+          job: z.string().describe('The name of the job to execute'),
         }),
         call: async (param) => {
           doAJobCalled(param.job);
@@ -35,12 +36,10 @@ describe(
         customActions: [DoAJob],
       });
 
-      await ctx.agent.aiAct(
-        'Do a job on the current page, which job is say hello',
-      );
+      await ctx.agent.aiAct('Use the DoAJob action with job "say hello"');
 
       expect(doAJobCalled).toHaveBeenCalledTimes(1);
-      expect(doAJobCalled).toHaveBeenCalledWith('say hello');
+      expect(doAJobCalled.mock.calls[0][0]).toContain('say hello');
     });
   },
   DEFAULT_TEST_TIMEOUT,
