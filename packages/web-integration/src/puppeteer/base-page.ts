@@ -335,6 +335,10 @@ export class Page<
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
+      // Bring tab to front to ensure it's actively rendering frames.
+      // Inactive tabs in Chrome don't produce frames, causing screenshot to hang.
+      // See: https://github.com/puppeteer/puppeteer/issues/12712
+      await (this.underlyingPage as PuppeteerPage).bringToFront();
       const result = await (this.underlyingPage as PuppeteerPage).screenshot({
         type: imgType,
         quality,
