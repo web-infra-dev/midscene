@@ -19,8 +19,11 @@ import {
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import { extractXMLTag } from './prompt/util';
-import { callAI } from './service-caller/index';
-import { safeParseJson } from './service-caller/index';
+import {
+  AIResponseParseError,
+  callAI,
+  safeParseJson,
+} from './service-caller/index';
 
 const debug = getDebug('planning');
 
@@ -205,18 +208,14 @@ export async function plan(
   try {
     planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
   } catch (parseError) {
-    // Return error with usage and rawResponse recorded
+    // Throw AIResponseParseError with usage and rawResponse preserved
     const errorMessage =
       parseError instanceof Error ? parseError.message : String(parseError);
-    return {
-      actions: [],
-      error: `XML parse error: ${errorMessage}`,
-      log: '',
+    throw new AIResponseParseError(
+      `XML parse error: ${errorMessage}`,
       rawResponse,
       usage,
-      reasoning_content,
-      shouldContinuePlanning: false,
-    };
+    );
   }
 
   if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {

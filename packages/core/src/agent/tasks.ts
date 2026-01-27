@@ -1,4 +1,5 @@
 import {
+  AIResponseParseError,
   ConversationHistory,
   autoGLMPlanning,
   plan,
@@ -340,17 +341,30 @@ export class TaskExecutor {
                 ? autoGLMPlanning
                 : plan;
 
-            const planResult = await planImpl(param.userInstruction, {
-              context: uiContext,
-              actionContext: param.aiActContext,
-              interfaceType: this.interface.interfaceType as InterfaceType,
-              actionSpace,
-              modelConfig: modelConfigForPlanning,
-              conversationHistory: this.conversationHistory,
-              includeBbox: includeBboxInPlanning,
-              imagesIncludeCount,
-              deepThink,
-            });
+            let planResult: Awaited<ReturnType<typeof planImpl>>;
+            try {
+              planResult = await planImpl(param.userInstruction, {
+                context: uiContext,
+                actionContext: param.aiActContext,
+                interfaceType: this.interface.interfaceType as InterfaceType,
+                actionSpace,
+                modelConfig: modelConfigForPlanning,
+                conversationHistory: this.conversationHistory,
+                includeBbox: includeBboxInPlanning,
+                imagesIncludeCount,
+                deepThink,
+              });
+            } catch (planError) {
+              if (planError instanceof AIResponseParseError) {
+                // Record usage and rawResponse even when parsing fails
+                executorContext.task.usage = planError.usage;
+                executorContext.task.log = {
+                  ...(executorContext.task.log || {}),
+                  rawResponse: planError.rawResponse,
+                };
+              }
+              throw planError;
+            }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
             const {

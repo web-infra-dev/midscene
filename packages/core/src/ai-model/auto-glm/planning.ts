@@ -3,7 +3,10 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { ConversationHistory } from '../conversation-history';
-import { callAIWithStringResponse } from '../service-caller/index';
+import {
+  AIResponseParseError,
+  callAIWithStringResponse,
+} from '../service-caller/index';
 import { transformAutoGLMAction } from './actions';
 import { parseAction, parseAutoGLMResponse } from './parser';
 import { getAutoGLMPlanPrompt } from './prompt';
@@ -63,17 +66,14 @@ export async function autoGLMPlanning(
     transformedActions = transformAutoGLMAction(parsedAction, context.size);
     debug('Transformed actions:', transformedActions);
   } catch (parseError) {
-    // Return error with usage and rawResponse recorded
+    // Throw AIResponseParseError with usage and rawResponse preserved
     const errorMessage =
       parseError instanceof Error ? parseError.message : String(parseError);
-    return {
-      actions: [],
-      error: `Parse error: ${errorMessage}`,
-      log: rawResponse,
+    throw new AIResponseParseError(
+      `Parse error: ${errorMessage}`,
+      JSON.stringify(rawResponse, undefined, 2),
       usage,
-      shouldContinuePlanning: false,
-      rawResponse: JSON.stringify(rawResponse, undefined, 2),
-    };
+    );
   }
 
   conversationHistory.append({

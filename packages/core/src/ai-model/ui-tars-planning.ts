@@ -11,7 +11,10 @@ import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
 import type { ConversationHistory } from './conversation-history';
 import { getSummary, getUiTarsPlanningPrompt } from './prompt/ui-tars-planning';
-import { callAIWithStringResponse } from './service-caller/index';
+import {
+  AIResponseParseError,
+  callAIWithStringResponse,
+} from './service-caller/index';
 
 type ActionType =
   | 'click'
@@ -101,17 +104,14 @@ export async function uiTarsPlanning(
     });
     parsed = parseResult.parsed;
   } catch (parseError) {
-    // Return error with usage and rawResponse recorded
+    // Throw AIResponseParseError with usage and rawResponse preserved
     const errorMessage =
       parseError instanceof Error ? parseError.message : String(parseError);
-    return {
-      actions: [],
-      error: `Parse error: ${errorMessage}`,
-      log: '',
-      rawResponse: JSON.stringify(res.content, undefined, 2),
-      usage: res.usage,
-      shouldContinuePlanning: false,
-    };
+    throw new AIResponseParseError(
+      `Parse error: ${errorMessage}`,
+      JSON.stringify(res.content, undefined, 2),
+      res.usage,
+    );
   }
 
   const { size } = context;
@@ -302,15 +302,12 @@ export async function uiTarsPlanning(
       ...errorDetails,
     ].join('\n');
 
-    // Return error with usage and rawResponse recorded instead of throwing
-    return {
-      actions: [],
-      error: errorMessage,
-      log: '',
-      rawResponse: JSON.stringify(res.content, undefined, 2),
-      usage: res.usage,
-      shouldContinuePlanning: false,
-    };
+    // Throw AIResponseParseError with usage and rawResponse preserved
+    throw new AIResponseParseError(
+      errorMessage,
+      JSON.stringify(res.content, undefined, 2),
+      res.usage,
+    );
   }
 
   debug('transformActions', JSON.stringify(transformActions, null, 2));
