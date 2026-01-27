@@ -231,68 +231,14 @@ exports[`system prompts > planning - android 1`] = `
 "
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
-## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
+## Step 1: Observe (related tags: <thought>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs to understand the current state.
 
 * <thought> tag
 
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-* <update-plan-content> tag
-
-Use this structure to give or update your plan:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished|pending">sub goal description</sub-goal>
-  <sub-goal index="2" status="finished|pending">sub goal description</sub-goal>
-  ...
-</update-plan-content>
-
-* <mark-sub-goal-done> tag
-
-Use this structure to mark a sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
-
-* Note
-
-During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
-
-### Example
-
-If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
-
-<thought>...</thought>  
-<update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-  <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
-</update-plan-content>
-
-After logging in and seeing the to-do items, you can mark the sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-At this point, the status of all sub-goals is:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished" />
-  <sub-goal index="2" status="pending" />
-  <sub-goal index="3" status="pending" />
-</update-plan-content>
-
-After some time, when the last sub-goal is also completed, you can mark it as done as well:
-
-<mark-sub-goal-done>
-  <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
 
@@ -302,7 +248,7 @@ Don't use this tag if no information needs to be preserved.
 
 ## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Based on the current screenshot, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
@@ -312,7 +258,7 @@ Based on the current screenshot and the status of all sub-goals, determine if th
 
 ## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
-ONLY if the task is not complete: Think what the next action is according to the current screenshot and the plan.
+ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
 - Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
@@ -395,16 +341,8 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include:**
-<!-- Step 1: Observe and Plan -->
+<!-- Step 1: Observe -->
 <thought>...</thought>
-
-<!-- required when no update-plan-content is provided in the previous response -->
-<update-plan-content>...</update-plan-content>
-
-<!-- required when any sub-goal is completed -->
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -429,68 +367,14 @@ exports[`system prompts > planning - cot 1`] = `
 "
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
-## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
+## Step 1: Observe (related tags: <thought>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs to understand the current state.
 
 * <thought> tag
 
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-* <update-plan-content> tag
-
-Use this structure to give or update your plan:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished|pending">sub goal description</sub-goal>
-  <sub-goal index="2" status="finished|pending">sub goal description</sub-goal>
-  ...
-</update-plan-content>
-
-* <mark-sub-goal-done> tag
-
-Use this structure to mark a sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
-
-* Note
-
-During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
-
-### Example
-
-If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
-
-<thought>...</thought>  
-<update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-  <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
-</update-plan-content>
-
-After logging in and seeing the to-do items, you can mark the sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-At this point, the status of all sub-goals is:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished" />
-  <sub-goal index="2" status="pending" />
-  <sub-goal index="3" status="pending" />
-</update-plan-content>
-
-After some time, when the last sub-goal is also completed, you can mark it as done as well:
-
-<mark-sub-goal-done>
-  <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
 
@@ -500,7 +384,7 @@ Don't use this tag if no information needs to be preserved.
 
 ## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Based on the current screenshot, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
@@ -510,7 +394,7 @@ Based on the current screenshot and the status of all sub-goals, determine if th
 
 ## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
-ONLY if the task is not complete: Think what the next action is according to the current screenshot and the plan.
+ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
 - Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
@@ -592,16 +476,8 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include:**
-<!-- Step 1: Observe and Plan -->
+<!-- Step 1: Observe -->
 <thought>...</thought>
-
-<!-- required when no update-plan-content is provided in the previous response -->
-<update-plan-content>...</update-plan-content>
-
-<!-- required when any sub-goal is completed -->
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -626,68 +502,14 @@ exports[`system prompts > planning - gemini 1`] = `
 "
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
-## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
+## Step 1: Observe (related tags: <thought>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs to understand the current state.
 
 * <thought> tag
 
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-* <update-plan-content> tag
-
-Use this structure to give or update your plan:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished|pending">sub goal description</sub-goal>
-  <sub-goal index="2" status="finished|pending">sub goal description</sub-goal>
-  ...
-</update-plan-content>
-
-* <mark-sub-goal-done> tag
-
-Use this structure to mark a sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
-
-* Note
-
-During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
-
-### Example
-
-If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
-
-<thought>...</thought>  
-<update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-  <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
-</update-plan-content>
-
-After logging in and seeing the to-do items, you can mark the sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-At this point, the status of all sub-goals is:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished" />
-  <sub-goal index="2" status="pending" />
-  <sub-goal index="3" status="pending" />
-</update-plan-content>
-
-After some time, when the last sub-goal is also completed, you can mark it as done as well:
-
-<mark-sub-goal-done>
-  <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
 
@@ -697,7 +519,7 @@ Don't use this tag if no information needs to be preserved.
 
 ## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Based on the current screenshot, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
@@ -707,7 +529,7 @@ Based on the current screenshot and the status of all sub-goals, determine if th
 
 ## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
-ONLY if the task is not complete: Think what the next action is according to the current screenshot and the plan.
+ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
 - Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
@@ -790,16 +612,8 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include:**
-<!-- Step 1: Observe and Plan -->
+<!-- Step 1: Observe -->
 <thought>...</thought>
-
-<!-- required when no update-plan-content is provided in the previous response -->
-<update-plan-content>...</update-plan-content>
-
-<!-- required when any sub-goal is completed -->
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -824,68 +638,14 @@ exports[`system prompts > planning - qwen - cot 1`] = `
 "
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
-## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
+## Step 1: Observe (related tags: <thought>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs to understand the current state.
 
 * <thought> tag
 
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-* <update-plan-content> tag
-
-Use this structure to give or update your plan:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished|pending">sub goal description</sub-goal>
-  <sub-goal index="2" status="finished|pending">sub goal description</sub-goal>
-  ...
-</update-plan-content>
-
-* <mark-sub-goal-done> tag
-
-Use this structure to mark a sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
-
-* Note
-
-During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
-
-### Example
-
-If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
-
-<thought>...</thought>  
-<update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-  <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
-</update-plan-content>
-
-After logging in and seeing the to-do items, you can mark the sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-At this point, the status of all sub-goals is:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished" />
-  <sub-goal index="2" status="pending" />
-  <sub-goal index="3" status="pending" />
-</update-plan-content>
-
-After some time, when the last sub-goal is also completed, you can mark it as done as well:
-
-<mark-sub-goal-done>
-  <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
 
@@ -895,7 +655,7 @@ Don't use this tag if no information needs to be preserved.
 
 ## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Based on the current screenshot, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
@@ -905,7 +665,7 @@ Based on the current screenshot and the status of all sub-goals, determine if th
 
 ## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
-ONLY if the task is not complete: Think what the next action is according to the current screenshot and the plan.
+ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
 - Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
@@ -988,16 +748,8 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include:**
-<!-- Step 1: Observe and Plan -->
+<!-- Step 1: Observe -->
 <thought>...</thought>
-
-<!-- required when no update-plan-content is provided in the previous response -->
-<update-plan-content>...</update-plan-content>
-
-<!-- required when any sub-goal is completed -->
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -1022,68 +774,14 @@ exports[`system prompts > planning - qwen - cot without bbox 1`] = `
 "
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
 
-## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
+## Step 1: Observe (related tags: <thought>)
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+First, observe the current screenshot and previous logs to understand the current state.
 
 * <thought> tag
 
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-* <update-plan-content> tag
-
-Use this structure to give or update your plan:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished|pending">sub goal description</sub-goal>
-  <sub-goal index="2" status="finished|pending">sub goal description</sub-goal>
-  ...
-</update-plan-content>
-
-* <mark-sub-goal-done> tag
-
-Use this structure to mark a sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-IMPORTANT: You MUST only mark a sub-goal as "finished" AFTER you have confirmed the task is actually completed by observing the result in the screenshot. Do NOT mark a sub-goal as done just because you expect the next action will complete it. Wait until you see visual confirmation in the screenshot that the sub-goal has been achieved.
-
-* Note
-
-During execution, you can call <update-plan-content> at any time to update the plan based on the latest screenshot and completed sub-goals.
-
-### Example
-
-If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
-
-<thought>...</thought>  
-<update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-  <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
-</update-plan-content>
-
-After logging in and seeing the to-do items, you can mark the sub-goal as done:
-
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-
-At this point, the status of all sub-goals is:
-
-<update-plan-content>
-  <sub-goal index="1" status="finished" />
-  <sub-goal index="2" status="pending" />
-  <sub-goal index="3" status="pending" />
-</update-plan-content>
-
-After some time, when the last sub-goal is also completed, you can mark it as done as well:
-
-<mark-sub-goal-done>
-  <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
 
@@ -1093,7 +791,7 @@ Don't use this tag if no information needs to be preserved.
 
 ## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Based on the current screenshot, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
@@ -1103,7 +801,7 @@ Based on the current screenshot and the status of all sub-goals, determine if th
 
 ## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
-ONLY if the task is not complete: Think what the next action is according to the current screenshot and the plan.
+ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
 - Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
@@ -1185,16 +883,8 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include:**
-<!-- Step 1: Observe and Plan -->
+<!-- Step 1: Observe -->
 <thought>...</thought>
-
-<!-- required when no update-plan-content is provided in the previous response -->
-<update-plan-content>...</update-plan-content>
-
-<!-- required when any sub-goal is completed -->
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>

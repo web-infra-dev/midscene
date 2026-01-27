@@ -150,11 +150,13 @@ export async function systemPromptToTaskPlanning({
   modelFamily,
   includeBbox,
   includeThought,
+  includeSubGoals,
 }: {
   actionSpace: DeviceAction<any>[];
   modelFamily: TModelFamily | undefined;
   includeBbox: boolean;
   includeThought?: boolean;
+  includeSubGoals?: boolean;
 }) {
   const preferredLanguage = getPreferredLanguage();
 
@@ -174,6 +176,7 @@ export async function systemPromptToTaskPlanning({
   const actionList = actionDescriptionList.join('\n');
 
   const shouldIncludeThought = includeThought ?? true;
+  const shouldIncludeSubGoals = includeSubGoals ?? false;
 
   // Generate locate object examples based on includeBbox
   const locateExample1 = includeBbox
@@ -206,16 +209,21 @@ export async function systemPromptToTaskPlanning({
   const thoughtTag = (content: string) =>
     shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
 
-  return `
-Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
+  // Sub-goals related content - only included when shouldIncludeSubGoals is true
+  const step1Title = shouldIncludeSubGoals
+    ? '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)'
+    : '## Step 1: Observe (related tags: <thought>)';
 
-## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)
+  const step1Description = shouldIncludeSubGoals
+    ? 'First, observe the current screenshot and previous logs, then break down the user\'s instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.'
+    : 'First, observe the current screenshot and previous logs to understand the current state.';
 
-First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.
+  const thoughtTagDescription = shouldIncludeSubGoals
+    ? 'Include your thought process in the <thought> tag. It should answer: What is the user\'s requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.'
+    : 'Include your thought process in the <thought> tag. It should answer: What is the user\'s requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.';
 
-* <thought> tag
-
-Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+  const subGoalTags = shouldIncludeSubGoals
+    ? `
 
 * <update-plan-content> tag
 
@@ -245,7 +253,7 @@ During execution, you can call <update-plan-content> at any time to update the p
 
 If the user wants to "log in to a system using username and password, complete all to-do items, and submit a registration form", you can break it down into the following sub-goals:
 
-<thought>...</thought>  
+<thought>...</thought>
 <update-plan-content>
   <sub-goal index="1" status="pending">Log in to the system</sub-goal>
   <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
@@ -270,27 +278,45 @@ After some time, when the last sub-goal is also completed, you can mark it as do
 
 <mark-sub-goal-done>
   <sub-goal index="3" status="finished" />
-</mark-sub-goal-done>
+</mark-sub-goal-done>`
+    : '';
 
-## Step 2: Note Data from Current Screenshot (related tags: <note>)
+  // Step numbering adjusts based on whether sub-goals are included
+  const noteStepNumber = shouldIncludeSubGoals ? 2 : 2;
+  const checkGoalStepNumber = shouldIncludeSubGoals ? 3 : 3;
+  const actionStepNumber = shouldIncludeSubGoals ? 4 : 4;
+
+  return `
+Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
+
+${step1Title}
+
+${step1Description}
+
+* <thought> tag
+
+${thoughtTagDescription}
+${subGoalTags}
+
+## Step ${noteStepNumber}: Note Data from Current Screenshot (related tags: <note>)
 
 While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
 
 Don't use this tag if no information needs to be preserved.
 
-## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
+## Step ${checkGoalStepNumber}: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot and the status of all sub-goals, determine if the entire task is completed.
+Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all sub-goals' : ''}, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
-- If the task is NOT complete, skip this section and continue to Step 4.
+- If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 
-## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
-ONLY if the task is not complete: Think what the next action is according to the current screenshot and the plan.
+ONLY if the task is not complete: Think what the next action is according to the current screenshot${shouldIncludeSubGoals ? ' and the plan' : ''}.
 
 - Don't give extra actions or plans beyond the instruction or the plan. For example, don't try to submit the form if the instruction is only to fill something.
 - Consider the current screenshot and give the action that is most likely to accomplish the instruction. For example, if the next step is to click a button but it's not visible in the screenshot, you should try to find it first instead of give a click action.
@@ -347,9 +373,9 @@ For example:
 Return in XML format following this decision flow:
 
 **Always include:**
-<!-- Step 1: Observe and Plan -->
+<!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
 <thought>...</thought>
-
+${shouldIncludeSubGoals ? `
 <!-- required when no update-plan-content is provided in the previous response -->
 <update-plan-content>...</update-plan-content>
 
@@ -357,16 +383,16 @@ Return in XML format following this decision flow:
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
 </mark-sub-goal-done>
-
-<!-- Step 2: Note data from current screenshot if needed -->
+` : ''}
+<!-- Step ${noteStepNumber}: Note data from current screenshot if needed -->
 <note>...</note>
 
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step 3)**
+**Path A: If the goal is accomplished or failed (Step ${checkGoalStepNumber})**
 <complete-goal success="true|false">...</complete-goal>
 
-**Path B: If the goal is NOT complete yet (Step 4)**
+**Path B: If the goal is NOT complete yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
