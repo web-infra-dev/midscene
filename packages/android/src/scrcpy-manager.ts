@@ -187,6 +187,7 @@ export class ScrcpyScreenshotManager {
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
         sendFrameMeta: false,
+        videoCodecOptions: 'i-frame-interval=1',
       });
 
       this.scrcpyClient = await AdbScrcpyClient.start(
