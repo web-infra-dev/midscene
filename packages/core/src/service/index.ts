@@ -1,8 +1,10 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
+  type AiBatchLocateElementResult,
   AIResponseParseError,
   AiExtractElementInfo,
   AiLocateElement,
+  AiLocateElements,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
@@ -35,6 +37,17 @@ import { createServiceDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
+}
+
+export interface BatchLocateResultItem {
+  id: string;
+  element: {
+    center: [number, number];
+    rect: Rect;
+    description?: string;
+  } | null;
+  rect?: Rect;
+  error?: string;
 }
 
 export type AnyValue<T> = {
@@ -210,6 +223,75 @@ export default class Service {
       element: null,
       rect,
       dump,
+    };
+  }
+
+  async locateMultiple(
+    queries: Array<{ id: string; query: DetailedLocateParam }>,
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<{
+    results: BatchLocateResultItem[];
+    dump?: any;
+    usage?: AIUsageInfo;
+  }> {
+    assert(queries.length > 0, 'queries must have at least one element');
+
+    // If only one query, use the single locate method
+    if (queries.length === 1) {
+      const singleQuery = queries[0]!;
+      const result = await this.locate(singleQuery.query, opt, modelConfig);
+      return {
+        results: [
+          {
+            id: singleQuery.id,
+            element: result.element,
+            rect: result.rect,
+          },
+        ],
+        dump: result.dump,
+      };
+    }
+
+    const context = opt?.context || (await this.contextRetrieverFn());
+
+    // Build target descriptions
+    const targetDescriptions = queries.map((q) => {
+      const queryPrompt =
+        typeof q.query === 'string' ? q.query : q.query.prompt;
+      return {
+        id: q.id,
+        description: queryPrompt,
+      };
+    });
+
+    const startTime = Date.now();
+    const { results: aiResults, rawResponse, usage } = await AiLocateElements({
+      context,
+      targetDescriptions,
+      callAIFn: this.aiVendorFn,
+      modelConfig,
+    });
+
+    const timeCost = Date.now() - startTime;
+
+    // Transform results
+    const results: BatchLocateResultItem[] = aiResults.map((r) => ({
+      id: r.id,
+      element: r.element
+        ? {
+            center: r.element.center,
+            rect: r.element.rect,
+            description: r.element.description,
+          }
+        : null,
+      rect: r.rect,
+      error: r.error,
+    }));
+
+    return {
+      results,
+      usage,
     };
   }
 

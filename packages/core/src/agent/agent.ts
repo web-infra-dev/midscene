@@ -1132,24 +1132,112 @@ export class Agent<
     return verifyResult;
   }
 
-  async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const locateParam = buildDetailedLocateParam(prompt, opt);
-    assert(locateParam, 'cannot get locate param for aiLocate');
-    const locatePlan = locatePlanForLocate(locateParam);
-    const plans = [locatePlan];
+  // Single prompt overload
+  async aiLocate(
+    prompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<
+    Pick<LocateResultElement, 'rect' | 'center'> & {
+      dpr?: number;
+    }
+  >;
+
+  // Array prompts overload
+  async aiLocate(
+    prompts: TUserPrompt[],
+    opt?: LocateOption,
+  ): Promise<
+    Array<
+      Pick<LocateResultElement, 'rect' | 'center'> & {
+        dpr?: number;
+        error?: string;
+      }
+    >
+  >;
+
+  // Implementation
+  async aiLocate(
+    promptOrPrompts: TUserPrompt | TUserPrompt[],
+    opt?: LocateOption,
+  ): Promise<
+    | (Pick<LocateResultElement, 'rect' | 'center'> & { dpr?: number })
+    | Array<
+        Pick<LocateResultElement, 'rect' | 'center'> & {
+          dpr?: number;
+          error?: string;
+        }
+      >
+  > {
+    const isArrayInput = Array.isArray(promptOrPrompts);
+
+    // Handle single prompt case
+    if (!isArrayInput) {
+      const prompt = promptOrPrompts as TUserPrompt;
+      const locateParam = buildDetailedLocateParam(prompt, opt);
+      if (!locateParam) {
+        throw new Error('cannot get locate param for aiLocate');
+      }
+      const locatePlan = locatePlanForLocate(locateParam);
+      const plans = [locatePlan];
+      const defaultIntentModelConfig =
+        this.modelConfigManager.getModelConfig('default');
+      const modelConfigForPlanning =
+        this.modelConfigManager.getModelConfig('planning');
+
+      const { output } = await this.taskExecutor.runPlans(
+        taskTitleStr('Locate', locateParamStr(locateParam)),
+        plans,
+        modelConfigForPlanning,
+        defaultIntentModelConfig,
+      );
+
+      const { element } = output;
+
+      const dprValue = await (this.interface.size() as any).dpr;
+      const dprEntry = dprValue
+        ? {
+            dpr: dprValue,
+          }
+        : {};
+      return {
+        rect: element?.rect,
+        center: element?.center,
+        ...dprEntry,
+      } as Pick<LocateResultElement, 'rect' | 'center'> & {
+        dpr?: number;
+      };
+    }
+
+    // Handle array prompts case - use batch locate
+    const prompts = promptOrPrompts as TUserPrompt[];
+    assert(prompts.length > 0, 'prompts array must have at least one element');
+
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
-    const modelConfigForPlanning =
-      this.modelConfigManager.getModelConfig('planning');
 
-    const { output } = await this.taskExecutor.runPlans(
-      taskTitleStr('Locate', locateParamStr(locateParam)),
-      plans,
-      modelConfigForPlanning,
+    // Build queries for batch locate
+    const queries: Array<{ id: string; query: DetailedLocateParam }> = [];
+    for (let index = 0; index < prompts.length; index++) {
+      const prompt = prompts[index]!;
+      const locateParam = buildDetailedLocateParam(prompt, opt);
+      if (!locateParam) {
+        throw new Error(`cannot get locate param for aiLocate at index ${index}`);
+      }
+      queries.push({
+        id: String(index),
+        query: locateParam,
+      });
+    }
+
+    // Get UI context once for all queries
+    const uiContext = await this.taskExecutor.service.contextRetrieverFn();
+
+    // Use service's batch locate method
+    const { results } = await this.taskExecutor.service.locateMultiple(
+      queries,
+      { context: uiContext },
       defaultIntentModelConfig,
     );
-
-    const { element } = output;
 
     const dprValue = await (this.interface.size() as any).dpr;
     const dprEntry = dprValue
@@ -1157,13 +1245,19 @@ export class Agent<
           dpr: dprValue,
         }
       : {};
-    return {
-      rect: element?.rect,
-      center: element?.center,
+
+    // Return results in the same order as input prompts
+    return results.map((r) => ({
+      rect: r.element?.rect,
+      center: r.element?.center,
+      error: r.error,
       ...dprEntry,
-    } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr?: number; // this field is deprecated
-    };
+    })) as Array<
+      Pick<LocateResultElement, 'rect' | 'center'> & {
+        dpr?: number;
+        error?: string;
+      }
+    >;
   }
 
   async aiAssert(
