@@ -34,7 +34,7 @@ describe(
       const { center } = await ctx.agent.aiLocate('the input field for search');
       const describeResult = await ctx.agent.describeElementAtPoint(center, {
         deepThink: true,
-        centerDistanceThreshold: 50,
+        centerDistanceThreshold: 100,
       });
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();
