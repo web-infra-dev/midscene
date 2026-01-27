@@ -41,8 +41,10 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
-import type { ScrcpyScreenshotManager } from './scrcpy-manager';
-import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
+import {
+  type DevicePhysicalInfo,
+  ScrcpyDeviceAdapter,
+} from './scrcpy-device-adapter';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -79,7 +81,7 @@ export class AndroidDevice implements AbstractInterface {
   } | null = null;
   private cachedOrientation: number | null = null;
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
-  private scrcpyManager: ScrcpyScreenshotManager | null = null;
+  private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
@@ -425,128 +427,37 @@ ${Object.keys(size)
   }
 
   /**
-   * Normalize scrcpy configuration with defaults and environment variable support
+   * Get or create the scrcpy adapter (lazy initialization)
    */
-  private async normalizeScrcpyConfig(): Promise<{
-    enabled: boolean;
-    maxSize: number;
-    videoBitRate: number;
-    idleTimeoutMs: number;
-  }> {
-    const config = this.options?.scrcpyConfig;
-
-    // Environment variable can explicitly disable scrcpy
-    const envDisabled = process.env.MIDSCENE_SCRCPY_ENABLED === 'false';
-
-    // Check if scrcpy is enabled first
-    const enabled = envDisabled
-      ? false
-      : (config?.enabled ?? DEFAULT_SCRCPY_CONFIG.enabled);
-
-    // If scrcpy is disabled, return early with defaults (no need to calculate maxSize)
-    if (!enabled) {
-      return {
-        enabled: false,
-        maxSize: config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize,
-        idleTimeoutMs:
-          config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
-        videoBitRate:
-          config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
-      };
+  private getScrcpyAdapter(): ScrcpyDeviceAdapter {
+    if (!this.scrcpyAdapter) {
+      this.scrcpyAdapter = new ScrcpyDeviceAdapter(
+        this.deviceId,
+        this.options?.scrcpyConfig,
+        this.options?.screenshotResizeScale,
+      );
     }
-
-    // Calculate maxSize based on screenshotResizeScale if not explicitly set
-    let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
-
-    // Auto-calculate maxSize to match size() method's behavior
-    // This ensures screenshot resolution matches the logical size used for AI processing
-    if (config?.maxSize === undefined) {
-      try {
-        // Ensure device pixel ratio is initialized
-        await this.initializeDevicePixelRatio();
-
-        // Get device physical resolution
-        const adb = await this.getAdb();
-        const output = await adb.shell('wm size');
-        const match = output.match(/Physical size: (\d{1,5})x(\d{1,5})/);
-        if (match) {
-          const width = Number.parseInt(match[1], 10);
-          const height = Number.parseInt(match[2], 10);
-          const physicalMax = Math.max(width, height);
-
-          // Use screenshotResizeScale if provided, otherwise use 1/dpr
-          // This matches the behavior of size() method
-          const scale =
-            this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
-
-          // Calculate target resolution
-          const targetMax = Math.round(physicalMax * scale);
-          maxSize = targetMax;
-
-          debugDevice(
-            `Auto-calculated scrcpy maxSize: ${maxSize} (physical=${physicalMax}, scale=${scale.toFixed(3)}, ${this.options?.screenshotResizeScale !== undefined ? 'from screenshotResizeScale' : 'from 1/dpr'})`,
-          );
-        }
-      } catch (error) {
-        debugDevice(
-          `Failed to auto-calculate scrcpy maxSize, using default: ${error}`,
-        );
-      }
-    }
-
-    return {
-      enabled: true,
-      maxSize,
-      idleTimeoutMs:
-        config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
-      videoBitRate: config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
-    };
+    return this.scrcpyAdapter;
   }
 
   /**
-   * Get or create Scrcpy manager for high-performance screenshots
-   * Creates a @yume-chan/adb connection (separate from appium-adb)
+   * Get device physical info needed by scrcpy adapter
    */
-  private async getScrcpyManager(): Promise<ScrcpyScreenshotManager> {
-    if (this.scrcpyManager) {
-      return this.scrcpyManager;
+  private async getDevicePhysicalInfo(): Promise<DevicePhysicalInfo> {
+    await this.initializeDevicePixelRatio();
+    const screenSize = await this.getScreenSize();
+    const sizeStr = screenSize.override || screenSize.physical;
+    const match = sizeStr.match(/(\d+)x(\d+)/);
+    if (!match) {
+      throw new Error(`Unable to parse screen size: ${sizeStr}`);
     }
-
-    debugDevice('Initializing Scrcpy manager...');
-
-    try {
-      const { Adb, AdbServerClient } = await import('@yume-chan/adb');
-      const { AdbServerNodeTcpConnector } = await import(
-        '@yume-chan/adb-server-node-tcp'
-      );
-      const { ScrcpyScreenshotManager: ScrcpyManager } = await import(
-        './scrcpy-manager'
-      );
-
-      const adbClient = new AdbServerClient(
-        new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 }),
-      );
-
-      const adb = new Adb(
-        await adbClient.createTransport({ serial: this.deviceId }),
-      );
-
-      const scrcpyConfig = await this.normalizeScrcpyConfig();
-      this.scrcpyManager = new ScrcpyManager(adb, {
-        maxSize: scrcpyConfig.maxSize,
-        videoBitRate: scrcpyConfig.videoBitRate,
-        idleTimeoutMs: scrcpyConfig.idleTimeoutMs,
-      });
-
-      debugDevice('Scrcpy manager initialized');
-      return this.scrcpyManager;
-    } catch (error) {
-      debugDevice(`Failed to initialize Scrcpy manager: ${error}`);
-      throw new Error(
-        `Failed to initialize Scrcpy for device ${this.deviceId}. ` +
-          `Ensure ADB server is running and device is connected. Error: ${error}`,
-      );
-    }
+    return {
+      physicalWidth: Number.parseInt(match[1], 10),
+      physicalHeight: Number.parseInt(match[2], 10),
+      dpr: this.devicePixelRatio,
+      orientation: screenSize.orientation,
+      isCurrentOrientation: screenSize.isCurrentOrientation,
+    };
   }
 
   /**
@@ -902,72 +813,44 @@ ${Object.keys(size)
   }
 
   async size(): Promise<Size> {
+    const deviceInfo = await this.getDevicePhysicalInfo();
+
     // If scrcpy is enabled and connected, return its actual resolution
     // This ensures size() matches the screenshot resolution exactly, avoiding Agent-layer resize
-    const scrcpyConfig = await this.normalizeScrcpyConfig();
-    if (scrcpyConfig.enabled && this.scrcpyManager) {
-      const scrcpyResolution = this.scrcpyManager.getResolution();
-      if (scrcpyResolution) {
-        debugDevice(
-          `Using scrcpy resolution: ${scrcpyResolution.width}x${scrcpyResolution.height}`,
-        );
-
-        // Calculate scaling ratio based on physical size
-        await this.initializeDevicePixelRatio();
-        const screenSize = await this.getScreenSize();
-        const match = (screenSize.override || screenSize.physical).match(
-          /(\d+)x(\d+)/,
-        );
-        if (match) {
-          const isLandscape =
-            screenSize.orientation === 1 || screenSize.orientation === 3;
-          const shouldSwap =
-            screenSize.isCurrentOrientation !== true && isLandscape;
-          const physicalWidth = Number.parseInt(match[shouldSwap ? 2 : 1], 10);
-
-          // Calculate scaling ratio from physical to scrcpy resolution
-          this.scalingRatio = scrcpyResolution.width / physicalWidth;
-        }
-
-        return {
-          width: scrcpyResolution.width,
-          height: scrcpyResolution.height,
-          dpr: this.devicePixelRatio,
-        };
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
+      const scrcpySize = adapter.getSize(deviceInfo);
+      if (scrcpySize) {
+        const isLandscape =
+          deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
+        const shouldSwap =
+          deviceInfo.isCurrentOrientation !== true && isLandscape;
+        const physicalWidth = shouldSwap
+          ? deviceInfo.physicalHeight
+          : deviceInfo.physicalWidth;
+        this.scalingRatio =
+          adapter.getScalingRatio(physicalWidth) ?? this.scalingRatio;
+        return scrcpySize;
       }
     }
 
     // Standard path: calculate logical size from physical size and DPR/screenshotResizeScale
-    await this.initializeDevicePixelRatio();
-
-    // Use custom getScreenSize method instead of adb.getScreenSize()
-    const screenSize = await this.getScreenSize();
-    // screenSize is a string like "width x height"
-
-    // handle string format "width x height"
-    const match = (screenSize.override || screenSize.physical).match(
-      /(\d+)x(\d+)/,
-    );
-    if (!match || match.length < 3) {
-      throw new Error(`Unable to parse screen size: ${screenSize}`);
-    }
-
-    // Only swap dimensions if size is in native orientation (from wm size)
-    // If size is already in current orientation (from dumpsys display), no swap needed
     const isLandscape =
-      screenSize.orientation === 1 || screenSize.orientation === 3;
-    const shouldSwap = screenSize.isCurrentOrientation !== true && isLandscape;
-    const width = Number.parseInt(match[shouldSwap ? 2 : 1], 10);
-    const height = Number.parseInt(match[shouldSwap ? 1 : 2], 10);
+      deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
+    const shouldSwap = deviceInfo.isCurrentOrientation !== true && isLandscape;
+    const width = shouldSwap
+      ? deviceInfo.physicalHeight
+      : deviceInfo.physicalWidth;
+    const height = shouldSwap
+      ? deviceInfo.physicalWidth
+      : deviceInfo.physicalHeight;
 
     // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
-    // Default is 1/dpr to scale down by device pixel ratio (e.g., dpr=3 -> scale=1/3)
     const scale =
       this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
     this.scalingRatio = scale;
 
     // Apply scale to get logical dimensions for AI processing
-    // adjustCoordinates() will convert back to physical pixels when needed for touch operations
     const logicalWidth = Math.round(width * scale);
     const logicalHeight = Math.round(height * scale);
 
@@ -1057,18 +940,12 @@ ${Object.keys(size)
     debugDevice('screenshotBase64 begin');
 
     // Try scrcpy mode first (if enabled)
-    const scrcpyConfig = await this.normalizeScrcpyConfig();
-    if (scrcpyConfig.enabled) {
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
       try {
         debugDevice('Attempting scrcpy screenshot...');
-        const scrcpyManager = await this.getScrcpyManager();
-        const screenshotBuffer = await scrcpyManager.getScreenshotPng();
-        debugDevice('Scrcpy screenshot successful');
-
-        const result = createImgBase64ByFormat(
-          'png',
-          screenshotBuffer.toString('base64'),
-        );
+        const deviceInfo = await this.getDevicePhysicalInfo();
+        const result = await adapter.screenshotBase64(deviceInfo);
         debugDevice('screenshotBase64 end (scrcpy mode)');
         return result;
       } catch (error) {
@@ -1677,13 +1554,9 @@ ${Object.keys(size)
     this.cachedOrientation = null;
 
     // Disconnect scrcpy if active
-    if (this.scrcpyManager) {
-      try {
-        await this.scrcpyManager.disconnect();
-      } catch (error) {
-        debugDevice(`Error disconnecting scrcpy: ${error}`);
-      }
-      this.scrcpyManager = null;
+    if (this.scrcpyAdapter) {
+      await this.scrcpyAdapter.disconnect();
+      this.scrcpyAdapter = null;
     }
 
     try {

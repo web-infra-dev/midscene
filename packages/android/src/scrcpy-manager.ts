@@ -3,7 +3,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
-import { h264SearchConfiguration } from '@yume-chan/scrcpy';
 
 const debugScrcpy = getDebug('android:scrcpy');
 
@@ -92,14 +91,6 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
 }
 
 /**
- * Video packet from scrcpy stream
- */
-interface VideoPacket {
-  data: Uint8Array;
-  keyframe?: boolean;
-}
-
-/**
  * Required options after applying defaults
  */
 interface ResolvedScrcpyOptions {
@@ -125,6 +116,7 @@ export class ScrcpyScreenshotManager {
   private ffmpegAvailable: boolean | null = null;
   private recentFrames: Buffer[] = [];
   private videoResolution: { width: number; height: number } | null = null;
+  private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -155,13 +147,18 @@ export class ScrcpyScreenshotManager {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
 
+      // Check ffmpeg availability early to fail fast
+      await this.ensureFfmpegAvailable();
+
       const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
         '@yume-chan/adb-scrcpy'
       );
       const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { ScrcpyOptions3_1, DefaultServerPath } = await import(
-        '@yume-chan/scrcpy'
-      );
+      const { ScrcpyOptions3_1, DefaultServerPath, h264SearchConfiguration } =
+        await import('@yume-chan/scrcpy');
+
+      // Cache h264SearchConfiguration for synchronous use in processFrame
+      this.h264SearchConfigFn = h264SearchConfiguration;
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
@@ -294,8 +291,9 @@ export class ScrcpyScreenshotManager {
    * Extract SPS/PPS header from keyframe
    */
   private extractSpsHeader(frameBuffer: Buffer): void {
+    if (!this.h264SearchConfigFn) return;
     try {
-      const config = h264SearchConfiguration(new Uint8Array(frameBuffer));
+      const config = this.h264SearchConfigFn(new Uint8Array(frameBuffer));
       if (!config.sequenceParameterSet || !config.pictureParameterSet) {
         return;
       }
@@ -375,10 +373,6 @@ export class ScrcpyScreenshotManager {
     await this.ensureConnected();
     const connectTime = Date.now() - t1;
 
-    const t2 = Date.now();
-    await this.ensureFfmpegAvailable();
-    const ffmpegCheckTime = Date.now() - t2;
-
     const t3 = Date.now();
     await this.waitForKeyframe();
     const keyframeWaitTime = Date.now() - t3;
@@ -405,7 +399,7 @@ export class ScrcpyScreenshotManager {
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
-      `Performance: total=${totalTime}ms (connect=${connectTime}ms, ffmpegCheck=${ffmpegCheckTime}ms, keyframeWait=${keyframeWaitTime}ms, decode=${decodeTime}ms)`,
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, keyframeWait=${keyframeWaitTime}ms, decode=${decodeTime}ms)`,
     );
 
     return result;
@@ -605,6 +599,7 @@ export class ScrcpyScreenshotManager {
     this.latestFrameTimestamp = 0;
     this.recentFrames = [];
     this.isInitialized = false;
+    this.h264SearchConfigFn = null;
 
     debugScrcpy('Scrcpy disconnected');
   }
