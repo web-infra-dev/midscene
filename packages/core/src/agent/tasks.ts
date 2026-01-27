@@ -308,6 +308,13 @@ export class TaskExecutor {
 
     // Main planning loop - unified plan/replan logic
     while (true) {
+      // Get sub-goal status text if available
+      const subGoalStatus =
+        this.conversationHistory.subGoalsToText() || undefined;
+
+      // Get notes text if available
+      const notesStatus = this.conversationHistory.notesToText() || undefined;
+
       const result = await session.appendAndRun(
         {
           type: 'Planning',
@@ -317,6 +324,8 @@ export class TaskExecutor {
             aiActContext,
             imagesIncludeCount,
             deepThink,
+            ...(subGoalStatus ? { subGoalStatus } : {}),
+            ...(notesStatus ? { notesStatus } : {}),
           },
           executor: async (param, executorContext) => {
             const { uiContext } = executorContext;
@@ -378,6 +387,8 @@ export class TaskExecutor {
               reasoning_content,
               finalizeSuccess,
               finalizeMessage,
+              updateSubGoals,
+              markFinishedIndexes,
             } = planResult;
             outputString = finalizeMessage;
 
@@ -395,6 +406,8 @@ export class TaskExecutor {
               yamlFlow: planResult.yamlFlow,
               output: finalizeMessage,
               shouldContinuePlanning: planResult.shouldContinuePlanning,
+              updateSubGoals,
+              markFinishedIndexes,
             };
             executorContext.uiContext = uiContext;
 

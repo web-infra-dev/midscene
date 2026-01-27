@@ -405,6 +405,10 @@ const DetailSide = (): JSX.Element => {
     const locateParam = (planningTask as any)?.param;
     const images = extractTaskImages(locateParam);
 
+    // Get subGoalStatus and notesStatus from param
+    const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
+    const notesStatus = (planningTask.param as any)?.notesStatus;
+
     if (planningTask.param?.userInstruction) {
       // Ensure userInstruction is a string
       const instructionContent =
@@ -419,6 +423,22 @@ const DetailSide = (): JSX.Element => {
             content: instructionContent,
             images: images,
           },
+          ...(notesStatus
+            ? [
+                {
+                  key: 'notes',
+                  content: notesStatus,
+                },
+              ]
+            : []),
+          ...(subGoalStatus
+            ? [
+                {
+                  key: 'sub-goal status',
+                  content: subGoalStatus,
+                },
+              ]
+            : []),
           ...(isPageContextFrozen
             ? [
                 {
@@ -444,6 +464,22 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
+          ...(notesStatus
+            ? [
+                {
+                  key: 'notes',
+                  content: notesStatus,
+                },
+              ]
+            : []),
+          ...(subGoalStatus
+            ? [
+                {
+                  key: 'sub-goal status',
+                  content: subGoalStatus,
+                },
+              ]
+            : []),
           ...(isPageContextFrozen
             ? [
                 {
@@ -713,6 +749,50 @@ const DetailSide = (): JSX.Element => {
         );
       }
 
+      // Add Sub-goals if exists
+      const updateSubGoals = (task as ExecutionTaskPlanning).output
+        ?.updateSubGoals;
+      if (updateSubGoals && updateSubGoals.length > 0) {
+        const subGoalsContent = updateSubGoals
+          .map(
+            (goal: { index: number; status: string; description: string }) =>
+              `${goal.index}. ${goal.description} (${goal.status})`,
+          )
+          .join('\n');
+        planItems.push(
+          <Card
+            key="sub-goals"
+            liteMode={true}
+            title="Sub-goals"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{subGoalsContent}</pre>
+            }
+          />,
+        );
+      }
+
+      // Add Mark Finished Indexes if exists
+      const markFinishedIndexes = (task as ExecutionTaskPlanning).output
+        ?.markFinishedIndexes;
+      if (markFinishedIndexes && markFinishedIndexes.length > 0) {
+        planItems.push(
+          <Card
+            key="mark-finished"
+            liteMode={true}
+            title="Marked Finished"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                Sub-goal indexes: {markFinishedIndexes.join(', ')}
+              </pre>
+            }
+          />,
+        );
+      }
+
       // Add each plan action
       actions.forEach((action, index) => {
         const paramToShow = isPlainObject(action.param) ? action.param : {};
@@ -802,6 +882,21 @@ const DetailSide = (): JSX.Element => {
           );
         }
       });
+
+      // Add output message if exists (from complete-goal)
+      const outputMessage = (task as ExecutionTaskPlanning).output?.output;
+      if (outputMessage) {
+        planItems.push(
+          <Card
+            key="output-message"
+            liteMode={true}
+            title="Output"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre className="description-content">{outputMessage}</pre>}
+          />,
+        );
+      }
 
       // Add More actions needed if exists
       if (
