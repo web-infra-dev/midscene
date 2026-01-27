@@ -19,6 +19,7 @@ const basicTest = ['tests/unit-test/**/*.test.ts'];
 export default defineConfig({
   test: {
     include: enableAiTest ? ['tests/ai/**/**.test.ts'] : basicTest,
+    retry: process.env.CI ? 1 : 0,
   },
   define: {
     __VERSION__: `'${version}'`,

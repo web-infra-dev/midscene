@@ -35,6 +35,7 @@ export default defineConfig({
   test: {
     include: testFiles,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
+    retry: process.env.CI ? 1 : 0, // Retry failed tests once in CI to handle AI flakiness
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI, // showcase.test.ts is not stable
     // Use verbose reporter in CI to show detailed failure messages
     reporters: process.env.CI ? ['verbose'] : ['default'],

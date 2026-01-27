@@ -12,9 +12,6 @@ describe(
     it('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
-        {
-          headless: false,
-        },
       );
       ctx.resetFn = reset;
       const onTaskStartTip = vi.fn();
