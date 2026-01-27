@@ -139,7 +139,7 @@ describe(
       }).rejects.toThrowError();
     });
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.only('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
         {
@@ -160,7 +160,7 @@ describe(
       await agent.aiAssert('this is a login page');
 
       const pw = await agent.aiAct(
-        'do nothing and tell me the what the password is',
+        'do nothing and tell me the what the password is. Just tell the password content',
       );
       expect(pw).toBe('secret_sauce');
 

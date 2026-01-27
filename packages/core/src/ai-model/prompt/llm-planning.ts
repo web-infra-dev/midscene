@@ -188,24 +188,6 @@ export async function systemPromptToTaskPlanning({
     "prompt": "Add to cart button for Sauce Labs Backpack"
   }`;
 
-  const locateExample2 = includeBbox
-    ? `{
-    "prompt": "Add to cart button for Sauce Labs Bike Light",
-    "bbox": [732, 442, 844, 483]
-  }`
-    : `{
-    "prompt": "Add to cart button for Sauce Labs Bike Light"
-  }`;
-
-  const locateExample3 = includeBbox
-    ? `{
-    "prompt": "Cart icon in top right corner",
-    "bbox": [956, 17, 982, 54]
-  }`
-    : `{
-    "prompt": "Cart icon in top right corner"
-  }`;
-
   const thoughtTag = (content: string) =>
     shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
 
@@ -215,12 +197,12 @@ export async function systemPromptToTaskPlanning({
     : '## Step 1: Observe (related tags: <thought>)';
 
   const step1Description = shouldIncludeSubGoals
-    ? 'First, observe the current screenshot and previous logs, then break down the user\'s instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot.'
+    ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
     : 'First, observe the current screenshot and previous logs to understand the current state.';
 
   const thoughtTagDescription = shouldIncludeSubGoals
-    ? 'Include your thought process in the <thought> tag. It should answer: What is the user\'s requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.'
-    : 'Include your thought process in the <thought> tag. It should answer: What is the user\'s requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.';
+    ? "Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers."
+    : 'Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.';
 
   const subGoalTags = shouldIncludeSubGoals
     ? `
@@ -375,7 +357,9 @@ Return in XML format following this decision flow:
 **Always include:**
 <!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
 <thought>...</thought>
-${shouldIncludeSubGoals ? `
+${
+  shouldIncludeSubGoals
+    ? `
 <!-- required when no update-plan-content is provided in the previous response -->
 <update-plan-content>...</update-plan-content>
 
@@ -383,7 +367,9 @@ ${shouldIncludeSubGoals ? `
 <mark-sub-goal-done>
   <sub-goal index="1" status="finished" />
 </mark-sub-goal-done>
-` : ''}
+`
+    : ''
+}
 <!-- Step ${noteStepNumber}: Note data from current screenshot if needed -->
 <note>...</note>
 
