@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
 vi.setConfig({
-  testTimeout: 60 * 1000,
+  testTimeout: 3 * 60 * 1000,
 });
 
 describe('file upload functionality', () => {

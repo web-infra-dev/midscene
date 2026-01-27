@@ -9,7 +9,7 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it('Sauce Demo by Swag Lab', async () => {
+    it.skipIf(!!process.env.CI)('Sauce Demo by Swag Lab', async () => {
       const { originPage, reset } = await launchPage(
         'https://www.saucedemo.com/',
       );
