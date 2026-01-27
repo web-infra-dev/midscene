@@ -472,7 +472,10 @@ describe('ConversationHistory', () => {
 
     const snapshot = history.snapshot();
     expect(snapshot).toEqual([
-      { role: 'user', content: '(3 previous conversation messages have been omitted)' },
+      {
+        role: 'user',
+        content: '(3 previous conversation messages have been omitted)',
+      },
       assistantMessage('keep1'),
       userMessage('keep2'),
     ]);
