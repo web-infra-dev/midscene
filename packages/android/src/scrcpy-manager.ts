@@ -23,8 +23,6 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 // Timeouts and limits
 const MAX_KEYFRAME_WAIT_MS = 5_000;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
-const FRAME_AGE_WARNING_THRESHOLD_MS = 100;
-const FRAME_AGE_PNG_WARNING_THRESHOLD_MS = 500;
 const FRESH_FRAME_WAIT_TIMEOUT_MS = 3_000;
 const MAX_RECENT_FRAMES = 10;
 const MAX_SCAN_BYTES = 1_000;
@@ -363,19 +361,17 @@ export class ScrcpyScreenshotManager {
    * Returns raw H.264 encoded data
    */
   async getScreenshot(): Promise<Buffer> {
+    const callTimestamp = Date.now();
     await this.ensureConnected();
 
-    const frameAge = this.lastFrameBuffer
-      ? Date.now() - this.lastFrameTimestamp
-      : Number.POSITIVE_INFINITY;
-
-    if (!this.lastFrameBuffer || frameAge > FRAME_AGE_WARNING_THRESHOLD_MS) {
+    if (
+      !this.lastFrameBuffer ||
+      this.lastFrameTimestamp < callTimestamp
+    ) {
       debugScrcpy(
-        `Frame is stale or missing (${frameAge}ms old), waiting for fresh frame...`,
+        `Waiting for frame captured after call (callTs=${callTimestamp}, frameTs=${this.lastFrameTimestamp})...`,
       );
       await this.waitForNextFrame(FRESH_FRAME_WAIT_TIMEOUT_MS);
-    } else {
-      debugScrcpy(`Frame is fresh (${frameAge}ms old)`);
     }
 
     if (!this.lastFrameBuffer) {
@@ -384,6 +380,7 @@ export class ScrcpyScreenshotManager {
       );
     }
 
+    debugScrcpy(`Frame captured ${Date.now() - this.lastFrameTimestamp}ms ago`);
     this.resetIdleTimer();
     return this.lastFrameBuffer;
   }
@@ -393,7 +390,8 @@ export class ScrcpyScreenshotManager {
    * Decodes H.264 video stream to PNG using ffmpeg
    */
   async getScreenshotPng(): Promise<Buffer> {
-    const perfStart = Date.now();
+    const callTimestamp = Date.now();
+    const perfStart = callTimestamp;
 
     const t1 = Date.now();
     await this.ensureConnected();
@@ -403,20 +401,14 @@ export class ScrcpyScreenshotManager {
     await this.waitForKeyframe();
     const keyframeWaitTime = Date.now() - t3;
 
-    const keyframeAge = this.latestFrameBuffer
-      ? Date.now() - this.latestFrameTimestamp
-      : Number.POSITIVE_INFINITY;
-
     if (
       !this.latestFrameBuffer ||
-      keyframeAge > FRAME_AGE_PNG_WARNING_THRESHOLD_MS
+      this.latestFrameTimestamp < callTimestamp
     ) {
       debugScrcpy(
-        `Keyframe is stale or missing (${keyframeAge}ms old), waiting for fresh keyframe...`,
+        `Waiting for keyframe captured after call (callTs=${callTimestamp}, frameTs=${this.latestFrameTimestamp})...`,
       );
       await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
-    } else {
-      debugScrcpy(`Keyframe is fresh (${keyframeAge}ms old)`);
     }
 
     if (!this.latestFrameBuffer) {
@@ -425,6 +417,7 @@ export class ScrcpyScreenshotManager {
       );
     }
 
+    debugScrcpy(`Keyframe captured ${Date.now() - this.latestFrameTimestamp}ms ago`);
     this.resetIdleTimer();
 
     debugScrcpy(
