@@ -142,19 +142,23 @@ export function matchElementFromPlan(
     return undefined;
   }
 
+  const promptText =
+    typeof planLocateParam.prompt === 'string'
+      ? planLocateParam.prompt
+      : planLocateParam.prompt?.prompt || '';
+
+  // Prefer pre-computed precise center (avoids rounding error from independent corner rounding)
+  if (planLocateParam.bboxCenter) {
+    return generateElementByPosition(planLocateParam.bboxCenter, promptText);
+  }
+
+  // Fallback: compute center from already-rounded bbox
   if (planLocateParam.bbox) {
     const centerPosition = {
       x: Math.floor((planLocateParam.bbox[0] + planLocateParam.bbox[2]) / 2),
       y: Math.floor((planLocateParam.bbox[1] + planLocateParam.bbox[3]) / 2),
     };
-
-    const element = generateElementByPosition(
-      centerPosition,
-      typeof planLocateParam.prompt === 'string'
-        ? planLocateParam.prompt
-        : planLocateParam.prompt?.prompt || '',
-    );
-    return element;
+    return generateElementByPosition(centerPosition, promptText);
   }
 
   return undefined;

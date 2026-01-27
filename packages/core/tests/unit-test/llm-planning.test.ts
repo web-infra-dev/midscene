@@ -74,6 +74,7 @@ describe('llm planning - doubao', () => {
       id: 'test',
       prompt: 'test',
       bbox: [923, 123, 123, 123],
+      bboxCenter: { x: 523, y: 123 },
     });
   });
 });

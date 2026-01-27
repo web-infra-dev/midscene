@@ -227,6 +227,7 @@ export interface AgentAssertOpt {
 
 export interface PlanningLocateParam extends DetailedLocateParam {
   bbox?: [number, number, number, number];
+  bboxCenter?: { x: number; y: number };
 }
 
 export interface PlanningAction<ParamType = any> {

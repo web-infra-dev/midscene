@@ -12,11 +12,13 @@ import {
   adaptDoubaoBbox,
   adaptGeminiBbox,
   adaptQwen2_5Bbox as adaptQwenBbox,
+  computeBboxCenter,
   dumpActionParam,
   expandSearchArea,
   findAllMidsceneLocatorField,
   mergeRects,
   normalized01000,
+  parseBboxToNumbers,
   pointToBbox,
 } from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
@@ -1339,5 +1341,128 @@ describe('ifPlanLocateParamIsBbox', () => {
       bbox: null as any,
     };
     expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+});
+
+describe('parseBboxToNumbers', () => {
+  it('should parse number array', () => {
+    expect(parseBboxToNumbers([934, 93, 951, 118])).toEqual([
+      934, 93, 951, 118,
+    ]);
+  });
+
+  it('should parse string array with comma-separated values', () => {
+    expect(parseBboxToNumbers(['100,200', '300,400'])).toEqual([
+      100, 200, 300, 400,
+    ]);
+  });
+
+  it('should parse string array with space-separated values', () => {
+    expect(parseBboxToNumbers(['100 200', '300 400'])).toEqual([
+      100, 200, 300, 400,
+    ]);
+  });
+
+  it('should parse string', () => {
+    expect(parseBboxToNumbers('100 200 300 400')).toEqual([100, 200, 300, 400]);
+  });
+
+  it('should flatten nested arrays', () => {
+    expect(parseBboxToNumbers([[100, 200, 300, 400]] as any)).toEqual([
+      100, 200, 300, 400,
+    ]);
+  });
+});
+
+describe('computeBboxCenter', () => {
+  it('should compute precise center for the original bug case [934, 93, 951, 118] + 1280x860', () => {
+    const center = computeBboxCenter([934, 93, 951, 118], 1280, 860);
+    // ((934+951)/2) * 1280 / 1000 = 942.5 * 1.28 = 1206.4 → 1206
+    // ((93+118)/2) * 860 / 1000 = 105.5 * 0.86 = 90.73 → 91
+    expect(center).toEqual({ x: 1206, y: 91 });
+  });
+
+  it('should match naive calculation for even-width bbox', () => {
+    // bbox with even width: [400, 200, 600, 400] on 1000x1000
+    const center = computeBboxCenter([400, 200, 600, 400], 1000, 1000);
+    // ((400+600)/2) * 1000 / 1000 = 500
+    // ((200+400)/2) * 1000 / 1000 = 300
+    expect(center).toEqual({ x: 500, y: 300 });
+  });
+
+  it('should handle gemini format [y1, x1, y2, x2]', () => {
+    const center = computeBboxCenter(
+      [100, 200, 300, 400],
+      2000,
+      2000,
+      0,
+      0,
+      'gemini',
+    );
+    // x: ((200+400)/2) * 2000 / 1000 = 300 * 2 = 600
+    // y: ((100+300)/2) * 2000 / 1000 = 200 * 2 = 400
+    expect(center).toEqual({ x: 600, y: 400 });
+  });
+
+  it('should handle qwen2.5-vl pixel format', () => {
+    const center = computeBboxCenter(
+      [100, 200, 301, 401],
+      1000,
+      1000,
+      0,
+      0,
+      'qwen2.5-vl',
+    );
+    // x: (100+301)/2 = 200.5 → 201 (already pixel)
+    // y: (200+401)/2 = 300.5 → 301
+    expect(center).toEqual({ x: 201, y: 301 });
+  });
+
+  it('should handle qwen2.5-vl point format (2 elements)', () => {
+    const center = computeBboxCenter(
+      [150, 250],
+      1000,
+      1000,
+      0,
+      0,
+      'qwen2.5-vl',
+    );
+    // x: (150 + 150) / 2 = 150
+    // y: (250 + 250) / 2 = 250
+    expect(center).toEqual({ x: 150, y: 250 });
+  });
+
+  it('should handle doubao point format (2 elements, normalized 0-1000)', () => {
+    const center = computeBboxCenter([500, 500], 2000, 2000);
+    // point: x = 500 * 2000 / 1000 = 1000, y = 500 * 2000 / 1000 = 1000
+    expect(center).toEqual({ x: 1000, y: 1000 });
+  });
+
+  it('should apply offset correctly', () => {
+    const center = computeBboxCenter(
+      [500, 500, 500, 500],
+      1000,
+      1000,
+      100,
+      200,
+    );
+    // center: x = 500 * 1000 / 1000 + 100 = 600
+    // center: y = 500 * 1000 / 1000 + 200 = 700
+    expect(center).toEqual({ x: 600, y: 700 });
+  });
+
+  it('should apply offset with the bug case', () => {
+    const center = computeBboxCenter([934, 93, 951, 118], 1280, 860, 50, 30);
+    // x: 1206 + 50 = 1256
+    // y: 91 + 30 = 121
+    expect(center).toEqual({ x: 1256, y: 121 });
+  });
+
+  it('should handle 3-element point format', () => {
+    const center = computeBboxCenter([500, 300, 0], 2000, 2000);
+    // 3 elements < 4, treated as point
+    // x = 500 * 2000 / 1000 = 1000
+    // y = 300 * 2000 / 1000 = 600
+    expect(center).toEqual({ x: 1000, y: 600 });
   });
 });

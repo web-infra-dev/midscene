@@ -22,7 +22,12 @@ import type {
   ChatCompletionUserMessageParam,
 } from 'openai/resources/index';
 import type { TMultimodalPrompt, TUserPrompt } from '../common';
-import { adaptBboxToRect, expandSearchArea, mergeRects } from '../common';
+import {
+  adaptBboxToRect,
+  computeBboxCenter,
+  expandSearchArea,
+  mergeRects,
+} from '../common';
 import { parseAutoGLMLocateResponse } from './auto-glm/parser';
 import { getAutoGLMLocatePrompt } from './auto-glm/prompt';
 import { isAutoGLM } from './auto-glm/util';
@@ -336,10 +341,14 @@ export async function AiLocateElement(options: {
 
       debugInspect('resRect', resRect);
 
-      const rectCenter = {
-        x: resRect.left + resRect.width / 2,
-        y: resRect.top + resRect.height / 2,
-      };
+      const rectCenter = computeBboxCenter(
+        res.content.bbox,
+        imageWidth,
+        imageHeight,
+        options.searchConfig?.rect?.left,
+        options.searchConfig?.rect?.top,
+        modelFamily,
+      );
 
       const element: LocateResultElement = generateElementByPosition(
         rectCenter,

@@ -24,7 +24,84 @@ export type AIArgs = ChatCompletionMessageParam[];
 
 const defaultBboxSize = 20; // must be even number
 const debugInspectUtils = getDebug('ai:common');
-type AdaptBboxInput = number[] | string[] | string | (number[] | string[])[];
+export type AdaptBboxInput =
+  | number[]
+  | string[]
+  | string
+  | (number[] | string[])[];
+
+/**
+ * Parse various bbox input formats into a flat number array.
+ * Handles: number[], string[], nested arrays, "x y x y" strings, "x,y" strings.
+ */
+export function parseBboxToNumbers(bbox: AdaptBboxInput): number[] {
+  const normalized = normalizeBboxInput(bbox);
+
+  if (typeof normalized === 'string') {
+    return normalized
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+  }
+
+  const result: number[] = [];
+  for (const item of normalized) {
+    if (typeof item === 'string') {
+      const parts = item.split(/[\s,]+/);
+      for (const p of parts) {
+        result.push(Number(p.trim()));
+      }
+    } else {
+      result.push(Number(item));
+    }
+  }
+  return result;
+}
+
+/**
+ * Compute the center point of a bbox directly from the original normalized coordinates,
+ * rounding only once to avoid accumulated error from rounding each corner independently.
+ */
+export function computeBboxCenter(
+  bbox: AdaptBboxInput,
+  width: number,
+  height: number,
+  offsetX = 0,
+  offsetY = 0,
+  modelFamily?: TModelFamily,
+): { x: number; y: number } {
+  const nums = parseBboxToNumbers(bbox);
+
+  if (modelFamily === 'gemini') {
+    // gemini format: [y1, x1, y2, x2] normalized 0-1000
+    return {
+      x: Math.round((((nums[1] + nums[3]) / 2) * width) / 1000) + offsetX,
+      y: Math.round((((nums[0] + nums[2]) / 2) * height) / 1000) + offsetY,
+    };
+  }
+
+  if (modelFamily === 'qwen2.5-vl') {
+    // qwen2.5-vl: already pixel coordinates
+    return {
+      x: Math.round((nums[0] + (nums[2] ?? nums[0])) / 2) + offsetX,
+      y: Math.round((nums[1] + (nums[3] ?? nums[1])) / 2) + offsetY,
+    };
+  }
+
+  // Default: normalized 0-1000 (qwen3-vl, doubao, glm-v, etc.)
+  if (nums.length < 4) {
+    // Point format (2 or 3 elements)
+    return {
+      x: Math.round((nums[0] * width) / 1000) + offsetX,
+      y: Math.round((nums[1] * height) / 1000) + offsetY,
+    };
+  }
+
+  return {
+    x: Math.round((((nums[0] + nums[2]) / 2) * width) / 1000) + offsetX,
+    y: Math.round((((nums[1] + nums[3]) / 2) * height) / 1000) + offsetY,
+  };
+}
 
 /**
  * Convert a point coordinate [0, 1000] to a small bbox [0, 1000]
@@ -66,6 +143,15 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
+    // Compute precise center from original bbox before independent rounding of each corner
+    locate.bboxCenter = computeBboxCenter(
+      locate.bbox,
+      width,
+      height,
+      0,
+      0,
+      modelFamily,
+    );
     locate.bbox = adaptBbox(
       locate.bbox,
       width,
