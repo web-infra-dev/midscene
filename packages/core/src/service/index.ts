@@ -219,12 +219,13 @@ export default class Service {
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
+    context?: UIContext,
   ): Promise<ServiceExtractResult<T>> {
+    assert(context, 'context is required for extract');
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
     );
-    const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
 
