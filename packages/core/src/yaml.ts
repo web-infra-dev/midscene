@@ -22,6 +22,14 @@ export interface DetailedLocateParam extends LocateOption {
   prompt: TUserPrompt;
 }
 
+/**
+ * DetailedLocateParam for array prompts - used when locating multiple elements at once
+ */
+export interface DetailedLocateParamArray
+  extends Omit<LocateOption, 'prompt' | 'xpath'> {
+  prompts: TUserPrompt[];
+}
+
 export type ScrollType =
   | 'singleAction'
   | 'scrollToBottom'

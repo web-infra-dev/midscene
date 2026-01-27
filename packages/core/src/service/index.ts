@@ -3,6 +3,7 @@ import {
   AIResponseParseError,
   AiExtractElementInfo,
   AiLocateElement,
+  AiLocateElements,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
@@ -12,6 +13,7 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  DetailedLocateParamArray,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
   Rect,
@@ -210,6 +212,119 @@ export default class Service {
       element: null,
       rect,
       dump,
+    };
+  }
+
+  /**
+   * Locate multiple elements at once using a single LLM call
+   * More efficient than calling locate multiple times
+   */
+  async locateArray(
+    query: DetailedLocateParamArray,
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<{
+    results: Array<LocateResultWithDump>;
+    rawResponse: string;
+    usage?: AIUsageInfo;
+  }> {
+    const { prompts, deepThink, cacheable } = query;
+
+    assert(
+      Array.isArray(prompts) && prompts.length > 0,
+      'prompts array is required and cannot be empty for locateArray',
+    );
+
+    // Extract text prompts for display
+    const queryPrompts = prompts.map((p) =>
+      typeof p === 'string' ? p : p.prompt,
+    );
+
+    const { modelFamily } = modelConfig;
+
+    // Deep think is not supported for array locate
+    if (deepThink) {
+      console.warn(
+        'The "deepThink" feature is not supported for array locate. It will be ignored.',
+      );
+    }
+
+    const context = opt?.context || (await this.contextRetrieverFn());
+
+    const startTime = Date.now();
+    const { parseResults, rawResponse, usage, reasoning_content } =
+      await AiLocateElements({
+        callAIFn: this.aiVendorFn,
+        context,
+        targetElementDescriptions: prompts,
+        modelConfig,
+      });
+
+    const timeCost = Date.now() - startTime;
+
+    const results: LocateResultWithDump[] = [];
+
+    for (let i = 0; i < parseResults.length; i++) {
+      const result = parseResults[i];
+      const queryPrompt = queryPrompts[i];
+
+      const taskInfo: ServiceTaskInfo = {
+        ...(this.taskInfo ? this.taskInfo : {}),
+        durationMs: timeCost,
+        rawResponse,
+        formatResponse: JSON.stringify(result),
+        usage,
+        reasoning_content,
+      };
+
+      let errorLog: string | undefined;
+      if (result.errors?.length) {
+        errorLog = `failed to locate element at index ${i}: \n${result.errors.join('\n')}`;
+      }
+
+      const dumpData: PartialServiceDumpFromSDK = {
+        type: 'locate',
+        userQuery: {
+          element: queryPrompt,
+        },
+        matchedElement: [],
+        matchedRect: result.rect,
+        data: null,
+        taskInfo,
+        deepThink: false,
+        error: errorLog,
+      };
+
+      const elements = result.element ? [result.element] : [];
+
+      const dump = createServiceDump({
+        ...dumpData,
+        matchedElement: elements,
+      });
+
+      if (result.element) {
+        results.push({
+          element: {
+            center: result.element.center,
+            rect: result.element.rect,
+            description: result.element.description,
+          },
+          rect: result.rect,
+          dump,
+        });
+      } else {
+        results.push({
+          element: null,
+          rect: result.rect,
+          dump,
+        });
+      }
+    }
+
+    return {
+      results,
+      rawResponse,
+      usage,
     };
   }
 

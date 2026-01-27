@@ -8,6 +8,7 @@ import {
   type CacheConfig,
   type DeepThinkOption,
   type DetailedLocateParam,
+  type DetailedLocateParamArray,
   type DeviceAction,
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -1132,10 +1133,59 @@ export class Agent<
     return verifyResult;
   }
 
-  async aiLocate(prompt: TUserPrompt, opt?: LocateOption) {
-    const locateParam = buildDetailedLocateParam(prompt, opt);
+  /**
+   * Locate a single element
+   * @param prompt - Element description
+   * @param opt - Locate options
+   */
+  async aiLocate(
+    prompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<
+    Pick<LocateResultElement, 'rect' | 'center'> & {
+      dpr?: number;
+    }
+  >;
+
+  /**
+   * Locate multiple elements at once using a single LLM call
+   * More efficient than calling aiLocate multiple times
+   * @param prompts - Array of element descriptions
+   * @param opt - Locate options (note: deepThink is not supported for array locate)
+   */
+  async aiLocate(
+    prompts: TUserPrompt[],
+    opt?: Omit<LocateOption, 'xpath'>,
+  ): Promise<
+    Array<
+      Pick<LocateResultElement, 'rect' | 'center'> & {
+        dpr?: number;
+      }
+    >
+  >;
+
+  async aiLocate(
+    promptOrPrompts: TUserPrompt | TUserPrompt[],
+    opt?: LocateOption,
+  ): Promise<
+    | (Pick<LocateResultElement, 'rect' | 'center'> & {
+        dpr?: number;
+      })
+    | Array<
+        Pick<LocateResultElement, 'rect' | 'center'> & {
+          dpr?: number;
+        }
+      >
+  > {
+    // Handle array input
+    if (Array.isArray(promptOrPrompts)) {
+      return this.aiLocateArray(promptOrPrompts, opt);
+    }
+
+    // Handle single input (existing logic)
+    const locateParam = buildDetailedLocateParam(promptOrPrompts, opt);
     assert(locateParam, 'cannot get locate param for aiLocate');
-    const locatePlan = locatePlanForLocate(locateParam);
+    const locatePlan = locatePlanForLocate(locateParam!);
     const plans = [locatePlan];
     const defaultIntentModelConfig =
       this.modelConfigManager.getModelConfig('default');
@@ -1164,6 +1214,64 @@ export class Agent<
     } as Pick<LocateResultElement, 'rect' | 'center'> & {
       dpr?: number; // this field is deprecated
     };
+  }
+
+  /**
+   * Internal method to locate multiple elements at once
+   */
+  private async aiLocateArray(
+    prompts: TUserPrompt[],
+    opt?: Omit<LocateOption, 'xpath'>,
+  ): Promise<
+    Array<
+      Pick<LocateResultElement, 'rect' | 'center'> & {
+        dpr?: number;
+      }
+    >
+  > {
+    assert(
+      prompts.length > 0,
+      'prompts array cannot be empty for aiLocate with array input',
+    );
+
+    const locateParam: DetailedLocateParamArray = {
+      prompts,
+      deepThink: opt?.deepThink,
+      cacheable: opt?.cacheable,
+    };
+
+    const modelConfig = this.modelConfigManager.getModelConfig('planning');
+
+    let context: UIContext;
+    if (opt?.uiContext) {
+      context = opt.uiContext;
+    } else {
+      assert(
+        this.interface.getContext,
+        'getContext method is not available on interface',
+      );
+      context = await this.interface.getContext();
+    }
+    const service = new Service(() => context);
+
+    const { results } = await service.locateArray(
+      locateParam,
+      { context },
+      modelConfig,
+    );
+
+    const dprValue = await (this.interface.size() as any).dpr;
+    const dprEntry = dprValue
+      ? {
+          dpr: dprValue,
+        }
+      : {};
+
+    return results.map((result) => ({
+      rect: result.element?.rect,
+      center: result.element?.center,
+      ...dprEntry,
+    }));
   }
 
   async aiAssert(

@@ -1,5 +1,6 @@
 import type {
   AIDataExtractionResponse,
+  AIElementArrayResponse,
   AIElementResponse,
   AISectionLocatorResponse,
   AIUsageInfo,
@@ -33,7 +34,9 @@ import {
 } from './prompt/extraction';
 import {
   findElementPrompt,
+  findElementsPrompt,
   systemPromptToLocateElement,
+  systemPromptToLocateElements,
 } from './prompt/llm-locator';
 import {
   sectionLocatorInstruction,
@@ -369,6 +372,184 @@ export async function AiLocateElement(options: {
       elements: matchedElements as LocateResultElement[],
       errors: errors as string[],
     },
+    rawResponse,
+    usage: res.usage,
+    reasoning_content: res.reasoning_content,
+  };
+}
+
+/**
+ * Locate multiple elements at once using AI
+ * This is more efficient than calling AiLocateElement multiple times
+ * as it combines all prompts into a single LLM call
+ */
+export async function AiLocateElements(options: {
+  context: UIContext;
+  targetElementDescriptions: TUserPrompt[];
+  callAIFn: typeof callAIWithObjectResponse<AIElementArrayResponse>;
+  modelConfig: IModelConfig;
+}): Promise<{
+  parseResults: Array<{
+    element: LocateResultElement | null;
+    rect?: Rect;
+    errors?: string[];
+  }>;
+  rawResponse: string;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+}> {
+  const { context, targetElementDescriptions, callAIFn, modelConfig } = options;
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = context.screenshot.base64;
+
+  assert(
+    targetElementDescriptions.length > 0,
+    'targetElementDescriptions cannot be empty',
+  );
+
+  // Extract text from prompts
+  const descriptionTexts = targetElementDescriptions.map((desc) =>
+    typeof desc === 'string' ? desc : desc.prompt,
+  );
+
+  const userInstructionPrompt = findElementsPrompt(descriptionTexts);
+  const systemPrompt = systemPromptToLocateElements(modelFamily);
+
+  let imagePayload = screenshotBase64;
+  let imageWidth = context.size.width;
+  let imageHeight = context.size.height;
+
+  if (modelFamily === 'qwen2.5-vl') {
+    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
+    imageWidth = paddedResult.width;
+    imageHeight = paddedResult.height;
+    imagePayload = paddedResult.imageBase64;
+  }
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: userInstructionPrompt,
+        },
+      ],
+    },
+  ];
+
+  // Add reference images from prompts if any
+  for (const desc of targetElementDescriptions) {
+    if (typeof desc !== 'string' && desc.images?.length) {
+      const addOns = await promptsToChatParam({
+        images: desc.images,
+        convertHttpImage2Base64: desc.convertHttpImage2Base64,
+      });
+      msgs.push(...addOns);
+    }
+  }
+
+  let res: Awaited<ReturnType<typeof callAIFn>>;
+  try {
+    res = await callAIFn(msgs, modelConfig);
+  } catch (callError) {
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    const rawResponse =
+      callError instanceof AIResponseParseError
+        ? callError.rawResponse
+        : errorMessage;
+    const usage =
+      callError instanceof AIResponseParseError ? callError.usage : undefined;
+
+    // Return empty results for all elements
+    return {
+      parseResults: targetElementDescriptions.map(() => ({
+        element: null,
+        errors: [`AI call error: ${errorMessage}`],
+      })),
+      rawResponse,
+      usage,
+      reasoning_content: undefined,
+    };
+  }
+
+  const rawResponse = JSON.stringify(res.content);
+  const parseResults: Array<{
+    element: LocateResultElement | null;
+    rect?: Rect;
+    errors?: string[];
+  }> = [];
+
+  // Create a map for quick lookup by indexId
+  const elementMap = new Map<number, (typeof res.content.elements)[0]>();
+  if (res.content.elements) {
+    for (const elem of res.content.elements) {
+      elementMap.set(elem.indexId, elem);
+    }
+  }
+
+  // Process each description in order
+  for (let i = 0; i < targetElementDescriptions.length; i++) {
+    const elem = elementMap.get(i);
+
+    if (!elem || !elem.bbox || elem.bbox.length < 4) {
+      parseResults.push({
+        element: null,
+        errors: elem?.errors || [`Element at index ${i} not found`],
+      });
+      continue;
+    }
+
+    try {
+      const resRect = adaptBboxToRect(
+        elem.bbox,
+        imageWidth,
+        imageHeight,
+        0,
+        0,
+        context.size.width,
+        context.size.height,
+        modelFamily,
+      );
+
+      const rectCenter = {
+        x: resRect.left + resRect.width / 2,
+        y: resRect.top + resRect.height / 2,
+      };
+
+      const element: LocateResultElement = generateElementByPosition(
+        rectCenter,
+        descriptionTexts[i],
+      );
+
+      parseResults.push({
+        element,
+        rect: resRect,
+        errors: elem.errors,
+      });
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? `Failed to parse bbox at index ${i}: ${e.message}`
+          : `Unknown error at index ${i}`;
+      parseResults.push({
+        element: null,
+        errors: [msg],
+      });
+    }
+  }
+
+  return {
+    parseResults,
     rawResponse,
     usage: res.usage,
     reasoning_content: res.reasoning_content,

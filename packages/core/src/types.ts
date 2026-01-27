@@ -56,6 +56,23 @@ export interface AIElementCoordinatesResponse {
 
 export type AIElementResponse = AIElementCoordinatesResponse;
 
+/**
+ * Response for single element in array locate
+ */
+export interface AIElementArrayItem {
+  bbox: [number, number, number, number] | [];
+  indexId: number;
+  errors?: string[];
+}
+
+/**
+ * Response for array locate - multiple elements at once
+ */
+export interface AIElementArrayResponse {
+  elements: AIElementArrayItem[];
+  errors?: string[];
+}
+
 export interface AIDataExtractionResponse<DataDemand> {
   data: DataDemand;
   errors?: string[];
