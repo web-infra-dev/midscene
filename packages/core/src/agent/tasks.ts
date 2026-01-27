@@ -527,7 +527,12 @@ export class TaskExecutor {
           queryDump = dump;
           task.log = {
             dump,
+            rawResponse: dump.taskInfo?.rawResponse,
           };
+          task.usage = dump.taskInfo?.usage;
+          if (dump.taskInfo?.reasoning_content) {
+            task.reasoning_content = dump.taskInfo.reasoning_content;
+          }
         };
 
         // Get context for query operations
@@ -577,19 +582,12 @@ export class TaskExecutor {
         } catch (error) {
           if (error instanceof ServiceError) {
             applyDump(error.dump);
-            // Record usage and rawResponse even when error occurs
-            task.usage = error.dump.taskInfo?.usage;
-            task.log = {
-              ...task.log,
-              rawResponse: error.dump.taskInfo?.rawResponse,
-            };
           }
           throw error;
         }
 
-        const { data, usage, thought, dump, reasoning_content } = extractResult;
+        const { data, thought, dump } = extractResult;
         applyDump(dump);
-        task.reasoning_content = reasoning_content;
 
         let outputResult = data;
         if (ifTypeRestricted) {
