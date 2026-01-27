@@ -119,11 +119,15 @@ export async function plan(
 
   const { modelFamily } = modelConfig;
 
+  // Only enable sub-goals when deepThink is true
+  const includeSubGoals = opts.deepThink === true;
+
   const systemPrompt = await systemPromptToTaskPlanning({
     actionSpace: opts.actionSpace,
     modelFamily,
     includeBbox: opts.includeBbox,
     includeThought: true, // always include thought
+    includeSubGoals,
   });
 
   let imagePayload = screenshotBase64;
@@ -158,8 +162,10 @@ export async function plan(
 
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
-  // Build sub-goal status text to include in the message
-  const subGoalsText = conversationHistory.subGoalsToText();
+  // Build sub-goal status text to include in the message (only when deepThink is enabled)
+  const subGoalsText = includeSubGoals
+    ? conversationHistory.subGoalsToText()
+    : '';
   const subGoalsSection = subGoalsText ? `\n\n${subGoalsText}` : '';
 
   // Build notes text to include in the message
@@ -242,8 +248,10 @@ export async function plan(
   if (planFromAI.finalizeSuccess !== undefined) {
     debug('goal completed via complete-goal tag, stop planning');
     shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed
-    conversationHistory.markAllSubGoalsFinished();
+    // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
+    if (includeSubGoals) {
+      conversationHistory.markAllSubGoalsFinished();
+    }
   }
 
   const returnValue: PlanningAIResponse = {
@@ -287,13 +295,15 @@ export async function plan(
     });
   });
 
-  // Update sub-goals in conversation history based on response
-  if (planFromAI.updateSubGoals?.length) {
-    conversationHistory.setSubGoals(planFromAI.updateSubGoals);
-  }
-  if (planFromAI.markFinishedIndexes?.length) {
-    for (const index of planFromAI.markFinishedIndexes) {
-      conversationHistory.markSubGoalFinished(index);
+  // Update sub-goals in conversation history based on response (only when deepThink is enabled)
+  if (includeSubGoals) {
+    if (planFromAI.updateSubGoals?.length) {
+      conversationHistory.setSubGoals(planFromAI.updateSubGoals);
+    }
+    if (planFromAI.markFinishedIndexes?.length) {
+      for (const index of planFromAI.markFinishedIndexes) {
+        conversationHistory.markSubGoalFinished(index);
+      }
     }
   }
 
