@@ -9,6 +9,7 @@ import type {
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
 import {
+  MIDSCENE_REPORT_QUIET,
   MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
@@ -65,6 +66,9 @@ export function getReportFileName(tag = 'web') {
 }
 
 export function printReportMsg(filepath: string) {
+  if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) {
+    return;
+  }
   logMsg(`Midscene - report file updated: ${filepath}`);
 }
 

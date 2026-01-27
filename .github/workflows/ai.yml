@@ -25,6 +25,7 @@ jobs:
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
       MIDSCENE_MODEL_RETRY_COUNT: "2"
       MIDSCENE_MODEL_RETRY_INTERVAL: "10000"
+      MIDSCENE_REPORT_QUIET: "true"
       CI: 1
 
     steps:
@@ -111,4 +112,9 @@ jobs:
 
     - name: Check if tests failed
       if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
-      run: exit 1
+      run: |
+        echo "::error::The following e2e tests failed:"
+        if [ "${{ steps.e2e-tests.outcome }}" == "failure" ]; then echo "  - e2e (basic)"; fi
+        if [ "${{ steps.e2e-tests-cache.outcome }}" == "failure" ]; then echo "  - e2e:cache"; fi
+        if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
+        exit 1
