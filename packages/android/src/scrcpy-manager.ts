@@ -25,6 +25,7 @@ const MAX_KEYFRAME_WAIT_MS = 5_000;
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const FRAME_AGE_WARNING_THRESHOLD_MS = 1_000;
 const FRAME_AGE_PNG_WARNING_THRESHOLD_MS = 2_000;
+const FRESH_FRAME_WAIT_TIMEOUT_MS = 3_000;
 const MAX_RECENT_FRAMES = 10;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
@@ -115,6 +116,8 @@ export class ScrcpyScreenshotManager {
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
   private recentFrames: Buffer[] = [];
+  private frameResolvers: Array<() => void> = [];
+  private keyframeResolvers: Array<() => void> = [];
   private videoResolution: { width: number; height: number } | null = null;
   private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
 
@@ -283,6 +286,7 @@ export class ScrcpyScreenshotManager {
 
     this.lastFrameBuffer = frameBuffer;
     this.lastFrameTimestamp = Date.now();
+    this.notifyFrameWaiters();
 
     if (actualKeyFrame && !this.spsHeader) {
       this.extractSpsHeader(frameBuffer);
@@ -291,6 +295,7 @@ export class ScrcpyScreenshotManager {
     if (actualKeyFrame && this.spsHeader) {
       this.latestFrameBuffer = Buffer.concat([this.spsHeader, frameBuffer]);
       this.latestFrameTimestamp = Date.now();
+      this.notifyKeyframeWaiters();
       debugScrcpy(
         `Updated frame buffer: config=${this.spsHeader.length}B + keyframe=${frameBuffer.length}B = ${this.latestFrameBuffer.length}B`,
       );
@@ -360,18 +365,24 @@ export class ScrcpyScreenshotManager {
   async getScreenshot(): Promise<Buffer> {
     await this.ensureConnected();
 
+    const frameAge = this.lastFrameBuffer
+      ? Date.now() - this.lastFrameTimestamp
+      : Number.POSITIVE_INFINITY;
+
+    if (!this.lastFrameBuffer || frameAge > FRAME_AGE_WARNING_THRESHOLD_MS) {
+      debugScrcpy(
+        `Frame is stale or missing (${frameAge}ms old), waiting for fresh frame...`,
+      );
+      await this.waitForNextFrame(FRESH_FRAME_WAIT_TIMEOUT_MS);
+    }
+
     if (!this.lastFrameBuffer) {
       throw new Error(
-        'No frame available yet. The video stream may still be initializing. Please retry.',
+        'No frame available after waiting. The video stream may have disconnected.',
       );
     }
 
-    this.warnIfFrameStale(
-      this.lastFrameTimestamp,
-      FRAME_AGE_WARNING_THRESHOLD_MS,
-    );
     this.resetIdleTimer();
-
     return this.lastFrameBuffer;
   }
 
@@ -390,16 +401,26 @@ export class ScrcpyScreenshotManager {
     await this.waitForKeyframe();
     const keyframeWaitTime = Date.now() - t3;
 
+    const keyframeAge = this.latestFrameBuffer
+      ? Date.now() - this.latestFrameTimestamp
+      : Number.POSITIVE_INFINITY;
+
+    if (
+      !this.latestFrameBuffer ||
+      keyframeAge > FRAME_AGE_PNG_WARNING_THRESHOLD_MS
+    ) {
+      debugScrcpy(
+        `Keyframe is stale or missing (${keyframeAge}ms old), waiting for fresh keyframe...`,
+      );
+      await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
+    }
+
     if (!this.latestFrameBuffer) {
       throw new Error(
         'No decodable frames available. Keyframe may not have been captured yet.',
       );
     }
 
-    this.warnIfFrameStale(
-      this.latestFrameTimestamp,
-      FRAME_AGE_PNG_WARNING_THRESHOLD_MS,
-    );
     this.resetIdleTimer();
 
     debugScrcpy(
@@ -427,13 +448,63 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Log warning if frame is older than threshold
+   * Notify all pending frame waiters
    */
-  private warnIfFrameStale(timestamp: number, thresholdMs: number): void {
-    const frameAge = Date.now() - timestamp;
-    if (frameAge > thresholdMs) {
-      debugScrcpy(`Warning: Frame is ${frameAge}ms old`);
+  private notifyFrameWaiters(): void {
+    const resolvers = this.frameResolvers;
+    this.frameResolvers = [];
+    for (const resolve of resolvers) {
+      resolve();
     }
+  }
+
+  /**
+   * Notify all pending keyframe waiters
+   */
+  private notifyKeyframeWaiters(): void {
+    const resolvers = this.keyframeResolvers;
+    this.keyframeResolvers = [];
+    for (const resolve of resolvers) {
+      resolve();
+    }
+  }
+
+  /**
+   * Wait for the next frame to arrive
+   */
+  private waitForNextFrame(timeoutMs: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const wrappedResolve = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(() => {
+        this.frameResolvers = this.frameResolvers.filter(
+          (r) => r !== wrappedResolve,
+        );
+        reject(new Error(`No fresh frame received within ${timeoutMs}ms`));
+      }, timeoutMs);
+      this.frameResolvers.push(wrappedResolve);
+    });
+  }
+
+  /**
+   * Wait for the next keyframe to arrive
+   */
+  private waitForNextKeyframe(timeoutMs: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const wrappedResolve = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      const timer = setTimeout(() => {
+        this.keyframeResolvers = this.keyframeResolvers.filter(
+          (r) => r !== wrappedResolve,
+        );
+        reject(new Error(`No fresh keyframe received within ${timeoutMs}ms`));
+      }, timeoutMs);
+      this.keyframeResolvers.push(wrappedResolve);
+    });
   }
 
   /**
@@ -613,6 +684,15 @@ export class ScrcpyScreenshotManager {
     this.recentFrames = [];
     this.isInitialized = false;
     this.h264SearchConfigFn = null;
+
+    for (const resolve of this.frameResolvers) {
+      resolve();
+    }
+    this.frameResolvers = [];
+    for (const resolve of this.keyframeResolvers) {
+      resolve();
+    }
+    this.keyframeResolvers = [];
 
     debugScrcpy('Scrcpy disconnected');
   }
