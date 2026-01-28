@@ -49,7 +49,7 @@ export class ModelConfigManager {
     );
     if (!defaultConfig) {
       throw new Error(
-        'default model config is not found, which should not happen',
+        'Model configuration is incomplete: model name (MIDSCENE_MODEL_NAME) is required. See https://midscenejs.com/model-strategy.html',
       );
     }
 
