@@ -219,12 +219,13 @@ export default class Service {
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
+    context?: UIContext,
   ): Promise<ServiceExtractResult<T>> {
+    assert(context, 'context is required for extract');
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
     );
-    const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
 
@@ -356,18 +357,29 @@ export default class Service {
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(
-        targetRect,
-        context.size,
-        modelFamily,
-      );
-      debug('describe: set searchArea', searchArea);
-      const croppedResult = await cropByRect(
-        imagePayload,
-        searchArea,
-        modelFamily === 'qwen2.5-vl',
-      );
-      imagePayload = croppedResult.imageBase64;
+      const searchArea = expandSearchArea(targetRect, size, modelFamily);
+      // Only crop when the search area covers at least 50% of the screen
+      // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
+      // too much context and cause model hallucinations.
+      const widthRatio = searchArea.width / size.width;
+      const heightRatio = searchArea.height / size.height;
+      if (widthRatio >= 0.5 && heightRatio >= 0.5) {
+        debug('describe: cropping to searchArea', searchArea);
+        const croppedResult = await cropByRect(
+          imagePayload,
+          searchArea,
+          modelFamily === 'qwen2.5-vl',
+        );
+        imagePayload = croppedResult.imageBase64;
+      } else {
+        debug(
+          'describe: skip cropping, search area too small (%dx%d on %dx%d)',
+          searchArea.width,
+          searchArea.height,
+          size.width,
+          size.height,
+        );
+      }
     }
 
     const msgs: AIArgs = [
