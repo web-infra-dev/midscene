@@ -40,6 +40,7 @@ import { createServiceDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
+  mode?: 'single' | 'multi' | 'all';
 }
 
 export type AnyValue<T> = {
@@ -82,9 +83,38 @@ export default class Service {
 
   async locate(
     query: DetailedLocateParam,
+    opt: LocateOpts & { mode?: 'single' },
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultWithDump>;
+  async locate(
+    query: DetailedLocateParam[],
+    opt: LocateOpts & { mode: 'multi' },
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultsWithDump<LocateResultElement | null>>;
+  async locate(
+    query: DetailedLocateParam,
+    opt: LocateOpts & { mode: 'all' },
+    modelConfig: IModelConfig,
+  ): Promise<LocateAllResultWithDump>;
+  async locate(
+    query: DetailedLocateParam | DetailedLocateParam[],
     opt: LocateOpts,
     modelConfig: IModelConfig,
-  ): Promise<LocateResultWithDump> {
+  ): Promise<
+    | LocateResultWithDump
+    | LocateResultsWithDump<LocateResultElement | null>
+    | LocateAllResultWithDump
+  > {
+    const mode = opt?.mode ?? (Array.isArray(query) ? 'multi' : 'single');
+    if (mode === 'multi') {
+      assert(Array.isArray(query), 'queries must be an array for locate multi');
+      return this.locateMulti(query, opt, modelConfig);
+    }
+    if (mode === 'all') {
+      assert(!Array.isArray(query), 'query must be a single prompt for locate all');
+      return this.locateAll(query, opt, modelConfig);
+    }
+    assert(!Array.isArray(query), 'query must be a single prompt for locate');
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
 

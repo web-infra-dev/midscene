@@ -61,6 +61,7 @@ const aiTaskHandlerMap = {
   aiAsk: 'aiAsk',
   aiLocate: 'aiLocate',
   aiLocateAll: 'aiLocateAll',
+  aiLocateMultiple: 'aiLocateMultiple',
 } as const;
 
 type AISimpleTaskKey = keyof typeof aiTaskHandlerMap;

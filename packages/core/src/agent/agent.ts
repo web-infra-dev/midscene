@@ -1167,11 +1167,9 @@ export class Agent<
     };
   }
 
-  private async locateAll(
-    prompts: TUserPrompt | TUserPrompt[],
-    opt?: LocateOption & {
-      freezeContext?: boolean;
-    },
+  async aiLocateAll(
+    prompt: TUserPrompt,
+    opt?: LocateOption,
   ): Promise<
     Array<{
       rect?: Rect;
@@ -1179,111 +1177,90 @@ export class Agent<
       dpr?: number;
     }>
   > {
-    const { freezeContext = true, ...locateOptRest } = opt || {};
-    const locateOpt: LocateOption | undefined = Object.keys(locateOptRest)
-      .length
-      ? (locateOptRest as LocateOption)
-      : undefined;
+    const detailedParam = buildDetailedLocateParam(prompt, opt);
+    assert(detailedParam, 'cannot get locate param for aiLocateAll');
+    const plan = {
+      type: 'LocateAll',
+      param: detailedParam,
+      thought: '',
+    };
 
-    const alreadyFrozen = Boolean(this.frozenUIContext);
-    if (freezeContext && !alreadyFrozen) {
-      await this.freezePageContext();
-    }
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
 
-    try {
-      if (!Array.isArray(prompts)) {
-        const detailedParam = buildDetailedLocateParam(prompts, locateOpt);
-        assert(detailedParam, 'cannot get locate param for aiLocateAll');
-        const plan = {
-          type: 'LocateAll',
-          param: detailedParam,
-          thought: '',
-        };
+    const { output } = await this.taskExecutor.runPlans(
+      `Locate all elements for ${detailedParam.prompt}`,
+      [plan],
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+    );
 
-        const defaultIntentModelConfig =
-          this.modelConfigManager.getModelConfig('default');
-        const modelConfigForPlanning =
-          this.modelConfigManager.getModelConfig('planning');
-
-        const { output } = await this.taskExecutor.runPlans(
-          `Locate all elements for ${detailedParam.prompt}`,
-          [plan],
-          modelConfigForPlanning,
-          defaultIntentModelConfig,
-        );
-
-        const dprValue = await (this.interface.size() as any).dpr;
-        return (output || []).map((r: any) => {
-          if (!r) {
-            return {
-              rect: undefined,
-              center: undefined,
-            } as any;
-          }
-          return {
-            rect: r.rect,
-            center: r.center,
-            dpr: dprValue,
-          };
-        });
-      }
-
-      const BATCH_SIZE = 10;
-      const results: any[] = [];
-
-      const runBatch = async (batchPrompts: TUserPrompt[]) => {
-        const detailedParams = batchPrompts.map((p) =>
-          buildDetailedLocateParam(p, locateOpt),
-        );
-
-        const plan = {
-          type: 'LocateMulti',
-          param: detailedParams,
-          thought: '',
-        };
-
-        const defaultIntentModelConfig =
-          this.modelConfigManager.getModelConfig('default');
-        const modelConfigForPlanning =
-          this.modelConfigManager.getModelConfig('planning');
-
-        // Use runPlans to leverage TaskExecutor's pipeline (dump, log, etc)
-        // Note: we are passing a custom plan type 'LocateMulti', which must be supported by TaskBuilder
-        const { output } = await this.taskExecutor.runPlans(
-          `Locate ${batchPrompts.length} elements`,
-          [plan],
-          modelConfigForPlanning,
-          defaultIntentModelConfig,
-        );
-
-        return output;
-      };
-
-      for (let i = 0; i < prompts.length; i += BATCH_SIZE) {
-        const batch = prompts.slice(i, i + BATCH_SIZE);
-        const batchResults = await runBatch(batch);
-        results.push(...batchResults);
-      }
-
-      const dprValue = await (this.interface.size() as any).dpr;
-      return results.map((r) => {
-        if (!r) {
-          return {
-            rect: undefined,
-            center: undefined,
-          } as any;
-        }
+    const dprValue = await (this.interface.size() as any).dpr;
+    return (output || []).map((r: any) => {
+      if (!r) {
         return {
-          rect: r.rect,
-          center: r.center,
-          dpr: dprValue,
-        };
-      });
-    } finally {
-      if (freezeContext && !alreadyFrozen) {
-        await this.unfreezePageContext();
+          rect: undefined,
+          center: undefined,
+        } as any;
       }
-    }
+      return {
+        rect: r.rect,
+        center: r.center,
+        dpr: dprValue,
+      };
+    });
+  }
+
+  async aiLocateMultiple(
+    prompts: TUserPrompt[],
+    opt?: LocateOption,
+  ): Promise<
+    Array<{
+      rect?: Rect;
+      center?: [number, number];
+      dpr?: number;
+    }>
+  > {
+    const detailedParams = prompts.map((p) =>
+      buildDetailedLocateParam(p, opt),
+    );
+
+    const plan = {
+      type: 'LocateMulti',
+      param: detailedParams,
+      thought: '',
+    };
+
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
+
+    // Use runPlans to leverage TaskExecutor's pipeline (dump, log, etc)
+    // Note: we are passing a custom plan type 'LocateMulti', which must be supported by TaskBuilder
+    const { output } = await this.taskExecutor.runPlans(
+      `Locate ${prompts.length} elements`,
+      [plan],
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+    );
+
+    const dprValue = await (this.interface.size() as any).dpr;
+    return (output || []).map((r: any) => {
+      if (!r) {
+        return {
+          rect: undefined,
+          center: undefined,
+        } as any;
+      }
+      return {
+        rect: r.rect,
+        center: r.center,
+        dpr: dprValue,
+      };
+    });
   }
 
   async aiAssert(
@@ -1360,16 +1337,6 @@ export class Agent<
 
       throw error;
     }
-  }
-
-  async aiLocateAll(
-    prompts: TUserPrompt | TUserPrompt[],
-    opt?: LocateOption & {
-      concurrency?: number;
-      freezeContext?: boolean;
-    },
-  ) {
-    return this.locateAll(prompts, opt);
   }
 
   async aiWaitFor(assertion: TUserPrompt, opt?: AgentWaitForOpt) {

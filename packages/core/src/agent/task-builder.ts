@@ -634,9 +634,9 @@ export class TaskBuilder {
 
         let multiResult;
         try {
-          multiResult = await this.service.locateMulti(
+          multiResult = await this.service.locate(
             param,
-            { context: uiContext },
+            { context: uiContext, mode: 'multi' },
             modelConfigForDefaultIntent,
           );
           applyDump(multiResult.dump);
@@ -690,9 +690,9 @@ export class TaskBuilder {
 
         let locateResult;
         try {
-          locateResult = await this.service.locateAll(
+          locateResult = await this.service.locate(
             param,
-            { context: uiContext },
+            { context: uiContext, mode: 'all' },
             modelConfigForDefaultIntent,
           );
           applyDump(locateResult.dump);
