@@ -211,7 +211,8 @@ export class AndroidDevice implements AbstractInterface {
         await this.keyboardPress(param.keyName);
       }),
       defineActionCursorMove(async (param) => {
-        const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        const arrowKey =
+          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
         const times = param.times ?? 1;
         for (let i = 0; i < times; i++) {
           await this.keyboardPress(arrowKey);
