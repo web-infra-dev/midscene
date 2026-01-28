@@ -143,6 +143,7 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       // Manually populate state to verify cleanup
       (manager as any).spsHeader = Buffer.from('sps');
+      (manager as any).lastKeyframeBuffer = Buffer.from('keyframe');
       (manager as any).isInitialized = true;
       (manager as any).h264SearchConfigFn = () => {};
       (manager as any).keyframeResolvers = [() => {}];
@@ -150,6 +151,7 @@ describe('ScrcpyScreenshotManager', () => {
       await manager.disconnect();
 
       expect((manager as any).spsHeader).toBeNull();
+      expect((manager as any).lastKeyframeBuffer).toBeNull();
       expect((manager as any).isInitialized).toBe(false);
       expect((manager as any).h264SearchConfigFn).toBeNull();
       expect((manager as any).keyframeResolvers).toEqual([]);

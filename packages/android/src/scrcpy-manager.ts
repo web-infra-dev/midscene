@@ -22,6 +22,7 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
 const MAX_KEYFRAME_WAIT_MS = 5_000;
+const FRESH_FRAME_TIMEOUT_MS = 300; // Short timeout to wait for a fresh frame; fallback to cached frame if screen is static
 const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
@@ -107,6 +108,7 @@ export class ScrcpyScreenshotManager {
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
   private keyframeResolvers: Array<(buf: Buffer) => void> = [];
+  private lastKeyframeBuffer: Buffer | null = null;
   private videoResolution: { width: number; height: number } | null = null;
   private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
 
@@ -266,7 +268,8 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Process a single video frame
+   * Process a single video frame.
+   * Always caches the latest keyframe for static-screen fallback.
    */
   private processFrame(packet: any): void {
     const frameBuffer = Buffer.from(packet.data);
@@ -276,9 +279,12 @@ export class ScrcpyScreenshotManager {
       this.extractSpsHeader(frameBuffer);
     }
 
-    if (actualKeyFrame && this.spsHeader && this.keyframeResolvers.length > 0) {
+    if (actualKeyFrame && this.spsHeader) {
       const combined = Buffer.concat([this.spsHeader, frameBuffer]);
-      this.notifyKeyframeWaiters(combined);
+      this.lastKeyframeBuffer = combined;
+      if (this.keyframeResolvers.length > 0) {
+        this.notifyKeyframeWaiters(combined);
+      }
     }
   }
 
@@ -309,8 +315,9 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Get screenshot as PNG
-   * Decodes H.264 video stream to PNG using ffmpeg
+   * Get screenshot as PNG.
+   * Tries to get a fresh frame within a short timeout. If the screen is static
+   * (no new frames arrive), falls back to the latest cached keyframe.
    */
   async getScreenshotPng(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -324,12 +331,29 @@ export class ScrcpyScreenshotManager {
     const spsWaitTime = Date.now() - t2;
 
     const t3 = Date.now();
-    const keyframeBuffer = await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
+    let keyframeBuffer: Buffer;
+    let frameSource: string;
+    try {
+      keyframeBuffer = await this.waitForNextKeyframe(FRESH_FRAME_TIMEOUT_MS);
+      frameSource = 'fresh';
+    } catch {
+      // No fresh frame within timeout — screen is likely static, use cached frame
+      if (this.lastKeyframeBuffer) {
+        keyframeBuffer = this.lastKeyframeBuffer;
+        frameSource = 'cached';
+      } else {
+        // No cached frame either, wait longer
+        keyframeBuffer = await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
+        frameSource = 'fresh-retry';
+      }
+    }
     const frameWaitTime = Date.now() - t3;
 
     this.resetIdleTimer();
 
-    debugScrcpy(`Decoding H.264 stream: ${keyframeBuffer.length} bytes`);
+    debugScrcpy(
+      `Decoding H.264 stream: ${keyframeBuffer.length} bytes (${frameSource})`,
+    );
 
     const t4 = Date.now();
     const result = await this.decodeH264ToPng(keyframeBuffer);
@@ -337,7 +361,7 @@ export class ScrcpyScreenshotManager {
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
-      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, frameWait=${frameWaitTime}ms, decode=${decodeTime}ms)`,
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, frameWait=${frameWaitTime}ms[${frameSource}], decode=${decodeTime}ms)`,
     );
 
     return result;
@@ -551,6 +575,7 @@ export class ScrcpyScreenshotManager {
 
     this.videoStream = null;
     this.spsHeader = null;
+    this.lastKeyframeBuffer = null;
     this.isInitialized = false;
     this.h264SearchConfigFn = null;
     this.keyframeResolvers = [];
