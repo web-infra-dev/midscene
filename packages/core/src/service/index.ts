@@ -7,7 +7,7 @@ import {
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
-import { type AIArgs, expandSearchArea } from '@/common';
+import type { AIArgs } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -27,7 +27,7 @@ import {
   MIDSCENE_FORCE_DEEP_THINK,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
+import { compositeElementInfoImg } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt } from '../common';
@@ -344,7 +344,7 @@ export default class Service {
         }
       : target;
 
-    let imagePayload = await compositeElementInfoImg({
+    const imagePayload = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
       size,
       elementsPositionInfo: [
@@ -354,21 +354,6 @@ export default class Service {
       ],
       borderThickness: 3,
     });
-
-    if (opt?.deepThink) {
-      const searchArea = expandSearchArea(
-        targetRect,
-        context.size,
-        modelFamily,
-      );
-      debug('describe: set searchArea', searchArea);
-      const croppedResult = await cropByRect(
-        imagePayload,
-        searchArea,
-        modelFamily === 'qwen2.5-vl',
-      );
-      imagePayload = croppedResult.imageBase64;
-    }
 
     const msgs: AIArgs = [
       { role: 'system', content: systemPrompt },
@@ -389,11 +374,7 @@ export default class Service {
     const callAIFn = this
       .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
 
-    const res = await callAIFn(
-      msgs,
-      modelConfig,
-      opt?.deepThink ? { deepThink: true } : undefined,
-    );
+    const res = await callAIFn(msgs, modelConfig);
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);
