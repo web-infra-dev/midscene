@@ -26,9 +26,9 @@ const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 
-// Scrcpy default configuration (默认关闭,需手动开启)
+// Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
 export const DEFAULT_SCRCPY_CONFIG = {
-  enabled: false, // 默认关闭,需手动开启
+  enabled: false,
   maxSize: DEFAULT_MAX_SIZE,
   idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
   videoBitRate: DEFAULT_VIDEO_BIT_RATE,
