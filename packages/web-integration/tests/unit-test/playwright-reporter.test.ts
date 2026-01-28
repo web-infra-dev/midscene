@@ -9,18 +9,21 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
-import * as coreUtils from '@midscene/core/utils';
 import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 
 // Mock core utilities - getReportTpl returns a template string
-vi.mock('@midscene/core/utils', () => ({
-  getReportTpl: vi.fn(
-    () => '<html><body><!-- reports will be appended here --></body></html>',
-  ),
-}));
+vi.mock('@midscene/core/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/utils')>();
+  return {
+    ...actual,
+    getReportTpl: vi.fn(
+      () => '<html><body><!-- reports will be appended here --></body></html>',
+    ),
+  };
+});
 
 describe('MidsceneReporter', () => {
   let originalResolve: typeof require.resolve;
@@ -226,6 +229,9 @@ describe('MidsceneReporter', () => {
     it('should include project name in test title when available', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
+
       // Simulate multi-project configuration to enable browser labels
       const mockConfig = {
         projects: [{ name: 'chromium' }, { name: 'webkit' }],
@@ -258,20 +264,21 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_id: 'test-id-5',
             playwright_test_title: 'Browser Compatibility Test [chromium]',
           }),
         }),
-        true,
       );
     });
 
     it('should include both project name and retry in test title', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration to enable browser labels
       const mockConfig = {
@@ -306,15 +313,13 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_id: 'test-id-6(retry #2)',
             playwright_test_title: 'Flaky Browser Test [webkit](retry #2)',
           }),
         }),
-        true,
       );
     });
 
@@ -357,6 +362,9 @@ describe('MidsceneReporter', () => {
     it('should not add project suffix when only one project exists', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
+
       // Simulate single project configuration
       const mockConfig = {
         projects: [{ name: 'chromium' }],
@@ -385,19 +393,20 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_title: 'Single Project Test',
           }),
         }),
-        true,
       );
     });
 
     it('should add project suffix when multiple projects exist', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration
       const mockConfig = {
@@ -427,19 +436,20 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_title: 'Multi Project Test [webkit]',
           }),
         }),
-        true,
       );
     });
 
     it('should handle project suffix with retry in multi-project setup', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration
       const mockConfig = {
@@ -470,15 +480,13 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_title:
               'Retry Multi Project Test [chromium](retry #2)',
           }),
         }),
-        true,
       );
     });
   });

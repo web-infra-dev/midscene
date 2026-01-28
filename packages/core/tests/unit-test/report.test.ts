@@ -1,10 +1,7 @@
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-// @ts-ignore no types in es folder
-import { ReportMergingTool } from '../../dist/es/report';
-// @ts-ignore no types in es folder
-import { writeDumpReport } from '../../dist/es/utils';
-import { getTmpFile } from '../../src/utils';
+import { ReportMergingTool } from '../../src/report';
+import { getTmpFile, writeDumpReport } from '../../src/utils';
 
 function generateNReports(
   n: number,
