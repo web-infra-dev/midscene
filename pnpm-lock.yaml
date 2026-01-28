@@ -1065,6 +1065,9 @@ importers:
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
@@ -1075,9 +1078,6 @@ importers:
         specifier: 10.1.0
         version: 10.1.0
     devDependencies:
-      '@midscene/playground':
-        specifier: workspace:*
-        version: link:../playground
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)

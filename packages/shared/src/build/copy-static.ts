@@ -23,6 +23,12 @@ export const createCopyStaticPlugin = (options: CopyStaticOptions) => ({
     api.onAfterBuild(async () => {
       const { srcDir, destDir, faviconPath } = options;
 
+      // Remove symlink left by dev mode before copying
+      const stat = await fs.promises.lstat(destDir).catch(() => null);
+      if (stat?.isSymbolicLink()) {
+        await fs.promises.unlink(destDir);
+      }
+
       await fs.promises.mkdir(destDir, { recursive: true });
 
       // Copy directory contents recursively
