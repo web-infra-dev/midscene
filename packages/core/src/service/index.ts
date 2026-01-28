@@ -389,7 +389,11 @@ export default class Service {
     const callAIFn = this
       .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
 
-    const res = await callAIFn(msgs, modelConfig);
+    const res = await callAIFn(
+      msgs,
+      modelConfig,
+      opt?.deepThink ? { deepThink: true } : undefined,
+    );
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);
