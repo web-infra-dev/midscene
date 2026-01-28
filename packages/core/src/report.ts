@@ -15,9 +15,8 @@ export class ReportMergingTool {
   }
   private extractScriptContent(filePath: string): string {
     // Regular expression to match content between script tags
-    // Requires newline before <script and </script>
     const scriptRegex =
-      /\n<script type="midscene_web_dump" type="application\/json"[^>]*>([\s\S]*?)\n<\/script>/;
+      /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/;
 
     const fileContent = fs.readFileSync(filePath, 'utf-8');
     const match = scriptRegex.exec(fileContent);

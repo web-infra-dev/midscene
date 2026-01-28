@@ -29,7 +29,6 @@ import {
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
-  type StorageProvider,
   type TUserPrompt,
   type UIContext,
 } from '../index';
@@ -42,26 +41,19 @@ export type TestStatus =
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
-import {
-  getReportTpl,
-  getVersion,
-  groupedActionDumpFileExt,
-  processCacheConfig,
-  reportHTMLContent,
-  writeLogFile,
-} from '@/utils';
+import type { IReportGenerator } from '@/report-generator';
+import { ReportGenerator } from '@/report-generator';
+import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
   parseYamlScript,
 } from '../yaml/index';
 
-import { existsSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
-import { MemoryStorage } from '@/storage';
 import type { TaskRunner } from '@/task-runner';
-import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   type IModelConfig,
   MIDSCENE_REPLANNING_CYCLE_LIMIT,
@@ -81,12 +73,7 @@ import {
   withFileChooser,
 } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
-import {
-  commonContextParser,
-  getReportFileName,
-  parsePrompt,
-  printReportMsg,
-} from './utils';
+import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
 
@@ -237,13 +224,7 @@ export class Agent<
 
   private fullActionSpace: DeviceAction[];
 
-  /**
-   * Shared storage provider for all ScreenshotItems created by this Agent.
-   * Initialized from opts.storageProvider or defaults to a new MemoryStorage.
-   * Using a shared storage reduces memory overhead when multiple screenshots
-   * are created during agent execution.
-   */
-  private storageProvider: StorageProvider;
+  private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
   get page() {
@@ -284,7 +265,7 @@ export class Agent<
         );
 
         debug('will get image info of base64');
-        const screenshotBase64 = await context.screenshot.getData();
+        const screenshotBase64 = context.screenshot.base64;
         const { width: screenshotWidth } =
           await imageInfoOfBase64(screenshotBase64);
         debug('image info of base64 done');
@@ -376,10 +357,6 @@ export class Agent<
 
     this.onTaskStartTip = this.opts.onTaskStartTip;
 
-    // Initialize shared storage provider for all screenshots
-    // Use provided storage or create a new MemoryStorage for this agent instance
-    this.storageProvider = this.opts.storageProvider || new MemoryStorage();
-
     this.service = new Service(async () => {
       return this.getUIContext();
     });
@@ -435,6 +412,13 @@ export class Agent<
     this.reportFileName =
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+
+    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
+      generateReport: this.opts.generateReport,
+      useDirectoryReport: this.opts.useDirectoryReport,
+      autoPrintReportMsg: this.opts.autoPrintReportMsg,
+      reportGenerator: this.opts.reportGenerator,
+    });
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -460,7 +444,6 @@ export class Agent<
       debug('Using commonContextParser');
       context = await commonContextParser(this.interface, {
         uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
-        storageProvider: this.storageProvider,
       });
     }
 
@@ -476,15 +459,12 @@ export class Agent<
       const targetWidth = Math.round(context.size.width);
       const targetHeight = Math.round(context.size.height);
       debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = await context.screenshot.getData();
+      const currentScreenshotBase64 = context.screenshot.base64;
       const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
         width: targetWidth,
         height: targetHeight,
       });
-      context.screenshot = await ScreenshotItem.create(
-        resizedBase64,
-        this.storageProvider,
-      );
+      context.screenshot = ScreenshotItem.create(resizedBase64);
     } else {
       debug(`screenshot scale=${computedScreenshotScale}`);
     }
@@ -514,16 +494,13 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump(
-      {
-        sdkVersion: getVersion(),
-        groupName: this.opts.groupName!,
-        groupDescription: this.opts.groupDescription,
-        executions: [],
-        modelBriefs: [],
-      },
-      this.opts.storageProvider, // Pass storageProvider for directory-based reports
-    );
+    this.dump = new GroupedActionDump({
+      sdkVersion: getVersion(),
+      groupName: this.opts.groupName!,
+      groupDescription: this.opts.groupDescription,
+      executions: [],
+      modelBriefs: [],
+    });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
@@ -565,66 +542,9 @@ export class Agent<
       );
     }
 
-    const {
-      generateReport = true,
-      autoPrintReportMsg = true,
-      useDirectoryReport = false,
-    } = this.opts;
-
-    if (useDirectoryReport) {
-      // Use directory-based report format with separate PNG files
-      const outputDir = join(
-        getMidsceneRunSubDir('report'),
-        this.reportFileName!,
-      );
-
-      this.reportFile = await this.dump.writeToDirectory(outputDir);
-      debug('writeOutActionDumps (directory)', this.reportFile);
-
-      if (generateReport && autoPrintReportMsg && this.reportFile) {
-        console.log('\n[Midscene] Directory report generated.');
-        console.log(
-          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
-        );
-        console.log(
-          `[Midscene] Example: npx serve ${dirname(this.reportFile)}`,
-        );
-      }
-    } else {
-      // Use traditional single HTML file with embedded base64 images
-      if (generateReport) {
-        // Generate HTML with inline screenshots using toHTML()
-        const htmlScripts = await this.dump.toHTML();
-        const htmlContent = `${getReportTpl()}\n${htmlScripts}`;
-
-        const reportPath = join(
-          getMidsceneRunSubDir('report'),
-          `${this.reportFileName}.html`,
-        );
-
-        writeFileSync(reportPath, htmlContent);
-        this.reportFile = reportPath;
-
-        debug(
-          'writeOutActionDumps (single file with inline screenshots)',
-          this.reportFile,
-        );
-
-        if (autoPrintReportMsg) {
-          printReportMsg(this.reportFile);
-        }
-      } else {
-        // Only write dump data without generating report
-        this.reportFile = writeLogFile({
-          fileName: this.reportFileName!,
-          fileExt: groupedActionDumpFileExt,
-          fileContent: this.dumpDataString(),
-          type: 'dump',
-          generateReport: false,
-        });
-        debug('writeOutActionDumps (dump only)', this.reportFile);
-      }
-    }
+    await this.reportGenerator.onDumpUpdate(this.dump);
+    this.reportFile = this.reportGenerator.getReportPath();
+    debug('writeOutActionDumps', this.reportFile);
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1412,6 +1332,9 @@ export class Agent<
       await this.lastWritePromise;
     }
 
+    await this.reportGenerator.finalize(this.dump);
+    this.reportFile = this.reportGenerator.getReportPath();
+
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
@@ -1425,10 +1348,7 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = await ScreenshotItem.create(
-      base64,
-      this.storageProvider,
-    );
+    const screenshot = ScreenshotItem.create(base64);
     const now = Date.now();
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [

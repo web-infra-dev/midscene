@@ -26,7 +26,7 @@ export function sleep(ms: number) {
 export async function fakeService(content: string) {
   const screenshotPath = getFixture('baidu.png');
   const screenshotBase64 = localImg2Base64(screenshotPath);
-  const screenshot = await ScreenshotItem.create(screenshotBase64);
+  const screenshot = ScreenshotItem.create(screenshotBase64);
   const basicContext = {
     screenshot,
     size: { width: 1920, height: 1080 },

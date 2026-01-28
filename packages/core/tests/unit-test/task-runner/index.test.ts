@@ -50,7 +50,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
 };
 
 const fakeUIContextBuilder = async () => {
-  const screenshot = await ScreenshotItem.create('');
+  const screenshot = ScreenshotItem.create('');
   return {
     screenshot,
     tree: { node: null, children: [] },
@@ -221,7 +221,7 @@ describe(
 
     it('subTask - reuse previous uiContext', async () => {
       const baseUIContext = async (id: string) => {
-        const screenshot = await ScreenshotItem.create(id);
+        const screenshot = ScreenshotItem.create(id);
         return {
           screenshot,
           tree: { node: null, children: [] },
@@ -272,7 +272,7 @@ describe(
         .mockImplementation(
           async () =>
             ({
-              screenshot: await ScreenshotItem.create(''),
+              screenshot: ScreenshotItem.create(''),
               tree: { node: null, children: [] },
               size: { width: 0, height: 0 },
             }) as unknown as UIContext,

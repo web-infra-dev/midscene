@@ -114,9 +114,9 @@ export const PlaywrightAiFixture = (options?: {
           try {
             const agent = pageAgentMap[idForPage];
             if (agent) {
-              // Get dump with inline screenshots
+              // Get dump with inline screenshots (sync)
               const dumpWithInlineScreenshots =
-                await agent.dump.serializeWithInlineScreenshots();
+                agent.dump.serializeWithInlineScreenshots();
               // Update the temp file with inline screenshot data
               const tempFilePath = pageTempFiles.get(idForPage);
               if (tempFilePath) {

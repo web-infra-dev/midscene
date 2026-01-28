@@ -30,7 +30,7 @@ export async function autoGLMPlanning(
       ? `<high_priority_knowledge>${actionContext}</high_priority_knowledge>`
       : '');
 
-  const imagePayloadBase64 = await context.screenshot.getData();
+  const imagePayloadBase64 = context.screenshot.base64;
 
   conversationHistory.append({
     role: 'user',

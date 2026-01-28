@@ -1,91 +1,30 @@
-import type { StorageProvider } from './storage';
-import { MemoryStorage } from './storage';
+import { uuid } from '@midscene/shared/utils';
 
 /**
- * ScreenshotItem encapsulates screenshot data with storage abstraction.
- * Uses async getData() to load images on demand, reducing memory usage.
+ * ScreenshotItem encapsulates screenshot data.
  *
  * Serialization format: { $screenshot: "id" }
  */
 export class ScreenshotItem {
   private _id: string;
-  private _provider: StorageProvider;
+  private _base64: string;
 
-  private constructor(id: string, provider: StorageProvider) {
+  private constructor(id: string, base64: string) {
     this._id = id;
-    this._provider = provider;
+    this._base64 = base64;
   }
 
   /** Create a new ScreenshotItem from base64 data */
-  static async create(
-    base64: string,
-    provider: StorageProvider = new MemoryStorage(),
-  ): Promise<ScreenshotItem> {
-    const id = await provider.store(base64);
-    return new ScreenshotItem(id, provider);
-  }
-
-  /** Restore a ScreenshotItem from a stored ID (used when deserializing) */
-  static restore(id: string, provider: StorageProvider): ScreenshotItem {
-    return new ScreenshotItem(id, provider);
+  static create(base64: string): ScreenshotItem {
+    return new ScreenshotItem(uuid(), base64);
   }
 
   get id(): string {
     return this._id;
   }
 
-  get provider(): StorageProvider {
-    return this._provider;
-  }
-
-  /** Asynchronously retrieve the base64 data */
-  async getData(): Promise<string> {
-    return this._provider.retrieve(this._id);
-  }
-
-  /**
-   * Migrate data to a different storage provider.
-   *
-   * **IMPORTANT**: This method returns a NEW ScreenshotItem instance. The original
-   * instance becomes invalid after successful migration, as its data is deleted from
-   * the old provider. Always use the returned instance and discard the old one.
-   *
-   * Migration process:
-   * 1. Copy data to new provider
-   * 2. Delete from old provider
-   * 3. Return new ScreenshotItem pointing to new provider
-   *
-   * If deletion from old provider fails, attempts rollback by removing from new provider.
-   * Note: If rollback also fails, data may exist in both providers (caller should handle cleanup).
-   *
-   * @param newProvider - The target storage provider to migrate to
-   * @returns A new ScreenshotItem instance pointing to the new provider
-   * @throws Error if migration fails (old provider deletion failed)
-   *
-   * @example
-   * ```typescript
-   * const oldItem = await ScreenshotItem.create(data, memoryStorage);
-   * const newItem = await oldItem.migrateTo(fileStorage);
-   * // IMPORTANT: Use newItem, not oldItem from this point forward
-   * ```
-   */
-  async migrateTo(newProvider: StorageProvider): Promise<ScreenshotItem> {
-    const data = await this.getData();
-    const newId = await newProvider.store(data);
-
-    try {
-      await this._provider.delete(this._id);
-      return new ScreenshotItem(newId, newProvider);
-    } catch (error) {
-      // Rollback: attempt to remove data from new provider
-      try {
-        await newProvider.delete(newId);
-      } catch {
-        // Rollback failed - data may exist in both providers
-        // Caller should handle cleanup if needed
-      }
-      throw error;
-    }
+  get base64(): string {
+    return this._base64;
   }
 
   /** Serialize to { $screenshot: id } format for JSON */

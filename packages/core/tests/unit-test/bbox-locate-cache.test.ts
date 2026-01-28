@@ -46,7 +46,7 @@ const createMockUIContext = async (
   screenshotData: string,
   size = { width: 1920, height: 1080, dpr: 1 },
 ) => {
-  const screenshot = await ScreenshotItem.create(screenshotData);
+  const screenshot = ScreenshotItem.create(screenshotData);
   return { screenshot, size };
 };
 

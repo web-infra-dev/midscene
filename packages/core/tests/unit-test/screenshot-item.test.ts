@@ -1,4 +1,3 @@
-import { MemoryStorage } from '@/storage';
 import { describe, expect, it } from 'vitest';
 import { ScreenshotItem } from '../../src/screenshot-item';
 
@@ -6,32 +5,30 @@ describe('ScreenshotItem', () => {
   const testBase64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA';
 
   describe('create', () => {
-    it('should create a ScreenshotItem from base64 string', async () => {
-      const item = await ScreenshotItem.create(testBase64);
+    it('should create a ScreenshotItem from base64 string', () => {
+      const item = ScreenshotItem.create(testBase64);
       expect(item).toBeInstanceOf(ScreenshotItem);
-      const data = await item.getData();
-      expect(data).toBe(testBase64);
+      expect(item.base64).toBe(testBase64);
     });
   });
 
-  describe('getData', () => {
-    it('should return the base64 data', async () => {
-      const item = await ScreenshotItem.create(testBase64);
-      const data = await item.getData();
-      expect(data).toBe(testBase64);
+  describe('base64 getter', () => {
+    it('should return the base64 data', () => {
+      const item = ScreenshotItem.create(testBase64);
+      expect(item.base64).toBe(testBase64);
     });
   });
 
   describe('toSerializable', () => {
-    it('should return an object with $screenshot property', async () => {
-      const item = await ScreenshotItem.create(testBase64);
+    it('should return an object with $screenshot property', () => {
+      const item = ScreenshotItem.create(testBase64);
       const serialized = item.toSerializable();
       expect(serialized).toHaveProperty('$screenshot');
       expect(typeof serialized.$screenshot).toBe('string');
     });
 
-    it('should produce JSON-serializable output', async () => {
-      const item = await ScreenshotItem.create(testBase64);
+    it('should produce JSON-serializable output', () => {
+      const item = ScreenshotItem.create(testBase64);
       const obj = { screenshot: item };
       const serialized = JSON.stringify(obj, (_key, value) => {
         if (value && typeof value.toSerializable === 'function') {
@@ -42,32 +39,6 @@ describe('ScreenshotItem', () => {
       const parsed = JSON.parse(serialized);
       expect(parsed.screenshot).toHaveProperty('$screenshot');
       expect(typeof parsed.screenshot.$screenshot).toBe('string');
-    });
-  });
-
-  describe('restore', () => {
-    it('should restore from id and provider', async () => {
-      const provider = new MemoryStorage();
-      const original = await ScreenshotItem.create(testBase64, provider);
-      const serialized = original.toSerializable();
-
-      const restored = ScreenshotItem.restore(serialized.$screenshot, provider);
-      expect(restored).toBeInstanceOf(ScreenshotItem);
-      const restoredData = await restored.getData();
-      const originalData = await original.getData();
-      expect(restoredData).toBe(originalData);
-    });
-
-    it('should be the counterpart of toSerializable', async () => {
-      const provider = new MemoryStorage();
-      const original = await ScreenshotItem.create(testBase64, provider);
-      const serialized = original.toSerializable();
-      const restored = ScreenshotItem.restore(serialized.$screenshot, provider);
-
-      expect(restored).toBeInstanceOf(ScreenshotItem);
-      const restoredData = await restored.getData();
-      const originalData = await original.getData();
-      expect(restoredData).toBe(originalData);
     });
   });
 
@@ -96,16 +67,18 @@ describe('ScreenshotItem', () => {
     });
   });
 
-  describe('round-trip serialization', () => {
-    it('should preserve data through create -> toSerializable -> restore cycle', async () => {
-      const provider = new MemoryStorage();
-      const original = await ScreenshotItem.create(testBase64, provider);
-      const serialized = original.toSerializable();
-      const restored = ScreenshotItem.restore(serialized.$screenshot, provider);
+  describe('id and base64', () => {
+    it('should have unique id for each instance', () => {
+      const item1 = ScreenshotItem.create(testBase64);
+      const item2 = ScreenshotItem.create(testBase64);
+      expect(item1.id).not.toBe(item2.id);
+    });
 
-      const restoredData = await restored.getData();
-      const originalData = await original.getData();
-      expect(restoredData).toBe(originalData);
+    it('should preserve base64 data through toSerializable', () => {
+      const item = ScreenshotItem.create(testBase64);
+      const serialized = item.toSerializable();
+      expect(serialized.$screenshot).toBe(item.id);
+      expect(item.base64).toBe(testBase64);
     });
   });
 });

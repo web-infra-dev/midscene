@@ -64,9 +64,9 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
-// Storage providers
-export type { StorageProvider, FileStorage } from './storage';
-export { MemoryStorage } from './storage';
+// Report generator
+export type { IReportGenerator } from './report-generator';
+export { ReportGenerator, nullReportGenerator } from './report-generator';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';

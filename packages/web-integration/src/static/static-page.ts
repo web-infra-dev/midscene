@@ -92,10 +92,10 @@ export default class StaticPage implements AbstractInterface {
     // Check if this is a UIContext with screenshot property
     if ('screenshot' in this.uiContext && this.uiContext.screenshot) {
       const screenshot = this.uiContext.screenshot;
-      if (typeof screenshot === 'object' && 'getData' in screenshot) {
-        return screenshot.getData();
+      if (typeof screenshot === 'object' && 'base64' in screenshot) {
+        return (screenshot as { base64: string }).base64;
       }
-      return (screenshot as unknown as { base64: string }).base64;
+      return screenshot as unknown as string;
     }
 
     // Check legacy screenshotBase64 field
@@ -172,7 +172,7 @@ export default class StaticPage implements AbstractInterface {
 
     // Otherwise, create a proper UIContext from the legacy format
     const screenshotBase64 = await this.screenshotBase64();
-    const screenshot = await ScreenshotItem.create(screenshotBase64);
+    const screenshot = ScreenshotItem.create(screenshotBase64);
     const size = await this.size();
 
     return {

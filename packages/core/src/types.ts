@@ -10,8 +10,8 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import type { IReportGenerator } from './report-generator';
 import { ScreenshotItem } from './screenshot-item';
-import type { StorageProvider } from './storage';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -416,27 +416,16 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that partially restores ScreenshotItem
+ * Reviver function for JSON deserialization that handles ScreenshotItem formats.
  *
  * BEHAVIOR:
- * - For { $screenshot: "id" } format: Creates ScreenshotItem with empty MemoryStorage
- *   WARNING: Screenshot data will NOT be available - getData() will fail
- * - For { base64: "..." } format: Returns as plain object (not ScreenshotItem)
- *   Consumer code must handle conversion if needed
- *
- * LIMITATIONS:
- * - Cannot restore actual screenshot data from ID-only serialization
- * - Does not automatically convert inline base64 format to ScreenshotItem
- *   (requires async creation which reviver cannot perform)
- *
- * RECOMMENDED APPROACH:
- * - Serialize: Use serializeWithInlineScreenshots() to include base64 data
- * - Deserialize: Handle { base64 } format in consumer code with async conversion
- * - For production: Use directory-based format (writeToDirectory) with separate PNG files
+ * - For { $screenshot: "id" } format: Left as-is (plain object)
+ *   Consumer must use imageMap to restore base64 data
+ * - For { base64: "..." } format: Creates ScreenshotItem from base64 data
  *
  * @param key - JSON key being processed
  * @param value - JSON value being processed
- * @returns Restored value (ScreenshotItem for ID format, plain object for base64 format)
+ * @returns Restored value
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
   // Only process screenshot fields
@@ -444,45 +433,19 @@ function reviverForDumpDeserialization(key: string, value: any): any {
     return value;
   }
 
-  // Note: Import here to avoid circular dependency issues
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { MemoryStorage } = require('./storage');
-
   // Handle serialized format: { $screenshot: "id" }
+  // Leave as plain object — consumer uses imageMap to restore
   if (ScreenshotItem.isSerialized(value)) {
-    // WARNING: Creates ScreenshotItem with empty storage - data is NOT available
-    // This is a limitation of the ID-only serialization format
-    const storage = new MemoryStorage();
-    return ScreenshotItem.restore(value.$screenshot, storage);
+    return value;
   }
 
   // Handle inline base64 format: { base64: "..." }
-  // This format contains actual data, so screenshot will work correctly
   if ('base64' in value && typeof value.base64 === 'string') {
-    // For inline data, we need async creation, but reviver must be sync
-    // Leave as plain object - will be handled by consumer code
     return value;
   }
 
   return value;
 }
-
-/**
- * Helper to ensure all tasks have recorder field (even if empty)
- */
-function normalizeTaskRecorder(
-  tasks: IExecutionDump['tasks'],
-): IExecutionDump['tasks'] {
-  return tasks.map((task: any) => ({
-    ...task,
-    recorder: task.recorder || [],
-  }));
-}
-
-/**
- * Type for screenshot serialization result
- */
-type SerializedScreenshot = { base64: string };
 
 /**
  * ExecutionDump class for serializing and deserializing execution dumps
@@ -569,70 +532,6 @@ export class ExecutionDump implements IExecutionDump {
     }
 
     return screenshots;
-  }
-
-  /**
-   * Convert to serializable format where ScreenshotItem instances
-   * are replaced with { $screenshot: "id" } placeholders.
-   *
-   * This is an async method because it needs to handle potential
-   * async operations in the serialization process.
-   *
-   * @returns Serializable version of the execution dump
-   */
-  async toSerializableFormat(options?: {
-    inlineScreenshots?: boolean;
-    screenshotsPath?: string;
-  }): Promise<IExecutionDump> {
-    const inlineScreenshots = options?.inlineScreenshots ?? false;
-    const screenshotsPath = options?.screenshotsPath;
-
-    // Use async processing for screenshots (inline or file path mode)
-    if (inlineScreenshots || screenshotsPath) {
-      const processValue = async (
-        obj: unknown,
-      ): Promise<
-        unknown | SerializedScreenshot | unknown[] | Record<string, unknown>
-      > => {
-        if (obj instanceof ScreenshotItem) {
-          if (screenshotsPath) {
-            // Directory mode: return file path
-            return { base64: `${screenshotsPath}/${obj.id}.png` };
-          }
-          // Inline mode: return base64 data
-          const base64 = await obj.getData();
-          return { base64 };
-        }
-        if (Array.isArray(obj)) {
-          return Promise.all(obj.map(processValue));
-        }
-        if (obj && typeof obj === 'object') {
-          const entries = await Promise.all(
-            Object.entries(obj).map(async ([key, value]) => [
-              key,
-              await processValue(value),
-            ]),
-          );
-          return Object.fromEntries(entries);
-        }
-        return obj;
-      };
-
-      const result = (await processValue(this.toJSON())) as IExecutionDump;
-      result.tasks = normalizeTaskRecorder(result.tasks);
-      return result;
-    }
-
-    // Default mode: return { $screenshot: id } references
-    const jsonString = JSON.stringify(this.toJSON(), (_key, value) => {
-      if (value instanceof ScreenshotItem) {
-        return value.toSerializable();
-      }
-      return value;
-    });
-    const result = JSON.parse(jsonString) as IExecutionDump;
-    result.tasks = normalizeTaskRecorder(result.tasks);
-    return result;
   }
 }
 
@@ -776,10 +675,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   modelBriefs: string[];
   executions: ExecutionDump[];
 
-  // Storage provider for screenshots (used in directory-based reports)
-  private _storageProvider?: StorageProvider;
-
-  constructor(data: IGroupedActionDump, storageProvider?: StorageProvider) {
+  constructor(data: IGroupedActionDump) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -787,41 +683,39 @@ export class GroupedActionDump implements IGroupedActionDump {
     this.executions = data.executions.map((exec) =>
       exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
     );
-    this._storageProvider = storageProvider;
-  }
-
-  get storageProvider(): StorageProvider | undefined {
-    return this._storageProvider;
   }
 
   /**
    * Serialize the GroupedActionDump to a JSON string
+   * Uses compact { $screenshot: id } format
    */
   serialize(indents?: number): string {
     return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
   }
 
   /**
-   * Serialize the GroupedActionDump with inline screenshots to a JSON string
-   * This is an async method that resolves all screenshot data
+   * Serialize the GroupedActionDump with inline screenshots to a JSON string.
+   * Each ScreenshotItem is replaced with { base64: "..." }.
    */
-  async serializeWithInlineScreenshots(indents?: number): Promise<string> {
-    const serializedExecutions: any[] = [];
-    for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({
-        inlineScreenshots: true,
-      });
-      serializedExecutions.push(serialized);
-    }
-
-    const data = {
-      sdkVersion: this.sdkVersion,
-      groupName: this.groupName,
-      groupDescription: this.groupDescription,
-      modelBriefs: this.modelBriefs,
-      executions: serializedExecutions,
+  serializeWithInlineScreenshots(indents?: number): string {
+    const processValue = (obj: unknown): unknown => {
+      if (obj instanceof ScreenshotItem) {
+        return { base64: obj.base64 };
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(processValue);
+      }
+      if (obj && typeof obj === 'object') {
+        const entries = Object.entries(obj).map(([key, value]) => [
+          key,
+          processValue(value),
+        ]);
+        return Object.fromEntries(entries);
+      }
+      return obj;
     };
 
+    const data = processValue(this.toJSON());
     return JSON.stringify(data, null, indents);
   }
 
@@ -867,130 +761,6 @@ export class GroupedActionDump implements IGroupedActionDump {
       screenshots.push(...execution.collectScreenshots());
     }
     return screenshots;
-  }
-
-  /**
-   * Convert to HTML format for report generation.
-   * This is an async method that handles screenshot data serialization.
-   *
-   * @returns HTML string containing the report data
-   */
-  async toHTML(): Promise<string> {
-    // Collect all screenshots and their data
-    const screenshots = this.collectAllScreenshots();
-    const imageDataMap = new Map<string, string>();
-
-    // Load all screenshot data
-    for (const screenshot of screenshots) {
-      const data = await screenshot.getData();
-      imageDataMap.set(screenshot.id, data);
-    }
-
-    // Serialize executions with inline base64 screenshots
-    const serializedExecutions: any[] = [];
-    for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({
-        inlineScreenshots: true,
-      });
-      serializedExecutions.push(serialized);
-    }
-
-    const dumpData = {
-      sdkVersion: this.sdkVersion,
-      groupName: this.groupName,
-      groupDescription: this.groupDescription,
-      modelBriefs: this.modelBriefs,
-      executions: serializedExecutions,
-    };
-
-    // Generate scripts for embedding
-    const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
-    const dumpScript = generateDumpScriptTag(JSON.stringify(dumpData));
-    const imageScripts = Array.from(imageDataMap.entries())
-      .map(([id, data]) => generateImageScriptTag(id, data))
-      .join('\n');
-
-    return `${dumpScript}\n${imageScripts}`;
-  }
-
-  /**
-   * Write report to a directory with separate image files.
-   * This is useful for reducing memory usage and report file size.
-   *
-   * @param outputDir - Directory path to write the report
-   * @returns Path to the generated index.html file
-   */
-  async writeToDirectory(outputDir: string): Promise<string> {
-    const { ifInBrowser } = require('@midscene/shared/utils');
-    if (ifInBrowser) {
-      console.warn(
-        'writeToDirectory is not supported in browser environment, skipping',
-      );
-      return '';
-    }
-
-    // Dynamic import to avoid bundling node modules
-    const [fs, path] = await Promise.all([
-      import('node:fs'),
-      import('node:path'),
-    ]);
-
-    // Create output directory
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    // Create screenshots subdirectory
-    const screenshotsDir = path.join(outputDir, 'screenshots');
-    if (!fs.existsSync(screenshotsDir)) {
-      fs.mkdirSync(screenshotsDir, { recursive: true });
-    }
-
-    // Collect all screenshots
-    const screenshots = this.collectAllScreenshots();
-
-    // Write each screenshot as a separate PNG file
-    for (const screenshot of screenshots) {
-      const data = await screenshot.getData();
-      const base64Data = data.replace(
-        /^data:image\/(png|jpeg|jpg);base64,/,
-        '',
-      );
-      const buffer = Buffer.from(base64Data, 'base64');
-      const filePath = path.join(screenshotsDir, `${screenshot.id}.png`);
-      fs.writeFileSync(filePath, buffer);
-    }
-
-    // Serialize executions with screenshot file path references
-    const serializedExecutions: any[] = [];
-    for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({
-        screenshotsPath: './screenshots', // Generate file paths directly
-      });
-      serializedExecutions.push(serialized);
-    }
-
-    const dumpData = {
-      sdkVersion: this.sdkVersion,
-      groupName: this.groupName,
-      groupDescription: this.groupDescription,
-      modelBriefs: this.modelBriefs,
-      executions: serializedExecutions,
-    };
-
-    // Generate HTML with file path references (no base64 data)
-    const { generateDumpScriptTag } = require('./dump');
-    const { getReportTpl } = require('./utils');
-
-    const dumpScript = generateDumpScriptTag(JSON.stringify(dumpData));
-
-    const htmlContent = `${getReportTpl()}\n${dumpScript}`;
-
-    // Write index.html
-    const indexPath = path.join(outputDir, 'index.html');
-    fs.writeFileSync(indexPath, htmlContent);
-
-    return indexPath;
   }
 }
 
@@ -1117,18 +887,10 @@ export interface AgentOpt {
   useDirectoryReport?: boolean;
 
   /**
-   * Storage provider for screenshots.
-   * Defaults to MemoryStorage if not specified.
-   *
-   * @example
-   * ```typescript
-   * import { FileStorage } from '@midscene/core';
-   * const agent = new Agent(page, {
-   *   storageProvider: new FileStorage('/tmp/screenshots'),
-   * });
-   * ```
+   * Custom report generator implementation.
+   * If not specified, ReportGenerator.create() selects the appropriate implementation.
    */
-  storageProvider?: StorageProvider;
+  reportGenerator?: IReportGenerator;
 
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
