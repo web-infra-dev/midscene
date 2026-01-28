@@ -1,7 +1,7 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { bboxDescription } from './common';
 
-export function systemPromptToLocateMultiElements(
+export function systemPromptToLocateMultipleElements(
   vlMode: TModelFamily | undefined,
 ) {
   const bboxComment = bboxDescription(vlMode);

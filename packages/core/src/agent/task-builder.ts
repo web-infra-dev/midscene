@@ -128,9 +128,9 @@ export class TaskBuilder {
           ),
       ],
       [
-        'LocateMulti',
+        'LocateMultiple',
         (plan) =>
-          this.handleLocateMultiPlan(
+          this.handleLocateMultiplePlan(
             plan as PlanningAction<PlanningLocateParam[]>,
             context,
           ),
@@ -580,11 +580,11 @@ export class TaskBuilder {
     return taskLocator;
   }
 
-  private async handleLocateMultiPlan(
+  private async handleLocateMultiplePlan(
     plan: PlanningAction<PlanningLocateParam[]>,
     context: PlanBuildContext,
   ): Promise<void> {
-    const taskLocate = this.createLocateMultiTask(plan, plan.param, context);
+    const taskLocate = this.createLocateMultipleTask(plan, plan.param, context);
     context.tasks.push(taskLocate);
   }
 
@@ -596,17 +596,17 @@ export class TaskBuilder {
     context.tasks.push(taskLocate);
   }
 
-  private createLocateMultiTask(
+  private createLocateMultipleTask(
     plan: PlanningAction<PlanningLocateParam[]>,
     detailedLocateParams: DetailedLocateParam[],
     context: PlanBuildContext,
   ): ExecutionTaskApply {
     const { modelConfigForDefaultIntent } = context;
 
-    // Use 'Planning' as main type, and 'LocateMulti' as subType
+    // Use 'Planning' as main type, and 'LocateMultiple' as subType
     const taskLocator: ExecutionTaskApply = {
       type: 'Planning',
-      subType: 'LocateMulti',
+      subType: 'LocateMultiple',
       subTask: context.subTask || undefined,
       param: detailedLocateParams,
       thought: plan.thought,
@@ -630,7 +630,7 @@ export class TaskBuilder {
           task.usage = dump.taskInfo?.usage;
         };
 
-        // For now, we skip cache logic for LocateMulti to keep it simple and focused on LLM optimization
+        // For now, we skip cache logic for LocateMultiple to keep it simple and focused on LLM optimization
 
         let multiResult;
         try {

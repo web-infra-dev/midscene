@@ -1228,7 +1228,7 @@ export class Agent<
     );
 
     const plan = {
-      type: 'LocateMulti',
+      type: 'LocateMultiple',
       param: detailedParams,
       thought: '',
     };
@@ -1239,7 +1239,7 @@ export class Agent<
       this.modelConfigManager.getModelConfig('planning');
 
     // Use runPlans to leverage TaskExecutor's pipeline (dump, log, etc)
-    // Note: we are passing a custom plan type 'LocateMulti', which must be supported by TaskBuilder
+    // Note: we are passing a custom plan type 'LocateMultiple', which must be supported by TaskBuilder
     const { output } = await this.taskExecutor.runPlans(
       `Locate ${prompts.length} elements`,
       [plan],

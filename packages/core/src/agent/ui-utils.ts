@@ -168,7 +168,7 @@ export function paramStr(task: ExecutionTask) {
     } else if (task.subType === 'LocateAll') {
       const locateParams = (task as ExecutionTaskPlanning)?.param;
       value = locateParamStr(locateParams as any);
-    } else if (task.subType === 'LocateMulti') {
+    } else if (task.subType === 'LocateMultiple') {
       const locateParams = (task as ExecutionTaskPlanning)?.param;
       if (Array.isArray(locateParams)) {
         const prompts = locateParams

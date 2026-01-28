@@ -4,7 +4,7 @@ import {
   AiExtractElementInfo,
   AiLocateAllElements,
   AiLocateElement,
-  AiLocateMultiElements,
+  AiLocateMultipleElements,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
@@ -260,7 +260,7 @@ export default class Service {
     const context = opt?.context || (await this.contextRetrieverFn());
 
     const startTime = Date.now();
-    const { parseResult, rawResponse, usage } = await AiLocateMultiElements({
+    const { parseResult, rawResponse, usage } = await AiLocateMultipleElements({
       callAIFn: this.aiVendorFn,
       context,
       targetElementDescriptions: queryPrompts,

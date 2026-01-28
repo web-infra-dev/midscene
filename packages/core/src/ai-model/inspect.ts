@@ -44,7 +44,7 @@ import {
 } from './prompt/llm-locator-all';
 import {
   findMultiElementsPrompt,
-  systemPromptToLocateMultiElements,
+  systemPromptToLocateMultipleElements,
 } from './prompt/llm-locator-multi';
 import {
   sectionLocatorInstruction,
@@ -609,7 +609,7 @@ export async function AiJudgeOrderSensitive(
   };
 }
 
-export async function AiLocateMultiElements(options: {
+export async function AiLocateMultipleElements(options: {
   context: UIContext;
   targetElementDescriptions: TUserPrompt[];
   callAIFn: typeof callAIWithObjectResponse<{
@@ -633,7 +633,7 @@ export async function AiLocateMultiElements(options: {
     extraTextFromUserPrompt(d),
   );
   const userInstructionPrompt = findMultiElementsPrompt(descriptionsText);
-  const systemPrompt = systemPromptToLocateMultiElements(modelFamily);
+  const systemPrompt = systemPromptToLocateMultipleElements(modelFamily);
 
   const msgs: AIArgs = [
     { role: 'system', content: systemPrompt },
