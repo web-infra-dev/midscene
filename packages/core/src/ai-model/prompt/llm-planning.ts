@@ -291,6 +291,8 @@ Don't use this tag if no information needs to be preserved.
 Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all sub-goals' : ''}, determine if the entire task is completed.
 
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
+  - IMPORTANT: The "goal" means strictly following the user's instruction - nothing more, nothing less. For example, if the user says "fill out the form", you should mark success="true" once all form fields are filled, do NOT submit the form. If the user says "click the login button", you should mark success="true" once the button is clicked, do NOT wait for the page to load or verify login success unless explicitly asked.
+
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
   - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, you should use <complete-goal success="false">reason</complete-goal> to indicate the checkpoint failed, and explain why the assertion failed in the message.
