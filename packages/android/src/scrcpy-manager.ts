@@ -1,6 +1,6 @@
 import { createReadStream } from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
 
@@ -22,17 +22,14 @@ const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
 const MAX_KEYFRAME_WAIT_MS = 5_000;
+const FRESH_FRAME_TIMEOUT_MS = 300; // Short timeout to wait for a fresh frame; fallback to cached frame if screen is static
 const KEYFRAME_POLL_INTERVAL_MS = 200;
-const FRAME_AGE_WARNING_THRESHOLD_MS = 1_000;
-const FRAME_AGE_PNG_WARNING_THRESHOLD_MS = 2_000;
-const MAX_RECENT_FRAMES = 10;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
-const FRAME_LOG_INTERVAL = 20;
 
-// Scrcpy default configuration (默认启用,自动 fallback)
+// Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
 export const DEFAULT_SCRCPY_CONFIG = {
-  enabled: true, // 默认启用,失败时自动降级到 ADB
+  enabled: false,
   maxSize: DEFAULT_MAX_SIZE,
   idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
   videoBitRate: DEFAULT_VIDEO_BIT_RATE,
@@ -104,19 +101,17 @@ export class ScrcpyScreenshotManager {
   // Using 'any' for external library types to avoid type compatibility issues
   private scrcpyClient: any = null;
   private videoStream: any = null;
-  private lastFrameBuffer: Buffer | null = null;
-  private lastFrameTimestamp = 0;
   private spsHeader: Buffer | null = null;
-  private latestFrameBuffer: Buffer | null = null;
-  private latestFrameTimestamp = 0;
   private idleTimer: NodeJS.Timeout | null = null;
   private isConnecting = false;
   private isInitialized = false;
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
-  private recentFrames: Buffer[] = [];
+  private keyframeResolvers: Array<(buf: Buffer) => void> = [];
+  private lastRawKeyframe: Buffer | null = null;
   private videoResolution: { width: number; height: number } | null = null;
   private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
+  private streamReader: any = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -186,6 +181,7 @@ export class ScrcpyScreenshotManager {
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
         sendFrameMeta: false,
+        videoCodecOptions: 'i-frame-interval=0',
       });
 
       this.scrcpyClient = await AdbScrcpyClient.start(
@@ -223,11 +219,10 @@ export class ScrcpyScreenshotManager {
    * Resolve path to scrcpy server binary
    */
   private resolveServerBinPath(): string {
-    const currentDir =
-      typeof __dirname !== 'undefined'
-        ? __dirname
-        : path.dirname(fileURLToPath(import.meta.url));
-    return path.resolve(currentDir, '../../bin/scrcpy-server');
+    const androidPkgJson = createRequire(import.meta.url).resolve(
+      '@midscene/android/package.json',
+    );
+    return path.join(path.dirname(androidPkgJson), 'bin', 'scrcpy-server');
   }
 
   /**
@@ -253,6 +248,7 @@ export class ScrcpyScreenshotManager {
     if (!this.videoStream) return;
 
     const reader = this.videoStream.stream.getReader();
+    this.streamReader = reader;
     this.consumeFramesLoop(reader);
   }
 
@@ -274,30 +270,25 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Process a single video frame
+   * Process a single video frame.
+   * Caches the raw keyframe buffer (without SPS concat) to minimize per-frame overhead.
+   * Buffer.concat with SPS header is deferred to when the frame is actually consumed.
    */
   private processFrame(packet: any): void {
     const frameBuffer = Buffer.from(packet.data);
-    const reportedKeyFrame = packet.keyframe ?? false;
     const actualKeyFrame = detectH264KeyFrame(frameBuffer);
-
-    this.lastFrameBuffer = frameBuffer;
-    this.lastFrameTimestamp = Date.now();
 
     if (actualKeyFrame && !this.spsHeader) {
       this.extractSpsHeader(frameBuffer);
     }
 
     if (actualKeyFrame && this.spsHeader) {
-      this.latestFrameBuffer = Buffer.concat([this.spsHeader, frameBuffer]);
-      this.latestFrameTimestamp = Date.now();
-      debugScrcpy(
-        `Updated frame buffer: config=${this.spsHeader.length}B + keyframe=${frameBuffer.length}B = ${this.latestFrameBuffer.length}B`,
-      );
+      this.lastRawKeyframe = frameBuffer;
+      if (this.keyframeResolvers.length > 0) {
+        const combined = Buffer.concat([this.spsHeader, frameBuffer]);
+        this.notifyKeyframeWaiters(combined);
+      }
     }
-
-    this.updateRecentFrames(frameBuffer);
-    this.logFrameIfNeeded(frameBuffer, actualKeyFrame, reportedKeyFrame);
   }
 
   /**
@@ -327,57 +318,9 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Update recent frames buffer with size limit
-   */
-  private updateRecentFrames(frameBuffer: Buffer): void {
-    this.recentFrames.push(frameBuffer);
-    if (this.recentFrames.length > MAX_RECENT_FRAMES) {
-      this.recentFrames.shift();
-    }
-  }
-
-  /**
-   * Log frame information for debugging (keyframes and periodic frames)
-   */
-  private logFrameIfNeeded(
-    frameBuffer: Buffer,
-    actualKeyFrame: boolean,
-    reportedKeyFrame: boolean,
-  ): void {
-    const shouldLog =
-      actualKeyFrame || this.recentFrames.length % FRAME_LOG_INTERVAL === 0;
-    if (!shouldLog) return;
-
-    debugScrcpy(
-      `Frame: ${frameBuffer.length} bytes, keyFrame=${actualKeyFrame} (reported=${reportedKeyFrame}), hasConfig=${!!this.spsHeader}, recentFrames=${this.recentFrames.length}`,
-    );
-  }
-
-  /**
-   * Get current screenshot from video stream
-   * Returns raw H.264 encoded data
-   */
-  async getScreenshot(): Promise<Buffer> {
-    await this.ensureConnected();
-
-    if (!this.lastFrameBuffer) {
-      throw new Error(
-        'No frame available yet. The video stream may still be initializing. Please retry.',
-      );
-    }
-
-    this.warnIfFrameStale(
-      this.lastFrameTimestamp,
-      FRAME_AGE_WARNING_THRESHOLD_MS,
-    );
-    this.resetIdleTimer();
-
-    return this.lastFrameBuffer;
-  }
-
-  /**
-   * Get screenshot as PNG
-   * Decodes H.264 video stream to PNG using ffmpeg
+   * Get screenshot as PNG.
+   * Tries to get a fresh frame within a short timeout. If the screen is static
+   * (no new frames arrive), falls back to the latest cached keyframe.
    */
   async getScreenshotPng(): Promise<Buffer> {
     const perfStart = Date.now();
@@ -386,33 +329,42 @@ export class ScrcpyScreenshotManager {
     await this.ensureConnected();
     const connectTime = Date.now() - t1;
 
-    const t3 = Date.now();
+    const t2 = Date.now();
     await this.waitForKeyframe();
-    const keyframeWaitTime = Date.now() - t3;
+    const spsWaitTime = Date.now() - t2;
 
-    if (!this.latestFrameBuffer) {
-      throw new Error(
-        'No decodable frames available. Keyframe may not have been captured yet.',
-      );
+    const t3 = Date.now();
+    let keyframeBuffer: Buffer;
+    let frameSource: string;
+    try {
+      keyframeBuffer = await this.waitForNextKeyframe(FRESH_FRAME_TIMEOUT_MS);
+      frameSource = 'fresh';
+    } catch {
+      // No fresh frame within timeout — screen is likely static, use cached frame
+      if (this.lastRawKeyframe && this.spsHeader) {
+        keyframeBuffer = Buffer.concat([this.spsHeader, this.lastRawKeyframe]);
+        frameSource = 'cached';
+      } else {
+        // No cached frame either, wait longer
+        keyframeBuffer = await this.waitForNextKeyframe(MAX_KEYFRAME_WAIT_MS);
+        frameSource = 'fresh-retry';
+      }
     }
+    const frameWaitTime = Date.now() - t3;
 
-    this.warnIfFrameStale(
-      this.latestFrameTimestamp,
-      FRAME_AGE_PNG_WARNING_THRESHOLD_MS,
-    );
     this.resetIdleTimer();
 
     debugScrcpy(
-      `Decoding H.264 stream: ${this.latestFrameBuffer.length} bytes (header: ${this.spsHeader?.length ?? 0}, recent: ${this.recentFrames.length} frames)`,
+      `Decoding H.264 stream: ${keyframeBuffer.length} bytes (${frameSource})`,
     );
 
     const t4 = Date.now();
-    const result = await this.decodeH264ToPng(this.latestFrameBuffer);
+    const result = await this.decodeH264ToPng(keyframeBuffer);
     const decodeTime = Date.now() - t4;
 
     const totalTime = Date.now() - perfStart;
     debugScrcpy(
-      `Performance: total=${totalTime}ms (connect=${connectTime}ms, keyframeWait=${keyframeWaitTime}ms, decode=${decodeTime}ms)`,
+      `Performance: total=${totalTime}ms (connect=${connectTime}ms, spsWait=${spsWaitTime}ms, frameWait=${frameWaitTime}ms[${frameSource}], decode=${decodeTime}ms)`,
     );
 
     return result;
@@ -427,13 +379,33 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Log warning if frame is older than threshold
+   * Notify all pending keyframe waiters
    */
-  private warnIfFrameStale(timestamp: number, thresholdMs: number): void {
-    const frameAge = Date.now() - timestamp;
-    if (frameAge > thresholdMs) {
-      debugScrcpy(`Warning: Frame is ${frameAge}ms old`);
+  private notifyKeyframeWaiters(buf: Buffer): void {
+    const resolvers = this.keyframeResolvers;
+    this.keyframeResolvers = [];
+    for (const resolve of resolvers) {
+      resolve(buf);
     }
+  }
+
+  /**
+   * Wait for the next keyframe to arrive
+   */
+  private waitForNextKeyframe(timeoutMs: number): Promise<Buffer> {
+    return new Promise<Buffer>((resolve, reject) => {
+      const wrappedResolve = (buf: Buffer) => {
+        clearTimeout(timer);
+        resolve(buf);
+      };
+      const timer = setTimeout(() => {
+        this.keyframeResolvers = this.keyframeResolvers.filter(
+          (r) => r !== wrappedResolve,
+        );
+        reject(new Error(`No fresh keyframe received within ${timeoutMs}ms`));
+      }, timeoutMs);
+      this.keyframeResolvers.push(wrappedResolve);
+    });
   }
 
   /**
@@ -595,24 +567,34 @@ export class ScrcpyScreenshotManager {
       this.idleTimer = null;
     }
 
-    if (this.scrcpyClient) {
+    // Capture references before nulling — prevents race with ensureConnected
+    const client = this.scrcpyClient;
+    const reader = this.streamReader;
+
+    this.scrcpyClient = null;
+    this.videoStream = null;
+    this.streamReader = null;
+    this.spsHeader = null;
+    this.lastRawKeyframe = null;
+    this.isInitialized = false;
+    this.h264SearchConfigFn = null;
+    this.keyframeResolvers = [];
+
+    // Cancel reader first to stop consumeFramesLoop
+    if (reader) {
       try {
-        await this.scrcpyClient.close();
+        reader.cancel();
+      } catch {}
+    }
+
+    // Then close the client
+    if (client) {
+      try {
+        await client.close();
       } catch (error) {
         debugScrcpy(`Error closing scrcpy client: ${error}`);
       }
-      this.scrcpyClient = null;
     }
-
-    this.videoStream = null;
-    this.lastFrameBuffer = null;
-    this.lastFrameTimestamp = 0;
-    this.spsHeader = null;
-    this.latestFrameBuffer = null;
-    this.latestFrameTimestamp = 0;
-    this.recentFrames = [];
-    this.isInitialized = false;
-    this.h264SearchConfigFn = null;
 
     debugScrcpy('Scrcpy disconnected');
   }

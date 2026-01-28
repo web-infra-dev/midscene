@@ -1,5 +1,5 @@
 import { PlaygroundSDK } from '@midscene/playground';
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, message } from 'antd';
 import type React from 'react';
 import { useEffect } from 'react';
 import { safeOverrideAIConfig } from '../../hooks/useSafeOverrideAIConfig';
@@ -78,7 +78,10 @@ export const ServiceModeControl: React.FC<ServiceModeControlProps> = ({
       const playgroundSDK = new PlaygroundSDK({
         type: 'remote-execution',
       });
-      playgroundSDK.overrideConfig(config);
+      playgroundSDK.overrideConfig(config).catch((error) => {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        message.error(`Failed to apply AI configuration: ${errorMsg}`);
+      });
     }
   }, [config, serviceMode, serverValid]);
 
