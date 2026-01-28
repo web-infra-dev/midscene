@@ -58,9 +58,6 @@ const device = new AndroidDevice(deviceId, {
 
 默认情况下，Midscene 通过 `adb shell screencap` 截图，每次耗时约 500–2000ms。开启 Scrcpy 模式后，通过 H.264 视频流实时获取画面，每次截图耗时约 **100–200ms**。
 
-**前提条件：**
-- 系统中已安装 `ffmpeg`，或项目中安装了 `@ffmpeg-installer/ffmpeg`
-
 **开启方式：**
 
 ```ts
