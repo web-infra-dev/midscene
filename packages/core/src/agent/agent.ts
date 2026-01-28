@@ -1167,6 +1167,102 @@ export class Agent<
     };
   }
 
+  async aiLocateAll(
+    prompt: TUserPrompt,
+    opt?: LocateOption,
+  ): Promise<
+    Array<{
+      rect?: Rect;
+      center?: [number, number];
+      dpr?: number;
+    }>
+  > {
+    const detailedParam = buildDetailedLocateParam(prompt, opt);
+    assert(detailedParam, 'cannot get locate param for aiLocateAll');
+    const plan = {
+      type: 'LocateAll',
+      param: detailedParam,
+      thought: '',
+    };
+
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
+
+    const { output } = await this.taskExecutor.runPlans(
+      `Locate all elements for ${detailedParam.prompt}`,
+      [plan],
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+    );
+
+    const dprValue = await (this.interface.size() as any).dpr;
+    return (output || []).map((r: any) => {
+      if (!r) {
+        return {
+          rect: undefined,
+          center: undefined,
+        } as any;
+      }
+      return {
+        rect: r.rect,
+        center: r.center,
+        dpr: dprValue,
+      };
+    });
+  }
+
+  async aiLocateMultiple(
+    prompts: TUserPrompt[],
+    opt?: LocateOption,
+  ): Promise<
+    Array<{
+      rect?: Rect;
+      center?: [number, number];
+      dpr?: number;
+    }>
+  > {
+    const detailedParams = prompts.map((p) =>
+      buildDetailedLocateParam(p, opt),
+    );
+
+    const plan = {
+      type: 'LocateMultiple',
+      param: detailedParams,
+      thought: '',
+    };
+
+    const defaultIntentModelConfig =
+      this.modelConfigManager.getModelConfig('default');
+    const modelConfigForPlanning =
+      this.modelConfigManager.getModelConfig('planning');
+
+    // Use runPlans to leverage TaskExecutor's pipeline (dump, log, etc)
+    // Note: we are passing a custom plan type 'LocateMultiple', which must be supported by TaskBuilder
+    const { output } = await this.taskExecutor.runPlans(
+      `Locate ${prompts.length} elements`,
+      [plan],
+      modelConfigForPlanning,
+      defaultIntentModelConfig,
+    );
+
+    const dprValue = await (this.interface.size() as any).dpr;
+    return (output || []).map((r: any) => {
+      if (!r) {
+        return {
+          rect: undefined,
+          center: undefined,
+        } as any;
+      }
+      return {
+        rect: r.rect,
+        center: r.center,
+        dpr: dprValue,
+      };
+    });
+  }
+
   async aiAssert(
     assertion: TUserPrompt,
     msg?: string,
