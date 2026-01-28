@@ -600,7 +600,7 @@ const DetailSide = (): JSX.Element => {
     errorContent = (
       <Card
         liteMode={true}
-        title="Error"
+        title="error"
         onMouseEnter={noop}
         onMouseLeave={noop}
         content={
@@ -685,7 +685,7 @@ const DetailSide = (): JSX.Element => {
         {reasoningContent && (
           <Card
             liteMode={true}
-            title="Reasoning"
+            title="reasoning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -719,7 +719,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="thought"
             liteMode={true}
-            title="Thought"
+            title="thought"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -737,7 +737,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="note"
             liteMode={true}
-            title="Note"
+            title="note"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -763,7 +763,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="sub-goals"
             liteMode={true}
-            title="Sub-goals"
+            title="sub-goals"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -781,7 +781,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="mark-finished"
             liteMode={true}
-            title="Marked Finished"
+            title="marked finished"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -890,7 +890,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="output-message"
             liteMode={true}
-            title="Output"
+            title="output"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={<pre className="description-content">{outputMessage}</pre>}
@@ -907,7 +907,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="more-actions"
             liteMode={true}
-            title="Should continue planning"
+            title="should continue planning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -927,7 +927,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="reasoning"
             liteMode={true}
-            title="Reasoning"
+            title="reasoning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -1036,7 +1036,7 @@ const DetailSide = (): JSX.Element => {
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={<pre>{reasoningContent}</pre>}
-            title="Reasoning"
+            title="reasoning"
           />,
         );
       }
