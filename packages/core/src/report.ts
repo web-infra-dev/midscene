@@ -21,11 +21,8 @@ export class ReportMergingTool {
       /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
 
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    let lastMatch: RegExpExecArray | null = null;
-    let match: RegExpExecArray | null;
-    while ((match = scriptRegex.exec(fileContent)) !== null) {
-      lastMatch = match;
-    }
+    const matches = [...fileContent.matchAll(scriptRegex)];
+    const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
 
     return lastMatch ? lastMatch[1].trim() : '';
   }

@@ -238,11 +238,9 @@ describe('ReportGenerator — constant memory guarantees', () => {
       // So we manually find the last dump script tag
       const dumpRegex =
         /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
-      let lastDumpMatch: RegExpExecArray | null = null;
-      let match: RegExpExecArray | null;
-      while ((match = dumpRegex.exec(html)) !== null) {
-        lastDumpMatch = match;
-      }
+      const dumpMatches = [...html.matchAll(dumpRegex)];
+      const lastDumpMatch =
+        dumpMatches.length > 0 ? dumpMatches[dumpMatches.length - 1] : null;
       expect(lastDumpMatch).not.toBeNull();
 
       // Use unescapeContent to handle escaped characters
