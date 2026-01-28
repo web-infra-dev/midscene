@@ -48,7 +48,6 @@ export type {
   MidsceneYamlScriptEnv,
   LocateOption,
   DetailedLocateParam,
-  DetailedLocateParamArray,
 } from './yaml';
 
 export { Agent, type AgentOpt, type AiActOptions, createAgent } from './agent';

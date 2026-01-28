@@ -1,61 +1,17 @@
 import type { TModelFamily } from '@midscene/shared/env';
 import { getPreferredLanguage } from '@midscene/shared/env';
 import { bboxDescription } from './common';
+
 export function systemPromptToLocateElement(
   modelFamily: TModelFamily | undefined,
+  options?: { isArray?: boolean },
 ) {
   const preferredLanguage = getPreferredLanguage();
   const bboxComment = bboxDescription(modelFamily);
-  return `
-## Role:
-You are an AI assistant that helps identify UI elements.
+  const isArray = options?.isArray ?? false;
 
-## Objective:
-- Identify elements in screenshots that match the user's description.
-- Provide the coordinates of the element that matches the user's description.
-
-## Output Format:
-\`\`\`json
-{
-  "bbox": [number, number, number, number],  // ${bboxComment}
-  "errors"?: string[]
-}
-\`\`\`
-
-Fields:
-* \`bbox\` is the bounding box of the element that matches the user's description
-* \`errors\` is an optional array of error messages (if any)
-
-For example, when an element is found:
-\`\`\`json
-{
-  "bbox": [100, 100, 200, 200],
-  "errors": []
-}
-\`\`\`
-
-When no element is found:
-\`\`\`json
-{
-  "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use ${preferredLanguage}."]
-}
-\`\`\`
-`;
-}
-
-export const findElementPrompt = (targetElementDescription: string) =>
-  `Find: ${targetElementDescription}`;
-
-/**
- * System prompt for locating multiple elements at once
- */
-export function systemPromptToLocateElements(
-  modelFamily: TModelFamily | undefined,
-) {
-  const preferredLanguage = getPreferredLanguage();
-  const bboxComment = bboxDescription(modelFamily);
-  return `
+  if (isArray) {
+    return `
 ## Role:
 You are an AI assistant that helps identify UI elements.
 
@@ -104,14 +60,54 @@ IMPORTANT:
 - Keep the indexId matching the order of descriptions in the request.
 - Use ${preferredLanguage} for error messages.
 `;
+  }
+
+  return `
+## Role:
+You are an AI assistant that helps identify UI elements.
+
+## Objective:
+- Identify elements in screenshots that match the user's description.
+- Provide the coordinates of the element that matches the user's description.
+
+## Output Format:
+\`\`\`json
+{
+  "bbox": [number, number, number, number],  // ${bboxComment}
+  "errors"?: string[]
+}
+\`\`\`
+
+Fields:
+* \`bbox\` is the bounding box of the element that matches the user's description
+* \`errors\` is an optional array of error messages (if any)
+
+For example, when an element is found:
+\`\`\`json
+{
+  "bbox": [100, 100, 200, 200],
+  "errors": []
+}
+\`\`\`
+
+When no element is found:
+\`\`\`json
+{
+  "bbox": [],
+  "errors": ["I can see ..., but {some element} is not found. Use ${preferredLanguage}."]
+}
+\`\`\`
+`;
 }
 
-/**
- * Generate prompt for finding multiple elements at once
- */
-export const findElementsPrompt = (targetElementDescriptions: string[]) => {
-  const indexed = targetElementDescriptions
-    .map((desc, index) => `${index}. ${desc}`)
-    .join('\n');
-  return `Find elements:\n${indexed}`;
-};
+export function findElementPrompt(
+  targetElementDescription: string | string[],
+): string {
+  if (Array.isArray(targetElementDescription)) {
+    const indexed = targetElementDescription
+      .map((desc, index) => `${index}. ${desc}`)
+      .join('\n');
+    return `Find elements:\n${indexed}`;
+  }
+  return `Find: ${targetElementDescription}`;
+}

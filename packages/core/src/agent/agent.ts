@@ -8,7 +8,6 @@ import {
   type CacheConfig,
   type DeepThinkOption,
   type DetailedLocateParam,
-  type DetailedLocateParamArray,
   type DeviceAction,
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -1234,8 +1233,8 @@ export class Agent<
       'prompts array cannot be empty for aiLocate with array input',
     );
 
-    const locateParam: DetailedLocateParamArray = {
-      prompts,
+    const locateParam: DetailedLocateParam = {
+      prompt: prompts,
       deepThink: opt?.deepThink,
       cacheable: opt?.cacheable,
     };
@@ -1254,11 +1253,10 @@ export class Agent<
     }
     const service = new Service(() => context);
 
-    const { results } = await service.locateArray(
-      locateParam,
-      { context },
-      modelConfig,
-    );
+    const results = await service.locate(locateParam, { context }, modelConfig);
+
+    // Results should be an array when prompt is an array
+    assert(Array.isArray(results), 'Expected array results for array prompts');
 
     const dprValue = await (this.interface.size() as any).dpr;
     const dprEntry = dprValue
