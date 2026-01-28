@@ -142,25 +142,17 @@ describe('ScrcpyScreenshotManager', () => {
     it('should reset all state', async () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       // Manually populate state to verify cleanup
-      (manager as any).lastFrameBuffer = Buffer.from('frame');
-      (manager as any).lastFrameTimestamp = 12345;
       (manager as any).spsHeader = Buffer.from('sps');
-      (manager as any).latestFrameBuffer = Buffer.from('latest');
-      (manager as any).latestFrameTimestamp = 67890;
       (manager as any).isInitialized = true;
       (manager as any).h264SearchConfigFn = () => {};
-      (manager as any).recentFrames = [Buffer.from('a'), Buffer.from('b')];
+      (manager as any).keyframeResolvers = [() => {}];
 
       await manager.disconnect();
 
-      expect((manager as any).lastFrameBuffer).toBeNull();
-      expect((manager as any).lastFrameTimestamp).toBe(0);
       expect((manager as any).spsHeader).toBeNull();
-      expect((manager as any).latestFrameBuffer).toBeNull();
-      expect((manager as any).latestFrameTimestamp).toBe(0);
       expect((manager as any).isInitialized).toBe(false);
       expect((manager as any).h264SearchConfigFn).toBeNull();
-      expect((manager as any).recentFrames).toEqual([]);
+      expect((manager as any).keyframeResolvers).toEqual([]);
       expect((manager as any).videoStream).toBeNull();
       expect((manager as any).scrcpyClient).toBeNull();
     });

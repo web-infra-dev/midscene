@@ -59,9 +59,9 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('isEnabled', () => {
-    it('should return true by default (DEFAULT_SCRCPY_CONFIG.enabled)', () => {
+    it('should return false by default (DEFAULT_SCRCPY_CONFIG.enabled)', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
-      expect(adapter.isEnabled()).toBe(true);
+      expect(adapter.isEnabled()).toBe(false);
       expect(adapter.isEnabled()).toBe(DEFAULT_SCRCPY_CONFIG.enabled);
     });
 
@@ -84,7 +84,11 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should return false when initFailed is true', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { enabled: true },
+        undefined,
+      );
       expect(adapter.isEnabled()).toBe(true);
       (adapter as any).initFailed = true;
       expect(adapter.isEnabled()).toBe(false);
