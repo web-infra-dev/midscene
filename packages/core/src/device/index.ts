@@ -427,49 +427,6 @@ export const defineActionClearInput = (
     call,
   });
 };
-
-// Assert
-export const actionAssertParamSchema = z.object({
-  condition: z.string().describe('The condition of the assertion'),
-  thought: z
-    .string()
-    .describe(
-      'The thought of the assertion, like "I can see there are A, B, C elements on the page, which means ... , so the assertion is true"',
-    ),
-  result: z.boolean().describe('The result of the assertion, true or false'),
-});
-export type ActionAssertParam = {
-  condition: string;
-  thought: string;
-  result: boolean;
-};
-
-export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
-  return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
-    name: 'Print_Assert_Result',
-    description:
-      'Print the result of the assertion. Use this only when the user asks for an assertion',
-    paramSchema: actionAssertParamSchema,
-    call: async (param) => {
-      if (typeof param?.result !== 'boolean') {
-        throw new Error(
-          `The result of the assertion must be a boolean, but got: ${typeof param?.result}. ${param.thought || '(no thought)'}`,
-        );
-      }
-
-      getDebug('device:common-action')(
-        `Assert: ${param.condition}, Thought: ${param.thought}, Result: ${param.result}`,
-      );
-
-      if (!param.result) {
-        throw new Error(
-          `Assertion failed: ${param.thought || '(no thought)'} (Assertion = ${param.condition})`,
-        );
-      }
-    },
-  });
-};
-
 // Sleep
 export const ActionSleepParamSchema = z.object({
   timeMs: z

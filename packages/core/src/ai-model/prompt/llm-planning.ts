@@ -293,6 +293,7 @@ Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
+  - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, you should use <complete-goal success="false">reason</complete-goal> to indicate the checkpoint failed, and explain why the assertion failed in the message.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 
@@ -329,8 +330,6 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete-goal' is NOT a valid action-type.
-- Use <action-type>Print_Assert_Result</action-type> if the user clearly asks for an assertion.
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>

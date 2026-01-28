@@ -29,7 +29,7 @@ describe(
       await ctx.agent.aiAssert('this is a login page');
 
       const pw = await ctx.agent.aiAct(
-        'do nothing and tell me the what the password is',
+        'do nothing and tell me the what the password is (just the password, no other text)',
       );
       expect(pw).toBe('secret_sauce');
 
@@ -39,6 +39,10 @@ describe(
       await ctx.agent.aiWaitFor('there are products displayed on the page', {
         checkIntervalMs: 5000,
       });
+
+      await ctx.agent.aiAct(
+        'check the page footer, assert: their is a with text "All rights reserved" in the footer',
+      );
 
       // find the items
       const items = await ctx.agent.aiQuery(
