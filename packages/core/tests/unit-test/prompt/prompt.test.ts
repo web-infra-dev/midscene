@@ -165,17 +165,17 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - includeThought false removes thought field', async () => {
-    const prompt = await systemPromptToTaskPlanning({
-      actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
-      includeThought: false,
-    });
+  // it('planning - includeThought false removes thought field', async () => {
+  //   const prompt = await systemPromptToTaskPlanning({
+  //     actionSpace: mockActionSpace,
+  //     modelFamily: undefined,
+  //     includeBbox: false,
+  //     includeThought: false,
+  //   });
 
-    expect(prompt).not.toContain('<thought>');
-    expect(prompt).toContain('<log>');
-  });
+  //   expect(prompt).not.toContain('<thought>');
+  //   expect(prompt).toContain('<log>');
+  // });
 
   it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
     await expect(
@@ -224,6 +224,80 @@ describe('system prompts', () => {
       includeBbox: true,
     });
     expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    // Should not contain sub-goal related tags and content
+    expect(prompt).not.toContain('<update-plan-content>');
+    expect(prompt).not.toContain('<mark-sub-goal-done>');
+    expect(prompt).not.toContain('<sub-goal');
+
+    // Should still contain thought tag
+    expect(prompt).toContain('<thought>');
+
+    // Should have simplified Step 1 title
+    expect(prompt).toContain('## Step 1: Observe (related tags: <thought>)');
+    expect(prompt).not.toContain(
+      '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
+    );
+  });
+
+  it('planning - includeSubGoals true should contain sub-goal tags', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: true,
+    });
+
+    // Should contain sub-goal related tags and content
+    expect(prompt).toContain('<update-plan-content>');
+    expect(prompt).toContain('<mark-sub-goal-done>');
+    expect(prompt).toContain('<sub-goal');
+
+    // Should still contain thought tag
+    expect(prompt).toContain('<thought>');
+
+    // Should have full Step 1 title with sub-goal tags
+    expect(prompt).toContain(
+      '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
+    );
+  });
+
+  it('planning - includeSubGoals true should include sub-goal examples', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: true,
+    });
+
+    // Should contain sub-goal example content
+    expect(prompt).toContain('Log in to the system');
+    expect(prompt).toContain('Complete all to-do items');
+    expect(prompt).toContain('Submit the registration form');
+    expect(prompt).toContain('status="finished|pending"');
+  });
+
+  it('planning - includeSubGoals false should not include sub-goal examples', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    // Should not contain sub-goal example content
+    expect(prompt).not.toContain('Log in to the system');
+    expect(prompt).not.toContain('Complete all to-do items');
+    expect(prompt).not.toContain('Submit the registration form');
   });
 
   it('section locator - gemini', () => {

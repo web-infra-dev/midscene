@@ -365,7 +365,7 @@ describe(
         await reset();
       });
 
-      it('cacheFeatureForRect should work correctly', async () => {
+      it('cacheFeatureForPoint should work correctly', async () => {
         const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
           viewport: {
             width: 1080,
@@ -383,8 +383,8 @@ describe(
           height: 40,
         };
 
-        // Call cacheFeatureForRect
-        const cacheFeature = await page.cacheFeatureForRect?.(rect);
+        // Call cacheFeatureForPoint
+        const cacheFeature = await page.cacheFeatureForPoint?.([149, 419]);
 
         expect(cacheFeature).toBeDefined();
         const xpaths = (cacheFeature as any)?.xpaths as string[] | undefined;

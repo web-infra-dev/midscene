@@ -68,7 +68,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert, defineActionSleep } from '../device';
+import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -381,11 +381,7 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [
-      ...baseActionSpace,
-      defineActionAssert(),
-      defineActionSleep(),
-    ];
+    this.fullActionSpace = [...baseActionSpace, defineActionSleep()];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
@@ -886,8 +882,10 @@ export class Agent<
         this.modelConfigManager.getModelConfig('planning');
       const defaultIntentModelConfig =
         this.modelConfigManager.getModelConfig('default');
+      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
 
       const includeBboxInPlanning =
+        !deepThink &&
         modelConfigForPlanning.modelName ===
           defaultIntentModelConfig.modelName &&
         modelConfigForPlanning.openaiBaseURL ===
@@ -895,7 +893,6 @@ export class Agent<
       debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
       const cacheable = opt?.cacheable;
-      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
@@ -924,14 +921,7 @@ export class Agent<
       }
 
       // If cache matched but yamlWorkflow is empty, fall through to normal execution
-
-      const useDeepThink = (this.opts as any)?._deepThink;
-      if (useDeepThink) {
-        debug('using deep think planning settings');
-      }
-      const imagesIncludeCount: number | undefined = useDeepThink
-        ? undefined
-        : 2;
+      const imagesIncludeCount: number | undefined = deepThink ? undefined : 2;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
@@ -1091,9 +1081,14 @@ export class Agent<
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
 
+      // Don't pass deepThink to verification locate — the description was generated
+      // from a cropped view (deepThink describe), but verification should use regular
+      // locate on the full screenshot to confirm the description works universally.
+      // Passing deepThink here would trigger AiLocateSection with an element-level
+      // description as a section prompt, which is semantically incorrect.
       verifyResult = await this.verifyLocator(
         resultPrompt,
-        deepThink ? { deepThink: true } : undefined,
+        undefined,
         center,
         opt,
       );

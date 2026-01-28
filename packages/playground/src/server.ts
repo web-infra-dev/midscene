@@ -7,7 +7,10 @@ import { GroupedActionDump } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import { overrideAIConfig } from '@midscene/shared/env';
+import {
+  globalModelConfigManager,
+  overrideAIConfig,
+} from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
@@ -602,13 +605,6 @@ class PlaygroundServer {
 
       try {
         overrideAIConfig(aiConfig);
-
-        // Note: Agent will be recreated on next execution to apply new config
-        return res.json({
-          status: 'ok',
-          message:
-            'AI config updated. Agent will be recreated on next execution.',
-        });
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
@@ -617,6 +613,25 @@ class PlaygroundServer {
           error: `Failed to update AI config: ${errorMessage}`,
         });
       }
+
+      // Validate the config immediately so the frontend gets early feedback
+      try {
+        globalModelConfigManager.getModelConfig('default');
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`AI config validation failed: ${errorMessage}`);
+        return res.status(400).json({
+          error: errorMessage,
+        });
+      }
+
+      // Note: Agent will be recreated on next execution to apply new config
+      return res.json({
+        status: 'ok',
+        message:
+          'AI config updated. Agent will be recreated on next execution.',
+      });
     });
   }
 

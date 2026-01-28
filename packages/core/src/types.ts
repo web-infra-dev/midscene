@@ -245,6 +245,14 @@ export interface PlanningAction<ParamType = any> {
   param: ParamType;
 }
 
+export type SubGoalStatus = 'pending' | 'running' | 'finished';
+
+export interface SubGoal {
+  index: number;
+  status: SubGoalStatus;
+  description: string;
+}
+
 export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
   thought?: string;
@@ -253,6 +261,8 @@ export interface RawResponsePlanningAIResponse {
   error?: string;
   finalizeMessage?: string;
   finalizeSuccess?: boolean;
+  updateSubGoals?: SubGoal[];
+  markFinishedIndexes?: number[];
 }
 
 export interface PlanningAIResponse
@@ -265,6 +275,7 @@ export interface PlanningAIResponse
   error?: string;
   reasoning_content?: string;
   shouldContinuePlanning: boolean;
+  output?: string; // Output message from complete-goal (same as finalizeMessage)
 }
 
 export interface PlanningActionParamSleep {

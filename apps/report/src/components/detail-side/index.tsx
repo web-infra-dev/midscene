@@ -405,6 +405,10 @@ const DetailSide = (): JSX.Element => {
     const locateParam = (planningTask as any)?.param;
     const images = extractTaskImages(locateParam);
 
+    // Get subGoalStatus and notesStatus from param
+    const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
+    const notesStatus = (planningTask.param as any)?.notesStatus;
+
     if (planningTask.param?.userInstruction) {
       // Ensure userInstruction is a string
       const instructionContent =
@@ -419,6 +423,22 @@ const DetailSide = (): JSX.Element => {
             content: instructionContent,
             images: images,
           },
+          ...(notesStatus
+            ? [
+                {
+                  key: 'notes',
+                  content: notesStatus,
+                },
+              ]
+            : []),
+          ...(subGoalStatus
+            ? [
+                {
+                  key: 'sub-goal status',
+                  content: subGoalStatus,
+                },
+              ]
+            : []),
           ...(isPageContextFrozen
             ? [
                 {
@@ -444,6 +464,22 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
+          ...(notesStatus
+            ? [
+                {
+                  key: 'notes',
+                  content: notesStatus,
+                },
+              ]
+            : []),
+          ...(subGoalStatus
+            ? [
+                {
+                  key: 'sub-goal status',
+                  content: subGoalStatus,
+                },
+              ]
+            : []),
           ...(isPageContextFrozen
             ? [
                 {
@@ -564,7 +600,7 @@ const DetailSide = (): JSX.Element => {
     errorContent = (
       <Card
         liteMode={true}
-        title="Error"
+        title="error"
         onMouseEnter={noop}
         onMouseLeave={noop}
         content={
@@ -649,7 +685,7 @@ const DetailSide = (): JSX.Element => {
         {reasoningContent && (
           <Card
             liteMode={true}
-            title="Reasoning"
+            title="reasoning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -683,7 +719,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="thought"
             liteMode={true}
-            title="Thought"
+            title="thought"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -701,12 +737,56 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="note"
             liteMode={true}
-            title="Note"
+            title="note"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
               <pre className="description-content">
                 {(task as ExecutionTaskPlanning).output?.note}
+              </pre>
+            }
+          />,
+        );
+      }
+
+      // Add Sub-goals if exists
+      const updateSubGoals = (task as ExecutionTaskPlanning).output
+        ?.updateSubGoals;
+      if (updateSubGoals && updateSubGoals.length > 0) {
+        const subGoalsContent = updateSubGoals
+          .map(
+            (goal: { index: number; status: string; description: string }) =>
+              `${goal.index}. ${goal.description} (${goal.status})`,
+          )
+          .join('\n');
+        planItems.push(
+          <Card
+            key="sub-goals"
+            liteMode={true}
+            title="sub-goals"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">{subGoalsContent}</pre>
+            }
+          />,
+        );
+      }
+
+      // Add Mark Finished Indexes if exists
+      const markFinishedIndexes = (task as ExecutionTaskPlanning).output
+        ?.markFinishedIndexes;
+      if (markFinishedIndexes && markFinishedIndexes.length > 0) {
+        planItems.push(
+          <Card
+            key="mark-finished"
+            liteMode={true}
+            title="marked finished"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={
+              <pre className="description-content">
+                Sub-goal indexes: {markFinishedIndexes.join(', ')}
               </pre>
             }
           />,
@@ -803,6 +883,21 @@ const DetailSide = (): JSX.Element => {
         }
       });
 
+      // Add output message if exists (from complete-goal)
+      const outputMessage = (task as ExecutionTaskPlanning).output?.output;
+      if (outputMessage) {
+        planItems.push(
+          <Card
+            key="output-message"
+            liteMode={true}
+            title="output"
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            content={<pre className="description-content">{outputMessage}</pre>}
+          />,
+        );
+      }
+
       // Add More actions needed if exists
       if (
         typeof (task as ExecutionTaskPlanning).output
@@ -812,7 +907,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="more-actions"
             liteMode={true}
-            title="Should continue planning"
+            title="should continue planning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -832,7 +927,7 @@ const DetailSide = (): JSX.Element => {
           <Card
             key="reasoning"
             liteMode={true}
-            title="Reasoning"
+            title="reasoning"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
@@ -941,7 +1036,7 @@ const DetailSide = (): JSX.Element => {
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={<pre>{reasoningContent}</pre>}
-            title="Reasoning"
+            title="reasoning"
           />,
         );
       }

@@ -1,5 +1,6 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
+  AIResponseParseError,
   AiExtractElementInfo,
   AiLocateAllElements,
   AiLocateElement,
@@ -338,17 +339,25 @@ export default class Service {
     opt?: ServiceExtractOption,
     pageDescription?: string,
     multimodalPrompt?: TMultimodalPrompt,
+    context?: UIContext,
   ): Promise<ServiceExtractResult<T>> {
+    assert(context, 'context is required for extract');
     assert(
       typeof dataDemand === 'object' || typeof dataDemand === 'string',
       `dataDemand should be object or string, but get ${typeof dataDemand}`,
     );
-    const context = await this.contextRetrieverFn();
 
     const startTime = Date.now();
 
-    const { parseResult, usage, reasoning_content } =
-      await AiExtractElementInfo<T>({
+    let parseResult: Awaited<
+      ReturnType<typeof AiExtractElementInfo<T>>
+    >['parseResult'];
+    let rawResponse: string;
+    let usage: Awaited<ReturnType<typeof AiExtractElementInfo<T>>>['usage'];
+    let reasoning_content: string | undefined;
+
+    try {
+      const result = await AiExtractElementInfo<T>({
         context,
         dataQuery: dataDemand,
         multimodalPrompt,
@@ -356,12 +365,40 @@ export default class Service {
         modelConfig,
         pageDescription,
       });
+      parseResult = result.parseResult;
+      rawResponse = result.rawResponse;
+      usage = result.usage;
+      reasoning_content = result.reasoning_content;
+    } catch (error) {
+      if (error instanceof AIResponseParseError) {
+        // Create dump with usage and rawResponse from the error
+        const timeCost = Date.now() - startTime;
+        const taskInfo: ServiceTaskInfo = {
+          ...(this.taskInfo ? this.taskInfo : {}),
+          durationMs: timeCost,
+          rawResponse: error.rawResponse,
+          usage: error.usage,
+        };
+        const dump = createServiceDump({
+          type: 'extract',
+          userQuery: { dataDemand },
+          matchedElement: [],
+          data: null,
+          taskInfo,
+          error: error.message,
+        });
+        throw new ServiceError(error.message, dump);
+      }
+      throw error;
+    }
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(parseResult),
+      rawResponse,
+      formatResponse: JSON.stringify(parseResult),
+      usage,
       reasoning_content,
     };
 
@@ -383,7 +420,6 @@ export default class Service {
 
     const { data, thought } = parseResult || {};
 
-    // 4
     const dump = createServiceDump({
       ...dumpData,
       data,
@@ -441,18 +477,29 @@ export default class Service {
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(
-        targetRect,
-        context.size,
-        modelFamily,
-      );
-      debug('describe: set searchArea', searchArea);
-      const croppedResult = await cropByRect(
-        imagePayload,
-        searchArea,
-        modelFamily === 'qwen2.5-vl',
-      );
-      imagePayload = croppedResult.imageBase64;
+      const searchArea = expandSearchArea(targetRect, size, modelFamily);
+      // Only crop when the search area covers at least 50% of the screen
+      // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
+      // too much context and cause model hallucinations.
+      const widthRatio = searchArea.width / size.width;
+      const heightRatio = searchArea.height / size.height;
+      if (widthRatio >= 0.5 && heightRatio >= 0.5) {
+        debug('describe: cropping to searchArea', searchArea);
+        const croppedResult = await cropByRect(
+          imagePayload,
+          searchArea,
+          modelFamily === 'qwen2.5-vl',
+        );
+        imagePayload = croppedResult.imageBase64;
+      } else {
+        debug(
+          'describe: skip cropping, search area too small (%dx%d on %dx%d)',
+          searchArea.width,
+          searchArea.height,
+          size.width,
+          size.height,
+        );
+      }
     }
 
     const msgs: AIArgs = [

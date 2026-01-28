@@ -269,7 +269,10 @@ export class TaskRunner {
             'subTask requires uiContext from previous non-subTask task',
           );
         } else {
-          uiContext = await this.getUiContext();
+          // For Insight tasks (Query/Assert/WaitFor), always get fresh context
+          // to ensure we have the latest UI state after any preceding actions
+          const forceRefresh = task.type === 'Insight';
+          uiContext = await this.getUiContext({ forceRefresh });
         }
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {

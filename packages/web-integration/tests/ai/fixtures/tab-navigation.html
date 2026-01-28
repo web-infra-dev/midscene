@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tab Navigation Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .logo {
+        font-size: 36px;
+        color: #4285f4;
+        font-weight: bold;
+        margin-bottom: 20px;
+      }
+      .nav-links {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin: 20px 0;
+        padding: 15px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .nav-links a {
+        color: #1a0dab;
+        text-decoration: none;
+        font-size: 16px;
+        padding: 8px 16px;
+        border-radius: 4px;
+        transition: background 0.2s;
+      }
+      .nav-links a:hover {
+        background: #e8f0fe;
+        text-decoration: underline;
+      }
+      .content {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .content h2 {
+        color: #333;
+        margin-bottom: 15px;
+      }
+      .content p {
+        color: #666;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="logo">Navigation Test</div>
+      <div class="nav-links">
+        <a href="tab-navigation-target.html" target="_blank" id="newTabLink"
+          >Open in New Tab</a
+        >
+        <a href="tab-navigation-target.html" id="sameTabLink"
+          >Open in Same Tab</a
+        >
+        <a href="#" id="stayLink">Stay Here</a>
+      </div>
+    </div>
+
+    <div class="content">
+      <h2>Welcome to Navigation Test Page</h2>
+      <p>This is the main page for testing tab navigation behavior.</p>
+      <p>
+        Click "Open in New Tab" to test how the agent handles new tab
+        navigation.
+      </p>
+      <p>Click "Open in Same Tab" to navigate within the same tab.</p>
+    </div>
+
+    <script>
+      document
+        .getElementById('stayLink')
+        .addEventListener('click', function (e) {
+          e.preventDefault();
+          alert('Staying on this page!');
+        });
+    </script>
+  </body>
+</html>

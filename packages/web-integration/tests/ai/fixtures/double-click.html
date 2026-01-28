@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Double Click Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        min-width: 400px;
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 24px;
+      }
+      .click-button {
+        padding: 20px 60px;
+        font-size: 24px;
+        background: #3498db;
+        color: white;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin: 20px 0;
+      }
+      .click-button:hover {
+        background: #2980b9;
+        transform: scale(1.02);
+      }
+      .click-button:active {
+        transform: scale(0.98);
+      }
+      .stats {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-top: 30px;
+      }
+      .stat-section {
+        background: #f8f9fa;
+        padding: 20px 30px;
+        border-radius: 12px;
+        min-width: 120px;
+      }
+      .stat-section h3 {
+        margin: 0 0 15px 0;
+        color: #666;
+        font-size: 16px;
+      }
+      .stat-item {
+        margin: 10px 0;
+        font-size: 18px;
+      }
+      .stat-label {
+        color: #888;
+      }
+      .stat-value {
+        font-weight: bold;
+        color: #333;
+        margin-left: 8px;
+      }
+      .reset-btn {
+        margin-top: 20px;
+        padding: 10px 24px;
+        font-size: 14px;
+        background: #95a5a6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .reset-btn:hover {
+        background: #7f8c8d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Double Click Test</h1>
+      <button class="click-button" id="clickMe">Click Me</button>
+
+      <div class="stats">
+        <div class="stat-section">
+          <h3>Left</h3>
+          <div class="stat-item">
+            <span class="stat-label">Single:</span>
+            <span class="stat-value" id="leftSingle">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Double:</span>
+            <span class="stat-value" id="leftDouble">0</span>
+          </div>
+        </div>
+        <div class="stat-section">
+          <h3>Right</h3>
+          <div class="stat-item">
+            <span class="stat-label">Single:</span>
+            <span class="stat-value" id="rightSingle">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Double:</span>
+            <span class="stat-value" id="rightDouble">0</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="reset-btn" onclick="resetCounts()">Reset Counts</button>
+    </div>
+
+    <script>
+      let leftSingle = 0;
+      let leftDouble = 0;
+      let rightSingle = 0;
+      let rightDouble = 0;
+
+      const button = document.getElementById('clickMe');
+      const leftSingleEl = document.getElementById('leftSingle');
+      const leftDoubleEl = document.getElementById('leftDouble');
+      const rightSingleEl = document.getElementById('rightSingle');
+      const rightDoubleEl = document.getElementById('rightDouble');
+
+      // Single left click
+      button.addEventListener('click', function (e) {
+        if (e.button === 0) {
+          leftSingle++;
+          leftSingleEl.textContent = leftSingle;
+        }
+      });
+
+      // Double left click
+      button.addEventListener('dblclick', function (e) {
+        leftDouble++;
+        leftDoubleEl.textContent = leftDouble;
+      });
+
+      // Right click (context menu)
+      button.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        rightSingle++;
+        rightSingleEl.textContent = rightSingle;
+      });
+
+      function resetCounts() {
+        leftSingle = 0;
+        leftDouble = 0;
+        rightSingle = 0;
+        rightDouble = 0;
+        leftSingleEl.textContent = '0';
+        leftDoubleEl.textContent = '0';
+        rightSingleEl.textContent = '0';
+        rightDoubleEl.textContent = '0';
+      }
+    </script>
+  </body>
+</html>

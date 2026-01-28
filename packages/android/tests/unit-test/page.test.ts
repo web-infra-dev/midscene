@@ -77,7 +77,11 @@ describe('AndroidDevice', () => {
     // Create a new mock instance for each test
     mockAdb = new (ADB as any)() as Mocked<ADB>;
     // Disable buffer size validation for tests to allow small mock buffers
-    device = new AndroidDevice('test-device', { minScreenshotBufferSize: 0 });
+    // Disable scrcpy to avoid shell calls during normalizeScrcpyConfig
+    device = new AndroidDevice('test-device', {
+      minScreenshotBufferSize: 0,
+      scrcpyConfig: { enabled: false },
+    });
     // Manually assign the mocked adb instance
     vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });
@@ -1499,6 +1503,7 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1540,6 +1545,7 @@ describe('AndroidDevice', () => {
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1578,6 +1584,7 @@ describe('AndroidDevice', () => {
         displayId: 2,
         usePhysicalDisplayIdForScreenshot: false,
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1712,6 +1719,7 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         usePhysicalDisplayIdForScreenshot: true, // This should be ignored when no displayId
         minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1751,9 +1759,7 @@ describe('AndroidDevice', () => {
 
       // Verify that screencap command does not use any display ID (note the extra space)
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /screencap -p {2}\/data\/local\/tmp\/midscene_screenshot_/,
-        ),
+        expect.stringMatching(/screencap -p {2}\/data\/local\/tmp\/ms_/),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d/),

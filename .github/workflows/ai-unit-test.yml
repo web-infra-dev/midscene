@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       branch:
@@ -26,6 +29,9 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+      MIDSCENE_REPORT_QUIET: "true"
       # DEBUG: midscene:* # Disabled to prevent log overflow
       CI: 1
 
@@ -33,7 +39,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        ref: ${{ github.event.inputs.branch || 'main' }}
+        ref: ${{ github.event.inputs.branch || github.ref }}
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v2

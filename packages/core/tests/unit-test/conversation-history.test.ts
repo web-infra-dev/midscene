@@ -128,4 +128,373 @@ describe('ConversationHistory', () => {
     );
     expect(snapshotWithoutLimit[2]).toEqual(messageWithTwoImages);
   });
+
+  // Sub-goal management tests
+
+  it('initializes with empty sub-goals', () => {
+    const history = new ConversationHistory();
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('sets all sub-goals and marks first pending as running', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Done task' },
+      { index: 2, status: 'pending', description: 'Todo task' },
+    ]);
+
+    // First pending is automatically marked as running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Done task (finished)
+      2. Todo task (running)
+      Current sub-goal is: Todo task"
+    `);
+  });
+
+  it('replaces existing sub-goals when setSubGoals is called', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Old goal' },
+    ]);
+
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'New goal 1' },
+      { index: 2, status: 'pending', description: 'New goal 2' },
+    ]);
+
+    // First pending is automatically marked as running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. New goal 1 (running)
+      2. New goal 2 (pending)
+      Current sub-goal is: New goal 1"
+    `);
+  });
+
+  it('updates a single sub-goal by index', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'First' },
+      { index: 2, status: 'pending', description: 'Second' },
+    ]);
+
+    // After setSubGoals, first is running, second is pending
+    const result = history.updateSubGoal(1, { status: 'finished' });
+
+    expect(result).toBe(true);
+    // updateSubGoal doesn't auto-promote, only markSubGoalFinished does
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. First (finished)
+      2. Second (pending)
+      Current sub-goal is: Second"
+    `);
+  });
+
+  it('updates description of a sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([{ index: 1, status: 'pending', description: 'Old' }]);
+
+    history.updateSubGoal(1, { description: 'Updated description' });
+
+    // First pending was marked as running by setSubGoals
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Updated description (running)
+      Current sub-goal is: Updated description"
+    `);
+  });
+
+  it('returns false when updating non-existent sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'First' },
+    ]);
+
+    const result = history.updateSubGoal(99, { status: 'finished' });
+
+    expect(result).toBe(false);
+  });
+
+  it('marks a sub-goal as finished and promotes next pending to running', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    // After setSubGoals: Task 1 is running, Task 2 is pending
+    const result = history.markSubGoalFinished(1);
+
+    expect(result).toBe(true);
+    // After markSubGoalFinished: Task 1 is finished, Task 2 is promoted to running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (running)
+      Current sub-goal is: Task 2"
+    `);
+  });
+
+  it('returns false when marking non-existent sub-goal as finished', () => {
+    const history = new ConversationHistory();
+    const result = history.markSubGoalFinished(1);
+    expect(result).toBe(false);
+  });
+
+  it('marks all sub-goals as finished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+      { index: 3, status: 'pending', description: 'Task 3' },
+    ]);
+
+    history.markAllSubGoalsFinished();
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)
+      3. Task 3 (finished)"
+    `);
+  });
+
+  it('marks all sub-goals as finished when some are already finished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    history.markAllSubGoalsFinished();
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
+  });
+
+  it('handles markAllSubGoalsFinished with empty sub-goals', () => {
+    const history = new ConversationHistory();
+    history.markAllSubGoalsFinished();
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('markFirstPendingAsRunning only affects first pending goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+      { index: 3, status: 'pending', description: 'Task 3' },
+    ]);
+
+    // setSubGoals already called markFirstPendingAsRunning, so Task 2 is running
+    // Task 3 should still be pending
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (running)
+      3. Task 3 (pending)
+      Current sub-goal is: Task 2"
+    `);
+  });
+
+  it('does not change status when no pending goals exist', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'finished', description: 'Task 2' },
+    ]);
+
+    // No pending goals, so no change
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
+  });
+
+  it('subGoalsToText shows all sub-goals with their status', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Log in to the system' },
+      { index: 2, status: 'finished', description: 'Complete to-do items' },
+      { index: 3, status: 'pending', description: 'Submit the form' },
+    ]);
+
+    // First pending is automatically marked as running
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Log in to the system (finished)
+      2. Complete to-do items (finished)
+      3. Submit the form (running)
+      Current sub-goal is: Submit the form"
+    `);
+  });
+
+  // Notes management tests
+
+  it('initializes with empty notes', () => {
+    const history = new ConversationHistory();
+    expect(history.getNotes()).toEqual([]);
+    expect(history.notesToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('appends notes to the list', () => {
+    const history = new ConversationHistory();
+    history.appendNote('First note');
+    history.appendNote('Second note');
+
+    expect(history.getNotes()).toEqual(['First note', 'Second note']);
+  });
+
+  it('ignores empty notes when appending', () => {
+    const history = new ConversationHistory();
+    history.appendNote('Valid note');
+    history.appendNote('');
+    history.appendNote('Another valid note');
+
+    expect(history.getNotes()).toEqual(['Valid note', 'Another valid note']);
+  });
+
+  it('converts notes to text representation', () => {
+    const history = new ConversationHistory();
+    history.appendNote('User logged in successfully');
+    history.appendNote('Found 3 items in the cart');
+
+    expect(history.notesToText()).toMatchInlineSnapshot(`
+      "Notes from previous steps:
+      ---
+      User logged in successfully
+      ---
+      Found 3 items in the cart
+      "
+    `);
+  });
+
+  it('clears all notes', () => {
+    const history = new ConversationHistory();
+    history.appendNote('Note 1');
+    history.appendNote('Note 2');
+
+    history.clearNotes();
+
+    expect(history.getNotes()).toEqual([]);
+    expect(history.notesToText()).toMatchInlineSnapshot(`""`);
+  });
+
+  it('returns independent copy of notes array', () => {
+    const history = new ConversationHistory();
+    history.appendNote('Original note');
+
+    const notes = history.getNotes();
+    notes.push('Mutated note');
+
+    expect(history.getNotes()).toEqual(['Original note']);
+  });
+
+  // Compress history tests
+
+  it('does not compress when message count is below threshold', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('msg1'));
+    history.append(userMessage('msg2'));
+    history.append(userMessage('msg3'));
+
+    const result = history.compressHistory(5, 2);
+
+    expect(result).toBe(false);
+    expect(history.length).toBe(3);
+    expect(history.snapshot()).toEqual([
+      userMessage('msg1'),
+      userMessage('msg2'),
+      userMessage('msg3'),
+    ]);
+  });
+
+  it('does not compress when message count equals threshold', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('msg1'));
+    history.append(userMessage('msg2'));
+    history.append(userMessage('msg3'));
+
+    const result = history.compressHistory(3, 2);
+
+    expect(result).toBe(false);
+    expect(history.length).toBe(3);
+  });
+
+  it('compresses history when message count exceeds threshold', () => {
+    const history = new ConversationHistory();
+    for (let i = 1; i <= 25; i++) {
+      history.append(userMessage(`msg${i}`));
+    }
+
+    const result = history.compressHistory(20, 10);
+
+    expect(result).toBe(true);
+    // 10 kept messages + 1 placeholder
+    expect(history.length).toBe(11);
+  });
+
+  it('keeps the most recent messages after compression', () => {
+    const history = new ConversationHistory();
+    for (let i = 1; i <= 25; i++) {
+      history.append(userMessage(`msg${i}`));
+    }
+
+    history.compressHistory(20, 10);
+
+    const snapshot = history.snapshot();
+    // First message should be the placeholder
+    expect(snapshot[0]).toEqual({
+      role: 'user',
+      content: '(15 previous conversation messages have been omitted)',
+    });
+    // Remaining messages should be the last 10 (msg16 to msg25)
+    for (let i = 1; i <= 10; i++) {
+      expect(snapshot[i]).toEqual(userMessage(`msg${15 + i}`));
+    }
+  });
+
+  it('preserves message order after compression', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('old1'));
+    history.append(assistantMessage('old2'));
+    history.append(userMessage('old3'));
+    history.append(assistantMessage('keep1'));
+    history.append(userMessage('keep2'));
+
+    history.compressHistory(4, 2);
+
+    const snapshot = history.snapshot();
+    expect(snapshot).toEqual([
+      {
+        role: 'user',
+        content: '(3 previous conversation messages have been omitted)',
+      },
+      assistantMessage('keep1'),
+      userMessage('keep2'),
+    ]);
+  });
+
+  it('handles compression with image messages', () => {
+    const history = new ConversationHistory();
+    history.append(userMessageWithImage('old', 'data:old-image'));
+    history.append(assistantMessage('old response'));
+    history.append(userMessageWithImage('new', 'data:new-image'));
+
+    history.compressHistory(2, 1);
+
+    const snapshot = history.snapshot();
+    expect(snapshot.length).toBe(2);
+    expect(snapshot[0]).toEqual({
+      role: 'user',
+      content: '(2 previous conversation messages have been omitted)',
+    });
+    expect(snapshot[1]).toEqual(userMessageWithImage('new', 'data:new-image'));
+  });
 });

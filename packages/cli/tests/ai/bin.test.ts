@@ -4,12 +4,9 @@ import { join } from 'node:path';
 import { getTmpFile } from '@midscene/core/utils';
 import { uuid } from '@midscene/shared/utils';
 import { execa } from 'execa';
-import { describe, expect, test, vi } from 'vitest';
+import { describe, expect, test } from 'vitest';
 
 const cliBin = require.resolve('../../bin/midscene');
-vi.setConfig({
-  testTimeout: 120 * 1000,
-});
 
 const shouldRunAITest =
   process.platform !== 'linux' || process.env.AITEST === 'true';
@@ -99,9 +96,11 @@ describe.skipIf(!shouldRunAITest)('bin', () => {
     await execa(cliBin, params);
   });
 
-  test('query with domIncluded', async () => {
-    const output = getTmpFile('json');
-    const yamlString = `
+  test(
+    'query with domIncluded',
+    async () => {
+      const output = getTmpFile('json');
+      const yamlString = `
     # login to sauce demo, extract the items info into a json file, and assert the price of 'Sauce Labs Fleece Jacket'
 
 web:
@@ -129,22 +128,24 @@ tasks:
         name: page-title
 
     `;
-    const path = await saveYaml(yamlString);
-    const params = [path];
-    await execa(cliBin, params);
-    const result = JSON.parse(readFileSync(output!, 'utf-8'));
-    expect(result.items.length).toBeGreaterThanOrEqual(2);
-    expect(result.items[0].imageUrl).toContain('/static/media/');
-    // Normalize imageUrl to avoid hash changes breaking snapshots
-    const normalizedItems = result.items.map((item: any) => ({
-      ...item,
-      imageUrl: item.imageUrl?.replace(/\.[a-f0-9]+\.jpg$/, '.jpg'),
-    }));
-    expect(normalizedItems).toMatchSnapshot();
-    expect(result['page-title']).toMatchSnapshot();
-    expect(result['price-assert'].thought).toBeTruthy();
-    expect(result['price-assert'].pass).toBeTruthy();
-  });
+      const path = await saveYaml(yamlString);
+      const params = [path];
+      await execa(cliBin, params);
+      const result = JSON.parse(readFileSync(output!, 'utf-8'));
+      expect(result.items.length).toBeGreaterThanOrEqual(2);
+      expect(result.items[0].imageUrl).toContain('/static/media/');
+      // Normalize imageUrl to avoid hash changes breaking snapshots
+      const normalizedItems = result.items.map((item: any) => ({
+        ...item,
+        imageUrl: item.imageUrl?.replace(/\.[a-f0-9]+\.jpg$/, '.jpg'),
+      }));
+      expect(normalizedItems).toMatchSnapshot();
+      expect(result['page-title']).toMatchSnapshot();
+      expect(result['price-assert'].thought).toBeTruthy();
+      expect(result['price-assert'].pass).toBeTruthy();
+    },
+    5 * 60 * 1000,
+  );
 
   test('yaml with image prompt', async () => {
     const params = ['./tests/midscene_scripts/online/image-prompting.yaml'];

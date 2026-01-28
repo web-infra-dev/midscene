@@ -1,8 +1,9 @@
-import { execSync } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { promisify } from 'node:util';
 import {
   defaultRunDirName,
   getMidsceneRunSubDir,
@@ -345,22 +346,36 @@ function debugLog(...message: any[]) {
   }
 }
 
+let gitInfoPromise: Promise<{ repoUrl: string; userEmail: string }> | null =
+  null;
+
+function getGitInfoAsync(): Promise<{ repoUrl: string; userEmail: string }> {
+  if (gitInfoPromise) return gitInfoPromise;
+
+  const execFileAsync = promisify(execFile);
+
+  gitInfoPromise = Promise.all([
+    execFileAsync('git', ['config', '--get', 'remote.origin.url']).then(
+      ({ stdout }) => stdout.trim(),
+      () => '',
+    ),
+    execFileAsync('git', ['config', '--get', 'user.email']).then(
+      ({ stdout }) => stdout.trim(),
+      () => '',
+    ),
+  ]).then(([repoUrl, userEmail]) => ({ repoUrl, userEmail }));
+
+  return gitInfoPromise;
+}
+
 let lastReportedRepoUrl = '';
-export function uploadTestInfoToServer({
+export async function uploadTestInfoToServer({
   testUrl,
   serverUrl,
 }: { testUrl: string; serverUrl?: string }) {
   if (!serverUrl) return;
 
-  let repoUrl = '';
-  let userEmail = '';
-
-  try {
-    repoUrl = execSync('git config --get remote.origin.url').toString().trim();
-    userEmail = execSync('git config --get user.email').toString().trim();
-  } catch (error) {
-    debugLog('Failed to get git info:', error);
-  }
+  const { repoUrl, userEmail } = await getGitInfoAsync();
 
   // Only upload test info if:
   // 1. Server URL is configured AND
