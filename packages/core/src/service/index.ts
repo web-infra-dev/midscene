@@ -7,7 +7,7 @@ import {
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
-import type { AIArgs } from '@/common';
+import { type AIArgs, expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
@@ -27,7 +27,7 @@ import {
   MIDSCENE_FORCE_DEEP_THINK,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { compositeElementInfoImg } from '@midscene/shared/img';
+import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt } from '../common';
@@ -344,7 +344,7 @@ export default class Service {
         }
       : target;
 
-    const imagePayload = await compositeElementInfoImg({
+    let imagePayload = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
       size,
       elementsPositionInfo: [
@@ -354,6 +354,32 @@ export default class Service {
       ],
       borderThickness: 3,
     });
+
+    if (opt?.deepThink) {
+      const searchArea = expandSearchArea(targetRect, size, modelFamily);
+      // Only crop when the search area covers at least 50% of the screen
+      // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
+      // too much context and cause model hallucinations.
+      const widthRatio = searchArea.width / size.width;
+      const heightRatio = searchArea.height / size.height;
+      if (widthRatio >= 0.5 && heightRatio >= 0.5) {
+        debug('describe: cropping to searchArea', searchArea);
+        const croppedResult = await cropByRect(
+          imagePayload,
+          searchArea,
+          modelFamily === 'qwen2.5-vl',
+        );
+        imagePayload = croppedResult.imageBase64;
+      } else {
+        debug(
+          'describe: skip cropping, search area too small (%dx%d on %dx%d)',
+          searchArea.width,
+          searchArea.height,
+          size.width,
+          size.height,
+        );
+      }
+    }
 
     const msgs: AIArgs = [
       { role: 'system', content: systemPrompt },
