@@ -63,7 +63,9 @@ export function restoreImageReferences<T>(
   if (typeof data === 'object' && data !== null) {
     if ('$screenshot' in data) {
       const screenshot = (data as { $screenshot: unknown }).$screenshot;
-      return restoreScreenshotValue(screenshot, imageMap) as T;
+      const base64 = restoreScreenshotValue(screenshot, imageMap);
+      // Return { base64: "..." } format expected by visualizer components
+      return { base64 } as T;
     }
 
     const result: Record<string, unknown> = {};
