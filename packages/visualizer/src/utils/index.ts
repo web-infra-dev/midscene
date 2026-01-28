@@ -1,21 +1,10 @@
+import type { SerializedScreenshot } from '@midscene/core';
 import dayjs from 'dayjs';
 
 /**
- * Screenshot data in serialized format.
- * Supports both new format (type-based) and legacy format (base64 only).
- */
-export type SerializedScreenshotData =
-  | { type: 'inline'; data: string } // New inline format
-  | { type: 'file'; path: string } // New file path format
-  | { base64: string } // Legacy format
-  | undefined
-  | null;
-
-/**
- * Get screenshot data URL from various serialized formats.
- * Handles both new SerializedScreenshot format and legacy { base64 } format.
+ * Get screenshot data URL from SerializedScreenshot format.
  *
- * @param screenshot - Screenshot data in any supported format
+ * @param screenshot - Screenshot data in SerializedScreenshot format
  * @returns Base64 data URL string, file path, or empty string if not available
  */
 export function getScreenshotData(screenshot: unknown): string {
@@ -23,21 +12,14 @@ export function getScreenshotData(screenshot: unknown): string {
     return '';
   }
 
-  const data = screenshot as Record<string, unknown>;
+  const data = screenshot as SerializedScreenshot;
 
-  // New format: { type: 'inline', data: '...' }
-  if (data.type === 'inline' && typeof data.data === 'string') {
+  if (data.type === 'inline') {
     return data.data;
   }
 
-  // New format: { type: 'file', path: '...' }
-  if (data.type === 'file' && typeof data.path === 'string') {
+  if (data.type === 'file') {
     return data.path;
-  }
-
-  // Legacy format: { base64: '...' }
-  if (typeof data.base64 === 'string') {
-    return data.base64;
   }
 
   return '';

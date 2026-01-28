@@ -107,10 +107,9 @@ export const Blackboard = (props: {
   useEffect(() => {
     // Handle different screenshot formats:
     // 1. ScreenshotItem instance (runtime) - need to call getData()
-    // 2. { type: 'inline', data: '...' } (new serialized format)
-    // 3. { type: 'file', path: '...' } (new file path format)
-    // 4. { base64: "..." } (legacy serialized format)
-    // 5. undefined/null
+    // 2. { type: 'inline', data: '...' } (serialized inline format)
+    // 3. { type: 'file', path: '...' } (serialized file path format)
+    // 4. undefined/null
 
     const loadScreenshot = async () => {
       if (!screenshot) {
@@ -132,24 +131,16 @@ export const Blackboard = (props: {
         return;
       }
 
-      // Handle serialized formats (new and legacy)
-      const data = screenshot as unknown as Record<string, unknown>;
+      // Handle SerializedScreenshot format
+      const data = screenshot as { type?: string; data?: string; path?: string };
 
-      // New format: { type: 'inline', data: '...' }
-      if (data.type === 'inline' && typeof data.data === 'string') {
+      if (data.type === 'inline' && data.data) {
         setScreenshotBase64(data.data);
         return;
       }
 
-      // New format: { type: 'file', path: '...' }
-      if (data.type === 'file' && typeof data.path === 'string') {
+      if (data.type === 'file' && data.path) {
         setScreenshotBase64(data.path);
-        return;
-      }
-
-      // Legacy format: { base64: '...' }
-      if (typeof data.base64 === 'string') {
-        setScreenshotBase64(data.base64);
       }
     };
 
