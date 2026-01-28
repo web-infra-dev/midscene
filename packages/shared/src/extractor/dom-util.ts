@@ -131,28 +131,96 @@ function includeBaseElement(node: globalThis.Node) {
   return false;
 }
 
-export function generateElementByPosition(
-  position: {
-    x: number;
-    y: number;
-  },
+/**
+ * Generate a LocateResultElement from a point.
+ * This function creates an expanded rect around the given center point.
+ *
+ * Note: Center coordinates should be integers for pixel-aligned positioning.
+ * If decimal values are provided, they will be used as-is, which may result in
+ * non-pixel-aligned rect positions.
+ *
+ * The rect positioning behavior:
+ * - When edgeSize is even: center is at the top-left of the four center pixels
+ *   For example, with edgeSize=4 and center=[10, 10]:
+ *   □□□□
+ *   □■□□  (■ represents the center point at pixel 10)
+ *   □□□□
+ *   □□□□
+ *
+ * - When edgeSize is odd: center is at the exact middle pixel
+ *   For example, with edgeSize=5 and center=[10, 10]:
+ *   □□□□□
+ *   □□■□□  (■ represents the center point at pixel 10)
+ *   □□□□□
+ *
+ * @param center - Center point coordinates as [x, y] (should be integers)
+ * @param description - Description of the element
+ * @param edgeSize - Size to expand around the center point (default: 8)
+ * @returns A LocateResultElement with rect, center, and description
+ */
+export function generateElementByPoint(
+  center: [number, number],
   description: string,
+  edgeSize = 8,
 ): LocateResultElement {
-  const edgeSize = 8;
-  const rect = {
-    left: Math.round(Math.max(position.x - edgeSize / 2, 0)),
-    top: Math.round(Math.max(position.y - edgeSize / 2, 0)),
+  const [centerX, centerY] = center;
+  const offset = Math.ceil(edgeSize / 2) - 1;
+  const expandedRect = {
+    left: Math.max(centerX - offset, 0),
+    top: Math.max(centerY - offset, 0),
     width: edgeSize,
     height: edgeSize,
   };
-  const element = {
-    rect,
-    center: [Math.round(position.x), Math.round(position.y)] as [
-      number,
-      number,
-    ],
+
+  return {
+    rect: expandedRect,
+    center: [centerX, centerY] as [number, number],
     description: description || '',
   };
+}
 
-  return element;
+/**
+ * Generate a LocateResultElement from a rect.
+ * This function calculates the center point from the rect and expands the rect by edgeSize.
+ *
+ * Note: The rect uses inclusive coordinates where:
+ * - A rect from [left=10, top=10] with [width=1, height=1] covers exactly 1 pixel
+ * - The actual pixel range is [left, left+width) which means width pixels
+ *
+ * @param sourceRect - The source rect to generate element from (typically contains integer values)
+ * @param description - Description of the element
+ * @param edgeSize - Size to expand around the center point (default: 8)
+ * @returns A LocateResultElement with rect, center (always integers), and description
+ */
+export function generateElementByRect(
+  sourceRect: { left: number; top: number; width: number; height: number },
+  description: string,
+  edgeSize = 8,
+): LocateResultElement {
+  /**
+   * Calculate center point from rect
+   * For width/height calculation: if we have pixels from left to left+width-1 (width pixels total),
+   * the center is at left + (width-1)/2
+   *
+   * - If width/height is even: centerX/Y lands on the top-left pixel of the four center pixels
+   * - for example, the width/height is 6
+   * □□□□□□
+   * □□□□□□
+   * □□■□□□
+   * □□□□□□
+   * □□□□□□
+   * □□□□□□
+   *
+   * - If width/height is odd: centerX/Y lands on the exact middle pixel
+   * - for example, the width/height is 5
+   * □□□□□
+   * □□□□□
+   * □□■□□
+   * □□□□□
+   * □□□□□
+   */
+  const centerX = sourceRect.left + Math.floor((sourceRect.width - 1) / 2);
+  const centerY = sourceRect.top + Math.floor((sourceRect.height - 1) / 2);
+
+  return generateElementByPoint([centerX, centerY], description, edgeSize);
 }

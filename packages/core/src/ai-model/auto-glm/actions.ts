@@ -19,7 +19,7 @@ function autoGLMCoordinateToBbox(
   height: number,
 ): [number, number, number, number] {
   const bbox = pointToBbox(x, y, 10);
-  return adaptBbox(bbox, width, height, width, height, 'auto-glm');
+  return adaptBbox(bbox, width, height, 'auto-glm');
 }
 
 export interface BaseAction {

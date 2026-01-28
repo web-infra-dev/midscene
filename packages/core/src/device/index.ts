@@ -22,8 +22,8 @@ export abstract class AbstractInterface {
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 
-  abstract cacheFeatureForRect?(
-    rect: Rect,
+  abstract cacheFeatureForPoint?(
+    center: [number, number],
     options?: {
       targetDescription?: string;
       modelConfig?: IModelConfig;
