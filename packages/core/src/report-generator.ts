@@ -19,16 +19,25 @@ import { appendFileSync, getReportTpl } from './utils';
 const debug = getDebug('report-generator');
 
 export interface IReportGenerator {
-  onDumpUpdate(
-    dump: GroupedActionDump,
-    cachedSerializedDump?: string,
-  ): void | Promise<void>;
+  /**
+   * Schedule a dump update. Writes are queued internally to guarantee serial execution.
+   * This method returns immediately (fire-and-forget).
+   */
+  onDumpUpdate(dump: GroupedActionDump, cachedSerializedDump?: string): void;
+  /**
+   * Wait for all queued write operations to complete.
+   */
+  flush(): Promise<void>;
+  /**
+   * Finalize the report. Calls flush() internally before printing the final message.
+   */
   finalize(dump: GroupedActionDump): Promise<string | undefined>;
   getReportPath(): string | undefined;
 }
 
 export const nullReportGenerator: IReportGenerator = {
   onDumpUpdate: () => {},
+  flush: async () => {},
   finalize: async () => undefined,
   getReportPath: () => undefined,
 };
@@ -46,6 +55,10 @@ export class ReportGenerator implements IReportGenerator {
   // inline mode state
   private imageEndOffset = 0;
   private initialized = false;
+
+  // write queue for serial execution
+  private writeQueue: Promise<void> = Promise.resolve();
+  private destroyed = false;
 
   constructor(options: {
     reportPath: string;
@@ -89,20 +102,25 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   onDumpUpdate(dump: GroupedActionDump, cachedSerializedDump?: string): void {
-    try {
-      if (this.screenshotMode === 'inline') {
-        this.writeInlineReport(dump, cachedSerializedDump);
-      } else {
-        this.writeDirectoryReport(dump, cachedSerializedDump);
-      }
-    } catch (error) {
-      debug('Error writing report:', error);
-      console.error('Error writing report:', error);
-    }
+    this.writeQueue = this.writeQueue
+      .then(() => {
+        if (this.destroyed) return;
+        this.doWrite(dump, cachedSerializedDump);
+      })
+      .catch((error) => {
+        debug('Error writing report:', error);
+        console.error('Error writing report:', error);
+      });
+  }
+
+  async flush(): Promise<void> {
+    await this.writeQueue;
   }
 
   async finalize(dump: GroupedActionDump): Promise<string | undefined> {
     this.onDumpUpdate(dump);
+    await this.flush();
+    this.destroyed = true;
 
     if (this.autoPrint && this.reportPath) {
       if (this.screenshotMode === 'directory') {
@@ -123,6 +141,17 @@ export class ReportGenerator implements IReportGenerator {
 
   getReportPath(): string | undefined {
     return this.reportPath;
+  }
+
+  private doWrite(
+    dump: GroupedActionDump,
+    cachedSerializedDump?: string,
+  ): void {
+    if (this.screenshotMode === 'inline') {
+      this.writeInlineReport(dump, cachedSerializedDump);
+    } else {
+      this.writeDirectoryReport(dump, cachedSerializedDump);
+    }
   }
 
   private writeInlineReport(

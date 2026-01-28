@@ -192,8 +192,6 @@ export class Agent<
 
   destroyed = false;
 
-  private writeQueue: Promise<void> = Promise.resolve();
-
   modelConfigManager: ModelConfigManager;
 
   /**
@@ -401,7 +399,7 @@ export class Agent<
           }
 
           // Fire and forget - don't block task execution
-          this.scheduleWrite(dumpString);
+          this.writeOutActionDumps(dumpString);
         },
       },
     });
@@ -532,25 +530,9 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  /**
-   * Enqueue a report write. Writes are chained to guarantee serial execution
-   * and prevent concurrent file access. Errors are caught to keep the chain alive.
-   */
-  private scheduleWrite(cachedDumpString?: string) {
-    this.writeQueue = this.writeQueue
-      .then(async () => {
-        if (this.destroyed) return;
-        await this.reportGenerator.onDumpUpdate(this.dump, cachedDumpString);
-        this.reportFile = this.reportGenerator.getReportPath();
-      })
-      .catch((error) => {
-        console.error('Error writing action dumps:', error);
-        debug('writeOutActionDumps error', error);
-      });
-  }
-
-  writeOutActionDumps() {
-    this.scheduleWrite();
+  writeOutActionDumps(cachedDumpString?: string) {
+    this.reportGenerator.onDumpUpdate(this.dump, cachedDumpString);
+    this.reportFile = this.reportGenerator.getReportPath();
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1339,7 +1321,7 @@ export class Agent<
     }
 
     // Wait for all queued write operations to complete
-    await this.writeQueue;
+    await this.reportGenerator.flush();
 
     await this.reportGenerator.finalize(this.dump);
     this.reportFile = this.reportGenerator.getReportPath();
@@ -1403,8 +1385,8 @@ export class Agent<
       }
     }
 
-    this.scheduleWrite(dumpString);
-    await this.writeQueue;
+    this.writeOutActionDumps(dumpString);
+    await this.reportGenerator.flush();
   }
 
   /**
