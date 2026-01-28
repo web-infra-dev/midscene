@@ -334,96 +334,50 @@ export async function AiLocateElement(options: {
   const rawResponse = JSON.stringify(res.content);
 
   let resRect: Rect | undefined;
-  let matchedElements: LocateResultElement[] = [];
-  let errors: string[] | undefined =
-    'errors' in res.content ? res.content.errors : [];
+  const matchedElements: LocateResultElement[] = [];
+  const errors: string[] =
+    'errors' in res.content && res.content.errors ? [...res.content.errors] : [];
 
-  // Handle array mode response
+  // Normalize response to array of bbox items for unified processing
+  type BboxItem = {
+    bbox: [number, number, number, number] | [];
+    index: number;
+    errors?: string[];
+  };
+  const bboxItems: BboxItem[] = [];
+
   if (isArrayMode && 'elements' in res.content) {
     const arrayResponse = res.content as AIElementArrayResponse;
-    const elementMap = new Map<
-      number,
-      (typeof arrayResponse.elements)[0] | undefined
-    >();
     if (arrayResponse.elements) {
       for (const elem of arrayResponse.elements) {
-        elementMap.set(elem.indexId, elem);
+        bboxItems.push({
+          bbox: elem.bbox,
+          index: elem.indexId,
+          errors: elem.errors,
+        });
       }
     }
-
-    // Process each description in order
-    for (let i = 0; i < descriptionTexts.length; i++) {
-      const elem = elementMap.get(i);
-
-      if (!elem || !elem.bbox || elem.bbox.length < 4) {
-        if (elem?.errors?.length) {
-          errors = errors || [];
-          errors.push(...elem.errors);
-        }
-        continue;
-      }
-
-      try {
-        const elemRect = adaptBboxToRect(
-          elem.bbox as [number, number, number, number],
-          imageWidth,
-          imageHeight,
-          options.searchConfig?.rect?.left,
-          options.searchConfig?.rect?.top,
-          originalImageWidth,
-          originalImageHeight,
-          modelFamily,
-        );
-
-        const rectCenter = {
-          x: elemRect.left + elemRect.width / 2,
-          y: elemRect.top + elemRect.height / 2,
-        };
-
-        const element: LocateResultElement = generateElementByPosition(
-          rectCenter,
-          descriptionTexts[i],
-        );
-
-        if (element) {
-          matchedElements.push(element);
-        }
-
-        // Use the first found rect as the main rect for backward compatibility
-        if (!resRect) {
-          resRect = elemRect;
-        }
-      } catch (e) {
-        const msg =
-          e instanceof Error
-            ? `Failed to parse bbox at index ${i}: ${e.message}`
-            : `Unknown error at index ${i}`;
-        errors = errors || [];
-        errors.push(msg);
-      }
-    }
-
-    return {
-      rect: resRect,
-      parseResult: {
-        elements: matchedElements,
-        errors: errors as string[],
-      },
-      rawResponse,
-      usage: res.usage,
-      reasoning_content: res.reasoning_content,
-    };
+  } else if ('bbox' in res.content && Array.isArray(res.content.bbox)) {
+    bboxItems.push({
+      bbox: res.content.bbox as [number, number, number, number],
+      index: 0,
+    });
   }
 
-  // Handle single element mode response
-  try {
-    if (
-      'bbox' in res.content &&
-      Array.isArray(res.content.bbox) &&
-      res.content.bbox.length >= 1
-    ) {
-      resRect = adaptBboxToRect(
-        res.content.bbox,
+  // Process each bbox item
+  for (let i = 0; i < descriptionTexts.length; i++) {
+    const item = bboxItems.find((b) => b.index === i);
+
+    if (!item || !item.bbox || item.bbox.length < 4) {
+      if (item?.errors?.length) {
+        errors.push(...item.errors);
+      }
+      continue;
+    }
+
+    try {
+      const elemRect = adaptBboxToRect(
+        item.bbox as [number, number, number, number],
         imageWidth,
         imageHeight,
         options.searchConfig?.rect?.left,
@@ -433,40 +387,42 @@ export async function AiLocateElement(options: {
         modelFamily,
       );
 
-      debugInspect('resRect', resRect);
+      if (!isArrayMode) {
+        debugInspect('resRect', elemRect);
+      }
 
       const rectCenter = {
-        x: resRect.left + resRect.width / 2,
-        y: resRect.top + resRect.height / 2,
+        x: elemRect.left + elemRect.width / 2,
+        y: elemRect.top + elemRect.height / 2,
       };
 
       const element: LocateResultElement = generateElementByPosition(
         rectCenter,
-        descriptionTexts[0],
+        descriptionTexts[i],
       );
-      errors = [];
 
       if (element) {
-        matchedElements = [element];
+        matchedElements.push(element);
       }
-    }
-  } catch (e) {
-    const msg =
-      e instanceof Error
-        ? `Failed to parse bbox: ${e.message}`
-        : 'unknown error in locate';
-    if (!errors || errors?.length === 0) {
-      errors = [msg];
-    } else {
-      errors.push(`(${msg})`);
+
+      // Use the first found rect as the main rect
+      if (!resRect) {
+        resRect = elemRect;
+      }
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? `Failed to parse bbox${isArrayMode ? ` at index ${i}` : ''}: ${e.message}`
+          : `Unknown error${isArrayMode ? ` at index ${i}` : ''} in locate`;
+      errors.push(msg);
     }
   }
 
   return {
     rect: resRect,
     parseResult: {
-      elements: matchedElements as LocateResultElement[],
-      errors: errors as string[],
+      elements: matchedElements,
+      errors,
     },
     rawResponse,
     usage: res.usage,

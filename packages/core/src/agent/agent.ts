@@ -1155,12 +1155,58 @@ export class Agent<
     promptOrPrompts: TUserPrompt | TUserPrompt[],
     opt?: LocateOption,
   ): Promise<AiLocateResult | AiLocateResult[]> {
+    const isArrayMode = Array.isArray(promptOrPrompts);
+
     // Handle array input
-    if (Array.isArray(promptOrPrompts)) {
-      return this.aiLocateArray(promptOrPrompts, opt);
+    if (isArrayMode) {
+      assert(
+        promptOrPrompts.length > 0,
+        'prompts array cannot be empty for aiLocate with array input',
+      );
+
+      const locateParam: DetailedLocateParam = {
+        prompt: promptOrPrompts,
+        deepThink: opt?.deepThink,
+        cacheable: opt?.cacheable,
+      };
+
+      const modelConfig = this.modelConfigManager.getModelConfig('planning');
+
+      let context: UIContext;
+      if (opt?.uiContext) {
+        context = opt.uiContext;
+      } else {
+        assert(
+          this.interface.getContext,
+          'getContext method is not available on interface',
+        );
+        context = await this.interface.getContext();
+      }
+      const service = new Service(() => context);
+
+      const locateResult = await service.locate(
+        locateParam,
+        { context },
+        modelConfig,
+      );
+
+      // For array input, result has 'results' property
+      assert(
+        'results' in locateResult,
+        'Expected LocateArrayResultWithDump for array prompts',
+      );
+
+      const dprValue = await (this.interface.size() as any).dpr;
+      const dprEntry = dprValue ? { dpr: dprValue } : {};
+
+      return locateResult.results.map((result) => ({
+        rect: result.element?.rect,
+        center: result.element?.center,
+        ...dprEntry,
+      }));
     }
 
-    // Handle single input (existing logic)
+    // Handle single input
     const locateParam = buildDetailedLocateParam(promptOrPrompts, opt);
     assert(locateParam, 'cannot get locate param for aiLocate');
     const locatePlan = locatePlanForLocate(locateParam!);
@@ -1180,74 +1226,12 @@ export class Agent<
     const { element } = output;
 
     const dprValue = await (this.interface.size() as any).dpr;
-    const dprEntry = dprValue
-      ? {
-          dpr: dprValue,
-        }
-      : {};
+    const dprEntry = dprValue ? { dpr: dprValue } : {};
     return {
       rect: element?.rect,
       center: element?.center,
       ...dprEntry,
     };
-  }
-
-  /**
-   * Internal method to locate multiple elements at once
-   */
-  private async aiLocateArray(
-    prompts: TUserPrompt[],
-    opt?: Omit<LocateOption, 'xpath'>,
-  ): Promise<AiLocateResult[]> {
-    assert(
-      prompts.length > 0,
-      'prompts array cannot be empty for aiLocate with array input',
-    );
-
-    const locateParam: DetailedLocateParam = {
-      prompt: prompts,
-      deepThink: opt?.deepThink,
-      cacheable: opt?.cacheable,
-    };
-
-    const modelConfig = this.modelConfigManager.getModelConfig('planning');
-
-    let context: UIContext;
-    if (opt?.uiContext) {
-      context = opt.uiContext;
-    } else {
-      assert(
-        this.interface.getContext,
-        'getContext method is not available on interface',
-      );
-      context = await this.interface.getContext();
-    }
-    const service = new Service(() => context);
-
-    const locateResult = await service.locate(
-      locateParam,
-      { context },
-      modelConfig,
-    );
-
-    // For array input, result has 'results' property
-    assert(
-      'results' in locateResult,
-      'Expected LocateArrayResultWithDump for array prompts',
-    );
-
-    const dprValue = await (this.interface.size() as any).dpr;
-    const dprEntry = dprValue
-      ? {
-          dpr: dprValue,
-        }
-      : {};
-
-    return locateResult.results.map((result) => ({
-      rect: result.element?.rect,
-      center: result.element?.center,
-      ...dprEntry,
-    }));
   }
 
   async aiAssert(
