@@ -1,9 +1,9 @@
 import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import * as fs from 'node:fs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
+import { promisify } from 'node:util';
 import {
   defaultRunDirName,
   getMidsceneRunSubDir,
