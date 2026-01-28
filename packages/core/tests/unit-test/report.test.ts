@@ -99,7 +99,13 @@ describe('reportMergingTool', () => {
   it('should merge 3 mocked reports twice, use user custom filename, overwrite old report on second merge', async () => {
     const tool = new ReportMergingTool();
     // first reports
-    generateNReports(3, 'report content', tool, true, 'merge-3-overwrite-test-1');
+    generateNReports(
+      3,
+      'report content',
+      tool,
+      true,
+      'merge-3-overwrite-test-1',
+    );
     // assert merge success
     tool.mergeReports('my-custom-merged-report-filename-overwrite', {
       overwrite: true,
