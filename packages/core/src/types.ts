@@ -39,6 +39,17 @@ export type AIUsageInfo = Record<string, any> & {
 
 export type { LocateResultElement };
 
+/**
+ * Return type for aiLocate method
+ * Contains the position information of the located element
+ */
+export interface AiLocateResult {
+  rect?: Rect;
+  center?: [number, number];
+  /** @deprecated Use rect and center instead */
+  dpr?: number;
+}
+
 export type AISingleElementResponseByPosition = {
   position?: {
     x: number;
@@ -190,6 +201,13 @@ export interface ServiceResultBase {
 }
 
 export type LocateResultWithDump = LocateResult & ServiceResultBase;
+
+/**
+ * Result type for array locate - single dump for all results
+ */
+export interface LocateArrayResultWithDump extends ServiceResultBase {
+  results: LocateResult[];
+}
 
 export interface ServiceExtractResult<T> extends ServiceResultBase {
   data: T;

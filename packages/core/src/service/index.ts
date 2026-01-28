@@ -12,6 +12,8 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  LocateArrayResultWithDump,
+  LocateResult,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
   Rect,
@@ -79,7 +81,7 @@ export default class Service {
     query: DetailedLocateParam,
     opt: LocateOpts,
     modelConfig: IModelConfig,
-  ): Promise<LocateResultWithDump | LocateResultWithDump[]> {
+  ): Promise<LocateResultWithDump | LocateArrayResultWithDump> {
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
 
@@ -157,42 +159,13 @@ export default class Service {
     const timeCost = Date.now() - startTime;
     const elements = parseResult.elements || [];
 
-    // Handle array mode - return array of results
+    // Handle array mode - return results with single dump
     if (isArrayMode) {
       const queryPrompts = queryPrompt as string[];
-      const results: LocateResultWithDump[] = [];
+      const results: LocateResult[] = [];
 
       for (let i = 0; i < queryPrompts.length; i++) {
         const element = elements[i];
-        const taskInfo: ServiceTaskInfo = {
-          ...(this.taskInfo ? this.taskInfo : {}),
-          durationMs: timeCost,
-          rawResponse: JSON.stringify(rawResponse),
-          formatResponse: JSON.stringify(parseResult),
-          usage,
-          reasoning_content,
-        };
-
-        let errorLog: string | undefined;
-        if (!element) {
-          errorLog = `Element at index ${i} not found`;
-        }
-
-        const dumpData: PartialServiceDumpFromSDK = {
-          type: 'locate',
-          userQuery: {
-            element: queryPrompts[i],
-          },
-          matchedElement: element ? [element] : [],
-          matchedRect: element?.rect,
-          data: null,
-          taskInfo,
-          deepThink: false,
-          error: errorLog,
-        };
-
-        const dump = createServiceDump(dumpData);
-
         results.push({
           element: element
             ? {
@@ -202,11 +175,33 @@ export default class Service {
               }
             : null,
           rect: element?.rect,
-          dump,
         });
       }
 
-      return results;
+      // Create single dump for all results
+      const taskInfo: ServiceTaskInfo = {
+        ...(this.taskInfo ? this.taskInfo : {}),
+        durationMs: timeCost,
+        rawResponse: JSON.stringify(rawResponse),
+        formatResponse: JSON.stringify(parseResult),
+        usage,
+        reasoning_content,
+      };
+
+      const dumpData: PartialServiceDumpFromSDK = {
+        type: 'locate',
+        userQuery: {
+          element: queryPrompts,
+        },
+        matchedElement: elements,
+        data: null,
+        taskInfo,
+        deepThink: false,
+      };
+
+      const dump = createServiceDump(dumpData);
+
+      return { results, dump };
     }
 
     // Handle single element mode (original behavior)

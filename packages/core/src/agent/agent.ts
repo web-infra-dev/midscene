@@ -5,6 +5,7 @@ import {
   type AgentDescribeElementAtPointResult,
   type AgentOpt,
   type AgentWaitForOpt,
+  type AiLocateResult,
   type CacheConfig,
   type DeepThinkOption,
   type DetailedLocateParam,
@@ -1137,14 +1138,7 @@ export class Agent<
    * @param prompt - Element description
    * @param opt - Locate options
    */
-  async aiLocate(
-    prompt: TUserPrompt,
-    opt?: LocateOption,
-  ): Promise<
-    Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr?: number;
-    }
-  >;
+  async aiLocate(prompt: TUserPrompt, opt?: LocateOption): Promise<AiLocateResult>;
 
   /**
    * Locate multiple elements at once using a single LLM call
@@ -1155,27 +1149,12 @@ export class Agent<
   async aiLocate(
     prompts: TUserPrompt[],
     opt?: Omit<LocateOption, 'xpath'>,
-  ): Promise<
-    Array<
-      Pick<LocateResultElement, 'rect' | 'center'> & {
-        dpr?: number;
-      }
-    >
-  >;
+  ): Promise<AiLocateResult[]>;
 
   async aiLocate(
     promptOrPrompts: TUserPrompt | TUserPrompt[],
     opt?: LocateOption,
-  ): Promise<
-    | (Pick<LocateResultElement, 'rect' | 'center'> & {
-        dpr?: number;
-      })
-    | Array<
-        Pick<LocateResultElement, 'rect' | 'center'> & {
-          dpr?: number;
-        }
-      >
-  > {
+  ): Promise<AiLocateResult | AiLocateResult[]> {
     // Handle array input
     if (Array.isArray(promptOrPrompts)) {
       return this.aiLocateArray(promptOrPrompts, opt);
@@ -1210,8 +1189,6 @@ export class Agent<
       rect: element?.rect,
       center: element?.center,
       ...dprEntry,
-    } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr?: number; // this field is deprecated
     };
   }
 
@@ -1221,13 +1198,7 @@ export class Agent<
   private async aiLocateArray(
     prompts: TUserPrompt[],
     opt?: Omit<LocateOption, 'xpath'>,
-  ): Promise<
-    Array<
-      Pick<LocateResultElement, 'rect' | 'center'> & {
-        dpr?: number;
-      }
-    >
-  > {
+  ): Promise<AiLocateResult[]> {
     assert(
       prompts.length > 0,
       'prompts array cannot be empty for aiLocate with array input',
@@ -1253,10 +1224,17 @@ export class Agent<
     }
     const service = new Service(() => context);
 
-    const results = await service.locate(locateParam, { context }, modelConfig);
+    const locateResult = await service.locate(
+      locateParam,
+      { context },
+      modelConfig,
+    );
 
-    // Results should be an array when prompt is an array
-    assert(Array.isArray(results), 'Expected array results for array prompts');
+    // For array input, result has 'results' property
+    assert(
+      'results' in locateResult,
+      'Expected LocateArrayResultWithDump for array prompts',
+    );
 
     const dprValue = await (this.interface.size() as any).dpr;
     const dprEntry = dprValue
@@ -1265,7 +1243,7 @@ export class Agent<
         }
       : {};
 
-    return results.map((result) => ({
+    return locateResult.results.map((result) => ({
       rect: result.element?.rect,
       center: result.element?.center,
       ...dprEntry,
