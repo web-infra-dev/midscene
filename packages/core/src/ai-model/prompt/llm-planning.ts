@@ -200,19 +200,19 @@ export async function systemPromptToTaskPlanning({
     ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
     : 'First, observe the current screenshot and previous logs to understand the current state.';
 
-  const goalInterpretationRule = `CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.`;
+  const explicitInstructionRule = `CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`;
 
   const thoughtTagDescription = shouldIncludeSubGoals
     ? `REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
 
-${goalInterpretationRule}`
+${explicitInstructionRule}`
     : `REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-${goalInterpretationRule}`;
+${explicitInstructionRule}`;
 
   const subGoalTags = shouldIncludeSubGoals
     ? `
@@ -304,15 +304,19 @@ Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all
 
 The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
 
+**Explicit instructions vs. High-level goals:**
+- If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
+- If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
+
 **What "goal accomplished" means:**
 - The goal is accomplished when you have done EXACTLY what the user asked - no extra steps, no assumptions.
 - Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
 
-**Examples of strict interpretation:**
-- Instruction: "fill out the form" → Goal is accomplished when all fields are filled. Do NOT submit the form.
-- Instruction: "click the login button" → Goal is accomplished once the button is clicked. Do NOT wait for page load or verify login success.
-- Instruction: "type 'hello' in the search box" → Goal is accomplished when 'hello' is typed. Do NOT press Enter or trigger search.
-- Instruction: "select the first item" → Goal is accomplished when the item is selected. Do NOT proceed to checkout or any further action.
+**Examples - Explicit instructions (execute exactly, no extra steps):**
+- "fill out the form" → Goal accomplished when all fields are filled. Do NOT submit the form.
+- "click the login button" → Goal accomplished once clicked. Do NOT wait for page load or verify login success.
+- "type 'hello' in the search box" → Goal accomplished when 'hello' is typed. Do NOT press Enter or trigger search.
+- "select the first item" → Goal accomplished when selected. Do NOT proceed to checkout.
 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
