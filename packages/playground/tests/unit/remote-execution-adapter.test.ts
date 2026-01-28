@@ -339,6 +339,7 @@ describe('RemoteExecutionAdapter', () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         statusText: 'Bad Request',
+        json: () => Promise.resolve({ error: 'Model name is required' }),
       });
 
       const consoleSpy = vi
@@ -348,7 +349,7 @@ describe('RemoteExecutionAdapter', () => {
       const aiConfig = { model: 'test' };
 
       await expect(adapter.overrideConfig(aiConfig)).rejects.toThrow(
-        'Failed to override server config: Bad Request',
+        'Model name is required',
       );
 
       consoleSpy.mockRestore();

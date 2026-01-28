@@ -51,7 +51,7 @@ describe('aiAction cacheable option propagation', () => {
           call: vi.fn().mockResolvedValue({}),
         },
       ]),
-      cacheFeatureForRect: vi.fn().mockResolvedValue({
+      cacheFeatureForPoint: vi.fn().mockResolvedValue({
         feature: 'mock-feature',
       }),
       rectMatchesCacheFeature: vi.fn().mockResolvedValue(undefined),

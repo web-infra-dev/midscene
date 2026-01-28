@@ -299,9 +299,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       });
 
       if (!response.ok) {
-        throw new Error(
-          `Failed to override server config: ${response.statusText}`,
-        );
+        const body = await response.json().catch(() => null);
+        const detail = body?.error || response.statusText;
+        throw new Error(detail);
       }
     } catch (error) {
       console.error('Failed to override server config:', error);

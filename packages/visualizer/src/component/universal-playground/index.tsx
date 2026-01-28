@@ -165,6 +165,8 @@ export function UniversalPlayground({
     if (playgroundSDK?.overrideConfig && config) {
       playgroundSDK.overrideConfig(config).catch((error) => {
         console.error('Failed to override SDK config:', error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        message.error(`Failed to apply AI configuration: ${errorMsg}`);
       });
     }
   }, [playgroundSDK, config]);

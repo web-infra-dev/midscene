@@ -13,7 +13,11 @@ describe('Test todo list', () => {
 
   beforeAll(async () => {
     const devices = await getConnectedDevices();
-    const page = new AndroidDevice(devices[0].udid);
+    const page = new AndroidDevice(devices[0].udid, {
+      scrcpyConfig: {
+        enabled: true,
+      },
+    });
     agent = new AndroidAgent(page, {
       aiActionContext:
         'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',

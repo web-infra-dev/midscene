@@ -68,7 +68,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert, defineActionSleep } from '../device';
+import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -381,11 +381,7 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [
-      ...baseActionSpace,
-      defineActionAssert(),
-      defineActionSleep(),
-    ];
+    this.fullActionSpace = [...baseActionSpace, defineActionSleep()];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
@@ -1085,9 +1081,14 @@ export class Agent<
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
 
+      // Don't pass deepThink to verification locate — the description was generated
+      // from a cropped view (deepThink describe), but verification should use regular
+      // locate on the full screenshot to confirm the description works universally.
+      // Passing deepThink here would trigger AiLocateSection with an element-level
+      // description as a section prompt, which is semantically incorrect.
       verifyResult = await this.verifyLocator(
         resultPrompt,
-        deepThink ? { deepThink: true } : undefined,
+        undefined,
         center,
         opt,
       );

@@ -48,8 +48,12 @@ export type AndroidDeviceOpt = {
    *
    * @example
    * ```typescript
-   * // Default configuration (enabled with auto-fallback)
-   * const device = new AndroidDevice(deviceId);
+   * // Enable scrcpy for high-performance screenshots
+   * const device = new AndroidDevice(deviceId, {
+   *   scrcpyConfig: {
+   *     enabled: true,
+   *   },
+   * });
    *
    * // Custom configuration
    * const device = new AndroidDevice(deviceId, {
@@ -60,17 +64,12 @@ export type AndroidDeviceOpt = {
    *     videoBitRate: 8_000_000,
    *   },
    * });
-   *
-   * // Disable scrcpy (force ADB mode)
-   * const device = new AndroidDevice(deviceId, {
-   *   scrcpyConfig: { enabled: false },
-   * });
    * ```
    */
   scrcpyConfig?: {
     /**
      * Enable scrcpy for high-performance screenshots.
-     * @default true - Automatically enabled with fallback to ADB if unavailable
+     * @default false
      */
     enabled?: boolean;
     /**

@@ -13,7 +13,7 @@ import {
   MIDSCENE_REPORT_TAG_NAME,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { generateElementByPosition } from '@midscene/shared/extractor';
+import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
@@ -143,13 +143,16 @@ export function matchElementFromPlan(
   }
 
   if (planLocateParam.bbox) {
-    const centerPosition = {
-      x: Math.floor((planLocateParam.bbox[0] + planLocateParam.bbox[2]) / 2),
-      y: Math.floor((planLocateParam.bbox[1] + planLocateParam.bbox[3]) / 2),
+    // Convert bbox [x1, y1, x2, y2] to rect {left, top, width, height}
+    const rect = {
+      left: planLocateParam.bbox[0],
+      top: planLocateParam.bbox[1],
+      width: planLocateParam.bbox[2] - planLocateParam.bbox[0] + 1,
+      height: planLocateParam.bbox[3] - planLocateParam.bbox[1] + 1,
     };
 
-    const element = generateElementByPosition(
-      centerPosition,
+    const element = generateElementByRect(
+      rect,
       typeof planLocateParam.prompt === 'string'
         ? planLocateParam.prompt
         : planLocateParam.prompt?.prompt || '',

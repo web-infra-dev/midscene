@@ -200,9 +200,19 @@ export async function systemPromptToTaskPlanning({
     ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
     : 'First, observe the current screenshot and previous logs to understand the current state.';
 
+  const explicitInstructionRule = `CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`;
+
   const thoughtTagDescription = shouldIncludeSubGoals
-    ? "Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers."
-    : 'Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.';
+    ? `REQUIRED: You MUST always output the <thought> tag. Never skip it.
+
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+
+${explicitInstructionRule}`
+    : `REQUIRED: You MUST always output the <thought> tag. Never skip it.
+
+Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+${explicitInstructionRule}`;
 
   const subGoalTags = shouldIncludeSubGoals
     ? `
@@ -275,7 +285,7 @@ ${step1Title}
 
 ${step1Description}
 
-* <thought> tag
+* <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}
 ${subGoalTags}
@@ -290,11 +300,34 @@ Don't use this tag if no information needs to be preserved.
 
 Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all sub-goals' : ''}, determine if the entire task is completed.
 
+### CRITICAL: The User's Instruction is the Supreme Authority
+
+The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
+
+**Explicit instructions vs. High-level goals:**
+- If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
+- If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
+
+**What "goal accomplished" means:**
+- The goal is accomplished when you have done EXACTLY what the user asked - no extra steps, no assumptions.
+- Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
+
+**Examples - Explicit instructions (execute exactly, no extra steps):**
+- "fill out the form" → Goal accomplished when all fields are filled. Do NOT submit the form.
+- "click the login button" → Goal accomplished once clicked. Do NOT wait for page load or verify login success.
+- "type 'hello' in the search box" → Goal accomplished when 'hello' is typed. Do NOT press Enter or trigger search.
+- "select the first item" → Goal accomplished when selected. Do NOT proceed to checkout.
+
+**Special case - Assertion instructions:**
+- If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
+
+### Output Rules
+
+- If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
-- If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 
 ## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -329,8 +362,6 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete-goal' is NOT a valid action-type.
-- Use <action-type>Print_Assert_Result</action-type> if the user clearly asks for an assertion.
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -354,9 +385,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 ${
   shouldIncludeSubGoals
     ? `
