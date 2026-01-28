@@ -25,7 +25,7 @@ describe(
       expect(describeResult.verifyResult?.center).toBeTruthy();
     });
 
-    it.only('element describer - deep think', async () => {
+    it('element describer - deep think', async () => {
       const htmlPath = getFixturePath('local-search.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.resetFn = reset;
