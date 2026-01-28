@@ -399,7 +399,7 @@ export class Agent<
           }
 
           // Fire and forget - don't block task execution
-          this.writeOutActionDumps(dumpString);
+          this.writeOutActionDumps();
         },
       },
     });
@@ -530,8 +530,8 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  writeOutActionDumps(cachedDumpString?: string) {
-    this.reportGenerator.onDumpUpdate(this.dump, cachedDumpString);
+  writeOutActionDumps() {
+    this.reportGenerator.onDumpUpdate(this.dump);
     this.reportFile = this.reportGenerator.getReportPath();
   }
 
@@ -1385,7 +1385,7 @@ export class Agent<
       }
     }
 
-    this.writeOutActionDumps(dumpString);
+    this.writeOutActionDumps();
     await this.reportGenerator.flush();
   }
 
