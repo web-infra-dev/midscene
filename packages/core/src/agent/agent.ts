@@ -401,10 +401,12 @@ export class Agent<
           }
 
           // Fire and forget - don't block task execution
-          this.lastWritePromise = this.writeOutActionDumps().catch((error) => {
-            console.error('Error writing action dumps:', error);
-            debug('writeOutActionDumps error', error);
-          });
+          this.lastWritePromise = this.writeOutActionDumps(dumpString).catch(
+            (error) => {
+              console.error('Error writing action dumps:', error);
+              debug('writeOutActionDumps error', error);
+            },
+          );
         },
       },
     });
@@ -535,14 +537,14 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  async writeOutActionDumps() {
+  async writeOutActionDumps(cachedDumpString?: string) {
     if (this.destroyed) {
       throw new Error(
         'PageAgent has been destroyed. Cannot update report file.',
       );
     }
 
-    await this.reportGenerator.onDumpUpdate(this.dump);
+    await this.reportGenerator.onDumpUpdate(this.dump, cachedDumpString);
     this.reportFile = this.reportGenerator.getReportPath();
     debug('writeOutActionDumps', this.reportFile);
   }
@@ -1394,7 +1396,7 @@ export class Agent<
       }
     }
 
-    this.lastWritePromise = this.writeOutActionDumps();
+    this.lastWritePromise = this.writeOutActionDumps(dumpString);
     await this.lastWritePromise;
   }
 

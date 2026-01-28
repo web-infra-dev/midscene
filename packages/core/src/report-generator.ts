@@ -19,7 +19,10 @@ import { appendFileSync, getReportTpl } from './utils';
 const debug = getDebug('report-generator');
 
 export interface IReportGenerator {
-  onDumpUpdate(dump: GroupedActionDump): void | Promise<void>;
+  onDumpUpdate(
+    dump: GroupedActionDump,
+    cachedSerializedDump?: string,
+  ): void | Promise<void>;
   finalize(dump: GroupedActionDump): Promise<string | undefined>;
   getReportPath(): string | undefined;
 }
@@ -85,12 +88,12 @@ export class ReportGenerator implements IReportGenerator {
     });
   }
 
-  onDumpUpdate(dump: GroupedActionDump): void {
+  onDumpUpdate(dump: GroupedActionDump, cachedSerializedDump?: string): void {
     try {
       if (this.screenshotMode === 'inline') {
-        this.writeInlineReport(dump);
+        this.writeInlineReport(dump, cachedSerializedDump);
       } else {
-        this.writeDirectoryReport(dump);
+        this.writeDirectoryReport(dump, cachedSerializedDump);
       }
     } catch (error) {
       debug('Error writing report:', error);
@@ -122,7 +125,10 @@ export class ReportGenerator implements IReportGenerator {
     return this.reportPath;
   }
 
-  private writeInlineReport(dump: GroupedActionDump): void {
+  private writeInlineReport(
+    dump: GroupedActionDump,
+    cachedSerializedDump?: string,
+  ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -153,13 +159,14 @@ export class ReportGenerator implements IReportGenerator {
     this.imageEndOffset = statSync(this.reportPath).size;
 
     // 4. append new dump JSON (compact { $screenshot: id } format)
-    appendFileSync(
-      this.reportPath,
-      `\n${generateDumpScriptTag(dump.serialize())}`,
-    );
+    const serialized = cachedSerializedDump ?? dump.serialize();
+    appendFileSync(this.reportPath, `\n${generateDumpScriptTag(serialized)}`);
   }
 
-  private writeDirectoryReport(dump: GroupedActionDump): void {
+  private writeDirectoryReport(
+    dump: GroupedActionDump,
+    cachedSerializedDump?: string,
+  ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -185,16 +192,22 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // 2. write HTML with dump JSON referencing ./screenshots/{id}.png paths
-    const serialized = this.serializeWithScreenshotPaths(dump);
+    const serialized = this.serializeWithScreenshotPaths(
+      dump,
+      cachedSerializedDump,
+    );
     writeFileSync(
       this.reportPath,
       `${getReportTpl()}\n${generateDumpScriptTag(serialized)}`,
     );
   }
 
-  private serializeWithScreenshotPaths(dump: GroupedActionDump): string {
+  private serializeWithScreenshotPaths(
+    dump: GroupedActionDump,
+    cachedSerializedDump?: string,
+  ): string {
     // Serialize the dump, then replace screenshot references with file paths
-    const jsonStr = dump.serialize();
+    const jsonStr = cachedSerializedDump ?? dump.serialize();
     const parsed = JSON.parse(jsonStr);
 
     // Recursively replace { $screenshot: id } with { base64: "./screenshots/{id}.png" }
