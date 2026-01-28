@@ -26,9 +26,9 @@ const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 
-// Scrcpy default configuration (默认启用,自动 fallback)
+// Scrcpy default configuration (默认关闭,需手动开启)
 export const DEFAULT_SCRCPY_CONFIG = {
-  enabled: true, // 默认启用,失败时自动降级到 ADB
+  enabled: false, // 默认关闭,需手动开启
   maxSize: DEFAULT_MAX_SIZE,
   idleTimeoutMs: DEFAULT_IDLE_TIMEOUT_MS,
   videoBitRate: DEFAULT_VIDEO_BIT_RATE,
@@ -330,9 +330,7 @@ export class ScrcpyScreenshotManager {
 
     this.resetIdleTimer();
 
-    debugScrcpy(
-      `Decoding H.264 stream: ${keyframeBuffer.length} bytes`,
-    );
+    debugScrcpy(`Decoding H.264 stream: ${keyframeBuffer.length} bytes`);
 
     const t4 = Date.now();
     const result = await this.decodeH264ToPng(keyframeBuffer);
