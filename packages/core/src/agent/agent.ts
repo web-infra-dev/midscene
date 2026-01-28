@@ -1081,9 +1081,14 @@ export class Agent<
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
 
+      // Don't pass deepThink to verification locate — the description was generated
+      // from a cropped view (deepThink describe), but verification should use regular
+      // locate on the full screenshot to confirm the description works universally.
+      // Passing deepThink here would trigger AiLocateSection with an element-level
+      // description as a section prompt, which is semantically incorrect.
       verifyResult = await this.verifyLocator(
         resultPrompt,
-        deepThink ? { deepThink: true } : undefined,
+        undefined,
         center,
         opt,
       );
