@@ -143,20 +143,22 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       // Manually populate state to verify cleanup
       (manager as any).spsHeader = Buffer.from('sps');
-      (manager as any).lastKeyframeBuffer = Buffer.from('keyframe');
+      (manager as any).lastRawKeyframe = Buffer.from('keyframe');
       (manager as any).isInitialized = true;
       (manager as any).h264SearchConfigFn = () => {};
       (manager as any).keyframeResolvers = [() => {}];
+      (manager as any).streamReader = { cancel: vi.fn() };
 
       await manager.disconnect();
 
       expect((manager as any).spsHeader).toBeNull();
-      expect((manager as any).lastKeyframeBuffer).toBeNull();
+      expect((manager as any).lastRawKeyframe).toBeNull();
       expect((manager as any).isInitialized).toBe(false);
       expect((manager as any).h264SearchConfigFn).toBeNull();
       expect((manager as any).keyframeResolvers).toEqual([]);
       expect((manager as any).videoStream).toBeNull();
       expect((manager as any).scrcpyClient).toBeNull();
+      expect((manager as any).streamReader).toBeNull();
     });
 
     it('should clear idle timer', async () => {
@@ -177,7 +179,36 @@ describe('ScrcpyScreenshotManager', () => {
 
       // Should not throw
       await expect(manager.disconnect()).resolves.toBeUndefined();
+      // References are nulled before close is called
       expect((manager as any).scrcpyClient).toBeNull();
+    });
+
+    it('should cancel streamReader to stop consumeFramesLoop', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      const cancelFn = vi.fn();
+      (manager as any).streamReader = { cancel: cancelFn };
+
+      await manager.disconnect();
+
+      expect(cancelFn).toHaveBeenCalled();
+      expect((manager as any).streamReader).toBeNull();
+    });
+
+    it('should null references before awaiting close to prevent race conditions', async () => {
+      const manager = new ScrcpyScreenshotManager({} as any);
+      let clientNulledBeforeClose = false;
+      (manager as any).scrcpyClient = {
+        close: vi.fn().mockImplementation(async () => {
+          // At this point, scrcpyClient should already be null
+          clientNulledBeforeClose = (manager as any).scrcpyClient === null;
+        }),
+      };
+      (manager as any).videoStream = {};
+
+      await manager.disconnect();
+
+      expect(clientNulledBeforeClose).toBe(true);
+      expect((manager as any).videoStream).toBeNull();
     });
   });
 });

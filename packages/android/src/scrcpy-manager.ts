@@ -108,9 +108,10 @@ export class ScrcpyScreenshotManager {
   private options: ResolvedScrcpyOptions;
   private ffmpegAvailable: boolean | null = null;
   private keyframeResolvers: Array<(buf: Buffer) => void> = [];
-  private lastKeyframeBuffer: Buffer | null = null;
+  private lastRawKeyframe: Buffer | null = null;
   private videoResolution: { width: number; height: number } | null = null;
   private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
+  private streamReader: any = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
@@ -247,6 +248,7 @@ export class ScrcpyScreenshotManager {
     if (!this.videoStream) return;
 
     const reader = this.videoStream.stream.getReader();
+    this.streamReader = reader;
     this.consumeFramesLoop(reader);
   }
 
@@ -269,7 +271,8 @@ export class ScrcpyScreenshotManager {
 
   /**
    * Process a single video frame.
-   * Always caches the latest keyframe for static-screen fallback.
+   * Caches the raw keyframe buffer (without SPS concat) to minimize per-frame overhead.
+   * Buffer.concat with SPS header is deferred to when the frame is actually consumed.
    */
   private processFrame(packet: any): void {
     const frameBuffer = Buffer.from(packet.data);
@@ -280,9 +283,9 @@ export class ScrcpyScreenshotManager {
     }
 
     if (actualKeyFrame && this.spsHeader) {
-      const combined = Buffer.concat([this.spsHeader, frameBuffer]);
-      this.lastKeyframeBuffer = combined;
+      this.lastRawKeyframe = frameBuffer;
       if (this.keyframeResolvers.length > 0) {
+        const combined = Buffer.concat([this.spsHeader, frameBuffer]);
         this.notifyKeyframeWaiters(combined);
       }
     }
@@ -338,8 +341,8 @@ export class ScrcpyScreenshotManager {
       frameSource = 'fresh';
     } catch {
       // No fresh frame within timeout — screen is likely static, use cached frame
-      if (this.lastKeyframeBuffer) {
-        keyframeBuffer = this.lastKeyframeBuffer;
+      if (this.lastRawKeyframe && this.spsHeader) {
+        keyframeBuffer = Buffer.concat([this.spsHeader, this.lastRawKeyframe]);
         frameSource = 'cached';
       } else {
         // No cached frame either, wait longer
@@ -564,21 +567,34 @@ export class ScrcpyScreenshotManager {
       this.idleTimer = null;
     }
 
-    if (this.scrcpyClient) {
-      try {
-        await this.scrcpyClient.close();
-      } catch (error) {
-        debugScrcpy(`Error closing scrcpy client: ${error}`);
-      }
-      this.scrcpyClient = null;
-    }
+    // Capture references before nulling — prevents race with ensureConnected
+    const client = this.scrcpyClient;
+    const reader = this.streamReader;
 
+    this.scrcpyClient = null;
     this.videoStream = null;
+    this.streamReader = null;
     this.spsHeader = null;
-    this.lastKeyframeBuffer = null;
+    this.lastRawKeyframe = null;
     this.isInitialized = false;
     this.h264SearchConfigFn = null;
     this.keyframeResolvers = [];
+
+    // Cancel reader first to stop consumeFramesLoop
+    if (reader) {
+      try {
+        reader.cancel();
+      } catch {}
+    }
+
+    // Then close the client
+    if (client) {
+      try {
+        await client.close();
+      } catch (error) {
+        debugScrcpy(`Error closing scrcpy client: ${error}`);
+      }
+    }
 
     debugScrcpy('Scrcpy disconnected');
   }
