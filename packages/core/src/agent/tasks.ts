@@ -591,6 +591,7 @@ export class TaskExecutor {
             opt,
             extraPageDescription,
             multimodalPrompt,
+            uiContext,
           );
         } catch (error) {
           if (error instanceof ServiceError) {
