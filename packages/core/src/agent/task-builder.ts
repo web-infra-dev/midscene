@@ -12,7 +12,6 @@ import type {
   LocateResultElement,
   LocateResultWithDump,
   PlanningAction,
-  PlanningActionParamSleep,
   PlanningLocateParam,
   Rect,
   ServiceDump,
@@ -20,7 +19,7 @@ import type {
 import { ServiceError } from '@/types';
 import { sleep } from '@/utils';
 import type { IModelConfig } from '@midscene/shared/env';
-import { generateElementByPosition } from '@midscene/shared/extractor';
+import { generateElementByRect } from '@midscene/shared/extractor';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { TaskCache } from './task-cache';
@@ -59,6 +58,7 @@ interface TaskBuilderDeps {
   service: Service;
   taskCache?: TaskCache;
   actionSpace: DeviceAction[];
+  waitAfterAction?: number;
 }
 
 interface BuildOptions {
@@ -83,16 +83,20 @@ export class TaskBuilder {
 
   private readonly actionSpace: DeviceAction[];
 
+  private readonly waitAfterAction?: number;
+
   constructor({
     interfaceInstance,
     service,
     taskCache,
     actionSpace,
+    waitAfterAction,
   }: TaskBuilderDeps) {
     this.interface = interfaceInstance;
     this.service = service;
     this.taskCache = taskCache;
     this.actionSpace = actionSpace;
+    this.waitAfterAction = waitAfterAction;
   }
 
   public async build(
@@ -124,14 +128,6 @@ export class TaskBuilder {
           ),
       ],
       ['Finished', (plan) => this.handleFinishedPlan(plan, context)],
-      [
-        'Sleep',
-        (plan) =>
-          this.handleSleepPlan(
-            plan as PlanningAction<PlanningActionParamSleep>,
-            context,
-          ),
-      ],
     ]);
 
     const defaultHandler: PlanHandler = (plan) =>
@@ -160,34 +156,6 @@ export class TaskBuilder {
       executor: async () => {},
     };
     context.tasks.push(taskActionFinished);
-  }
-
-  private handleSleepPlan(
-    plan: PlanningAction<PlanningActionParamSleep>,
-    context: PlanBuildContext,
-  ): void {
-    const sleepTask = this.createSleepTask(plan.param, {
-      thought: plan.thought,
-    });
-    if (context.subTask) {
-      sleepTask.subTask = true;
-    }
-    context.tasks.push(sleepTask);
-  }
-
-  public createSleepTask(
-    param: PlanningActionParamSleep,
-    meta?: { thought?: string },
-  ): ExecutionTaskActionApply<PlanningActionParamSleep> {
-    return {
-      type: 'Action Space',
-      subType: 'Sleep',
-      param,
-      thought: meta?.thought,
-      executor: async (taskParam) => {
-        await sleep(taskParam?.timeMs || 3000);
-      },
-    };
   }
 
   private async handleLocatePlan(
@@ -314,7 +282,8 @@ export class TaskBuilder {
         const actionResult = await actionFn(param, taskContext);
         debug('called action', action.name, 'result:', actionResult);
 
-        const delayAfterRunner = action.delayAfterRunner ?? 300;
+        const delayAfterRunner =
+          action.delayAfterRunner ?? this.waitAfterAction ?? 300;
         if (delayAfterRunner > 0) {
           await sleep(delayAfterRunner);
         }
@@ -399,6 +368,7 @@ export class TaskBuilder {
           locateDump = dump;
           task.log = {
             dump,
+            rawResponse: dump.taskInfo?.rawResponse,
           };
           task.usage = dump.taskInfo?.usage;
           if (dump.taskInfo?.searchAreaUsage) {
@@ -431,11 +401,8 @@ export class TaskBuilder {
           }
         }
         const elementFromXpath = rectFromXpath
-          ? generateElementByPosition(
-              {
-                x: rectFromXpath.left + rectFromXpath.width / 2,
-                y: rectFromXpath.top + rectFromXpath.height / 2,
-              },
+          ? generateElementByRect(
+              rectFromXpath,
               typeof param.prompt === 'string'
                 ? param.prompt
                 : param.prompt?.prompt || '',
@@ -506,10 +473,10 @@ export class TaskBuilder {
           (!isPlanHit || !locateCacheAlreadyExists) &&
           param?.cacheable !== false
         ) {
-          if (this.interface.cacheFeatureForRect) {
+          if (this.interface.cacheFeatureForPoint) {
             try {
-              const feature = await this.interface.cacheFeatureForRect(
-                element.rect,
+              const feature = await this.interface.cacheFeatureForPoint(
+                element.center,
                 {
                   targetDescription:
                     typeof param.prompt === 'string'
@@ -540,10 +507,10 @@ export class TaskBuilder {
                 );
               }
             } catch (error) {
-              debug('cacheFeatureForRect failed: %s', error);
+              debug('cacheFeatureForPoint failed: %s', error);
             }
           } else {
-            debug('cacheFeatureForRect is not supported, skip cache update');
+            debug('cacheFeatureForPoint is not supported, skip cache update');
           }
         }
 

@@ -1,0 +1,34 @@
+{
+  "name": "@midscene/computer-linux",
+  "version": "1.3.1",
+  "description": "Midscene.js Computer Desktop Automation for Linux",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/midscene.git",
+    "directory": "packages/computer-linux"
+  },
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "rslib build",
+    "dev": "rslib build --watch"
+  },
+  "dependencies": {
+    "@midscene/computer": "workspace:*"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.18.3",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3"
+  }
+}

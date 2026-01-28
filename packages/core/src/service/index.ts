@@ -1,5 +1,6 @@
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
+  AIResponseParseError,
   AiExtractElementInfo,
   AiLocateElement,
   callAIWithObjectResponse,
@@ -227,8 +228,15 @@ export default class Service {
 
     const startTime = Date.now();
 
-    const { parseResult, usage, reasoning_content } =
-      await AiExtractElementInfo<T>({
+    let parseResult: Awaited<
+      ReturnType<typeof AiExtractElementInfo<T>>
+    >['parseResult'];
+    let rawResponse: string;
+    let usage: Awaited<ReturnType<typeof AiExtractElementInfo<T>>>['usage'];
+    let reasoning_content: string | undefined;
+
+    try {
+      const result = await AiExtractElementInfo<T>({
         context,
         dataQuery: dataDemand,
         multimodalPrompt,
@@ -236,12 +244,40 @@ export default class Service {
         modelConfig,
         pageDescription,
       });
+      parseResult = result.parseResult;
+      rawResponse = result.rawResponse;
+      usage = result.usage;
+      reasoning_content = result.reasoning_content;
+    } catch (error) {
+      if (error instanceof AIResponseParseError) {
+        // Create dump with usage and rawResponse from the error
+        const timeCost = Date.now() - startTime;
+        const taskInfo: ServiceTaskInfo = {
+          ...(this.taskInfo ? this.taskInfo : {}),
+          durationMs: timeCost,
+          rawResponse: error.rawResponse,
+          usage: error.usage,
+        };
+        const dump = createServiceDump({
+          type: 'extract',
+          userQuery: { dataDemand },
+          matchedElement: [],
+          data: null,
+          taskInfo,
+          error: error.message,
+        });
+        throw new ServiceError(error.message, dump);
+      }
+      throw error;
+    }
 
     const timeCost = Date.now() - startTime;
     const taskInfo: ServiceTaskInfo = {
       ...(this.taskInfo ? this.taskInfo : {}),
       durationMs: timeCost,
-      rawResponse: JSON.stringify(parseResult),
+      rawResponse,
+      formatResponse: JSON.stringify(parseResult),
+      usage,
       reasoning_content,
     };
 
@@ -263,7 +299,6 @@ export default class Service {
 
     const { data, thought } = parseResult || {};
 
-    // 4
     const dump = createServiceDump({
       ...dumpData,
       data,

@@ -185,7 +185,7 @@ describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
 
           if (annotations.length > 0) {
             const markedImage = await annotateRects(
-              context.screenshotBase64,
+              context.screenshot.base64,
               annotations.map((item) => item.rect),
             );
             await saveBase64Image({

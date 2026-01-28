@@ -203,16 +203,16 @@ export class Page<
     );
   }
 
-  async cacheFeatureForRect(
-    rect: Rect,
+  async cacheFeatureForPoint(
+    center: [number, number],
     options?: {
       targetDescription?: string;
       modelConfig?: IModelConfig;
     },
   ): Promise<ElementCacheFeature> {
-    const center: Point = {
-      left: Math.floor(rect.left + rect.width / 2),
-      top: Math.floor(rect.top + rect.height / 2),
+    const point: Point = {
+      left: center[0],
+      top: center[1],
     };
 
     try {
@@ -237,16 +237,16 @@ export class Page<
         }
       }
 
-      const xpaths = await this.getXpathsByPoint(center, isOrderSensitive);
+      const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
       const sanitized = sanitizeXpaths(xpaths);
       if (!sanitized.length) {
-        debugPage('cacheFeatureForRect: no xpath found at rect %o', rect);
+        debugPage('cacheFeatureForPoint: no xpath found at point %o', center);
       }
       return {
         xpaths: sanitized,
       };
     } catch (error) {
-      debugPage('cacheFeatureForRect failed: %s', error);
+      debugPage('cacheFeatureForPoint failed: %s', error);
       return {
         xpaths: [],
       };
@@ -257,10 +257,17 @@ export class Page<
     const webFeature = feature as WebElementCacheFeature;
     const xpaths = sanitizeXpaths(webFeature.xpaths);
 
+    debugPage('rectMatchesCacheFeature: trying %d xpath(s)', xpaths.length);
+
     for (const xpath of xpaths) {
       try {
+        debugPage('rectMatchesCacheFeature: evaluating xpath: %s', xpath);
         const elementInfo = await this.getElementInfoByXpath(xpath);
         if (elementInfo?.rect) {
+          debugPage(
+            'rectMatchesCacheFeature: found element, rect: %o',
+            elementInfo.rect,
+          );
           const matchedRect: Rect = {
             left: elementInfo.rect.left,
             top: elementInfo.rect.top,
@@ -274,6 +281,10 @@ export class Page<
 
           return matchedRect;
         }
+        debugPage(
+          'rectMatchesCacheFeature: element found but no rect (elementInfo: %o)',
+          elementInfo,
+        );
       } catch (error) {
         debugPage(
           'rectMatchesCacheFeature failed for xpath %s: %s',
@@ -284,7 +295,7 @@ export class Page<
     }
 
     throw new Error(
-      'No matching element rect found for the provided cache feature',
+      `No matching element rect found for the provided cache feature (tried ${xpaths.length} xpath(s): ${xpaths.join(', ')})`,
     );
   }
 
@@ -324,6 +335,10 @@ export class Page<
 
     let base64: string;
     if (this.interfaceType === 'puppeteer') {
+      // Bring tab to front to ensure it's actively rendering frames.
+      // Inactive tabs in Chrome don't produce frames, causing screenshot to hang.
+      // See: https://github.com/puppeteer/puppeteer/issues/12712
+      await (this.underlyingPage as PuppeteerPage).bringToFront();
       const result = await (this.underlyingPage as PuppeteerPage).screenshot({
         type: imgType,
         quality,

@@ -1,5 +1,18 @@
 import type { AIUsageInfo, DeepThinkOption } from '@/types';
 import type { CodeGenerationChunk, StreamingCallback } from '@/types';
+
+// Error class that preserves usage and rawResponse when AI call parsing fails
+export class AIResponseParseError extends Error {
+  usage?: AIUsageInfo;
+  rawResponse: string;
+
+  constructor(message: string, rawResponse: string, usage?: AIUsageInfo) {
+    super(message);
+    this.name = 'AIResponseParseError';
+    this.rawResponse = rawResponse;
+    this.usage = usage;
+  }
+}
 import {
   type IModelConfig,
   MIDSCENE_LANGFUSE_DEBUG,
@@ -477,10 +490,13 @@ export async function callAIWithObjectResponse<T>(
   assert(response, 'empty response');
   const modelFamily = modelConfig.modelFamily;
   const jsonContent = safeParseJson(response.content, modelFamily);
-  assert(
-    typeof jsonContent === 'object',
-    `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
-  );
+  if (typeof jsonContent !== 'object') {
+    throw new AIResponseParseError(
+      `failed to parse json response from model (${modelConfig.modelName}): ${response.content}`,
+      response.content,
+      response.usage,
+    );
+  }
   return {
     content: jsonContent,
     contentString: response.content,

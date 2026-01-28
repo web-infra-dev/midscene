@@ -342,14 +342,12 @@ export const generateAnimationScripts = async (
 
   const scripts: AnimationScript[] = [];
   let insightCameraState: TargetCameraState | undefined = undefined;
-  let currentCameraState: TargetCameraState = fullPageCameraState;
+  // let currentCameraState: TargetCameraState = fullPageCameraState;
   let insightOnTop = false;
-  const taskCount = tasksIncluded.length;
   let initSubTitle = '';
   let errorStateFlag = false;
-  for (let index = 0; index < tasksIncluded.length; index++) {
-    const task = tasksIncluded[index];
-    if (errorStateFlag) continue;
+  tasksIncluded.forEach((task, index) => {
+    // if (errorStateFlag) return;
 
     if (index === 0) {
       initSubTitle = paramStr(task);
@@ -449,7 +447,7 @@ export const generateAnimationScripts = async (
           //   subTitle,
           // });
           insightOnTop = true;
-          currentCameraState = newCameraState;
+          // currentCameraState = newCameraState;
         });
       }
 
@@ -493,7 +491,7 @@ export const generateAnimationScripts = async (
 
       scripts.push(setPointerScript(mousePointer, title, subTitle));
 
-      currentCameraState = insightCameraState ?? fullPageCameraState;
+      // currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
       const actionScreenshotData =
@@ -551,20 +549,15 @@ export const generateAnimationScripts = async (
         imageHeight: task.uiContext?.size?.height || imageHeight,
       });
     }
-  }
+  });
 
-  // console.log('scripts', scripts);
-
-  // end, back to full page
-  if (!errorStateFlag) {
-    scripts.push({
-      title: 'Done',
-      subTitle: initSubTitle,
-      type: 'img',
-      duration: lastFrameDuration,
-      camera: fullPageCameraState,
-    });
-  }
+  scripts.push({
+    title: 'End',
+    subTitle: initSubTitle,
+    type: 'img',
+    duration: lastFrameDuration,
+    camera: fullPageCameraState,
+  });
 
   return scripts;
 };

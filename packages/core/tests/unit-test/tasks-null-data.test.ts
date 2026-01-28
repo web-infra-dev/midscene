@@ -1,5 +1,6 @@
 import { TaskExecutor } from '@/agent/tasks';
 import { ScreenshotItem } from '@/screenshot-item';
+import type { ServiceDump } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -20,6 +21,25 @@ const createEmptyUIContext = async () => {
   };
 };
 
+// Helper function to create mock ServiceDump
+const createMockDump = (
+  data: any,
+  thought?: string,
+  usage?: { totalTokens: number },
+): ServiceDump => ({
+  type: 'extract',
+  logId: 'mock-log-id',
+  userQuery: {},
+  matchedElement: [],
+  data,
+  taskInfo: {
+    durationMs: 100,
+    rawResponse: JSON.stringify(data),
+    usage: usage ? { inputTokens: 0, outputTokens: 0, ...usage } : undefined,
+    reasoning_content: thought,
+  },
+});
+
 /**
  * Tests for null/undefined data handling in task execution
  * This covers the bug fix for: TypeError: Cannot read properties of null (reading 'StatementIsTruthy')
@@ -34,6 +54,11 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: null, // AI returns null
           usage: { totalTokens: 100 },
           thought: 'Could not determine if condition is true',
+          dump: createMockDump(
+            null,
+            'Could not determine if condition is true',
+            { totalTokens: 100 },
+          ),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -42,7 +67,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -76,6 +100,9 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: undefined, // AI returns undefined
           usage: { totalTokens: 100 },
           thought: 'Failed to evaluate condition',
+          dump: createMockDump(undefined, 'Failed to evaluate condition', {
+            totalTokens: 100,
+          }),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -113,6 +140,9 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: null,
           usage: { totalTokens: 100 },
           thought: 'Could not verify assertion',
+          dump: createMockDump(null, 'Could not verify assertion', {
+            totalTokens: 100,
+          }),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -153,6 +183,11 @@ describe('TaskExecutor - Null Data Handling', () => {
           },
           usage: { totalTokens: 100 },
           thought: 'Condition is met',
+          dump: createMockDump(
+            { StatementIsTruthy: true },
+            'Condition is met',
+            { totalTokens: 100 },
+          ),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -191,6 +226,9 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: 'true', // AI returns plain string instead of structured format
           usage: { totalTokens: 100 },
           thought: 'Condition is met',
+          dump: createMockDump('true', 'Condition is met', {
+            totalTokens: 100,
+          }),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -229,6 +267,7 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: null,
           usage: { totalTokens: 100 },
           thought: 'No result found',
+          dump: createMockDump(null, 'No result found', { totalTokens: 100 }),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -267,6 +306,9 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: null,
           usage: { totalTokens: 100 },
           thought: 'Could not extract string',
+          dump: createMockDump(null, 'Could not extract string', {
+            totalTokens: 100,
+          }),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -304,6 +346,9 @@ describe('TaskExecutor - Null Data Handling', () => {
           data: null,
           usage: { totalTokens: 100 },
           thought: 'Could not extract number',
+          dump: createMockDump(null, 'Could not extract number', {
+            totalTokens: 100,
+          }),
         })),
         onceDumpUpdatedFn: undefined,
       } as any;
@@ -312,7 +357,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {

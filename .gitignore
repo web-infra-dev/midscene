@@ -112,6 +112,8 @@ midscene_run
 midscene_run/report
 midscene_run/dump
 
+local-benchmark
+
 *.ignore.png
 extension_output
 .cursor
@@ -119,6 +121,7 @@ apps/chrome-extension/web-ext-profile
 packages/android-playground/static/
 packages/ios-playground/static/
 packages/ios/static/
+packages/computer-playground/static/
 packages/playground/static/
 .cursor
 CLAUDE.md

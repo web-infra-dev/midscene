@@ -72,7 +72,7 @@ import {
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
-import { defineActionAssert } from '../device';
+import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
   TaskExecutionError,
@@ -399,12 +399,14 @@ export class Agent<
     }
 
     const baseActionSpace = this.interface.actionSpace();
-    this.fullActionSpace = [...baseActionSpace, defineActionAssert()];
+    this.fullActionSpace = [...baseActionSpace, defineActionSleep()];
 
     this.taskExecutor = new TaskExecutor(this.interface, this.service, {
       taskCache: this.taskCache,
       onTaskStart: this.callbackOnTaskStartTip.bind(this),
       replanningCycleLimit: this.opts.replanningCycleLimit,
+      waitAfterAction: this.opts.waitAfterAction,
+      useDeviceTimestamp: this.opts.useDeviceTimestamp,
       actionSpace: this.fullActionSpace,
       hooks: {
         onTaskUpdate: (runner) => {
@@ -958,8 +960,10 @@ export class Agent<
         this.modelConfigManager.getModelConfig('planning');
       const defaultIntentModelConfig =
         this.modelConfigManager.getModelConfig('default');
+      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
 
       const includeBboxInPlanning =
+        !deepThink &&
         modelConfigForPlanning.modelName ===
           defaultIntentModelConfig.modelName &&
         modelConfigForPlanning.openaiBaseURL ===
@@ -967,7 +971,6 @@ export class Agent<
       debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
       const cacheable = opt?.cacheable;
-      const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
         modelConfigForPlanning,
       );
@@ -996,14 +999,7 @@ export class Agent<
       }
 
       // If cache matched but yamlWorkflow is empty, fall through to normal execution
-
-      const useDeepThink = (this.opts as any)?._deepThink;
-      if (useDeepThink) {
-        debug('using deep think planning settings');
-      }
-      const imagesIncludeCount: number | undefined = useDeepThink
-        ? undefined
-        : 2;
+      const imagesIncludeCount: number | undefined = deepThink ? undefined : 2;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,

@@ -29,6 +29,7 @@ tasks:
 
 - [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
 - [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
+- [Computer（Mac/Windows/Linux）](https://github.com/web-infra-dev/midscene-example/tree/main/computer/yaml-scripts-demo)
 
 :::
 
@@ -40,7 +41,7 @@ tasks:
 
 脚本文件使用 YAML 格式来描述自动化任务。它定义了要操作的目标（如网页或安卓应用）以及一系列要执行的步骤。
 
-一个标准的 `.yaml` 脚本文件包含 `web`、`android` 或 `ios` 部分配置环境，可选的 `agent` 部分配置 AI Agent 行为，以及一个 `tasks` 部分来定义自动化任务。
+一个标准的 `.yaml` 脚本文件包含 `web`、`android`、`ios` 或 `computer` 部分配置环境，可选的 `agent` 部分配置 AI Agent 行为，以及一个 `tasks` 部分来定义自动化任务。
 
 ```yaml
 web:
@@ -363,6 +364,48 @@ tasks:
       - launch: https://www.example.com
 ```
 
+### `computer` 部分
+
+`computer` 部分用于 PC 桌面自动化。它允许你控制桌面环境，包括鼠标移动、键盘输入和屏幕查询。
+
+```yaml
+computer:
+  # 使用的显示器 ID，可选，默认使用主显示器
+  displayId: <display-id>
+
+  # 输出 aiQuery/aiAssert 结果的 JSON 文件路径，可选
+  output: <path-to-output-file>
+```
+
+#### 使用示例
+
+```yaml
+computer: {}
+
+tasks:
+  - name: 打开浏览器并搜索
+    flow:
+      - aiAct: 按下 Cmd+Space
+      - sleep: 500
+      - aiAct: 输入 "Safari" 并按回车
+      - sleep: 2000
+      - aiAct: 按下 Cmd+L 聚焦地址栏
+      - aiAct: 输入 "https://www.bing.com"
+      - aiAct: 按下回车
+      - sleep: 3000
+      - aiAct: 在搜索框中输入 "今日天气" 并按回车
+      - aiAssert: 结果显示天气信息
+```
+
+:::tip 平台说明
+
+上面的示例脚本使用 macOS 命令。对于 Windows，请修改脚本：
+- 使用 `按下 Windows 键` 代替 `按下 Cmd+Space`
+- 使用 `输入 "Chrome"` 代替 `输入 "Safari"`
+- 使用 `按下 Ctrl+L` 代替 `按下 Cmd+L`
+
+:::
+
 ### `tasks` 部分
 
 `tasks` 部分是一个数组，定义了脚本执行的步骤。记得在每个步骤前添加 `-` 符号，表明这些步骤是个数组。
@@ -466,7 +509,7 @@ tasks:
 
 #### 使用图像提示
 
-对于支持在提示词中附带图像的步骤（参见 [API 参考](./api.html#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
+对于支持在提示词中附带图像的步骤（参见 [API 参考](./api#prompting-with-images)），可以把提示词改写为对象，并通过设置 `images` 字段（一个包含 `name` 和 `url` 的对象数组）来附加图像。该对象包含以下字段：
 
 - `prompt`：发送给模型的文本描述。
 - `images`（可选）：提示词引用的参考图像，每一项需要提供 `name` 和 `url`。
@@ -510,3 +553,11 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
+
+## 注意事项
+
+### `agent.runYaml` 只会解析 `tasks` 字段
+
+当使用 `agent.runYaml()` api 时，YAML 文件中只有 `tasks` 字段会被解析和执行。
+
+因为此时 agent 已经在 js 脚本中完成初始化，无法根据 YAML 中的 `agent` 配置再次初始化。

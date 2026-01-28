@@ -237,6 +237,14 @@ export interface PlanningAction<ParamType = any> {
   param: ParamType;
 }
 
+export type SubGoalStatus = 'pending' | 'running' | 'finished';
+
+export interface SubGoal {
+  index: number;
+  status: SubGoalStatus;
+  description: string;
+}
+
 export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
   thought?: string;
@@ -245,6 +253,8 @@ export interface RawResponsePlanningAIResponse {
   error?: string;
   finalizeMessage?: string;
   finalizeSuccess?: boolean;
+  updateSubGoals?: SubGoal[];
+  markFinishedIndexes?: number[];
 }
 
 export interface PlanningAIResponse
@@ -257,6 +267,7 @@ export interface PlanningAIResponse
   error?: string;
   reasoning_content?: string;
   shouldContinuePlanning: boolean;
+  output?: string; // Output message from complete-goal (same as finalizeMessage)
 }
 
 export interface PlanningActionParamSleep {
@@ -1132,6 +1143,20 @@ export interface AgentOpt {
    * If omitted, the agent will also read `MIDSCENE_REPLANNING_CYCLE_LIMIT` for backward compatibility.
    */
   replanningCycleLimit?: number;
+
+  /**
+   * Wait time in milliseconds after each action execution.
+   * This allows the UI to settle and stabilize before the next action.
+   * Defaults to 300ms when not provided.
+   */
+  waitAfterAction?: number;
+
+  /**
+   * When set to true, Midscene will use the target device's time (Android/iOS)
+   * instead of the system time. Useful when the device time differs from the
+   * host machine. Default: false
+   */
+  useDeviceTimestamp?: boolean;
 
   /**
    * Custom OpenAI client factory function

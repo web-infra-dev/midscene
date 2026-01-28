@@ -82,6 +82,7 @@ const TimelineWidget = (props: {
   }
 
   const sizeRatio = 2;
+  const BASE_HEIGHT = 110; // Match @base-height in index.less
 
   // Color configuration based on theme
   const titleBg = isDarkMode ? 0x1f1f1f : 0xffffff;
@@ -141,9 +142,9 @@ const TimelineWidget = (props: {
       const app = new PIXI.Application();
 
       // width of domRef
-      const { clientWidth, clientHeight } = domRef.current;
+      const { clientWidth } = domRef.current;
       const canvasWidth = clientWidth * sizeRatio;
-      const canvasHeight = clientHeight * sizeRatio;
+      const canvasHeight = BASE_HEIGHT * sizeRatio;
 
       let singleGridWidth = 100 * sizeRatio;
       let gridCount = Math.floor(canvasWidth / singleGridWidth);

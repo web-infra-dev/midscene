@@ -1,8 +1,11 @@
-import { platform } from 'node:os';
+import path from 'node:path';
 import { PuppeteerAgent } from '@/puppeteer';
 import { sleep } from '@midscene/core/utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
+
+const FIXTURES_DIR = path.join(__dirname, '../../fixtures');
+const getFixturePath = (filename: string) => path.join(FIXTURES_DIR, filename);
 
 vi.setConfig({
   testTimeout: 600 * 1000,
@@ -25,7 +28,8 @@ describe('puppeteer integration', () => {
   });
 
   it('input and clear text', async () => {
-    const { originPage, reset } = await launchPage('https://www.google.com/');
+    const htmlPath = getFixturePath('input-test.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'input-related-test',
@@ -66,12 +70,13 @@ describe('puppeteer integration', () => {
   });
 
   it('agent with yaml script', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const htmlPath = getFixturePath('search-engine.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-agent-with-yaml-script',
     });
-    await sleep(3000);
+    await sleep(1000);
     const { result } = await agent.runYaml(
       `
   tasks:
@@ -91,7 +96,8 @@ describe('puppeteer integration', () => {
   });
 
   it('multiple style of aiInput', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const htmlPath = getFixturePath('search-engine.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-multiple-style-of-aiInput',
@@ -107,7 +113,8 @@ describe('puppeteer integration', () => {
   });
 
   it('assertion failed', async () => {
-    const { originPage, reset } = await launchPage('https://www.bing.com/');
+    const htmlPath = getFixturePath('search-engine.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-assertion-failed',
@@ -135,11 +142,8 @@ describe('puppeteer integration', () => {
   });
 
   it('allow error in flow', async () => {
-    const { originPage, reset } = await launchPage(
-      platform() === 'darwin'
-        ? 'https://www.baidu.com'
-        : 'https://www.bing.com/',
-    );
+    const htmlPath = getFixturePath('search-engine.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-allow-error-in-flow',
@@ -169,9 +173,8 @@ describe('puppeteer integration', () => {
   });
 
   it('drag and drop', async () => {
-    const { originPage, reset } = await launchPage(
-      'https://the-internet.herokuapp.com/drag_and_drop',
-    );
+    const htmlPath = getFixturePath('drag-and-drop.html');
+    const { originPage, reset } = await launchPage(`file://${htmlPath}`);
     resetFn = reset;
     agent = new PuppeteerAgent(originPage, {
       cacheId: 'test-drag-and-drop',

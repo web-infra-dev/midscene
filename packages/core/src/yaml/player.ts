@@ -146,6 +146,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       script.web ||
       script.android ||
       script.ios ||
+      script.computer ||
       script.config;
 
     if (ifInBrowser || ifInWorker) {
@@ -538,6 +539,40 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           if (result !== undefined) {
             this.setResult(resultName, result);
           }
+        } else if (
+          typeof actionParamForMatchedAction === 'string' &&
+          (matchedAction.name === 'Launch' ||
+            matchedAction.interfaceAlias === 'launch') &&
+          typeof (agent as any).launch === 'function'
+        ) {
+          // Call agent.launch directly for Launch action with string param
+          debug(`Calling agent.launch with: ${actionParamForMatchedAction}`);
+          const result = await (agent as any).launch(
+            actionParamForMatchedAction,
+          );
+
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+        } else if (
+          typeof actionParamForMatchedAction === 'string' &&
+          (matchedAction.name === 'RunAdbShell' ||
+            matchedAction.interfaceAlias === 'runAdbShell') &&
+          typeof (agent as any).runAdbShell === 'function'
+        ) {
+          // Call agent.runAdbShell directly for RunAdbShell action with string param
+          debug(
+            `Calling agent.runAdbShell with: ${actionParamForMatchedAction}`,
+          );
+          const result = await (agent as any).runAdbShell(
+            actionParamForMatchedAction,
+          );
+
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
         } else {
           // Determine the source for parameter extraction:
           // - If we have a locatePromptShortcut, use the flowItem (for actions like aiTap with prompt)
@@ -588,11 +623,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   }
 
   async run() {
-    const { target, web, android, ios, tasks } = this.script;
+    const { target, web, android, ios, computer, tasks } = this.script;
     const webEnv = web || target;
     const androidEnv = android;
     const iosEnv = ios;
-    const platform = webEnv || androidEnv || iosEnv;
+    const computerEnv = computer;
+    const platform = webEnv || androidEnv || iosEnv || computerEnv;
 
     this.setPlayerStatus('running');
 

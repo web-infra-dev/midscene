@@ -47,9 +47,39 @@ const device = new AndroidDevice(deviceId, {
 - `androidAdbPath?: string` —— adb 可执行文件的自定义路径。
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` —— 指向远程 adb server。
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` —— 控制何时调用 [yadb](https://github.com/ysbing/YADB) 进行文本输入，默认 `'yadb-for-non-ascii'`。
+  - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
+  - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
 - `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放，默认 `1 / devicePixelRatio`。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
+- `scrcpyConfig?: object` —— Scrcpy 高性能截图配置，默认关闭。详见下方 [Scrcpy 截图模式](#scrcpy)。
+
+### Scrcpy 截图模式 {#scrcpy}
+
+默认情况下，Midscene 通过 `adb shell screencap` 截图，每次耗时约 500–2000ms。开启 Scrcpy 模式后，通过 H.264 视频流实时获取画面，每次截图耗时约 **100–200ms**。
+
+**开启方式：**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  scrcpyConfig: {
+    enabled: true,
+  },
+});
+```
+
+**可选参数：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | `boolean` | `false` | 是否启用 Scrcpy 截图 |
+| `maxSize` | `number` | `0` | 视频流最大分辨率（宽或高），`0` 表示不缩放 |
+| `videoBitRate` | `number` | `2000000` | H.264 编码码率（bps） |
+| `idleTimeoutMs` | `number` | `30000` | 空闲超时后自动断开连接（ms），设为 `0` 禁用 |
+
+:::tip
+Scrcpy 模式在连接失败时会自动降级到 ADB 截图，无需额外处理。
+:::
 
 ### 使用说明
 

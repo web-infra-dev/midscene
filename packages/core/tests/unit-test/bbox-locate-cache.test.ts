@@ -91,7 +91,7 @@ describe('bbox locate cache fix', () => {
           call: vi.fn().mockResolvedValue({}),
         },
       ]),
-      cacheFeatureForRect: vi.fn().mockResolvedValue({
+      cacheFeatureForPoint: vi.fn().mockResolvedValue({
         xpaths: ['/html/body/input[1]'],
         texts: ['search box'],
       }),
@@ -196,8 +196,8 @@ describe('bbox locate cache fix', () => {
       expect(result!.output.element).toBeDefined();
       expect(result!.hitBy?.from).toBe('Plan');
 
-      // Verify cacheFeatureForRect was called to write cache
-      expect(mockInterface.cacheFeatureForRect).toHaveBeenCalled();
+      // Verify cacheFeatureForPoint was called to write cache
+      expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalled();
 
       // Verify locate cache was written (check internal cache array directly)
       const cachedLocate = findLocateCacheByPrompt(
@@ -295,7 +295,7 @@ describe('bbox locate cache fix', () => {
       const locateTask = tasks.find((task) => task.subType === 'Locate');
 
       // Clear the mock to track new calls
-      vi.mocked(mockInterface.cacheFeatureForRect!).mockClear();
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockClear();
 
       await locateTask!.executor(locateTask!.param, {
         task: {
@@ -309,8 +309,8 @@ describe('bbox locate cache fix', () => {
         uiContext: await createMockUIContext(validBase64Image),
       });
 
-      // Verify cacheFeatureForRect was NOT called (cache already exists)
-      expect(mockInterface.cacheFeatureForRect).not.toHaveBeenCalled();
+      // Verify cacheFeatureForPoint was NOT called (cache already exists)
+      expect(mockInterface.cacheFeatureForPoint).not.toHaveBeenCalled();
     });
   });
 
@@ -465,8 +465,8 @@ describe('bbox locate cache fix', () => {
         uiContext: await createMockUIContext(validBase64Image),
       });
 
-      // Verify cacheFeatureForRect was NOT called (cacheable: false)
-      expect(mockInterface.cacheFeatureForRect).not.toHaveBeenCalled();
+      // Verify cacheFeatureForPoint was NOT called (cacheable: false)
+      expect(mockInterface.cacheFeatureForPoint).not.toHaveBeenCalled();
 
       // Verify cache was NOT written
       const cachedLocate = findLocateCacheByPrompt(
@@ -476,9 +476,9 @@ describe('bbox locate cache fix', () => {
       expect(cachedLocate).toBeUndefined();
     });
 
-    it('should handle cacheFeatureForRect returning empty object', async () => {
-      // Mock cacheFeatureForRect to return empty object
-      vi.mocked(mockInterface.cacheFeatureForRect!).mockResolvedValue({});
+    it('should handle cacheFeatureForPoint returning empty object', async () => {
+      // Mock cacheFeatureForPoint to return empty object
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({});
 
       const plansWithBbox = [
         {
@@ -517,7 +517,7 @@ describe('bbox locate cache fix', () => {
       expect(result).toBeDefined();
       expect(result!.output.element).toBeDefined();
 
-      // Cache should NOT be written when cacheFeatureForRect returns empty
+      // Cache should NOT be written when cacheFeatureForPoint returns empty
       const cachedLocate = findLocateCacheByPrompt(
         taskCache,
         'element with no cache features',
@@ -563,8 +563,8 @@ describe('bbox locate cache fix', () => {
         dump: {},
       });
 
-      // 4. Mock cacheFeatureForRect to return new xpath
-      vi.mocked(mockInterface.cacheFeatureForRect!).mockResolvedValue({
+      // 4. Mock cacheFeatureForPoint to return new xpath
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
         xpaths: ['/html/body/div[2]/label[1]'],
         texts: ['高一'],
       });
@@ -620,8 +620,8 @@ describe('bbox locate cache fix', () => {
       // - AI locate was called (cache hit failed, fallback to AI)
       expect(mockService.locate).toHaveBeenCalled();
 
-      // - cacheFeatureForRect was called (get new xpath)
-      expect(mockInterface.cacheFeatureForRect).toHaveBeenCalled();
+      // - cacheFeatureForPoint was called (get new xpath)
+      expect(mockInterface.cacheFeatureForPoint).toHaveBeenCalled();
 
       // - Cache was updated with new xpath (not the old one)
       const updatedCache = findLocateCacheByPrompt(testCache, '高一');
@@ -668,7 +668,7 @@ describe('bbox locate cache fix', () => {
         dump: {},
       });
 
-      vi.mocked(mockInterface.cacheFeatureForRect!).mockResolvedValue({
+      vi.mocked(mockInterface.cacheFeatureForPoint!).mockResolvedValue({
         xpaths: ['/html/body/form[1]/button[1]'],
         texts: ['Submit'],
       });

@@ -1,6 +1,7 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
+import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
 import {
   AndroidDevice,
@@ -36,16 +37,6 @@ type WrappedAction<T extends DeviceAction> = (
 
 export class AndroidAgent extends PageAgent<AndroidDevice> {
   /**
-   * Launch an Android app or URL
-   */
-  launch!: WrappedAction<DeviceActionLaunch>;
-
-  /**
-   * Execute ADB shell command on Android device
-   */
-  runAdbShell!: WrappedAction<DeviceActionRunAdbShell>;
-
-  /**
    * Trigger the system back operation on Android devices
    */
   back!: WrappedAction<DeviceActionAndroidBackButton>;
@@ -68,18 +59,16 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   constructor(device: AndroidDevice, opts?: AndroidAgentOpt) {
     super(device, opts);
     // Merge user-provided mapping with default mapping
+    // Normalize keys to allow flexible matching (case-insensitive, ignore spaces/dashes/underscores)
     // User-provided mapping has higher priority
-    this.appNameMapping = {
-      ...defaultAppNameMapping,
-      ...(opts?.appNameMapping || {}),
-    };
+    this.appNameMapping = mergeAndNormalizeAppNameMapping(
+      defaultAppNameMapping,
+      opts?.appNameMapping,
+    );
 
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
 
-    this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
-    this.runAdbShell =
-      this.createActionWrapper<DeviceActionRunAdbShell>('RunAdbShell');
     this.back =
       this.createActionWrapper<DeviceActionAndroidBackButton>(
         'AndroidBackButton',
@@ -92,6 +81,25 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
       this.createActionWrapper<DeviceActionAndroidRecentAppsButton>(
         'AndroidRecentAppsButton',
       );
+  }
+
+  /**
+   * Launch an Android app or URL
+   * @param uri - App package name, URL, or app name to launch
+   */
+  async launch(uri: string): Promise<void> {
+    const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    return action({ uri });
+  }
+
+  /**
+   * Execute ADB shell command on Android device
+   * @param command - ADB shell command to execute
+   */
+  async runAdbShell(command: string): Promise<string> {
+    const action =
+      this.wrapActionInActionSpace<DeviceActionRunAdbShell>('RunAdbShell');
+    return action({ command });
   }
 
   private createActionWrapper<T extends DeviceAction>(

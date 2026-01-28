@@ -54,8 +54,6 @@ export function fillBboxParam(
   locate: PlanningLocateParam,
   width: number,
   height: number,
-  rightLimit: number,
-  bottomLimit: number,
   modelFamily: TModelFamily | undefined,
 ) {
   // The Qwen model might have hallucinations of naming bbox as bbox_2d.
@@ -66,14 +64,7 @@ export function fillBboxParam(
   }
 
   if (locate?.bbox) {
-    locate.bbox = adaptBbox(
-      locate.bbox,
-      width,
-      height,
-      rightLimit,
-      bottomLimit,
-      modelFamily,
-    );
+    locate.bbox = adaptBbox(locate.bbox, width, height, modelFamily);
   }
 
   return locate;
@@ -209,8 +200,6 @@ export function adaptBbox(
   bbox: AdaptBboxInput,
   width: number,
   height: number,
-  rightLimit: number,
-  bottomLimit: number,
   modelFamily: TModelFamily | undefined,
 ): [number, number, number, number] {
   const normalizedBbox = normalizeBboxInput(bbox);
@@ -227,9 +216,6 @@ export function adaptBbox(
     // Includes: qwen3-vl, glm-v, auto-glm, auto-glm-multilingual, and future models
     result = normalized01000(normalizedBbox as number[], width, height);
   }
-
-  result[2] = Math.min(result[2], rightLimit);
-  result[3] = Math.min(result[3], bottomLimit);
 
   return result;
 }
@@ -289,31 +275,20 @@ export function adaptBboxToRect(
     bbox,
     width,
     height,
-    rightLimit,
-    bottomLimit,
     modelFamily,
   );
 
-  // Calculate initial rect dimensions
-  const rectLeft = left;
-  const rectTop = top;
-  let rectWidth = right - left;
-  let rectHeight = bottom - top;
+  // Calculate initial rect dimensions and apply boundary constraints
+  // For left and top: take max with 0 to ensure they're not negative
+  const rectLeft = Math.max(0, left);
+  const rectTop = Math.max(0, top);
 
-  // Ensure the rect doesn't exceed image boundaries
-  // If right edge exceeds width, adjust the width
-  if (rectLeft + rectWidth > width) {
-    rectWidth = width - rectLeft;
-  }
+  // For width and height: calculate from bounded coordinates and constrain to limits
+  const boundedRight = Math.min(right, rightLimit);
+  const boundedBottom = Math.min(bottom, bottomLimit);
 
-  // If bottom edge exceeds height, adjust the height
-  if (rectTop + rectHeight > height) {
-    rectHeight = height - rectTop;
-  }
-
-  // Ensure minimum dimensions (width and height should be at least 1)
-  rectWidth = Math.max(1, rectWidth);
-  rectHeight = Math.max(1, rectHeight);
+  const rectWidth = boundedRight - rectLeft + 1;
+  const rectHeight = boundedBottom - rectTop + 1;
 
   const rect = {
     left: rectLeft + offsetX,
@@ -729,14 +704,16 @@ export const parseActionParam = (
 export const finalizeActionName = 'Finalize';
 
 /**
- * Get a readable time string for the current time
+ * Get a readable time string for a given timestamp or the current time
  * @param format - Optional format string. Supports: YYYY, MM, DD, HH, mm, ss. Default: 'YYYY-MM-DD HH:mm:ss'
+ * @param timestamp - Optional timestamp in milliseconds. If not provided, uses current system time.
  * @returns A formatted time string with format label
  */
 export const getReadableTimeString = (
   format = 'YYYY-MM-DD HH:mm:ss',
+  timestamp?: number,
 ): string => {
-  const now = new Date();
+  const now = timestamp !== undefined ? new Date(timestamp) : new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');

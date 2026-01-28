@@ -1,3 +1,4 @@
+import type { SubGoal } from '@/types';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export interface ConversationHistoryOptions {
@@ -6,6 +7,8 @@ export interface ConversationHistoryOptions {
 
 export class ConversationHistory {
   private readonly messages: ChatCompletionMessageParam[] = [];
+  private subGoals: SubGoal[] = [];
+  private notes: string[] = [];
 
   public pendingFeedbackMessage: string;
 
@@ -89,5 +92,161 @@ export class ConversationHistory {
 
   toJSON(): ChatCompletionMessageParam[] {
     return this.snapshot();
+  }
+
+  // Sub-goal management methods
+
+  /**
+   * Set all sub-goals, replacing any existing ones.
+   * Automatically marks the first pending goal as running.
+   */
+  setSubGoals(subGoals: SubGoal[]): void {
+    this.subGoals = subGoals.map((goal) => ({ ...goal }));
+    this.markFirstPendingAsRunning();
+  }
+
+  /**
+   * Update a single sub-goal by index
+   * @returns true if the sub-goal was found and updated, false otherwise
+   */
+  updateSubGoal(
+    index: number,
+    updates: Partial<Omit<SubGoal, 'index'>>,
+  ): boolean {
+    const goal = this.subGoals.find((g) => g.index === index);
+    if (!goal) {
+      return false;
+    }
+
+    if (updates.status !== undefined) {
+      goal.status = updates.status;
+    }
+    if (updates.description !== undefined) {
+      goal.description = updates.description;
+    }
+
+    return true;
+  }
+
+  /**
+   * Mark the first pending sub-goal as running
+   */
+  markFirstPendingAsRunning(): void {
+    const firstPending = this.subGoals.find((g) => g.status === 'pending');
+    if (firstPending) {
+      firstPending.status = 'running';
+    }
+  }
+
+  /**
+   * Mark a sub-goal as finished.
+   * Automatically marks the next pending goal as running.
+   * @returns true if the sub-goal was found and updated, false otherwise
+   */
+  markSubGoalFinished(index: number): boolean {
+    const result = this.updateSubGoal(index, { status: 'finished' });
+    if (result) {
+      this.markFirstPendingAsRunning();
+    }
+    return result;
+  }
+
+  /**
+   * Mark all sub-goals as finished
+   */
+  markAllSubGoalsFinished(): void {
+    for (const goal of this.subGoals) {
+      goal.status = 'finished';
+    }
+  }
+
+  /**
+   * Convert sub-goals to text representation
+   */
+  subGoalsToText(): string {
+    if (this.subGoals.length === 0) {
+      return '';
+    }
+
+    const lines = this.subGoals.map((goal) => {
+      return `${goal.index}. ${goal.description} (${goal.status})`;
+    });
+
+    // Running goal takes priority, otherwise show first pending
+    const currentGoal =
+      this.subGoals.find((goal) => goal.status === 'running') ||
+      this.subGoals.find((goal) => goal.status === 'pending');
+    const currentGoalText = currentGoal
+      ? `\nCurrent sub-goal is: ${currentGoal.description}`
+      : '';
+
+    return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
+  }
+
+  // Notes management methods
+
+  /**
+   * Append a note to the notes list
+   */
+  appendNote(note: string): void {
+    if (note) {
+      this.notes.push(note);
+    }
+  }
+
+  /**
+   * Get all notes
+   */
+  getNotes(): string[] {
+    return [...this.notes];
+  }
+
+  /**
+   * Convert notes to text representation
+   */
+  notesToText(): string {
+    if (this.notes.length === 0) {
+      return '';
+    }
+
+    return `Notes from previous steps:\n---\n${this.notes.join('\n---\n')}\n`;
+  }
+
+  /**
+   * Clear all notes
+   */
+  clearNotes(): void {
+    this.notes.length = 0;
+  }
+
+  /**
+   * Compress the conversation history if it exceeds the threshold.
+   * Removes the oldest messages and replaces them with a single placeholder message.
+   * @param threshold - The number of messages that triggers compression.
+   * @param keepCount - The number of recent messages to keep after compression.
+   * @returns true if compression was performed, false otherwise.
+   */
+  compressHistory(threshold: number, keepCount: number): boolean {
+    if (this.messages.length <= threshold) {
+      return false;
+    }
+
+    const omittedCount = this.messages.length - keepCount;
+    const omittedPlaceholder: ChatCompletionMessageParam = {
+      role: 'user',
+      content: `(${omittedCount} previous conversation messages have been omitted)`,
+    };
+
+    // Keep only the last `keepCount` messages
+    const recentMessages = this.messages.slice(-keepCount);
+
+    // Reset and rebuild with placeholder + recent messages
+    this.messages.length = 0;
+    this.messages.push(omittedPlaceholder);
+    for (const msg of recentMessages) {
+      this.messages.push(msg);
+    }
+
+    return true;
   }
 }

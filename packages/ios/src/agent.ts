@@ -1,6 +1,7 @@
 import type { ActionParam, ActionReturn, DeviceAction } from '@midscene/core';
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { getDebug } from '@midscene/shared/logger';
+import { mergeAndNormalizeAppNameMapping } from '@midscene/shared/utils';
 import { defaultAppNameMapping } from './appNameMapping';
 import {
   type DeviceActionIOSAppSwitcher,
@@ -10,7 +11,6 @@ import {
   IOSDevice,
   type IOSDeviceOpt,
 } from './device';
-import { checkIOSEnvironment } from './utils';
 
 const debugAgent = getDebug('ios:agent');
 
@@ -64,11 +64,12 @@ export class IOSAgent extends PageAgent<IOSDevice> {
   constructor(device: IOSDevice, opts?: IOSAgentOpt) {
     super(device, opts);
     // Merge user-provided mapping with default mapping
+    // Normalize keys to allow flexible matching (case-insensitive, ignore spaces/dashes/underscores)
     // User-provided mapping has higher priority
-    this.appNameMapping = {
-      ...defaultAppNameMapping,
-      ...(opts?.appNameMapping || {}),
-    };
+    this.appNameMapping = mergeAndNormalizeAppNameMapping(
+      defaultAppNameMapping,
+      opts?.appNameMapping,
+    );
 
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
@@ -94,13 +95,7 @@ export class IOSAgent extends PageAgent<IOSDevice> {
 export async function agentFromWebDriverAgent(
   opts?: IOSAgentOpt & IOSDeviceOpt,
 ) {
-  debugAgent('Creating iOS agent with WebDriverAgent auto-detection');
-
-  // Check iOS environment first
-  const envCheck = await checkIOSEnvironment();
-  if (!envCheck.available) {
-    throw new Error(`iOS environment not available: ${envCheck.error}`);
-  }
+  debugAgent('Creating iOS agent with WebDriverAgent');
 
   // Pass all device options to IOSDevice constructor, ensuring we pass an empty object if opts is undefined
   const device = new IOSDevice(opts || {});

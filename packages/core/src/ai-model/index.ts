@@ -1,10 +1,10 @@
 export {
+  AIResponseParseError,
   callAIWithStringResponse,
   callAIWithObjectResponse,
   callAI,
 } from './service-caller/index';
 export { systemPromptToLocateElement } from './prompt/llm-locator';
-export { describeUserPage } from './prompt/util';
 export {
   generatePlaywrightTest,
   generatePlaywrightTestStream,
@@ -31,6 +31,7 @@ export {
   ConversationHistory,
   type ConversationHistoryOptions,
 } from './conversation-history';
+export type { SubGoal, SubGoalStatus } from '@/types';
 
 export type { AIArgs } from '../common';
 

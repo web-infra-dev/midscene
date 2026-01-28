@@ -29,6 +29,7 @@ You can find a sample project that uses YAML scripts for automation here:
 
 - [Web](https://github.com/web-infra-dev/midscene-example/tree/main/yaml-scripts-demo)
 - [Android](https://github.com/web-infra-dev/midscene-example/tree/main/android/yaml-scripts-demo)
+- [Computer (Mac/Windows/Linux)](https://github.com/web-infra-dev/midscene-example/tree/main/computer/yaml-scripts-demo)
 
 :::
 
@@ -40,7 +41,7 @@ To execute YAML workflows from the command line, install the Midscene CLI. See [
 
 Script files use YAML format to describe automation tasks. It defines the target to be manipulated (like a webpage or an Android app) and the series of steps to perform.
 
-A standard `.yaml` script file includes a `web`, `android`, or `ios` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
+A standard `.yaml` script file includes a `web`, `android`, `ios`, or `computer` section to configure the environment, an optional `agent` section to configure AI agent behavior, and a `tasks` section to define the automation tasks.
 
 ```yaml
 web:
@@ -359,6 +360,48 @@ tasks:
       - launch: https://www.example.com
 ```
 
+### The `computer` part
+
+The `computer` section is used for PC desktop automation. It allows you to control the desktop environment, including mouse movements, keyboard inputs, and screen queries.
+
+```yaml
+computer:
+  # The display ID to use, optional, defaults to the primary display.
+  displayId: <display-id>
+
+  # The path to the JSON file for outputting aiQuery/aiAssert results, optional.
+  output: <path-to-output-file>
+```
+
+#### Usage example
+
+```yaml
+computer: {}
+
+tasks:
+  - name: Open browser and search
+    flow:
+      - aiAct: press Cmd+Space
+      - sleep: 500
+      - aiAct: type "Safari" and press Enter
+      - sleep: 2000
+      - aiAct: press Cmd+L to focus address bar
+      - aiAct: type "https://www.bing.com"
+      - aiAct: press Enter
+      - sleep: 3000
+      - aiAct: type "weather today" in the search box and press Enter
+      - aiAssert: The results show weather information
+```
+
+:::tip Platform Notes
+
+The demo scripts above use macOS commands. For Windows, modify the scripts to use:
+- `press Windows key` instead of `press Cmd+Space`
+- `type "Chrome"` instead of `type "Safari"`
+- `press Ctrl+L` instead of `press Cmd+L`
+
+:::
+
 ### The `tasks` part
 
 The `tasks` part is an array that defines the steps of the script. Remember to add a `-` before each step to indicate it's an array item.
@@ -459,7 +502,7 @@ tasks:
 
 #### Prompting with images
 
-For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api.html#prompting-with-images)), replace the string value with an object that contains:
+For steps whose prompt accepts images, you can attach images to the prompt by setting the `images` field to an array of objects, each containing a `name` and a `url`. (see the [API reference](./api#prompting-with-images)), replace the string value with an object that contains:
 
 - `prompt`: The text prompt.
 - `images`: (Optional) The reference images used in the prompt. Each image needs a `name` and a `url`.
@@ -503,3 +546,11 @@ tasks:
               url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
           convertHttpImage2Base64: true
 ```
+
+## Notes
+
+### `agent.runYaml` only parses the `tasks` field
+
+When using the `agent.runYaml()` API, only the `tasks` field in the YAML file is parsed and executed.
+
+At that point the agent has already been initialized in the JS script, so it cannot be reinitialized based on the `agent` configuration in the YAML file.

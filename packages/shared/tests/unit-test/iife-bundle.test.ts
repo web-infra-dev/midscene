@@ -12,7 +12,7 @@ interface GlobalWithMidscene {
     trimAttributes: unknown;
     webExtractNodeTreeAsString: unknown;
     webExtractTextWithPosition: unknown;
-    generateElementByPosition: unknown;
+    generateElementByRect: unknown;
     isNotContainerElement: unknown;
     getElementXpath: unknown;
     getElementInfoByXpath: unknown;
@@ -75,7 +75,7 @@ describe('IIFE bundle runtime behavior', () => {
         'trimAttributes',
         'webExtractNodeTreeAsString',
         'webExtractTextWithPosition',
-        'generateElementByPosition',
+        'generateElementByRect',
         'isNotContainerElement',
         'getElementXpath',
         'getElementInfoByXpath',

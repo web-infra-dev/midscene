@@ -15,9 +15,6 @@
   "references": [
     {
       "path": "../shared"
-    },
-    {
-      "path": "../recorder"
     }
   ]
 }

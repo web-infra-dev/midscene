@@ -22,8 +22,8 @@ export abstract class AbstractInterface {
   abstract size(): Promise<Size>;
   abstract actionSpace(): DeviceAction[];
 
-  abstract cacheFeatureForRect?(
-    rect: Rect,
+  abstract cacheFeatureForPoint?(
+    center: [number, number],
     options?: {
       targetDescription?: string;
       modelConfig?: IModelConfig;
@@ -55,6 +55,13 @@ export abstract class AbstractInterface {
 
   // @deprecated do NOT extend this method
   abstract getContext?(): Promise<UIContext>;
+
+  /**
+   * Get the current time from the device.
+   * Returns the device's current timestamp in milliseconds.
+   * This is useful when the system time and device time are not synchronized.
+   */
+  getTimestamp?(): Promise<number>;
 }
 
 // Generic function to define actions with proper type inference
@@ -257,7 +264,7 @@ export const actionScrollParamSchema = z.object({
     ])
     .default('singleAction')
     .describe(
-      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling to the bottom, "scrollToTop" for scrolling to the top, "scrollToRight" for scrolling to the right, "scrollToLeft" for scrolling to the left',
+      'The scroll behavior: "singleAction" for a single scroll action, "scrollToBottom" for scrolling all the way to the bottom by rapidly scrolling 5-10 times (skipping intermediate content until reaching the bottom), "scrollToTop" for scrolling all the way to the top by rapidly scrolling 5-10 times (skipping intermediate content until reaching the top), "scrollToRight" for scrolling all the way to the right by rapidly scrolling multiple times, "scrollToLeft" for scrolling all the way to the left by rapidly scrolling multiple times',
     ),
   direction: z
     .enum(['down', 'up', 'right', 'left'])
@@ -420,52 +427,9 @@ export const defineActionClearInput = (
     call,
   });
 };
-
-// Assert
-export const actionAssertParamSchema = z.object({
-  condition: z.string().describe('The condition of the assertion'),
-  thought: z
-    .string()
-    .describe(
-      'The thought of the assertion, like "I can see there are A, B, C elements on the page, which means ... , so the assertion is true"',
-    ),
-  result: z.boolean().describe('The result of the assertion, true or false'),
-});
-export type ActionAssertParam = {
-  condition: string;
-  thought: string;
-  result: boolean;
-};
-
-export const defineActionAssert = (): DeviceAction<ActionAssertParam> => {
-  return defineAction<typeof actionAssertParamSchema, ActionAssertParam>({
-    name: 'Print_Assert_Result',
-    description:
-      'Print the result of the assertion. Use this only when the user asks for an assertion',
-    paramSchema: actionAssertParamSchema,
-    call: async (param) => {
-      if (typeof param?.result !== 'boolean') {
-        throw new Error(
-          `The result of the assertion must be a boolean, but got: ${typeof param?.result}. ${param.thought || '(no thought)'}`,
-        );
-      }
-
-      getDebug('device:common-action')(
-        `Assert: ${param.condition}, Thought: ${param.thought}, Result: ${param.result}`,
-      );
-
-      if (!param.result) {
-        throw new Error(
-          `Assertion failed: ${param.thought || '(no thought)'} (Assertion = ${param.condition})`,
-        );
-      }
-    },
-  });
-};
-
 // Sleep
 export const ActionSleepParamSchema = z.object({
-  millisecond: z
+  timeMs: z
     .number()
     .default(1000)
     .optional()
@@ -473,7 +437,7 @@ export const ActionSleepParamSchema = z.object({
 });
 
 export type ActionSleepParam = {
-  millisecond?: number;
+  timeMs?: number;
 };
 
 export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
@@ -483,7 +447,7 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
       'Wait for a specified duration before continuing. Defaults to 1 second (1000ms) if not specified.',
     paramSchema: ActionSleepParamSchema,
     call: async (param) => {
-      const duration = param?.millisecond ?? 1000;
+      const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);
       await new Promise((resolve) => setTimeout(resolve, duration));
     },

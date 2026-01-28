@@ -76,7 +76,12 @@ describe('AndroidDevice', () => {
     }
     // Create a new mock instance for each test
     mockAdb = new (ADB as any)() as Mocked<ADB>;
-    device = new AndroidDevice('test-device');
+    // Disable buffer size validation for tests to allow small mock buffers
+    // Disable scrcpy to avoid shell calls during normalizeScrcpyConfig
+    device = new AndroidDevice('test-device', {
+      minScreenshotBufferSize: 0,
+      scrcpyConfig: { enabled: false },
+    });
     // Manually assign the mocked adb instance
     vi.spyOn(device, 'getAdb').mockResolvedValue(mockAdb);
   });
@@ -263,7 +268,57 @@ describe('AndroidDevice', () => {
   });
 
   describe('keyboard', () => {
-    it('type should call inputText for ASCII text', async () => {
+    describe('shouldUseYadbForText', () => {
+      it('should return false for pure ASCII text', () => {
+        const result = (device as any).shouldUseYadbForText('Hello World 123');
+        expect(result).toBe(false);
+      });
+
+      it('should return true for Latin Unicode characters', () => {
+        const result = (device as any).shouldUseYadbForText('Schönberg');
+        expect(result).toBe(true);
+      });
+
+      it('should return true for Chinese characters', () => {
+        const result = (device as any).shouldUseYadbForText('你好');
+        expect(result).toBe(true);
+      });
+
+      it('should return true for Japanese characters', () => {
+        const result = (device as any).shouldUseYadbForText('こんにちは');
+        expect(result).toBe(true);
+      });
+
+      it('should return true for format specifiers', () => {
+        expect((device as any).shouldUseYadbForText('Test%sString')).toBe(true);
+        expect((device as any).shouldUseYadbForText('Value: %d')).toBe(true);
+        expect((device as any).shouldUseYadbForText('Price: %f')).toBe(true);
+      });
+
+      it('should return false for percent sign not followed by letter', () => {
+        const result = (device as any).shouldUseYadbForText('100% complete');
+        expect(result).toBe(false);
+      });
+
+      it('should return true for mixed content', () => {
+        const result = (device as any).shouldUseYadbForText(
+          'Schönberg,%sLiechtenstein',
+        );
+        expect(result).toBe(true);
+      });
+
+      it('should return false for empty string', () => {
+        const result = (device as any).shouldUseYadbForText('');
+        expect(result).toBe(false);
+      });
+
+      it('should return false for ASCII with special chars but no format specifiers', () => {
+        const result = (device as any).shouldUseYadbForText('test@email.com');
+        expect(result).toBe(false);
+      });
+    });
+
+    it('type should call inputText for pure ASCII text', async () => {
       device.options = { imeStrategy: 'yadb-for-non-ascii' };
       vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
       mockAdb.isSoftKeyboardPresent.mockResolvedValue({
@@ -274,6 +329,103 @@ describe('AndroidDevice', () => {
       expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
       // Since keyboard is already hidden, no keyevent should be called
       expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
+    });
+
+    it('should use yadb for Latin Unicode characters with yadb-for-non-ascii strategy', async () => {
+      device.options = { imeStrategy: 'yadb-for-non-ascii' };
+      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+        isKeyboardShown: false,
+        canCloseKeyboard: true,
+      });
+
+      // Text with Latin Unicode characters (ö) should now use yadb
+      // This is the fix for the original issue
+      const textWithLatinUnicode = 'Schönberg,Liechtenstein';
+      await device.keyboardType(textWithLatinUnicode);
+
+      // With improved logic, yadb should be used for Latin Unicode characters
+      expect((device as any).execYadb).toHaveBeenCalledWith(
+        textWithLatinUnicode,
+      );
+      expect(mockAdb.inputText).not.toHaveBeenCalled();
+    });
+
+    it('should handle text with Chinese characters using yadb strategy', async () => {
+      device.options = { imeStrategy: 'yadb-for-non-ascii' };
+      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+        isKeyboardShown: false,
+        canCloseKeyboard: true,
+      });
+
+      // Text with Chinese characters should use yadb instead of inputText
+      const textWithChinese = '你好,Schönberg';
+      await device.keyboardType(textWithChinese);
+
+      // Since the text contains Chinese characters, execYadb should be called instead of inputText
+      expect((device as any).execYadb).toHaveBeenCalledWith(textWithChinese);
+      expect(mockAdb.inputText).not.toHaveBeenCalled();
+    });
+
+    it('should use always-yadb strategy for all text including special characters', async () => {
+      device.options = { imeStrategy: 'always-yadb' };
+      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+        isKeyboardShown: false,
+        canCloseKeyboard: true,
+      });
+
+      // When using always-yadb strategy, all text should use yadb
+      const textWithSpecialChars = 'Schönberg,%sLiechtenstein';
+      await device.keyboardType(textWithSpecialChars);
+
+      // Should call execYadb to avoid special character issues with inputText
+      expect((device as any).execYadb).toHaveBeenCalledWith(
+        textWithSpecialChars,
+      );
+      expect(mockAdb.inputText).not.toHaveBeenCalled();
+    });
+
+    it('should use yadb for text with format specifiers like %s', async () => {
+      device.options = { imeStrategy: 'yadb-for-non-ascii' };
+      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+        isKeyboardShown: false,
+        canCloseKeyboard: true,
+      });
+
+      // Text containing %s should use yadb to avoid shell interpretation
+      const textWithFormatSpecifier = 'Test%sString';
+      await device.keyboardType(textWithFormatSpecifier);
+
+      // With improved logic, yadb should be used for format specifiers
+      expect((device as any).execYadb).toHaveBeenCalledWith(
+        textWithFormatSpecifier,
+      );
+      expect(mockAdb.inputText).not.toHaveBeenCalled();
+    });
+
+    it('should use yadb for combined special characters', async () => {
+      device.options = { imeStrategy: 'yadb-for-non-ascii' };
+      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+        isKeyboardShown: false,
+        canCloseKeyboard: true,
+      });
+
+      // The original problematic text: Latin Unicode + format specifier
+      const specialCharText = 'Schönberg,%sLiechtenstein';
+      await device.keyboardType(specialCharText);
+
+      // Both Latin Unicode (ö) and format specifier (%s) should trigger yadb
+      expect((device as any).execYadb).toHaveBeenCalledWith(specialCharText);
+      expect(mockAdb.inputText).not.toHaveBeenCalled();
     });
 
     it('type should hide keyboard when shown', async () => {
@@ -494,7 +646,7 @@ describe('AndroidDevice', () => {
         let currentKeyEvent = 0;
 
         // Track keyevent calls
-        mockAdb.keyevent.mockImplementation((keyCode) => {
+        mockAdb.keyevent.mockImplementation(() => {
           currentKeyEvent++;
           return Promise.resolve();
         });
@@ -560,7 +712,7 @@ describe('AndroidDevice', () => {
         let currentKeyEvent = 0;
 
         // Track keyevent calls
-        mockAdb.keyevent.mockImplementation((keyCode) => {
+        mockAdb.keyevent.mockImplementation(() => {
           currentKeyEvent++;
           return Promise.resolve();
         });
@@ -1350,6 +1502,8 @@ describe('AndroidDevice', () => {
     it('should use display ID for screenshots by default when displayId is set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1390,6 +1544,8 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 1,
         usePhysicalDisplayIdForScreenshot: true,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1427,6 +1583,8 @@ describe('AndroidDevice', () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         displayId: 2,
         usePhysicalDisplayIdForScreenshot: false,
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1560,6 +1718,8 @@ describe('AndroidDevice', () => {
     it('should not use display ID for screenshots when displayId is not set', async () => {
       deviceWithDisplay = new AndroidDevice('test-device', {
         usePhysicalDisplayIdForScreenshot: true, // This should be ignored when no displayId
+        minScreenshotBufferSize: 0,
+        scrcpyConfig: { enabled: false },
       });
 
       setupMockAdb(mockAdbInstance);
@@ -1599,9 +1759,7 @@ describe('AndroidDevice', () => {
 
       // Verify that screencap command does not use any display ID (note the extra space)
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
-        expect.stringMatching(
-          /screencap -p {2}\/data\/local\/tmp\/midscene_screenshot_/,
-        ),
+        expect.stringMatching(/screencap -p {2}\/data\/local\/tmp\/ms_/),
       );
       expect(mockAdbInstance.shell).not.toHaveBeenCalledWith(
         expect.stringMatching(/screencap -p -d/),
@@ -1614,6 +1772,60 @@ describe('AndroidDevice', () => {
       await device.destroy();
       expect((device as any).adb).toBeNull();
       expect((device as any).destroyed).toBe(true);
+    });
+  });
+
+  describe('getTimestamp', () => {
+    it('should return device timestamp in milliseconds', async () => {
+      const mockTimestamp = '1706262645123';
+      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+
+      const result = await device.getTimestamp();
+
+      expect(mockAdb.shell).toHaveBeenCalledWith('date +%s%3N');
+      expect(result).toBe(1706262645123);
+    });
+
+    it('should handle timestamp with whitespace', async () => {
+      const mockTimestamp = '  1706262645123  \n';
+      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+
+      const result = await device.getTimestamp();
+
+      expect(result).toBe(1706262645123);
+    });
+
+    it('should throw error for invalid timestamp format', async () => {
+      mockAdb.shell.mockResolvedValueOnce('invalid-timestamp');
+
+      await expect(device.getTimestamp()).rejects.toThrow(
+        'Invalid timestamp format',
+      );
+    });
+
+    it('should throw error when shell command fails', async () => {
+      mockAdb.shell.mockRejectedValueOnce(new Error('Shell command failed'));
+
+      await expect(device.getTimestamp()).rejects.toThrow(
+        'Failed to get device time',
+      );
+    });
+
+    it('should throw error for empty response', async () => {
+      mockAdb.shell.mockResolvedValueOnce('');
+
+      await expect(device.getTimestamp()).rejects.toThrow(
+        'Invalid timestamp format',
+      );
+    });
+
+    it('should handle large timestamp values', async () => {
+      const mockTimestamp = '1893456000000'; // Year 2030
+      mockAdb.shell.mockResolvedValueOnce(mockTimestamp);
+
+      const result = await device.getTimestamp();
+
+      expect(result).toBe(1893456000000);
     });
   });
 });

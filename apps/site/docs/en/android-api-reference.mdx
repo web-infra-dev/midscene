@@ -47,9 +47,39 @@ const device = new AndroidDevice(deviceId, {
 - `androidAdbPath?: string` &mdash; Custom path to the adb executable.
 - `remoteAdbHost?: string` / `remoteAdbPort?: number` &mdash; Point to a remote adb server.
 - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` &mdash; Choose when to invoke [yadb](https://github.com/ysbing/YADB) for text input. Default `'yadb-for-non-ascii'`.
+  - `'yadb-for-non-ascii'` (default) &mdash; Uses yadb for Unicode characters (including Latin Unicode like ö, é, ñ), Chinese, Japanese, and format specifiers (like %s, %d). Pure ASCII text uses the faster native `adb input text`.
+  - `'always-yadb'` &mdash; Always uses yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII text.
 - `displayId?: number` &mdash; Target a specific virtual display if the device mirrors multiple displays.
 - `screenshotResizeScale?: number` &mdash; Downscale screenshots before sending them to the model. Defaults to `1 / devicePixelRatio`.
 - `alwaysRefreshScreenInfo?: boolean` &mdash; Re-query rotation and screen size every step. Default `false`.
+- `scrcpyConfig?: object` &mdash; Scrcpy high-performance screenshot configuration, disabled by default. See [Scrcpy Screenshot Mode](#scrcpy) below.
+
+### Scrcpy Screenshot Mode {#scrcpy}
+
+By default, Midscene captures screenshots via `adb shell screencap`, which takes ~500–2000ms per call. Enabling Scrcpy mode streams H.264 video from the device and captures frames in real time, reducing screenshot latency to approximately **100–200ms**.
+
+**How to enable:**
+
+```ts
+const device = new AndroidDevice(deviceId, {
+  scrcpyConfig: {
+    enabled: true,
+  },
+});
+```
+
+**Optional parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | `boolean` | `false` | Enable Scrcpy screenshots |
+| `maxSize` | `number` | `0` | Max video dimension (width or height). `0` = no scaling |
+| `videoBitRate` | `number` | `2000000` | H.264 encoding bitrate (bps) |
+| `idleTimeoutMs` | `number` | `30000` | Auto-disconnect after idle (ms). Set to `0` to disable |
+
+:::tip
+Scrcpy mode automatically falls back to ADB screenshots if the connection fails. No extra error handling is needed.
+:::
 
 ### Usage notes
 

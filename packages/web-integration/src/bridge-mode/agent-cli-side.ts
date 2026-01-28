@@ -40,9 +40,9 @@ export const getBridgePageInCliSide = (options?: {
   server.listen({
     timeout: options?.timeout,
   });
-  const bridgeCaller = (method: string) => {
+  const bridgeCaller = (method: string, timeout?: number) => {
     return async (...args: any[]) => {
-      const response = await server.call(method, args);
+      const response = await server.call(method, args, timeout);
       return response;
     };
   };
@@ -107,6 +107,23 @@ export const getBridgePageInCliSide = (options?: {
             // console.error('error calling destroy', e);
           }
           return server.close();
+        };
+      }
+
+      // Special handling for methods that support timeout in options
+      if (prop === 'connectNewTabWithUrl') {
+        return async (url: string, options?: BridgeConnectTabOptions) => {
+          const timeout = options?.timeout;
+          const caller = bridgeCaller(prop, timeout);
+          return await caller(url, options);
+        };
+      }
+
+      if (prop === 'connectCurrentTab') {
+        return async (options?: BridgeConnectTabOptions) => {
+          const timeout = options?.timeout;
+          const caller = bridgeCaller(prop, timeout);
+          return await caller(options);
         };
       }
 

@@ -72,7 +72,7 @@ testSources.forEach((source) => {
         }
         if (annotations.length > 0) {
           const markedImage = await annotateRects(
-            context.screenshotBase64,
+            context.screenshot.base64,
             annotations.map((item) => item.rect),
             prompt,
           );

@@ -5,7 +5,8 @@ import { test as base } from '@playwright/test';
 export const test = base.extend<PlayWrightAiFixtureType>(
   PlaywrightAiFixture({
     waitForNetworkIdleTimeout: 10000,
-    cache: { id: 'playwright-cache-test', strategy: 'read-only' },
-    // cache: true
+    // Use read-write strategy to allow cache creation in CI environment
+    // where cache files don't exist initially
+    cache: { id: 'playwright-cache-test', strategy: 'read-write' },
   }),
 );
