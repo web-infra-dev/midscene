@@ -346,13 +346,13 @@ function debugLog(...message: any[]) {
   }
 }
 
-const execFileAsync = promisify(execFile);
-
 let gitInfoPromise: Promise<{ repoUrl: string; userEmail: string }> | null =
   null;
 
 function getGitInfoAsync(): Promise<{ repoUrl: string; userEmail: string }> {
   if (gitInfoPromise) return gitInfoPromise;
+
+  const execFileAsync = promisify(execFile);
 
   gitInfoPromise = Promise.all([
     execFileAsync('git', ['config', '--get', 'remote.origin.url']).then(
