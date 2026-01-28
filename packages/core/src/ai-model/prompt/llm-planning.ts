@@ -290,14 +290,30 @@ Don't use this tag if no information needs to be preserved.
 
 Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all sub-goals' : ''}, determine if the entire task is completed.
 
-- Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - IMPORTANT: The "goal" means strictly following the user's instruction - nothing more, nothing less. For example, if the user says "fill out the form", you should mark success="true" once all form fields are filled, do NOT submit the form. If the user says "click the login button", you should mark success="true" once the button is clicked, do NOT wait for the page to load or verify login success unless explicitly asked.
+### CRITICAL: The User's Instruction is the Supreme Authority
 
+The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
+
+**What "goal accomplished" means:**
+- The goal is accomplished when you have done EXACTLY what the user asked - no extra steps, no assumptions.
+- Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
+
+**Examples of strict interpretation:**
+- Instruction: "fill out the form" → Goal is accomplished when all fields are filled. Do NOT submit the form.
+- Instruction: "click the login button" → Goal is accomplished once the button is clicked. Do NOT wait for page load or verify login success.
+- Instruction: "type 'hello' in the search box" → Goal is accomplished when 'hello' is typed. Do NOT press Enter or trigger search.
+- Instruction: "select the first item" → Goal is accomplished when the item is selected. Do NOT proceed to checkout or any further action.
+
+**Special case - Assertion instructions:**
+- If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
+
+### Output Rules
+
+- If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
+- Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-  - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, you should use <complete-goal success="false">reason</complete-goal> to indicate the checkpoint failed, and explain why the assertion failed in the message.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
-- If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 
 ## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
