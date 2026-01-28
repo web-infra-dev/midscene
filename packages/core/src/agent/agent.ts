@@ -59,6 +59,7 @@ import {
 import { existsSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
+import { ReportWriter } from '@/report-writer';
 import { MemoryStorage } from '@/storage';
 import type { TaskRunner } from '@/task-runner';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -205,7 +206,7 @@ export class Agent<
 
   destroyed = false;
 
-  private lastWritePromise: Promise<void> | null = null;
+  private reportWriter = new ReportWriter();
 
   modelConfigManager: ModelConfigManager;
 
@@ -422,10 +423,8 @@ export class Agent<
           }
 
           // Fire and forget - don't block task execution
-          this.lastWritePromise = this.writeOutActionDumps().catch((error) => {
-            console.error('Error writing action dumps:', error);
-            debug('writeOutActionDumps error', error);
-          });
+          // ReportWriter handles queuing internally
+          this.writeOutActionDumps();
         },
       },
     });
@@ -556,11 +555,14 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  async writeOutActionDumps() {
+  /**
+   * Schedule writing action dumps to report file.
+   * This method is non-blocking - actual writes are queued and executed sequentially.
+   */
+  writeOutActionDumps() {
     if (this.destroyed) {
-      throw new Error(
-        'PageAgent has been destroyed. Cannot update report file.',
-      );
+      debug('writeOutActionDumps: agent destroyed, skipping');
+      return;
     }
 
     const {
@@ -576,35 +578,30 @@ export class Agent<
         this.reportFileName!,
       );
 
-      this.reportFile = await this.dump.writeToDirectory(outputDir);
-      debug('writeOutActionDumps (directory)', this.reportFile);
+      this.reportFile = join(outputDir, 'index.html');
+      this.reportWriter.scheduleWriteDirectory(this.dump, outputDir);
+      debug('writeOutActionDumps (directory scheduled)', this.reportFile);
 
-      if (generateReport && autoPrintReportMsg && this.reportFile) {
+      if (generateReport && autoPrintReportMsg) {
         console.log('\n[Midscene] Directory report generated.');
         console.log(
           '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
         );
-        console.log(
-          `[Midscene] Example: npx serve ${dirname(this.reportFile)}`,
-        );
+        console.log(`[Midscene] Example: npx serve ${dirname(this.reportFile)}`);
       }
     } else {
       // Use traditional single HTML file with embedded base64 images
       if (generateReport) {
-        // Generate HTML with inline screenshots using toHTML()
-        const htmlScripts = await this.dump.toHTML();
-        const htmlContent = `${getReportTpl()}\n${htmlScripts}`;
-
         const reportPath = join(
           getMidsceneRunSubDir('report'),
           `${this.reportFileName}.html`,
         );
 
-        writeFileSync(reportPath, htmlContent);
         this.reportFile = reportPath;
+        this.reportWriter.scheduleWrite(this.dump, reportPath);
 
         debug(
-          'writeOutActionDumps (single file with inline screenshots)',
+          'writeOutActionDumps (single file scheduled)',
           this.reportFile,
         );
 
@@ -1412,9 +1409,7 @@ export class Agent<
     }
 
     // Wait for any pending write operations to complete
-    if (this.lastWritePromise) {
-      await this.lastWritePromise;
-    }
+    await this.reportWriter.flush();
 
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
@@ -1478,8 +1473,8 @@ export class Agent<
       }
     }
 
-    this.lastWritePromise = this.writeOutActionDumps();
-    await this.lastWritePromise;
+    this.writeOutActionDumps();
+    await this.reportWriter.flush();
   }
 
   /**

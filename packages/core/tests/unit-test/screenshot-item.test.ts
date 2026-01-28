@@ -108,4 +108,64 @@ describe('ScreenshotItem', () => {
       expect(restoredData).toBe(originalData);
     });
   });
+
+  describe('serialize', () => {
+    it('should serialize to inline format with base64 data', async () => {
+      const item = await ScreenshotItem.create(testBase64);
+      const serialized = await item.serialize('inline');
+
+      expect(serialized).toEqual({
+        type: 'inline',
+        data: testBase64,
+      });
+    });
+
+    it('should serialize to file format with path', async () => {
+      const item = await ScreenshotItem.create(testBase64);
+      const filePath = './screenshots/test.png';
+      const serialized = await item.serialize('file', filePath);
+
+      expect(serialized).toEqual({
+        type: 'file',
+        path: filePath,
+      });
+    });
+
+    it('should throw error when file mode is used without filePath', async () => {
+      const item = await ScreenshotItem.create(testBase64);
+
+      await expect(
+        (item as any).serialize('file', undefined),
+      ).rejects.toThrow('filePath is required for file mode serialization');
+    });
+  });
+
+  describe('isSerializedScreenshot', () => {
+    it('should return true for valid inline format', () => {
+      expect(
+        ScreenshotItem.isSerializedScreenshot({ type: 'inline', data: 'base64data' }),
+      ).toBe(true);
+    });
+
+    it('should return true for valid file format', () => {
+      expect(
+        ScreenshotItem.isSerializedScreenshot({ type: 'file', path: './screenshots/test.png' }),
+      ).toBe(true);
+    });
+
+    it('should return false for invalid objects', () => {
+      expect(ScreenshotItem.isSerializedScreenshot({})).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot({ type: 'inline' })).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot({ type: 'file' })).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot({ type: 'unknown', data: 'test' })).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot({ data: 'test' })).toBe(false);
+    });
+
+    it('should return false for non-object values', () => {
+      expect(ScreenshotItem.isSerializedScreenshot(null)).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot(undefined)).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot('string')).toBe(false);
+      expect(ScreenshotItem.isSerializedScreenshot(123)).toBe(false);
+    });
+  });
 });

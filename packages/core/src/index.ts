@@ -70,4 +70,4 @@ export type { StorageProvider, FileStorage } from './storage';
 export { MemoryStorage } from './storage';
 
 // ScreenshotItem
-export { ScreenshotItem } from './screenshot-item';
+export { ScreenshotItem, type SerializedScreenshot } from './screenshot-item';

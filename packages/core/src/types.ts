@@ -457,23 +457,6 @@ function reviverForDumpDeserialization(key: string, value: any): any {
 }
 
 /**
- * Helper to ensure all tasks have recorder field (even if empty)
- */
-function normalizeTaskRecorder(
-  tasks: IExecutionDump['tasks'],
-): IExecutionDump['tasks'] {
-  return tasks.map((task: any) => ({
-    ...task,
-    recorder: task.recorder || [],
-  }));
-}
-
-/**
- * Type for screenshot serialization result
- */
-type SerializedScreenshot = { base64: string };
-
-/**
  * ExecutionDump class for serializing and deserializing execution dumps
  */
 export class ExecutionDump implements IExecutionDump {
@@ -561,67 +544,71 @@ export class ExecutionDump implements IExecutionDump {
   }
 
   /**
-   * Convert to serializable format where ScreenshotItem instances
-   * are replaced with { $screenshot: "id" } placeholders.
+   * Convert to serializable format for report output.
    *
-   * This is an async method because it needs to handle potential
-   * async operations in the serialization process.
-   *
+   * @param options.mode - 'inline' embeds base64 data, 'file' uses external file paths
+   * @param options.screenshotsDir - Required for 'file' mode, the relative path prefix for screenshots
    * @returns Serializable version of the execution dump
    */
   async toSerializableFormat(options?: {
-    inlineScreenshots?: boolean;
-    screenshotsPath?: string;
+    mode?: 'inline' | 'file';
+    screenshotsDir?: string;
   }): Promise<IExecutionDump> {
-    const inlineScreenshots = options?.inlineScreenshots ?? false;
-    const screenshotsPath = options?.screenshotsPath;
+    const mode = options?.mode ?? 'inline';
+    const screenshotsDir = options?.screenshotsDir ?? './screenshots';
 
-    // Use async processing for screenshots (inline or file path mode)
-    if (inlineScreenshots || screenshotsPath) {
-      const processValue = async (
-        obj: unknown,
-      ): Promise<
-        unknown | SerializedScreenshot | unknown[] | Record<string, unknown>
-      > => {
-        if (obj instanceof ScreenshotItem) {
-          if (screenshotsPath) {
-            // Directory mode: return file path
-            return { base64: `${screenshotsPath}/${obj.id}.png` };
-          }
-          // Inline mode: return base64 data
-          const base64 = await obj.getData();
-          return { base64 };
+    // Serialize each task with screenshots converted
+    const serializedTasks = await Promise.all(
+      this.tasks.map(async (task) => {
+        const serializedTask = { ...task, recorder: task.recorder || [] };
+
+        // Serialize uiContext.screenshot if present
+        if (task.uiContext?.screenshot instanceof ScreenshotItem) {
+          const screenshot = task.uiContext.screenshot;
+          const serialized =
+            mode === 'inline'
+              ? await screenshot.serialize('inline')
+              : await screenshot.serialize(
+                  'file',
+                  `${screenshotsDir}/${screenshot.id}.png`,
+                );
+          serializedTask.uiContext = {
+            ...task.uiContext,
+            screenshot: serialized as any,
+          };
         }
-        if (Array.isArray(obj)) {
-          return Promise.all(obj.map(processValue));
-        }
-        if (obj && typeof obj === 'object') {
-          const entries = await Promise.all(
-            Object.entries(obj).map(async ([key, value]) => [
-              key,
-              await processValue(value),
-            ]),
+
+        // Serialize recorder screenshots
+        if (task.recorder) {
+          serializedTask.recorder = await Promise.all(
+            task.recorder.map(async (record) => {
+              if (record.screenshot instanceof ScreenshotItem) {
+                const screenshot = record.screenshot;
+                const serialized =
+                  mode === 'inline'
+                    ? await screenshot.serialize('inline')
+                    : await screenshot.serialize(
+                        'file',
+                        `${screenshotsDir}/${screenshot.id}.png`,
+                      );
+                return { ...record, screenshot: serialized as any };
+              }
+              return record;
+            }),
           );
-          return Object.fromEntries(entries);
         }
-        return obj;
-      };
 
-      const result = (await processValue(this.toJSON())) as IExecutionDump;
-      result.tasks = normalizeTaskRecorder(result.tasks);
-      return result;
-    }
+        return serializedTask;
+      }),
+    );
 
-    // Default mode: return { $screenshot: id } references
-    const jsonString = JSON.stringify(this.toJSON(), (_key, value) => {
-      if (value instanceof ScreenshotItem) {
-        return value.toSerializable();
-      }
-      return value;
-    });
-    const result = JSON.parse(jsonString) as IExecutionDump;
-    result.tasks = normalizeTaskRecorder(result.tasks);
-    return result;
+    return {
+      logTime: this.logTime,
+      name: this.name,
+      description: this.description,
+      tasks: serializedTasks,
+      aiActContext: this.aiActContext,
+    };
   }
 }
 
@@ -797,9 +784,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   async serializeWithInlineScreenshots(indents?: number): Promise<string> {
     const serializedExecutions: any[] = [];
     for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({
-        inlineScreenshots: true,
-      });
+      const serialized = await execution.toSerializableFormat({ mode: 'inline' });
       serializedExecutions.push(serialized);
     }
 
@@ -865,22 +850,10 @@ export class GroupedActionDump implements IGroupedActionDump {
    * @returns HTML string containing the report data
    */
   async toHTML(): Promise<string> {
-    // Collect all screenshots and their data
-    const screenshots = this.collectAllScreenshots();
-    const imageDataMap = new Map<string, string>();
-
-    // Load all screenshot data
-    for (const screenshot of screenshots) {
-      const data = await screenshot.getData();
-      imageDataMap.set(screenshot.id, data);
-    }
-
     // Serialize executions with inline base64 screenshots
     const serializedExecutions: any[] = [];
     for (const execution of this.executions) {
-      const serialized = await execution.toSerializableFormat({
-        inlineScreenshots: true,
-      });
+      const serialized = await execution.toSerializableFormat({ mode: 'inline' });
       serializedExecutions.push(serialized);
     }
 
@@ -892,14 +865,9 @@ export class GroupedActionDump implements IGroupedActionDump {
       executions: serializedExecutions,
     };
 
-    // Generate scripts for embedding
-    const { generateDumpScriptTag, generateImageScriptTag } = require('./dump');
-    const dumpScript = generateDumpScriptTag(JSON.stringify(dumpData));
-    const imageScripts = Array.from(imageDataMap.entries())
-      .map(([id, data]) => generateImageScriptTag(id, data))
-      .join('\n');
-
-    return `${dumpScript}\n${imageScripts}`;
+    // Generate script tag for embedding
+    const { generateDumpScriptTag } = require('./dump');
+    return generateDumpScriptTag(JSON.stringify(dumpData));
   }
 
   /**
@@ -954,7 +922,8 @@ export class GroupedActionDump implements IGroupedActionDump {
     const serializedExecutions: any[] = [];
     for (const execution of this.executions) {
       const serialized = await execution.toSerializableFormat({
-        screenshotsPath: './screenshots', // Generate file paths directly
+        mode: 'file',
+        screenshotsDir: './screenshots',
       });
       serializedExecutions.push(serialized);
     }

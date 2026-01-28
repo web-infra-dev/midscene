@@ -1,5 +1,5 @@
 'use client';
-import { mousePointer } from '@/utils';
+import { getScreenshotData, mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 
 import type {
@@ -398,9 +398,7 @@ export const generateAnimationScripts = async (
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
-        const screenshotData = (
-          context.screenshot as unknown as { base64: string }
-        ).base64;
+        const screenshotData = getScreenshotData(context.screenshot);
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -456,9 +454,7 @@ export const generateAnimationScripts = async (
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshot = planningTask.recorder[0]?.screenshot;
-        const screenshotData =
-          (screenshot as unknown as { base64: string } | undefined)?.base64 ||
-          '';
+        const screenshotData = getScreenshotData(screenshot);
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -496,8 +492,7 @@ export const generateAnimationScripts = async (
       currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
-      const actionScreenshotData =
-        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
+      const actionScreenshotData = getScreenshotData(screenshot);
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -513,10 +508,9 @@ export const generateAnimationScripts = async (
       const title = typeStr(task);
       const subTitle = paramStr(task);
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
+      const screenshotData = getScreenshotData(screenshot);
 
-      if (screenshot) {
-        const screenshotData = (screenshot as unknown as { base64: string })
-          .base64;
+      if (screenshotData) {
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -538,8 +532,7 @@ export const generateAnimationScripts = async (
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
-      const errorScreenshotData =
-        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
+      const errorScreenshotData = getScreenshotData(screenshot);
       scripts.push({
         type: 'img',
         img: errorScreenshotData,

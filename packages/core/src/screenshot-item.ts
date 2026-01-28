@@ -2,10 +2,17 @@ import type { StorageProvider } from './storage';
 import { MemoryStorage } from './storage';
 
 /**
+ * Serialized screenshot format for report output.
+ * - 'inline': base64 data embedded directly
+ * - 'file': relative path to external file
+ */
+export type SerializedScreenshot =
+  | { type: 'inline'; data: string }
+  | { type: 'file'; path: string };
+
+/**
  * ScreenshotItem encapsulates screenshot data with storage abstraction.
  * Uses async getData() to load images on demand, reducing memory usage.
- *
- * Serialization format: { $screenshot: "id" }
  */
 export class ScreenshotItem {
   private _id: string;
@@ -88,12 +95,61 @@ export class ScreenshotItem {
     }
   }
 
-  /** Serialize to { $screenshot: id } format for JSON */
+  /**
+   * Serialize screenshot for report output.
+   *
+   * @param mode - 'inline' to embed base64 data, 'file' to use external file path
+   * @param filePath - Required for 'file' mode, the relative path to the screenshot file
+   * @returns Serialized screenshot object
+   *
+   * @example
+   * ```typescript
+   * // Inline mode - embed base64 data
+   * const inline = await screenshot.serialize('inline');
+   * // { type: 'inline', data: 'data:image/png;base64,...' }
+   *
+   * // File mode - reference external file
+   * const file = await screenshot.serialize('file', './screenshots/abc.png');
+   * // { type: 'file', path: './screenshots/abc.png' }
+   * ```
+   */
+  async serialize(mode: 'inline'): Promise<SerializedScreenshot>;
+  async serialize(mode: 'file', filePath: string): Promise<SerializedScreenshot>;
+  async serialize(
+    mode: 'inline' | 'file',
+    filePath?: string,
+  ): Promise<SerializedScreenshot> {
+    if (mode === 'inline') {
+      const data = await this.getData();
+      return { type: 'inline', data };
+    }
+    if (!filePath) {
+      throw new Error('filePath is required for file mode serialization');
+    }
+    return { type: 'file', path: filePath };
+  }
+
+  /** @deprecated Use serialize() instead. Serialize to { $screenshot: id } format for JSON */
   toSerializable(): { $screenshot: string } {
     return { $screenshot: this._id };
   }
 
-  /** Check if a value is a serialized ScreenshotItem */
+  /** Check if a value is a serialized ScreenshotItem (new format) */
+  static isSerializedScreenshot(value: unknown): value is SerializedScreenshot {
+    if (typeof value !== 'object' || value === null) {
+      return false;
+    }
+    const obj = value as Record<string, unknown>;
+    if (obj.type === 'inline' && typeof obj.data === 'string') {
+      return true;
+    }
+    if (obj.type === 'file' && typeof obj.path === 'string') {
+      return true;
+    }
+    return false;
+  }
+
+  /** @deprecated Check if a value is a serialized ScreenshotItem (legacy format) */
   static isSerialized(value: unknown): value is { $screenshot: string } {
     return (
       typeof value === 'object' &&
