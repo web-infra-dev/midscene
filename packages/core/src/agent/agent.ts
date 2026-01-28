@@ -192,7 +192,7 @@ export class Agent<
 
   destroyed = false;
 
-  private lastWritePromise: Promise<void> | null = null;
+  private writeQueue: Promise<void> = Promise.resolve();
 
   modelConfigManager: ModelConfigManager;
 
@@ -401,12 +401,7 @@ export class Agent<
           }
 
           // Fire and forget - don't block task execution
-          this.lastWritePromise = this.writeOutActionDumps(dumpString).catch(
-            (error) => {
-              console.error('Error writing action dumps:', error);
-              debug('writeOutActionDumps error', error);
-            },
-          );
+          this.scheduleWrite(dumpString);
         },
       },
     });
@@ -537,16 +532,25 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString());
   }
 
-  async writeOutActionDumps(cachedDumpString?: string) {
-    if (this.destroyed) {
-      throw new Error(
-        'PageAgent has been destroyed. Cannot update report file.',
-      );
-    }
+  /**
+   * Enqueue a report write. Writes are chained to guarantee serial execution
+   * and prevent concurrent file access. Errors are caught to keep the chain alive.
+   */
+  private scheduleWrite(cachedDumpString?: string) {
+    this.writeQueue = this.writeQueue
+      .then(async () => {
+        if (this.destroyed) return;
+        await this.reportGenerator.onDumpUpdate(this.dump, cachedDumpString);
+        this.reportFile = this.reportGenerator.getReportPath();
+      })
+      .catch((error) => {
+        console.error('Error writing action dumps:', error);
+        debug('writeOutActionDumps error', error);
+      });
+  }
 
-    await this.reportGenerator.onDumpUpdate(this.dump, cachedDumpString);
-    this.reportFile = this.reportGenerator.getReportPath();
-    debug('writeOutActionDumps', this.reportFile);
+  writeOutActionDumps() {
+    this.scheduleWrite();
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1329,10 +1333,8 @@ export class Agent<
       return;
     }
 
-    // Wait for any pending write operations to complete
-    if (this.lastWritePromise) {
-      await this.lastWritePromise;
-    }
+    // Wait for all queued write operations to complete
+    await this.writeQueue;
 
     await this.reportGenerator.finalize(this.dump);
     this.reportFile = this.reportGenerator.getReportPath();
@@ -1396,8 +1398,8 @@ export class Agent<
       }
     }
 
-    this.lastWritePromise = this.writeOutActionDumps(dumpString);
-    await this.lastWritePromise;
+    this.scheduleWrite(dumpString);
+    await this.writeQueue;
   }
 
   /**
