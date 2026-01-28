@@ -8,12 +8,13 @@ function generateNReports(
   c: string,
   t: ReportMergingTool,
   withExpectedContent = true,
+  prefix = 'report-to-merge',
 ) {
   const expectedContents = [];
   for (let i = 0; i < n; i++) {
     const content = `${c} ${i}`;
     if (withExpectedContent) expectedContents.push(content);
-    const reportPath = writeDumpReport(`report-to-merge-${i}`, {
+    const reportPath = writeDumpReport(`${prefix}-${i}`, {
       dumpString: content,
     });
     t.append({
@@ -33,7 +34,13 @@ function generateNReports(
 describe('reportMergingTool', () => {
   it('should merge 3 mocked reports', async () => {
     const tool = new ReportMergingTool();
-    const expectedContents = generateNReports(3, 'report content', tool);
+    const expectedContents = generateNReports(
+      3,
+      'report content',
+      tool,
+      true,
+      'merge-3-test',
+    );
     // execute merge operation
     const mergedReportPath = tool.mergeReports();
     // assert merge success
@@ -49,6 +56,8 @@ describe('reportMergingTool', () => {
       3,
       'report content, original report file deleted',
       tool,
+      true,
+      'merge-3-delete-test',
     );
     // assert merge success
     const mergedReportPath = tool.mergeReports(undefined, {
@@ -67,7 +76,13 @@ describe('reportMergingTool', () => {
 
   it('should merge 3 mocked reports, use user custom filename', async () => {
     const tool = new ReportMergingTool();
-    const expectedContents = generateNReports(3, 'report content', tool);
+    const expectedContents = generateNReports(
+      3,
+      'report content',
+      tool,
+      true,
+      'merge-3-custom-name-test',
+    );
     // assert merge success
     const mergedReportPath = tool.mergeReports(
       'my-custom-merged-report-filename',
@@ -84,14 +99,20 @@ describe('reportMergingTool', () => {
   it('should merge 3 mocked reports twice, use user custom filename, overwrite old report on second merge', async () => {
     const tool = new ReportMergingTool();
     // first reports
-    generateNReports(3, 'report content', tool);
+    generateNReports(3, 'report content', tool, true, 'merge-3-overwrite-test-1');
     // assert merge success
     tool.mergeReports('my-custom-merged-report-filename-overwrite', {
       overwrite: true,
     });
     tool.clear();
     // second reports
-    const expectedContents = generateNReports(3, 'new report content', tool);
+    const expectedContents = generateNReports(
+      3,
+      'new report content',
+      tool,
+      true,
+      'merge-3-overwrite-test-2',
+    );
     // assert merge success
     const mergedReportPath = tool.mergeReports(
       'my-custom-merged-report-filename-overwrite',
@@ -144,6 +165,7 @@ test
         `large report content, original report file will be deleted after merge\n${hugeContent}`,
         tool,
         false,
+        'merge-100-delete-test',
       );
       console.timeEnd('generate 100 mocked report files');
 

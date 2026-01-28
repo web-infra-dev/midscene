@@ -8,7 +8,11 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { parseDumpScript, parseImageScripts } from '@/dump/html-utils';
+import {
+  parseDumpScript,
+  parseImageScripts,
+  unescapeContent,
+} from '@/dump/html-utils';
 import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, GroupedActionDump, type UIContext } from '@/types';
@@ -229,8 +233,20 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(imageMap[screenshot1.id]).toBeDefined();
       expect(imageMap[screenshot2.id]).toBeDefined();
 
-      // Parse dump JSON
-      const dumpJson = parseDumpScript(html);
+      // Parse dump JSON - use last match to avoid bundled JS in template
+      // The parseDumpScript function returns first match which may be template JS
+      // So we manually find the last dump script tag
+      const dumpRegex =
+        /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
+      let lastDumpMatch: RegExpExecArray | null = null;
+      let match: RegExpExecArray | null;
+      while ((match = dumpRegex.exec(html)) !== null) {
+        lastDumpMatch = match;
+      }
+      expect(lastDumpMatch).not.toBeNull();
+
+      // Use unescapeContent to handle escaped characters
+      const dumpJson = unescapeContent(lastDumpMatch![1]);
       const parsed = JSON.parse(dumpJson);
       expect(parsed.groupName).toBe('test-group');
       expect(parsed.executions).toHaveLength(1);
