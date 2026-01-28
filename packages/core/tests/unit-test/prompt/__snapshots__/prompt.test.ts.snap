@@ -235,9 +235,13 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <thought> tag
+* <thought> tag (REQUIRED)
+
+REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.
 
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
@@ -357,9 +361,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -388,9 +392,13 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <thought> tag
+* <thought> tag (REQUIRED)
+
+REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.
 
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
@@ -509,9 +517,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -540,9 +548,13 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <thought> tag
+* <thought> tag (REQUIRED)
+
+REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.
 
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
@@ -662,9 +674,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -693,9 +705,13 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <thought> tag
+* <thought> tag (REQUIRED)
+
+REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.
 
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
@@ -815,9 +831,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>
@@ -846,9 +862,13 @@ Target: You are an expert to manipulate the UI to accomplish the user's instruct
 
 First, observe the current screenshot and previous logs to understand the current state.
 
-* <thought> tag
+* <thought> tag (REQUIRED)
+
+REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.
 
 
 ## Step 2: Note Data from Current Screenshot (related tags: <note>)
@@ -967,9 +987,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 
 <!-- Step 2: Note data from current screenshot if needed -->
 <note>...</note>

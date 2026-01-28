@@ -200,9 +200,19 @@ export async function systemPromptToTaskPlanning({
     ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
     : 'First, observe the current screenshot and previous logs to understand the current state.';
 
+  const goalInterpretationRule = `CRITICAL - Determining Goal Completion: The user's instruction is the supreme authority that defines the EXACT scope of your task. You must follow it precisely - nothing more, nothing less. Do NOT perform extra actions beyond the explicit instruction, even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for results.`;
+
   const thoughtTagDescription = shouldIncludeSubGoals
-    ? "Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers."
-    : 'Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.';
+    ? `REQUIRED: You MUST always output the <thought> tag. Never skip it.
+
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? Are all sub-goals completed? If not, what should be the next action? Write your thoughts naturally without numbering or section headers.
+
+${goalInterpretationRule}`
+    : `REQUIRED: You MUST always output the <thought> tag. Never skip it.
+
+Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+
+${goalInterpretationRule}`;
 
   const subGoalTags = shouldIncludeSubGoals
     ? `
@@ -275,7 +285,7 @@ ${step1Title}
 
 ${step1Description}
 
-* <thought> tag
+* <thought> tag (REQUIRED)
 
 ${thoughtTagDescription}
 ${subGoalTags}
@@ -371,9 +381,9 @@ For example:
 
 Return in XML format following this decision flow:
 
-**Always include:**
+**Always include (REQUIRED):**
 <!-- Step 1: Observe${shouldIncludeSubGoals ? ' and Plan' : ''} -->
-<thought>...</thought>
+<thought>Your thought process here. NEVER skip this tag.</thought>
 ${
   shouldIncludeSubGoals
     ? `
