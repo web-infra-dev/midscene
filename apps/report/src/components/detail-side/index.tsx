@@ -106,10 +106,10 @@ const CollapsibleCard = (props: {
         className="title title-collapsible"
         onClick={() => setCollapsed(!collapsed)}
       >
+        {title}
         <span className="collapse-icon">
           {collapsed ? <RightOutlined /> : <DownOutlined />}
         </span>
-        {title}
       </div>
       {!collapsed && (
         <div className="description">
