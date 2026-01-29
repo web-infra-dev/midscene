@@ -38,7 +38,7 @@ tasks:
         name: second_file_storage_check
 
       # Click the check button to verify UI also shows the token
-      - aiAction: click "Check Session Token" button
+      - aiAction: click the button with text "Check Session Token"
 
       # Verify the UI shows success
       - aiAssert: the status shows "Token found"

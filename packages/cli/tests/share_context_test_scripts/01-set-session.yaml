@@ -5,7 +5,7 @@ web:
 tasks:
   - name: Set session token
     flow:
-      - aiAction: click "Set Session Token" button
+      - aiAction: click the button with text "Set Session Token"
 
       - evaluateJavaScript: |
           const token = sessionStorage.getItem('authToken');
@@ -25,4 +25,4 @@ tasks:
           };
         name: first_file_check
 
-      - aiAssert: the status shows "Session token and user ID set"
+      - aiAssert: the status shows "Session token and user ID set in sessionStorage"
