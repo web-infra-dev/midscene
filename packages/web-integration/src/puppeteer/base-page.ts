@@ -850,7 +850,7 @@ select {
         styleId,
         styleContent,
       );
-      console.log(
+      debugPage(
         'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',
       );
     } catch (err) {
