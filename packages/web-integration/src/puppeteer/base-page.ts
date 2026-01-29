@@ -333,31 +333,68 @@ export class Page<
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
-    let base64: string;
-    if (this.interfaceType === 'puppeteer') {
-      // Bring tab to front to ensure it's actively rendering frames.
-      // Inactive tabs in Chrome don't produce frames, causing screenshot to hang.
-      // See: https://github.com/puppeteer/puppeteer/issues/12712
-      await (this.underlyingPage as PuppeteerPage).bringToFront();
-      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
-        type: imgType,
-        quality,
-        encoding: 'base64',
-      });
-      base64 = createImgBase64ByFormat(imgType, result);
-    } else if (this.interfaceType === 'playwright') {
-      const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
-        type: imgType,
-        quality,
-        timeout: 10 * 1000,
-      });
-      base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
-    } else {
-      throw new Error('Unsupported page type for screenshot');
+    // Retry configuration for handling transient CDP errors like "Internal error"
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second between retries
+    let lastError: Error | undefined;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        let base64: string;
+        if (this.interfaceType === 'puppeteer') {
+          // Bring tab to front to ensure it's actively rendering frames.
+          // Inactive tabs in Chrome don't produce frames, causing screenshot to hang.
+          // See: https://github.com/puppeteer/puppeteer/issues/12712
+          await (this.underlyingPage as PuppeteerPage).bringToFront();
+          const result = await (this.underlyingPage as PuppeteerPage).screenshot(
+            {
+              type: imgType,
+              quality,
+              encoding: 'base64',
+            },
+          );
+          base64 = createImgBase64ByFormat(imgType, result);
+        } else if (this.interfaceType === 'playwright') {
+          const buffer = await (
+            this.underlyingPage as PlaywrightPage
+          ).screenshot({
+            type: imgType,
+            quality,
+            timeout: 10 * 1000,
+          });
+          base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+        } else {
+          throw new Error('Unsupported page type for screenshot');
+        }
+
+        const endTime = Date.now();
+        debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
+        return base64;
+      } catch (error) {
+        lastError = error as Error;
+        const isLastAttempt = attempt === maxRetries;
+
+        // Log warning for screenshot failure
+        console.warn(
+          `[midscene] Screenshot attempt ${attempt}/${maxRetries} failed: ${lastError.message}`,
+        );
+
+        if (!isLastAttempt) {
+          // Wait before retrying to allow browser state to stabilize
+          debugPage(
+            `screenshotBase64 retry in ${retryDelay}ms (attempt ${attempt}/${maxRetries})`,
+          );
+          await sleep(retryDelay);
+        }
+      }
     }
+
+    // All retries exhausted, throw the last error
     const endTime = Date.now();
-    debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
-    return base64;
+    debugPage(
+      `screenshotBase64 failed after ${maxRetries} attempts, cost: ${endTime - startTime}ms`,
+    );
+    throw lastError || new Error('Screenshot failed after all retries');
   }
 
   async url(): Promise<string> {
