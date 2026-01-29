@@ -10,7 +10,6 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
-import type { IReportGenerator } from './report-generator';
 import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
@@ -885,12 +884,6 @@ export interface AgentOpt {
    * @default false
    */
   useDirectoryReport?: boolean;
-
-  /**
-   * Custom report generator implementation.
-   * If not specified, ReportGenerator.create() selects the appropriate implementation.
-   */
-  reportGenerator?: IReportGenerator;
 
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;

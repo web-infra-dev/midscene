@@ -412,7 +412,6 @@ export class Agent<
       generateReport: this.opts.generateReport,
       useDirectoryReport: this.opts.useDirectoryReport,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
-      reportGenerator: this.opts.reportGenerator,
     });
   }
 

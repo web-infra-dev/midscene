@@ -73,10 +73,8 @@ export class ReportGenerator implements IReportGenerator {
       generateReport?: boolean;
       useDirectoryReport?: boolean;
       autoPrintReportMsg?: boolean;
-      reportGenerator?: IReportGenerator;
     },
   ): IReportGenerator {
-    if (opts.reportGenerator) return opts.reportGenerator;
     if (opts.generateReport === false) return nullReportGenerator;
 
     if (opts.useDirectoryReport) {

@@ -381,18 +381,6 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(gen).toBe(nullReportGenerator);
     });
 
-    it('should return custom reportGenerator when provided', () => {
-      const custom = {
-        onDumpUpdate: () => {},
-        finalize: async () => 'custom-path',
-        getReportPath: () => 'custom-path',
-      };
-      const gen = ReportGenerator.create('test', {
-        reportGenerator: custom,
-      });
-      expect(gen).toBe(custom);
-    });
-
     it('should create inline mode generator by default', () => {
       const gen = ReportGenerator.create('test-inline', {});
       expect(gen).toBeInstanceOf(ReportGenerator);
