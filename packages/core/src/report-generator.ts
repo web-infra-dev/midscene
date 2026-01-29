@@ -43,10 +43,6 @@ export const nullReportGenerator: IReportGenerator = {
   getReportPath: () => undefined,
 };
 
-function stripBase64Prefix(base64: string): string {
-  return base64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
-}
-
 export class ReportGenerator implements IReportGenerator {
   private reportPath: string;
   private screenshotMode: 'inline' | 'directory';
@@ -204,10 +200,7 @@ export class ReportGenerator implements IReportGenerator {
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
-        const buffer = Buffer.from(
-          stripBase64Prefix(screenshot.base64),
-          'base64',
-        );
+        const buffer = Buffer.from(screenshot.rawBase64, 'base64');
         const relativePath = `./screenshots/${screenshot.id}.png`;
         writeFileSync(join(screenshotsDir, `${screenshot.id}.png`), buffer);
         screenshot.markPersistedToPath(relativePath); // release base64 memory

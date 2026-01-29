@@ -73,13 +73,26 @@ export class ScreenshotItem {
     return this._persistedAs ?? { $screenshot: this._id };
   }
 
-  /** Check if a value is a serialized ScreenshotItem reference */
-  static isSerialized(value: unknown): value is { $screenshot: string } {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      '$screenshot' in value &&
-      typeof (value as Record<string, unknown>).$screenshot === 'string'
-    );
+  /** Check if a value is a serialized ScreenshotItem reference (inline or directory mode) */
+  static isSerialized(value: unknown): value is ScreenshotSerializeFormat {
+    if (typeof value !== 'object' || value === null) return false;
+    const record = value as Record<string, unknown>;
+    // Check for inline mode: { $screenshot: string }
+    if ('$screenshot' in record && typeof record.$screenshot === 'string') {
+      return true;
+    }
+    // Check for directory mode: { base64: string } where base64 is a path
+    if ('base64' in record && typeof record.base64 === 'string') {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get base64 data without the data URI prefix.
+   * Useful for writing raw binary data to files.
+   */
+  get rawBase64(): string {
+    return this.base64.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
   }
 }
