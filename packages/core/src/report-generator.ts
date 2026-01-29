@@ -7,7 +7,6 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { getDebug } from '@midscene/shared/logger';
 import { logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
@@ -15,8 +14,6 @@ import {
 } from './dump/html-utils';
 import type { GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
-
-const debug = getDebug('report-generator');
 
 export interface IReportGenerator {
   /**
@@ -73,10 +70,8 @@ export class ReportGenerator implements IReportGenerator {
       generateReport?: boolean;
       useDirectoryReport?: boolean;
       autoPrintReportMsg?: boolean;
-      reportGenerator?: IReportGenerator;
     },
   ): IReportGenerator {
-    if (opts.reportGenerator) return opts.reportGenerator;
     if (opts.generateReport === false) return nullReportGenerator;
 
     if (opts.useDirectoryReport) {
@@ -99,15 +94,10 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   onDumpUpdate(dump: GroupedActionDump): void {
-    this.writeQueue = this.writeQueue
-      .then(() => {
-        if (this.destroyed) return;
-        this.doWrite(dump);
-      })
-      .catch((error) => {
-        debug('Error writing report:', error);
-        console.error('Error writing report:', error);
-      });
+    this.writeQueue = this.writeQueue.then(() => {
+      if (this.destroyed) return;
+      this.doWrite(dump);
+    });
   }
 
   async flush(): Promise<void> {
