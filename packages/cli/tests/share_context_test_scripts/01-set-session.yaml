@@ -1,5 +1,6 @@
 # First file - Set sessionStorage
 web:
+  serve: ../server_root
   url: /session-storage-test.html
 
 tasks:

@@ -1,5 +1,6 @@
 # Second file - Check if sessionStorage is preserved
 web:
+  serve: ../server_root
   url: /session-storage-test.html
 
 tasks:
