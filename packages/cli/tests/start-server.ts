@@ -1,10 +1,10 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import {
   type IncomingMessage,
   type ServerResponse,
   createServer,
 } from 'node:http';
-import { extname, join } from 'node:path';
+import { extname, resolve } from 'node:path';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -23,12 +23,24 @@ export interface StaticServerInfo {
 }
 
 export function startStaticServer(rootDir: string): Promise<StaticServerInfo> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolvePromise, reject) => {
+    // Get canonical root path to prevent path traversal attacks
+    const rootPath = realpathSync(rootDir);
+
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      const filePath = join(
-        rootDir,
-        req.url === '/' ? 'index.html' : req.url || '',
-      );
+      // Parse URL to extract pathname only (ignore query strings)
+      const url = new URL(req.url || '/', 'http://localhost');
+      const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
+
+      // Resolve the path relative to root directory
+      const filePath = resolve(rootPath, `.${pathname}`);
+
+      // Security check: ensure the resolved path is within rootPath
+      if (!filePath.startsWith(rootPath)) {
+        res.writeHead(403, { 'Content-Type': 'text/plain' });
+        res.end('Forbidden');
+        return;
+      }
 
       if (!existsSync(filePath)) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -53,7 +65,7 @@ export function startStaticServer(rootDir: string): Promise<StaticServerInfo> {
       const address = server.address();
       if (address && typeof address === 'object') {
         const url = `http://${address.address}:${address.port}`;
-        resolve({
+        resolvePromise({
           url,
           stop: () =>
             new Promise<void>((resolveStop) => {
