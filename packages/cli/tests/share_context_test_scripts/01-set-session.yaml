@@ -8,7 +8,7 @@ tasks:
     flow:
       - aiAction: click the button with text "Set Session Token"
 
-      - evaluateJavaScript: |
+      - javascript: |
           const token = sessionStorage.getItem('authToken');
           const userId = sessionStorage.getItem('userId');
           const prefs = localStorage.getItem('preferences');

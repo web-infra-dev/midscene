@@ -7,7 +7,7 @@ tasks:
   - name: Verify session token is preserved
     flow:
       # First, check storage via JavaScript before any interaction
-      - evaluateJavaScript: |
+      - javascript: |
           const token = sessionStorage.getItem('authToken');
           const userId = sessionStorage.getItem('userId');
           const prefs = localStorage.getItem('preferences');
