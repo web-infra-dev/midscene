@@ -6,10 +6,26 @@
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
+  "types": "./dist/types/index.d.ts",
   "bin": {
     "midscene": "./bin/midscene"
   },
-  "files": ["dist", "README.md", "bin"],
+  "exports": {
+    ".": {
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./global": {
+      "types": "./src/ts-runner/global.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "global": ["./src/ts-runner/global.d.ts"]
+    }
+  },
+  "files": ["dist", "README.md", "bin", "src/ts-runner/global.d.ts"],
   "scripts": {
     "dev": "npm run build:watch",
     "build": "rslib build",
@@ -25,9 +41,11 @@
     "@midscene/ios": "workspace:*",
     "@midscene/shared": "workspace:*",
     "@midscene/web": "workspace:*",
+    "dotenv": "^16.4.5",
     "http-server": "14.1.1",
     "lodash.merge": "4.6.2",
-    "puppeteer": "24.6.0"
+    "puppeteer": "24.6.0",
+    "tsx": "^4.19.2"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
@@ -38,7 +56,6 @@
     "@types/yargs": "17.0.32",
     "chalk": "4.1.2",
     "cli-spinners": "3.2.0",
-    "dotenv": "^16.4.5",
     "execa": "9.3.0",
     "glob": "11.0.0",
     "js-yaml": "4.1.0",
