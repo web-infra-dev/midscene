@@ -1,6 +1,10 @@
-import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { readFileSync, existsSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import {
+  type IncomingMessage,
+  type ServerResponse,
+  createServer,
+} from 'node:http';
+import { extname, join } from 'node:path';
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
@@ -21,7 +25,10 @@ export interface StaticServerInfo {
 export function startStaticServer(rootDir: string): Promise<StaticServerInfo> {
   return new Promise((resolve, reject) => {
     const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      let filePath = join(rootDir, req.url === '/' ? 'index.html' : req.url || '');
+      const filePath = join(
+        rootDir,
+        req.url === '/' ? 'index.html' : req.url || '',
+      );
 
       if (!existsSync(filePath)) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -48,9 +55,10 @@ export function startStaticServer(rootDir: string): Promise<StaticServerInfo> {
         const url = `http://${address.address}:${address.port}`;
         resolve({
           url,
-          stop: () => new Promise<void>((resolveStop) => {
-            server.close(() => resolveStop());
-          }),
+          stop: () =>
+            new Promise<void>((resolveStop) => {
+              server.close(() => resolveStop());
+            }),
         });
       } else {
         reject(new Error('Failed to get server address'));
