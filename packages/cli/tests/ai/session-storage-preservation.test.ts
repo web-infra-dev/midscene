@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BatchRunner } from '@/batch-runner';
 import { createConfig } from '@/config-factory';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { startStaticServer } from '../start-server';
 
 describe('SessionStorage preservation with shareBrowserContext', () => {

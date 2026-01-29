@@ -54,9 +54,7 @@ if (existingPage) {
 #### 登录状态测试
 - `01-login.yaml` - 第一个文件,执行登录操作
 - `02-check-login.yaml` - 第二个文件,检查登录状态是否保留
-- `03-continue-state.yaml` - 使用 `continueFromPreviousPage` 保留完整 JS 状态
 - `index.yaml` - 批量执行配置（登录测试）
-- `index-continue.yaml` - 批量执行配置（continueFromPreviousPage 测试）
 
 #### sessionStorage 专项测试
 - `01-set-session.yaml` - 设置 sessionStorage
