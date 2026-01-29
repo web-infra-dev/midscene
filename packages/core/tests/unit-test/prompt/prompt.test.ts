@@ -300,6 +300,77 @@ describe('system prompts', () => {
     expect(prompt).not.toContain('Submit the registration form');
   });
 
+  it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: true,
+    });
+
+    // Multi-turn example should contain sub-goal related content
+    expect(prompt).toContain('## Multi-turn Conversation Example');
+    expect(prompt).toContain(
+      '<sub-goal index="1" status="pending">Fill in the Name field',
+    );
+    expect(prompt).toContain('<mark-sub-goal-done>');
+    expect(prompt).toContain("<memory>Name field has been filled with 'John'");
+    // Should show returning specific value in complete-goal
+    expect(prompt).toContain('then return the filled email address');
+    expect(prompt).toContain(
+      '<complete-goal success="true">john@example.com</complete-goal>',
+    );
+  });
+
+  it('planning - multi-turn example with includeSubGoals false should not have sub-goal tags', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    // Multi-turn example should exist but without sub-goal tags
+    expect(prompt).toContain('## Multi-turn Conversation Example');
+    expect(prompt).not.toContain('Fill in the Name field');
+    expect(prompt).not.toContain(
+      "<memory>Name field has been filled with 'John'",
+    );
+    // Should still show returning specific value in complete-goal
+    expect(prompt).toContain('then return the filled email address');
+    expect(prompt).toContain(
+      '<complete-goal success="true">john@example.com</complete-goal>',
+    );
+  });
+
+  it('planning - multi-turn example with includeBbox true should have bbox in locate', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: 'gpt-4o',
+      includeBbox: true,
+      includeSubGoals: false,
+    });
+
+    // Multi-turn example should contain bbox in locate examples
+    expect(prompt).toContain('## Multi-turn Conversation Example');
+    expect(prompt).toContain('"bbox": [120, 180, 380, 210]'); // Name field bbox
+    expect(prompt).toContain('"bbox": [120, 240, 380, 270]'); // Email field bbox
+  });
+
+  it('planning - multi-turn example with includeBbox false should not have bbox in locate', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: false,
+    });
+
+    // Multi-turn example should not contain bbox
+    expect(prompt).toContain('## Multi-turn Conversation Example');
+    expect(prompt).not.toContain('"bbox": [120, 180, 380, 210]');
+    expect(prompt).not.toContain('"bbox": [120, 240, 380, 270]');
+  });
+
   it('section locator - gemini', () => {
     const prompt = systemPromptToLocateSection('gemini');
     expect(prompt).toMatchSnapshot();

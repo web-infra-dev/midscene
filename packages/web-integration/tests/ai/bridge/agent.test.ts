@@ -9,7 +9,7 @@ vi.setConfig({
 });
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-describe.skipIf(!process.env.BRIDGE_MODE)(
+describe.skipIf(process.env.CI)(
   'fully functional agent in server(cli) side',
   {
     timeout: 3 * 60 * 1000,
@@ -59,6 +59,14 @@ describe.skipIf(!process.env.BRIDGE_MODE)(
       console.log(answer);
       expect(answer.name).toBeTruthy();
       await agent.destroy();
+    });
+
+    it('agent in cli side, aiAct, current tab', async () => {
+      const agent = new AgentOverChromeBridge();
+      await agent.connectCurrentTab();
+      await sleep(3000);
+      await agent.aiAct('click "Login"');
+      await sleep(3000);
     });
 
     it('agent in cli side, current tab, limit popup to current page', async () => {

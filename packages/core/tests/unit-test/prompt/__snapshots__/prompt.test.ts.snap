@@ -244,15 +244,9 @@ Include your thought process in the <thought> tag. It should answer: What is the
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
 
-## Step 2: Note Data from Current Screenshot (related tags: <note>)
+## Step 2: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
-
-Don't use this tag if no information needs to be preserved.
-
-## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
-
-Based on the current screenshot, determine if the entire task is completed.
+Determine if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -277,13 +271,13 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 4.
+- If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -369,15 +363,12 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe -->
 <thought>Your thought process here. NEVER skip this tag.</thought>
 
-<!-- Step 2: Note data from current screenshot if needed -->
-<note>...</note>
-
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step 3)**
+**Path A: If the goal is accomplished or failed (Step 2)**
 <complete-goal success="true|false">...</complete-goal>
 
-**Path B: If the goal is NOT complete yet (Step 4)**
+**Path B: If the goal is NOT complete yet (Step 3)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -385,6 +376,95 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
+  }
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
+  }
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -405,15 +485,9 @@ Include your thought process in the <thought> tag. It should answer: What is the
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
 
-## Step 2: Note Data from Current Screenshot (related tags: <note>)
+## Step 2: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
-
-Don't use this tag if no information needs to be preserved.
-
-## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
-
-Based on the current screenshot, determine if the entire task is completed.
+Determine if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -438,13 +512,13 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 4.
+- If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -529,15 +603,12 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe -->
 <thought>Your thought process here. NEVER skip this tag.</thought>
 
-<!-- Step 2: Note data from current screenshot if needed -->
-<note>...</note>
-
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step 3)**
+**Path A: If the goal is accomplished or failed (Step 2)**
 <complete-goal success="true|false">...</complete-goal>
 
-**Path B: If the goal is NOT complete yet (Step 4)**
+**Path B: If the goal is NOT complete yet (Step 3)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -545,6 +616,93 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Name input field in the registration form"
+  }
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Email input field in the registration form"
+  }
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -565,15 +723,9 @@ Include your thought process in the <thought> tag. It should answer: What is the
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
 
-## Step 2: Note Data from Current Screenshot (related tags: <note>)
+## Step 2: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
-
-Don't use this tag if no information needs to be preserved.
-
-## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
-
-Based on the current screenshot, determine if the entire task is completed.
+Determine if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -598,13 +750,13 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 4.
+- If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -690,15 +842,12 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe -->
 <thought>Your thought process here. NEVER skip this tag.</thought>
 
-<!-- Step 2: Note data from current screenshot if needed -->
-<note>...</note>
-
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step 3)**
+**Path A: If the goal is accomplished or failed (Step 2)**
 <complete-goal success="true|false">...</complete-goal>
 
-**Path B: If the goal is NOT complete yet (Step 4)**
+**Path B: If the goal is NOT complete yet (Step 3)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -706,6 +855,95 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
+  }
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
+  }
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -726,15 +964,9 @@ Include your thought process in the <thought> tag. It should answer: What is the
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
 
-## Step 2: Note Data from Current Screenshot (related tags: <note>)
+## Step 2: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
-
-Don't use this tag if no information needs to be preserved.
-
-## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
-
-Based on the current screenshot, determine if the entire task is completed.
+Determine if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -759,13 +991,13 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 4.
+- If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -851,15 +1083,12 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe -->
 <thought>Your thought process here. NEVER skip this tag.</thought>
 
-<!-- Step 2: Note data from current screenshot if needed -->
-<note>...</note>
-
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step 3)**
+**Path A: If the goal is accomplished or failed (Step 2)**
 <complete-goal success="true|false">...</complete-goal>
 
-**Path B: If the goal is NOT complete yet (Step 4)**
+**Path B: If the goal is NOT complete yet (Step 3)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -867,6 +1096,95 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
+  }
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
+  }
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -887,15 +1205,9 @@ Include your thought process in the <thought> tag. It should answer: What is the
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
 
-## Step 2: Note Data from Current Screenshot (related tags: <note>)
+## Step 2: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
-
-Don't use this tag if no information needs to be preserved.
-
-## Step 3: Check if Goal is Accomplished (related tags: <complete-goal>)
-
-Based on the current screenshot, determine if the entire task is completed.
+Determine if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -920,13 +1232,13 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 ### Output Rules
 
-- If the task is NOT complete, skip this section and continue to Step 4.
+- If the task is NOT complete, skip this section and continue to Step 3.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
-## Step 4: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -1011,15 +1323,12 @@ Return in XML format following this decision flow:
 <!-- Step 1: Observe -->
 <thought>Your thought process here. NEVER skip this tag.</thought>
 
-<!-- Step 2: Note data from current screenshot if needed -->
-<note>...</note>
-
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step 3)**
+**Path A: If the goal is accomplished or failed (Step 2)**
 <complete-goal success="true|false">...</complete-goal>
 
-**Path B: If the goal is NOT complete yet (Step 4)**
+**Path B: If the goal is NOT complete yet (Step 3)**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -1027,6 +1336,93 @@ Return in XML format following this decision flow:
 
 <!-- OR if there's an error -->
 <error>...</error>
+
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Name input field in the registration form"
+  }
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Email input field in the registration form"
+  }
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 

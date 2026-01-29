@@ -335,38 +335,41 @@ describe('ConversationHistory', () => {
     `);
   });
 
-  // Notes management tests
+  // Memory management tests
 
-  it('initializes with empty notes', () => {
+  it('initializes with empty memories', () => {
     const history = new ConversationHistory();
-    expect(history.getNotes()).toEqual([]);
-    expect(history.notesToText()).toMatchInlineSnapshot(`""`);
+    expect(history.getMemories()).toEqual([]);
+    expect(history.memoriesToText()).toMatchInlineSnapshot(`""`);
   });
 
-  it('appends notes to the list', () => {
+  it('appends memories to the list', () => {
     const history = new ConversationHistory();
-    history.appendNote('First note');
-    history.appendNote('Second note');
+    history.appendMemory('First memory');
+    history.appendMemory('Second memory');
 
-    expect(history.getNotes()).toEqual(['First note', 'Second note']);
+    expect(history.getMemories()).toEqual(['First memory', 'Second memory']);
   });
 
-  it('ignores empty notes when appending', () => {
+  it('ignores empty memories when appending', () => {
     const history = new ConversationHistory();
-    history.appendNote('Valid note');
-    history.appendNote('');
-    history.appendNote('Another valid note');
+    history.appendMemory('Valid memory');
+    history.appendMemory('');
+    history.appendMemory('Another valid memory');
 
-    expect(history.getNotes()).toEqual(['Valid note', 'Another valid note']);
+    expect(history.getMemories()).toEqual([
+      'Valid memory',
+      'Another valid memory',
+    ]);
   });
 
-  it('converts notes to text representation', () => {
+  it('converts memories to text representation', () => {
     const history = new ConversationHistory();
-    history.appendNote('User logged in successfully');
-    history.appendNote('Found 3 items in the cart');
+    history.appendMemory('User logged in successfully');
+    history.appendMemory('Found 3 items in the cart');
 
-    expect(history.notesToText()).toMatchInlineSnapshot(`
-      "Notes from previous steps:
+    expect(history.memoriesToText()).toMatchInlineSnapshot(`
+      "Memories from previous steps:
       ---
       User logged in successfully
       ---
@@ -375,25 +378,25 @@ describe('ConversationHistory', () => {
     `);
   });
 
-  it('clears all notes', () => {
+  it('clears all memories', () => {
     const history = new ConversationHistory();
-    history.appendNote('Note 1');
-    history.appendNote('Note 2');
+    history.appendMemory('Memory 1');
+    history.appendMemory('Memory 2');
 
-    history.clearNotes();
+    history.clearMemories();
 
-    expect(history.getNotes()).toEqual([]);
-    expect(history.notesToText()).toMatchInlineSnapshot(`""`);
+    expect(history.getMemories()).toEqual([]);
+    expect(history.memoriesToText()).toMatchInlineSnapshot(`""`);
   });
 
-  it('returns independent copy of notes array', () => {
+  it('returns independent copy of memories array', () => {
     const history = new ConversationHistory();
-    history.appendNote('Original note');
+    history.appendMemory('Original memory');
 
-    const notes = history.getNotes();
-    notes.push('Mutated note');
+    const memories = history.getMemories();
+    memories.push('Mutated memory');
 
-    expect(history.getNotes()).toEqual(['Original note']);
+    expect(history.getMemories()).toEqual(['Original memory']);
   });
 
   // Compress history tests

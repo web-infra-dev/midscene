@@ -405,9 +405,9 @@ const DetailSide = (): JSX.Element => {
     const locateParam = (planningTask as any)?.param;
     const images = extractTaskImages(locateParam);
 
-    // Get subGoalStatus and notesStatus from param
+    // Get subGoalStatus and memoriesStatus from param
     const subGoalStatus = (planningTask.param as any)?.subGoalStatus;
-    const notesStatus = (planningTask.param as any)?.notesStatus;
+    const memoriesStatus = (planningTask.param as any)?.memoriesStatus;
 
     if (planningTask.param?.userInstruction) {
       // Ensure userInstruction is a string
@@ -423,11 +423,11 @@ const DetailSide = (): JSX.Element => {
             content: instructionContent,
             images: images,
           },
-          ...(notesStatus
+          ...(memoriesStatus
             ? [
                 {
-                  key: 'notes',
-                  content: notesStatus,
+                  key: 'memories',
+                  content: memoriesStatus,
                 },
               ]
             : []),
@@ -464,11 +464,11 @@ const DetailSide = (): JSX.Element => {
             content: promptContent,
             images: images,
           },
-          ...(notesStatus
+          ...(memoriesStatus
             ? [
                 {
-                  key: 'notes',
-                  content: notesStatus,
+                  key: 'memories',
+                  content: memoriesStatus,
                 },
               ]
             : []),
@@ -731,18 +731,18 @@ const DetailSide = (): JSX.Element => {
         );
       }
 
-      // Add Note if exists
-      if ((task as ExecutionTaskPlanning).output?.note) {
+      // Add Memory if exists
+      if ((task as ExecutionTaskPlanning).output?.memory) {
         planItems.push(
           <Card
-            key="note"
+            key="memory"
             liteMode={true}
-            title="note"
+            title="memory"
             onMouseEnter={noop}
             onMouseLeave={noop}
             content={
               <pre className="description-content">
-                {(task as ExecutionTaskPlanning).output?.note}
+                {(task as ExecutionTaskPlanning).output?.memory}
               </pre>
             }
           />,

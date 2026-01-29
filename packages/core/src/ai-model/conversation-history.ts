@@ -8,7 +8,7 @@ export interface ConversationHistoryOptions {
 export class ConversationHistory {
   private readonly messages: ChatCompletionMessageParam[] = [];
   private subGoals: SubGoal[] = [];
-  private notes: string[] = [];
+  private memories: string[] = [];
 
   public pendingFeedbackMessage: string;
 
@@ -183,40 +183,40 @@ export class ConversationHistory {
     return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
   }
 
-  // Notes management methods
+  // Memory management methods
 
   /**
-   * Append a note to the notes list
+   * Append a memory to the memories list
    */
-  appendNote(note: string): void {
-    if (note) {
-      this.notes.push(note);
+  appendMemory(memory: string): void {
+    if (memory) {
+      this.memories.push(memory);
     }
   }
 
   /**
-   * Get all notes
+   * Get all memories
    */
-  getNotes(): string[] {
-    return [...this.notes];
+  getMemories(): string[] {
+    return [...this.memories];
   }
 
   /**
-   * Convert notes to text representation
+   * Convert memories to text representation
    */
-  notesToText(): string {
-    if (this.notes.length === 0) {
+  memoriesToText(): string {
+    if (this.memories.length === 0) {
       return '';
     }
 
-    return `Notes from previous steps:\n---\n${this.notes.join('\n---\n')}\n`;
+    return `Memories from previous steps:\n---\n${this.memories.join('\n---\n')}\n`;
   }
 
   /**
-   * Clear all notes
+   * Clear all memories
    */
-  clearNotes(): void {
-    this.notes.length = 0;
+  clearMemories(): void {
+    this.memories.length = 0;
   }
 
   /**

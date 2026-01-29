@@ -248,7 +248,7 @@ export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
   thought?: string;
   log: string;
-  note?: string;
+  memory?: string;
   error?: string;
   finalizeMessage?: string;
   finalizeSuccess?: boolean;
