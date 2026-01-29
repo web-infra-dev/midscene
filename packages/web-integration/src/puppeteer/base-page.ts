@@ -334,9 +334,25 @@ export class Page<
     debugPage('screenshotBase64 begin');
 
     // Retry configuration for handling transient CDP errors like "Internal error"
+    // Uses exponential backoff: 500ms, 1000ms, 2000ms
     const maxRetries = 3;
-    const retryDelay = 1000; // 1 second between retries
+    const baseDelay = 500;
     let lastError: Error | undefined;
+
+    // Errors that indicate the page/session is permanently gone - no point retrying
+    const unrecoverableErrors = [
+      'Target closed',
+      'Session closed',
+      'Page closed',
+      'browser has disconnected',
+      'Execution context was destroyed',
+    ];
+
+    const isUnrecoverableError = (error: Error): boolean => {
+      return unrecoverableErrors.some((msg) =>
+        error.message.toLowerCase().includes(msg.toLowerCase()),
+      );
+    };
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -379,8 +395,17 @@ export class Page<
           `[midscene] Screenshot attempt ${attempt}/${maxRetries} failed: ${lastError.message}`,
         );
 
+        // Don't retry unrecoverable errors (page/session closed)
+        if (isUnrecoverableError(lastError)) {
+          debugPage(
+            `screenshotBase64 unrecoverable error, not retrying: ${lastError.message}`,
+          );
+          break;
+        }
+
         if (!isLastAttempt) {
-          // Wait before retrying to allow browser state to stabilize
+          // Exponential backoff: 500ms, 1000ms, 2000ms
+          const retryDelay = baseDelay * 2 ** (attempt - 1);
           debugPage(
             `screenshotBase64 retry in ${retryDelay}ms (attempt ${attempt}/${maxRetries})`,
           );
@@ -389,7 +414,7 @@ export class Page<
       }
     }
 
-    // All retries exhausted, throw the last error
+    // All retries exhausted or unrecoverable error, throw the last error
     const endTime = Date.now();
     debugPage(
       `screenshotBase64 failed after ${maxRetries} attempts, cost: ${endTime - startTime}ms`,
