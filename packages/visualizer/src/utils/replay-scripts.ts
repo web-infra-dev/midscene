@@ -145,14 +145,14 @@ const capitalizeFirstLetter = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-export const allScriptsFromDump = (
+export const allScriptsFromDump = async (
   dump:
     | GroupedActionDump
     | IGroupedActionDump
     | ExecutionDump
     | null
     | undefined,
-): ReplayScriptsInfo | null => {
+): Promise<ReplayScriptsInfo | null> => {
   if (!dump) {
     console.warn('[allScriptsFromDump] dump is empty');
     return {
@@ -205,8 +205,9 @@ export const allScriptsFromDump = (
 
   // Use first dimensions as default for the overall player size
   const allScripts: AnimationScript[] = [];
-  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
-    const scripts = generateAnimationScripts(
+  const executions = normalizedDump.executions?.filter(Boolean) || [];
+  for (const execution of executions) {
+    const scripts = await generateAnimationScripts(
       execution,
       -1,
       firstWidth!,
@@ -227,7 +228,7 @@ export const allScriptsFromDump = (
         }
       }
     });
-  });
+  }
 
   const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
     (script, index) => {
@@ -270,12 +271,12 @@ export const allScriptsFromDump = (
   };
 };
 
-export const generateAnimationScripts = (
+export const generateAnimationScripts = async (
   execution: ExecutionDump | IExecutionDump | null,
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
-): AnimationScript[] | null => {
+): Promise<AnimationScript[] | null> => {
   if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
     return null;
@@ -395,9 +396,9 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.size?.width || imageWidth;
         const height = context.size?.height || imageHeight;
-        const screenshotData = (context.screenshot?.base64 ||
-          context.screenshot ||
-          '') as string;
+        const screenshotData = (
+          context.screenshot as unknown as { base64: string }
+        ).base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -453,9 +454,9 @@ export const generateAnimationScripts = (
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshot = planningTask.recorder[0]?.screenshot;
-        const screenshotData = (screenshot?.base64 ||
-          screenshot ||
-          '') as string;
+        const screenshotData =
+          (screenshot as unknown as { base64: string } | undefined)?.base64 ||
+          '';
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -493,9 +494,8 @@ export const generateAnimationScripts = (
       // currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
-      const actionScreenshotData = (screenshot?.base64 ||
-        screenshot ||
-        '') as string;
+      const actionScreenshotData =
+        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -513,9 +513,8 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
-        const screenshotData = (screenshot?.base64 ||
-          screenshot ||
-          '') as string;
+        const screenshotData = (screenshot as unknown as { base64: string })
+          .base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -537,9 +536,8 @@ export const generateAnimationScripts = (
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
-      const errorScreenshotData = (screenshot?.base64 ||
-        screenshot ||
-        '') as string;
+      const errorScreenshotData =
+        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
       scripts.push({
         type: 'img',
         img: errorScreenshotData,
@@ -550,7 +548,6 @@ export const generateAnimationScripts = (
         imageWidth: task.uiContext?.size?.width || imageWidth,
         imageHeight: task.uiContext?.size?.height || imageHeight,
       });
-      return;
     }
   });
 

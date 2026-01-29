@@ -245,7 +245,7 @@ export function usePlaygroundExecution(
       if (result?.dump) {
         if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
           const groupedDump = wrapExecutionDumpForReplay(result.dump);
-          const info = allScriptsFromDump(groupedDump);
+          const info = await allScriptsFromDump(groupedDump);
           setReplayCounter((c) => c + 1);
           replayInfo = info;
           counter = replayCounter + 1;
@@ -382,7 +382,7 @@ export function usePlaygroundExecution(
             Array.isArray(executionData.dump.tasks)
           ) {
             const groupedDump = wrapExecutionDumpForReplay(executionData.dump);
-            replayInfo = allScriptsFromDump(groupedDump);
+            replayInfo = await allScriptsFromDump(groupedDump);
             setReplayCounter((c) => c + 1);
             counter = replayCounter + 1;
           }

@@ -15,14 +15,16 @@ export class ReportMergingTool {
   }
   private extractScriptContent(filePath: string): string {
     // Regular expression to match content between script tags
-    // Requires newline before <script and </script>
+    // Use global flag to find ALL matches, then return the LAST one
+    // (the report template may contain similar regex patterns in bundled JS)
     const scriptRegex =
-      /\n<script type="midscene_web_dump" type="application\/json"[^>]*>([\s\S]*?)\n<\/script>/;
+      /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
 
     const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const match = scriptRegex.exec(fileContent);
+    const matches = [...fileContent.matchAll(scriptRegex)];
+    const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
 
-    return match ? match[1].trim() : '';
+    return lastMatch ? lastMatch[1].trim() : '';
   }
 
   public mergeReports(

@@ -10,6 +10,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import type { IReportGenerator } from './report-generator';
 import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
@@ -343,7 +344,7 @@ export interface ExecutionTaskApply<
   executor: (
     param: TaskParam,
     context: ExecutorContext,
-  ) => // biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+  ) => // biome-ignore lint/suspicious/noConfusingVoidType: void is intentionally allowed as some executors may not return a value
     | Promise<ExecutionTaskReturn<TaskOutput, TaskLog> | undefined | void>
     | undefined
     | void;
@@ -415,14 +416,34 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that restores ScreenshotItem from base64 strings
- * Automatically converts screenshot fields (in uiContext and recorder) from strings back to ScreenshotItem
+ * Reviver function for JSON deserialization that handles ScreenshotItem formats.
+ *
+ * BEHAVIOR:
+ * - For { $screenshot: "id" } format: Left as-is (plain object)
+ *   Consumer must use imageMap to restore base64 data
+ * - For { base64: "..." } format: Creates ScreenshotItem from base64 data
+ *
+ * @param key - JSON key being processed
+ * @param value - JSON value being processed
+ * @returns Restored value
  */
 function reviverForDumpDeserialization(key: string, value: any): any {
-  // Restore screenshot fields in uiContext and recorder
-  if (key === 'screenshot' && ScreenshotItem.isSerializedData(value)) {
-    return ScreenshotItem.fromSerializedData(value);
+  // Only process screenshot fields
+  if (key !== 'screenshot' || typeof value !== 'object' || value === null) {
+    return value;
   }
+
+  // Handle serialized format: { $screenshot: "id" }
+  // Leave as plain object — consumer uses imageMap to restore
+  if (ScreenshotItem.isSerialized(value)) {
+    return value;
+  }
+
+  // Handle inline base64 format: { base64: "..." }
+  if ('base64' in value && typeof value.base64 === 'string') {
+    return value;
+  }
+
   return value;
 }
 
@@ -459,7 +480,10 @@ export class ExecutionDump implements IExecutionDump {
       logTime: this.logTime,
       name: this.name,
       description: this.description,
-      tasks: this.tasks,
+      tasks: this.tasks.map((task) => ({
+        ...task,
+        recorder: task.recorder || [],
+      })),
       aiActContext: this.aiActContext,
     };
   }
@@ -480,6 +504,34 @@ export class ExecutionDump implements IExecutionDump {
    */
   static fromJSON(data: IExecutionDump): ExecutionDump {
     return new ExecutionDump(data);
+  }
+
+  /**
+   * Collect all ScreenshotItem instances from tasks.
+   * Scans through uiContext and recorder items to find screenshots.
+   *
+   * @returns Array of ScreenshotItem instances
+   */
+  collectScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
+
+    for (const task of this.tasks) {
+      // Collect uiContext.screenshot if present
+      if (task.uiContext?.screenshot instanceof ScreenshotItem) {
+        screenshots.push(task.uiContext.screenshot);
+      }
+
+      // Collect recorder screenshots
+      if (task.recorder) {
+        for (const record of task.recorder) {
+          if (record.screenshot instanceof ScreenshotItem) {
+            screenshots.push(record.screenshot);
+          }
+        }
+      }
+    }
+
+    return screenshots;
   }
 }
 
@@ -635,9 +687,36 @@ export class GroupedActionDump implements IGroupedActionDump {
 
   /**
    * Serialize the GroupedActionDump to a JSON string
+   * Uses compact { $screenshot: id } format
    */
   serialize(indents?: number): string {
     return JSON.stringify(this.toJSON(), replacerForDumpSerialization, indents);
+  }
+
+  /**
+   * Serialize the GroupedActionDump with inline screenshots to a JSON string.
+   * Each ScreenshotItem is replaced with { base64: "..." }.
+   */
+  serializeWithInlineScreenshots(indents?: number): string {
+    const processValue = (obj: unknown): unknown => {
+      if (obj instanceof ScreenshotItem) {
+        return { base64: obj.base64 };
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(processValue);
+      }
+      if (obj && typeof obj === 'object') {
+        const entries = Object.entries(obj).map(([key, value]) => [
+          key,
+          processValue(value),
+        ]);
+        return Object.fromEntries(entries);
+      }
+      return obj;
+    };
+
+    const data = processValue(this.toJSON());
+    return JSON.stringify(data, null, indents);
   }
 
   /**
@@ -669,6 +748,19 @@ export class GroupedActionDump implements IGroupedActionDump {
    */
   static fromJSON(data: IGroupedActionDump): GroupedActionDump {
     return new GroupedActionDump(data);
+  }
+
+  /**
+   * Collect all ScreenshotItem instances from all executions.
+   *
+   * @returns Array of all ScreenshotItem instances across all executions
+   */
+  collectAllScreenshots(): ScreenshotItem[] {
+    const screenshots: ScreenshotItem[] = [];
+    for (const execution of this.executions) {
+      screenshots.push(...execution.collectScreenshots());
+    }
+    return screenshots;
   }
 }
 
@@ -777,6 +869,29 @@ export interface AgentOpt {
   generateReport?: boolean;
   /* if auto print report msg, default true */
   autoPrintReportMsg?: boolean;
+
+  /**
+   * Use directory-based report format with separate image files.
+   *
+   * When enabled:
+   * - Screenshots are saved as PNG files in a `screenshots/` subdirectory
+   * - Report is generated as `index.html` with relative image paths
+   * - Reduces memory usage and report file size
+   *
+   * IMPORTANT: Directory reports must be served via HTTP server
+   * (e.g., `npx serve ./report-dir`). The file:// protocol will not
+   * work due to browser CORS restrictions.
+   *
+   * @default false
+   */
+  useDirectoryReport?: boolean;
+
+  /**
+   * Custom report generator implementation.
+   * If not specified, ReportGenerator.create() selects the appropriate implementation.
+   */
+  reportGenerator?: IReportGenerator;
+
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
   aiActionContext?: string;

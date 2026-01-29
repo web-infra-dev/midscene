@@ -148,8 +148,8 @@ export function PlaywrightCaseSelector({
     setIsExpanded(!isExpanded);
   };
 
-  const handlePlaywrightTaskSelect = (dump: PlaywrightTasks) => {
-    setGroupedDump(dump.get(), dump.attributes);
+  const handlePlaywrightTaskSelect = async (dump: PlaywrightTasks) => {
+    await setGroupedDump(dump.get(), dump.attributes);
     setIsExpanded(false);
   };
 
