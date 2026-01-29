@@ -313,7 +313,8 @@ export class TaskExecutor {
         this.conversationHistory.subGoalsToText() || undefined;
 
       // Get memories text if available
-      const memoriesStatus = this.conversationHistory.memoriesToText() || undefined;
+      const memoriesStatus =
+        this.conversationHistory.memoriesToText() || undefined;
 
       const result = await session.appendAndRun(
         {

@@ -333,7 +333,9 @@ describe('system prompts', () => {
     // Multi-turn example should exist but without sub-goal tags
     expect(prompt).toContain('## Multi-turn Conversation Example');
     expect(prompt).not.toContain('Fill in the Name field');
-    expect(prompt).not.toContain("<memory>Name field has been filled with 'John'");
+    expect(prompt).not.toContain(
+      "<memory>Name field has been filled with 'John'",
+    );
     // Should still show returning specific value in complete-goal
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
