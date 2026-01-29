@@ -19,16 +19,26 @@ import { appendFileSync, getReportTpl } from './utils';
 const debug = getDebug('report-generator');
 
 export interface IReportGenerator {
-  onDumpUpdate(
-    dump: GroupedActionDump,
-    cachedSerializedDump?: string,
-  ): void | Promise<void>;
+  /**
+   * Schedule a dump update. Writes are queued internally to guarantee serial execution.
+   * This method returns immediately (fire-and-forget).
+   * Screenshots are written and memory is released during this call.
+   */
+  onDumpUpdate(dump: GroupedActionDump): void;
+  /**
+   * Wait for all queued write operations to complete.
+   */
+  flush(): Promise<void>;
+  /**
+   * Finalize the report. Calls flush() internally before printing the final message.
+   */
   finalize(dump: GroupedActionDump): Promise<string | undefined>;
   getReportPath(): string | undefined;
 }
 
 export const nullReportGenerator: IReportGenerator = {
   onDumpUpdate: () => {},
+  flush: async () => {},
   finalize: async () => undefined,
   getReportPath: () => undefined,
 };
@@ -46,6 +56,10 @@ export class ReportGenerator implements IReportGenerator {
   // inline mode state
   private imageEndOffset = 0;
   private initialized = false;
+
+  // write queue for serial execution
+  private writeQueue: Promise<void> = Promise.resolve();
+  private destroyed = false;
 
   constructor(options: {
     reportPath: string;
@@ -88,21 +102,26 @@ export class ReportGenerator implements IReportGenerator {
     });
   }
 
-  onDumpUpdate(dump: GroupedActionDump, cachedSerializedDump?: string): void {
-    try {
-      if (this.screenshotMode === 'inline') {
-        this.writeInlineReport(dump, cachedSerializedDump);
-      } else {
-        this.writeDirectoryReport(dump, cachedSerializedDump);
-      }
-    } catch (error) {
-      debug('Error writing report:', error);
-      console.error('Error writing report:', error);
-    }
+  onDumpUpdate(dump: GroupedActionDump): void {
+    this.writeQueue = this.writeQueue
+      .then(() => {
+        if (this.destroyed) return;
+        this.doWrite(dump);
+      })
+      .catch((error) => {
+        debug('Error writing report:', error);
+        console.error('Error writing report:', error);
+      });
+  }
+
+  async flush(): Promise<void> {
+    await this.writeQueue;
   }
 
   async finalize(dump: GroupedActionDump): Promise<string | undefined> {
     this.onDumpUpdate(dump);
+    await this.flush();
+    this.destroyed = true;
 
     if (this.autoPrint && this.reportPath) {
       if (this.screenshotMode === 'directory') {
@@ -125,10 +144,15 @@ export class ReportGenerator implements IReportGenerator {
     return this.reportPath;
   }
 
-  private writeInlineReport(
-    dump: GroupedActionDump,
-    cachedSerializedDump?: string,
-  ): void {
+  private doWrite(dump: GroupedActionDump): void {
+    if (this.screenshotMode === 'inline') {
+      this.writeInlineReport(dump);
+    } else {
+      this.writeDirectoryReport(dump);
+    }
+  }
+
+  private writeInlineReport(dump: GroupedActionDump): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -143,7 +167,7 @@ export class ReportGenerator implements IReportGenerator {
     // 1. truncate: remove old dump JSON, keep template + existing image tags
     truncateSync(this.reportPath, this.imageEndOffset);
 
-    // 2. append new image tags
+    // 2. append new image tags and release memory
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
@@ -151,6 +175,7 @@ export class ReportGenerator implements IReportGenerator {
           this.reportPath,
           `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
         );
+        screenshot.markPersistedInline(); // release base64 memory
         this.writtenScreenshots.add(screenshot.id);
       }
     }
@@ -159,14 +184,11 @@ export class ReportGenerator implements IReportGenerator {
     this.imageEndOffset = statSync(this.reportPath).size;
 
     // 4. append new dump JSON (compact { $screenshot: id } format)
-    const serialized = cachedSerializedDump ?? dump.serialize();
+    const serialized = dump.serialize();
     appendFileSync(this.reportPath, `\n${generateDumpScriptTag(serialized)}`);
   }
 
-  private writeDirectoryReport(
-    dump: GroupedActionDump,
-    cachedSerializedDump?: string,
-  ): void {
+  private writeDirectoryReport(dump: GroupedActionDump): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -178,7 +200,7 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // 1. write new screenshots as PNG files
+    // 1. write new screenshots as PNG files and release memory
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
@@ -186,49 +208,18 @@ export class ReportGenerator implements IReportGenerator {
           stripBase64Prefix(screenshot.base64),
           'base64',
         );
+        const relativePath = `./screenshots/${screenshot.id}.png`;
         writeFileSync(join(screenshotsDir, `${screenshot.id}.png`), buffer);
+        screenshot.markPersistedToPath(relativePath); // release base64 memory
         this.writtenScreenshots.add(screenshot.id);
       }
     }
 
-    // 2. write HTML with dump JSON referencing ./screenshots/{id}.png paths
-    const serialized = this.serializeWithScreenshotPaths(
-      dump,
-      cachedSerializedDump,
-    );
+    // 2. write HTML with dump JSON (toSerializable() returns correct format)
+    const serialized = dump.serialize();
     writeFileSync(
       this.reportPath,
       `${getReportTpl()}\n${generateDumpScriptTag(serialized)}`,
     );
-  }
-
-  private serializeWithScreenshotPaths(
-    dump: GroupedActionDump,
-    cachedSerializedDump?: string,
-  ): string {
-    // Serialize the dump, then replace screenshot references with file paths
-    const jsonStr = cachedSerializedDump ?? dump.serialize();
-    const parsed = JSON.parse(jsonStr);
-
-    // Recursively replace { $screenshot: id } with { base64: "./screenshots/{id}.png" }
-    const replaceScreenshotRefs = (obj: unknown): unknown => {
-      if (Array.isArray(obj)) {
-        return obj.map(replaceScreenshotRefs);
-      }
-      if (obj && typeof obj === 'object') {
-        const record = obj as Record<string, unknown>;
-        if ('$screenshot' in record && typeof record.$screenshot === 'string') {
-          return { base64: `./screenshots/${record.$screenshot}.png` };
-        }
-        const result: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(record)) {
-          result[key] = replaceScreenshotRefs(value);
-        }
-        return result;
-      }
-      return obj;
-    };
-
-    return JSON.stringify(replaceScreenshotRefs(parsed));
   }
 }

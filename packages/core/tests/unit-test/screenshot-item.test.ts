@@ -81,4 +81,42 @@ describe('ScreenshotItem', () => {
       expect(item.base64).toBe(testBase64);
     });
   });
+
+  describe('persistence and memory release', () => {
+    it('should have base64 available before persistence', () => {
+      const item = ScreenshotItem.create(testBase64);
+      expect(item.hasBase64()).toBe(true);
+      expect(item.base64).toBe(testBase64);
+    });
+
+    it('markPersistedInline should release base64 and serialize as $screenshot', () => {
+      const item = ScreenshotItem.create(testBase64);
+      const id = item.id;
+
+      item.markPersistedInline();
+
+      expect(item.hasBase64()).toBe(false);
+      expect(() => item.base64).toThrow(/already released/);
+      expect(item.toSerializable()).toEqual({ $screenshot: id });
+    });
+
+    it('markPersistedToPath should release base64 and serialize as path', () => {
+      const item = ScreenshotItem.create(testBase64);
+      const path = './screenshots/test-id.png';
+
+      item.markPersistedToPath(path);
+
+      expect(item.hasBase64()).toBe(false);
+      expect(() => item.base64).toThrow(/already released/);
+      expect(item.toSerializable()).toEqual({ base64: path });
+    });
+
+    it('toSerializable should return $screenshot format before persistence', () => {
+      const item = ScreenshotItem.create(testBase64);
+      const serialized = item.toSerializable();
+
+      expect(serialized).toHaveProperty('$screenshot');
+      expect((serialized as { $screenshot: string }).$screenshot).toBe(item.id);
+    });
+  });
 });

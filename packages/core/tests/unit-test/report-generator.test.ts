@@ -89,7 +89,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
   });
 
   describe('inline mode — truncate+append strategy', () => {
-    it('should write each screenshot image tag exactly once across multiple updates', () => {
+    it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -106,6 +106,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
       }
+      await generator.flush();
 
       // Read the final HTML
       const html = readFileSync(reportPath, 'utf-8');
@@ -120,7 +121,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       }
     });
 
-    it('should not duplicate image tags when same dump is written multiple times', () => {
+    it('should not duplicate image tags when same dump is written multiple times', async () => {
       const reportPath = join(tmpDir, 'dedup-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -135,6 +136,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       for (let i = 0; i < 10; i++) {
         generator.onDumpUpdate(dump);
       }
+      await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
       const imageMap = parseImageScripts(html);
@@ -145,7 +147,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(imageMap[screenshot.id]).toContain('AAAA'); // Our fake base64 contains 'A' chars
     });
 
-    it('should replace dump JSON on each update, not accumulate', () => {
+    it('should replace dump JSON on each update, not accumulate', async () => {
       const reportPath = join(tmpDir, 'truncate-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -158,12 +160,15 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       // Write dump 3 times
       generator.onDumpUpdate(dump);
+      await generator.flush();
       const sizeAfterFirst = statSync(reportPath).size;
 
       generator.onDumpUpdate(dump);
+      await generator.flush();
       const sizeAfterSecond = statSync(reportPath).size;
 
       generator.onDumpUpdate(dump);
+      await generator.flush();
       const sizeAfterThird = statSync(reportPath).size;
 
       // Since no new images are added, the file size should remain stable
@@ -172,7 +177,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(sizeAfterThird).toBe(sizeAfterFirst);
     });
 
-    it('should grow file size linearly with new screenshots, not quadratically', () => {
+    it('should grow file size linearly with new screenshots, not quadratically', async () => {
       const reportPath = join(tmpDir, 'linear-growth-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -189,6 +194,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         const newScreenshot = ScreenshotItem.create(fakeBase64(screenshotSize));
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
+        await generator.flush();
         sizes.push(statSync(reportPath).size);
       }
 
@@ -207,7 +213,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(maxIncrement).toBeLessThan(minIncrement * 3);
     });
 
-    it('should produce valid HTML with parseable image map and dump JSON', () => {
+    it('should produce valid HTML with parseable image map and dump JSON', async () => {
       const reportPath = join(tmpDir, 'valid-html-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -225,6 +231,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       // Round 2: two screenshots
       const dump2 = createDump([screenshot1, screenshot2]);
       generator.onDumpUpdate(dump2);
+      await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
 
@@ -254,7 +261,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
   });
 
   describe('directory mode — incremental PNG writes', () => {
-    it('should write each screenshot as a PNG file exactly once', () => {
+    it('should write each screenshot as a PNG file exactly once', async () => {
       const reportDir = join(tmpDir, 'dir-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -271,6 +278,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
       }
+      await generator.flush();
 
       // Check screenshots directory
       const screenshotsDir = join(reportDir, 'screenshots');
@@ -287,7 +295,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       }
     });
 
-    it('should not re-write existing PNG files on subsequent updates', () => {
+    it('should not re-write existing PNG files on subsequent updates', async () => {
       const reportDir = join(tmpDir, 'no-rewrite-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -301,6 +309,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       // First update
       generator.onDumpUpdate(dump);
+      await generator.flush();
       const screenshotsDir = join(reportDir, 'screenshots');
       const pngPath = join(screenshotsDir, `${screenshot.id}.png`);
       const mtimeFirst = statSync(pngPath).mtimeMs;
@@ -313,13 +322,14 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       // Second update with same dump
       generator.onDumpUpdate(dump);
+      await generator.flush();
       const mtimeSecond = statSync(pngPath).mtimeMs;
 
       // PNG file should not be re-written (same mtime)
       expect(mtimeSecond).toBe(mtimeFirst);
     });
 
-    it('should overwrite HTML file on each update (not append)', () => {
+    it('should overwrite HTML file on each update (not append)', async () => {
       const reportDir = join(tmpDir, 'html-overwrite-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -333,12 +343,14 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       // Write first time
       generator.onDumpUpdate(dump);
+      await generator.flush();
       const sizeAfterFirst = statSync(reportPath).size;
 
       // Write 4 more times
       for (let i = 0; i < 4; i++) {
         generator.onDumpUpdate(dump);
       }
+      await generator.flush();
       const sizeAfterFifth = statSync(reportPath).size;
 
       // Since the same dump is written repeatedly, file size should remain stable
@@ -401,7 +413,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
   });
 
   describe('memory efficiency — writtenScreenshots tracking', () => {
-    it('writtenScreenshots Set should contain only IDs, not base64 data', () => {
+    it('writtenScreenshots Set should contain only IDs, not base64 data', async () => {
       const reportPath = join(tmpDir, 'tracking-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -414,6 +426,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       const dump = createDump([largeScreenshot]);
 
       generator.onDumpUpdate(dump);
+      await generator.flush();
 
       // Access private writtenScreenshots to verify it stores IDs not data
       const writtenScreenshots = (generator as any)
@@ -426,7 +439,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(storedValue.length).toBeLessThan(100); // UUID is ~36 chars
     });
 
-    it('should handle many screenshots without unbounded internal state growth', () => {
+    it('should handle many screenshots without unbounded internal state growth', async () => {
       const reportPath = join(tmpDir, 'many-screenshots-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -442,6 +455,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
       }
+      await generator.flush();
 
       // writtenScreenshots should have exactly totalScreenshots entries
       const writtenScreenshots = (generator as any)
