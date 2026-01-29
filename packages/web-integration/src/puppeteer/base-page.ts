@@ -346,13 +346,13 @@ export class Page<
           // Inactive tabs in Chrome don't produce frames, causing screenshot to hang.
           // See: https://github.com/puppeteer/puppeteer/issues/12712
           await (this.underlyingPage as PuppeteerPage).bringToFront();
-          const result = await (this.underlyingPage as PuppeteerPage).screenshot(
-            {
-              type: imgType,
-              quality,
-              encoding: 'base64',
-            },
-          );
+          const result = await (
+            this.underlyingPage as PuppeteerPage
+          ).screenshot({
+            type: imgType,
+            quality,
+            encoding: 'base64',
+          });
           base64 = createImgBase64ByFormat(imgType, result);
         } else if (this.interfaceType === 'playwright') {
           const buffer = await (
