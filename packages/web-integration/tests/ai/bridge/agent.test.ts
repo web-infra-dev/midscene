@@ -66,6 +66,7 @@ describe.skipIf(process.env.CI)(
       await agent.connectCurrentTab();
       await sleep(3000);
       await agent.aiAct('click "Login"');
+      await sleep(3000);
     });
 
     it('agent in cli side, current tab, limit popup to current page', async () => {

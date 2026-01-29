@@ -312,8 +312,8 @@ export class TaskExecutor {
       const subGoalStatus =
         this.conversationHistory.subGoalsToText() || undefined;
 
-      // Get notes text if available
-      const notesStatus = this.conversationHistory.notesToText() || undefined;
+      // Get memories text if available
+      const memoriesStatus = this.conversationHistory.memoriesToText() || undefined;
 
       const result = await session.appendAndRun(
         {
@@ -325,7 +325,7 @@ export class TaskExecutor {
             imagesIncludeCount,
             deepThink,
             ...(subGoalStatus ? { subGoalStatus } : {}),
-            ...(notesStatus ? { notesStatus } : {}),
+            ...(memoriesStatus ? { memoriesStatus } : {}),
           },
           executor: async (param, executorContext) => {
             const { uiContext } = executorContext;
@@ -380,7 +380,7 @@ export class TaskExecutor {
               actions,
               thought,
               log,
-              note,
+              memory,
               error,
               usage,
               rawResponse,
@@ -402,7 +402,7 @@ export class TaskExecutor {
               actions: actions || [],
               log,
               thought,
-              note,
+              memory,
               yamlFlow: planResult.yamlFlow,
               output: finalizeMessage,
               shouldContinuePlanning: planResult.shouldContinuePlanning,

@@ -274,9 +274,10 @@ After some time, when the last sub-goal is also completed, you can mark it as do
     : '';
 
   // Step numbering adjusts based on whether sub-goals are included
-  const noteStepNumber = shouldIncludeSubGoals ? 2 : 2;
-  const checkGoalStepNumber = shouldIncludeSubGoals ? 3 : 3;
-  const actionStepNumber = shouldIncludeSubGoals ? 4 : 4;
+  // When includeSubGoals=false, memory step is skipped
+  const memoryStepNumber = 2; // Only used when shouldIncludeSubGoals is true
+  const checkGoalStepNumber = shouldIncludeSubGoals ? 3 : 2;
+  const actionStepNumber = shouldIncludeSubGoals ? 4 : 3;
 
   return `
 Target: You are an expert to manipulate the UI to accomplish the user's instruction. User will give you an instruction, some screenshots, background knowledge and previous logs indicating what have been done. Your task is to accomplish the instruction by thinking through the path to complete the task and give the next action to execute.
@@ -289,16 +290,20 @@ ${step1Description}
 
 ${thoughtTagDescription}
 ${subGoalTags}
+${
+  shouldIncludeSubGoals
+    ? `
+## Step ${memoryStepNumber}: Memory Data from Current Screenshot (related tags: <memory>)
 
-## Step ${noteStepNumber}: Note Data from Current Screenshot (related tags: <note>)
-
-While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this note is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
+While observing the current screenshot, if you notice any information that might be needed in follow-up actions, record it here. The current screenshot will NOT be available in subsequent steps, so this memory is your only way to preserve essential information. Examples: extracted data, element states, content that needs to be referenced.
 
 Don't use this tag if no information needs to be preserved.
-
+`
+    : ''
+}
 ## Step ${checkGoalStepNumber}: Check if Goal is Accomplished (related tags: <complete-goal>)
 
-Based on the current screenshot${shouldIncludeSubGoals ? ' and the status of all sub-goals' : ''}, determine if the entire task is completed.
+${shouldIncludeSubGoals ? 'Based on the current screenshot and the status of all sub-goals, determine' : 'Determine'} if the entire task is completed.
 
 ### CRITICAL: The User's Instruction is the Supreme Authority
 
@@ -325,7 +330,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
 - Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. It means whether the expected goal is accomplished based on what you observe in the current screenshot. No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+  - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot. ' : ''}No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
 - If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
@@ -400,10 +405,14 @@ ${
 </mark-sub-goal-done>
 `
     : ''
+}${
+  shouldIncludeSubGoals
+    ? `
+<!-- Step ${memoryStepNumber}: Memory data from current screenshot if needed -->
+<memory>...</memory>
+`
+    : ''
 }
-<!-- Step ${noteStepNumber}: Note data from current screenshot if needed -->
-<note>...</note>
-
 **Then choose ONE of the following paths:**
 
 **Path A: If the goal is accomplished or failed (Step ${checkGoalStepNumber})**
@@ -417,5 +426,92 @@ ${
 
 <!-- OR if there's an error -->
 <error>...</error>
+
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Name input field in the registration form"
+  }
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": {
+    "prompt": "Email input field in the registration form"
+  }
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
+<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
 `;
 }
