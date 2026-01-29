@@ -811,7 +811,8 @@ describe('create-yaml-player', () => {
           aiActionContext: 'Test context',
           testId: 'custom-test-id', // YAML testId is used
         }),
-        undefined,
+        undefined, // browser
+        undefined, // page
       );
     });
 
@@ -981,7 +982,8 @@ describe('create-yaml-player', () => {
         expect.objectContaining({
           testId: 'cli-test-id',
         }),
-        undefined,
+        undefined, // browser
+        undefined, // page
       );
     });
 
@@ -1025,7 +1027,8 @@ describe('create-yaml-player', () => {
         expect.objectContaining({
           testId: 'yaml-test-id',
         }),
-        undefined,
+        undefined, // browser
+        undefined, // page
       );
     });
 
