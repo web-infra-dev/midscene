@@ -192,7 +192,9 @@ I should identify the button first.</think>
 <action-param-json>{\\n  \\"locate\\": {\\n    \\"prompt\\": \\"Left vertical navigation menu bar\\",\\n  \\"bbox\\": [0, 0, 50, 999]\\n  }\\n}</action-param-json>`;
       const thought = extractXMLTag(xml, 'thought');
       const actionType = extractXMLTag(xml, 'action-type');
-      expect(thought).toBe("The user's instruction is to hover over the left menu.");
+      expect(thought).toBe(
+        "The user's instruction is to hover over the left menu.",
+      );
       expect(actionType).toBe('Hover');
     });
 
