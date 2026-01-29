@@ -21,7 +21,8 @@ describe.skipIf(!shouldRunAITest)(
       );
 
       // Run the batch execution with shareBrowserContext enabled
-      const result = await execa(cliBin, [indexYamlPath], {
+      // Use --config to properly load index.yaml as a config file
+      const result = await execa(cliBin, ['--config', indexYamlPath], {
         cwd: join(__dirname, '../share_context_test_scripts'),
         reject: false, // Don't throw on non-zero exit code
       });
@@ -55,7 +56,8 @@ describe.skipIf(!shouldRunAITest)(
       );
 
       // Run with continueOnError to capture all outputs
-      const result = await execa(cliBin, [indexYamlPath], {
+      // Use --config to properly load index.yaml as a config file
+      const result = await execa(cliBin, ['--config', indexYamlPath], {
         cwd: join(__dirname, '../share_context_test_scripts'),
         reject: false,
         all: true,

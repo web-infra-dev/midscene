@@ -1,6 +1,6 @@
-import { createServer } from 'http';
-import { dirname, join } from 'path';
-import { fileURLToPath } from 'url';
+import { createServer } from 'node:http';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 // Quick test to verify localStorage and sessionStorage persist across page.goto()
 import puppeteer from 'puppeteer';
 

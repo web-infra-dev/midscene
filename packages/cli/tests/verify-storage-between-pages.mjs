@@ -1,4 +1,4 @@
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 // Test to verify storage sharing between different Page instances
 import puppeteer from 'puppeteer';
 
