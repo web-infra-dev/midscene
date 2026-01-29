@@ -188,6 +188,25 @@ export async function systemPromptToTaskPlanning({
     "prompt": "Add to cart button for Sauce Labs Backpack"
   }`;
 
+  // Locate examples for multi-turn conversation
+  const locateNameField = includeBbox
+    ? `{
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
+  }`
+    : `{
+    "prompt": "Name input field in the registration form"
+  }`;
+
+  const locateEmailField = includeBbox
+    ? `{
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
+  }`
+    : `{
+    "prompt": "Email input field in the registration form"
+  }`;
+
   const thoughtTag = (content: string) =>
     shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
 
@@ -426,27 +445,145 @@ ${
 
 <!-- OR if there's an error -->
 <error>...</error>
-
+${
+  shouldIncludeSubGoals
+    ? `
 ## Multi-turn Conversation Example
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
 
 ### Turn 1 - Initial instruction
 
 **User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I'll break this down into sub-goals and start with the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<update-plan-content>
+  <sub-goal index="1" status="pending">Fill in the Name field with 'John'</sub-goal>
+  <sub-goal index="2" status="pending">Fill in the Email field with 'john@example.com'</sub-goal>
+  <sub-goal index="3" status="pending">Return the filled email address</sub-goal>
+</update-plan-content>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
-  "locate": {
-    "prompt": "Name input field in the registration form"
-  }
+  "locate": ${locateNameField}
+}
+</action-param-json>
+
+### Turn 2 - After clicking Name field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+Sub-goals:
+1. Fill in the Name field with 'John' (running)
+2. Fill in the Email field with 'john@example.com' (pending)
+Current sub-goal is: Fill in the Name field with 'John'
+
+**Screenshot:** [Shows the form with Name field now focused/active]
+
+**Your response:**
+<thought>The Name field is now focused. I need to type 'John' into this field. Current sub-goal is running, will be completed after input.</thought>
+<log>Typing 'John' into the Name field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "John"
+}
+</action-param-json>
+
+### Turn 3 - After entering name
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+Sub-goals:
+1. Fill in the Name field with 'John' (running)
+2. Fill in the Email field with 'john@example.com' (pending)
+Current sub-goal is: Fill in the Name field with 'John'
+
+**Screenshot:** [Shows the form with Name field containing 'John']
+
+**Your response:**
+<thought>The Name field now shows 'John'. Sub-goal 1 is complete. Next, I need to fill the Email field for sub-goal 2.</thought>
+<mark-sub-goal-done>
+  <sub-goal index="1" status="finished" />
+</mark-sub-goal-done>
+<memory>Name field has been filled with 'John'</memory>
+<log>Moving to the Email field</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": ${locateEmailField}
+}
+</action-param-json>
+
+### Turn 4 - After clicking Email field
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+Sub-goals:
+1. Fill in the Name field with 'John' (finished)
+2. Fill in the Email field with 'john@example.com' (running)
+Current sub-goal is: Fill in the Email field with 'john@example.com'
+
+**Screenshot:** [Shows the form with Name='John' and Email field focused]
+
+**Your response:**
+<thought>The Email field is now focused. I'll enter 'john@example.com'. After this, sub-goal 2 will be complete and my task will be done.</thought>
+<log>Typing email address into the Email field</log>
+<action-type>Input</action-type>
+<action-param-json>
+{
+  "value": "john@example.com"
+}
+</action-param-json>
+
+### Turn 5 - After entering email (Goal accomplished)
+
+**User message:**
+The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
+
+Sub-goals:
+1. Fill in the Name field with 'John' (finished)
+2. Fill in the Email field with 'john@example.com' (running)
+3. Return the filled email address (pending)
+Current sub-goal is: Fill in the Email field with 'john@example.com'
+
+**Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
+
+**Your response:**
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. Sub-goal 2 is complete. The user asked me to return the filled email address, so I need to include 'john@example.com' in my response. All sub-goals are now finished.</thought>
+<mark-sub-goal-done>
+  <sub-goal index="2" status="finished" />
+  <sub-goal index="3" status="finished" />
+</mark-sub-goal-done>
+<complete-goal success="true">john@example.com</complete-goal>
+`
+    : `
+## Multi-turn Conversation Example
+
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
+
+### Turn 1 - Initial instruction
+
+**User message:**
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
+
+**Screenshot:** [Shows a registration form with empty Name and Email fields]
+
+**Your response:**
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
+<log>Click on the Name field to start filling the form</log>
+<action-type>Tap</action-type>
+<action-param-json>
+{
+  "locate": ${locateNameField}
 }
 </action-param-json>
 
@@ -480,9 +617,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-type>Tap</action-type>
 <action-param-json>
 {
-  "locate": {
-    "prompt": "Email input field in the registration form"
-  }
+  "locate": ${locateEmailField}
 }
 </action-param-json>
 
@@ -511,7 +646,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
-<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
-`;
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
+`
+}`;
 }

@@ -379,23 +379,24 @@ Return in XML format following this decision flow:
 
 ## Multi-turn Conversation Example
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
 
 ### Turn 1 - Initial instruction
 
 **User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form"
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -431,7 +432,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form"
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -461,8 +463,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
-<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -617,17 +619,17 @@ Return in XML format following this decision flow:
 
 ## Multi-turn Conversation Example
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
 
 ### Turn 1 - Initial instruction
 
 **User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -699,8 +701,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
-<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -856,23 +858,24 @@ Return in XML format following this decision flow:
 
 ## Multi-turn Conversation Example
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
 
 ### Turn 1 - Initial instruction
 
 **User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form"
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -908,7 +911,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form"
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -938,8 +942,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
-<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -1095,23 +1099,24 @@ Return in XML format following this decision flow:
 
 ## Multi-turn Conversation Example
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
 
 ### Turn 1 - Initial instruction
 
 **User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form"
+    "prompt": "Name input field in the registration form",
+    "bbox": [120, 180, 380, 210]
   }
 }
 </action-param-json>
@@ -1147,7 +1152,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form"
+    "prompt": "Email input field in the registration form",
+    "bbox": [120, 240, 380, 270]
   }
 }
 </action-param-json>
@@ -1177,8 +1183,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
-<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
@@ -1333,17 +1339,17 @@ Return in XML format following this decision flow:
 
 ## Multi-turn Conversation Example
 
-Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com'":
+Below is an example of a multi-turn conversation for "fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address":
 
 ### Turn 1 - Initial instruction
 
 **User message:**
-<user_instruction>fill out the registration form with name 'John' and email 'john@example.com'</user_instruction>
+<user_instruction>fill out the registration form with name 'John' and email 'john@example.com', then return the filled email address</user_instruction>
 
 **Screenshot:** [Shows a registration form with empty Name and Email fields]
 
 **Your response:**
-<thought>The user wants me to fill out the registration form with specific values. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field and entering 'John'. Note: The instruction is to fill the form only, not to submit it.</thought>
+<thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
 <log>Click on the Name field to start filling the form</log>
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1415,8 +1421,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user's instruction was to fill the form, NOT to submit it. Since all requested fields are filled, the goal is accomplished.</thought>
-<complete-goal success="true">Successfully filled the registration form with Name: 'John' and Email: 'john@example.com'</complete-goal>
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
+<complete-goal success="true">john@example.com</complete-goal>
 "
 `;
 
