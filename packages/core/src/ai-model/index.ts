@@ -18,9 +18,12 @@ export type { ChatCompletionMessageParam } from 'openai/resources/index';
 
 export {
   AiLocateElement,
+  AiLocateElements,
   AiExtractElementInfo,
   AiLocateSection,
   AiJudgeOrderSensitive,
+  type AiBatchLocateElementResult,
+  type AIBatchElementResponse,
 } from './inspect';
 
 export { plan } from './llm-planning';
