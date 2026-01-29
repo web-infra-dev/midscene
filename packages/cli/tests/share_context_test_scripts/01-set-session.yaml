@@ -21,7 +21,7 @@ tasks:
             sessionToken: token,
             sessionUserId: userId,
             localPreferences: prefs,
-            summary: `Token: ${token}, User: ${userId}, Prefs: ${prefs}`
+            summary: 'Token: ' + token + ', User: ' + userId + ', Prefs: ' + prefs
           };
         name: first_file_check
 

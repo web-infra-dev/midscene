@@ -33,7 +33,7 @@ tasks:
             sessionUserId: userId,
             localPreferences: prefs,
             allPreserved: token === 'test-token-12345' && userId === 'user-999' && prefs === 'dark-mode',
-            summary: `Token: ${token}, User: ${userId}, Prefs: ${prefs}`
+            summary: 'Token: ' + token + ', User: ' + userId + ', Prefs: ' + prefs
           };
         name: second_file_storage_check
 
