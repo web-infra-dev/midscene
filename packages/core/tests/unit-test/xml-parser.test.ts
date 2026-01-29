@@ -48,10 +48,12 @@ describe('extractXMLTag', () => {
     expect(result).toBe('Content');
   });
 
-  it('should extract first occurrence when multiple tags exist', () => {
+  it('should extract last occurrence when multiple tags exist', () => {
+    // Changed behavior: now extracts LAST occurrence to handle models
+    // that prepend thinking content before actual response
     const xml = '<item>First</item><item>Second</item>';
     const result = extractXMLTag(xml, 'item');
-    expect(result).toBe('First');
+    expect(result).toBe('Second');
   });
 
   it('should handle tags with special characters in content', () => {
@@ -144,5 +146,110 @@ Line 1
     const xml = '<script><![CDATA[function() { return x < 5; }]]></script>';
     const result = extractXMLTag(xml, 'script');
     expect(result).toContain('function() { return x < 5; }');
+  });
+
+  // Tests for think-prefix scenarios (models prepending thinking content)
+  describe('think-prefix handling', () => {
+    it('should extract content after </think> tag when model prepends thinking', () => {
+      const xml = `"Okay, let's see. The user's instruction is to hover over the left menu..."</think>
+<thought>The user's instruction is to hover over the left menu. In the screenshot, the left menu is the vertical navigation bar.</thought>
+<log>Hovering over the left menu bar</log>
+<action-type>Hover</action-type>`;
+      const thought = extractXMLTag(xml, 'thought');
+      expect(thought).toBe(
+        "The user's instruction is to hover over the left menu. In the screenshot, the left menu is the vertical navigation bar.",
+      );
+    });
+
+    it('should handle <think>...</think> prefix followed by actual content', () => {
+      const xml = `<think>Let me analyze this step by step...
+The user wants to click a button.
+I should identify the button first.</think>
+<thought>User wants to click the submit button</thought>
+<action-type>Tap</action-type>
+<action-param-json>{"locate": {"prompt": "submit button"}}</action-param-json>`;
+      const thought = extractXMLTag(xml, 'thought');
+      const actionType = extractXMLTag(xml, 'action-type');
+      const actionParam = extractXMLTag(xml, 'action-param-json');
+      expect(thought).toBe('User wants to click the submit button');
+      expect(actionType).toBe('Tap');
+      expect(actionParam).toBe('{"locate": {"prompt": "submit button"}}');
+    });
+
+    it('should extract last occurrence when same tag appears in think and response', () => {
+      // Some models might output <thought> in their thinking section too
+      const xml = `<think><thought>Internal reasoning...</thought></think>
+<thought>Actual response thought</thought>
+<action-type>Click</action-type>`;
+      const thought = extractXMLTag(xml, 'thought');
+      expect(thought).toBe('Actual response thought');
+    });
+
+    it('should handle real-world bad case with mixed think/content', () => {
+      // Real bad case from the issue
+      const xml = `"Okay, let's see. The user's instruction is to \\"仅执行 鼠标悬停在左侧菜单\\" which translates to \\"Only perform mouse hover over the left menu.\\" So I need to figure out where the left menu is on this screenshot.\\n\\nLooking at the image, there's a vertical sidebar on the left side of the screen. It has some icons, maybe a menu. The leftmost part of the screen shows a vertical strip with icons.</think>\\n<thought>The user's instruction is to hover over the left menu.</thought>\\n<log>Hovering over the left menu bar</log>
+<action-type>Hover</action-type>
+<action-param-json>{\\n  \\"locate\\": {\\n    \\"prompt\\": \\"Left vertical navigation menu bar\\",\\n  \\"bbox\\": [0, 0, 50, 999]\\n  }\\n}</action-param-json>`;
+      const thought = extractXMLTag(xml, 'thought');
+      const actionType = extractXMLTag(xml, 'action-type');
+      expect(thought).toBe("The user's instruction is to hover over the left menu.");
+      expect(actionType).toBe('Hover');
+    });
+
+    it('should handle multiple think blocks before actual content', () => {
+      const xml = `<think>First thinking block</think>
+<think>Second thinking block with more analysis</think>
+<thought>The actual thought for the response</thought>
+<log>Performing action</log>
+<action-type>Scroll</action-type>`;
+      const thought = extractXMLTag(xml, 'thought');
+      const log = extractXMLTag(xml, 'log');
+      expect(thought).toBe('The actual thought for the response');
+      expect(log).toBe('Performing action');
+    });
+
+    it('should handle unclosed think tag at the start', () => {
+      const xml = `Some raw thinking without proper tags...</think>
+<thought>Clean thought content</thought>
+<action-type>Tap</action-type>`;
+      const thought = extractXMLTag(xml, 'thought');
+      expect(thought).toBe('Clean thought content');
+    });
+
+    it('should handle incomplete tag followed by complete tag', () => {
+      // Case: ...<action-type>..incomplete...<action-type>Hover</action-type>
+      // Should extract "Hover" from the last complete tag pair
+      const xml =
+        '...<action-type>..some incomplete content...<action-type>Hover</action-type>';
+      const result = extractXMLTag(xml, 'action-type');
+      expect(result).toBe('Hover');
+    });
+
+    it('should handle partial tag inside think block then complete tag', () => {
+      // Model might output partial tags inside thinking, then complete tags after
+      const xml = `<think>analyzing...<action-type>partial</think>
+<thought>User wants to hover</thought>
+<action-type>Hover</action-type>`;
+      const actionType = extractXMLTag(xml, 'action-type');
+      expect(actionType).toBe('Hover');
+    });
+
+    it('should handle data-json extraction with think prefix', () => {
+      const xml = `<think>Analyzing the page to extract user data...</think>
+<thought>I can see user information in the profile section</thought>
+<data-json>{"name": "John", "age": 30}</data-json>`;
+      const dataJson = extractXMLTag(xml, 'data-json');
+      expect(dataJson).toBe('{"name": "John", "age": 30}');
+    });
+
+    it('should handle complete-goal extraction with think prefix', () => {
+      const xml = `<think>The task has been completed successfully</think>
+<thought>Task completed</thought>
+<complete-goal success="true">Successfully hovered over the left menu</complete-goal>`;
+      const thought = extractXMLTag(xml, 'thought');
+      expect(thought).toBe('Task completed');
+      // Note: complete-goal has attributes, so extractXMLTag won't match it directly
+      // This is handled separately in parseXMLPlanningResponse
+    });
   });
 });
