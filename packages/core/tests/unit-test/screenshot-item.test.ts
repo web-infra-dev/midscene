@@ -43,7 +43,7 @@ describe('ScreenshotItem', () => {
   });
 
   describe('isSerialized', () => {
-    it('should return true for valid serialized objects', () => {
+    it('should return true for inline mode format ($screenshot)', () => {
       expect(ScreenshotItem.isSerialized({ $screenshot: 'test-id' })).toBe(
         true,
       );
@@ -52,10 +52,20 @@ describe('ScreenshotItem', () => {
       );
     });
 
+    it('should return true for directory mode format (base64 path)', () => {
+      expect(
+        ScreenshotItem.isSerialized({ base64: './screenshots/test.png' }),
+      ).toBe(true);
+      expect(
+        ScreenshotItem.isSerialized({ base64: 'data:image/png;base64,abc' }),
+      ).toBe(true);
+    });
+
     it('should return false for invalid objects', () => {
       expect(ScreenshotItem.isSerialized({})).toBe(false);
       expect(ScreenshotItem.isSerialized({ screenshot: 'id' })).toBe(false);
       expect(ScreenshotItem.isSerialized({ $screenshot: 123 })).toBe(false);
+      expect(ScreenshotItem.isSerialized({ base64: 123 })).toBe(false);
     });
 
     it('should return false for non-object values', () => {
@@ -64,6 +74,36 @@ describe('ScreenshotItem', () => {
       expect(ScreenshotItem.isSerialized('string')).toBe(false);
       expect(ScreenshotItem.isSerialized(123)).toBe(false);
       expect(ScreenshotItem.isSerialized([])).toBe(false);
+    });
+  });
+
+  describe('rawBase64', () => {
+    it('should strip data URI prefix from PNG', () => {
+      const item = ScreenshotItem.create(
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
+      );
+      expect(item.rawBase64).toBe('iVBORw0KGgoAAAANSUhEUgAAAAUA');
+    });
+
+    it('should strip data URI prefix from JPEG', () => {
+      const item = ScreenshotItem.create('data:image/jpeg;base64,/9j/4AAQ');
+      expect(item.rawBase64).toBe('/9j/4AAQ');
+    });
+
+    it('should strip data URI prefix from JPG', () => {
+      const item = ScreenshotItem.create('data:image/jpg;base64,/9j/4AAQ');
+      expect(item.rawBase64).toBe('/9j/4AAQ');
+    });
+
+    it('should return unchanged if no prefix', () => {
+      const item = ScreenshotItem.create('iVBORw0KGgoAAAANSUhEUgAAAAUA');
+      expect(item.rawBase64).toBe('iVBORw0KGgoAAAANSUhEUgAAAAUA');
+    });
+
+    it('should throw after persistence (base64 released)', () => {
+      const item = ScreenshotItem.create(testBase64);
+      item.markPersistedInline();
+      expect(() => item.rawBase64).toThrow(/already released/);
     });
   });
 
