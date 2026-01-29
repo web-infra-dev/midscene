@@ -620,7 +620,7 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>I need to click the login button</thought>
-<note>User credentials are already filled</note>
+<memory>User credentials are already filled</memory>
 <log>Click the login button</log>
 <error></error>
 <action-type>Tap</action-type>
@@ -638,7 +638,7 @@ describe('parseXMLPlanningResponse', () => {
 
     expect(result).toEqual({
       thought: 'I need to click the login button',
-      note: 'User credentials are already filled',
+      memory: 'User credentials are already filled',
       log: 'Click the login button',
       action: {
         type: 'Tap',
@@ -831,7 +831,7 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <log>Click "Submit" button</log>
-<note>Values: <100 & >50</note>
+<memory>Values: <100 & >50</memory>
 <action-type>Tap</action-type>
 <action-param-json>
 {
@@ -845,7 +845,7 @@ describe('parseXMLPlanningResponse', () => {
     const result = parseXMLPlanningResponse(xml, modelFamily);
 
     expect(result.log).toBe('Click "Submit" button');
-    expect(result.note).toBe('Values: <100 & >50');
+    expect(result.memory).toBe('Values: <100 & >50');
     expect(result.action?.param.locate.prompt).toBe('Button with & symbol');
   });
 
@@ -931,7 +931,7 @@ Extracted data:
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>All tasks completed successfully</thought>
-<note>Total items processed: 10</note>
+<memory>Total items processed: 10</memory>
 <complete-goal success="true">All 10 items have been processed</complete-goal>
     `.trim();
 
@@ -940,7 +940,7 @@ Extracted data:
     expect(result).toEqual({
       thought: 'All tasks completed successfully',
       log: '',
-      note: 'Total items processed: 10',
+      memory: 'Total items processed: 10',
       action: null,
       finalizeMessage: 'All 10 items have been processed',
       finalizeSuccess: true,
