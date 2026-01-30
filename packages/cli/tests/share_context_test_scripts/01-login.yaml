@@ -1,37 +1,28 @@
-# First YAML file - Performs login and sets all storage
+# First YAML file - Sets all storage types
 web:
-  serve: ../server_root
-  url: /share-context-test.html
+  url: http://127.0.0.1:18527/share-context-test.html
   viewportWidth: 800
   viewportHeight: 600
 
 tasks:
-  - name: Login and set storage
+  - name: Set all storage
     flow:
-      # Click login button to set cookie, localStorage, and sessionStorage
-      - aiAction: click the "Login (Set All Storage)" button
+      # Set storage directly via JavaScript (faster than AI actions)
+      - javascript: |
+          (function() {
+            // Set cookie
+            document.cookie = 'authToken=test-token-123; path=/';
+            // Set localStorage
+            localStorage.setItem('userId', 'user-456');
+            localStorage.setItem('userName', 'TestUser');
+            // Set sessionStorage
+            sessionStorage.setItem('sessionId', 'session-789');
 
-      # Wait a moment for the storage to be set
-      - sleep: 500
+            console.log('=== First YAML File - Storage Set ===');
+            console.log('Cookie:', document.cookie);
+            console.log('localStorage:', JSON.stringify(localStorage));
+            console.log('sessionStorage:', JSON.stringify(sessionStorage));
 
-      # Verify login was successful in this first file
-      - aiAssert: the status shows "Logged in"
-
-      # Log the storage state after login
-      - evaluateJavaScript: |
-          console.log('=== First YAML File - After Login ===');
-          console.log('Cookies:', document.cookie);
-          console.log('LocalStorage:', JSON.stringify(localStorage));
-          console.log('SessionStorage:', JSON.stringify(sessionStorage));
-          const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-            const [key, value] = cookie.trim().split('=');
-            acc[key] = value;
-            return acc;
-          }, {});
-          return {
-            cookie_authToken: cookies.authToken || 'MISSING',
-            localStorage_userId: localStorage.getItem('userId') || 'MISSING',
-            localStorage_userName: localStorage.getItem('userName') || 'MISSING',
-            sessionStorage_sessionId: sessionStorage.getItem('sessionId') || 'MISSING'
-          };
-        name: first_file_storage_state
+            return { success: true };
+          })()
+        name: set_storage
