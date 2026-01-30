@@ -10,6 +10,13 @@ export default async function getPhoton(): Promise<{
   crop: typeof import('@silvia-odwyer/photon-node').crop;
   open_image: typeof import('@silvia-odwyer/photon-node').open_image;
   base64_to_image: typeof import('@silvia-odwyer/photon-node').base64_to_image;
+  padding_uniform: typeof import('@silvia-odwyer/photon-node').padding_uniform;
+  padding_left: typeof import('@silvia-odwyer/photon-node').padding_left;
+  padding_right: typeof import('@silvia-odwyer/photon-node').padding_right;
+  padding_top: typeof import('@silvia-odwyer/photon-node').padding_top;
+  padding_bottom: typeof import('@silvia-odwyer/photon-node').padding_bottom;
+  watermark: typeof import('@silvia-odwyer/photon-node').watermark;
+  Rgba: typeof import('@silvia-odwyer/photon-node').Rgba;
 }> {
   if (photonModule && isInitialized) {
     return photonModule;

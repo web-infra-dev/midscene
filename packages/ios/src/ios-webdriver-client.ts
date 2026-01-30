@@ -450,11 +450,12 @@ export class IOSWebDriverClient extends WebDriverClient {
         this.getWindowSize(),
       ]);
 
-      // Get screenshot dimensions from base64 using Jimp
-      const { jimpFromBase64 } = await import('@midscene/shared/img');
-      const screenshotImg = await jimpFromBase64(screenshotBase64);
-      const screenshotWidth = screenshotImg.bitmap.width;
-      const screenshotHeight = screenshotImg.bitmap.height;
+      // Get screenshot dimensions from base64 using Photon
+      const { photonFromBase64 } = await import('@midscene/shared/img');
+      const screenshotImg = await photonFromBase64(screenshotBase64);
+      const screenshotWidth = screenshotImg.get_width();
+      const screenshotHeight = screenshotImg.get_height();
+      screenshotImg.free();
 
       // Calculate scale: max(screenshot.size) / max(window.size)
       const scale =

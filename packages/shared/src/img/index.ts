@@ -1,5 +1,4 @@
 export {
-  imageInfo,
   imageInfoOfBase64,
   bufferFromBase64,
   isValidPNGImageBuffer,
@@ -12,8 +11,8 @@ export {
   paddingToMatchBlock,
   paddingToMatchBlockByBase64,
   cropByRect,
-  jimpFromBase64,
-  jimpToBase64,
+  photonFromBase64,
+  photonToBase64,
   localImg2Base64,
   httpImg2Base64,
   preProcessImageUrl,
@@ -22,4 +21,3 @@ export {
 } from './transform';
 export { processImageElementInfo, compositeElementInfoImg } from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';
-export { readImageBuffer } from './safe-jimp';
