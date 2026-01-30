@@ -3,21 +3,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   httpImg2Base64,
-  imageInfo,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   localImg2Base64,
   resizeAndConvertImgBuffer,
   resizeImgBase64,
 } from 'src/img';
-import getJimp from 'src/img/get-jimp';
 import {
   createImgBase64ByFormat,
   cropByRect,
-  jimpFromBase64,
-  jimpToBase64,
   paddingToMatchBlock,
   parseBase64,
+  photonFromBase64,
+  photonToBase64,
   saveBase64Image,
 } from 'src/img/transform';
 import { getFixture } from 'tests/utils';
@@ -25,23 +23,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 describe('image utils', () => {
   const image = getFixture('icon.png');
-  it('imageInfo', async () => {
-    const info = await imageInfo(image);
-
-    // test basic properties of ImageInfo
-    expect(info.width).toMatchSnapshot();
-    expect(info.height).toMatchSnapshot();
-
-    // test basic properties of jimpImage
-    expect(typeof info.jimpImage.getBuffer).toBe('function');
-    expect(typeof info.jimpImage.getBufferAsync).toBe('function');
-    expect(typeof info.jimpImage.getPixelColour).toBe('function');
-    expect(typeof info.jimpImage.setPixelColour).toBe('function');
-    expect(typeof info.jimpImage.writeAsync).toBe('function');
-
-    // shapeMode is inconsistent across environments
-    expect(info.jimpImage.bitmap).toMatchSnapshot();
-  });
 
   it('localImg2Base64', () => {
     const base64 = localImg2Base64(image);
@@ -67,15 +48,6 @@ describe('image utils', () => {
     expect(info.height).toMatchSnapshot();
   });
 
-  it('jimp + imageInfo', async () => {
-    const image = getFixture('heytea.jpeg');
-    const jimp = await getJimp();
-    const jimpImage = await jimp.read(image);
-    const info = await imageInfo(jimpImage);
-    expect(info.width).toMatchSnapshot();
-    expect(info.height).toMatchSnapshot();
-  });
-
   it('resizeImgBase64', async () => {
     const image = getFixture('heytea.jpeg');
 
@@ -90,21 +62,27 @@ describe('image utils', () => {
   it('paddingToMatchBlock', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
-    const jimpImage = await jimpFromBase64(base64);
-    const result = await paddingToMatchBlock(jimpImage);
+    const photonImage = await photonFromBase64(base64);
+    const result = await paddingToMatchBlock(photonImage);
 
-    const width = result.image.bitmap.width;
+    const width = result.image.get_width();
     expect(width).toMatchSnapshot();
 
-    const height = result.image.bitmap.height;
+    const height = result.image.get_height();
     expect(height).toMatchSnapshot();
 
     const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
     await saveBase64Image({
-      base64Data: await jimpToBase64(result.image),
+      base64Data: await photonToBase64(result.image),
       outputPath: tmpFile,
     });
     // console.log('tmpFile', tmpFile);
+
+    // Free memory
+    if (result.image !== photonImage) {
+      result.image.free();
+    }
+    photonImage.free();
   });
 
   it('cropByRect, with padding', async () => {

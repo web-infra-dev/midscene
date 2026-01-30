@@ -1,8 +1,5 @@
-import type { Rect } from '../types';
-import getJimp from './get-jimp';
-import { bufferFromBase64 } from './info';
-import { readImageBuffer } from './safe-jimp';
-import { saveBase64Image } from './transform';
+import getPhoton from './get-photon';
+import { photonFromBase64, photonToBase64, saveBase64Image } from './transform';
 
 export async function drawBoxOnImage(options: {
   inputImgBase64: string;
@@ -11,38 +8,43 @@ export async function drawBoxOnImage(options: {
   const { inputImgBase64, rect } = options;
   const color = { r: 255, g: 0, b: 0, a: 255 }; // Default to red
 
-  const Jimp = await getJimp();
-  const imageBuffer = await bufferFromBase64(inputImgBase64);
-  const image = await readImageBuffer(imageBuffer, Jimp);
+  const { PhotonImage } = await getPhoton();
+  const image = await photonFromBase64(inputImgBase64);
+
+  const width = image.get_width();
+  const height = image.get_height();
+  const rawPixels = image.get_raw_pixels();
 
   // Draw a circle dot at the center of the rect
-  const centerX = rect.x;
-  const centerY = rect.y;
+  const centerX = Math.floor(rect.x);
+  const centerY = Math.floor(rect.y);
   const radius = 5; // Radius of the dot
 
-  // Scan a square area around the center point
-  image.scan(
-    Math.floor(centerX - radius),
-    Math.floor(centerY - radius),
-    radius * 2,
-    radius * 2,
-    (x: number, y: number, idx: number) => {
+  // Scan a square area around the center point and draw circle
+  for (let y = centerY - radius; y <= centerY + radius; y++) {
+    for (let x = centerX - radius; x <= centerX + radius; x++) {
       // Calculate distance from current pixel to center
       const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
 
-      // If distance is less than radius, color the pixel
-      if (distance <= radius) {
-        image.bitmap.data[idx + 0] = color.r;
-        image.bitmap.data[idx + 1] = color.g;
-        image.bitmap.data[idx + 2] = color.b;
-        image.bitmap.data[idx + 3] = color.a;
+      // If distance is less than radius and within bounds, color the pixel
+      if (distance <= radius && x >= 0 && x < width && y >= 0 && y < height) {
+        const idx = (y * width + x) * 4;
+        rawPixels[idx + 0] = color.r;
+        rawPixels[idx + 1] = color.g;
+        rawPixels[idx + 2] = color.b;
+        rawPixels[idx + 3] = color.a;
       }
-    },
-  );
+    }
+  }
 
-  // Convert back to base64
-  image.quality(90);
-  const resultBase64 = await image.getBase64Async(Jimp.MIME_JPEG);
+  // Create new image from modified pixels
+  const newImage = new PhotonImage(rawPixels, width, height);
+  const resultBase64 = await photonToBase64(newImage, 90);
+
+  // Free memory
+  image.free();
+  newImage.free();
+
   return resultBase64;
 }
 
