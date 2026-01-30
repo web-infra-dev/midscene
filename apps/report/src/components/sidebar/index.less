@@ -190,7 +190,7 @@
       .task-row {
         display: flex;
         cursor: pointer;
-        transition: background 0.1s;
+        transition: background 0.1s, border-left 0.1s;
         border-radius: 8px;
         height: 32px;
         align-items: center;
@@ -201,6 +201,13 @@
 
         &.selected {
           background: @selected-bg;
+        }
+
+        &.playing {
+          background: rgba(24, 144, 255, 0.1);
+          border-left: 3px solid #1890ff;
+          padding-left: 5px;
+          margin-left: -8px;
         }
 
         .task-cell {
@@ -451,6 +458,11 @@
 
         &.selected {
           background: rgba(255, 255, 255, 0.16);
+        }
+
+        &.playing {
+          background: rgba(24, 144, 255, 0.2);
+          border-left: 3px solid #1890ff;
         }
       }
 
