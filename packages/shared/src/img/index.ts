@@ -1,8 +1,4 @@
-export {
-  imageInfoOfBase64,
-  bufferFromBase64,
-  isValidPNGImageBuffer,
-} from './info';
+export { imageInfoOfBase64, isValidPNGImageBuffer } from './info';
 export {
   resizeAndConvertImgBuffer,
   resizeImgBase64,
@@ -19,5 +15,9 @@ export {
   parseBase64,
   createImgBase64ByFormat,
 } from './transform';
-export { processImageElementInfo, compositeElementInfoImg } from './box-select';
+export {
+  processImageElementInfo,
+  compositeElementInfoImg,
+  annotateRects,
+} from './box-select';
 export { drawBoxOnImage, savePositionImg } from './draw-box';

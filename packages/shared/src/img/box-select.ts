@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon-node';
+import { NodeType } from '../constants';
 import type { BaseElement, Rect } from '../types';
 import getPhoton from './get-photon';
-import { bufferFromBase64, imageInfoOfBase64 } from './info';
 import { photonFromBase64, photonToBase64 } from './transform';
 
 // Simple 5x7 bitmap font for digits 0-9
@@ -548,3 +548,26 @@ export const processImageElementInfo = async (options: {
     compositeElementInfoImgWithoutTextBase64,
   };
 };
+
+export async function annotateRects(
+  imgBase64: string,
+  rects: Rect[],
+  prompt?: string,
+) {
+  const markedImage = await compositeElementInfoImg({
+    inputImgBase64: imgBase64,
+    elementsPositionInfo: rects.map((rect, index) => {
+      return {
+        id: `rect-${index}`,
+        rect,
+        indexId: index + 1,
+        attributes: { nodeType: NodeType.CONTAINER },
+        content: '',
+        center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
+      };
+    }),
+    annotationPadding: 0,
+    prompt,
+  });
+  return markedImage;
+}
