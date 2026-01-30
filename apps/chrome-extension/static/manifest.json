@@ -9,7 +9,8 @@
     "sidePanel",
     "debugger",
     "scripting",
-    "storage"
+    "storage",
+    "alarms"
   ],
   "incognito": "split",
   "background": {
