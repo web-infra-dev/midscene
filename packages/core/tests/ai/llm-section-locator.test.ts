@@ -1,7 +1,7 @@
 import { AiLocateSection } from '@/ai-model/inspect';
-import { saveBase64Image } from '@/image';
 import { getTmpFile } from '@/utils';
 import { globalModelConfigManager } from '@midscene/shared/env';
+import { saveBase64Image } from '@midscene/shared/img';
 import { getContextFromFixture } from 'tests/evaluation';
 import { expect, test } from 'vitest';
 

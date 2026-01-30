@@ -1,10 +1,10 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
-import { localImg2Base64 } from '@/image';
 import { ScreenshotItem } from '@/screenshot-item';
 import Service from '@/service';
 import type { AIElementResponse, UIContext } from '@/types';
+import { localImg2Base64 } from '@midscene/shared/img';
 
 export function getFixture(name: string) {
   return join(__dirname, 'fixtures', name);
