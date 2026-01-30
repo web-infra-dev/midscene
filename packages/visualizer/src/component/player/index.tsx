@@ -59,10 +59,6 @@ const linear = (t: number): number => {
   return t;
 };
 
-const sleep = (ms: number): Promise<void> => {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-};
-
 type FrameFn = (callback: (current: number) => void) => void;
 
 const ERROR_FRAME_CANCEL = 'frame cancel (this is an error on purpose)';
@@ -70,8 +66,11 @@ const frameKit = (): {
   frame: FrameFn;
   cancel: () => void;
   timeout: (callback: () => void, ms: number) => void;
+  sleep: (ms: number) => Promise<void>;
+  isCancelled: () => boolean;
 } => {
   let cancelFlag = false;
+  const pendingTimeouts: number[] = [];
 
   return {
     frame: (callback: (current: number) => void) => {
@@ -90,17 +89,38 @@ const frameKit = (): {
       if (cancelFlag) {
         throw new Error(ERROR_FRAME_CANCEL);
       }
-      setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
         if (cancelFlag) {
           // Don't throw in setTimeout callback - just return silently
           return;
         }
         callback();
       }, ms);
+      pendingTimeouts.push(timeoutId);
     },
+    sleep: (ms: number): Promise<void> => {
+      if (cancelFlag) {
+        return Promise.reject(new Error(ERROR_FRAME_CANCEL));
+      }
+      return new Promise((resolve, reject) => {
+        const timeoutId = window.setTimeout(() => {
+          if (cancelFlag) {
+            reject(new Error(ERROR_FRAME_CANCEL));
+          } else {
+            resolve();
+          }
+        }, ms);
+        pendingTimeouts.push(timeoutId);
+      });
+    },
+    isCancelled: () => cancelFlag,
     cancel: () => {
-      // console.log('set frame cancel (this is an error on purpose)');
       cancelFlag = true;
+      // Clear all pending timeouts to stop animations immediately
+      for (const id of pendingTimeouts) {
+        clearTimeout(id);
+      }
+      pendingTimeouts.length = 0;
     },
   };
 };
@@ -203,6 +223,7 @@ export function Player(props?: {
   fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
   autoZoom?: boolean; // enable auto zoom when playing, default to true
   canDownloadReport?: boolean; // enable download report, default to true
+  onTaskChange?: (taskId: string | null) => void; // callback when task changes during playback
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
@@ -759,6 +780,8 @@ export function Player(props?: {
   const [isRecording, setIsRecording] = useState(false);
   const recorderSessionRef = useRef<RecordingSession | null>(null);
   const cancelAnimationRef = useRef<(() => void) | null>(null);
+  // Playback session ID to prevent stale callbacks from cancelled playbacks
+  const playbackSessionIdRef = useRef(0);
 
   const handleExport = async () => {
     if (recorderSessionRef.current) {
@@ -786,6 +809,14 @@ export function Player(props?: {
 
   const play = (): (() => void) => {
     let cancelFn: () => void;
+    // Increment session ID to invalidate callbacks from previous playback
+    const currentSessionId = ++playbackSessionIdRef.current;
+    // Helper to safely call onTaskChange only if this session is still active
+    const safeOnTaskChange = (taskId: string | null) => {
+      if (playbackSessionIdRef.current === currentSessionId) {
+        props?.onTaskChange?.(taskId);
+      }
+    };
     Promise.resolve(
       (async () => {
         if (!app || !appInitialized.current) {
@@ -794,7 +825,7 @@ export function Player(props?: {
         if (!scripts) {
           throw new Error('scripts is required');
         }
-        const { frame, cancel, timeout } = frameKit();
+        const { frame, cancel, timeout, sleep } = frameKit();
         cancelFn = cancel;
         cancelAnimationRef.current = cancel;
         const allImages: string[] = scripts
@@ -839,11 +870,29 @@ export function Player(props?: {
           recorderSessionRef.current.start();
         }
 
+        // Track current taskId for callback
+        let currentTaskId: string | null = null;
+
+        // Immediately notify the first task's taskId before starting the loop
+        // This ensures the sidebar highlights the first step right when playback starts
+        const firstTaskId = scripts[0]?.taskId ?? null;
+        if (firstTaskId) {
+          currentTaskId = firstTaskId;
+          safeOnTaskChange(currentTaskId);
+        }
+
         // play animation
         for (const index in scripts) {
           const item = scripts[index];
           setTitleText(item.title || '');
           setSubTitleText(item.subTitle || '');
+
+          // Notify task change if taskId changed
+          const newTaskId = item.taskId ?? null;
+          if (newTaskId !== currentTaskId) {
+            currentTaskId = newTaskId;
+            safeOnTaskChange(currentTaskId);
+          }
 
           if (item.type === 'sleep') {
             await sleep(item.duration);
@@ -899,6 +948,9 @@ export function Player(props?: {
           }
         }
 
+        // Clear taskId when playback ends
+        safeOnTaskChange(null);
+
         if (recorderSessionRef.current) {
           // Add delay to capture final frames before stopping the recorder
           await sleep(1200);
@@ -912,6 +964,8 @@ export function Player(props?: {
         // Ignore frame cancel errors (these are expected when animation is cancelled)
         if (e?.message === ERROR_FRAME_CANCEL) {
           console.log('Animation cancelled (expected behavior)');
+          // Clear taskId when cancelled (only if this session is still active)
+          safeOnTaskChange(null);
           return;
         }
 
@@ -926,6 +980,8 @@ export function Player(props?: {
           recorderSessionRef.current = null;
         }
         setIsRecording(false);
+        // Clear taskId on error (only if this session is still active)
+        safeOnTaskChange(null);
 
         // Only show error message if we were actually recording
         if (wasRecording) {
@@ -1013,16 +1069,12 @@ export function Player(props?: {
     statusIconElement = (
       <Spin indicator={<LoadingOutlined spin color="#333" />} size="default" />
     );
-  } else if (mouseOverStatusIcon) {
+  } else {
+    // Finished - show replay button
     statusIconElement = (
       <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
     );
     statusOnClick = () => triggerReplay();
-  } else {
-    statusIconElement = (
-      // <Spin indicator={<CheckCircleOutlined />} size="default" />
-      <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
-    );
   }
 
   return (

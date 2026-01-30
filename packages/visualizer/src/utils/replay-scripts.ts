@@ -58,6 +58,7 @@ export interface AnimationScript {
   subTitle?: string;
   imageWidth?: number;
   imageHeight?: number;
+  taskId?: string; // ID of the associated ExecutionTask for playback synchronization
 }
 
 const stillDuration = 900;
@@ -205,12 +206,13 @@ export const allScriptsFromDump = (
 
   // Use first dimensions as default for the overall player size
   const allScripts: AnimationScript[] = [];
-  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
+  normalizedDump.executions?.filter(Boolean).forEach((execution, execIndex) => {
     const scripts = generateAnimationScripts(
       execution,
       -1,
       firstWidth!,
       firstHeight!,
+      execIndex,
     );
     if (scripts) {
       allScripts.push(...scripts);
@@ -275,6 +277,7 @@ export const generateAnimationScripts = (
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
+  executionIndex = 0,
 ): AnimationScript[] | null => {
   if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
@@ -282,8 +285,10 @@ export const generateAnimationScripts = (
   }
 
   let tasksIncluded: ExecutionTask[] = [];
+  let taskStartIndex = 0;
   if (task === -1) {
     tasksIncluded = execution.tasks;
+    taskStartIndex = 0;
   } else {
     // find all tasks before next planning task
     const startIndex = execution.tasks.findIndex((t) => t === task);
@@ -297,6 +302,7 @@ export const generateAnimationScripts = (
       return null;
     }
 
+    taskStartIndex = startIndex;
     for (let i = startIndex; i < execution.tasks.length; i++) {
       if (
         i > startIndex &&
@@ -325,10 +331,16 @@ export const generateAnimationScripts = (
     imageHeight,
   );
 
+  // Generate taskId for each task: format is "exec{executionIndex}-task{taskIndex}"
+  const getTaskId = (taskIndex: number): string => {
+    return `exec${executionIndex}-task${taskStartIndex + taskIndex}`;
+  };
+
   const setPointerScript = (
     img: string,
     title: string,
     subTitle: string,
+    taskId?: string,
   ): AnimationScript => {
     return {
       type: 'pointer',
@@ -336,6 +348,7 @@ export const generateAnimationScripts = (
       duration: 0,
       title,
       subTitle,
+      taskId,
     };
   };
 
@@ -346,6 +359,7 @@ export const generateAnimationScripts = (
   let initSubTitle = '';
   let errorStateFlag = false;
   tasksIncluded.forEach((task, index) => {
+    const currentTaskId = getTaskId(index);
     // if (errorStateFlag) return;
 
     if (index === 0) {
@@ -406,6 +420,7 @@ export const generateAnimationScripts = (
           subTitle,
           imageWidth: width,
           imageHeight: height,
+          taskId: currentTaskId,
         });
 
         locateElements.forEach((element) => {
@@ -437,6 +452,7 @@ export const generateAnimationScripts = (
             subTitle: element.description || subTitle,
             imageWidth: context.size?.width || imageWidth,
             imageHeight: context.size?.height || imageHeight,
+            taskId: currentTaskId,
           });
 
           // scripts.push({
@@ -464,6 +480,7 @@ export const generateAnimationScripts = (
           subTitle: paramStr(task),
           imageWidth: task.uiContext?.size?.width || imageWidth,
           imageHeight: task.uiContext?.size?.height || imageHeight,
+          taskId: currentTaskId,
         });
       }
     } else if (task.type === 'Action Space') {
@@ -475,6 +492,7 @@ export const generateAnimationScripts = (
         duration: actionSpinningPointerDuration,
         title,
         subTitle,
+        taskId: currentTaskId,
       });
 
       if (insightOnTop) {
@@ -484,11 +502,14 @@ export const generateAnimationScripts = (
           duration: clearInsightDuration,
           title,
           subTitle,
+          taskId: currentTaskId,
         });
         insightOnTop = false;
       }
 
-      scripts.push(setPointerScript(mousePointer, title, subTitle));
+      scripts.push(
+        setPointerScript(mousePointer, title, subTitle, currentTaskId),
+      );
 
       // currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
@@ -505,6 +526,7 @@ export const generateAnimationScripts = (
         subTitle,
         imageWidth: task.uiContext?.size?.width || imageWidth,
         imageHeight: task.uiContext?.size?.height || imageHeight,
+        taskId: currentTaskId,
       });
     } else {
       // Handle normal tasks
@@ -525,6 +547,7 @@ export const generateAnimationScripts = (
           subTitle,
           imageWidth: task.uiContext?.size?.width || imageWidth,
           imageHeight: task.uiContext?.size?.height || imageHeight,
+          taskId: currentTaskId,
         });
       }
     }
@@ -549,6 +572,7 @@ export const generateAnimationScripts = (
         subTitle: errorSubTitle,
         imageWidth: task.uiContext?.size?.width || imageWidth,
         imageHeight: task.uiContext?.size?.height || imageHeight,
+        taskId: currentTaskId,
       });
       return;
     }
@@ -560,6 +584,7 @@ export const generateAnimationScripts = (
     type: 'img',
     duration: lastFrameDuration,
     camera: fullPageCameraState,
+    taskId: undefined, // Explicitly set to undefined to clear the playing state
   });
 
   return scripts;

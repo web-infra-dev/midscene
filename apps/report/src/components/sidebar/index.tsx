@@ -52,6 +52,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const setHoverTask = useExecutionDump((store) => store.setHoverTask);
+  const playingTaskId = useExecutionDump((store) => store.playingTaskId);
 
   const setHoverPreviewConfig = useExecutionDump(
     (store) => store.setHoverPreviewConfig,
@@ -74,7 +75,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         groupName: execution.name,
       });
 
-      // Add task rows
+      // Add task rows with taskId that matches the animation script format
       execution.tasks.forEach((task, taskIndex) => {
         rows.push({
           key: `task-${executionIndex}-${taskIndex}`,
@@ -85,6 +86,30 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
     return rows;
   }, [groupedDump]);
+
+  // Create a map from taskId to task for playback highlighting
+  const taskIdToTaskMap = useMemo(() => {
+    if (!groupedDump) return new Map<string, ExecutionTask>();
+    const map = new Map<string, ExecutionTask>();
+    groupedDump.executions.forEach((execution, execIndex) => {
+      execution.tasks.forEach((task, taskIndex) => {
+        const taskId = `exec${execIndex}-task${taskIndex}`;
+        map.set(taskId, task);
+      });
+    });
+    return map;
+  }, [groupedDump]);
+
+  // Get the currently playing task
+  const playingTask = playingTaskId ? taskIdToTaskMap.get(playingTaskId) : null;
+
+  // Auto scroll to playing task
+  useEffect(() => {
+    if (playingTaskId) {
+      const row = document.querySelector(`[data-task-id="${playingTaskId}"]`);
+      row?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [playingTaskId]);
 
   const hasCachedInput = useMemo(() => {
     if (!groupedDump) return false;
@@ -544,11 +569,19 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
               const task = record.task!;
               const isSelected = task === activeTask;
+              const isPlaying = task === playingTask;
+              // Extract executionIndex and taskIndex from record.key (format: "task-{execIndex}-{taskIndex}")
+              const keyParts = record.key.split('-');
+              const taskId =
+                keyParts.length === 3
+                  ? `exec${keyParts[1]}-task${keyParts[2]}`
+                  : undefined;
 
               return (
                 <div
                   key={record.key}
-                  className={`task-row ${isSelected ? 'selected' : ''}`}
+                  data-task-id={taskId}
+                  className={`task-row ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
                   onClick={() => {
                     setActiveTask(task);
                     setReplayAllMode?.(false);
