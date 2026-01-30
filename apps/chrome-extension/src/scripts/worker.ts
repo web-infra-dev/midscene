@@ -128,6 +128,45 @@ async function initBackgroundBridgeIfEnabled(): Promise<void> {
 // Initialize background bridge on startup (with delay to ensure chrome APIs are ready)
 setTimeout(() => initBackgroundBridgeIfEnabled(), 0);
 
+// ==================== Keepalive Mechanism ====================
+// Keep Service Worker alive when bridge is active
+const KEEPALIVE_ALARM_NAME = 'midscene-bridge-keepalive';
+const KEEPALIVE_INTERVAL_MINUTES = 0.4; // ~24 seconds (must be >= 0.4 in Chrome)
+
+async function setupKeepalive() {
+  // Clear any existing alarm
+  await chrome.alarms.clear(KEEPALIVE_ALARM_NAME);
+
+  // Check if bridge auto-connect is enabled
+  const result = await chrome.storage.local.get(BRIDGE_STORAGE_KEY);
+  const autoConnect = result[BRIDGE_STORAGE_KEY];
+
+  if (autoConnect?.enabled) {
+    // Create periodic alarm to keep SW alive
+    await chrome.alarms.create(KEEPALIVE_ALARM_NAME, {
+      periodInMinutes: KEEPALIVE_INTERVAL_MINUTES,
+    });
+    console.log('[Keepalive] Alarm set');
+  }
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === KEEPALIVE_ALARM_NAME) {
+    console.log('[Keepalive] Ping -', new Date().toLocaleTimeString());
+    // Just accessing chrome APIs keeps the SW alive
+  }
+});
+
+// Setup keepalive on startup
+setupKeepalive();
+
+// Re-setup keepalive when auto-connect setting changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes[BRIDGE_STORAGE_KEY]) {
+    setupKeepalive();
+  }
+});
+
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
