@@ -1,0 +1,8 @@
+# Index file to run both YAML files with shared browser context
+concurrent: 1
+continueOnError: true
+shareBrowserContext: true
+
+files:
+  - 01-login.yaml
+  - 02-check-login.yaml

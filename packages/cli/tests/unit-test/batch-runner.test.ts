@@ -24,6 +24,10 @@ vi.mock('puppeteer', () => ({
   default: {
     launch: vi.fn().mockResolvedValue({
       close: vi.fn().mockResolvedValue(undefined),
+      newPage: vi.fn().mockResolvedValue({
+        browser: vi.fn().mockReturnValue({}),
+        close: vi.fn().mockResolvedValue(undefined),
+      }),
     }),
   },
 }));

@@ -62,6 +62,20 @@ const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 
 const debugDevice = getDebug('android:device');
 
+/**
+ * Escape text for safe use in shell double-quoted strings.
+ * This prevents shell injection and handles special characters.
+ * Note: For yadb, \\n will be converted back to real newline by yadb itself.
+ */
+export function escapeForShell(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\') // Escape backslashes first
+    .replace(/"/g, '\\"') // Escape double quotes
+    .replace(/`/g, '\\`') // Escape backticks (command substitution)
+    .replace(/\$/g, '\\$') // Escape dollar signs (variable expansion)
+    .replace(/\n/g, '\\n'); // Escape newlines
+}
+
 export class AndroidDevice implements AbstractInterface {
   private deviceId: string;
   private yadbPushed = false;
@@ -1355,6 +1369,7 @@ ${Object.keys(size)
    * - Non-ASCII characters (Unicode characters like ö, é, ñ, Chinese, Japanese, etc.)
    * - Format specifiers that may be interpreted by shell (%, $)
    * - Special shell characters that need escaping
+   * - Control characters like newlines, tabs, carriage returns
    */
   private shouldUseYadbForText(text: string): boolean {
     // Check for any non-ASCII characters (code point >= 128)
@@ -1383,14 +1398,17 @@ ${Object.keys(size)
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
+    // Escape text for shell safety
+    const escapedText = escapeForShell(text);
+
     if (
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
       (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && shouldUseYadb)
     ) {
-      await this.execYadb(text);
+      await this.execYadb(escapedText);
     } else {
       // for pure ASCII characters, directly use inputText
-      await adb.inputText(text);
+      await adb.inputText(escapedText);
     }
 
     if (shouldAutoDismissKeyboard === true) {

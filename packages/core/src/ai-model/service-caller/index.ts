@@ -250,8 +250,12 @@ export async function callAI(
   let accumulatedReasoning = '';
   let usage: OpenAI.CompletionUsage | undefined;
   let timeCost: number | undefined;
+  let requestId: string | null | undefined;
 
-  const buildUsageInfo = (usageData?: OpenAI.CompletionUsage) => {
+  const buildUsageInfo = (
+    usageData?: OpenAI.CompletionUsage,
+    requestId?: string | null,
+  ) => {
     if (!usageData) return undefined;
 
     const cachedInputTokens = (
@@ -267,6 +271,7 @@ export async function callAI(
       model_name: modelName,
       model_description: modelDescription,
       intent: modelConfig.intent,
+      request_id: requestId ?? undefined,
     } satisfies AIUsageInfo;
   };
 
@@ -322,6 +327,8 @@ export async function callAI(
         _request_id?: string | null;
       };
 
+      requestId = stream._request_id;
+
       for await (const chunk of stream) {
         const content = chunk.choices?.[0]?.delta?.content || '';
         const reasoning_content =
@@ -369,7 +376,7 @@ export async function callAI(
             accumulated,
             reasoning_content: '',
             isComplete: true,
-            usage: buildUsageInfo(usage),
+            usage: buildUsageInfo(usage, requestId),
           };
           options.onChunk!(finalChunk);
           break;
@@ -420,6 +427,7 @@ export async function callAI(
           accumulatedReasoning =
             (result.choices[0].message as any)?.reasoning_content || '';
           usage = result.usage;
+          requestId = result._request_id;
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;
@@ -457,7 +465,7 @@ export async function callAI(
     return {
       content: content || '',
       reasoning_content: accumulatedReasoning || undefined,
-      usage: buildUsageInfo(usage),
+      usage: buildUsageInfo(usage, requestId),
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {

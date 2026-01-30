@@ -195,7 +195,9 @@ const TimelineWidget = (props: {
       domRef.current.replaceChildren(app.canvas);
 
       const pixiTextForNumber = (num: number) => {
-        const textContent = `${num}ms`;
+        const seconds = num / 1000;
+        const textContent =
+          seconds % 1 === 0 ? `${seconds}s` : `${seconds.toFixed(1)}s`;
         const text = new PIXI.Text(`${textContent}`, {
           fontSize: timeContentFontSize,
           fill: gridTextColor,
