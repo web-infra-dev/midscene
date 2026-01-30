@@ -256,6 +256,7 @@ export function adaptBboxToRect(
   rightLimit = width,
   bottomLimit = height,
   modelFamily?: TModelFamily | undefined,
+  scale = 1,
 ): Rect {
   debugInspectUtils(
     'adaptBboxToRect',
@@ -270,7 +271,10 @@ export function adaptBboxToRect(
     bottomLimit,
     'modelFamily',
     modelFamily,
+    'scale',
+    scale,
   );
+
   const [left, top, right, bottom] = adaptBbox(
     bbox,
     width,
@@ -290,11 +294,17 @@ export function adaptBboxToRect(
   const rectWidth = boundedRight - rectLeft + 1;
   const rectHeight = boundedBottom - rectTop + 1;
 
+  // Apply scale after calculating dimensions - scale back to original size
+  const finalLeft = scale !== 1 ? Math.round(rectLeft / scale) : rectLeft;
+  const finalTop = scale !== 1 ? Math.round(rectTop / scale) : rectTop;
+  const finalWidth = scale !== 1 ? Math.round(rectWidth / scale) : rectWidth;
+  const finalHeight = scale !== 1 ? Math.round(rectHeight / scale) : rectHeight;
+
   const rect = {
-    left: rectLeft + offsetX,
-    top: rectTop + offsetY,
-    width: rectWidth,
-    height: rectHeight,
+    left: finalLeft + offsetX,
+    top: finalTop + offsetY,
+    width: finalWidth,
+    height: finalHeight,
   };
   debugInspectUtils('adaptBboxToRect, result=', rect);
 
@@ -314,66 +324,69 @@ export function mergeRects(rects: Rect[]) {
   };
 }
 
-// expand the search area to at least 300 x 300, or add a default padding
-export function expandSearchArea(
-  rect: Rect,
-  screenSize: Size,
-  modelFamily: TModelFamily | undefined,
-) {
-  let minEdgeSize = 500;
-  if (modelFamily === 'qwen3-vl') {
-    minEdgeSize = 1200;
-  }
-  const defaultPadding = 160;
+/**
+ * Expand the search area to at least 400 x 400 pixels
+ *
+ * Step 1: Extend 100px on each side (top, right, bottom, left)
+ * - If the element is near a boundary, expansion on that side will be limited
+ * - No compensation is made for boundary limitations (this is intentional)
+ *
+ * Step 2: Ensure the area is at least 400x400 pixels
+ * - Scale up proportionally from the center if needed
+ * - Final result is clamped to screen boundaries
+ */
+export function expandSearchArea(rect: Rect, screenSize: Size): Rect {
+  const minArea = 400 * 400;
+  const expandSize = 100;
 
-  // Calculate padding needed to reach minimum edge size
-  const paddingSizeHorizontal =
-    rect.width < minEdgeSize
-      ? Math.ceil((minEdgeSize - rect.width) / 2)
-      : defaultPadding;
-  const paddingSizeVertical =
-    rect.height < minEdgeSize
-      ? Math.ceil((minEdgeSize - rect.height) / 2)
-      : defaultPadding;
+  // Step 1: Extend each side by expandSize (100px), clamped to screen boundaries
+  // Note: If element is near boundary, actual expansion may be less than 100px on that side
+  const expandedLeft = Math.max(rect.left - expandSize, 0);
+  const expandedTop = Math.max(rect.top - expandSize, 0);
 
-  // Calculate new dimensions (ensure minimum edge size)
-  let newWidth = Math.max(minEdgeSize, rect.width + paddingSizeHorizontal * 2);
-  let newHeight = Math.max(minEdgeSize, rect.height + paddingSizeVertical * 2);
+  const expandRect = {
+    left: expandedLeft,
+    top: expandedTop,
+    width: Math.min(
+      rect.left - expandedLeft + rect.width + expandSize,
+      screenSize.width - expandedLeft,
+    ),
+    height: Math.min(
+      rect.top - expandedTop + rect.height + expandSize,
+      screenSize.height - expandedTop,
+    ),
+  };
 
-  // Calculate initial position with padding
-  let newLeft = rect.left - paddingSizeHorizontal;
-  let newTop = rect.top - paddingSizeVertical;
+  // Step 2: Check if area is already >= 400x400
+  const currentArea = expandRect.width * expandRect.height;
 
-  // Ensure the rect doesn't exceed screen boundaries by adjusting position
-  // If the rect goes beyond the right edge, shift it left
-  if (newLeft + newWidth > screenSize.width) {
-    newLeft = screenSize.width - newWidth;
-  }
-
-  // If the rect goes beyond the bottom edge, shift it up
-  if (newTop + newHeight > screenSize.height) {
-    newTop = screenSize.height - newHeight;
-  }
-
-  // Ensure the rect doesn't go beyond the left/top edges
-  newLeft = Math.max(0, newLeft);
-  newTop = Math.max(0, newTop);
-
-  // If after position adjustment, the rect still exceeds screen boundaries,
-  // clamp the dimensions to fit within screen
-  if (newLeft + newWidth > screenSize.width) {
-    newWidth = screenSize.width - newLeft;
-  }
-  if (newTop + newHeight > screenSize.height) {
-    newHeight = screenSize.height - newTop;
+  if (currentArea >= minArea) {
+    return expandRect;
   }
 
-  rect.left = newLeft;
-  rect.top = newTop;
-  rect.width = newWidth;
-  rect.height = newHeight;
+  // Step 2: Scale up from center to reach minimum 400x400 area
+  const centerX = expandRect.left + expandRect.width / 2;
+  const centerY = expandRect.top + expandRect.height / 2;
 
-  return rect;
+  // Calculate scale factor needed to reach minimum area
+  const scaleFactor = Math.sqrt(minArea / currentArea);
+  const newWidth = Math.round(expandRect.width * scaleFactor);
+  const newHeight = Math.round(expandRect.height * scaleFactor);
+
+  // Calculate new position based on center point
+  const newLeft = Math.round(centerX - newWidth / 2);
+  const newTop = Math.round(centerY - newHeight / 2);
+
+  // Clamp to screen boundaries
+  const left = Math.max(newLeft, 0);
+  const top = Math.max(newTop, 0);
+
+  return {
+    left,
+    top,
+    width: Math.min(newWidth, screenSize.width - left),
+    height: Math.min(newHeight, screenSize.height - top),
+  };
 }
 
 export async function markupImageForLLM(
