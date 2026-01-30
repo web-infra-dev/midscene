@@ -1,5 +1,4 @@
 import assert from 'node:assert';
-import { Buffer } from 'node:buffer';
 import type { Size } from '../types';
 import getPhoton from './get-photon';
 
@@ -23,11 +22,6 @@ export async function imageInfoOfBase64(
   image.free();
   assert(width && height, 'Invalid image: cannot get width or height');
   return { width, height };
-}
-
-export async function bufferFromBase64(imageBase64: string): Promise<Buffer> {
-  const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-  return Buffer.from(base64Data, 'base64');
 }
 
 /**
