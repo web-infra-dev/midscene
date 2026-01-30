@@ -50,6 +50,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const mainLayoutChangedRef = useRef(false);
   const dump = useExecutionDump((store) => store.dump);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const {
     modelCallDetailsEnabled: proModeEnabled,
     setModelCallDetailsEnabled: setProModeEnabled,
@@ -177,8 +178,27 @@ function Visualizer(props: VisualizerProps): JSX.Element {
         />
         <Panel defaultSize={75} maxSize={95}>
           <div className="main-right">
-            <div className="main-right-header">Record</div>
-            <Timeline key={mainLayoutChangeFlag} />
+            <div
+              className="main-right-header"
+              onClick={() => setTimelineCollapsed(!timelineCollapsed)}
+              style={{ cursor: 'pointer', userSelect: 'none' }}
+            >
+              <span
+                className="timeline-collapse-icon"
+                style={{
+                  display: 'inline-block',
+                  marginRight: 8,
+                  transition: 'transform 0.2s',
+                  transform: timelineCollapsed
+                    ? 'rotate(-90deg)'
+                    : 'rotate(0deg)',
+                }}
+              >
+                ▼
+              </span>
+              Record
+            </div>
+            {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
             <div className="main-content">{content}</div>
           </div>
         </Panel>
