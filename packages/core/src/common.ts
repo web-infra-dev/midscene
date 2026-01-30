@@ -256,6 +256,7 @@ export function adaptBboxToRect(
   rightLimit = width,
   bottomLimit = height,
   modelFamily?: TModelFamily | undefined,
+  scale = 1,
 ): Rect {
   debugInspectUtils(
     'adaptBboxToRect',
@@ -270,7 +271,10 @@ export function adaptBboxToRect(
     bottomLimit,
     'modelFamily',
     modelFamily,
+    'scale',
+    scale,
   );
+
   const [left, top, right, bottom] = adaptBbox(
     bbox,
     width,
@@ -290,11 +294,17 @@ export function adaptBboxToRect(
   const rectWidth = boundedRight - rectLeft + 1;
   const rectHeight = boundedBottom - rectTop + 1;
 
+  // Apply scale after calculating dimensions - scale back to original size
+  const finalLeft = scale !== 1 ? Math.round(rectLeft / scale) : rectLeft;
+  const finalTop = scale !== 1 ? Math.round(rectTop / scale) : rectTop;
+  const finalWidth = scale !== 1 ? Math.round(rectWidth / scale) : rectWidth;
+  const finalHeight = scale !== 1 ? Math.round(rectHeight / scale) : rectHeight;
+
   const rect = {
-    left: rectLeft + offsetX,
-    top: rectTop + offsetY,
-    width: rectWidth,
-    height: rectHeight,
+    left: finalLeft + offsetX,
+    top: finalTop + offsetY,
+    width: finalWidth,
+    height: finalHeight,
   };
   debugInspectUtils('adaptBboxToRect, result=', rect);
 
