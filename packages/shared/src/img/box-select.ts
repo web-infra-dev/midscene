@@ -1,30 +1,257 @@
 import assert from 'node:assert';
-import type Jimp from 'jimp';
+import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon-node';
 import type { BaseElement, Rect } from '../types';
-import getJimp from './get-jimp';
-import { bufferFromBase64, imageInfoOfBase64 } from './index';
-import { readImageBuffer } from './safe-jimp';
+import getPhoton from './get-photon';
+import { bufferFromBase64, imageInfoOfBase64 } from './info';
+import { photonFromBase64, photonToBase64 } from './transform';
 
-let cachedFont: any = null;
-
-const loadFonts = async () => {
-  const Jimp = await getJimp();
-
-  try {
-    const fonts = await Jimp.loadFont(Jimp.FONT_SANS_16_WHITE);
-    return fonts;
-  } catch (error) {
-    console.warn('Error loading font, will try to load online fonts', error);
-    const onlineFonts =
-      'https://cdn.jsdelivr.net/npm/jimp-compact@0.16.1-2/fonts/open-sans/open-sans-16-white/open-sans-16-white.fnt';
-    const fonts = await Jimp.loadFont(onlineFonts);
-    return fonts;
-  }
+// Simple 5x7 bitmap font for digits 0-9
+const DIGIT_FONT: Record<string, number[][]> = {
+  '0': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '1': [
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 1, 1, 1, 0],
+  ],
+  '2': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 1, 1, 0],
+    [0, 1, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 1],
+  ],
+  '3': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 1, 1, 0],
+    [0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '4': [
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 1, 0],
+    [0, 1, 0, 1, 0],
+    [1, 0, 0, 1, 0],
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 0, 1, 0],
+  ],
+  '5': [
+    [1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '6': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '7': [
+    [1, 1, 1, 1, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+    [0, 0, 1, 0, 0],
+  ],
+  '8': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
+  '9': [
+    [0, 1, 1, 1, 0],
+    [1, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1],
+    [0, 1, 1, 1, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 1, 1, 1, 0],
+  ],
 };
+
+const FONT_WIDTH = 5;
+const FONT_HEIGHT = 7;
+const FONT_SCALE = 2; // Scale up for better visibility
 
 interface ElementForOverlay {
   rect: Rect;
   indexId?: number;
+}
+
+function drawDigit(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  digit: string,
+  startX: number,
+  startY: number,
+  color: { r: number; g: number; b: number; a: number },
+) {
+  const bitmap = DIGIT_FONT[digit];
+  if (!bitmap) return;
+
+  for (let row = 0; row < FONT_HEIGHT; row++) {
+    for (let col = 0; col < FONT_WIDTH; col++) {
+      if (bitmap[row][col] === 1) {
+        // Scale the pixel
+        for (let sy = 0; sy < FONT_SCALE; sy++) {
+          for (let sx = 0; sx < FONT_SCALE; sx++) {
+            const x = startX + col * FONT_SCALE + sx;
+            const y = startY + row * FONT_SCALE + sy;
+            if (x >= 0 && x < width && y >= 0 && y < height) {
+              const idx = (y * width + x) * 4;
+              pixels[idx + 0] = color.r;
+              pixels[idx + 1] = color.g;
+              pixels[idx + 2] = color.b;
+              pixels[idx + 3] = color.a;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+function drawNumber(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  num: number,
+  startX: number,
+  startY: number,
+  color: { r: number; g: number; b: number; a: number },
+) {
+  const str = num.toString();
+  let x = startX;
+  for (const digit of str) {
+    drawDigit(pixels, width, height, digit, x, startY, color);
+    x += FONT_WIDTH * FONT_SCALE + 1; // 1px spacing between digits
+  }
+}
+
+function getNumberWidth(num: number): number {
+  return num.toString().length * (FONT_WIDTH * FONT_SCALE + 1) - 1;
+}
+
+function drawRect(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  rect: { x: number; y: number; w: number; h: number },
+  color: { r: number; g: number; b: number; a: number },
+  thickness: number,
+) {
+  const { x, y, w, h } = rect;
+
+  for (let py = y; py < y + h && py < height; py++) {
+    for (let px = x; px < x + w && px < width; px++) {
+      if (px < 0 || py < 0) continue;
+
+      // Check if this pixel is on the border
+      const isLeftBorder = px >= x && px < x + thickness;
+      const isRightBorder = px <= x + w - 1 && px > x + w - thickness - 1;
+      const isTopBorder = py >= y && py < y + thickness;
+      const isBottomBorder = py <= y + h - 1 && py > y + h - thickness - 1;
+
+      if (isLeftBorder || isRightBorder || isTopBorder || isBottomBorder) {
+        const idx = (py * width + px) * 4;
+        pixels[idx + 0] = color.r;
+        pixels[idx + 1] = color.g;
+        pixels[idx + 2] = color.b;
+        pixels[idx + 3] = color.a;
+      }
+    }
+  }
+}
+
+function fillRect(
+  pixels: Uint8Array,
+  width: number,
+  height: number,
+  rect: { x: number; y: number; w: number; h: number },
+  color: { r: number; g: number; b: number; a: number },
+) {
+  const { x, y, w, h } = rect;
+
+  for (let py = y; py < y + h && py < height; py++) {
+    for (let px = x; px < x + w && px < width; px++) {
+      if (px < 0 || py < 0) continue;
+      const idx = (py * width + px) * 4;
+      pixels[idx + 0] = color.r;
+      pixels[idx + 1] = color.g;
+      pixels[idx + 2] = color.b;
+      pixels[idx + 3] = color.a;
+    }
+  }
+}
+
+function blendPixels(
+  basePixels: Uint8Array,
+  overlayPixels: Uint8Array,
+  width: number,
+  height: number,
+): Uint8Array {
+  const result = new Uint8Array(basePixels.length);
+  for (let i = 0; i < basePixels.length; i += 4) {
+    const overlayAlpha = overlayPixels[i + 3] / 255;
+    const baseAlpha = basePixels[i + 3] / 255;
+
+    if (overlayAlpha === 0) {
+      result[i + 0] = basePixels[i + 0];
+      result[i + 1] = basePixels[i + 1];
+      result[i + 2] = basePixels[i + 2];
+      result[i + 3] = basePixels[i + 3];
+    } else {
+      const outAlpha = overlayAlpha + baseAlpha * (1 - overlayAlpha);
+      result[i + 0] = Math.round(
+        (overlayPixels[i + 0] * overlayAlpha +
+          basePixels[i + 0] * baseAlpha * (1 - overlayAlpha)) /
+          outAlpha,
+      );
+      result[i + 1] = Math.round(
+        (overlayPixels[i + 1] * overlayAlpha +
+          basePixels[i + 1] * baseAlpha * (1 - overlayAlpha)) /
+          outAlpha,
+      );
+      result[i + 2] = Math.round(
+        (overlayPixels[i + 2] * overlayAlpha +
+          basePixels[i + 2] * baseAlpha * (1 - overlayAlpha)) /
+          outAlpha,
+      );
+      result[i + 3] = Math.round(outAlpha * 255);
+    }
+  }
+  return result;
 }
 
 const createSvgOverlay = async (
@@ -34,65 +261,64 @@ const createSvgOverlay = async (
   boxPadding = 5,
   borderThickness = 2,
   prompt?: string,
-): Promise<Jimp> => {
-  const Jimp = await getJimp();
-  const image = new Jimp(imageWidth, imageHeight, 0x00000000);
+): Promise<Uint8Array> => {
+  // Create transparent overlay
+  const overlayPixels = new Uint8Array(imageWidth * imageHeight * 4);
 
   // Define color array
   const colors = [
-    { rect: 0xc62300ff, text: 0xffffffff }, // red, white
-    { rect: 0x0000ffff, text: 0xffffffff }, // blue, white
-    { rect: 0x8b4513ff, text: 0xffffffff }, // brown, white
-    { rect: 0x3e7b27ff, text: 0xffffffff }, // green, white
-    { rect: 0x500073ff, text: 0xffffffff }, // purple, white
+    {
+      rect: { r: 0xc6, g: 0x23, b: 0x00, a: 0xff },
+      text: { r: 0xff, g: 0xff, b: 0xff, a: 0xff },
+    }, // red, white
+    {
+      rect: { r: 0x00, g: 0x00, b: 0xff, a: 0xff },
+      text: { r: 0xff, g: 0xff, b: 0xff, a: 0xff },
+    }, // blue, white
+    {
+      rect: { r: 0x8b, g: 0x45, b: 0x13, a: 0xff },
+      text: { r: 0xff, g: 0xff, b: 0xff, a: 0xff },
+    }, // brown, white
+    {
+      rect: { r: 0x3e, g: 0x7b, b: 0x27, a: 0xff },
+      text: { r: 0xff, g: 0xff, b: 0xff, a: 0xff },
+    }, // green, white
+    {
+      rect: { r: 0x50, g: 0x00, b: 0x73, a: 0xff },
+      text: { r: 0xff, g: 0xff, b: 0xff, a: 0xff },
+    }, // purple, white
   ];
 
   // Draw prompt text if provided
   if (prompt) {
-    try {
-      cachedFont = cachedFont || (await loadFonts());
-      const promptPadding = 10;
-      const promptMargin = 20;
-      const promptHeight = 30;
-      const promptY = imageHeight - promptHeight - promptMargin;
+    const promptPadding = 10;
+    const promptMargin = 20;
+    const promptHeight = 30;
+    const promptY = imageHeight - promptHeight - promptMargin;
 
-      // Draw prompt background
-      image.scan(
-        0,
-        promptY,
-        imageWidth,
-        promptHeight,
-        (x: number, y: number, idx: number): void => {
-          image.bitmap.data[idx + 0] = 0x00; // R
-          image.bitmap.data[idx + 1] = 0x00; // G
-          image.bitmap.data[idx + 2] = 0x00; // B
-          image.bitmap.data[idx + 3] = 0xcc; // A (80% opacity)
-        },
-      );
+    // Draw prompt background (semi-transparent black)
+    fillRect(
+      overlayPixels,
+      imageWidth,
+      imageHeight,
+      {
+        x: 0,
+        y: promptY,
+        w: imageWidth,
+        h: promptHeight,
+      },
+      { r: 0x00, g: 0x00, b: 0x00, a: 0xcc },
+    );
 
-      // Draw prompt text
-      image.print(
-        cachedFont,
-        promptPadding,
-        promptY,
-        {
-          text: prompt,
-          alignmentX: Jimp.HORIZONTAL_ALIGN_LEFT,
-          alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
-        },
-        imageWidth - promptPadding * 2,
-        promptHeight,
-      );
-    } catch (error) {
-      console.error('Error drawing prompt text', error);
-    }
+    // Note: We skip drawing prompt text since we only have digit font
+    // The prompt feature was mostly for debugging anyway
   }
 
   for (let index = 0; index < elements.length; index++) {
     const element = elements[index];
     const color = colors[index % colors.length];
 
-    // Add 5px padding to the rect
+    // Add padding to the rect
     const paddedLeft = Math.max(0, element.rect.left - boxPadding);
     const paddedTop = Math.max(0, element.rect.top - boxPadding);
     const paddedWidth = Math.min(
@@ -104,33 +330,20 @@ const createSvgOverlay = async (
       element.rect.height + boxPadding * 2,
     );
     const paddedRect = {
-      left: paddedLeft,
-      top: paddedTop,
-      width: paddedWidth,
-      height: paddedHeight,
+      x: paddedLeft,
+      y: paddedTop,
+      w: paddedWidth,
+      h: paddedHeight,
     };
 
-    // Draw rectangle
-    image.scan(
-      paddedRect.left,
-      paddedRect.top,
-      paddedRect.width,
-      paddedRect.height,
-      (x: number, y: number, idx: number): void => {
-        if (
-          (x >= paddedRect.left && x < paddedRect.left + borderThickness) || // Left border
-          (x <= paddedRect.left + paddedRect.width - 1 &&
-            x > paddedRect.left + paddedRect.width - borderThickness) || // Right border
-          (y >= paddedRect.top && y < paddedRect.top + borderThickness) || // Top border
-          (y <= paddedRect.top + paddedRect.height - 1 &&
-            y > paddedRect.top + paddedRect.height - borderThickness) // Bottom border
-        ) {
-          image.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
-          image.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
-          image.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
-          image.bitmap.data[idx + 3] = color.rect & 0xff; // A
-        }
-      },
+    // Draw rectangle border
+    drawRect(
+      overlayPixels,
+      imageWidth,
+      imageHeight,
+      paddedRect,
+      color.rect,
+      borderThickness,
     );
 
     // Calculate text position
@@ -138,19 +351,18 @@ const createSvgOverlay = async (
     if (typeof indexId !== 'number') {
       continue;
     }
-    const textWidth = indexId.toString().length * 8;
-    const textHeight = 12;
+
+    const textWidth = getNumberWidth(indexId);
+    const textHeight = FONT_HEIGHT * FONT_SCALE;
     const rectWidth = textWidth + 5;
     const rectHeight = textHeight + 4;
-    let rectX = paddedRect.left - rectWidth;
-    let rectY = paddedRect.top + paddedRect.height / 2 - textHeight / 2 - 2;
+    let rectX = paddedLeft - rectWidth;
+    let rectY =
+      paddedTop + Math.floor(paddedHeight / 2) - Math.floor(textHeight / 2) - 2;
 
     // Check if this new position overlaps with any existing boxes
-    // Function to check if a given position overlaps with any existing boxes
     const checkOverlap = (x: number, y: number) => {
-      // Check against all previously processed elements
       return elements.slice(0, index).some((otherElement) => {
-        // Check if the rectangles overlap
         return (
           x < otherElement.rect.left + otherElement.rect.width &&
           x + rectWidth > otherElement.rect.left &&
@@ -160,7 +372,6 @@ const createSvgOverlay = async (
       });
     };
 
-    // Function to check if a given position is within the image bounds
     const isWithinBounds = (x: number, y: number) => {
       return (
         x >= 0 &&
@@ -172,77 +383,66 @@ const createSvgOverlay = async (
 
     // Check left side (original position)
     if (checkOverlap(rectX, rectY) || !isWithinBounds(rectX, rectY)) {
-      // If the original position overlaps or is out of bounds, try alternative positions
-
       // Check top position
       if (
-        !checkOverlap(paddedRect.left, paddedRect.top - rectHeight - 2) &&
-        isWithinBounds(paddedRect.left, paddedRect.top - rectHeight - 2)
+        !checkOverlap(paddedLeft, paddedTop - rectHeight - 2) &&
+        isWithinBounds(paddedLeft, paddedTop - rectHeight - 2)
       ) {
-        rectX = paddedRect.left;
-        rectY = paddedRect.top - rectHeight - 2;
+        rectX = paddedLeft;
+        rectY = paddedTop - rectHeight - 2;
       }
       // Check bottom position
       else if (
-        !checkOverlap(
-          paddedRect.left,
-          paddedRect.top + paddedRect.height + 2,
-        ) &&
-        isWithinBounds(paddedRect.left, paddedRect.top + paddedRect.height + 2)
+        !checkOverlap(paddedLeft, paddedTop + paddedHeight + 2) &&
+        isWithinBounds(paddedLeft, paddedTop + paddedHeight + 2)
       ) {
-        rectX = paddedRect.left;
-        rectY = paddedRect.top + paddedRect.height + 2;
+        rectX = paddedLeft;
+        rectY = paddedTop + paddedHeight + 2;
       }
       // Check right position
       else if (
-        !checkOverlap(paddedRect.left + paddedRect.width + 2, paddedRect.top) &&
-        isWithinBounds(paddedRect.left + paddedRect.width + 2, paddedRect.top)
+        !checkOverlap(paddedLeft + paddedWidth + 2, paddedTop) &&
+        isWithinBounds(paddedLeft + paddedWidth + 2, paddedTop)
       ) {
-        rectX = paddedRect.left + paddedRect.width + 2;
-        rectY = paddedRect.top;
+        rectX = paddedLeft + paddedWidth + 2;
+        rectY = paddedTop;
       }
       // If all sides are overlapped or out of bounds, place it inside the box at the top
       else {
-        rectX = paddedRect.left;
-        rectY = paddedRect.top + 2;
+        rectX = paddedLeft;
+        rectY = paddedTop + 2;
       }
     }
-    // Note: If the original left position doesn't overlap and is within bounds, we keep it as is
 
     // Draw text background
-    image.scan(
-      rectX,
-      rectY,
-      rectWidth,
-      rectHeight,
-      (x: number, y: number, idx: number): void => {
-        image.bitmap.data[idx + 0] = (color.rect >> 24) & 0xff; // R
-        image.bitmap.data[idx + 1] = (color.rect >> 16) & 0xff; // G
-        image.bitmap.data[idx + 2] = (color.rect >> 8) & 0xff; // B
-        image.bitmap.data[idx + 3] = color.rect & 0xff; // A
-      },
-    );
-    // Draw text (simplified, as Jimp doesn't have built-in text drawing)
-    try {
-      cachedFont = cachedFont || (await loadFonts());
-    } catch (error) {
-      console.error('Error loading font', error);
-    }
-    image.print(
-      cachedFont,
-      rectX,
-      rectY,
+    fillRect(
+      overlayPixels,
+      imageWidth,
+      imageHeight,
       {
-        text: indexId.toString(),
-        alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-        alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
+        x: rectX,
+        y: rectY,
+        w: rectWidth,
+        h: rectHeight,
       },
-      rectWidth,
-      rectHeight,
+      color.rect,
+    );
+
+    // Draw text (centered in the background rect)
+    const textX = rectX + Math.floor((rectWidth - textWidth) / 2);
+    const textY = rectY + Math.floor((rectHeight - textHeight) / 2);
+    drawNumber(
+      overlayPixels,
+      imageWidth,
+      imageHeight,
+      indexId,
+      textX,
+      textY,
+      color.text,
     );
   }
 
-  return image;
+  return overlayPixels;
 };
 
 export const compositeElementInfoImg = async (options: {
@@ -254,67 +454,70 @@ export const compositeElementInfoImg = async (options: {
   prompt?: string;
 }) => {
   assert(options.inputImgBase64, 'inputImgBase64 is required');
+  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
+
   let width = 0;
   let height = 0;
-  let jimpImage: Jimp;
-
-  const Jimp = await getJimp();
 
   if (options.size) {
     width = options.size.width;
     height = options.size.height;
   }
 
+  let photonImage = await photonFromBase64(options.inputImgBase64);
+
   if (!width || !height) {
-    const info = await imageInfoOfBase64(options.inputImgBase64);
-    width = info.width;
-    height = info.height;
-    jimpImage = info.jimpImage;
+    width = photonImage.get_width();
+    height = photonImage.get_height();
   } else {
-    const imageBuffer = await bufferFromBase64(options.inputImgBase64);
-    jimpImage = await readImageBuffer(imageBuffer, Jimp);
-    const imageBitmap = jimpImage.bitmap;
-    // Resize the image to the specified width and height if it's not already the same. It usually happens when dpr is not 1
-    if (imageBitmap.width !== width || imageBitmap.height !== height) {
-      jimpImage.resize(width, height, Jimp.RESIZE_NEAREST_NEIGHBOR);
+    const imageWidth = photonImage.get_width();
+    const imageHeight = photonImage.get_height();
+    // Resize the image to the specified width and height if it's not already the same
+    if (imageWidth !== width || imageHeight !== height) {
+      const resized = resize(
+        photonImage,
+        width,
+        height,
+        SamplingFilter.Nearest,
+      );
+      photonImage.free();
+      photonImage = resized;
     }
   }
 
   if (!width || !height) {
+    photonImage.free();
     throw Error('Image processing failed because width or height is undefined');
   }
 
   const { elementsPositionInfo, prompt } = options;
 
-  const result = await Promise.resolve(jimpImage)
-    .then(async (image: Jimp) => {
-      // Create svg overlay
-      const svgOverlay = await createSvgOverlay(
-        elementsPositionInfo,
-        width,
-        height,
-        options.annotationPadding,
-        options.borderThickness,
-        prompt,
-      );
-      const svgImage = await Jimp.read(svgOverlay);
-      const compositeImage = await image.composite(svgImage, 0, 0, {
-        mode: Jimp.BLEND_SOURCE_OVER,
-        opacitySource: 1,
-        opacityDest: 1,
-      });
-      return compositeImage;
-    })
-    .then(async (compositeImage: Jimp) => {
-      compositeImage.quality(90);
-      const base64 = await compositeImage.getBase64Async(Jimp.MIME_JPEG);
-      return base64;
-    })
-    .catch((error: unknown) => {
-      throw error;
-    });
+  try {
+    // Get base image pixels
+    const basePixels = photonImage.get_raw_pixels();
 
-  return result;
+    // Create overlay with annotations
+    const overlayPixels = await createSvgOverlay(
+      elementsPositionInfo,
+      width,
+      height,
+      options.annotationPadding,
+      options.borderThickness,
+      prompt,
+    );
+
+    // Blend overlay onto base image
+    const blendedPixels = blendPixels(basePixels, overlayPixels, width, height);
+
+    // Create result image
+    const resultImage = new PhotonImage(blendedPixels, width, height);
+    const base64 = await photonToBase64(resultImage, 90);
+
+    resultImage.free();
+    return base64;
+  } finally {
+    photonImage.free();
+  }
 };
 
 export const processImageElementInfo = async (options: {
