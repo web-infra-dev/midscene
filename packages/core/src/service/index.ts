@@ -299,10 +299,6 @@ export default class Service {
 
     const dump = createServiceDump(dumpData);
 
-    if (errorLog) {
-      throw new ServiceError(errorLog, dump);
-    }
-
     return {
       results: parseResult.elements,
       dump,

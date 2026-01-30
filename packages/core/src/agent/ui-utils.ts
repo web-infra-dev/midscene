@@ -174,10 +174,7 @@ export function paramStr(task: ExecutionTask) {
         const prompts = locateParams
           .map((param) => locateParamStr(param))
           .filter(Boolean);
-        const shown = prompts.slice(0, 6);
-        const moreCount = prompts.length - shown.length;
-        const suffix = moreCount > 0 ? ` ...(+${moreCount})` : '';
-        value = `targets(${locateParams.length}): ${shown.join(', ')}${suffix}`;
+        value = prompts.join(', ');
       } else {
         value = locateParamStr(locateParams as any);
       }
