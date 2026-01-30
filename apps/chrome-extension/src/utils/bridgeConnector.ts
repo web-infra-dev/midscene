@@ -9,7 +9,7 @@ export type BridgeStatus =
 export class BridgeConnector {
   private activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
   private status: BridgeStatus = 'closed';
-  private connectRetryInterval = 300;
+  private connectRetryInterval = 3000; // Retry every 3 seconds
 
   constructor(
     private onMessage: (
