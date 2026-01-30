@@ -11,7 +11,7 @@ const manifestPath = path.resolve(__dirname, '../dist/manifest.json');
 const indexHtmlPath = path.resolve(__dirname, '../dist/index.html');
 const indexJsPath = path.resolve(__dirname, '../dist/static/js/index.js');
 const popupJsPath = path.resolve(__dirname, '../dist/static/js/popup.js');
-const maxWaitTime = 60000; // 60 seconds
+const maxWaitTime = 180000; // 180 seconds (workspace dev dependencies take time to start)
 const checkInterval = 500; // 500ms
 const stabilityWait = 1000; // Wait 1 second after detection to ensure files are stable
 

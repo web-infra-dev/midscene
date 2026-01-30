@@ -10,13 +10,21 @@ import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import AutoConnectIcon from '../../icons/auto-connect.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
-import {
-  BridgeConnector,
-  type BridgeStatus,
-} from '../../utils/bridgeConnector';
+import type { BridgeStatus } from '../../utils/bridgeConnector';
 import { iconForStatus } from '../misc';
 
 import './index.less';
+
+// Message types for communicating with Service Worker
+const workerMessageTypes = {
+  BRIDGE_START: 'bridge-start',
+  BRIDGE_STOP: 'bridge-stop',
+  BRIDGE_GET_STATUS: 'bridge-get-status',
+  BRIDGE_SET_AUTO_CONNECT: 'bridge-set-auto-connect',
+  BRIDGE_GET_AUTO_CONNECT: 'bridge-get-auto-connect',
+  BRIDGE_STATUS_CHANGED: 'bridge-status-changed',
+  BRIDGE_MESSAGE: 'bridge-message',
+};
 
 interface BridgeMessageItem {
   id: string;
@@ -26,7 +34,6 @@ interface BridgeMessageItem {
   time: string;
 }
 
-const AUTO_CONNECT_STORAGE_KEY = 'midscene-bridge-auto-connect';
 const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
 const DEFAULT_SERVER_URL = 'ws://localhost:3766';
 
@@ -35,10 +42,7 @@ export default function Bridge() {
   const [messageList, setMessageList] = useState<BridgeMessageItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
-  const [autoConnect, setAutoConnect] = useState<boolean>(() => {
-    const saved = localStorage.getItem(AUTO_CONNECT_STORAGE_KEY);
-    return saved === 'true';
-  });
+  const [autoConnect, setAutoConnect] = useState<boolean>(false);
   const [serverUrl, setServerUrl] = useState<string>(() => {
     // Only restore from localStorage if user has customized it
     return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
@@ -47,6 +51,7 @@ export default function Bridge() {
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
+  const portRef = useRef<chrome.runtime.Port | null>(null);
 
   const appendBridgeMessage = (content: string) => {
     // if there is a connection status message, append all messages to the existing message
@@ -79,57 +84,61 @@ export default function Bridge() {
     }
   };
 
-  const bridgeConnectorRef = useRef<BridgeConnector | null>(null);
-
-  // Initialize BridgeConnector when serverUrl changes or on first mount
+  // Connect to Service Worker via port for receiving status updates
   useEffect(() => {
-    // Clean up existing connector
-    if (bridgeConnectorRef.current) {
-      bridgeConnectorRef.current.disconnect();
-    }
+    const port = chrome.runtime.connect({ name: 'bridge-ui' });
+    portRef.current = port;
 
-    // Use custom serverUrl if provided, otherwise use default
-    const effectiveUrl = serverUrl || DEFAULT_SERVER_URL;
+    port.onMessage.addListener((message) => {
+      if (message.type === workerMessageTypes.BRIDGE_STATUS_CHANGED) {
+        console.log('Bridge status changed:', message.status);
+        setBridgeStatus(message.status);
+        if (message.status !== 'connected') {
+          appendBridgeMessage(`Bridge status changed to ${message.status}`);
+        }
+      } else if (message.type === workerMessageTypes.BRIDGE_MESSAGE) {
+        appendBridgeMessage(message.message);
+        if (message.msgType === 'status') {
+          console.log(
+            'status tip changed event',
+            message.msgType,
+            message.message,
+          );
+        }
+      }
+    });
 
-    // Create new connector with current serverUrl
-    bridgeConnectorRef.current = new BridgeConnector(
-      (message, type) => {
-        appendBridgeMessage(message);
-        if (type === 'status') {
-          console.log('status tip changed event', type, message);
+    port.onDisconnect.addListener(() => {
+      console.log('Disconnected from Service Worker');
+      portRef.current = null;
+    });
+
+    // Load auto-connect config from Service Worker
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_GET_AUTO_CONNECT },
+      (response) => {
+        if (response) {
+          setAutoConnect(response.enabled || false);
+          if (response.serverEndpoint) {
+            setServerUrl(response.serverEndpoint);
+          }
+          setBridgeStatus(response.status || 'closed');
         }
       },
-      (status) => {
-        console.log('status changed event', status);
-        setBridgeStatus(status);
-
-        if (status !== 'connected') {
-          appendBridgeMessage(`Bridge status changed to ${status}`);
-        }
-      },
-      effectiveUrl !== DEFAULT_SERVER_URL ? effectiveUrl : undefined,
     );
 
     return () => {
-      bridgeConnectorRef.current?.disconnect();
+      port.disconnect();
     };
-  }, [serverUrl]);
-
-  useEffect(() => {
-    // Auto-connect on component mount if enabled
-    // Only check on initial mount, not when autoConnect changes
-    if (
-      autoConnect &&
-      bridgeStatus === 'closed' &&
-      bridgeConnectorRef.current
-    ) {
-      startConnection();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, []);
 
   const stopConnection = () => {
-    bridgeConnectorRef.current?.disconnect();
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_STOP },
+      (response) => {
+        console.log('Bridge stop response:', response);
+      },
+    );
   };
 
   const startConnection = async () => {
@@ -137,12 +146,30 @@ export default function Bridge() {
     if (bridgeStatus === 'closed') {
       connectionStatusMessageId.current = null;
     }
-    bridgeConnectorRef.current?.connect();
+    const effectiveUrl = serverUrl || undefined;
+    chrome.runtime.sendMessage(
+      {
+        type: workerMessageTypes.BRIDGE_START,
+        payload: { serverEndpoint: effectiveUrl },
+      },
+      (response) => {
+        console.log('Bridge start response:', response);
+      },
+    );
   };
 
   const handleAutoConnectChange = (checked: boolean) => {
     setAutoConnect(checked);
-    localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, String(checked));
+    const effectiveUrl = serverUrl || undefined;
+    chrome.runtime.sendMessage(
+      {
+        type: workerMessageTypes.BRIDGE_SET_AUTO_CONNECT,
+        payload: { enabled: checked, serverEndpoint: effectiveUrl },
+      },
+      (response) => {
+        console.log('Auto-connect set response:', response);
+      },
+    );
   };
 
   const handleServerUrlChange = (value: string) => {
