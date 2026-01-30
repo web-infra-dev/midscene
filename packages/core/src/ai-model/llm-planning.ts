@@ -39,7 +39,7 @@ export function parseXMLPlanningResponse(
   modelFamily: TModelFamily | undefined,
 ): RawResponsePlanningAIResponse {
   const thought = extractXMLTag(xmlString, 'thought');
-  const note = extractXMLTag(xmlString, 'note');
+  const memory = extractXMLTag(xmlString, 'memory');
   const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
   const actionType = extractXMLTag(xmlString, 'action-type');
@@ -91,7 +91,7 @@ export function parseXMLPlanningResponse(
 
   return {
     ...(thought ? { thought } : {}),
-    ...(note ? { note } : {}),
+    ...(memory ? { memory } : {}),
     log,
     ...(error ? { error } : {}),
     action,
@@ -171,9 +171,9 @@ export async function plan(
     : '';
   const subGoalsSection = subGoalsText ? `\n\n${subGoalsText}` : '';
 
-  // Build notes text to include in the message
-  const notesText = conversationHistory.notesToText();
-  const notesSection = notesText ? `\n\n${notesText}` : '';
+  // Build memories text to include in the message
+  const memoriesText = conversationHistory.memoriesToText();
+  const memoriesSection = memoriesText ? `\n\n${memoriesText}` : '';
 
   if (conversationHistory.pendingFeedbackMessage) {
     latestFeedbackMessage = {
@@ -181,7 +181,7 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `${conversationHistory.pendingFeedbackMessage}. The last screenshot is attached. Please going on according to the instruction.${notesSection}${subGoalsSection}`,
+          text: `${conversationHistory.pendingFeedbackMessage}. The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.${memoriesSection}${subGoalsSection}`,
         },
         {
           type: 'image_url',
@@ -200,7 +200,7 @@ export async function plan(
       content: [
         {
           type: 'text',
-          text: `this is the latest screenshot${notesSection}${subGoalsSection}`,
+          text: `this is the latest screenshot${memoriesSection}${subGoalsSection}`,
         },
         {
           type: 'image_url',
@@ -320,9 +320,9 @@ export async function plan(
     }
   }
 
-  // Append note to conversation history if present
-  if (planFromAI.note) {
-    conversationHistory.appendNote(planFromAI.note);
+  // Append memory to conversation history if present
+  if (planFromAI.memory) {
+    conversationHistory.appendMemory(planFromAI.memory);
   }
 
   conversationHistory.append({

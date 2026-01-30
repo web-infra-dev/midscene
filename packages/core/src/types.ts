@@ -35,6 +35,7 @@ export type AIUsageInfo = Record<string, any> & {
   model_name: string | undefined;
   model_description: string | undefined;
   intent: string | undefined;
+  request_id: string | undefined;
 };
 
 export type { LocateResultElement };
@@ -248,7 +249,7 @@ export interface RawResponsePlanningAIResponse {
   action: PlanningAction;
   thought?: string;
   log: string;
-  note?: string;
+  memory?: string;
   error?: string;
   finalizeMessage?: string;
   finalizeSuccess?: boolean;
