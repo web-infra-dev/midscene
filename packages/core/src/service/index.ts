@@ -111,7 +111,10 @@ export default class Service {
       return this.locateMulti(query, opt, modelConfig);
     }
     if (mode === 'all') {
-      assert(!Array.isArray(query), 'query must be a single prompt for locate all');
+      assert(
+        !Array.isArray(query),
+        'query must be a single prompt for locate all',
+      );
       return this.locateAll(query, opt, modelConfig);
     }
     assert(!Array.isArray(query), 'query must be a single prompt for locate');

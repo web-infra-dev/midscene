@@ -1027,7 +1027,9 @@ const DetailSide = (): JSX.Element => {
       if (isLocateArrayOutput) {
         let locateLabels: string[] | undefined;
         if (task?.subType === 'LocateMultiple' && Array.isArray(task.param)) {
-          locateLabels = task.param.map((param) => locateParamLabel(param) || '');
+          locateLabels = task.param.map(
+            (param) => locateParamLabel(param) || '',
+          );
         } else if (task?.subType === 'LocateAll') {
           const label = locateParamLabel(task.param);
           if (label) {
