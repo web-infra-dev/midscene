@@ -20,7 +20,7 @@ import { agentFromWebDriverAgent } from '@midscene/ios';
 import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
-import type { Browser } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer';
 
 export interface SingleYamlExecutionResult {
   success: boolean;
@@ -79,6 +79,7 @@ export async function createYamlPlayer(
     headed?: boolean;
     keepWindow?: boolean;
     browser?: Browser;
+    page?: Page;
     testId?: string;
   },
 ): Promise<ScriptPlayer<MidsceneYamlScriptEnv>> {
@@ -175,6 +176,7 @@ export async function createYamlPlayer(
               ),
             },
             options?.browser,
+            options?.page,
           );
           freeFn.push(...newFreeFn);
 
