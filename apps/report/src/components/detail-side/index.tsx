@@ -131,6 +131,57 @@ const renderElementDetailBox = (_value: LocateResultElement) => {
   );
 };
 
+const renderEmptyElementBox = (label?: string) => (
+  <div className="element-detail-box">
+    <div className="element-detail-line">
+      {label ? `${label} ` : null}
+      <Tag bordered={false} color="default">
+        Not Found
+      </Tag>
+    </div>
+    <div className="element-detail-line element-detail-coords">
+      center=-, rect=-
+    </div>
+  </div>
+);
+
+const renderElementList = (
+  items: Array<LocateResultElement | null | undefined>,
+  labels?: string[],
+) => (
+  <div>
+    {items.map((item, index) => (
+      <div key={index}>
+        {isElementField(item)
+          ? renderElementDetailBox(item)
+          : renderEmptyElementBox(labels?.[index])}
+      </div>
+    ))}
+  </div>
+);
+
+const locateParamLabel = (param: any): string | undefined => {
+  if (!param) {
+    return undefined;
+  }
+
+  if (typeof param === 'string') {
+    return param;
+  }
+
+  if (typeof param === 'object') {
+    if (typeof param.prompt === 'string') {
+      return param.prompt;
+    }
+
+    if (typeof param.prompt === 'object' && param.prompt?.prompt) {
+      return param.prompt.prompt;
+    }
+  }
+
+  return undefined;
+};
+
 // Helper function to render content with element detection
 const renderMetaContent = (
   content: string | JSX.Element,
@@ -968,7 +1019,39 @@ const DetailSide = (): JSX.Element => {
       }
 
       // Handle output data
-      if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      const isLocateArrayOutput =
+        (task?.subType === 'LocateAll' || task?.subType === 'LocateMultiple') &&
+        Array.isArray(data) &&
+        data.some((item) => isElementField(item));
+
+      if (isLocateArrayOutput) {
+        let locateLabels: string[] | undefined;
+        if (task?.subType === 'LocateMultiple' && Array.isArray(task.param)) {
+          locateLabels = task.param.map(
+            (param) => locateParamLabel(param) || '',
+          );
+        } else if (task?.subType === 'LocateAll') {
+          const label = locateParamLabel(task.param);
+          if (label) {
+            locateLabels = data.map(() => label);
+          }
+        }
+
+        outputItems.push(
+          <Card
+            key="output"
+            liteMode={true}
+            onMouseEnter={noop}
+            onMouseLeave={noop}
+            title="output"
+            content={renderElementList(data, locateLabels)}
+          />,
+        );
+      } else if (
+        typeof data === 'object' &&
+        data !== null &&
+        !Array.isArray(data)
+      ) {
         // For object output, create a Card for each field
         Object.entries(data).forEach(([key, value]) => {
           let content: JSX.Element;

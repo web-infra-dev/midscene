@@ -60,6 +60,7 @@ const aiTaskHandlerMap = {
   aiBoolean: 'aiBoolean',
   aiAsk: 'aiAsk',
   aiLocate: 'aiLocate',
+  aiLocateAll: 'aiLocateAll',
 } as const;
 
 type AISimpleTaskKey = keyof typeof aiTaskHandlerMap;
