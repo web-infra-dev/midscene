@@ -23,7 +23,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const insight = fakeService('test-task-runner');
+      const insight = await fakeService('test-task-runner');
       const { element, dump: insightDump } = await insight.locate(
         {
           prompt: param.prompt,
@@ -49,7 +49,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = () => {
+const fakeUIContextBuilder = async () => {
   const screenshot = ScreenshotItem.create('');
   return {
     screenshot,
@@ -220,7 +220,7 @@ describe(
     });
 
     it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = (id: string) => {
+      const baseUIContext = async (id: string) => {
         const screenshot = ScreenshotItem.create(id);
         return {
           screenshot,
@@ -229,8 +229,8 @@ describe(
         } as unknown as UIContext;
       };
 
-      const firstContext = baseUIContext('first');
-      const screenshotContext = baseUIContext('screenshot');
+      const firstContext = await baseUIContext('first');
+      const screenshotContext = await baseUIContext('screenshot');
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
         .mockResolvedValueOnce(firstContext)
@@ -269,11 +269,14 @@ describe(
     it('subTask - throws when previous uiContext missing', async () => {
       const uiContextBuilder = vi
         .fn<[], Promise<UIContext>>()
-        .mockResolvedValue({
-          screenshot: ScreenshotItem.create(''),
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext);
+        .mockImplementation(
+          async () =>
+            ({
+              screenshot: ScreenshotItem.create(''),
+              tree: { node: null, children: [] },
+              size: { width: 0, height: 0 },
+            }) as unknown as UIContext,
+        );
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
         tasks: [
