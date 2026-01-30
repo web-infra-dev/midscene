@@ -12,6 +12,7 @@ export {
   paddingToMatchBlock,
   paddingToMatchBlockByBase64,
   cropByRect,
+  scaleImage,
   jimpFromBase64,
   jimpToBase64,
   localImg2Base64,
