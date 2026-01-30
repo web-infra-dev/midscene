@@ -13,6 +13,9 @@ const workerMessageTypes = {
   BRIDGE_GET_STATUS: 'bridge-get-status',
   BRIDGE_SET_AUTO_CONNECT: 'bridge-set-auto-connect',
   BRIDGE_GET_AUTO_CONNECT: 'bridge-get-auto-connect',
+  // Bridge status broadcast (from worker to UI)
+  BRIDGE_STATUS_CHANGED: 'bridge-status-changed',
+  BRIDGE_MESSAGE: 'bridge-message',
 };
 
 // save screenshot
@@ -33,14 +36,50 @@ const BRIDGE_STORAGE_KEY = 'midscene_bridge_auto_connect';
 let backgroundBridge: BridgeConnector | null = null;
 let currentBridgeStatus: BridgeStatus = 'closed';
 
+// Store connected ports for bridge status updates
+const bridgePorts = new Set<chrome.runtime.Port>();
+
+// Broadcast bridge status to all connected UI pages
+function broadcastBridgeStatus(status: BridgeStatus) {
+  bridgePorts.forEach((port) => {
+    try {
+      port.postMessage({
+        type: workerMessageTypes.BRIDGE_STATUS_CHANGED,
+        status,
+      });
+    } catch (error) {
+      console.error('[BackgroundBridge] Failed to broadcast status:', error);
+      bridgePorts.delete(port);
+    }
+  });
+}
+
+// Broadcast bridge message to all connected UI pages
+function broadcastBridgeMessage(message: string, msgType: 'log' | 'status') {
+  bridgePorts.forEach((port) => {
+    try {
+      port.postMessage({
+        type: workerMessageTypes.BRIDGE_MESSAGE,
+        message,
+        msgType,
+      });
+    } catch (error) {
+      console.error('[BackgroundBridge] Failed to broadcast message:', error);
+      bridgePorts.delete(port);
+    }
+  });
+}
+
 function createBackgroundBridge(serverEndpoint?: string): BridgeConnector {
   return new BridgeConnector(
     (message, type) => {
       console.log(`[BackgroundBridge] ${type}: ${message}`);
+      broadcastBridgeMessage(message, type);
     },
     (status) => {
       currentBridgeStatus = status;
       console.log(`[BackgroundBridge] Status changed: ${status}`);
+      broadcastBridgeStatus(status);
     },
     serverEndpoint,
   );
@@ -65,20 +104,29 @@ async function stopBackgroundBridge(): Promise<void> {
 }
 
 async function initBackgroundBridgeIfEnabled(): Promise<void> {
+  // Wait for chrome.storage to be available
+  if (!chrome?.storage?.local) {
+    console.log('[BackgroundBridge] chrome.storage not ready, retrying...');
+    setTimeout(() => initBackgroundBridgeIfEnabled(), 100);
+    return;
+  }
+
   try {
     const result = await chrome.storage.local.get(BRIDGE_STORAGE_KEY);
     const autoConnect = result[BRIDGE_STORAGE_KEY];
     if (autoConnect?.enabled) {
       console.log('[BackgroundBridge] Auto-connect enabled, starting...');
       await startBackgroundBridge(autoConnect.serverEndpoint);
+    } else {
+      console.log('[BackgroundBridge] Auto-connect disabled or not configured');
     }
   } catch (error) {
     console.error('[BackgroundBridge] Failed to init:', error);
   }
 }
 
-// Initialize background bridge on startup
-initBackgroundBridgeIfEnabled();
+// Initialize background bridge on startup (with delay to ensure chrome APIs are ready)
+setTimeout(() => initBackgroundBridgeIfEnabled(), 0);
 
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
@@ -96,6 +144,21 @@ chrome.runtime.onConnect.addListener((port) => {
     connectedPorts.add(port);
     port.onDisconnect.addListener(() => {
       connectedPorts.delete(port);
+    });
+  } else if (port.name === 'bridge-ui') {
+    // Bridge UI connection - for receiving status updates
+    bridgePorts.add(port);
+    console.log('[ServiceWorker] Bridge UI connected');
+
+    // Send current status immediately
+    port.postMessage({
+      type: workerMessageTypes.BRIDGE_STATUS_CHANGED,
+      status: currentBridgeStatus,
+    });
+
+    port.onDisconnect.addListener(() => {
+      bridgePorts.delete(port);
+      console.log('[ServiceWorker] Bridge UI disconnected');
     });
   } else {
     console.log('[ServiceWorker] Unknown port name:', port.name);
@@ -199,6 +262,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     case workerMessageTypes.BRIDGE_SET_AUTO_CONNECT: {
       const { enabled, serverEndpoint } = request.payload || {};
+      if (!chrome?.storage?.local) {
+        sendResponse({ success: false, error: 'chrome.storage not available' });
+        return true;
+      }
       chrome.storage.local
         .set({ [BRIDGE_STORAGE_KEY]: { enabled, serverEndpoint } })
         .then(() => {
@@ -214,6 +281,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
     case workerMessageTypes.BRIDGE_GET_AUTO_CONNECT: {
+      if (!chrome?.storage?.local) {
+        sendResponse({ enabled: false, status: currentBridgeStatus });
+        return true;
+      }
       chrome.storage.local
         .get(BRIDGE_STORAGE_KEY)
         .then((result) => {
