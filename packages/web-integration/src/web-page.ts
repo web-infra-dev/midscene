@@ -6,6 +6,7 @@ import {
   type DeviceAction,
   defineAction,
   defineActionClearInput,
+  defineActionCursorMove,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionHover,
@@ -484,6 +485,14 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
     const keys = getKeyCommands(param.keyName);
     await page.keyboard.press(keys as any); // TODO: fix this type error
+  }),
+  defineActionCursorMove(async (param) => {
+    const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+    const times = param.times ?? 1;
+    for (let i = 0; i < times; i++) {
+      await page.keyboard.press([{ key: arrowKey as any }]);
+      await sleep(100);
+    }
   }),
   defineActionScroll(async (param) => {
     const element = param.locate;

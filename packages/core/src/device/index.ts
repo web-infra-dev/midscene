@@ -427,6 +427,40 @@ export const defineActionClearInput = (
     call,
   });
 };
+
+// CursorMove
+export const actionCursorMoveParamSchema = z.object({
+  direction: z
+    .enum(['left', 'right'])
+    .describe('The direction to move the cursor'),
+  times: z
+    .number()
+    .int()
+    .min(1)
+    .default(1)
+    .describe(
+      'The number of times to move the cursor in the specified direction',
+    ),
+});
+export type ActionCursorMoveParam = {
+  direction: 'left' | 'right';
+  times?: number;
+};
+
+export const defineActionCursorMove = (
+  call: (param: ActionCursorMoveParam) => Promise<void>,
+): DeviceAction<ActionCursorMoveParam> => {
+  return defineAction<
+    typeof actionCursorMoveParamSchema,
+    ActionCursorMoveParam
+  >({
+    name: 'CursorMove',
+    description:
+      'Move the text cursor (caret) left or right within an input field or text area. Use this to reposition the cursor without selecting text.',
+    paramSchema: actionCursorMoveParamSchema,
+    call,
+  });
+};
 // Sleep
 export const ActionSleepParamSchema = z.object({
   timeMs: z

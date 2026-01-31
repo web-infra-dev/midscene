@@ -18,6 +18,7 @@ import {
   type AndroidDeviceOpt,
   defineAction,
   defineActionClearInput,
+  defineActionCursorMove,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
@@ -222,6 +223,15 @@ export class AndroidDevice implements AbstractInterface {
       }),
       defineActionKeyboardPress(async (param) => {
         await this.keyboardPress(param.keyName);
+      }),
+      defineActionCursorMove(async (param) => {
+        const arrowKey =
+          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        const times = param.times ?? 1;
+        for (let i = 0; i < times; i++) {
+          await this.keyboardPress(arrowKey);
+          await sleep(100);
+        }
       }),
       defineAction<
         z.ZodObject<{
