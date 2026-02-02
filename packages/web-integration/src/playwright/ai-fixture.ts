@@ -61,12 +61,22 @@ export const PlaywrightAiFixture = (options?: {
   waitForNetworkIdleTimeout?: number;
   waitForNavigationTimeout?: number;
   cache?: PlaywrightCache;
+  /**
+   * Use directory-based report format with separate PNG files.
+   * When enabled, each agent generates its own report with screenshots
+   * saved as separate files instead of inline base64.
+   *
+   * Note: Reports must be served via HTTP server (e.g., `npx serve`).
+   * The MidsceneReporter will be bypassed when this is enabled.
+   */
+  useDirectoryReport?: boolean;
 }) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
+    useDirectoryReport = false,
   } = options ?? {};
 
   // Helper function to process cache configuration and auto-generate ID from test info
@@ -92,19 +102,27 @@ export const PlaywrightAiFixture = (options?: {
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
 
+      // When useDirectoryReport is enabled, agent generates its own report
+      // and we skip the Reporter-based flow
+      const shouldGenerateReport = useDirectoryReport || opts?.generateReport;
+
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
-        generateReport: false, // we will generate it in the reporter
+        generateReport: shouldGenerateReport ?? false,
+        useDirectoryReport,
         ...opts,
       });
 
-      pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-        updateDumpAnnotation(testInfo, dump, idForPage);
-      };
+      // Only set up Reporter integration when not using directory report mode
+      if (!useDirectoryReport && !opts?.generateReport) {
+        pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
+          updateDumpAnnotation(testInfo, dump, idForPage);
+        };
+      }
 
       page.on('close', () => {
         debugPage('page closed');
