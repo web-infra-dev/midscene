@@ -27,6 +27,30 @@ function fakeBase64(sizeBytes: number): string {
 }
 
 /**
+ * Normalize HTML content for snapshot testing.
+ * Replaces dynamic content (UUIDs, timestamps) with stable placeholders.
+ */
+function normalizeHtmlForSnapshot(html: string): string {
+  // Replace UUID-like patterns (screenshot IDs) with stable placeholder
+  // Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  let normalized = html.replace(
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
+    'SCREENSHOT_ID_PLACEHOLDER',
+  );
+
+  // Replace timestamps (logTime values) - typical format: 13-digit number
+  normalized = normalized.replace(/"logTime":\s*\d{13}/g, '"logTime": 0');
+
+  // Replace base64 image data with placeholder (to reduce snapshot size)
+  normalized = normalized.replace(
+    /data:image\/png;base64,[A-Za-z0-9+/=]+/g,
+    'data:image/png;base64,BASE64_PLACEHOLDER',
+  );
+
+  return normalized;
+}
+
+/**
  * Create a GroupedActionDump with the given screenshots in uiContext.
  */
 function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
@@ -235,6 +259,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
 
+      // Snapshot test for full HTML structure
+      const normalizedHtml = normalizeHtmlForSnapshot(html);
+      expect(normalizedHtml).toMatchSnapshot('inline-mode-html-structure');
+
       // Parse image scripts - verify our screenshots exist
       const imageMap = parseImageScripts(html);
       expect(imageMap[screenshot1.id]).toBeDefined();
@@ -356,6 +384,29 @@ describe('ReportGenerator — constant memory guarantees', () => {
       // Since the same dump is written repeatedly, file size should remain stable
       // (overwrite, not append). Small variance allowed for potential timestamp changes.
       expect(sizeAfterFifth).toBe(sizeAfterFirst);
+    });
+
+    it('should produce valid HTML structure in directory mode', async () => {
+      const reportDir = join(tmpDir, 'dir-snapshot-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100));
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200));
+      const dump = createDump([screenshot1, screenshot2]);
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      const html = readFileSync(reportPath, 'utf-8');
+
+      // Snapshot test for directory mode HTML structure
+      const normalizedHtml = normalizeHtmlForSnapshot(html);
+      expect(normalizedHtml).toMatchSnapshot('directory-mode-html-structure');
     });
   });
 
