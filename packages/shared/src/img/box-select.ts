@@ -171,7 +171,11 @@ function drawRect(
   color: { r: number; g: number; b: number; a: number },
   thickness: number,
 ) {
-  const { x, y, w, h } = rect;
+  // Round to integers to avoid floating point precision issues
+  const x = Math.floor(rect.x);
+  const y = Math.floor(rect.y);
+  const w = Math.floor(rect.w);
+  const h = Math.floor(rect.h);
 
   for (let py = y; py < y + h && py < height; py++) {
     for (let px = x; px < x + w && px < width; px++) {
@@ -201,7 +205,11 @@ function fillRect(
   rect: { x: number; y: number; w: number; h: number },
   color: { r: number; g: number; b: number; a: number },
 ) {
-  const { x, y, w, h } = rect;
+  // Round to integers to avoid floating point precision issues
+  const x = Math.floor(rect.x);
+  const y = Math.floor(rect.y);
+  const w = Math.floor(rect.w);
+  const h = Math.floor(rect.h);
 
   for (let py = y; py < y + h && py < height; py++) {
     for (let px = x; px < x + w && px < width; px++) {
@@ -233,22 +241,30 @@ function blendPixels(
       result[i + 3] = basePixels[i + 3];
     } else {
       const outAlpha = overlayAlpha + baseAlpha * (1 - overlayAlpha);
-      result[i + 0] = Math.round(
-        (overlayPixels[i + 0] * overlayAlpha +
-          basePixels[i + 0] * baseAlpha * (1 - overlayAlpha)) /
-          outAlpha,
-      );
-      result[i + 1] = Math.round(
-        (overlayPixels[i + 1] * overlayAlpha +
-          basePixels[i + 1] * baseAlpha * (1 - overlayAlpha)) /
-          outAlpha,
-      );
-      result[i + 2] = Math.round(
-        (overlayPixels[i + 2] * overlayAlpha +
-          basePixels[i + 2] * baseAlpha * (1 - overlayAlpha)) /
-          outAlpha,
-      );
-      result[i + 3] = Math.round(outAlpha * 255);
+      if (outAlpha === 0) {
+        // Both alphas are effectively zero, copy overlay pixel
+        result[i + 0] = overlayPixels[i + 0];
+        result[i + 1] = overlayPixels[i + 1];
+        result[i + 2] = overlayPixels[i + 2];
+        result[i + 3] = overlayPixels[i + 3];
+      } else {
+        result[i + 0] = Math.round(
+          (overlayPixels[i + 0] * overlayAlpha +
+            basePixels[i + 0] * baseAlpha * (1 - overlayAlpha)) /
+            outAlpha,
+        );
+        result[i + 1] = Math.round(
+          (overlayPixels[i + 1] * overlayAlpha +
+            basePixels[i + 1] * baseAlpha * (1 - overlayAlpha)) /
+            outAlpha,
+        );
+        result[i + 2] = Math.round(
+          (overlayPixels[i + 2] * overlayAlpha +
+            basePixels[i + 2] * baseAlpha * (1 - overlayAlpha)) /
+            outAlpha,
+        );
+        result[i + 3] = Math.round(outAlpha * 255);
+      }
     }
   }
   return result;
@@ -291,7 +307,6 @@ const createSvgOverlay = async (
 
   // Draw prompt text if provided
   if (prompt) {
-    const promptPadding = 10;
     const promptMargin = 20;
     const promptHeight = 30;
     const promptY = imageHeight - promptHeight - promptMargin;

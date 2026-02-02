@@ -251,7 +251,12 @@ export async function paddingToMatchBlock(
   }
   if (bottomPadding > 0) {
     const white = new Rgba(255, 255, 255, 255);
-    result = padding_bottom(result, bottomPadding, white);
+    const previousResult = result;
+    result = padding_bottom(previousResult, bottomPadding, white);
+    // Free intermediate PhotonImage created by padding_right, but not the original input
+    if (previousResult !== image) {
+      previousResult.free();
+    }
   }
 
   return { width: targetWidth, height: targetHeight, image: result };
