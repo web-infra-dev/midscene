@@ -338,6 +338,7 @@ export class Page<
     const maxRetries = 3;
     const baseDelay = 500;
     let lastError: Error | undefined;
+    let actualAttempts = 0;
 
     // Errors that indicate the page/session is permanently gone - no point retrying
     const unrecoverableErrors = [
@@ -355,6 +356,7 @@ export class Page<
     };
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      actualAttempts = attempt;
       try {
         let base64: string;
         if (this.interfaceType === 'puppeteer') {
@@ -417,7 +419,7 @@ export class Page<
     // All retries exhausted or unrecoverable error, throw the last error
     const endTime = Date.now();
     debugPage(
-      `screenshotBase64 failed after ${maxRetries} attempts, cost: ${endTime - startTime}ms`,
+      `screenshotBase64 failed after ${actualAttempts} attempt(s), cost: ${endTime - startTime}ms`,
     );
     throw lastError || new Error('Screenshot failed after all retries');
   }

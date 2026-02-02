@@ -1,5 +1,5 @@
 import { Page } from '@/puppeteer/base-page';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the sleep function to speed up tests
 const { mockSleep } = vi.hoisted(() => ({
@@ -23,6 +23,10 @@ describe('screenshotBase64 retry mechanism', () => {
     vi.clearAllMocks();
     mockSleep.mockClear();
     warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   const createMockPuppeteerPage = (screenshotFn: () => Promise<string>) => ({
