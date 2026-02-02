@@ -17,17 +17,32 @@ export function parseImageScripts(html: string): Record<string, string> {
 }
 
 export function parseDumpScript(html: string): string {
-  // Use global flag to find ALL matches, then return the LAST one
-  // (the report template may contain similar regex patterns in bundled JS)
-  const regex = /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
-  const matches = [...html.matchAll(regex)];
-  const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
+  // Use string search instead of regex to avoid ReDoS vulnerability
+  // Find the LAST dump script tag (template may contain similar patterns in bundled JS)
+  const scriptOpenTag = '<script type="midscene_web_dump"';
+  const scriptCloseTag = '</script>';
 
-  if (!lastMatch) {
+  // Find the last occurrence of the opening tag
+  const lastOpenIndex = html.lastIndexOf(scriptOpenTag);
+  if (lastOpenIndex === -1) {
     throw new Error('No dump script found in HTML');
   }
 
-  return unescapeContent(lastMatch[1]);
+  // Find the end of the opening tag (the '>' character)
+  const tagEndIndex = html.indexOf('>', lastOpenIndex);
+  if (tagEndIndex === -1) {
+    throw new Error('No dump script found in HTML');
+  }
+
+  // Find the closing tag after the opening tag
+  const closeIndex = html.indexOf(scriptCloseTag, tagEndIndex);
+  if (closeIndex === -1) {
+    throw new Error('No dump script found in HTML');
+  }
+
+  // Extract content between opening and closing tags
+  const content = html.substring(tagEndIndex + 1, closeIndex);
+  return unescapeContent(content);
 }
 
 export function parseDumpScriptAttributes(
