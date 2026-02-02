@@ -1,9 +1,8 @@
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  GroupedActionDump,
   type ReportDumpWithAttributes,
-  buildImageMapFromFiles,
-  restoreImageReferences,
 } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { getReportTpl } from '@midscene/core/utils';
@@ -158,31 +157,17 @@ class MidsceneReporter implements Reporter {
     if (!dumpAnnotation?.description) return;
 
     const tempFilePath = dumpAnnotation.description;
-    const screenshotsMapPath = `${tempFilePath}.screenshots.json`;
-    const screenshotsDir = `${tempFilePath}.screenshots`;
 
-    // Track these temp files for potential cleanup in onEnd
-    this.tempFiles.add(tempFilePath);
-    this.tempFiles.add(screenshotsMapPath);
-    this.tempFiles.add(screenshotsDir);
+    // Track temp files for potential cleanup in onEnd
+    for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+      this.tempFiles.add(filePath);
+    }
 
     let dumpString: string | undefined;
 
     try {
-      dumpString = readFileSync(tempFilePath, 'utf-8');
-
-      // Read screenshot map and inline base64 data using centralized utilities
-      if (existsSync(screenshotsMapPath)) {
-        const screenshotMap: Record<string, string> = JSON.parse(
-          readFileSync(screenshotsMapPath, 'utf-8'),
-        );
-
-        // Build imageMap from files and restore references
-        const imageMap = buildImageMapFromFiles(screenshotMap);
-        const dumpData = JSON.parse(dumpString);
-        const processedData = restoreImageReferences(dumpData, imageMap);
-        dumpString = JSON.stringify(processedData);
-      }
+      // Read dump with inline screenshots
+      dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
     } catch (error) {
       console.error(
         `Failed to read Midscene dump file: ${tempFilePath}`,
@@ -224,14 +209,13 @@ class MidsceneReporter implements Reporter {
     }
 
     // Always try to clean up temp files
-    const filesToClean = [tempFilePath, screenshotsMapPath, screenshotsDir];
-    for (const filePath of filesToClean) {
-      try {
-        rmSync(filePath, { force: true, recursive: true });
+    try {
+      GroupedActionDump.cleanupFiles(tempFilePath);
+      for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
         this.tempFiles.delete(filePath);
-      } catch (error) {
-        // Keep in tempFiles for cleanup in onEnd
       }
+    } catch {
+      // Keep in tempFiles for cleanup in onEnd
     }
   }
 

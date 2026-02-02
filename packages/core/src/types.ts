@@ -1,5 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { join } from 'node:path';
 import type { NodeType } from '@midscene/shared/constants';
 import type { CreateOpenAIClientFn, TModelConfig } from '@midscene/shared/env';
 import type {
@@ -10,6 +18,7 @@ import type {
 } from '@midscene/shared/types';
 import type { z } from 'zod';
 import type { TUserPrompt } from './common';
+import { restoreImageReferences } from './dump/image-restoration';
 import { ScreenshotItem } from './screenshot-item';
 import type {
   DetailedLocateParam,
@@ -761,6 +770,114 @@ export class GroupedActionDump implements IGroupedActionDump {
       screenshots.push(...execution.collectScreenshots());
     }
     return screenshots;
+  }
+
+  /**
+   * Serialize the dump to files with screenshots as separate PNG files.
+   * Creates:
+   * - {basePath} - dump JSON with { $screenshot: id } references
+   * - {basePath}.screenshots/ - PNG files
+   * - {basePath}.screenshots.json - ID to path mapping
+   *
+   * @param basePath - Base path for the dump file
+   */
+  serializeToFiles(basePath: string): void {
+    const screenshotsDir = `${basePath}.screenshots`;
+    if (!existsSync(screenshotsDir)) {
+      mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Write screenshots to separate files
+    const screenshotMap: Record<string, string> = {};
+    const screenshots = this.collectAllScreenshots();
+
+    for (const screenshot of screenshots) {
+      if (screenshot.hasBase64()) {
+        const imagePath = join(screenshotsDir, `${screenshot.id}.png`);
+        const rawBase64 = screenshot.rawBase64;
+        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+        screenshotMap[screenshot.id] = imagePath;
+      }
+    }
+
+    // Write screenshot map file
+    writeFileSync(
+      `${basePath}.screenshots.json`,
+      JSON.stringify(screenshotMap),
+      'utf-8',
+    );
+
+    // Write dump JSON with references
+    writeFileSync(basePath, this.serialize(), 'utf-8');
+  }
+
+  /**
+   * Read dump from files and return JSON string with inline screenshots.
+   * Reads the dump JSON and screenshot files, then inlines the base64 data.
+   *
+   * @param basePath - Base path for the dump file
+   * @returns JSON string with inline screenshots ({ base64: "..." } format)
+   */
+  static fromFilesAsInlineJson(basePath: string): string {
+    const dumpString = readFileSync(basePath, 'utf-8');
+    const screenshotsMapPath = `${basePath}.screenshots.json`;
+
+    if (!existsSync(screenshotsMapPath)) {
+      return dumpString;
+    }
+
+    // Read screenshot map and build imageMap from files
+    const screenshotMap: Record<string, string> = JSON.parse(
+      readFileSync(screenshotsMapPath, 'utf-8'),
+    );
+
+    const imageMap: Record<string, string> = {};
+    for (const [id, filePath] of Object.entries(screenshotMap)) {
+      if (existsSync(filePath)) {
+        const data = readFileSync(filePath);
+        imageMap[id] = `data:image/png;base64,${data.toString('base64')}`;
+      }
+    }
+
+    // Restore image references
+    const dumpData = JSON.parse(dumpString);
+    const processedData = restoreImageReferences(dumpData, imageMap);
+    return JSON.stringify(processedData);
+  }
+
+  /**
+   * Clean up all files associated with a serialized dump.
+   *
+   * @param basePath - Base path for the dump file
+   */
+  static cleanupFiles(basePath: string): void {
+    const filesToClean = [
+      basePath,
+      `${basePath}.screenshots.json`,
+      `${basePath}.screenshots`,
+    ];
+
+    for (const filePath of filesToClean) {
+      try {
+        rmSync(filePath, { force: true, recursive: true });
+      } catch {
+        // Ignore errors - file may already be deleted
+      }
+    }
+  }
+
+  /**
+   * Get all file paths associated with a serialized dump.
+   *
+   * @param basePath - Base path for the dump file
+   * @returns Array of all associated file paths
+   */
+  static getFilePaths(basePath: string): string[] {
+    return [
+      basePath,
+      `${basePath}.screenshots.json`,
+      `${basePath}.screenshots`,
+    ];
   }
 }
 

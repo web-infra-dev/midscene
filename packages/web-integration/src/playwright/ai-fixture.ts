@@ -4,7 +4,6 @@ import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
 import type { WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
-import { writeScreenshotsToFiles } from '@midscene/core';
 import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
 import {
@@ -110,29 +109,20 @@ export const PlaywrightAiFixture = (options?: {
       page.on('close', () => {
         debugPage('page closed');
 
-        // Write screenshots to separate files to avoid memory duplication
+        // Write dump with screenshots to files
         (async () => {
           try {
             const agent = pageAgentMap[idForPage];
             if (agent) {
               const tempFilePath = pageTempFiles.get(idForPage);
               if (tempFilePath) {
-                // Use centralized utility to write screenshots
-                const screenshotMap = writeScreenshotsToFiles(
-                  agent.dump,
-                  tempFilePath,
-                );
-
-                // Update dump file with latest data (using { $screenshot: id } format)
-                writeFileSync(tempFilePath, agent.dump.serialize(), 'utf-8');
-
-                debugPage(
-                  `Wrote ${Object.keys(screenshotMap).length} screenshots to ${tempFilePath}.screenshots`,
-                );
+                // Serialize dump with screenshots as separate files
+                agent.dump.serializeToFiles(tempFilePath);
+                debugPage(`Serialized dump to ${tempFilePath}`);
               }
             }
           } catch (error) {
-            debugPage('Error writing screenshots:', error);
+            debugPage('Error writing dump:', error);
           } finally {
             // Clean up
             pageTempFiles.delete(idForPage);
