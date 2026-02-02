@@ -109,7 +109,7 @@ class BatchRunner {
           userAgent: globalWebConfig?.userAgent,
           windowSize: {
             width,
-            height: height + (headed ? 100 : 0), // add 100px for the address bar in headed mode
+            height,
           },
           chromeArgs: globalWebConfig?.chromeArgs,
         });
