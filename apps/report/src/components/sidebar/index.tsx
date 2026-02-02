@@ -57,6 +57,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const setHoverPreviewConfig = useExecutionDump(
     (store) => store.setHoverPreviewConfig,
   );
+  const setPlayingTaskId = useExecutionDump((store) => store.setPlayingTaskId);
   const allTasks = useAllCurrentTasks();
   const currentSelectedIndex = allTasks?.findIndex(
     (task) => task === activeTask,
@@ -585,6 +586,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
                   onClick={() => {
                     setActiveTask(task);
                     setReplayAllMode?.(false);
+                    setPlayingTaskId(null); // Clear playing state when user clicks a task
                   }}
                   onMouseEnter={(event) => {
                     const rect = event.currentTarget.getBoundingClientRect();

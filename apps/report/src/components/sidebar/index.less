@@ -204,10 +204,35 @@
         }
 
         &.playing {
-          background: rgba(24, 144, 255, 0.1);
-          border-left: 3px solid #1890ff;
-          padding-left: 5px;
-          margin-left: -8px;
+          position: relative;
+          background: rgba(0, 0, 0, 0.02);
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(0, 0, 0, 0.04) 50%,
+              transparent 100%
+            );
+            animation: shimmer-subtle 1.2s ease-in-out infinite;
+            pointer-events: none;
+          }
+        }
+
+        @keyframes shimmer-subtle {
+          0% {
+            left: -50%;
+          }
+          100% {
+            left: 100%;
+          }
         }
 
         .task-cell {
@@ -461,8 +486,26 @@
         }
 
         &.playing {
-          background: rgba(24, 144, 255, 0.2);
-          border-left: 3px solid #1890ff;
+          position: relative;
+          background: rgba(255, 255, 255, 0.03);
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.06) 50%,
+              transparent 100%
+            );
+            animation: shimmer-subtle 1.2s ease-in-out infinite;
+            pointer-events: none;
+          }
         }
       }
 
