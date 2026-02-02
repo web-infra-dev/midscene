@@ -62,10 +62,26 @@ export function restoreImageReferences<T>(
 
   if (typeof data === 'object' && data !== null) {
     if ('$screenshot' in data) {
-      const screenshot = (data as { $screenshot: unknown }).$screenshot;
-      const base64 = restoreScreenshotValue(screenshot, imageMap);
-      // Return { base64: "..." } format expected by visualizer components
-      return { base64 } as T;
+      const id = (data as { $screenshot: unknown }).$screenshot;
+      if (typeof id === 'string') {
+        // If found in imageMap, use it (inline mode)
+        if (imageMap[id]) {
+          return { base64: imageMap[id] } as T;
+        }
+        // If id looks like a path or base64 data, use it directly
+        if (
+          id.startsWith('data:image/') ||
+          id.startsWith('./') ||
+          id.startsWith('/')
+        ) {
+          return { base64: id } as T;
+        }
+        // Fallback to directory path (directory mode)
+        return { base64: `./screenshots/${id}.png` } as T;
+      }
+      // Invalid $screenshot value, return empty
+      console.warn('Invalid $screenshot value type:', typeof id);
+      return { base64: '' } as T;
     }
 
     const result: Record<string, unknown> = {};

@@ -408,6 +408,66 @@ describe('ReportGenerator — constant memory guarantees', () => {
       const normalizedHtml = normalizeHtmlForSnapshot(html);
       expect(normalizedHtml).toMatchSnapshot('directory-mode-html-structure');
     });
+
+    it('should output screenshot references as $screenshot format in dump JSON', async () => {
+      // Directory mode uses { $screenshot: id } format in dump JSON
+      // Browser-side restoreImageReferences will fallback to ./screenshots/{id}.png path
+      const reportDir = join(tmpDir, 'dir-path-format-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const screenshotId = screenshot.id;
+      const dump = createDump([screenshot]);
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      const html = readFileSync(reportPath, 'utf-8');
+
+      // Parse the dump script from HTML (gets the LAST dump script, not template code)
+      const dumpContent = parseDumpScript(html);
+      expect(dumpContent).toBeTruthy();
+
+      const dumpObj = JSON.parse(dumpContent!.trim());
+
+      // Navigate to the screenshot in the dump structure
+      const screenshotRef = dumpObj.executions[0].tasks[0].uiContext.screenshot;
+
+      // Should be { $screenshot: id } format (browser will fallback to path)
+      expect(screenshotRef).toHaveProperty('$screenshot');
+      expect(screenshotRef.$screenshot).toBe(screenshotId);
+    });
+
+    it('should keep base64 memory available after onDumpUpdate (for AI calls)', async () => {
+      // Screenshots remain available for subsequent AI calls during task execution
+      // Memory is only released in finalize()
+      const reportDir = join(tmpDir, 'dir-memory-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const dump = createDump([screenshot]);
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      // Screenshot base64 should still be accessible (not released yet)
+      expect(screenshot.hasBase64()).toBe(true);
+      expect(() => screenshot.base64).not.toThrow();
+
+      // toSerializable should return $screenshot format (not path yet)
+      const serialized = screenshot.toSerializable();
+      expect(serialized).toHaveProperty('$screenshot');
+    });
   });
 
   describe('nullReportGenerator — no-op', () => {

@@ -17,14 +17,17 @@ export function parseImageScripts(html: string): Record<string, string> {
 }
 
 export function parseDumpScript(html: string): string {
-  const regex = /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/;
-  const match = regex.exec(html);
+  // Use global flag to find ALL matches, then return the LAST one
+  // (the report template may contain similar regex patterns in bundled JS)
+  const regex = /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
+  const matches = [...html.matchAll(regex)];
+  const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
 
-  if (!match) {
+  if (!lastMatch) {
     throw new Error('No dump script found in HTML');
   }
 
-  return unescapeContent(match[1]);
+  return unescapeContent(lastMatch[1]);
 }
 
 export function parseDumpScriptAttributes(
