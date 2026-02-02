@@ -13,8 +13,8 @@ import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
   buildChromeArgs,
-  defaultViewportWidth,
   defaultViewportHeight,
+  defaultViewportWidth,
 } from '@midscene/web/puppeteer-agent-launcher';
 
 import merge from 'lodash.merge';
@@ -117,8 +117,8 @@ class BatchRunner {
         browser = await puppeteer.launch({
           headless: !headed,
           defaultViewport: headed
-          ? null
-          : { width, height, deviceScaleFactor: 1 },
+            ? null
+            : { width, height, deviceScaleFactor: 1 },
           args,
           acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
         });
