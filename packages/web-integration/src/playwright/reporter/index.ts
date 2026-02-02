@@ -167,25 +167,45 @@ class MidsceneReporter implements Reporter {
     try {
       dumpString = readFileSync(tempFilePath, 'utf-8');
 
-      // Read screenshot map and inline base64 data
+      // Read screenshot map and inline base64 data using JSON parsing (safer than regex)
       if (existsSync(screenshotsMapPath)) {
         const screenshotMap: Record<string, string> = JSON.parse(
           readFileSync(screenshotsMapPath, 'utf-8'),
         );
 
-        // Replace { $screenshot: id } with { base64: "data:image/png;base64,..." }
-        dumpString = dumpString.replace(
-          /\{\s*"\$screenshot"\s*:\s*"([^"]+)"\s*\}/g,
-          (match, id) => {
-            const imagePath = screenshotMap[id];
-            if (imagePath && existsSync(imagePath)) {
-              const imageData = readFileSync(imagePath);
-              const base64 = `data:image/png;base64,${imageData.toString('base64')}`;
-              return JSON.stringify({ base64 });
+        // Parse JSON, replace screenshot references, re-serialize
+        const dumpData = JSON.parse(dumpString);
+        const replaceScreenshots = (obj: unknown): unknown => {
+          if (obj === null || obj === undefined) return obj;
+          if (Array.isArray(obj)) return obj.map(replaceScreenshots);
+          if (typeof obj === 'object') {
+            const record = obj as Record<string, unknown>;
+            // Check if this is a screenshot reference: { $screenshot: id }
+            if (
+              '$screenshot' in record &&
+              typeof record.$screenshot === 'string'
+            ) {
+              const id = record.$screenshot;
+              const imagePath = screenshotMap[id];
+              if (imagePath && existsSync(imagePath)) {
+                const imageData = readFileSync(imagePath);
+                return {
+                  base64: `data:image/png;base64,${imageData.toString('base64')}`,
+                };
+              }
             }
-            return match; // Keep original if image not found
-          },
-        );
+            // Recursively process object properties
+            const result: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(record)) {
+              result[key] = replaceScreenshots(value);
+            }
+            return result;
+          }
+          return obj;
+        };
+
+        const processedData = replaceScreenshots(dumpData);
+        dumpString = JSON.stringify(processedData);
       }
     } catch (error) {
       console.error(
