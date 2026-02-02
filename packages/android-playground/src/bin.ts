@@ -13,6 +13,7 @@ import {
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
+import cors from 'cors';
 import ScrcpyServer from './scrcpy-server';
 
 const promiseExec = promisify(exec);
@@ -93,6 +94,15 @@ const main = async () => {
 
     // Set the selected device in scrcpy server
     scrcpyServer.currentDeviceId = selectedDeviceId;
+
+    // Add CORS middleware to playground server for remote access
+    playgroundServer.app.use(
+      cors({
+        origin: true,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      }),
+    );
 
     console.log('🚀 Starting servers...');
 

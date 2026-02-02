@@ -32,10 +32,7 @@ export default class ScrcpyServer {
     this.httpServer = createServer(this.app);
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: [
-          /^http:\/\/localhost(:\d+)?$/,
-          /^http:\/\/127\.0\.0\.1(:\d+)?$/,
-        ],
+        origin: true,
         methods: ['GET', 'POST'],
         credentials: true,
       },
