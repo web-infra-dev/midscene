@@ -1,19 +1,17 @@
 import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { readFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type Jimp from 'jimp';
+import type { PhotonImage as PhotonImageType } from '@silvia-odwyer/photon-node';
 import type { Rect } from 'src/types';
 import { getDebug } from '../logger';
 import { ifInNode } from '../utils';
-import getJimp from './get-jimp';
 import getPhoton from './get-photon';
 import getSharp from './get-sharp';
-import { readImageBuffer } from './safe-jimp';
 
 const imgDebug = getDebug('img');
 
-/**
 /**
  * Saves a Base64-encoded image to a file
  *
@@ -29,13 +27,8 @@ export async function saveBase64Image(options: {
   const { base64Data, outputPath } = options;
   const { body } = parseBase64(base64Data);
 
-  // Converts base64 data to buffer
   const imageBuffer = Buffer.from(body, 'base64');
-
-  // Use Jimp to process the image and save it to the specified location
-  const Jimp = await getJimp();
-  const image = await readImageBuffer(imageBuffer, Jimp);
-  await image.writeAsync(outputPath);
+  await writeFile(outputPath, imageBuffer);
 }
 
 /**
@@ -218,23 +211,25 @@ export function zoomForGPT4o(originalWidth: number, originalHeight: number) {
   };
 }
 
-export async function jimpFromBase64(base64: string): Promise<Jimp> {
-  const Jimp = await getJimp();
+export async function photonFromBase64(
+  base64: string,
+): Promise<PhotonImageType> {
+  const { PhotonImage } = await getPhoton();
   const { body } = parseBase64(base64);
-  const imageBuffer = Buffer.from(body, 'base64');
-  return readImageBuffer(imageBuffer, Jimp);
+  return PhotonImage.new_from_base64(body);
 }
 
 // https://help.aliyun.com/zh/model-studio/user-guide/vision/
 export async function paddingToMatchBlock(
-  image: Jimp,
+  image: PhotonImageType,
   blockSize = 28,
 ): Promise<{
   width: number;
   height: number;
-  image: Jimp;
+  image: PhotonImageType;
 }> {
-  const { width, height } = image.bitmap;
+  const width = image.get_width();
+  const height = image.get_height();
 
   const targetWidth = Math.ceil(width / blockSize) * blockSize;
   const targetHeight = Math.ceil(height / blockSize) * blockSize;
@@ -243,12 +238,28 @@ export async function paddingToMatchBlock(
     return { width, height, image };
   }
 
-  const Jimp = await getJimp();
-  const paddedImage = new Jimp(targetWidth, targetHeight, 0xffffffff);
+  const { padding_right, padding_bottom, Rgba } = await getPhoton();
 
-  // Composite the original image onto the new canvas
-  paddedImage.composite(image, 0, 0);
-  return { width: targetWidth, height: targetHeight, image: paddedImage };
+  const rightPadding = targetWidth - width;
+  const bottomPadding = targetHeight - height;
+
+  let result = image;
+  if (rightPadding > 0) {
+    // Rgba object is consumed by padding_right, so create new one for each call
+    const white = new Rgba(255, 255, 255, 255);
+    result = padding_right(result, rightPadding, white);
+  }
+  if (bottomPadding > 0) {
+    const white = new Rgba(255, 255, 255, 255);
+    const previousResult = result;
+    result = padding_bottom(previousResult, bottomPadding, white);
+    // Free intermediate PhotonImage created by padding_right, but not the original input
+    if (previousResult !== image) {
+      previousResult.free();
+    }
+  }
+
+  return { width: targetWidth, height: targetHeight, image: result };
 }
 
 export async function paddingToMatchBlockByBase64(
@@ -259,13 +270,21 @@ export async function paddingToMatchBlockByBase64(
   height: number;
   imageBase64: string;
 }> {
-  const jimpImage = await jimpFromBase64(imageBase64);
-  const paddedResult = await paddingToMatchBlock(jimpImage, blockSize);
-  return {
-    width: paddedResult.width,
-    height: paddedResult.height,
-    imageBase64: await jimpToBase64(paddedResult.image),
-  };
+  const photonImage = await photonFromBase64(imageBase64);
+  try {
+    const paddedResult = await paddingToMatchBlock(photonImage, blockSize);
+    const result = {
+      width: paddedResult.width,
+      height: paddedResult.height,
+      imageBase64: await photonToBase64(paddedResult.image),
+    };
+    if (paddedResult.image !== photonImage) {
+      paddedResult.image.free();
+    }
+    return result;
+  } finally {
+    photonImage.free();
+  }
 }
 
 export async function cropByRect(
@@ -277,28 +296,44 @@ export async function cropByRect(
   height: number;
   imageBase64: string;
 }> {
-  const jimpImage = await jimpFromBase64(imageBase64);
+  const { crop } = await getPhoton();
+  const photonImage = await photonFromBase64(imageBase64);
   const { left, top, width, height } = rect;
-  jimpImage.crop(left, top, width, height);
 
-  if (paddingImage) {
-    const paddedResult = await paddingToMatchBlock(jimpImage);
+  // Photon crop uses coordinates (x1, y1, x2, y2), not (x, y, width, height)
+  const cropped = crop(photonImage, left, top, left + width, top + height);
+  photonImage.free();
+
+  try {
+    if (paddingImage) {
+      const paddedResult = await paddingToMatchBlock(cropped);
+      const result = {
+        width: paddedResult.width,
+        height: paddedResult.height,
+        imageBase64: await photonToBase64(paddedResult.image),
+      };
+      if (paddedResult.image !== cropped) {
+        paddedResult.image.free();
+      }
+      return result;
+    }
     return {
-      width: paddedResult.width,
-      height: paddedResult.height,
-      imageBase64: await jimpToBase64(paddedResult.image),
+      width: cropped.get_width(),
+      height: cropped.get_height(),
+      imageBase64: await photonToBase64(cropped),
     };
+  } finally {
+    cropped.free();
   }
-  return {
-    width: jimpImage.bitmap.width,
-    height: jimpImage.bitmap.height,
-    imageBase64: await jimpToBase64(jimpImage),
-  };
 }
 
-export async function jimpToBase64(image: Jimp): Promise<string> {
-  const Jimp = await getJimp();
-  return image.getBase64Async(Jimp.MIME_JPEG);
+export async function photonToBase64(
+  image: PhotonImageType,
+  quality = 90,
+): Promise<string> {
+  const bytes = image.get_bytes_jpeg(quality);
+  const base64Body = Buffer.from(bytes).toString('base64');
+  return `data:image/jpeg;base64,${base64Body}`;
 }
 
 export const httpImg2Base64 = async (url: string): Promise<string> => {
