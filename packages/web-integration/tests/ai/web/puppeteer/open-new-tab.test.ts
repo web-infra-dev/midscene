@@ -32,7 +32,7 @@ describe('agent with forceSameTabNavigation', () => {
       cacheId: 'puppeteer-open-new-tab',
       // Use directory-based report format: screenshots saved as separate PNG files
       // instead of being inlined as base64. Report must be served via HTTP server.
-      useDirectoryReport: true,
+      useDirectoryReport: false,
     });
     const inputXpath = '//*[@id="search-input"]';
     await agent.aiInput('The search input box', {

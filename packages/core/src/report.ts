@@ -27,6 +27,21 @@ export class ReportMergingTool {
     return lastMatch ? lastMatch[1].trim() : '';
   }
 
+  private extractImageScripts(filePath: string): string {
+    // Extract all <script type="midscene-image"> tags for inline mode reports
+    const imageScriptRegex =
+      /<script type="midscene-image"[^>]*>[\s\S]*?<\/script>/g;
+
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      const matches = fileContent.match(imageScriptRegex);
+      return matches ? matches.join('\n') : '';
+    } catch {
+      // File may not exist or be readable, return empty string
+      return '';
+    }
+  }
+
   public mergeReports(
     reportFileName: 'AUTO' | string = 'AUTO', // user custom report filename, save into midscene report dir if undefined
     opts?: {
@@ -77,6 +92,14 @@ export class ReportMergingTool {
       for (let i = 0; i < this.reportInfos.length; i++) {
         const reportInfo = this.reportInfos[i];
         console.log(`Processing report ${i + 1}/${this.reportInfos.length}`);
+
+        // Extract and append image scripts (for inline mode reports)
+        const imageScripts = this.extractImageScripts(
+          reportInfo.reportFilePath,
+        );
+        if (imageScripts) {
+          fs.appendFileSync(outputFilePath, `${imageScripts}\n`);
+        }
 
         const dumpString = this.extractScriptContent(reportInfo.reportFilePath);
         const reportAttributes = reportInfo.reportAttributes;

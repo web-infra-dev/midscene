@@ -150,7 +150,13 @@ export default defineConfig({
 });
 ```
 
-The `type` option of the `reporter` configuration can be `merged` or `separate`. The default value is `merged`, which indicates that one merged report for all test cases; the optional value is `separate`, indicating that the report is separated for each test case.
+Reporter configuration options:
+- `type`: Report mode, can be `merged` (default) or `separate`. `merged` means multiple test cases generate one merged report, `separate` means each test case generates its own report.
+- `useDirectoryReport`: If `true`, uses directory-based report format with screenshots saved as separate PNG files instead of inline base64. Useful when report files are too large. Default is `false`. **Note**: When using this option, reports must be served via HTTP server and cannot be opened directly using `file://` protocol (because browser CORS restrictions block loading local images via relative paths from the file protocol). Navigate to the report directory and run one of the following commands:
+  - Using Node.js: `npx serve`
+  - Using Python: `python -m http.server` or `python3 -m http.server`
+
+  Then access the report via `http://localhost:3000` (or the port shown in the terminal).
 
 ### Step 2: Extend the `test` instance
 

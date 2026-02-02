@@ -61,22 +61,12 @@ export const PlaywrightAiFixture = (options?: {
   waitForNetworkIdleTimeout?: number;
   waitForNavigationTimeout?: number;
   cache?: PlaywrightCache;
-  /**
-   * Use directory-based report format with separate PNG files.
-   * When enabled, each agent generates its own report with screenshots
-   * saved as separate files instead of inline base64.
-   *
-   * Note: Reports must be served via HTTP server (e.g., `npx serve`).
-   * The MidsceneReporter will be bypassed when this is enabled.
-   */
-  useDirectoryReport?: boolean;
 }) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
     cache,
-    useDirectoryReport = false,
   } = options ?? {};
 
   // Helper function to process cache configuration and auto-generate ID from test info
@@ -102,54 +92,29 @@ export const PlaywrightAiFixture = (options?: {
       const { file, title } = groupAndCaseForTest(testInfo);
       const cacheConfig = processTestCacheConfig(testInfo);
 
-      // When useDirectoryReport is enabled, agent generates its own report
-      // and we skip the Reporter-based flow
-      const shouldGenerateReport = useDirectoryReport || opts?.generateReport;
-
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,
-        generateReport: shouldGenerateReport ?? false,
-        useDirectoryReport,
+        generateReport: false, // we will generate it in the reporter
         ...opts,
       });
 
-      // Only set up Reporter integration when not using directory report mode
-      if (!useDirectoryReport && !opts?.generateReport) {
-        pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
-          updateDumpAnnotation(testInfo, dump, idForPage);
-        };
-      }
+      pageAgentMap[idForPage].onDumpUpdate = (dump: string) => {
+        updateDumpAnnotation(testInfo, dump, idForPage);
+      };
 
       page.on('close', () => {
         debugPage('page closed');
 
-        // Write dump with screenshots to files
-        (async () => {
-          try {
-            const agent = pageAgentMap[idForPage];
-            if (agent) {
-              const tempFilePath = pageTempFiles.get(idForPage);
-              if (tempFilePath) {
-                // Serialize dump with screenshots as separate files
-                agent.dump.serializeToFiles(tempFilePath);
-                debugPage(`Serialized dump to ${tempFilePath}`);
-              }
-            }
-          } catch (error) {
-            debugPage('Error writing dump:', error);
-          } finally {
-            // Clean up
-            pageTempFiles.delete(idForPage);
-            pageAgentMap[idForPage]?.destroy();
-            delete pageAgentMap[idForPage];
-          }
-        })().catch((error) => {
-          console.error('Error in page close handler:', error);
-        });
+        // Clean up agent and temp file tracking
+        // Note: serializeToFiles is already called in updateDumpAnnotation,
+        // so we don't need to write files again here
+        pageTempFiles.delete(idForPage);
+        pageAgentMap[idForPage]?.destroy();
+        delete pageAgentMap[idForPage];
       });
     }
 
@@ -228,13 +193,18 @@ export const PlaywrightAiFixture = (options?: {
     dump: string,
     pageId: string,
   ) => {
-    // 1. First, clean up the old temp file if it exists
+    // 1. First, clean up the old temp files if they exist
     const oldTempFilePath = pageTempFiles.get(pageId);
     if (oldTempFilePath) {
       try {
         rmSync(oldTempFilePath, { force: true });
+        rmSync(`${oldTempFilePath}.screenshots`, {
+          force: true,
+          recursive: true,
+        });
+        rmSync(`${oldTempFilePath}.screenshots.json`, { force: true });
       } catch (error) {
-        // Silently ignore if old file is already cleaned up
+        // Silently ignore if old files are already cleaned up
       }
     }
 
@@ -242,10 +212,18 @@ export const PlaywrightAiFixture = (options?: {
     const tempFileName = `midscene-dump-${test.testId || uuid()}-${pageId}.json`;
     const tempFilePath = join(tmpdir(), tempFileName);
 
-    // 3. Write dump to the new temporary file
+    // 3. Serialize dump with screenshots as separate files
+    // This ensures Reporter can copy screenshots when useDirectoryReport is enabled
     try {
-      writeFileSync(tempFilePath, dump, 'utf-8');
-      debugPage(`Dump written to temp file: ${tempFilePath}`);
+      const agent = pageAgentMap[pageId];
+      if (agent) {
+        agent.dump.serializeToFiles(tempFilePath);
+        debugPage(`Dump with screenshots serialized to: ${tempFilePath}`);
+      } else {
+        // Fallback: write dump string directly if agent not available
+        writeFileSync(tempFilePath, dump, 'utf-8');
+        debugPage(`Dump written to temp file: ${tempFilePath}`);
+      }
 
       // 4. Track the new temp file (only if write succeeded)
       pageTempFiles.set(pageId, tempFilePath);
