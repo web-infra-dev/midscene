@@ -25,7 +25,6 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import clipboardy from 'clipboardy';
 import screenshot from 'screenshot-desktop';
 
 // Type definitions
@@ -320,12 +319,13 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       preview: text.substring(0, 20),
     });
 
+    const clipboardy = await import('clipboardy');
     // 1. Save old clipboard content
-    const oldClipboard = await clipboardy.read().catch(() => '');
+    const oldClipboard = await clipboardy.default.read().catch(() => '');
 
     try {
       // 2. Write new content to clipboard
-      await clipboardy.write(text);
+      await clipboardy.default.write(text);
       await sleep(50);
 
       // 3. Simulate paste shortcut
@@ -335,7 +335,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     } finally {
       // 4. Restore old clipboard content
       if (oldClipboard) {
-        await clipboardy.write(oldClipboard).catch(() => {
+        await clipboardy.default.write(oldClipboard).catch(() => {
           // Silent fail - don't affect main flow
           debugDevice('Failed to restore clipboard content');
         });
