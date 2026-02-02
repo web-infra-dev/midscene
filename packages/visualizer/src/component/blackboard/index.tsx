@@ -102,20 +102,12 @@ export const Blackboard = (props: {
   const context = props.uiContext;
   const { size, screenshot } = context;
 
-  // Derive screenshotBase64 from screenshot prop
-  // Handle different screenshot formats:
-  // 1. ScreenshotItem instance (runtime) - has .base64 getter
-  // 2. { base64: "..." } (serialized inline format)
-  // 3. string (raw base64)
-  // 4. undefined/null
+  // Extract base64 string from screenshot
+  // After restoreImageReferences(), screenshot is { base64: string }
   const screenshotBase64 = useMemo(() => {
     if (!screenshot) return '';
-    if (
-      typeof screenshot === 'object' &&
-      'base64' in screenshot &&
-      typeof screenshot.base64 === 'string'
-    ) {
-      return screenshot.base64;
+    if (typeof screenshot === 'object' && 'base64' in screenshot) {
+      return (screenshot as { base64: string }).base64;
     }
     if (typeof screenshot === 'string') return screenshot;
     return '';
