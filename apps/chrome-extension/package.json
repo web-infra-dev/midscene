@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "rsbuild build && npm run pack-extension",
-    "dev": "rm -rf dist && concurrently -k -n build,run \"rsbuild dev\" \"node scripts/wait-for-build.js && web-ext run --config web-ext-config.cjs --source-dir dist --target chromium\"",
+    "dev": "rimraf dist && concurrently -k -n build,run \"rsbuild dev\" \"node scripts/wait-for-build.js && web-ext run --config web-ext-config.cjs --source-dir dist --target chromium\"",
     "dev:simple": "rsbuild dev --open",
     "preview": "rsbuild preview",
     "pack-extension": "node scripts/pack-extension.js"
@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@rsbuild/core": "^1.6.15",
+    "rimraf": "~3.0.2",
     "@rsbuild/plugin-less": "^1.5.0",
     "@rsbuild/plugin-node-polyfill": "1.4.2",
     "@rsbuild/plugin-react": "^1.4.1",

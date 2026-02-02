@@ -163,13 +163,13 @@ The Chrome extension supports background bridge mode, which maintains the connec
 ### Enable Background Bridge
 
 1. Open the Chrome extension's Bridge Mode page
-2. Enable the **Enable Background Bridge** toggle
+2. Enable the **Auto allow in Bridge Mode** toggle
 3. Configure the server address (optional, defaults to `ws://localhost:3766`)
 4. Once enabled, the bridge connection runs in the background even after closing the extension popup
 
 ### How It Works
 
-Background bridge mode runs through Chrome extension's Service Worker. To prevent the Service Worker from being automatically suspended by the browser, the extension uses the `chrome.alarms` API for keepalive, sending a heartbeat signal approximately every 24 seconds to ensure stable connection.
+Background bridge mode runs through the Chrome extension's Service Worker. To reduce the chance that the Service Worker is automatically suspended by the browser, the extension uses the `chrome.alarms` API as a periodic wake-up/keepalive, scheduling an alarm approximately every 24 seconds to keep the background context active and help maintain a stable connection.
 
 ### Features
 

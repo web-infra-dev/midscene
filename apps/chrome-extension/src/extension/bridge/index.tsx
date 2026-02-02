@@ -11,20 +11,10 @@ import { useEffect, useRef, useState } from 'react';
 import AutoConnectIcon from '../../icons/auto-connect.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
 import type { BridgeStatus } from '../../utils/bridgeConnector';
+import { workerMessageTypes } from '../../utils/workerMessageTypes';
 import { iconForStatus } from '../misc';
 
 import './index.less';
-
-// Message types for communicating with Service Worker
-const workerMessageTypes = {
-  BRIDGE_START: 'bridge-start',
-  BRIDGE_STOP: 'bridge-stop',
-  BRIDGE_GET_STATUS: 'bridge-get-status',
-  BRIDGE_SET_AUTO_CONNECT: 'bridge-set-auto-connect',
-  BRIDGE_GET_AUTO_CONNECT: 'bridge-get-auto-connect',
-  BRIDGE_STATUS_CHANGED: 'bridge-status-changed',
-  BRIDGE_MESSAGE: 'bridge-message',
-};
 
 interface BridgeMessageItem {
   id: string;

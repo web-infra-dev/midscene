@@ -3,20 +3,7 @@
 import { uuid } from '@midscene/shared/utils';
 import type { WebUIContext } from '@midscene/web';
 import { BridgeConnector, type BridgeStatus } from '../utils/bridgeConnector';
-
-const workerMessageTypes = {
-  SAVE_CONTEXT: 'save-context',
-  GET_CONTEXT: 'get-context',
-  // Background bridge control messages
-  BRIDGE_START: 'bridge-start',
-  BRIDGE_STOP: 'bridge-stop',
-  BRIDGE_GET_STATUS: 'bridge-get-status',
-  BRIDGE_SET_AUTO_CONNECT: 'bridge-set-auto-connect',
-  BRIDGE_GET_AUTO_CONNECT: 'bridge-get-auto-connect',
-  // Bridge status broadcast (from worker to UI)
-  BRIDGE_STATUS_CHANGED: 'bridge-status-changed',
-  BRIDGE_MESSAGE: 'bridge-message',
-};
+import { workerMessageTypes } from '../utils/workerMessageTypes';
 
 // save screenshot
 interface WorkerRequestSaveContext {
@@ -80,6 +67,14 @@ function createBackgroundBridge(serverEndpoint?: string): BridgeConnector {
       currentBridgeStatus = status;
       console.log(`[BackgroundBridge] Status changed: ${status}`);
       broadcastBridgeStatus(status);
+      // Update keepalive based on bridge status
+      const shouldEnable = status === 'connected' || status === 'listening';
+      void setupKeepalive(shouldEnable).catch((error) => {
+        console.error(
+          '[Keepalive] Failed to update after status change:',
+          error,
+        );
+      });
     },
     serverEndpoint,
   );
@@ -100,6 +95,10 @@ async function stopBackgroundBridge(): Promise<void> {
     backgroundBridge = null;
     currentBridgeStatus = 'closed';
     console.log('[BackgroundBridge] Stopped');
+    // Update keepalive - check if auto-connect is still enabled
+    void setupKeepalive().catch((error) => {
+      console.error('[Keepalive] Failed to update after bridge stop:', error);
+    });
   }
 }
 
@@ -133,37 +132,74 @@ setTimeout(() => initBackgroundBridgeIfEnabled(), 0);
 const KEEPALIVE_ALARM_NAME = 'midscene-bridge-keepalive';
 const KEEPALIVE_INTERVAL_MINUTES = 0.4; // ~24 seconds (must be >= 0.4 in Chrome)
 
-async function setupKeepalive() {
-  // Clear any existing alarm
-  await chrome.alarms.clear(KEEPALIVE_ALARM_NAME);
+// Track if keepalive is currently enabled
+let keepaliveEnabled = false;
 
-  // Check if bridge auto-connect is enabled
-  const result = await chrome.storage.local.get(BRIDGE_STORAGE_KEY);
-  const autoConnect = result[BRIDGE_STORAGE_KEY];
+async function setupKeepalive(shouldEnable?: boolean) {
+  // Wait for chrome.storage to be available
+  if (!chrome?.storage?.local) {
+    console.log('[Keepalive] chrome.storage not ready, retrying...');
+    setTimeout(() => setupKeepalive(shouldEnable), 100);
+    return;
+  }
 
-  if (autoConnect?.enabled) {
-    // Create periodic alarm to keep SW alive
-    await chrome.alarms.create(KEEPALIVE_ALARM_NAME, {
-      periodInMinutes: KEEPALIVE_INTERVAL_MINUTES,
-    });
-    console.log('[Keepalive] Alarm set');
+  try {
+    // Clear any existing alarm
+    await chrome.alarms.clear(KEEPALIVE_ALARM_NAME);
+
+    // Determine if keepalive should be enabled
+    let enabled = shouldEnable;
+    if (enabled === undefined) {
+      // Check if bridge auto-connect is enabled or bridge is currently active
+      const result = await chrome.storage.local.get(BRIDGE_STORAGE_KEY);
+      const autoConnect = result[BRIDGE_STORAGE_KEY];
+      enabled =
+        autoConnect?.enabled ||
+        currentBridgeStatus === 'connected' ||
+        currentBridgeStatus === 'listening';
+    }
+
+    if (enabled) {
+      // Create periodic alarm to keep SW alive
+      await chrome.alarms.create(KEEPALIVE_ALARM_NAME, {
+        periodInMinutes: KEEPALIVE_INTERVAL_MINUTES,
+      });
+      if (!keepaliveEnabled) {
+        console.log('[Keepalive] Alarm set');
+      }
+      keepaliveEnabled = true;
+    } else {
+      if (keepaliveEnabled) {
+        console.log('[Keepalive] Alarm cleared');
+      }
+      keepaliveEnabled = false;
+    }
+  } catch (error) {
+    console.error('[Keepalive] Failed to setup keepalive:', error);
   }
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === KEEPALIVE_ALARM_NAME) {
-    console.log('[Keepalive] Ping -', new Date().toLocaleTimeString());
     // Just accessing chrome APIs keeps the SW alive
+    // Only log in development mode to reduce noise
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Keepalive] Ping -', new Date().toLocaleTimeString());
+    }
   }
 });
 
 // Setup keepalive on startup
-setupKeepalive();
+void setupKeepalive().catch((error) => {
+  console.error('[Keepalive] Failed to setup on startup:', error);
+});
 
 // Re-setup keepalive when auto-connect setting changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes[BRIDGE_STORAGE_KEY]) {
-    setupKeepalive();
+    void setupKeepalive().catch((error) => {
+      console.error('[Keepalive] Failed to setup after storage change:', error);
+    });
   }
 });
 

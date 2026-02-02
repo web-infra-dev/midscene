@@ -155,13 +155,13 @@ Chrome 插件支持后台桥接模式，无需保持插件 UI 打开即可维持
 ### 开启后台桥接
 
 1. 打开 Chrome 插件的 Bridge Mode 页面
-2. 开启 **Enable Background Bridge** 开关
+2. 开启 **Auto allow in Bridge Mode** 开关
 3. 配置服务器地址（可选，默认为 `ws://localhost:3766`）
 4. 开关开启后，即使关闭插件弹窗，桥接连接也会在后台持续运行
 
 ### 工作原理
 
-后台桥接模式通过 Chrome 扩展的 Service Worker 运行。为了防止 Service Worker 被浏览器自动休眠，插件使用 `chrome.alarms` API 实现保活机制，每约 24 秒发送一次心跳信号，确保连接稳定。
+后台桥接模式通过 Chrome 扩展的 Service Worker 运行。为了防止 Service Worker 被浏览器自动休眠，插件使用 `chrome.alarms` API 实现定时唤醒/保活机制，每约 24 秒唤醒一次 Service Worker，确保连接稳定。
 
 ### 特性
 
