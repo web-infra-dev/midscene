@@ -144,7 +144,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
       if (dump && dump.executions.length > 0) {
         // const setDefaultActiveTask = () => {};
 
-        const allScriptsInfo = await allScriptsFromDump(dump);
+        const allScriptsInfo = allScriptsFromDump(dump);
         if (!allScriptsInfo) {
           return;
           // return setDefaultActiveTask();

@@ -145,14 +145,14 @@ const capitalizeFirstLetter = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-export const allScriptsFromDump = async (
+export const allScriptsFromDump = (
   dump:
     | GroupedActionDump
     | IGroupedActionDump
     | ExecutionDump
     | null
     | undefined,
-): Promise<ReplayScriptsInfo | null> => {
+): ReplayScriptsInfo | null => {
   if (!dump) {
     console.warn('[allScriptsFromDump] dump is empty');
     return {
@@ -207,7 +207,7 @@ export const allScriptsFromDump = async (
   const allScripts: AnimationScript[] = [];
   const executions = normalizedDump.executions?.filter(Boolean) || [];
   for (const execution of executions) {
-    const scripts = await generateAnimationScripts(
+    const scripts = generateAnimationScripts(
       execution,
       -1,
       firstWidth!,
@@ -271,12 +271,12 @@ export const allScriptsFromDump = async (
   };
 };
 
-export const generateAnimationScripts = async (
+export const generateAnimationScripts = (
   execution: ExecutionDump | IExecutionDump | null,
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
-): Promise<AnimationScript[] | null> => {
+): AnimationScript[] | null => {
   if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
     return null;

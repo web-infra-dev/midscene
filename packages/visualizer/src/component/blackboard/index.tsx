@@ -102,33 +102,23 @@ export const Blackboard = (props: {
   const context = props.uiContext;
   const { size, screenshot } = context;
 
-  const [screenshotBase64, setScreenshotBase64] = useState<string>('');
-
-  useEffect(() => {
-    // Handle different screenshot formats:
-    // 1. ScreenshotItem instance (runtime) - has .base64 getter
-    // 2. { base64: "..." } (serialized inline format)
-    // 3. string (raw base64)
-    // 4. undefined/null
-
-    if (!screenshot) {
-      return;
-    }
-
-    // Check if it's a ScreenshotItem instance with base64 getter
+  // Derive screenshotBase64 from screenshot prop
+  // Handle different screenshot formats:
+  // 1. ScreenshotItem instance (runtime) - has .base64 getter
+  // 2. { base64: "..." } (serialized inline format)
+  // 3. string (raw base64)
+  // 4. undefined/null
+  const screenshotBase64 = useMemo(() => {
+    if (!screenshot) return '';
     if (
       typeof screenshot === 'object' &&
       'base64' in screenshot &&
       typeof screenshot.base64 === 'string'
     ) {
-      setScreenshotBase64(screenshot.base64);
-      return;
+      return screenshot.base64;
     }
-
-    // Handle raw string base64
-    if (typeof screenshot === 'string') {
-      setScreenshotBase64(screenshot);
-    }
+    if (typeof screenshot === 'string') return screenshot;
+    return '';
   }, [screenshot]);
 
   const screenWidth = size.width;

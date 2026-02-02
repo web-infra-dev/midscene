@@ -96,8 +96,9 @@ class MidsceneReporter implements Reporter {
       // Get report template
       const tpl = getReportTpl();
       if (!tpl) {
-        console.warn('reportTpl is not set, will not write report');
-        return;
+        throw new Error(
+          'Report template not found. Ensure @midscene/core is built correctly.',
+        );
       }
 
       // Parse the dump string (which already contains inline screenshots)
