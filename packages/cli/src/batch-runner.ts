@@ -116,9 +116,7 @@ class BatchRunner {
 
         browser = await puppeteer.launch({
           headless: !headed,
-          defaultViewport: headed
-            ? null
-            : { width, height, deviceScaleFactor: 1 },
+          defaultViewport: headed ? null : { width, height },
           args,
           acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
         });
