@@ -12,7 +12,7 @@ import {
   generateDumpScriptTag,
   generateImageScriptTag,
 } from './dump/html-utils';
-import type { GroupedActionDump } from './types';
+import type { ExecutionDump, GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
 export interface IReportGenerator {
@@ -45,6 +45,7 @@ export class ReportGenerator implements IReportGenerator {
   private screenshotMode: 'inline' | 'directory';
   private autoPrint: boolean;
   private writtenScreenshots = new Set<string>();
+  private releasedExecutions = new Set<string>();
 
   // inline mode state
   private imageEndOffset = 0;
@@ -145,6 +146,58 @@ export class ReportGenerator implements IReportGenerator {
     }
   }
 
+  /**
+   * Check if all tasks in an execution have completed (finished/failed/cancelled).
+   * Returns false if any task is still pending or running.
+   */
+  private isExecutionComplete(execution: ExecutionDump): boolean {
+    if (execution.tasks.length === 0) return false;
+    return execution.tasks.every(
+      (task) => task.status !== 'pending' && task.status !== 'running',
+    );
+  }
+
+  /**
+   * Release screenshot memory for completed executions.
+   * This is safe because subTasks can only reuse screenshots from the SAME execution's
+   * previous non-subTask, and we only release after ALL tasks in that execution are done.
+   */
+  private releaseCompletedExecutions(dump: GroupedActionDump): void {
+    for (const execution of dump.executions) {
+      const executionKey = `${execution.name}-${execution.logTime}`;
+      // Skip if already released
+      if (this.releasedExecutions.has(executionKey)) continue;
+      // Skip if execution not yet complete
+      if (!this.isExecutionComplete(execution)) continue;
+
+      // Release all screenshots in this execution
+      for (const task of execution.tasks) {
+        const screenshot = task.uiContext?.screenshot;
+        if (screenshot && screenshot.hasBase64()) {
+          if (this.screenshotMode === 'inline') {
+            screenshot.markPersistedInline();
+          } else {
+            screenshot.markPersistedToPath(`./screenshots/${screenshot.id}.png`);
+          }
+        }
+        // Also release recorder screenshots
+        for (const item of task.recorder || []) {
+          if (item.screenshot && item.screenshot.hasBase64()) {
+            if (this.screenshotMode === 'inline') {
+              item.screenshot.markPersistedInline();
+            } else {
+              item.screenshot.markPersistedToPath(
+                `./screenshots/${item.screenshot.id}.png`,
+              );
+            }
+          }
+        }
+      }
+
+      this.releasedExecutions.add(executionKey);
+    }
+  }
+
   getReportPath(): string | undefined {
     return this.reportPath;
   }
@@ -155,6 +208,9 @@ export class ReportGenerator implements IReportGenerator {
     } else {
       this.writeDirectoryReport(dump);
     }
+
+    // Release memory for completed executions
+    this.releaseCompletedExecutions(dump);
   }
 
   private writeInlineReport(dump: GroupedActionDump): void {
