@@ -109,25 +109,20 @@ export const PlaywrightAiFixture = (options?: {
       page.on('close', () => {
         debugPage('page closed');
 
-        // Generate final dump with inline screenshots before destroying the agent
+        // Write dump with screenshots to files
         (async () => {
           try {
             const agent = pageAgentMap[idForPage];
             if (agent) {
-              // Get dump with inline screenshots (sync)
-              const dumpWithInlineScreenshots =
-                agent.dump.serializeWithInlineScreenshots();
-              // Update the temp file with inline screenshot data
               const tempFilePath = pageTempFiles.get(idForPage);
               if (tempFilePath) {
-                writeFileSync(tempFilePath, dumpWithInlineScreenshots, 'utf-8');
-                debugPage(
-                  `Updated temp file with inline screenshots: ${tempFilePath}`,
-                );
+                // Serialize dump with screenshots as separate files
+                agent.dump.serializeToFiles(tempFilePath);
+                debugPage(`Serialized dump to ${tempFilePath}`);
               }
             }
           } catch (error) {
-            debugPage('Error generating dump with inline screenshots:', error);
+            debugPage('Error writing dump:', error);
           } finally {
             // Clean up
             pageTempFiles.delete(idForPage);

@@ -1,6 +1,9 @@
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ReportDumpWithAttributes } from '@midscene/core';
+import {
+  GroupedActionDump,
+  type ReportDumpWithAttributes,
+} from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { getReportTpl } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -155,13 +158,16 @@ class MidsceneReporter implements Reporter {
 
     const tempFilePath = dumpAnnotation.description;
 
-    // Track this temp file for potential cleanup in onEnd
-    this.tempFiles.add(tempFilePath);
+    // Track temp files for potential cleanup in onEnd
+    for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+      this.tempFiles.add(filePath);
+    }
 
     let dumpString: string | undefined;
 
     try {
-      dumpString = readFileSync(tempFilePath, 'utf-8');
+      // Read dump with inline screenshots
+      dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
     } catch (error) {
       console.error(
         `Failed to read Midscene dump file: ${tempFilePath}`,
@@ -202,16 +208,13 @@ class MidsceneReporter implements Reporter {
       this.pendingReports.add(reportPromise);
     }
 
-    // Always try to clean up temp file
+    // Always try to clean up temp files
     try {
-      rmSync(tempFilePath, { force: true });
-      // If successfully deleted, remove from tracking
-      this.tempFiles.delete(tempFilePath);
-    } catch (error) {
-      console.warn(
-        `Failed to delete Midscene temp file: ${tempFilePath}`,
-        error,
-      );
+      GroupedActionDump.cleanupFiles(tempFilePath);
+      for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+        this.tempFiles.delete(filePath);
+      }
+    } catch {
       // Keep in tempFiles for cleanup in onEnd
     }
   }
