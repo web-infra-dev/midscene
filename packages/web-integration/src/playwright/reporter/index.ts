@@ -1,4 +1,4 @@
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ReportDumpWithAttributes } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
@@ -154,14 +154,39 @@ class MidsceneReporter implements Reporter {
     if (!dumpAnnotation?.description) return;
 
     const tempFilePath = dumpAnnotation.description;
+    const screenshotsMapPath = `${tempFilePath}.screenshots.json`;
+    const screenshotsDir = `${tempFilePath}.screenshots`;
 
-    // Track this temp file for potential cleanup in onEnd
+    // Track these temp files for potential cleanup in onEnd
     this.tempFiles.add(tempFilePath);
+    this.tempFiles.add(screenshotsMapPath);
+    this.tempFiles.add(screenshotsDir);
 
     let dumpString: string | undefined;
 
     try {
       dumpString = readFileSync(tempFilePath, 'utf-8');
+
+      // Read screenshot map and inline base64 data
+      if (existsSync(screenshotsMapPath)) {
+        const screenshotMap: Record<string, string> = JSON.parse(
+          readFileSync(screenshotsMapPath, 'utf-8'),
+        );
+
+        // Replace { $screenshot: id } with { base64: "data:image/png;base64,..." }
+        dumpString = dumpString.replace(
+          /\{\s*"\$screenshot"\s*:\s*"([^"]+)"\s*\}/g,
+          (match, id) => {
+            const imagePath = screenshotMap[id];
+            if (imagePath && existsSync(imagePath)) {
+              const imageData = readFileSync(imagePath);
+              const base64 = `data:image/png;base64,${imageData.toString('base64')}`;
+              return JSON.stringify({ base64 });
+            }
+            return match; // Keep original if image not found
+          },
+        );
+      }
     } catch (error) {
       console.error(
         `Failed to read Midscene dump file: ${tempFilePath}`,
@@ -202,17 +227,15 @@ class MidsceneReporter implements Reporter {
       this.pendingReports.add(reportPromise);
     }
 
-    // Always try to clean up temp file
-    try {
-      rmSync(tempFilePath, { force: true });
-      // If successfully deleted, remove from tracking
-      this.tempFiles.delete(tempFilePath);
-    } catch (error) {
-      console.warn(
-        `Failed to delete Midscene temp file: ${tempFilePath}`,
-        error,
-      );
-      // Keep in tempFiles for cleanup in onEnd
+    // Always try to clean up temp files
+    const filesToClean = [tempFilePath, screenshotsMapPath, screenshotsDir];
+    for (const filePath of filesToClean) {
+      try {
+        rmSync(filePath, { force: true, recursive: true });
+        this.tempFiles.delete(filePath);
+      } catch (error) {
+        // Keep in tempFiles for cleanup in onEnd
+      }
     }
   }
 

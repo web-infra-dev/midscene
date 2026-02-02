@@ -1,4 +1,4 @@
-import { rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
@@ -109,25 +109,52 @@ export const PlaywrightAiFixture = (options?: {
       page.on('close', () => {
         debugPage('page closed');
 
-        // Generate final dump with inline screenshots before destroying the agent
+        // Write screenshots to separate files to avoid memory duplication
         (async () => {
           try {
             const agent = pageAgentMap[idForPage];
             if (agent) {
-              // Get dump with inline screenshots (sync)
-              const dumpWithInlineScreenshots =
-                agent.dump.serializeWithInlineScreenshots();
-              // Update the temp file with inline screenshot data
               const tempFilePath = pageTempFiles.get(idForPage);
               if (tempFilePath) {
-                writeFileSync(tempFilePath, dumpWithInlineScreenshots, 'utf-8');
+                // Create screenshots directory next to the dump file
+                const screenshotsDir = `${tempFilePath}.screenshots`;
+                if (!existsSync(screenshotsDir)) {
+                  mkdirSync(screenshotsDir, { recursive: true });
+                }
+
+                // Collect all screenshots and write to separate files
+                const screenshots = agent.dump.collectAllScreenshots();
+                const screenshotMap: Record<string, string> = {};
+
+                for (const screenshot of screenshots) {
+                  if (screenshot.hasBase64()) {
+                    const imagePath = join(
+                      screenshotsDir,
+                      `${screenshot.id}.png`,
+                    );
+                    const rawBase64 = screenshot.rawBase64;
+                    writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+                    screenshotMap[screenshot.id] = imagePath;
+                  }
+                }
+
+                // Write screenshot map file
+                writeFileSync(
+                  `${tempFilePath}.screenshots.json`,
+                  JSON.stringify(screenshotMap),
+                  'utf-8',
+                );
+
+                // Update dump file with latest data (still using { $screenshot: id } format)
+                writeFileSync(tempFilePath, agent.dump.serialize(), 'utf-8');
+
                 debugPage(
-                  `Updated temp file with inline screenshots: ${tempFilePath}`,
+                  `Wrote ${Object.keys(screenshotMap).length} screenshots to ${screenshotsDir}`,
                 );
               }
             }
           } catch (error) {
-            debugPage('Error generating dump with inline screenshots:', error);
+            debugPage('Error writing screenshots:', error);
           } finally {
             // Clean up
             pageTempFiles.delete(idForPage);
