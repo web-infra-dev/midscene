@@ -613,7 +613,9 @@ describe('ReportGenerator — constant memory guarantees', () => {
       // toSerializable should return path format after release
       const serialized = screenshot.toSerializable();
       expect(serialized).toHaveProperty('base64');
-      expect((serialized as { base64: string }).base64).toContain('screenshots');
+      expect((serialized as { base64: string }).base64).toContain(
+        'screenshots',
+      );
     });
   });
 

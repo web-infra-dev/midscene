@@ -173,16 +173,18 @@ export class ReportGenerator implements IReportGenerator {
       // Release all screenshots in this execution
       for (const task of execution.tasks) {
         const screenshot = task.uiContext?.screenshot;
-        if (screenshot && screenshot.hasBase64()) {
+        if (screenshot?.hasBase64()) {
           if (this.screenshotMode === 'inline') {
             screenshot.markPersistedInline();
           } else {
-            screenshot.markPersistedToPath(`./screenshots/${screenshot.id}.png`);
+            screenshot.markPersistedToPath(
+              `./screenshots/${screenshot.id}.png`,
+            );
           }
         }
         // Also release recorder screenshots
         for (const item of task.recorder || []) {
-          if (item.screenshot && item.screenshot.hasBase64()) {
+          if (item.screenshot?.hasBase64()) {
             if (this.screenshotMode === 'inline') {
               item.screenshot.markPersistedInline();
             } else {
