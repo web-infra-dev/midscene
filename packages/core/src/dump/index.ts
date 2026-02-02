@@ -13,3 +13,7 @@ export {
   generateImageScriptTag,
   generateDumpScriptTag,
 } from './html-utils';
+export {
+  writeScreenshotsToFiles,
+  buildImageMapFromFiles,
+} from './screenshot-io';

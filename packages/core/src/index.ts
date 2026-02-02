@@ -62,6 +62,8 @@ export {
   parseDumpScriptAttributes,
   generateImageScriptTag,
   generateDumpScriptTag,
+  writeScreenshotsToFiles,
+  buildImageMapFromFiles,
 } from './dump';
 
 // Report generator

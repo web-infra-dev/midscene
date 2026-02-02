@@ -1,6 +1,10 @@
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { ReportDumpWithAttributes } from '@midscene/core';
+import {
+  type ReportDumpWithAttributes,
+  buildImageMapFromFiles,
+  restoreImageReferences,
+} from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { getReportTpl } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -167,44 +171,16 @@ class MidsceneReporter implements Reporter {
     try {
       dumpString = readFileSync(tempFilePath, 'utf-8');
 
-      // Read screenshot map and inline base64 data using JSON parsing (safer than regex)
+      // Read screenshot map and inline base64 data using centralized utilities
       if (existsSync(screenshotsMapPath)) {
         const screenshotMap: Record<string, string> = JSON.parse(
           readFileSync(screenshotsMapPath, 'utf-8'),
         );
 
-        // Parse JSON, replace screenshot references, re-serialize
+        // Build imageMap from files and restore references
+        const imageMap = buildImageMapFromFiles(screenshotMap);
         const dumpData = JSON.parse(dumpString);
-        const replaceScreenshots = (obj: unknown): unknown => {
-          if (obj === null || obj === undefined) return obj;
-          if (Array.isArray(obj)) return obj.map(replaceScreenshots);
-          if (typeof obj === 'object') {
-            const record = obj as Record<string, unknown>;
-            // Check if this is a screenshot reference: { $screenshot: id }
-            if (
-              '$screenshot' in record &&
-              typeof record.$screenshot === 'string'
-            ) {
-              const id = record.$screenshot;
-              const imagePath = screenshotMap[id];
-              if (imagePath && existsSync(imagePath)) {
-                const imageData = readFileSync(imagePath);
-                return {
-                  base64: `data:image/png;base64,${imageData.toString('base64')}`,
-                };
-              }
-            }
-            // Recursively process object properties
-            const result: Record<string, unknown> = {};
-            for (const [key, value] of Object.entries(record)) {
-              result[key] = replaceScreenshots(value);
-            }
-            return result;
-          }
-          return obj;
-        };
-
-        const processedData = replaceScreenshots(dumpData);
+        const processedData = restoreImageReferences(dumpData, imageMap);
         dumpString = JSON.stringify(processedData);
       }
     } catch (error) {
