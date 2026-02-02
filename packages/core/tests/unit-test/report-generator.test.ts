@@ -433,9 +433,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(screenshotRef.$screenshot).toBe(screenshotId);
     });
 
-    it('should keep base64 memory available after onDumpUpdate (for AI calls)', async () => {
-      // Screenshots remain available for subsequent AI calls during task execution
-      // Memory is only released in finalize()
+    it('should keep base64 memory available when tasks are still running', async () => {
+      // When tasks have status='running', screenshots must remain available
+      // because subTasks within the SAME execution may still need them.
+      // (createDump() creates tasks with status='running' by default)
       const reportDir = join(tmpDir, 'dir-memory-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -501,82 +502,60 @@ describe('ReportGenerator — constant memory guarantees', () => {
     });
   });
 
-  describe('memory release — release screenshots after execution completes', () => {
+  describe('memory release — release old executions, keep latest', () => {
     /**
-     * Create a GroupedActionDump with tasks that have specific status values.
-     * This simulates a completed execution where all tasks have finished.
+     * Create a GroupedActionDump with multiple executions.
      */
-    function createDumpWithStatus(
-      screenshots: ScreenshotItem[],
-      status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled',
-    ): GroupedActionDump {
-      const tasks = screenshots.map((s, i) => ({
-        type: 'Insight' as const,
-        subType: 'Locate',
-        param: { prompt: `task-${i}` },
-        uiContext: {
-          screenshot: s,
-          size: { width: 1920, height: 1080 },
-        } as UIContext,
-        executor: async () => undefined,
-        recorder: [],
-        status,
-        timing: { start: Date.now(), end: Date.now(), cost: 100 },
-      }));
+    function createMultiExecutionDump(
+      executionCount: number,
+      screenshotsPerExecution: number,
+    ): { dump: GroupedActionDump; screenshots: ScreenshotItem[][] } {
+      const allScreenshots: ScreenshotItem[][] = [];
+      const executions = [];
 
-      return new GroupedActionDump({
-        sdkVersion: '1.0.0-test',
-        groupName: 'test-group',
-        groupDescription: 'test',
-        modelBriefs: [],
-        executions: [
+      for (let e = 0; e < executionCount; e++) {
+        const screenshots: ScreenshotItem[] = [];
+        for (let s = 0; s < screenshotsPerExecution; s++) {
+          screenshots.push(ScreenshotItem.create(fakeBase64(1000)));
+        }
+        allScreenshots.push(screenshots);
+
+        const tasks = screenshots.map((sc, i) => ({
+          type: 'Insight' as const,
+          subType: 'Locate',
+          param: { prompt: `exec-${e}-task-${i}` },
+          uiContext: {
+            screenshot: sc,
+            size: { width: 1920, height: 1080 },
+          } as UIContext,
+          executor: async () => undefined,
+          recorder: [],
+          status: 'running' as const,
+        }));
+
+        executions.push(
           new ExecutionDump({
-            logTime: Date.now(),
-            name: 'test-execution',
+            logTime: Date.now() + e * 1000, // Different timestamps
+            name: `execution-${e}`,
             tasks,
           }),
-        ],
-      });
+        );
+      }
+
+      return {
+        dump: new GroupedActionDump({
+          sdkVersion: '1.0.0-test',
+          groupName: 'test-group',
+          groupDescription: 'test',
+          modelBriefs: [],
+          executions,
+        }),
+        screenshots: allScreenshots,
+      };
     }
 
-    it('should release screenshot memory when all tasks in execution are completed', async () => {
-      // This test verifies the memory release behavior:
-      // When all tasks in an execution have status 'finished', 'failed', or 'cancelled',
-      // the screenshots for that execution should be released to free memory.
-      // This is important for long-running agents with 100+ steps.
-      const reportPath = join(tmpDir, 'memory-release-test.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        autoPrint: false,
-      });
-
-      // Create 3 screenshots (simulating 3 completed tasks)
-      const screenshot1 = ScreenshotItem.create(fakeBase64(10000)); // 10KB
-      const screenshot2 = ScreenshotItem.create(fakeBase64(10000));
-      const screenshot3 = ScreenshotItem.create(fakeBase64(10000));
-
-      // Create dump with all tasks completed (status = 'finished')
-      const dump = createDumpWithStatus(
-        [screenshot1, screenshot2, screenshot3],
-        'finished',
-      );
-
-      // Write the dump (execution is complete)
-      generator.onDumpUpdate(dump);
-      await generator.flush();
-
-      // After write, since all tasks are completed, screenshots should be released
-      // This is the expected behavior for memory optimization
-      expect(screenshot1.hasBase64()).toBe(false);
-      expect(screenshot2.hasBase64()).toBe(false);
-      expect(screenshot3.hasBase64()).toBe(false);
-    });
-
-    it('should NOT release screenshot memory when tasks are still running', async () => {
-      // When an execution still has running or pending tasks,
-      // screenshots must NOT be released (subTasks may reuse them)
-      const reportPath = join(tmpDir, 'memory-no-release-running.html');
+    it('should keep memory for single execution (latest)', async () => {
+      const reportPath = join(tmpDir, 'single-exec-memory.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
@@ -584,17 +563,67 @@ describe('ReportGenerator — constant memory guarantees', () => {
       });
 
       const screenshot = ScreenshotItem.create(fakeBase64(10000));
-      const dump = createDumpWithStatus([screenshot], 'running');
+      const dump = createDump([screenshot]);
 
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // Screenshot should still be available for AI calls
+      // Single execution = latest, should keep memory
       expect(screenshot.hasBase64()).toBe(true);
     });
 
-    it('should release screenshot memory in directory mode when execution completes', async () => {
-      const reportDir = join(tmpDir, 'dir-memory-release-test');
+    it('should release old executions but keep latest execution memory', async () => {
+      const reportPath = join(tmpDir, 'multi-exec-memory.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const { dump, screenshots } = createMultiExecutionDump(3, 2);
+      // screenshots[0] = exec 0 screenshots (oldest)
+      // screenshots[1] = exec 1 screenshots (middle)
+      // screenshots[2] = exec 2 screenshots (latest)
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      // Old executions (0, 1) should be released
+      expect(screenshots[0][0].hasBase64()).toBe(false);
+      expect(screenshots[0][1].hasBase64()).toBe(false);
+      expect(screenshots[1][0].hasBase64()).toBe(false);
+      expect(screenshots[1][1].hasBase64()).toBe(false);
+
+      // Latest execution (2) should keep memory
+      expect(screenshots[2][0].hasBase64()).toBe(true);
+      expect(screenshots[2][1].hasBase64()).toBe(true);
+    });
+
+    it('should release all memory in finalize() including latest', async () => {
+      const reportPath = join(tmpDir, 'finalize-all-memory.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const { dump, screenshots } = createMultiExecutionDump(2, 1);
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      // Before finalize: oldest released, latest kept
+      expect(screenshots[0][0].hasBase64()).toBe(false);
+      expect(screenshots[1][0].hasBase64()).toBe(true);
+
+      // After finalize: all released
+      await generator.finalize(dump);
+      expect(screenshots[0][0].hasBase64()).toBe(false);
+      expect(screenshots[1][0].hasBase64()).toBe(false);
+    });
+
+    it('should work correctly in directory mode', async () => {
+      const reportDir = join(tmpDir, 'dir-multi-exec-memory');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -602,20 +631,21 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(10000));
-      const dump = createDumpWithStatus([screenshot], 'finished');
+      const { dump, screenshots } = createMultiExecutionDump(2, 1);
 
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // After write, screenshot memory should be released
-      expect(screenshot.hasBase64()).toBe(false);
-      // toSerializable should return path format after release
-      const serialized = screenshot.toSerializable();
+      // Old execution released with path format
+      expect(screenshots[0][0].hasBase64()).toBe(false);
+      const serialized = screenshots[0][0].toSerializable();
       expect(serialized).toHaveProperty('base64');
       expect((serialized as { base64: string }).base64).toContain(
         'screenshots',
       );
+
+      // Latest execution still has memory
+      expect(screenshots[1][0].hasBase64()).toBe(true);
     });
   });
 

@@ -12,7 +12,7 @@ import {
   generateDumpScriptTag,
   generateImageScriptTag,
 } from './dump/html-utils';
-import type { ExecutionDump, GroupedActionDump } from './types';
+import type { GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
 export interface IReportGenerator {
@@ -45,7 +45,7 @@ export class ReportGenerator implements IReportGenerator {
   private screenshotMode: 'inline' | 'directory';
   private autoPrint: boolean;
   private writtenScreenshots = new Set<string>();
-  private releasedExecutions = new Set<string>();
+  private releasedExecutionKeys = new Set<string>();
 
   // inline mode state
   private imageEndOffset = 0;
@@ -146,29 +146,38 @@ export class ReportGenerator implements IReportGenerator {
     }
   }
 
-  /**
-   * Check if all tasks in an execution have completed (finished/failed/cancelled).
-   * Returns false if any task is still pending or running.
-   */
-  private isExecutionComplete(execution: ExecutionDump): boolean {
-    if (execution.tasks.length === 0) return false;
-    return execution.tasks.every(
-      (task) => task.status !== 'pending' && task.status !== 'running',
-    );
+  getReportPath(): string | undefined {
+    return this.reportPath;
+  }
+
+  private doWrite(dump: GroupedActionDump): void {
+    if (this.screenshotMode === 'inline') {
+      this.writeInlineReport(dump);
+    } else {
+      this.writeDirectoryReport(dump);
+    }
+
+    // Release memory for OLD executions (all except the last one).
+    // The last execution may still have tasks being appended, so keep its screenshots.
+    this.releaseOldExecutions(dump);
   }
 
   /**
-   * Release screenshot memory for completed executions.
-   * This is safe because subTasks can only reuse screenshots from the SAME execution's
-   * previous non-subTask, and we only release after ALL tasks in that execution are done.
+   * Release screenshot memory for all executions EXCEPT the last one.
+   * The last execution may still be active (tasks appended incrementally),
+   * so we must keep its screenshots available.
    */
-  private releaseCompletedExecutions(dump: GroupedActionDump): void {
-    for (const execution of dump.executions) {
+  private releaseOldExecutions(dump: GroupedActionDump): void {
+    const executions = dump.executions;
+    if (executions.length <= 1) return; // Nothing to release if only one execution
+
+    // Release all except the last execution
+    for (let i = 0; i < executions.length - 1; i++) {
+      const execution = executions[i];
       const executionKey = `${execution.name}-${execution.logTime}`;
+
       // Skip if already released
-      if (this.releasedExecutions.has(executionKey)) continue;
-      // Skip if execution not yet complete
-      if (!this.isExecutionComplete(execution)) continue;
+      if (this.releasedExecutionKeys.has(executionKey)) continue;
 
       // Release all screenshots in this execution
       for (const task of execution.tasks) {
@@ -196,23 +205,8 @@ export class ReportGenerator implements IReportGenerator {
         }
       }
 
-      this.releasedExecutions.add(executionKey);
+      this.releasedExecutionKeys.add(executionKey);
     }
-  }
-
-  getReportPath(): string | undefined {
-    return this.reportPath;
-  }
-
-  private doWrite(dump: GroupedActionDump): void {
-    if (this.screenshotMode === 'inline') {
-      this.writeInlineReport(dump);
-    } else {
-      this.writeDirectoryReport(dump);
-    }
-
-    // Release memory for completed executions
-    this.releaseCompletedExecutions(dump);
   }
 
   private writeInlineReport(dump: GroupedActionDump): void {
