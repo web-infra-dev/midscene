@@ -357,7 +357,7 @@ export default class Service {
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(targetRect, size, modelFamily);
+      const searchArea = expandSearchArea(targetRect, size);
       // Only crop when the search area covers at least 50% of the screen
       // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
       // too much context and cause model hallucinations.
