@@ -450,12 +450,10 @@ export class IOSWebDriverClient extends WebDriverClient {
         this.getWindowSize(),
       ]);
 
-      // Get screenshot dimensions from base64 using Photon
-      const { photonFromBase64 } = await import('@midscene/shared/img');
-      const screenshotImg = await photonFromBase64(screenshotBase64);
-      const screenshotWidth = screenshotImg.get_width();
-      const screenshotHeight = screenshotImg.get_height();
-      screenshotImg.free();
+      // Get screenshot dimensions from base64
+      const { imageInfoOfBase64 } = await import('@midscene/shared/img');
+      const { width: screenshotWidth, height: screenshotHeight } =
+        await imageInfoOfBase64(screenshotBase64);
 
       // Calculate scale: max(screenshot.size) / max(window.size)
       const scale =

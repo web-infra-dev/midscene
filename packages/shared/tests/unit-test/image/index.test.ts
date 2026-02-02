@@ -12,10 +12,8 @@ import {
 import {
   createImgBase64ByFormat,
   cropByRect,
-  paddingToMatchBlock,
+  paddingToMatchBlockByBase64,
   parseBase64,
-  photonFromBase64,
-  photonToBase64,
   saveBase64Image,
 } from 'src/img/transform';
 import { getFixture } from 'tests/utils';
@@ -59,30 +57,20 @@ describe('image utils', () => {
     expect(resizedBase64).toContain(';base64,');
   });
 
-  it('paddingToMatchBlock', async () => {
+  it('paddingToMatchBlockByBase64', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
-    const photonImage = await photonFromBase64(base64);
-    const result = await paddingToMatchBlock(photonImage);
+    const result = await paddingToMatchBlockByBase64(base64);
 
-    const width = result.image.get_width();
-    expect(width).toMatchSnapshot();
-
-    const height = result.image.get_height();
-    expect(height).toMatchSnapshot();
+    expect(result.width).toMatchSnapshot();
+    expect(result.height).toMatchSnapshot();
 
     const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
     await saveBase64Image({
-      base64Data: await photonToBase64(result.image),
+      base64Data: result.imageBase64,
       outputPath: tmpFile,
     });
     // console.log('tmpFile', tmpFile);
-
-    // Free memory
-    if (result.image !== photonImage) {
-      result.image.free();
-    }
-    photonImage.free();
   });
 
   it('cropByRect, with padding', async () => {
