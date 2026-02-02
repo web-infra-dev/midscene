@@ -19,6 +19,47 @@ import {
 import { getFixture } from 'tests/utils';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+describe('imageInfoOfBase64', () => {
+  it('returns correct dimensions for PNG image', async () => {
+    const image = getFixture('icon.png');
+    const base64 = localImg2Base64(image);
+    const info = await imageInfoOfBase64(base64);
+
+    expect(info.width).toBe(68);
+    expect(info.height).toBe(56);
+  });
+
+  it('returns correct dimensions for JPEG image', async () => {
+    const image = getFixture('heytea.jpeg');
+    const base64 = localImg2Base64(image);
+    const info = await imageInfoOfBase64(base64);
+
+    expect(info.width).toBe(400);
+    expect(info.height).toBe(905);
+  });
+
+  it('works with base64 string without data URI header', async () => {
+    const image = getFixture('icon.png');
+    const base64WithHeader = localImg2Base64(image);
+    const base64Body = base64WithHeader.split(',')[1];
+
+    const info = await imageInfoOfBase64(base64Body);
+
+    expect(info.width).toBe(68);
+    expect(info.height).toBe(56);
+  });
+
+  it('throws error for invalid base64 data', async () => {
+    const invalidBase64 = 'data:image/png;base64,notvalidbase64data';
+
+    await expect(imageInfoOfBase64(invalidBase64)).rejects.toThrow();
+  });
+
+  it('throws error for empty string', async () => {
+    await expect(imageInfoOfBase64('')).rejects.toThrow();
+  });
+});
+
 describe('image utils', () => {
   const image = getFixture('icon.png');
 
