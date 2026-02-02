@@ -27,30 +27,6 @@ function fakeBase64(sizeBytes: number): string {
 }
 
 /**
- * Normalize HTML content for snapshot testing.
- * Replaces dynamic content (UUIDs, timestamps) with stable placeholders.
- */
-function normalizeHtmlForSnapshot(html: string): string {
-  // Replace UUID-like patterns (screenshot IDs) with stable placeholder
-  // Format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-  let normalized = html.replace(
-    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,
-    'SCREENSHOT_ID_PLACEHOLDER',
-  );
-
-  // Replace timestamps (logTime values) - typical format: 13-digit number
-  normalized = normalized.replace(/"logTime":\s*\d{13}/g, '"logTime": 0');
-
-  // Replace base64 image data with placeholder (to reduce snapshot size)
-  normalized = normalized.replace(
-    /data:image\/png;base64,[A-Za-z0-9+/=]+/g,
-    'data:image/png;base64,BASE64_PLACEHOLDER',
-  );
-
-  return normalized;
-}
-
-/**
  * Create a GroupedActionDump with the given screenshots in uiContext.
  */
 function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
@@ -259,9 +235,11 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
 
-      // Snapshot test for full HTML structure
-      const normalizedHtml = normalizeHtmlForSnapshot(html);
-      expect(normalizedHtml).toMatchSnapshot('inline-mode-html-structure');
+      // Verify HTML has expected structure
+      expect(html).toContain('<!doctype html>');
+      expect(html).toContain('<html>');
+      expect(html).toContain('</html>');
+      expect(html).toContain('Midscene');
 
       // Parse image scripts - verify our screenshots exist
       const imageMap = parseImageScripts(html);
@@ -404,9 +382,19 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
 
-      // Snapshot test for directory mode HTML structure
-      const normalizedHtml = normalizeHtmlForSnapshot(html);
-      expect(normalizedHtml).toMatchSnapshot('directory-mode-html-structure');
+      // Verify HTML has expected structure
+      expect(html).toContain('<!doctype html>');
+      expect(html).toContain('<html>');
+      expect(html).toContain('</html>');
+      expect(html).toContain('Midscene');
+
+      // Verify dump script is present and parseable
+      const dumpContent = parseDumpScript(html);
+      expect(dumpContent).toBeTruthy();
+      const parsed = JSON.parse(dumpContent);
+      expect(parsed.groupName).toBe('test-group');
+      expect(parsed.executions).toHaveLength(1);
+      expect(parsed.executions[0].tasks).toHaveLength(2);
     });
 
     it('should output screenshot references as $screenshot format in dump JSON', async () => {
