@@ -40,6 +40,14 @@ import {
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
 import {
+  findAllElementsPrompt,
+  systemPromptToLocateAllElements,
+} from './prompt/llm-locator-all';
+import {
+  findMultiElementsPrompt,
+  systemPromptToLocateMultipleElements,
+} from './prompt/llm-locator-multi';
+import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
@@ -623,5 +631,185 @@ export async function AiJudgeOrderSensitive(
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,
     usage: result.usage,
+  };
+}
+
+export async function AiLocateMultipleElements(options: {
+  context: UIContext;
+  targetElementDescriptions: TUserPrompt[];
+  callAIFn: typeof callAIWithObjectResponse<{
+    elements: Array<{ bbox: [number, number, number, number] | [] }>;
+    errors?: string[];
+  }>;
+  modelConfig: IModelConfig;
+}): Promise<{
+  parseResult: {
+    elements: Array<LocateResultElement | null>;
+    errors?: string[];
+  };
+  rawResponse: string;
+  usage?: AIUsageInfo;
+}> {
+  const { context, targetElementDescriptions, callAIFn, modelConfig } = options;
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = context.screenshot.base64;
+
+  const descriptionsText = targetElementDescriptions.map((d) =>
+    extraTextFromUserPrompt(d),
+  );
+  const userInstructionPrompt = findMultiElementsPrompt(descriptionsText);
+  const systemPrompt = systemPromptToLocateMultipleElements(modelFamily);
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: userInstructionPrompt,
+        },
+      ],
+    },
+  ];
+
+  const { content, usage, contentString } = await callAIFn(msgs, modelConfig);
+
+  const elements: Array<LocateResultElement | null> = [];
+  if (content.elements && Array.isArray(content.elements)) {
+    content.elements.forEach((item, index) => {
+      const bbox = item.bbox;
+      if (bbox && bbox.length === 4) {
+        const rect = adaptBboxToRect(
+          bbox,
+          context.size.width,
+          context.size.height,
+          undefined,
+          undefined,
+          context.size.width,
+          context.size.height,
+          modelFamily,
+        );
+        const center = {
+          x: Math.round(rect.left + rect.width / 2),
+          y: Math.round(rect.top + rect.height / 2),
+        };
+        elements.push({
+          rect,
+          center: [center.x, center.y],
+          description: descriptionsText[index] || '',
+        });
+      } else {
+        elements.push(null);
+      }
+    });
+  }
+
+  // Ensure output length matches input length
+  while (elements.length < targetElementDescriptions.length) {
+    elements.push(null);
+  }
+  if (elements.length > targetElementDescriptions.length) {
+    elements.length = targetElementDescriptions.length;
+  }
+
+  return {
+    parseResult: {
+      elements,
+      errors: content.errors,
+    },
+    rawResponse: contentString,
+    usage,
+  };
+}
+
+export async function AiLocateAllElements(options: {
+  context: UIContext;
+  targetElementDescription: TUserPrompt;
+  callAIFn: typeof callAIWithObjectResponse<{
+    elements: Array<{ bbox: [number, number, number, number] | [] }>;
+    errors?: string[];
+  }>;
+  modelConfig: IModelConfig;
+}): Promise<{
+  parseResult: {
+    elements: LocateResultElement[];
+    errors?: string[];
+  };
+  rawResponse: string;
+  usage?: AIUsageInfo;
+}> {
+  const { context, targetElementDescription, callAIFn, modelConfig } = options;
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = context.screenshot.base64;
+
+  const descriptionText = extraTextFromUserPrompt(targetElementDescription);
+  const userInstructionPrompt = findAllElementsPrompt(descriptionText);
+  const systemPrompt = systemPromptToLocateAllElements(modelFamily);
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: userInstructionPrompt,
+        },
+      ],
+    },
+  ];
+
+  const { content, usage, contentString } = await callAIFn(msgs, modelConfig);
+
+  const elements: LocateResultElement[] = [];
+  if (content.elements && Array.isArray(content.elements)) {
+    content.elements.forEach((item) => {
+      const bbox = item.bbox;
+      if (bbox && bbox.length === 4) {
+        const rect = adaptBboxToRect(
+          bbox,
+          context.size.width,
+          context.size.height,
+          undefined,
+          undefined,
+          context.size.width,
+          context.size.height,
+          modelFamily,
+        );
+        const center = {
+          x: Math.round(rect.left + rect.width / 2),
+          y: Math.round(rect.top + rect.height / 2),
+        };
+        elements.push({
+          rect,
+          center: [center.x, center.y],
+          description: descriptionText,
+        });
+      }
+    });
+  }
+
+  return {
+    parseResult: {
+      elements,
+      errors: content.errors,
+    },
+    rawResponse: contentString,
+    usage,
   };
 }

@@ -165,6 +165,19 @@ export function paramStr(task: ExecutionTask) {
   if (task.type === 'Planning') {
     if (task.subType === 'Locate') {
       value = locateParamStr((task as ExecutionTaskPlanningLocate)?.param);
+    } else if (task.subType === 'LocateAll') {
+      const locateParams = (task as ExecutionTaskPlanning)?.param;
+      value = locateParamStr(locateParams as any);
+    } else if (task.subType === 'LocateMultiple') {
+      const locateParams = (task as ExecutionTaskPlanning)?.param;
+      if (Array.isArray(locateParams)) {
+        const prompts = locateParams
+          .map((param) => locateParamStr(param))
+          .filter(Boolean);
+        value = prompts.join(', ');
+      } else {
+        value = locateParamStr(locateParams as any);
+      }
     } else {
       // Prefer AI-generated output.log over user input
       const planTask = task as ExecutionTaskPlanning;
