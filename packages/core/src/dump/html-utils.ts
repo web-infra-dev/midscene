@@ -4,7 +4,92 @@ import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 export const escapeContent = escapeScriptTag;
 export const unescapeContent = antiEscapeScriptTag;
 
-const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+/** Chunk size for streaming file operations (64KB) */
+export const STREAMING_CHUNK_SIZE = 64 * 1024;
+
+/**
+ * Callback for processing matched tags during streaming.
+ * @param content - The content between open and close tags
+ * @returns true to stop scanning, false to continue
+ */
+type TagMatchCallback = (content: string) => boolean;
+
+/**
+ * Stream through a file and find tags matching the pattern.
+ * Memory usage: O(chunk_size + tag_size), not O(file_size).
+ *
+ * @param filePath - Absolute path to the file
+ * @param openTag - Opening tag to search for
+ * @param closeTag - Closing tag
+ * @param onMatch - Callback for each matched tag content
+ */
+export function streamScanTags(
+  filePath: string,
+  openTag: string,
+  closeTag: string,
+  onMatch: TagMatchCallback,
+): void {
+  const fd = openSync(filePath, 'r');
+  const fileSize = statSync(filePath).size;
+  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+
+  let position = 0;
+  let leftover = '';
+  let capturing = false;
+  let currentContent = '';
+
+  try {
+    while (position < fileSize) {
+      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
+      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+      position += bytesRead;
+
+      let searchStart = 0;
+
+      while (searchStart < chunk.length) {
+        if (!capturing) {
+          const startIdx = chunk.indexOf(openTag, searchStart);
+          if (startIdx !== -1) {
+            capturing = true;
+            currentContent = chunk.slice(startIdx + openTag.length);
+            const endIdx = currentContent.indexOf(closeTag);
+            if (endIdx !== -1) {
+              const shouldStop = onMatch(currentContent.slice(0, endIdx));
+              if (shouldStop) return;
+              capturing = false;
+              currentContent = '';
+              searchStart =
+                startIdx + openTag.length + endIdx + closeTag.length;
+            } else {
+              leftover = currentContent.slice(-closeTag.length);
+              currentContent = currentContent.slice(0, -closeTag.length);
+              break;
+            }
+          } else {
+            leftover = chunk.slice(-openTag.length);
+            break;
+          }
+        } else {
+          const endIdx = chunk.indexOf(closeTag, searchStart);
+          if (endIdx !== -1) {
+            currentContent += chunk.slice(searchStart, endIdx);
+            const shouldStop = onMatch(currentContent);
+            if (shouldStop) return;
+            capturing = false;
+            currentContent = '';
+            searchStart = endIdx + closeTag.length;
+          } else {
+            currentContent += chunk.slice(searchStart, -closeTag.length);
+            leftover = chunk.slice(-closeTag.length);
+            break;
+          }
+        }
+      }
+    }
+  } finally {
+    closeSync(fd);
+  }
+}
 
 /**
  * Synchronously extract a specific image's base64 data from an HTML file by its id.
@@ -21,52 +106,14 @@ export function extractImageByIdSync(
   const targetTag = `<script type="midscene-image" data-id="${imageId}">`;
   const closeTag = '</script>';
 
-  const fd = openSync(htmlPath, 'r');
-  const fileSize = statSync(htmlPath).size;
-  const buffer = Buffer.alloc(CHUNK_SIZE);
+  let result: string | null = null;
 
-  let position = 0;
-  let leftover = '';
-  let capturing = false;
-  let content = '';
+  streamScanTags(htmlPath, targetTag, closeTag, (content) => {
+    result = unescapeContent(content);
+    return true; // Stop after first match
+  });
 
-  try {
-    while (position < fileSize) {
-      const bytesRead = readSync(fd, buffer, 0, CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
-      position += bytesRead;
-
-      if (!capturing) {
-        const startIdx = chunk.indexOf(targetTag);
-        if (startIdx !== -1) {
-          capturing = true;
-          content = chunk.slice(startIdx + targetTag.length);
-          const endIdx = content.indexOf(closeTag);
-          if (endIdx !== -1) {
-            return unescapeContent(content.slice(0, endIdx));
-          }
-          // Keep potential cross-chunk portion
-          leftover = content.slice(-closeTag.length);
-          content = content.slice(0, -closeTag.length);
-        } else {
-          // Keep potential cross-chunk targetTag
-          leftover = chunk.slice(-targetTag.length);
-        }
-      } else {
-        const endIdx = chunk.indexOf(closeTag);
-        if (endIdx !== -1) {
-          content += chunk.slice(0, endIdx);
-          return unescapeContent(content);
-        }
-        content += chunk.slice(0, -closeTag.length);
-        leftover = chunk.slice(-closeTag.length);
-      }
-    }
-  } finally {
-    closeSync(fd);
-  }
-
-  return null;
+  return result;
 }
 
 export function parseImageScripts(html: string): Record<string, string> {
