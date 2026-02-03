@@ -202,6 +202,13 @@ export abstract class AbstractInterface {
    * adapt to this instead of duplicating platform gesture logic.
    */
   inputPrimitives?: InputPrimitives;
+
+  /**
+   * Optional hook called before each planning cycle in aiAct.
+   * Returns extra context string to append to actionContext.
+   * Called on every replan, so implementations can return fresh data (e.g. updated DOM).
+   */
+  getExtraPlanningContext?(): Promise<string>;
 }
 
 // Generic function to define actions with proper type inference

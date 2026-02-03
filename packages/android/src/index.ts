@@ -9,3 +9,10 @@ export {
 } from './utils';
 export type { AndroidConnectedDevice } from './utils';
 export { ScrcpyDeviceAdapter } from './scrcpy-device-adapter';
+export {
+  dumpAndFormatAccessibilityTree,
+  parseXmlToFormatTree,
+  collapseWrappers,
+  formatTreeToXml,
+  type FormatNode,
+} from './ui-hierarchy';
