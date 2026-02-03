@@ -107,10 +107,8 @@ class BatchRunner {
 
         const args = buildChromeArgs({
           userAgent: globalWebConfig?.userAgent,
-          windowSize: {
-            width,
-            height,
-          },
+          // Only pass windowSize in headed mode; in headless mode, defaultViewport takes precedence
+          windowSize: headed ? { width, height } : undefined,
           chromeArgs: globalWebConfig?.chromeArgs,
         });
 
