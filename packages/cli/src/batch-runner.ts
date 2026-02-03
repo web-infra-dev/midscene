@@ -11,7 +11,12 @@ import type {
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { buildChromeArgs } from '@midscene/web/puppeteer-agent-launcher';
+import {
+  buildChromeArgs,
+  defaultViewportHeight,
+  defaultViewportWidth,
+} from '@midscene/web/puppeteer-agent-launcher';
+
 import merge from 'lodash.merge';
 import pLimit from 'p-limit';
 import puppeteer, { type Browser, type Page } from 'puppeteer';
@@ -95,12 +100,21 @@ class BatchRunner {
 
       if (needsBrowser && this.config.shareBrowserContext) {
         const globalWebConfig = this.config.globalConfig?.web;
+        // Extract viewport dimensions from global config or use defaults
+        // This should match the logic in launchPuppeteerPage
+        const width = globalWebConfig?.viewportWidth ?? defaultViewportWidth;
+        const height = globalWebConfig?.viewportHeight ?? defaultViewportHeight;
+
         const args = buildChromeArgs({
+          userAgent: globalWebConfig?.userAgent,
+          // Only pass windowSize in headed mode; in headless mode, defaultViewport takes precedence
+          windowSize: headed ? { width, height } : undefined,
           chromeArgs: globalWebConfig?.chromeArgs,
         });
 
         browser = await puppeteer.launch({
           headless: !headed,
+          defaultViewport: headed ? null : { width, height },
           args,
           acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
         });
