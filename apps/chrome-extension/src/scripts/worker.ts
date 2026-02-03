@@ -27,8 +27,31 @@ let currentBridgeStatus: BridgeStatus = 'closed';
 // Store connected ports for bridge status updates
 const bridgePorts = new Set<chrome.runtime.Port>();
 
+// Badge colors for different bridge states
+const BADGE_COLORS = {
+  listening: '#F59E0B', // Yellow/Amber - waiting for connection
+  connected: '#22C55E', // Green - actively connected
+  closed: '', // No badge
+} as const;
+
+// Update extension icon badge based on bridge status
+function updateExtensionBadge(status: BridgeStatus) {
+  if (status === 'listening') {
+    chrome.action.setBadgeText({ text: '●' });
+    chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS.listening });
+  } else if (status === 'connected') {
+    chrome.action.setBadgeText({ text: '●' });
+    chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS.connected });
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
 // Broadcast bridge status to all connected UI pages
 function broadcastBridgeStatus(status: BridgeStatus) {
+  // Update extension icon badge
+  updateExtensionBadge(status);
+
   bridgePorts.forEach((port) => {
     try {
       port.postMessage({

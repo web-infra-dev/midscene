@@ -160,22 +160,13 @@ When remote access is enabled, the Bridge Server will be exposed on the network.
 
 The Chrome extension supports background bridge mode, which maintains the connection without keeping the extension UI open. This is useful for long-running scenarios such as MCP services.
 
-### Enable Background Bridge
+### Usage
 
 1. Open the Chrome extension's Bridge Mode page
 2. Enable the **Auto-connect in background** toggle
 3. Configure the server address (optional, defaults to `ws://localhost:3766`)
-4. Once enabled, the bridge connection runs in the background even after closing the extension popup
 
-### How It Works
-
-Background bridge mode runs through the Chrome extension's Service Worker. To reduce the chance that the Service Worker is automatically suspended by the browser, the extension uses the `chrome.alarms` API as a periodic wake-up/keepalive, scheduling an alarm approximately every 24 seconds to keep the background context active and help maintain a stable connection.
-
-### Features
-
-- **Auto-reconnect**: Automatically restores connection when browser starts
-- **Persistent operation**: No need to keep extension UI open
-- **Status sync**: View current connection status when opening the extension
+Once enabled, the extension will continue listening for connection requests in the background, even without opening the sidebar. The extension icon will display a status badge: yellow dot for listening, green dot for connected.
 
 ## FAQ
 
