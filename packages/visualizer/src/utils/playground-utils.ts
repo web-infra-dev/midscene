@@ -5,6 +5,7 @@ import { isZodObjectSchema, unwrapZodType } from '../types';
 
 // Get action name based on type
 export const actionNameForType = (type: string) => {
+  if (!type) return '';
   // Remove 'ai' prefix and convert camelCase to space-separated words
   const typeWithoutAi = type.startsWith('ai') ? type.slice(2) : type;
 

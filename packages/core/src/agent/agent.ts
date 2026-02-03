@@ -64,7 +64,7 @@ import {
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert, uuid } from '@midscene/shared/utils';
+import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
@@ -1511,6 +1511,10 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
+    if (ifInBrowser) {
+      throw new Error('File chooser is not supported in browser environment');
+    }
+
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {
