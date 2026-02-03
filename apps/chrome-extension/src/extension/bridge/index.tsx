@@ -399,8 +399,11 @@ export default function Bridge() {
               <span className="auto-connect-icon">
                 <AutoConnectIcon />
               </span>
-              <span className="auto-connect-label">
-                Auto allow in Bridge Mode
+              <span
+                className="auto-connect-label"
+                title="When enabled, the bridge will automatically connect in the background even after closing this popup"
+              >
+                Auto-connect in background
               </span>
               <Switch
                 checked={autoConnect}
