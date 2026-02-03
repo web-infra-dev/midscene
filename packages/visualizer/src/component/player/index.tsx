@@ -9,12 +9,13 @@ import {
   DownloadOutlined,
   ExportOutlined,
   LoadingOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
-import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
+import { Dropdown, Select, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
-import { useGlobalPreference } from '../../store/store';
+import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import { getTextureFromCache, loadTexture } from '../../utils/pixi-loader';
 import type {
   AnimationScript,
@@ -227,7 +228,8 @@ export function Player(props?: {
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const { autoZoom, setAutoZoom } = useGlobalPreference();
+  const { autoZoom, setAutoZoom, playbackSpeed, setPlaybackSpeed } =
+    useGlobalPreference();
 
   // Update state when prop changes
   useEffect(() => {
@@ -825,7 +827,9 @@ export function Player(props?: {
         if (!scripts) {
           throw new Error('scripts is required');
         }
-        const { frame, cancel, timeout, sleep } = frameKit();
+        const { frame, cancel, timeout, sleep: baseSleep } = frameKit();
+        // Wrap sleep to apply playback speed
+        const sleep = (ms: number) => baseSleep(ms / playbackSpeed);
         cancelFn = cancel;
         cancelAnimationRef.current = cancel;
         const allImages: string[] = scripts
@@ -842,15 +846,16 @@ export function Player(props?: {
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         await repaintImage();
         await updateCamera({ ...basicCameraState });
-        const totalDuration = scripts.reduce((acc, item) => {
-          return (
-            acc +
-            item.duration +
-            (item.camera && item.insightCameraDuration
-              ? item.insightCameraDuration
-              : 0)
-          );
-        }, 0);
+        const totalDuration =
+          scripts.reduce((acc, item) => {
+            return (
+              acc +
+              item.duration +
+              (item.camera && item.insightCameraDuration
+                ? item.insightCameraDuration
+                : 0)
+            );
+          }, 0) / playbackSpeed;
         // progress bar
         const progressUpdateInterval = 200;
         const startTime = performance.now();
@@ -909,7 +914,7 @@ export function Player(props?: {
               [],
               highlightElements,
               item.searchArea,
-              item.duration,
+              item.duration / playbackSpeed,
               frame,
             );
             if (item.camera) {
@@ -918,12 +923,16 @@ export function Player(props?: {
               }
               await cameraAnimation(
                 item.camera,
-                item.insightCameraDuration,
+                item.insightCameraDuration / playbackSpeed,
                 frame,
               );
             }
           } else if (item.type === 'clear-insight') {
-            await fadeOutItem(insightMarkContainer, item.duration, frame);
+            await fadeOutItem(
+              insightMarkContainer,
+              item.duration / playbackSpeed,
+              frame,
+            );
             insightMarkContainer.removeChildren();
             insightMarkContainer.alpha = 1;
           } else if (item.type === 'img') {
@@ -932,7 +941,11 @@ export function Player(props?: {
               await repaintImage(item.imageWidth, item.imageHeight);
             }
             if (item.camera) {
-              await cameraAnimation(item.camera, item.duration, frame);
+              await cameraAnimation(
+                item.camera,
+                item.duration / playbackSpeed,
+                frame,
+              );
             } else {
               await sleep(item.duration);
             }
@@ -1205,6 +1218,58 @@ export function Player(props?: {
                             triggerReplay();
                           }}
                           onClick={(_, e) => e?.stopPropagation?.()}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'playbackSpeed',
+                    style: {
+                      height: '39px',
+                      margin: 0,
+                      padding: '0 12px',
+                    },
+                    label: (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          height: '39px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
+                          <ThunderboltOutlined
+                            style={{ fontSize: '14px', color: '#666' }}
+                          />
+                          <span
+                            style={{ fontSize: '12px', marginRight: '16px' }}
+                          >
+                            Playback speed
+                          </span>
+                        </div>
+                        <Select
+                          size="small"
+                          value={playbackSpeed}
+                          onChange={(value: PlaybackSpeedType) => {
+                            setPlaybackSpeed(value);
+                            triggerReplay();
+                          }}
+                          onClick={(e) => e?.stopPropagation?.()}
+                          style={{ width: 70 }}
+                          options={[
+                            { value: 0.5, label: '0.5x' },
+                            { value: 1, label: '1x' },
+                            { value: 1.5, label: '1.5x' },
+                            { value: 2, label: '2x' },
+                          ]}
                         />
                       </div>
                     ),

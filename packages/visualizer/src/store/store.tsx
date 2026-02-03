@@ -7,6 +7,7 @@ const BACKGROUND_VISIBLE_KEY = 'midscene-background-visible';
 const ELEMENTS_VISIBLE_KEY = 'midscene-elements-visible';
 const MODEL_CALL_DETAILS_KEY = 'midscene-model-call-details';
 const DARK_MODE_KEY = 'midscene-dark-mode';
+const PLAYBACK_SPEED_KEY = 'midscene-playback-speed';
 
 const parseBooleanParam = (value: string | null): boolean | undefined => {
   if (value === null) {
@@ -35,17 +36,21 @@ const getQueryPreference = (paramName: string): boolean | undefined => {
   return parseBooleanParam(searchParams.get(paramName));
 };
 
+export type PlaybackSpeedType = 0.5 | 1 | 1.5 | 2;
+
 export const useGlobalPreference = create<{
   backgroundVisible: boolean;
   elementsVisible: boolean;
   autoZoom: boolean;
   modelCallDetailsEnabled: boolean;
   darkModeEnabled: boolean;
+  playbackSpeed: PlaybackSpeedType;
   setBackgroundVisible: (visible: boolean) => void;
   setElementsVisible: (visible: boolean) => void;
   setAutoZoom: (enabled: boolean) => void;
   setModelCallDetailsEnabled: (enabled: boolean) => void;
   setDarkModeEnabled: (enabled: boolean) => void;
+  setPlaybackSpeed: (speed: PlaybackSpeedType) => void;
 }>((set) => {
   const savedAutoZoom = localStorage.getItem(AUTO_ZOOM_KEY) !== 'false';
   const savedBackgroundVisible =
@@ -55,6 +60,9 @@ export const useGlobalPreference = create<{
   const savedModelCallDetails =
     localStorage.getItem(MODEL_CALL_DETAILS_KEY) === 'true';
   const savedDarkMode = localStorage.getItem(DARK_MODE_KEY) === 'true';
+  const savedPlaybackSpeed = Number.parseFloat(
+    localStorage.getItem(PLAYBACK_SPEED_KEY) || '1',
+  ) as PlaybackSpeedType;
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
   const darkModeFromQuery = getQueryPreference('darkMode');
@@ -74,6 +82,9 @@ export const useGlobalPreference = create<{
       autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
     modelCallDetailsEnabled: savedModelCallDetails,
     darkModeEnabled: initialDarkMode,
+    playbackSpeed: [0.5, 1, 1.5, 2].includes(savedPlaybackSpeed)
+      ? savedPlaybackSpeed
+      : 1,
     setBackgroundVisible: (visible: boolean) => {
       set({ backgroundVisible: visible });
       localStorage.setItem(BACKGROUND_VISIBLE_KEY, visible.toString());
@@ -93,6 +104,10 @@ export const useGlobalPreference = create<{
     setDarkModeEnabled: (enabled: boolean) => {
       set({ darkModeEnabled: enabled });
       localStorage.setItem(DARK_MODE_KEY, enabled.toString());
+    },
+    setPlaybackSpeed: (speed: PlaybackSpeedType) => {
+      set({ playbackSpeed: speed });
+      localStorage.setItem(PLAYBACK_SPEED_KEY, speed.toString());
     },
   };
 });
