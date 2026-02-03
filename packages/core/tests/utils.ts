@@ -1,9 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 import { ScreenshotItem } from '@/screenshot-item';
-import Service from '@/service';
-import type { AIElementResponse, UIContext } from '@/types';
+import type { UIContext } from '@/types';
 import { localImg2Base64 } from '@midscene/shared/img';
 
 export function getFixture(name: string) {
@@ -23,34 +21,18 @@ export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function fakeService(content: string) {
+/**
+ * Create a fake UIContext for testing purposes
+ * @param content - optional identifier for the context (not used currently)
+ * @returns UIContext with screenshot and basic properties
+ */
+export function createFakeContext(content?: string): UIContext {
   const screenshotPath = getFixture('baidu.png');
   const screenshotBase64 = localImg2Base64(screenshotPath);
   const screenshot = ScreenshotItem.create(screenshotBase64);
-  const basicContext = {
+
+  return {
     screenshot,
     size: { width: 1920, height: 1080 },
   };
-  const context: UIContext = {
-    ...basicContext,
-  };
-
-  const aiVendor: typeof callAIWithObjectResponse<AIElementResponse> =
-    async () => {
-      const data = {
-        bbox: [0, 0, 100, 100] as [number, number, number, number],
-        errors: [],
-      };
-      return {
-        content: data,
-        contentString: JSON.stringify(data),
-        usage: undefined,
-      };
-    };
-
-  const service = new Service(context, {
-    aiVendorFn: aiVendor as any,
-  });
-
-  return service;
 }

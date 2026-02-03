@@ -7,8 +7,17 @@ import type {
   ExecutionTaskPlanningLocateApply,
   UIContext,
 } from '@/index';
-import { fakeService } from 'tests/utils';
-import { describe, expect, it, vi } from 'vitest';
+import Service from '@/service';
+import { createFakeContext } from 'tests/utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock AI service caller
+vi.mock('@/ai-model/service-caller/index', () => ({
+  callAIWithObjectResponse: vi.fn(),
+  AIResponseParseError: class AIResponseParseError extends Error {},
+}));
+
+import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 
 const insightFindTask = (shouldThrow?: boolean) => {
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
@@ -24,8 +33,9 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const insight = fakeService('test-task-runner');
-      const { element, dump: insightDump } = await insight.locate(
+      const context = createFakeContext();
+      const service = new Service(context);
+      const { element, dump: insightDump } = await service.locate(
         {
           prompt: param.prompt,
         },
@@ -65,6 +75,21 @@ describe(
     timeout: 1000 * 60 * 3,
   },
   () => {
+    beforeEach(() => {
+      // Setup default mock implementation for AI calls
+      vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+        content: {
+          bbox: [0, 0, 100, 100] as [number, number, number, number],
+          errors: [],
+        },
+        contentString: JSON.stringify({
+          bbox: [0, 0, 100, 100],
+          errors: [],
+        }),
+        usage: undefined,
+      });
+    });
+
     it('insight - basic run', async () => {
       const insightTask1 = insightFindTask();
       const flushResultData = 'abcdef';
