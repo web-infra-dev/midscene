@@ -158,6 +158,40 @@ export const defineActionDoubleClick = (
   });
 };
 
+// MultipleTap
+export const actionMultipleTapParamSchema = z.object({
+  locate: getMidsceneLocationSchema().describe(
+    'The element to be tapped multiple times',
+  ),
+  count: z.number().int().min(1).describe('Number of taps to perform'),
+  interval: z
+    .number()
+    .int()
+    .min(0)
+    .optional()
+    .describe('Interval in milliseconds between taps'),
+});
+export type ActionMultipleTapParam = {
+  locate: LocateResultElement;
+  count: number;
+  interval?: number;
+};
+
+export const defineActionMultipleTap = (
+  call: (param: ActionMultipleTapParam) => Promise<void>,
+): DeviceAction<ActionMultipleTapParam> => {
+  return defineAction<
+    typeof actionMultipleTapParamSchema,
+    ActionMultipleTapParam
+  >({
+    name: 'MultipleTap',
+    description: 'Tap the element multiple times',
+    interfaceAlias: 'aiMultipleTap',
+    paramSchema: actionMultipleTapParamSchema,
+    call,
+  });
+};
+
 // Hover
 export const actionHoverParamSchema = z.object({
   locate: getMidsceneLocationSchema().describe('The element to be hovered'),

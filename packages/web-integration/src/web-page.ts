@@ -12,6 +12,7 @@ import {
   defineActionInput,
   defineActionKeyboardPress,
   defineActionLongPress,
+  defineActionMultipleTap,
   defineActionRightClick,
   defineActionScroll,
   defineActionSwipe,
@@ -450,6 +451,21 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
       button: 'left',
       count: 2,
     });
+  }),
+  defineActionMultipleTap(async (param) => {
+    const element = param.locate;
+    assert(element, 'Element not found, cannot multiple tap');
+    const count = param.count;
+    const interval = param.interval ?? 50; // Default interval of 50ms between taps
+
+    for (let i = 0; i < count; i++) {
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'left',
+      });
+      if (i < count - 1 && interval > 0) {
+        await sleep(interval);
+      }
+    }
   }),
   defineActionHover(async (param) => {
     const element = param.locate;

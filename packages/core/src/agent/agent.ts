@@ -628,6 +628,22 @@ export class Agent<
     });
   }
 
+  async aiMultipleTap(
+    locatePrompt: TUserPrompt,
+    opt: LocateOption & { count: number; interval?: number },
+  ) {
+    assert(locatePrompt, 'missing locate prompt for multiple tap');
+    assert(opt?.count >= 1, 'count must be at least 1');
+
+    const detailedLocateParam = buildDetailedLocateParam(locatePrompt, opt);
+
+    return this.callActionInActionSpace('MultipleTap', {
+      locate: detailedLocateParam,
+      count: opt.count,
+      interval: opt.interval,
+    });
+  }
+
   async aiHover(locatePrompt: TUserPrompt, opt?: LocateOption) {
     assert(locatePrompt, 'missing locate prompt for hover');
 
