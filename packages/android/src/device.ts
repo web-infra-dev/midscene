@@ -1834,9 +1834,7 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z.object({
-  command: z.string().describe('ADB shell command to execute'),
-});
+const runAdbShellParamSchema = z.string().describe('ADB shell command to execute');
 
 const launchParamSchema = z.object({
   uri: z
@@ -1867,12 +1865,12 @@ const createPlatformActions = (
       description: 'Execute ADB shell command on Android device',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
-      call: async (param) => {
-        if (!param.command || param.command.trim() === '') {
+      call: async (command: string) => {
+        if (!command || command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        return await adb.shell(command);
       },
     }),
     Launch: defineAction({
