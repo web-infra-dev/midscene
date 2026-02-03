@@ -27,24 +27,74 @@ let currentBridgeStatus: BridgeStatus = 'closed';
 // Store connected ports for bridge status updates
 const bridgePorts = new Set<chrome.runtime.Port>();
 
-// Badge colors for different bridge states
-const BADGE_COLORS = {
+// Status indicator colors
+const STATUS_COLORS = {
   listening: '#F59E0B', // Yellow/Amber - waiting for connection
   connected: '#22C55E', // Green - actively connected
-  closed: '', // No badge
 } as const;
 
-// Update extension icon badge based on bridge status
-function updateExtensionBadge(status: BridgeStatus) {
-  if (status === 'listening') {
-    chrome.action.setBadgeText({ text: '●' });
-    chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS.listening });
-  } else if (status === 'connected') {
-    chrome.action.setBadgeText({ text: '●' });
-    chrome.action.setBadgeBackgroundColor({ color: BADGE_COLORS.connected });
-  } else {
-    chrome.action.setBadgeText({ text: '' });
+// Cache for the original icon bitmap
+let originalIconBitmap: ImageBitmap | null = null;
+
+// Update extension icon with status indicator dot
+async function updateExtensionBadge(status: BridgeStatus) {
+  // Clear badge text (we use icon overlay instead)
+  chrome.action.setBadgeText({ text: '' });
+
+  try {
+    if (status === 'listening' || status === 'connected') {
+      const color =
+        status === 'listening'
+          ? STATUS_COLORS.listening
+          : STATUS_COLORS.connected;
+      await setIconWithDot(color);
+    } else {
+      await restoreOriginalIcon();
+    }
+  } catch (error) {
+    console.error('[Badge] Failed to update icon:', error);
   }
+}
+
+// Draw a small dot on the icon
+async function setIconWithDot(dotColor: string) {
+  const size = 128;
+  const canvas = new OffscreenCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Load and cache the original icon
+  if (!originalIconBitmap) {
+    const response = await fetch(chrome.runtime.getURL('icon128.png'));
+    const blob = await response.blob();
+    originalIconBitmap = await createImageBitmap(blob);
+  }
+
+  // Draw original icon
+  ctx.drawImage(originalIconBitmap, 0, 0, size, size);
+
+  // Draw status dot (bottom-right corner)
+  const dotRadius = 20;
+  const dotX = size - dotRadius - 4;
+  const dotY = size - dotRadius - 4;
+
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, dotRadius, 0, Math.PI * 2);
+  ctx.fillStyle = dotColor;
+  ctx.fill();
+
+  // Set the modified icon with size specification
+  const imageData = ctx.getImageData(0, 0, size, size);
+  await chrome.action.setIcon({
+    imageData: { 128: imageData },
+  });
+}
+
+// Restore the original icon without dot
+async function restoreOriginalIcon() {
+  await chrome.action.setIcon({
+    path: { 128: 'icon128.png' },
+  });
 }
 
 // Broadcast bridge status to all connected UI pages

@@ -58,11 +58,17 @@ Promise.resolve(
 
 ### 第四步：启动 Chrome 插件
 
-启动 Chrome 插件并切换到 “Bridge Mode” Tab，点击 “Allow connection”。
+启动 Chrome 插件并切换到 "Bridge Mode" Tab，点击 "Allow connection"。
 
 <p align="center">
   <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
 </p>
+
+:::tip 后台自动连接
+
+开启 **Auto-connect in background** 开关后，即使不打开插件侧边栏，扩展也会在后台持续监听连接请求。扩展图标会显示状态徽标：黄点表示正在监听，绿点表示已连接。
+
+:::
 
 ### 第五步：运行脚本
 
@@ -147,18 +153,6 @@ const agent = new AgentOverChromeBridge({
 - 不要在公网场景开启，避免安全风险
 
 :::
-
-## 后台桥接模式
-
-Chrome 插件支持后台桥接模式，无需保持插件 UI 打开即可维持连接。这对于 MCP 服务等长时间运行的场景非常有用。
-
-### 使用方法
-
-1. 打开 Chrome 插件的 Bridge Mode 页面
-2. 开启 **Auto-connect in background**（后台自动连接）开关
-3. 配置服务器地址（可选，默认为 `ws://localhost:3766`）
-
-开启后，即使不打开插件侧边栏，扩展也会在后台持续监听连接请求。扩展图标会显示状态徽标：黄点表示正在监听，绿点表示已连接。
 
 ## FAQ
 
