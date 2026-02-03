@@ -28,18 +28,20 @@ import type {
 interface MidsceneReporterOptions {
   type?: 'merged' | 'separate';
   /**
-   * Use directory-based report format with separate PNG files.
-   * When enabled, screenshots are saved as separate files in a screenshots/ subdirectory.
-   * Note: Reports must be served via HTTP server due to CORS restrictions.
+   * Output format for the report.
+   * - 'single-html': All screenshots embedded as base64 in a single HTML file (default)
+   * - 'html-and-external-assets': Screenshots saved as separate PNG files in a screenshots/ subdirectory
+   *
+   * Note: 'html-and-external-assets' reports must be served via HTTP server due to CORS restrictions.
    */
-  useDirectoryReport?: boolean;
+  outputFormat?: 'single-html' | 'html-and-external-assets';
 }
 
 class MidsceneReporter implements Reporter {
   private mergedFilename?: string;
   private testTitleToFilename = new Map<string, string>();
   mode?: 'merged' | 'separate';
-  useDirectoryReport: boolean;
+  outputFormat: 'single-html' | 'html-and-external-assets';
 
   // Track all temp files created during this test run for cleanup
   private tempFiles = new Set<string>();
@@ -62,7 +64,7 @@ class MidsceneReporter implements Reporter {
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
     this.mode = MidsceneReporter.getMode(options.type ?? 'merged');
-    this.useDirectoryReport = options.useDirectoryReport ?? false;
+    this.outputFormat = options.outputFormat ?? 'single-html';
   }
 
   private static getMode(reporterType: string): 'merged' | 'separate' {
@@ -104,7 +106,7 @@ class MidsceneReporter implements Reporter {
    */
   private getReportPath(testTitle?: string): string {
     const fileName = this.getReportFilename(testTitle);
-    if (this.useDirectoryReport) {
+    if (this.outputFormat === 'html-and-external-assets') {
       // Directory mode: report-name/index.html
       return join(getMidsceneRunSubDir('report'), fileName, 'index.html');
     }
@@ -174,7 +176,7 @@ class MidsceneReporter implements Reporter {
       );
 
       // Ensure report directory exists for directory mode
-      if (this.useDirectoryReport) {
+      if (this.outputFormat === 'html-and-external-assets') {
         const reportDir = dirname(reportPath);
         if (!existsSync(reportDir)) {
           mkdirSync(reportDir, { recursive: true });
@@ -250,7 +252,7 @@ class MidsceneReporter implements Reporter {
     let dumpString: string | undefined;
 
     try {
-      if (this.useDirectoryReport) {
+      if (this.outputFormat === 'html-and-external-assets') {
         // Directory mode: keep { $screenshot: id } format, copy screenshots to report dir
         const { readFileSync } = require('node:fs');
         dumpString = readFileSync(tempFilePath, 'utf-8');
@@ -330,7 +332,10 @@ class MidsceneReporter implements Reporter {
     }
 
     // Print directory mode notice (only for merged mode)
-    if (this.useDirectoryReport && this.mode === 'merged') {
+    if (
+      this.outputFormat === 'html-and-external-assets' &&
+      this.mode === 'merged'
+    ) {
       const reportPath = this.getReportPath();
       const reportDir = dirname(reportPath);
       console.log('[Midscene] Directory report generated.');
@@ -338,7 +343,10 @@ class MidsceneReporter implements Reporter {
         '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
       );
       console.log(`[Midscene] Example: npx serve ${reportDir}`);
-    } else if (this.useDirectoryReport && this.mode === 'separate') {
+    } else if (
+      this.outputFormat === 'html-and-external-assets' &&
+      this.mode === 'separate'
+    ) {
       const reportBaseDir = getMidsceneRunSubDir('report');
       console.log('[Midscene] Directory reports generated.');
       console.log(

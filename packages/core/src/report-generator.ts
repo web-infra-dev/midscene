@@ -68,13 +68,13 @@ export class ReportGenerator implements IReportGenerator {
     reportFileName: string,
     opts: {
       generateReport?: boolean;
-      useDirectoryReport?: boolean;
+      outputFormat?: 'single-html' | 'html-and-external-assets';
       autoPrintReportMsg?: boolean;
     },
   ): IReportGenerator {
     if (opts.generateReport === false) return nullReportGenerator;
 
-    if (opts.useDirectoryReport) {
+    if (opts.outputFormat === 'html-and-external-assets') {
       const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);
       return new ReportGenerator({
         reportPath: join(outputDir, 'index.html'),

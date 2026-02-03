@@ -498,9 +498,9 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(reportPath).toContain('test-inline.html');
     });
 
-    it('should create directory mode generator when useDirectoryReport is true', () => {
+    it('should create directory mode generator when outputFormat is html-and-external-assets', () => {
       const gen = ReportGenerator.create('test-dir', {
-        useDirectoryReport: true,
+        outputFormat: 'html-and-external-assets',
       });
       expect(gen).toBeInstanceOf(ReportGenerator);
       const reportPath = gen.getReportPath();

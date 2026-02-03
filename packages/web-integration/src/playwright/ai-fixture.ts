@@ -213,7 +213,7 @@ export const PlaywrightAiFixture = (options?: {
     const tempFilePath = join(tmpdir(), tempFileName);
 
     // 3. Serialize dump with screenshots as separate files
-    // This ensures Reporter can copy screenshots when useDirectoryReport is enabled
+    // This ensures Reporter can copy screenshots when outputFormat is 'html-and-external-assets'
     try {
       const agent = pageAgentMap[pageId];
       if (agent) {

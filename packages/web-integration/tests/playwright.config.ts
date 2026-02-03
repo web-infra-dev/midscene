@@ -63,7 +63,7 @@ export default defineConfig({
     // ['html', { outputFolder: 'midscene_run/playwright-reporter' }],
     [
       '../src/playwright/reporter/index.ts',
-      { type: 'merged', useDirectoryReport: false },
+      { type: 'merged', outputFormat: 'single-html' },
     ], // separate/merged
   ],
 });

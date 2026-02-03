@@ -152,7 +152,7 @@ export default defineConfig({
 
 Reporter 配置项说明：
 - `type`: 报告模式，可选值为 `merged`（默认）或 `separate`。`merged` 表示多个测试用例生成一个合并报告，`separate` 表示为每个测试用例生成独立报告。
-- `useDirectoryReport`: 如果为 `true`，则使用目录格式的报告，将截图保存为独立的 PNG 文件而非内嵌 base64。适用于报告文件过大的场景。默认值为 `false`。**注意**：使用此选项时，报告必须通过 HTTP 服务器访问，无法直接使用 `file://` 协议打开（因为浏览器的 CORS 限制会阻止从 file 协议加载相对路径的本地图片）。进入报告目录后运行以下命令之一：
+- `outputFormat`: 控制报告的生成格式。`'single-html'`（默认）将所有截图作为 base64 内嵌到单个 HTML 文件中。`'html-and-external-assets'` 将截图保存为独立的 PNG 文件到子目录，适用于报告文件过大的场景。**注意**：使用 `'html-and-external-assets'` 时，报告必须通过 HTTP 服务器访问，无法直接使用 `file://` 协议打开（因为浏览器的 CORS 限制会阻止从 file 协议加载相对路径的本地图片）。进入报告目录后运行以下命令之一：
   - 使用 Node.js：`npx serve`
   - 使用 Python：`python -m http.server` 或 `python3 -m http.server`
 

@@ -152,7 +152,7 @@ export default defineConfig({
 
 Reporter configuration options:
 - `type`: Report mode, can be `merged` (default) or `separate`. `merged` means multiple test cases generate one merged report, `separate` means each test case generates its own report.
-- `useDirectoryReport`: If `true`, uses directory-based report format with screenshots saved as separate PNG files instead of inline base64. Useful when report files are too large. Default is `false`. **Note**: When using this option, reports must be served via HTTP server and cannot be opened directly using `file://` protocol (because browser CORS restrictions block loading local images via relative paths from the file protocol). Navigate to the report directory and run one of the following commands:
+- `outputFormat`: Controls how the report is generated. `'single-html'` (default) embeds all screenshots as base64 in a single HTML file. `'html-and-external-assets'` saves screenshots as separate PNG files in a subdirectory, useful when report files are too large. **Note**: When using `'html-and-external-assets'`, reports must be served via HTTP server and cannot be opened directly using `file://` protocol (because browser CORS restrictions block loading local images via relative paths from the file protocol). Navigate to the report directory and run one of the following commands:
   - Using Node.js: `npx serve`
   - Using Python: `python -m http.server` or `python3 -m http.server`
 
