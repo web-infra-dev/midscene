@@ -532,6 +532,122 @@ describe('BatchRunner', () => {
     });
   });
 
+  describe('Retry functionality', () => {
+    test('should retry failed files when retry option is set', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      let callCount = 0;
+      const fileCallCounts: Record<string, number> = {};
+
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        fileCallCounts[file] = (fileCallCounts[file] || 0) + 1;
+        callCount++;
+        // file1.yml fails on first call, succeeds on retry
+        const shouldFail = file === 'file1.yml' && fileCallCounts[file] === 1;
+        return createMockPlayer(!shouldFail);
+      });
+
+      const config = {
+        ...mockBatchConfig,
+        continueOnError: true,
+        retry: 1,
+      };
+      const executor = new BatchRunner(config);
+      await executor.run();
+
+      // file1.yml should have been called twice (initial + retry)
+      expect(fileCallCounts['file1.yml']).toBe(2);
+      // Other files should have been called once
+      expect(fileCallCounts['file2.yml']).toBe(1);
+      expect(fileCallCounts['file3.yml']).toBe(1);
+
+      // After retry, all files should succeed
+      const results = executor.getResults();
+      expect(results.find((r) => r.file === 'file1.yml')?.success).toBe(true);
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should not retry when retry is 0', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const fileCallCounts: Record<string, number> = {};
+
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        fileCallCounts[file] = (fileCallCounts[file] || 0) + 1;
+        // file1.yml always fails
+        return createMockPlayer(file !== 'file1.yml');
+      });
+
+      const config = {
+        ...mockBatchConfig,
+        continueOnError: true,
+        retry: 0, // No retry
+      };
+      const executor = new BatchRunner(config);
+      await executor.run();
+
+      // Each file should be called exactly once
+      expect(fileCallCounts['file1.yml']).toBe(1);
+      expect(fileCallCounts['file2.yml']).toBe(1);
+      expect(fileCallCounts['file3.yml']).toBe(1);
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should stop retrying when all files pass', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      vi.mocked(createYamlPlayer).mockImplementation(async () =>
+        createMockPlayer(true),
+      );
+
+      const config = {
+        ...mockBatchConfig,
+        continueOnError: true,
+        retry: 3, // Multiple retries allowed
+      };
+      const executor = new BatchRunner(config);
+      await executor.run();
+
+      // Should print message about no retry needed
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('All files passed'),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should retry multiple rounds if files keep failing', async () => {
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      let file1CallCount = 0;
+
+      vi.mocked(createYamlPlayer).mockImplementation(async (file) => {
+        if (file === 'file1.yml') {
+          file1CallCount++;
+          // Fails on rounds 1 and 2, succeeds on round 3
+          return createMockPlayer(file1CallCount >= 3);
+        }
+        return createMockPlayer(true);
+      });
+
+      const config = {
+        ...mockBatchConfig,
+        continueOnError: true,
+        retry: 3,
+      };
+      const executor = new BatchRunner(config);
+      await executor.run();
+
+      // file1.yml should have been called 3 times
+      expect(file1CallCount).toBe(3);
+
+      // After retries, file1.yml should succeed
+      const results = executor.getResults();
+      expect(results.find((r) => r.file === 'file1.yml')?.success).toBe(true);
+
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('Global config merging', () => {
     const baseFileConfig: MidsceneYamlScript = {
       tasks: [{ name: 'test task', flow: [{ ai: 'do something' }] }],

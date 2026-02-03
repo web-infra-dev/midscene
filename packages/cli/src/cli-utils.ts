@@ -84,6 +84,11 @@ Usage:
         type: 'boolean',
         description: `Turn on logging to help debug why certain keys or values are not being set as you expect, default is ${defaultConfig.dotenvDebug}`,
       },
+      retry: {
+        type: 'number',
+        description:
+          'Number of retry rounds for failed YAML files, default is 0 (no retry)',
+      },
     })
     .version('version', 'Show version number', __VERSION__)
     .help()

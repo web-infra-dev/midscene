@@ -46,6 +46,7 @@ export interface BatchRunnerConfig {
   keepWindow: boolean;
   dotenvOverride: boolean;
   dotenvDebug: boolean;
+  retry?: number; // Number of retry rounds for failed files
 }
 
 interface BatchFileContext {
@@ -139,6 +140,64 @@ class BatchRunner {
         executedResults,
         notExecutedContexts,
       );
+
+      // Retry failed files if retry option is set
+      const retryRounds = this.config.retry ?? 0;
+      if (retryRounds > 0) {
+        for (let round = 1; round <= retryRounds; round++) {
+          const failedFiles = [
+            ...this.getFailedFiles(),
+            ...this.getPartialFailedFiles(),
+          ];
+
+          if (failedFiles.length === 0) {
+            console.log(
+              `\n✅ All files passed, no retry needed (round ${round}/${retryRounds})`,
+            );
+            break;
+          }
+
+          console.log(
+            `\n🔄 Retry round ${round}/${retryRounds}: retrying ${failedFiles.length} failed file(s)...`,
+          );
+
+          // Create new contexts for failed files
+          const retryContexts: BatchFileContext[] = [];
+          for (const file of failedFiles) {
+            const fileConfig = await this.loadFileConfig(file);
+            const context = await this.createFileContext(file, fileConfig, {
+              headed,
+              keepWindow,
+              browser: browser || undefined,
+            });
+            if (sharedPage) {
+              context.options.page = sharedPage;
+            }
+            retryContexts.push(context);
+          }
+
+          // Execute retry
+          const { executedResults: retryResults } =
+            await this.executeFiles(retryContexts);
+
+          // Update results: replace failed results with retry results
+          for (const retryResult of retryResults) {
+            const existingIndex = this.results.findIndex(
+              (r) => r.file === retryResult.file,
+            );
+            if (existingIndex >= 0) {
+              // Process the single retry result
+              const processedResults = await this.processResults(
+                [retryResult],
+                [],
+              );
+              if (processedResults.length > 0) {
+                this.results[existingIndex] = processedResults[0];
+              }
+            }
+          }
+        }
+      }
     } finally {
       if (browser && !this.config.keepWindow) await browser.close();
       await this.generateOutputIndex();

@@ -32,6 +32,7 @@ export interface ConfigFactoryOptions {
   keepWindow?: boolean;
   dotenvOverride?: boolean;
   dotenvDebug?: boolean;
+  retry?: number;
   web?: Partial<MidsceneYamlScriptWebEnv>;
   android?: Partial<MidsceneYamlScriptAndroidEnv>;
   ios?: Partial<MidsceneYamlScriptIOSEnv>;
@@ -176,6 +177,7 @@ export async function createConfig(
     keepWindow: keepWindow,
     dotenvOverride: options?.dotenvOverride ?? parsedConfig.dotenvOverride,
     dotenvDebug: options?.dotenvDebug ?? parsedConfig.dotenvDebug,
+    retry: options?.retry,
     globalConfig,
   };
 }
@@ -206,6 +208,7 @@ export async function createFilesConfig(
     keepWindow: keepWindow,
     dotenvOverride: options.dotenvOverride ?? defaultConfig.dotenvOverride,
     dotenvDebug: options.dotenvDebug ?? defaultConfig.dotenvDebug,
+    retry: options.retry,
     globalConfig: {
       web: options.web as MidsceneYamlScriptWebEnv | undefined,
       android: options.android as MidsceneYamlScriptAndroidEnv | undefined,
