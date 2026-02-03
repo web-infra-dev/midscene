@@ -22,6 +22,11 @@ export type AndroidAgentOpt = AgentOpt & {
    * User-provided mappings will take precedence over default mappings
    */
   appNameMapping?: Record<string, string>;
+  /**
+   * Include accessibility tree (DOM) as reference in AI planning context.
+   * When true, outputs a filtered and collapsed format optimized for token usage.
+   */
+  domIncluded?: boolean;
 };
 
 type ActionArgs<T extends DeviceAction> = [ActionParam<T>] extends [undefined]
@@ -68,6 +73,11 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
 
     // Set the mapping on the device instance
     device.setAppNameMapping(this.appNameMapping);
+
+    // Pass domIncluded config to device for getExtraPlanningContext
+    if (opts?.domIncluded) {
+      device.setDomIncluded(opts.domIncluded);
+    }
 
     this.back =
       this.createActionWrapper<DeviceActionAndroidBackButton>(

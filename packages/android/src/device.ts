@@ -45,6 +45,7 @@ import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
 } from './scrcpy-device-adapter';
+import { dumpAndFormatAccessibilityTree } from './ui-hierarchy';
 
 // Re-export AndroidDeviceOpt and AndroidDeviceInputOpt for backward compatibility
 export type {
@@ -501,6 +502,12 @@ ${Object.keys(size)
     this.appNameMapping = mapping;
   }
 
+  private domIncluded: boolean | undefined;
+
+  public setDomIncluded(value: boolean): void {
+    this.domIncluded = value;
+  }
+
   /**
    * Resolve app name to package name using the mapping
    * Comparison is case-insensitive and ignores spaces, dashes, and underscores.
@@ -565,12 +572,19 @@ ${Object.keys(size)
     return [];
   }
 
-  async getElementsNodeTree(): Promise<any> {
-    // Simplified implementation, returns an empty node tree
-    return {
-      node: null,
-      children: [],
-    };
+  async getExtraPlanningContext(): Promise<string> {
+    if (!this.domIncluded) return '';
+
+    try {
+      const adb = await this.getAdb();
+      const domDescription = await dumpAndFormatAccessibilityTree(adb);
+      if (domDescription) {
+        return `\nPage structure data in the below XML format. You can extract accurate textual content and relevant UI state annotations from it: \n<PageElementsTree>\n${domDescription}\n</PageElementsTree>`;
+      }
+    } catch (e) {
+      debugDevice('getExtraPlanningContext failed: %O', e);
+    }
+    return '';
   }
 
   async getScreenSize(): Promise<{

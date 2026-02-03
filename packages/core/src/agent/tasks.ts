@@ -345,6 +345,19 @@ export class TaskExecutor {
               );
             }
 
+            // Allow interface to provide extra planning context (e.g. DOM/accessibility tree)
+            let actionContext = param.aiActContext;
+            if (this.interface.getExtraPlanningContext) {
+              try {
+                const extra = await this.interface.getExtraPlanningContext();
+                if (extra) {
+                  actionContext = (actionContext || '') + extra;
+                }
+              } catch (e) {
+                debug('getExtraPlanningContext failed:', e);
+              }
+            }
+
             const planImpl = isUITars(modelFamily)
               ? uiTarsPlanning
               : isAutoGLM(modelFamily)
@@ -355,7 +368,7 @@ export class TaskExecutor {
             try {
               planResult = await planImpl(param.userInstruction, {
                 context: uiContext,
-                actionContext: param.aiActContext,
+                actionContext,
                 interfaceType: this.interface.interfaceType as InterfaceType,
                 actionSpace,
                 modelConfig: modelConfigForPlanning,
