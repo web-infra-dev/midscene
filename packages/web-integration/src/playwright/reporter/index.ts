@@ -1,5 +1,11 @@
-import { rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { dirname, join } from 'node:path';
 import {
   GroupedActionDump,
   type ReportDumpWithAttributes,
@@ -21,12 +27,21 @@ import type {
 
 interface MidsceneReporterOptions {
   type?: 'merged' | 'separate';
+  /**
+   * Output format for the report.
+   * - 'single-html': All screenshots embedded as base64 in a single HTML file (default)
+   * - 'html-and-external-assets': Screenshots saved as separate PNG files in a screenshots/ subdirectory
+   *
+   * Note: 'html-and-external-assets' reports must be served via HTTP server due to CORS restrictions.
+   */
+  outputFormat?: 'single-html' | 'html-and-external-assets';
 }
 
 class MidsceneReporter implements Reporter {
   private mergedFilename?: string;
   private testTitleToFilename = new Map<string, string>();
   mode?: 'merged' | 'separate';
+  outputFormat: 'single-html' | 'html-and-external-assets';
 
   // Track all temp files created during this test run for cleanup
   private tempFiles = new Set<string>();
@@ -43,9 +58,13 @@ class MidsceneReporter implements Reporter {
   // Track whether we have multiple projects (browsers)
   private hasMultipleProjects = false;
 
+  // Track written screenshots to avoid duplicates (for directory mode)
+  private writtenScreenshots = new Set<string>();
+
   constructor(options: MidsceneReporterOptions = {}) {
     // Set mode from constructor options (official Playwright way)
     this.mode = MidsceneReporter.getMode(options.type ?? 'merged');
+    this.outputFormat = options.outputFormat ?? 'single-html';
   }
 
   private static getMode(reporterType: string): 'merged' | 'separate' {
@@ -82,19 +101,87 @@ class MidsceneReporter implements Reporter {
     throw new Error(`Unknown mode: ${this.mode}`);
   }
 
+  /**
+   * Get the report path - for directory mode, returns a directory path with index.html
+   */
+  private getReportPath(testTitle?: string): string {
+    const fileName = this.getReportFilename(testTitle);
+    if (this.outputFormat === 'html-and-external-assets') {
+      // Directory mode: report-name/index.html
+      return join(getMidsceneRunSubDir('report'), fileName, 'index.html');
+    }
+    // Inline mode: report-name.html
+    return join(getMidsceneRunSubDir('report'), `${fileName}.html`);
+  }
+
+  /**
+   * Copy screenshots from temp location to report screenshots directory
+   */
+  private copyScreenshotsToReport(
+    tempFilePath: string,
+    reportPath: string,
+  ): void {
+    const screenshotsDir = join(dirname(reportPath), 'screenshots');
+    const tempScreenshotsDir = `${tempFilePath}.screenshots`;
+
+    if (!existsSync(tempScreenshotsDir)) {
+      return;
+    }
+
+    // Ensure screenshots directory exists
+    if (!existsSync(screenshotsDir)) {
+      mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    // Read screenshot map to get all screenshot IDs
+    const screenshotMapPath = `${tempFilePath}.screenshots.json`;
+    if (!existsSync(screenshotMapPath)) {
+      return;
+    }
+
+    try {
+      const { readFileSync } = require('node:fs');
+      const screenshotMap: Record<string, string> = JSON.parse(
+        readFileSync(screenshotMapPath, 'utf-8'),
+      );
+
+      for (const [id, srcPath] of Object.entries(screenshotMap)) {
+        // In merged mode, skip if already written to avoid duplicates
+        // In separate mode, each test has its own screenshots directory
+        if (this.mode === 'merged' && this.writtenScreenshots.has(id)) {
+          continue;
+        }
+
+        const destPath = join(screenshotsDir, `${id}.png`);
+
+        if (existsSync(srcPath)) {
+          copyFileSync(srcPath, destPath);
+          if (this.mode === 'merged') {
+            this.writtenScreenshots.add(id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error copying screenshots:', error);
+    }
+  }
+
   private async updateReport(testData: ReportDumpWithAttributes) {
     if (!testData || !this.mode) return;
 
     // Queue the write operation to prevent concurrent writes to the same file
     this.writeQueue = this.writeQueue.then(async () => {
-      const fileName = this.getReportFilename(
+      const reportPath = this.getReportPath(
         testData.attributes?.playwright_test_title,
       );
 
-      const reportPath = join(
-        getMidsceneRunSubDir('report'),
-        `${fileName}.html`,
-      );
+      // Ensure report directory exists for directory mode
+      if (this.outputFormat === 'html-and-external-assets') {
+        const reportDir = dirname(reportPath);
+        if (!existsSync(reportDir)) {
+          mkdirSync(reportDir, { recursive: true });
+        }
+      }
 
       // Get report template
       const tpl = getReportTpl();
@@ -104,8 +191,7 @@ class MidsceneReporter implements Reporter {
         );
       }
 
-      // Parse the dump string (which already contains inline screenshots)
-      // and generate dump script tag
+      // Parse the dump string and generate dump script tag
       let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
 
       // Add attributes to the dump script if this is merged report
@@ -166,8 +252,25 @@ class MidsceneReporter implements Reporter {
     let dumpString: string | undefined;
 
     try {
-      // Read dump with inline screenshots
-      dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
+      if (this.outputFormat === 'html-and-external-assets') {
+        // Directory mode: keep { $screenshot: id } format, copy screenshots to report dir
+        const { readFileSync } = require('node:fs');
+        dumpString = readFileSync(tempFilePath, 'utf-8');
+
+        // Get report path and copy screenshots
+        const retry = result.retry ? `(retry #${result.retry})` : '';
+        const projectName = this.hasMultipleProjects
+          ? test.parent?.project()?.name
+          : undefined;
+        const projectSuffix = projectName ? ` [${projectName}]` : '';
+        const testTitle = `${test.title}${projectSuffix}${retry}`;
+        const reportPath = this.getReportPath(testTitle);
+
+        this.copyScreenshotsToReport(tempFilePath, reportPath);
+      } else {
+        // Inline mode: convert screenshots to base64
+        dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
+      }
     } catch (error) {
       console.error(
         `Failed to read Midscene dump file: ${tempFilePath}`,
@@ -226,6 +329,30 @@ class MidsceneReporter implements Reporter {
         `Midscene: Waiting for ${this.pendingReports.size} pending report(s) to complete...`,
       );
       await Promise.all(Array.from(this.pendingReports));
+    }
+
+    // Print directory mode notice (only for merged mode)
+    if (
+      this.outputFormat === 'html-and-external-assets' &&
+      this.mode === 'merged'
+    ) {
+      const reportPath = this.getReportPath();
+      const reportDir = dirname(reportPath);
+      console.log('[Midscene] Directory report generated.');
+      console.log(
+        '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
+      );
+      console.log(`[Midscene] Example: npx serve ${reportDir}`);
+    } else if (
+      this.outputFormat === 'html-and-external-assets' &&
+      this.mode === 'separate'
+    ) {
+      const reportBaseDir = getMidsceneRunSubDir('report');
+      console.log('[Midscene] Directory reports generated.');
+      console.log(
+        '[Midscene] Note: Reports must be served via HTTP server due to CORS restrictions.',
+      );
+      console.log(`[Midscene] Example: npx serve ${reportBaseDir}`);
     }
 
     // Clean up any remaining temp files that weren't deleted in onTestEnd

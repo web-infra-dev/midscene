@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ScreenshotItem } from '../../src/screenshot-item';
 
 describe('ScreenshotItem', () => {
@@ -24,7 +27,9 @@ describe('ScreenshotItem', () => {
       const item = ScreenshotItem.create(testBase64);
       const serialized = item.toSerializable();
       expect(serialized).toHaveProperty('$screenshot');
-      expect(typeof serialized.$screenshot).toBe('string');
+      expect(typeof (serialized as { $screenshot: string }).$screenshot).toBe(
+        'string',
+      );
     });
 
     it('should produce JSON-serializable output', () => {
@@ -100,10 +105,14 @@ describe('ScreenshotItem', () => {
       expect(item.rawBase64).toBe('iVBORw0KGgoAAAANSUhEUgAAAAUA');
     });
 
-    it('should throw after persistence (base64 released)', () => {
+    it('should throw when no recovery path available after release', () => {
+      // This tests the edge case where a ScreenshotItem is created but
+      // memory is released without a valid recovery path (shouldn't happen in practice)
       const item = ScreenshotItem.create(testBase64);
-      item.markPersistedInline();
-      expect(() => item.rawBase64).toThrow(/already released/);
+      // Simulate an invalid state by providing non-existent HTML path
+      item.markPersistedInline('/non-existent-path.html');
+      // Should throw because the HTML file doesn't exist
+      expect(() => item.rawBase64).toThrow();
     });
   });
 
@@ -117,38 +126,65 @@ describe('ScreenshotItem', () => {
     it('should preserve base64 data through toSerializable', () => {
       const item = ScreenshotItem.create(testBase64);
       const serialized = item.toSerializable();
-      expect(serialized.$screenshot).toBe(item.id);
+      expect((serialized as { $screenshot: string }).$screenshot).toBe(item.id);
       expect(item.base64).toBe(testBase64);
     });
   });
 
   describe('persistence and memory release', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = join(tmpdir(), `midscene-screenshot-test-${Date.now()}`);
+      mkdirSync(tmpDir, { recursive: true });
+    });
+
+    afterEach(() => {
+      if (existsSync(tmpDir)) {
+        rmSync(tmpDir, { recursive: true, force: true });
+      }
+    });
+
     it('should have base64 available before persistence', () => {
       const item = ScreenshotItem.create(testBase64);
       expect(item.hasBase64()).toBe(true);
       expect(item.base64).toBe(testBase64);
     });
 
-    it('markPersistedInline should release base64 and serialize as $screenshot', () => {
+    it('markPersistedInline should release memory and support lazy loading recovery', () => {
       const item = ScreenshotItem.create(testBase64);
       const id = item.id;
 
-      item.markPersistedInline();
+      // Create a temporary HTML file with the screenshot data
+      const htmlPath = join(tmpDir, 'test.html');
+      writeFileSync(
+        htmlPath,
+        `<script type="midscene-image" data-id="${id}">${testBase64}</script>`,
+      );
+
+      item.markPersistedInline(htmlPath);
 
       expect(item.hasBase64()).toBe(false);
-      expect(() => item.base64).toThrow(/already released/);
+      // Should recover from HTML file via lazy loading
+      expect(item.base64).toBe(testBase64);
       expect(item.toSerializable()).toEqual({ $screenshot: id });
     });
 
-    it('markPersistedToPath should release base64 and serialize as path', () => {
+    it('markPersistedToPath should release memory and support lazy loading recovery', () => {
       const item = ScreenshotItem.create(testBase64);
-      const path = './screenshots/test-id.png';
+      const relativePath = './screenshots/test-id.png';
+      const absolutePath = join(tmpDir, 'test-id.png');
 
-      item.markPersistedToPath(path);
+      // Write PNG file (just the base64 data decoded)
+      const rawBase64 = testBase64.replace(/^data:image\/png;base64,/, '');
+      writeFileSync(absolutePath, Buffer.from(rawBase64, 'base64'));
+
+      item.markPersistedToPath(relativePath, absolutePath);
 
       expect(item.hasBase64()).toBe(false);
-      expect(() => item.base64).toThrow(/already released/);
-      expect(item.toSerializable()).toEqual({ base64: path });
+      // Should recover from PNG file via lazy loading
+      expect(item.base64).toContain('data:image/png;base64,');
+      expect(item.toSerializable()).toEqual({ base64: relativePath });
     });
 
     it('toSerializable should return $screenshot format before persistence', () => {
@@ -157,6 +193,26 @@ describe('ScreenshotItem', () => {
 
       expect(serialized).toHaveProperty('$screenshot');
       expect((serialized as { $screenshot: string }).$screenshot).toBe(item.id);
+    });
+
+    it('should throw when recovery path does not exist (directory mode)', () => {
+      const item = ScreenshotItem.create(testBase64);
+      item.markPersistedToPath(
+        './screenshots/non-existent.png',
+        '/non-existent-path.png',
+      );
+      expect(item.hasBase64()).toBe(false);
+      expect(() => item.base64).toThrow();
+    });
+
+    it('should throw when recovery HTML does not contain the image (inline mode)', () => {
+      const item = ScreenshotItem.create(testBase64);
+      const htmlPath = join(tmpDir, 'empty.html');
+      writeFileSync(htmlPath, '<html></html>');
+
+      item.markPersistedInline(htmlPath);
+      expect(item.hasBase64()).toBe(false);
+      expect(() => item.base64).toThrow(/cannot recover/);
     });
   });
 });

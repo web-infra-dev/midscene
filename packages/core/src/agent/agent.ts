@@ -410,7 +410,7 @@ export class Agent<
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
-      useDirectoryReport: this.opts.useDirectoryReport,
+      outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
     });
   }

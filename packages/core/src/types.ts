@@ -995,13 +995,13 @@ export interface AgentOpt {
    * - Report is generated as `index.html` with relative image paths
    * - Reduces memory usage and report file size
    *
-   * IMPORTANT: Directory reports must be served via HTTP server
+   * IMPORTANT: 'html-and-external-assets' reports must be served via HTTP server
    * (e.g., `npx serve ./report-dir`). The file:// protocol will not
    * work due to browser CORS restrictions.
    *
-   * @default false
+   * @default 'single-html'
    */
-  useDirectoryReport?: boolean;
+  outputFormat?: 'single-html' | 'html-and-external-assets';
 
   onTaskStartTip?: OnTaskStartTip;
   aiActContext?: string;
