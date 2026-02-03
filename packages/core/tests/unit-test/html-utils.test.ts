@@ -1,7 +1,13 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { extractImageByIdSync } from '../../src/dump/html-utils';
+import {
+  extractImageByIdSync,
+  extractLastDumpScriptSync,
+  generateImageScriptTag,
+  streamImageScriptsToFile,
+} from '../../src/dump/html-utils';
+import { getTmpFile } from '../../src/utils';
 
 describe('html-utils', () => {
   describe('extractImageByIdSync', () => {
@@ -106,6 +112,140 @@ describe('html-utils', () => {
           expect(isPng || isJpeg).toBe(true);
         },
       );
+    });
+  });
+
+  describe('extractLastDumpScriptSync', () => {
+    const fixturesDir = join(__dirname, '../fixtures/report-samples');
+    const inlineSamplePath = join(fixturesDir, 'inline-sample.html');
+
+    it('should extract dump script content from HTML file', () => {
+      const result = extractLastDumpScriptSync(inlineSamplePath);
+      expect(result).toBe('{"groupName":"test","executions":[]}');
+    });
+
+    it('should extract content from large HTML file', () => {
+      const hugeContent = Buffer.alloc(3 * 1024 * 1024 - 200, 'a').toString();
+      const largeHtmlPath = getTmpFile('html');
+      if (!largeHtmlPath) {
+        throw new Error('Failed to create temp html file');
+      }
+      writeFileSync(
+        largeHtmlPath,
+        `<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+${hugeContent}
+<script type="midscene_web_dump" type="application/json">
+test
+</script>
+</body>
+</html>
+`,
+        'utf8',
+      );
+      const result = extractLastDumpScriptSync(largeHtmlPath);
+      unlinkSync(largeHtmlPath);
+      expect(result).toBe('test');
+    });
+
+    it('should extract the LAST dump script when multiple exist', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) {
+        throw new Error('Failed to create temp html file');
+      }
+      writeFileSync(
+        htmlPath,
+        `<!DOCTYPE html>
+<html>
+<body>
+<script type="midscene_web_dump">first</script>
+<script type="midscene_web_dump">second</script>
+<script type="midscene_web_dump">last</script>
+</body>
+</html>
+`,
+        'utf8',
+      );
+      const result = extractLastDumpScriptSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(result).toBe('last');
+    });
+
+    it('should return empty string for file without dump script', () => {
+      const htmlPath = getTmpFile('html');
+      if (!htmlPath) {
+        throw new Error('Failed to create temp html file');
+      }
+      writeFileSync(htmlPath, '<html><body>no script</body></html>', 'utf8');
+      const result = extractLastDumpScriptSync(htmlPath);
+      unlinkSync(htmlPath);
+      expect(result).toBe('');
+    });
+  });
+
+  describe('streamImageScriptsToFile', () => {
+    it('should stream image scripts from source to destination', () => {
+      const srcPath = getTmpFile('html');
+      const destPath = getTmpFile('html');
+      if (!srcPath || !destPath) {
+        throw new Error('Failed to create temp files');
+      }
+
+      const imageTag1 = generateImageScriptTag(
+        'img-1',
+        'data:image/png;base64,AAA',
+      );
+      const imageTag2 = generateImageScriptTag(
+        'img-2',
+        'data:image/png;base64,BBB',
+      );
+
+      writeFileSync(
+        srcPath,
+        `<!DOCTYPE html>
+<html>
+<body>
+${imageTag1}
+${imageTag2}
+<script type="midscene_web_dump">{"test":true}</script>
+</body>
+</html>
+`,
+        'utf8',
+      );
+
+      writeFileSync(destPath, '', 'utf8');
+      streamImageScriptsToFile(srcPath, destPath);
+
+      const destContent = readFileSync(destPath, 'utf8');
+      expect(destContent).toContain('data-id="img-1"');
+      expect(destContent).toContain('data-id="img-2"');
+      expect(destContent).toContain('AAA');
+      expect(destContent).toContain('BBB');
+
+      unlinkSync(srcPath);
+      unlinkSync(destPath);
+    });
+
+    it('should handle file with no image scripts', () => {
+      const srcPath = getTmpFile('html');
+      const destPath = getTmpFile('html');
+      if (!srcPath || !destPath) {
+        throw new Error('Failed to create temp files');
+      }
+
+      writeFileSync(srcPath, '<html><body>no images</body></html>', 'utf8');
+      writeFileSync(destPath, '', 'utf8');
+
+      streamImageScriptsToFile(srcPath, destPath);
+
+      const destContent = readFileSync(destPath, 'utf8');
+      expect(destContent).toBe('');
+
+      unlinkSync(srcPath);
+      unlinkSync(destPath);
     });
   });
 });

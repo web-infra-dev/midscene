@@ -140,34 +140,6 @@ describe('reportMergingTool', () => {
     });
   });
 
-  it('should extract content from <script> tag in large HTML', async () => {
-    const tool = new ReportMergingTool();
-    // create 3M html temp file
-    const hugeContent = Buffer.alloc(3 * 1024 * 1024 - 200, 'a').toString();
-    const largeHtmlPath = getTmpFile('html');
-    if (!largeHtmlPath) {
-      throw new Error('Failed to create temp html file');
-    }
-    writeFileSync(
-      largeHtmlPath,
-      `<!DOCTYPE html>
-<html>
-<head><title>Test</title></head>
-<body>
-${hugeContent}
-<script type="midscene_web_dump" type="application/json">
-test
-</script>
-</body>
-</html>
-`,
-      'utf8',
-    );
-    const result = await tool.extractScriptContent(largeHtmlPath);
-    unlinkSync(largeHtmlPath); // remove temp file
-    expect(result).toBe('test');
-  });
-
   it(
     'should merge 100 mocked reports, and delete original reports after that.',
     { timeout: 5 * 60 * 1000 },

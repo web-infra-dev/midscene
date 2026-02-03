@@ -116,6 +116,110 @@ export function extractImageByIdSync(
   return result;
 }
 
+/**
+ * Stream image script tags from source file directly to output file.
+ * Memory usage: O(single_image_size), not O(all_images_size).
+ *
+ * @param srcFilePath - Source HTML file path
+ * @param destFilePath - Destination file path to append to
+ */
+export function streamImageScriptsToFile(
+  srcFilePath: string,
+  destFilePath: string,
+): void {
+  const { appendFileSync } = require('node:fs');
+  const openTag = '<script type="midscene-image"';
+  const closeTag = '</script>';
+
+  streamScanTags(srcFilePath, openTag, closeTag, (content) => {
+    // Write complete tag immediately to destination, don't accumulate
+    appendFileSync(destFilePath, `${openTag}${content}${closeTag}\n`);
+    return false; // Continue scanning for more tags
+  });
+}
+
+/**
+ * Extract the LAST dump script content from HTML file using streaming.
+ * Memory usage: O(dump_size), not O(file_size).
+ *
+ * @param filePath - Absolute path to the HTML file
+ * @returns The dump script content (trimmed), or empty string if not found
+ */
+export function extractLastDumpScriptSync(filePath: string): string {
+  const openTagPrefix = '<script type="midscene_web_dump"';
+  const closeTag = '</script>';
+
+  let lastContent = '';
+
+  // Custom streaming to handle the special case where open tag has variable attributes
+  const fd = openSync(filePath, 'r');
+  const fileSize = statSync(filePath).size;
+  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+
+  let position = 0;
+  let leftover = '';
+  let capturing = false;
+  let currentContent = '';
+
+  try {
+    while (position < fileSize) {
+      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
+      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+      position += bytesRead;
+
+      let searchStart = 0;
+
+      while (searchStart < chunk.length) {
+        if (!capturing) {
+          const startIdx = chunk.indexOf(openTagPrefix, searchStart);
+          if (startIdx !== -1) {
+            // Find the end of the opening tag (the '>' character)
+            const tagEndIdx = chunk.indexOf('>', startIdx);
+            if (tagEndIdx !== -1) {
+              capturing = true;
+              currentContent = chunk.slice(tagEndIdx + 1);
+              const endIdx = currentContent.indexOf(closeTag);
+              if (endIdx !== -1) {
+                lastContent = currentContent.slice(0, endIdx).trim();
+                capturing = false;
+                currentContent = '';
+                searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
+              } else {
+                leftover = currentContent.slice(-closeTag.length);
+                currentContent = currentContent.slice(0, -closeTag.length);
+                break;
+              }
+            } else {
+              leftover = chunk.slice(startIdx);
+              break;
+            }
+          } else {
+            leftover = chunk.slice(-openTagPrefix.length);
+            break;
+          }
+        } else {
+          const endIdx = chunk.indexOf(closeTag, searchStart);
+          if (endIdx !== -1) {
+            currentContent += chunk.slice(searchStart, endIdx);
+            lastContent = currentContent.trim();
+            capturing = false;
+            currentContent = '';
+            searchStart = endIdx + closeTag.length;
+          } else {
+            currentContent += chunk.slice(searchStart, -closeTag.length);
+            leftover = chunk.slice(-closeTag.length);
+            break;
+          }
+        }
+      }
+    }
+  } finally {
+    closeSync(fd);
+  }
+
+  return lastContent;
+}
+
 export function parseImageScripts(html: string): Record<string, string> {
   const imageMap: Record<string, string> = {};
   const regex =
