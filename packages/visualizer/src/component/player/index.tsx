@@ -225,6 +225,7 @@ export function Player(props?: {
   autoZoom?: boolean; // enable auto zoom when playing, default to true
   canDownloadReport?: boolean; // enable download report, default to true
   onTaskChange?: (taskId: string | null) => void; // callback when task changes during playback
+  startFromTaskId?: string | null; // start playback from a specific task ID
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
@@ -850,8 +851,28 @@ export function Player(props?: {
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         await repaintImage();
         await updateCamera({ ...basicCameraState });
+
+        // Find start index if startFromTaskId is specified
+        let startIndex = 0;
+        if (props?.startFromTaskId) {
+          const foundIndex = scripts.findIndex(
+            (item) => item.taskId === props.startFromTaskId,
+          );
+          if (foundIndex >= 0) {
+            startIndex = foundIndex;
+            // Set initial state to the start position's screenshot
+            const startScript = scripts[foundIndex];
+            if (startScript?.img) {
+              currentImg.current = startScript.img;
+              await repaintImage(startScript.imageWidth, startScript.imageHeight);
+            }
+          }
+        }
+
+        // Calculate total duration (for scripts from startIndex onwards)
+        const scriptsToPlay = scripts.slice(startIndex);
         const totalDuration = scaleByPlaybackSpeed(
-          scripts.reduce((acc, item) => {
+          scriptsToPlay.reduce((acc, item) => {
             return (
               acc +
               item.duration +
@@ -885,15 +906,15 @@ export function Player(props?: {
 
         // Immediately notify the first task's taskId before starting the loop
         // This ensures the sidebar highlights the first step right when playback starts
-        const firstTaskId = scripts[0]?.taskId ?? null;
+        const firstTaskId = scriptsToPlay[0]?.taskId ?? null;
         if (firstTaskId) {
           currentTaskId = firstTaskId;
           safeOnTaskChange(currentTaskId);
         }
 
-        // play animation
-        for (const index in scripts) {
-          const item = scripts[index];
+        // play animation (from startIndex onwards)
+        for (const index in scriptsToPlay) {
+          const item = scriptsToPlay[index];
           setTitleText(item.title || '');
           setSubTitleText(item.subTitle || '');
 
