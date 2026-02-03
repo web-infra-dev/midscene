@@ -92,10 +92,11 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const taskIdToTaskMap = useMemo(() => {
     if (!groupedDump) return new Map<string, ExecutionTask>();
     const map = new Map<string, ExecutionTask>();
-    groupedDump.executions.forEach((execution, execIndex) => {
-      execution.tasks.forEach((task, taskIndex) => {
-        const taskId = `exec${execIndex}-task${taskIndex}`;
-        map.set(taskId, task);
+    groupedDump.executions.forEach((execution) => {
+      execution.tasks.forEach((task) => {
+        if (task.taskId) {
+          map.set(task.taskId, task);
+        }
       });
     });
     return map;
@@ -571,12 +572,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
               const task = record.task!;
               const isSelected = task === activeTask;
               const isPlaying = task === playingTask;
-              // Extract executionIndex and taskIndex from record.key (format: "task-{execIndex}-{taskIndex}")
-              const keyParts = record.key.split('-');
-              const taskId =
-                keyParts.length === 3
-                  ? `exec${keyParts[1]}-task${keyParts[2]}`
-                  : undefined;
+              const taskId = task.taskId;
 
               return (
                 <div

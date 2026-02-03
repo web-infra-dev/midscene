@@ -67,7 +67,7 @@ import {
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
@@ -1359,6 +1359,7 @@ export class Agent<
     ];
     // 3. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
+      taskId: uuid(),
       type: 'Log',
       subType: 'Screenshot',
       status: 'finished',

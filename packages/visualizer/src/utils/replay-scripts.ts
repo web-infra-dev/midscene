@@ -331,9 +331,9 @@ export const generateAnimationScripts = (
     imageHeight,
   );
 
-  // Generate taskId for each task: format is "exec{executionIndex}-task{taskIndex}"
-  const getTaskId = (taskIndex: number): string => {
-    return `exec${executionIndex}-task${taskStartIndex + taskIndex}`;
+  // Get taskId from the task object
+  const getTaskId = (taskIndex: number): string | undefined => {
+    return tasksIncluded[taskIndex]?.taskId;
   };
 
   const setPointerScript = (

@@ -377,6 +377,7 @@ export type ExecutionTask<
       ? TaskLog
       : unknown
   > & {
+    taskId: string;
     status: 'pending' | 'running' | 'finished' | 'failed' | 'cancelled';
     error?: Error;
     errorMessage?: string;
