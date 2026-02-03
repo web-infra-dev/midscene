@@ -224,12 +224,10 @@ export async function launchPuppeteerPage(
   }
 
   // Build Chrome arguments using the shared helper
+  // Only pass windowSize in headed mode; in headless mode, defaultViewport takes precedence
   const args = buildChromeArgs({
     userAgent: ua,
-    windowSize: {
-      width,
-      height: height + (headed ? 100 : 0), // add 100px for the address bar in headed mode
-    },
+    windowSize: headed ? { width, height } : undefined,
     chromeArgs: target.chromeArgs,
   });
 
