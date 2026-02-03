@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import {
   type DeviceAction,
@@ -66,6 +67,90 @@ const SCROLL_COMPLETE_DELAY = 500;
 // Input strategy constants
 const INPUT_STRATEGY_ALWAYS_CLIPBOARD = 'always-clipboard';
 const INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII = 'clipboard-for-non-ascii';
+
+// macOS AppleScript key code mapping
+// Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
+const APPLESCRIPT_KEY_CODE_MAP: Record<string, number> = {
+  // Special keys
+  return: 36,
+  enter: 36,
+  tab: 48,
+  space: 49,
+  backspace: 51,
+  delete: 51,
+  escape: 53,
+  forwarddelete: 117,
+
+  // Arrow keys
+  left: 123,
+  right: 124,
+  down: 125,
+  up: 126,
+
+  // Navigation keys
+  home: 115,
+  end: 119,
+  pageup: 116,
+  pagedown: 121,
+
+  // Function keys
+  f1: 122,
+  f2: 120,
+  f3: 99,
+  f4: 118,
+  f5: 96,
+  f6: 97,
+  f7: 98,
+  f8: 100,
+  f9: 101,
+  f10: 109,
+  f11: 103,
+  f12: 111,
+};
+
+// Modifier key mapping for AppleScript
+const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
+  command: 'command down',
+  cmd: 'command down',
+  control: 'control down',
+  ctrl: 'control down',
+  shift: 'shift down',
+  alt: 'option down',
+  option: 'option down',
+  meta: 'command down',
+};
+
+/**
+ * Send a key press using AppleScript (macOS only)
+ * More reliable than libnut for TUI applications like Bubble Tea
+ */
+function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
+  const lowerKey = key.toLowerCase();
+  const keyCode = APPLESCRIPT_KEY_CODE_MAP[lowerKey];
+
+  // Build modifier string
+  const modifierParts = modifiers
+    .map((m) => APPLESCRIPT_MODIFIER_MAP[m.toLowerCase()])
+    .filter(Boolean);
+  const modifierStr =
+    modifierParts.length > 0 ? ` using {${modifierParts.join(', ')}}` : '';
+
+  let script: string;
+
+  if (keyCode !== undefined) {
+    // Use key code for special keys
+    script = `tell application "System Events" to key code ${keyCode}${modifierStr}`;
+  } else if (lowerKey.length === 1) {
+    // Use keystroke for single characters (letters, numbers, symbols)
+    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
+  } else {
+    // Fallback: try as keystroke
+    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
+  }
+
+  debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
+  execSync(`osascript -e '${script}'`);
+}
 
 // Lazy load libnut with fallback
 let libnut: LibNut | null = null;
@@ -190,6 +275,12 @@ export interface ComputerDeviceOpt {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customActions?: DeviceAction<any>[];
   inputStrategy?: 'always-clipboard' | 'clipboard-for-non-ascii';
+  /**
+   * Keyboard driver for sending key events (macOS only)
+   * - 'applescript': Use AppleScript via osascript (default on macOS, more reliable)
+   * - 'libnut': Use libnut's keyTap (faster but may not work with some TUI apps)
+   */
+  keyboardDriver?: 'applescript' | 'libnut';
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -562,16 +653,29 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         // Use normalizePrimaryKey for the main key to handle modifier keys pressed alone
         const key = normalizePrimaryKey(keys[keys.length - 1]);
 
+        // On macOS, use AppleScript by default (more reliable for TUI apps)
+        // User can opt-out by setting keyboardDriver: 'libnut'
+        const useAppleScript =
+          process.platform === 'darwin' &&
+          this.options?.keyboardDriver !== 'libnut';
+
         debugDevice('KeyboardPress', {
           original: param.keyName,
           key,
           modifiers,
+          driver: useAppleScript ? 'applescript' : 'libnut',
         });
 
-        if (modifiers.length > 0) {
-          libnut.keyTap(key, modifiers);
+        if (useAppleScript) {
+          // Use AppleScript for all keys on macOS when keyboardDriver is 'applescript'
+          sendKeyViaAppleScript(key, modifiers);
         } else {
-          libnut.keyTap(key);
+          // Use libnut (default)
+          if (modifiers.length > 0) {
+            libnut.keyTap(key, modifiers);
+          } else {
+            libnut.keyTap(key);
+          }
         }
       }),
 
