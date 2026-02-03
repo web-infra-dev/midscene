@@ -25,6 +25,10 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
 - `replanningCycleLimit: number`: `aiAct` 的最大重规划次数。默认值为 20（UI-TARS 模型默认 40）。推荐通过 agent 入参设置；`MIDSCENE_REPLANNING_CYCLE_LIMIT` 环境变量仅作兼容读取。
 - `waitAfterAction: number`: 每次动作执行后的等待时间（毫秒）。这让 UI 有时间稳定，然后再执行下一个动作。默认值为 300 毫秒。
 - `onTaskStartTip: (tip: string) => void | Promise<void>`：可选回调，在每个子任务执行开始前收到一条可读的任务描述提示。默认值为 undefined。
+- `outputFormat: 'single-html' | 'html-and-external-assets'`: 控制报告的生成格式。`'single-html'`（默认）将所有截图作为 base64 内嵌到单个 HTML 文件中。`'html-and-external-assets'` 将截图保存为独立的 PNG 文件到子目录，适用于报告文件过大的场景。**注意**：使用 `'html-and-external-assets'` 时，报告必须通过 HTTP 服务器或 CDN 地址访问，无法直接使用 `file://` 协议打开。这是因为浏览器的 CORS（跨源资源共享）限制会阻止从 file 协议加载相对路径的本地图片。如需在本地测试，可在报告目录下启动简易的 HTTP 服务器。进入报告目录后运行以下命令之一：
+  - 使用 Node.js：`npx serve`
+  - 使用 Python：`python -m http.server` 或 `python3 -m http.server`
+  然后通过 `http://localhost:3000`（或终端显示的端口）访问报告。
 
 ### 自定义模型
 

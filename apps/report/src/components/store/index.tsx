@@ -50,7 +50,7 @@ export interface DumpStoreType {
   setGroupedDump: (
     dump: GroupedActionDump,
     playwrightAttributes?: PlaywrightTaskAttributes,
-  ) => void;
+  ) => Promise<void>;
   _executionDumpLoadId: number;
   replayAllMode: boolean;
   setReplayAllMode: (replayAllMode: boolean) => void;
@@ -131,7 +131,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         );
       }
     },
-    setGroupedDump: (
+    setGroupedDump: async (
       dump: GroupedActionDump,
       playwrightAttributes?: PlaywrightTaskAttributes,
     ) => {

@@ -102,7 +102,16 @@ export const Blackboard = (props: {
   const context = props.uiContext;
   const { size, screenshot } = context;
 
-  const screenshotBase64 = screenshot?.base64 ?? '';
+  // Extract base64 string from screenshot
+  // After restoreImageReferences(), screenshot is { base64: string }
+  const screenshotBase64 = useMemo(() => {
+    if (!screenshot) return '';
+    if (typeof screenshot === 'object' && 'base64' in screenshot) {
+      return (screenshot as { base64: string }).base64;
+    }
+    if (typeof screenshot === 'string') return screenshot;
+    return '';
+  }, [screenshot]);
 
   const screenWidth = size.width;
   const screenHeight = size.height;

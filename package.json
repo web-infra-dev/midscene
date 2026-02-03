@@ -20,7 +20,7 @@
     "format": "pretty-quick --staged",
     "commit": "cz",
     "check-spell": "npx cspell",
-    "clean": "rm -rf .nx packages/*/dist packages/*/node_modules/.cache apps/*/dist apps/*/node_modules/.cache packages/playground/static packages/ios/static"
+    "clean": "rm -rf .nx/cache packages/*/dist packages/*/node_modules/.cache apps/*/dist apps/*/node_modules/.cache packages/playground/static packages/ios/static"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"

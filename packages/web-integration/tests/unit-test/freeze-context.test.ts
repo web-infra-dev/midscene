@@ -33,7 +33,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
   let mockContext: WebUIContext;
   let mockContext2: WebUIContext;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     // Create mock contexts
@@ -144,7 +144,8 @@ describe('PageAgent freeze/unfreeze page context', () => {
       // Frozen context should be marked
       const frozenContext = (agent as any).frozenUIContext;
       expect(frozenContext._isFrozen).toBe(true);
-      expect(frozenContext.screenshot.base64).toBe(
+      const screenshotData = frozenContext.screenshot.base64;
+      expect(screenshotData).toBe(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       );
       expect(frozenContext.tree).toBe(mockContext.tree);

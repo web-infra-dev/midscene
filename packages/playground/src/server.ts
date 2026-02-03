@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
@@ -147,7 +147,19 @@ class PlaygroundServer {
   }
 
   filePathForUuid(uuid: string) {
-    return join(this.tmpDir, `${uuid}.json`);
+    // Validate uuid to prevent path traversal attacks
+    // Only allow alphanumeric characters and hyphens
+    if (!/^[a-zA-Z0-9-]+$/.test(uuid)) {
+      throw new Error('Invalid uuid format');
+    }
+    const filePath = join(this.tmpDir, `${uuid}.json`);
+    // Double-check that resolved path is within tmpDir
+    const resolvedPath = resolve(filePath);
+    const resolvedTmpDir = resolve(this.tmpDir);
+    if (!resolvedPath.startsWith(resolvedTmpDir)) {
+      throw new Error('Invalid path');
+    }
+    return filePath;
   }
 
   saveContextFile(uuid: string, context: string) {
@@ -201,7 +213,14 @@ class PlaygroundServer {
 
     this._app.get('/context/:uuid', async (req: Request, res: Response) => {
       const { uuid } = req.params;
-      const contextFile = this.filePathForUuid(uuid);
+      let contextFile: string;
+      try {
+        contextFile = this.filePathForUuid(uuid);
+      } catch {
+        return res.status(400).json({
+          error: 'Invalid uuid format',
+        });
+      }
 
       if (!existsSync(contextFile)) {
         return res.status(404).json({

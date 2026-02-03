@@ -42,13 +42,9 @@ export type TestStatus =
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
-import {
-  getVersion,
-  groupedActionDumpFileExt,
-  processCacheConfig,
-  reportHTMLContent,
-  writeLogFile,
-} from '@/utils';
+import type { IReportGenerator } from '@/report-generator';
+import { ReportGenerator } from '@/report-generator';
+import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -68,7 +64,7 @@ import {
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert, uuid } from '@midscene/shared/utils';
+import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
@@ -78,12 +74,7 @@ import {
   withFileChooser,
 } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
-import {
-  commonContextParser,
-  getReportFileName,
-  parsePrompt,
-  printReportMsg,
-} from './utils';
+import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
 
@@ -231,6 +222,8 @@ export class Agent<
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   private fullActionSpace: DeviceAction[];
+
+  private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
   get page() {
@@ -406,6 +399,7 @@ export class Agent<
             }
           }
 
+          // Fire and forget - don't block task execution
           this.writeOutActionDumps();
         },
       },
@@ -414,6 +408,12 @@ export class Agent<
     this.reportFileName =
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+
+    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
+      generateReport: this.opts.generateReport,
+      outputFormat: this.opts.outputFormat,
+      autoPrintReportMsg: this.opts.autoPrintReportMsg,
+    });
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -531,23 +531,8 @@ export class Agent<
   }
 
   writeOutActionDumps() {
-    if (this.destroyed) {
-      throw new Error(
-        'PageAgent has been destroyed. Cannot update report file.',
-      );
-    }
-    const { generateReport, autoPrintReportMsg } = this.opts;
-    this.reportFile = writeLogFile({
-      fileName: this.reportFileName!,
-      fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
-      type: 'dump',
-      generateReport,
-    });
-    debug('writeOutActionDumps', this.reportFile);
-    if (generateReport && autoPrintReportMsg && this.reportFile) {
-      printReportMsg(this.reportFile);
-    }
+    this.reportGenerator.onDumpUpdate(this.dump);
+    this.reportFile = this.reportGenerator.getReportPath();
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1335,6 +1320,12 @@ export class Agent<
       return;
     }
 
+    // Wait for all queued write operations to complete
+    await this.reportGenerator.flush();
+
+    await this.reportGenerator.finalize(this.dump);
+    this.reportFile = this.reportGenerator.getReportPath();
+
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
@@ -1396,6 +1387,7 @@ export class Agent<
     }
 
     this.writeOutActionDumps();
+    await this.reportGenerator.flush();
   }
 
   /**
@@ -1519,6 +1511,10 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
+    if (ifInBrowser) {
+      throw new Error('File chooser is not supported in browser environment');
+    }
+
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {

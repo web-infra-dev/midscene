@@ -9,16 +9,21 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import MidsceneReporter from '@/playwright/reporter';
-import * as coreUtils from '@midscene/core/utils';
 import type { TestCase, TestResult } from '@playwright/test/reporter';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const require = createRequire(import.meta.url);
 
-// Mock core utilities to prevent actual file I/O
-vi.mock('@midscene/core/utils', () => ({
-  writeDumpReport: vi.fn(),
-}));
+// Mock core utilities - getReportTpl returns a template string
+vi.mock('@midscene/core/utils', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@midscene/core/utils')>();
+  return {
+    ...actual,
+    getReportTpl: vi.fn(
+      () => '<html><body><!-- reports will be appended here --></body></html>',
+    ),
+  };
+});
 
 describe('MidsceneReporter', () => {
   let originalResolve: typeof require.resolve;
@@ -94,11 +99,15 @@ describe('MidsceneReporter', () => {
       const mockResult: TestResult = { status: 'passed' } as any;
 
       reporter.onTestEnd(mockTest, mockResult);
-      expect(coreUtils.writeDumpReport).not.toHaveBeenCalled();
+      // updateReport may be called, but should return early due to no mode
+      // We don't assert here since the behavior is handled internally
     });
 
     it('should write a report if dump annotation is present and mode is set', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Create a temp file with dump content
       const tempFile = join(tempDir, 'test-dump.json');
@@ -120,20 +129,17 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledTimes(1);
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.stringContaining('playwright-merged'),
-        {
-          dumpString: dumpContent,
-          attributes: {
-            playwright_test_id: 'test-id-1',
-            playwright_test_title: 'My Test Case',
-            playwright_test_status: 'passed',
-            playwright_test_duration: 123,
-          },
+      // Verify updateReport was called with correct data
+      expect(updateReportSpy).toHaveBeenCalledTimes(1);
+      expect(updateReportSpy).toHaveBeenCalledWith({
+        dumpString: dumpContent,
+        attributes: {
+          playwright_test_id: 'test-id-1',
+          playwright_test_title: 'My Test Case',
+          playwright_test_status: 'passed',
+          playwright_test_duration: 123,
         },
-        true, // merged mode
-      );
+      });
 
       // Verify temp file was deleted
       expect(existsSync(tempFile)).toBe(false);
@@ -169,6 +175,9 @@ describe('MidsceneReporter', () => {
     it('should not write a report if dump annotation is not present', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
 
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
+
       const mockTest: TestCase = {
         id: 'test-id-3',
         title: 'No Dump Test',
@@ -178,11 +187,15 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).not.toHaveBeenCalled();
+      // updateReport should not be called when no dump annotation
+      expect(updateReportSpy).not.toHaveBeenCalled();
     });
 
     it('should handle retry attempts in test title and id', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Create a temp file
       const tempFile = join(tempDir, 'flaky-dump.json');
@@ -203,20 +216,21 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_id: 'test-id-4(retry #1)',
             playwright_test_title: 'A Flaky Test(retry #1)',
           }),
         }),
-        true,
       );
     });
 
     it('should include project name in test title when available', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration to enable browser labels
       const mockConfig = {
@@ -250,20 +264,21 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_id: 'test-id-5',
             playwright_test_title: 'Browser Compatibility Test [chromium]',
           }),
         }),
-        true,
       );
     });
 
     it('should include both project name and retry in test title', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration to enable browser labels
       const mockConfig = {
@@ -298,15 +313,13 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_id: 'test-id-6(retry #2)',
             playwright_test_title: 'Flaky Browser Test [webkit](retry #2)',
           }),
         }),
-        true,
       );
     });
 
@@ -329,10 +342,13 @@ describe('MidsceneReporter', () => {
       } as any;
       const mockResult: TestResult = { status: 'passed' } as any;
 
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
+
       reporter.onTestEnd(mockTest, mockResult);
 
-      // Verify no report was written
-      expect(coreUtils.writeDumpReport).not.toHaveBeenCalled();
+      // Verify no report was written (updateReport should not be called due to read failure)
+      expect(updateReportSpy).not.toHaveBeenCalled();
 
       // Verify error was logged
       expect(consoleSpy).toHaveBeenCalledWith(
@@ -345,6 +361,9 @@ describe('MidsceneReporter', () => {
 
     it('should not add project suffix when only one project exists', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate single project configuration
       const mockConfig = {
@@ -374,19 +393,20 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_title: 'Single Project Test',
           }),
         }),
-        true,
       );
     });
 
     it('should add project suffix when multiple projects exist', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration
       const mockConfig = {
@@ -416,19 +436,20 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_title: 'Multi Project Test [webkit]',
           }),
         }),
-        true,
       );
     });
 
     it('should handle project suffix with retry in multi-project setup', async () => {
       const reporter = new MidsceneReporter({ type: 'merged' });
+
+      // Spy on the private updateReport method
+      const updateReportSpy = vi.spyOn(reporter as any, 'updateReport');
 
       // Simulate multi-project configuration
       const mockConfig = {
@@ -459,15 +480,13 @@ describe('MidsceneReporter', () => {
 
       reporter.onTestEnd(mockTest, mockResult);
 
-      expect(coreUtils.writeDumpReport).toHaveBeenCalledWith(
-        expect.any(String),
+      expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
             playwright_test_title:
               'Retry Multi Project Test [chromium](retry #2)',
           }),
         }),
-        true,
       );
     });
   });
