@@ -15,39 +15,108 @@ export class ReportMergingTool {
   public clear() {
     this.reportInfos = [];
   }
+
+  /**
+   * Extract dump script content using streaming.
+   * Searches for the LAST <script type="midscene_web_dump"> tag.
+   * Memory usage: O(dump_size), not O(file_size).
+   */
   private extractScriptContent(filePath: string): string {
-    // Regular expression to match content between script tags
-    // Use global flag to find ALL matches, then return the LAST one
-    // (the report template may contain similar regex patterns in bundled JS)
-    const scriptRegex =
-      /<script type="midscene_web_dump"[^>]*>([\s\S]*?)<\/script>/g;
+    const openTag = '<script type="midscene_web_dump"';
+    const closeTag = '</script>';
 
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    const matches = [...fileContent.matchAll(scriptRegex)];
-    const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
+    const fd = fs.openSync(filePath, 'r');
+    const fileSize = fs.statSync(filePath).size;
+    const buffer = Buffer.alloc(CHUNK_SIZE);
 
-    return lastMatch ? lastMatch[1].trim() : '';
+    let position = 0;
+    let leftover = '';
+    let capturing = false;
+    let currentContent = '';
+    let lastContent = ''; // Keep only the last match
+
+    try {
+      while (position < fileSize) {
+        const bytesRead = fs.readSync(fd, buffer, 0, CHUNK_SIZE, position);
+        const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+        position += bytesRead;
+
+        let searchStart = 0;
+
+        while (searchStart < chunk.length) {
+          if (!capturing) {
+            const startIdx = chunk.indexOf(openTag, searchStart);
+            if (startIdx !== -1) {
+              capturing = true;
+              // Find the end of the opening tag (the '>' character)
+              const tagEndIdx = chunk.indexOf('>', startIdx);
+              if (tagEndIdx !== -1) {
+                currentContent = chunk.slice(tagEndIdx + 1);
+                const endIdx = currentContent.indexOf(closeTag);
+                if (endIdx !== -1) {
+                  lastContent = currentContent.slice(0, endIdx).trim();
+                  capturing = false;
+                  currentContent = '';
+                  searchStart =
+                    startIdx + tagEndIdx + 1 + endIdx + closeTag.length;
+                } else {
+                  leftover = currentContent.slice(-closeTag.length);
+                  currentContent = currentContent.slice(0, -closeTag.length);
+                  break;
+                }
+              } else {
+                // Tag opening spans chunks
+                leftover = chunk.slice(startIdx);
+                break;
+              }
+            } else {
+              leftover = chunk.slice(-openTag.length);
+              break;
+            }
+          } else {
+            const endIdx = chunk.indexOf(closeTag, searchStart);
+            if (endIdx !== -1) {
+              currentContent += chunk.slice(searchStart, endIdx);
+              lastContent = currentContent.trim();
+              capturing = false;
+              currentContent = '';
+              searchStart = endIdx + closeTag.length;
+            } else {
+              currentContent += chunk.slice(searchStart, -closeTag.length);
+              leftover = chunk.slice(-closeTag.length);
+              break;
+            }
+          }
+        }
+      }
+    } finally {
+      fs.closeSync(fd);
+    }
+
+    return lastContent;
   }
 
   /**
-   * Extract all image script tags from HTML file using streaming.
-   * Avoids loading entire large HTML files into memory.
+   * Stream image script tags from source file directly to output file.
+   * Memory usage: O(single_image_size), not O(all_images_size).
    */
-  private extractImageScripts(filePath: string): string {
+  private streamImageScriptsToFile(
+    srcFilePath: string,
+    destFilePath: string,
+  ): void {
     const openTag = '<script type="midscene-image"';
     const closeTag = '</script>';
 
+    const fd = fs.openSync(srcFilePath, 'r');
+    const fileSize = fs.statSync(srcFilePath).size;
+    const buffer = Buffer.alloc(CHUNK_SIZE);
+
+    let position = 0;
+    let leftover = '';
+    let capturing = false;
+    let currentTag = '';
+
     try {
-      const fd = fs.openSync(filePath, 'r');
-      const fileSize = fs.statSync(filePath).size;
-      const buffer = Buffer.alloc(CHUNK_SIZE);
-
-      let position = 0;
-      let leftover = '';
-      let capturing = false;
-      let currentTag = '';
-      const results: string[] = [];
-
       while (position < fileSize) {
         const bytesRead = fs.readSync(fd, buffer, 0, CHUNK_SIZE, position);
         const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
@@ -63,18 +132,20 @@ export class ReportMergingTool {
               currentTag = chunk.slice(startIdx);
               const endIdx = currentTag.indexOf(closeTag);
               if (endIdx !== -1) {
-                results.push(currentTag.slice(0, endIdx + closeTag.length));
+                // Write complete tag immediately, don't accumulate
+                fs.appendFileSync(
+                  destFilePath,
+                  `${currentTag.slice(0, endIdx + closeTag.length)}\n`,
+                );
                 capturing = false;
                 currentTag = '';
                 searchStart = startIdx + endIdx + closeTag.length;
               } else {
-                // Tag spans chunks, keep partial and continue
                 leftover = currentTag.slice(-closeTag.length);
                 currentTag = currentTag.slice(0, -closeTag.length);
                 break;
               }
             } else {
-              // No more tags in this chunk
               leftover = chunk.slice(-openTag.length);
               break;
             }
@@ -82,12 +153,12 @@ export class ReportMergingTool {
             const endIdx = chunk.indexOf(closeTag, searchStart);
             if (endIdx !== -1) {
               currentTag += chunk.slice(searchStart, endIdx + closeTag.length);
-              results.push(currentTag);
+              // Write complete tag immediately
+              fs.appendFileSync(destFilePath, `${currentTag}\n`);
               capturing = false;
               currentTag = '';
               searchStart = endIdx + closeTag.length;
             } else {
-              // Tag continues to next chunk
               currentTag += chunk.slice(searchStart, -closeTag.length);
               leftover = chunk.slice(-closeTag.length);
               break;
@@ -95,12 +166,8 @@ export class ReportMergingTool {
           }
         }
       }
-
+    } finally {
       fs.closeSync(fd);
-      return results.join('\n');
-    } catch {
-      // File may not exist or be readable, return empty string
-      return '';
     }
   }
 
@@ -155,13 +222,11 @@ export class ReportMergingTool {
         const reportInfo = this.reportInfos[i];
         console.log(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
-        // Extract and append image scripts (for inline mode reports)
-        const imageScripts = this.extractImageScripts(
+        // Stream image scripts directly to output file (constant memory per image)
+        this.streamImageScriptsToFile(
           reportInfo.reportFilePath,
+          outputFilePath,
         );
-        if (imageScripts) {
-          fs.appendFileSync(outputFilePath, `${imageScripts}\n`);
-        }
 
         const dumpString = this.extractScriptContent(reportInfo.reportFilePath);
         const reportAttributes = reportInfo.reportAttributes;
