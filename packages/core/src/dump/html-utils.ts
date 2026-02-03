@@ -1,7 +1,73 @@
+import { closeSync, openSync, readSync, statSync } from 'node:fs';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 
 export const escapeContent = escapeScriptTag;
 export const unescapeContent = antiEscapeScriptTag;
+
+const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+
+/**
+ * Synchronously extract a specific image's base64 data from an HTML file by its id.
+ * Uses streaming to avoid loading the entire file into memory.
+ *
+ * @param htmlPath - Absolute path to the HTML file
+ * @param imageId - The id of the image to extract
+ * @returns The base64 data string, or null if not found
+ */
+export function extractImageByIdSync(
+  htmlPath: string,
+  imageId: string,
+): string | null {
+  const targetTag = `<script type="midscene-image" data-id="${imageId}">`;
+  const closeTag = '</script>';
+
+  const fd = openSync(htmlPath, 'r');
+  const fileSize = statSync(htmlPath).size;
+  const buffer = Buffer.alloc(CHUNK_SIZE);
+
+  let position = 0;
+  let leftover = '';
+  let capturing = false;
+  let content = '';
+
+  try {
+    while (position < fileSize) {
+      const bytesRead = readSync(fd, buffer, 0, CHUNK_SIZE, position);
+      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+      position += bytesRead;
+
+      if (!capturing) {
+        const startIdx = chunk.indexOf(targetTag);
+        if (startIdx !== -1) {
+          capturing = true;
+          content = chunk.slice(startIdx + targetTag.length);
+          const endIdx = content.indexOf(closeTag);
+          if (endIdx !== -1) {
+            return unescapeContent(content.slice(0, endIdx));
+          }
+          // Keep potential cross-chunk portion
+          leftover = content.slice(-closeTag.length);
+          content = content.slice(0, -closeTag.length);
+        } else {
+          // Keep potential cross-chunk targetTag
+          leftover = chunk.slice(-targetTag.length);
+        }
+      } else {
+        const endIdx = chunk.indexOf(closeTag);
+        if (endIdx !== -1) {
+          content += chunk.slice(0, endIdx);
+          return unescapeContent(content);
+        }
+        content += chunk.slice(0, -closeTag.length);
+        leftover = chunk.slice(-closeTag.length);
+      }
+    }
+  } finally {
+    closeSync(fd);
+  }
+
+  return null;
+}
 
 export function parseImageScripts(html: string): Record<string, string> {
   const imageMap: Record<string, string> = {};

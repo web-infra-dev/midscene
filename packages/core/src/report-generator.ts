@@ -45,7 +45,6 @@ export class ReportGenerator implements IReportGenerator {
   private screenshotMode: 'inline' | 'directory';
   private autoPrint: boolean;
   private writtenScreenshots = new Set<string>();
-  private releasedExecutionKeys = new Set<string>();
 
   // inline mode state
   private imageEndOffset = 0;
@@ -110,9 +109,6 @@ export class ReportGenerator implements IReportGenerator {
     await this.flush();
     this.destroyed = true;
 
-    // Release screenshot memory now that all AI calls are complete
-    this.releaseScreenshotMemory(dump);
-
     if (this.autoPrint && this.reportPath) {
       if (this.screenshotMode === 'directory') {
         console.log('\n[Midscene] Directory report generated.');
@@ -130,22 +126,6 @@ export class ReportGenerator implements IReportGenerator {
     return this.reportPath;
   }
 
-  private releaseScreenshotMemory(dump: GroupedActionDump): void {
-    const screenshots = dump.collectAllScreenshots();
-
-    for (const screenshot of screenshots) {
-      // Only release if not already released
-      if (screenshot.hasBase64()) {
-        if (this.screenshotMode === 'inline') {
-          screenshot.markPersistedInline();
-        } else {
-          const relativePath = `./screenshots/${screenshot.id}.png`;
-          screenshot.markPersistedToPath(relativePath);
-        }
-      }
-    }
-  }
-
   getReportPath(): string | undefined {
     return this.reportPath;
   }
@@ -155,57 +135,6 @@ export class ReportGenerator implements IReportGenerator {
       this.writeInlineReport(dump);
     } else {
       this.writeDirectoryReport(dump);
-    }
-
-    // Release memory for OLD executions (all except the last one).
-    // The last execution may still have tasks being appended, so keep its screenshots.
-    this.releaseOldExecutions(dump);
-  }
-
-  /**
-   * Release screenshot memory for all executions EXCEPT the last one.
-   * The last execution may still be active (tasks appended incrementally),
-   * so we must keep its screenshots available.
-   */
-  private releaseOldExecutions(dump: GroupedActionDump): void {
-    const executions = dump.executions;
-    if (executions.length <= 1) return; // Nothing to release if only one execution
-
-    // Release all except the last execution
-    for (let i = 0; i < executions.length - 1; i++) {
-      const execution = executions[i];
-      const executionKey = `${execution.name}-${execution.logTime}`;
-
-      // Skip if already released
-      if (this.releasedExecutionKeys.has(executionKey)) continue;
-
-      // Release all screenshots in this execution
-      for (const task of execution.tasks) {
-        const screenshot = task.uiContext?.screenshot;
-        if (screenshot?.hasBase64()) {
-          if (this.screenshotMode === 'inline') {
-            screenshot.markPersistedInline();
-          } else {
-            screenshot.markPersistedToPath(
-              `./screenshots/${screenshot.id}.png`,
-            );
-          }
-        }
-        // Also release recorder screenshots
-        for (const item of task.recorder || []) {
-          if (item.screenshot?.hasBase64()) {
-            if (this.screenshotMode === 'inline') {
-              item.screenshot.markPersistedInline();
-            } else {
-              item.screenshot.markPersistedToPath(
-                `./screenshots/${item.screenshot.id}.png`,
-              );
-            }
-          }
-        }
-      }
-
-      this.releasedExecutionKeys.add(executionKey);
     }
   }
 
@@ -224,7 +153,8 @@ export class ReportGenerator implements IReportGenerator {
     // 1. truncate: remove old dump JSON, keep template + existing image tags
     truncateSync(this.reportPath, this.imageEndOffset);
 
-    // 2. append new image tags (do NOT release memory - screenshots may still be used by AI calls)
+    // 2. append new image tags and release memory immediately after writing
+    // Screenshots can be recovered from HTML file via lazy loading
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
@@ -233,6 +163,8 @@ export class ReportGenerator implements IReportGenerator {
           `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
         );
         this.writtenScreenshots.add(screenshot.id);
+        // Release memory - screenshot can be recovered via extractImageByIdSync
+        screenshot.markPersistedInline(this.reportPath);
       }
     }
 
@@ -256,13 +188,20 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // 1. write new screenshots as PNG files (do NOT release memory - screenshots may still be used by AI calls)
+    // 1. write new screenshots as PNG files and release memory immediately
+    // Screenshots can be recovered from PNG files via lazy loading
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
+        const absolutePath = join(screenshotsDir, `${screenshot.id}.png`);
         const buffer = Buffer.from(screenshot.rawBase64, 'base64');
-        writeFileSync(join(screenshotsDir, `${screenshot.id}.png`), buffer);
+        writeFileSync(absolutePath, buffer);
         this.writtenScreenshots.add(screenshot.id);
+        // Release memory - screenshot can be recovered from PNG file
+        screenshot.markPersistedToPath(
+          `./screenshots/${screenshot.id}.png`,
+          absolutePath,
+        );
       }
     }
 

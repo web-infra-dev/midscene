@@ -5,6 +5,8 @@ import { getReportFileName } from './agent';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
+const CHUNK_SIZE = 64 * 1024; // 64KB chunks
+
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
   public append(reportInfo: ReportFileWithAttributes) {
@@ -27,15 +29,75 @@ export class ReportMergingTool {
     return lastMatch ? lastMatch[1].trim() : '';
   }
 
+  /**
+   * Extract all image script tags from HTML file using streaming.
+   * Avoids loading entire large HTML files into memory.
+   */
   private extractImageScripts(filePath: string): string {
-    // Extract all <script type="midscene-image"> tags for inline mode reports
-    const imageScriptRegex =
-      /<script type="midscene-image"[^>]*>[\s\S]*?<\/script>/g;
+    const openTag = '<script type="midscene-image"';
+    const closeTag = '</script>';
 
     try {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      const matches = fileContent.match(imageScriptRegex);
-      return matches ? matches.join('\n') : '';
+      const fd = fs.openSync(filePath, 'r');
+      const fileSize = fs.statSync(filePath).size;
+      const buffer = Buffer.alloc(CHUNK_SIZE);
+
+      let position = 0;
+      let leftover = '';
+      let capturing = false;
+      let currentTag = '';
+      const results: string[] = [];
+
+      while (position < fileSize) {
+        const bytesRead = fs.readSync(fd, buffer, 0, CHUNK_SIZE, position);
+        const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+        position += bytesRead;
+
+        let searchStart = 0;
+
+        while (searchStart < chunk.length) {
+          if (!capturing) {
+            const startIdx = chunk.indexOf(openTag, searchStart);
+            if (startIdx !== -1) {
+              capturing = true;
+              currentTag = chunk.slice(startIdx);
+              const endIdx = currentTag.indexOf(closeTag);
+              if (endIdx !== -1) {
+                results.push(currentTag.slice(0, endIdx + closeTag.length));
+                capturing = false;
+                currentTag = '';
+                searchStart = startIdx + endIdx + closeTag.length;
+              } else {
+                // Tag spans chunks, keep partial and continue
+                leftover = currentTag.slice(-closeTag.length);
+                currentTag = currentTag.slice(0, -closeTag.length);
+                break;
+              }
+            } else {
+              // No more tags in this chunk
+              leftover = chunk.slice(-openTag.length);
+              break;
+            }
+          } else {
+            const endIdx = chunk.indexOf(closeTag, searchStart);
+            if (endIdx !== -1) {
+              currentTag += chunk.slice(searchStart, endIdx + closeTag.length);
+              results.push(currentTag);
+              capturing = false;
+              currentTag = '';
+              searchStart = endIdx + closeTag.length;
+            } else {
+              // Tag continues to next chunk
+              currentTag += chunk.slice(searchStart, -closeTag.length);
+              leftover = chunk.slice(-closeTag.length);
+              break;
+            }
+          }
+        }
+      }
+
+      fs.closeSync(fd);
+      return results.join('\n');
     } catch {
       // File may not exist or be readable, return empty string
       return '';

@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import { uuid } from '@midscene/shared/utils';
+import { extractImageByIdSync } from './dump/html-utils';
 
 /**
  * Serialization format for ScreenshotItem
@@ -12,14 +14,19 @@ export type ScreenshotSerializeFormat =
 /**
  * ScreenshotItem encapsulates screenshot data.
  *
- * Supports memory release after persistence:
- * - inline mode: call markPersistedInline() after writing to HTML
- * - directory mode: call markPersistedToPath() after writing to file
+ * Supports lazy loading after memory release:
+ * - inline mode: reads from HTML file using streaming (extractImageByIdSync)
+ * - directory mode: reads from PNG file
+ *
+ * After persistence, memory is released but the screenshot can be recovered
+ * on-demand from disk, making it safe to release memory at any time.
  */
 export class ScreenshotItem {
   private _id: string;
   private _base64: string | null;
   private _persistedAs: ScreenshotSerializeFormat | null = null;
+  private _persistedPath: string | null = null; // directory mode: PNG file path
+  private _persistedHtmlPath: string | null = null; // inline mode: HTML file path
 
   private constructor(id: string, base64: string) {
     this._id = id;
@@ -36,35 +43,58 @@ export class ScreenshotItem {
   }
 
   get base64(): string {
-    if (this._base64 === null) {
+    // If data is in memory, return it directly
+    if (this._base64 !== null) {
+      return this._base64;
+    }
+
+    // Directory mode: recover from PNG file
+    if (this._persistedPath !== null) {
+      const buffer = readFileSync(this._persistedPath);
+      return `data:image/png;base64,${buffer.toString('base64')}`;
+    }
+
+    // Inline mode: recover from HTML file using streaming
+    if (this._persistedHtmlPath !== null) {
+      const data = extractImageByIdSync(this._persistedHtmlPath, this._id);
+      if (data) {
+        return data;
+      }
       throw new Error(
-        `Screenshot ${this._id}: base64 data already released after persistence`,
+        `Screenshot ${this._id}: cannot recover from HTML (id not found in ${this._persistedHtmlPath})`,
       );
     }
-    return this._base64;
+
+    throw new Error(
+      `Screenshot ${this._id}: base64 data released without recovery path`,
+    );
   }
 
-  /** Check if base64 data is still available (not yet released) */
+  /** Check if base64 data is still available in memory (not yet released) */
   hasBase64(): boolean {
     return this._base64 !== null;
   }
 
   /**
    * Mark as persisted to HTML (inline mode).
-   * Releases base64 memory, serializes as { $screenshot: id }
+   * Releases base64 memory, but keeps HTML path for lazy loading recovery.
+   * @param htmlPath - absolute path to the HTML file containing the image
    */
-  markPersistedInline(): void {
+  markPersistedInline(htmlPath: string): void {
     this._persistedAs = { $screenshot: this._id };
+    this._persistedHtmlPath = htmlPath;
     this._base64 = null;
   }
 
   /**
    * Mark as persisted to file (directory mode).
-   * Releases base64 memory, serializes as { base64: path }
-   * @param path - relative path to the screenshot file (e.g., "./screenshots/id.png")
+   * Releases base64 memory, but keeps file path for lazy loading recovery.
+   * @param relativePath - relative path for serialization (e.g., "./screenshots/id.png")
+   * @param absolutePath - absolute path for lazy loading recovery
    */
-  markPersistedToPath(path: string): void {
-    this._persistedAs = { base64: path };
+  markPersistedToPath(relativePath: string, absolutePath: string): void {
+    this._persistedAs = { base64: relativePath };
+    this._persistedPath = absolutePath;
     this._base64 = null;
   }
 

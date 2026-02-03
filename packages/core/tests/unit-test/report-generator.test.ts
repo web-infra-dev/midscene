@@ -399,9 +399,9 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(parsed.executions[0].tasks).toHaveLength(2);
     });
 
-    it('should output screenshot references as $screenshot format in dump JSON', async () => {
-      // Directory mode uses { $screenshot: id } format in dump JSON
-      // Browser-side restoreImageReferences will fallback to ./screenshots/{id}.png path
+    it('should output screenshot references as path format in dump JSON (directory mode)', async () => {
+      // Directory mode uses { base64: path } format in dump JSON
+      // Browser-side will load PNG files directly from the path
       const reportDir = join(tmpDir, 'dir-path-format-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -428,15 +428,15 @@ describe('ReportGenerator — constant memory guarantees', () => {
       // Navigate to the screenshot in the dump structure
       const screenshotRef = dumpObj.executions[0].tasks[0].uiContext.screenshot;
 
-      // Should be { $screenshot: id } format (browser will fallback to path)
-      expect(screenshotRef).toHaveProperty('$screenshot');
-      expect(screenshotRef.$screenshot).toBe(screenshotId);
+      // Should be { base64: path } format
+      expect(screenshotRef).toHaveProperty('base64');
+      expect(screenshotRef.base64).toContain('screenshots');
+      expect(screenshotRef.base64).toContain(screenshotId);
     });
 
-    it('should keep base64 memory available when tasks are still running', async () => {
-      // When tasks have status='running', screenshots must remain available
-      // because subTasks within the SAME execution may still need them.
-      // (createDump() creates tasks with status='running' by default)
+    it('should release memory after writing and recover via lazy loading (directory mode)', async () => {
+      // With lazy loading, memory is released immediately after writing to disk.
+      // Accessing base64 later will recover from the PNG file.
       const reportDir = join(tmpDir, 'dir-memory-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -451,13 +451,20 @@ describe('ReportGenerator — constant memory guarantees', () => {
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // Screenshot base64 should still be accessible (not released yet)
-      expect(screenshot.hasBase64()).toBe(true);
-      expect(() => screenshot.base64).not.toThrow();
+      // Memory should be released after writing
+      expect(screenshot.hasBase64()).toBe(false);
 
-      // toSerializable should return $screenshot format (not path yet)
+      // But accessing base64 should still work via lazy loading from PNG file
+      expect(() => screenshot.base64).not.toThrow();
+      const recoveredBase64 = screenshot.base64;
+      expect(recoveredBase64).toContain('data:image/png;base64,');
+
+      // toSerializable should return path format
       const serialized = screenshot.toSerializable();
-      expect(serialized).toHaveProperty('$screenshot');
+      expect(serialized).toHaveProperty('base64');
+      expect((serialized as { base64: string }).base64).toContain(
+        'screenshots',
+      );
     });
   });
 
@@ -502,7 +509,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
     });
   });
 
-  describe('memory release — release old executions, keep latest', () => {
+  describe('lazy loading — immediate release with on-demand recovery', () => {
     /**
      * Create a GroupedActionDump with multiple executions.
      */
@@ -554,8 +561,8 @@ describe('ReportGenerator — constant memory guarantees', () => {
       };
     }
 
-    it('should keep memory for single execution (latest)', async () => {
-      const reportPath = join(tmpDir, 'single-exec-memory.html');
+    it('should release memory immediately after writing (inline mode)', async () => {
+      const reportPath = join(tmpDir, 'inline-immediate-release.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
@@ -568,12 +575,18 @@ describe('ReportGenerator — constant memory guarantees', () => {
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // Single execution = latest, should keep memory
-      expect(screenshot.hasBase64()).toBe(true);
+      // Memory should be released immediately after writing
+      expect(screenshot.hasBase64()).toBe(false);
+
+      // But accessing base64 should recover via lazy loading from HTML
+      expect(() => screenshot.base64).not.toThrow();
+      const recoveredBase64 = screenshot.base64;
+      expect(recoveredBase64).toContain('data:image/png;base64,');
+      expect(recoveredBase64).toContain('AAAA'); // Our fake base64
     });
 
-    it('should release old executions but keep latest execution memory', async () => {
-      const reportPath = join(tmpDir, 'multi-exec-memory.html');
+    it('should release all screenshots immediately in multi-execution dump', async () => {
+      const reportPath = join(tmpDir, 'multi-exec-immediate-release.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
@@ -581,26 +594,31 @@ describe('ReportGenerator — constant memory guarantees', () => {
       });
 
       const { dump, screenshots } = createMultiExecutionDump(3, 2);
-      // screenshots[0] = exec 0 screenshots (oldest)
-      // screenshots[1] = exec 1 screenshots (middle)
-      // screenshots[2] = exec 2 screenshots (latest)
+      // screenshots[0] = exec 0 screenshots
+      // screenshots[1] = exec 1 screenshots
+      // screenshots[2] = exec 2 screenshots
 
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // Old executions (0, 1) should be released
-      expect(screenshots[0][0].hasBase64()).toBe(false);
-      expect(screenshots[0][1].hasBase64()).toBe(false);
-      expect(screenshots[1][0].hasBase64()).toBe(false);
-      expect(screenshots[1][1].hasBase64()).toBe(false);
+      // ALL screenshots should be released immediately
+      for (const execScreenshots of screenshots) {
+        for (const s of execScreenshots) {
+          expect(s.hasBase64()).toBe(false);
+        }
+      }
 
-      // Latest execution (2) should keep memory
-      expect(screenshots[2][0].hasBase64()).toBe(true);
-      expect(screenshots[2][1].hasBase64()).toBe(true);
+      // But all should be recoverable via lazy loading
+      for (const execScreenshots of screenshots) {
+        for (const s of execScreenshots) {
+          expect(() => s.base64).not.toThrow();
+          expect(s.base64).toContain('data:image/png;base64,');
+        }
+      }
     });
 
-    it('should release all memory in finalize() including latest', async () => {
-      const reportPath = join(tmpDir, 'finalize-all-memory.html');
+    it('should handle finalize() correctly (no special action needed)', async () => {
+      const reportPath = join(tmpDir, 'finalize-lazy.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
@@ -612,18 +630,18 @@ describe('ReportGenerator — constant memory guarantees', () => {
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // Before finalize: oldest released, latest kept
-      expect(screenshots[0][0].hasBase64()).toBe(false);
-      expect(screenshots[1][0].hasBase64()).toBe(true);
-
-      // After finalize: all released
-      await generator.finalize(dump);
+      // All already released
       expect(screenshots[0][0].hasBase64()).toBe(false);
       expect(screenshots[1][0].hasBase64()).toBe(false);
+
+      // After finalize: still recoverable
+      await generator.finalize(dump);
+      expect(() => screenshots[0][0].base64).not.toThrow();
+      expect(() => screenshots[1][0].base64).not.toThrow();
     });
 
-    it('should work correctly in directory mode', async () => {
-      const reportDir = join(tmpDir, 'dir-multi-exec-memory');
+    it('should work correctly in directory mode with lazy loading', async () => {
+      const reportDir = join(tmpDir, 'dir-lazy-loading');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -636,16 +654,57 @@ describe('ReportGenerator — constant memory guarantees', () => {
       generator.onDumpUpdate(dump);
       await generator.flush();
 
-      // Old execution released with path format
-      expect(screenshots[0][0].hasBase64()).toBe(false);
-      const serialized = screenshots[0][0].toSerializable();
-      expect(serialized).toHaveProperty('base64');
-      expect((serialized as { base64: string }).base64).toContain(
-        'screenshots',
-      );
+      // All screenshots released with path format
+      for (const execScreenshots of screenshots) {
+        for (const s of execScreenshots) {
+          expect(s.hasBase64()).toBe(false);
+          const serialized = s.toSerializable();
+          expect(serialized).toHaveProperty('base64');
+          expect((serialized as { base64: string }).base64).toContain(
+            'screenshots',
+          );
+        }
+      }
 
-      // Latest execution still has memory
-      expect(screenshots[1][0].hasBase64()).toBe(true);
+      // But all should be recoverable via lazy loading from PNG files
+      for (const execScreenshots of screenshots) {
+        for (const s of execScreenshots) {
+          expect(() => s.base64).not.toThrow();
+          expect(s.base64).toContain('data:image/png;base64,');
+        }
+      }
+    });
+
+    it('should recover correct data for each screenshot (inline mode)', async () => {
+      const reportPath = join(tmpDir, 'inline-correct-recovery.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      // Create screenshots with different sizes to distinguish them
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100));
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200));
+      const screenshot3 = ScreenshotItem.create(fakeBase64(300));
+
+      const dump = createDump([screenshot1, screenshot2, screenshot3]);
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      // All released
+      expect(screenshot1.hasBase64()).toBe(false);
+      expect(screenshot2.hasBase64()).toBe(false);
+      expect(screenshot3.hasBase64()).toBe(false);
+
+      // Recover and verify sizes (base64 length proportional to original size)
+      const recovered1 = screenshot1.rawBase64;
+      const recovered2 = screenshot2.rawBase64;
+      const recovered3 = screenshot3.rawBase64;
+
+      expect(recovered1.length).toBe(100);
+      expect(recovered2.length).toBe(200);
+      expect(recovered3.length).toBe(300);
     });
   });
 
