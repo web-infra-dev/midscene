@@ -13,7 +13,7 @@ import {
   type UIContext,
 } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, uuid } from '@midscene/shared/utils';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
@@ -142,6 +142,7 @@ export class TaskRunner {
 
   private markTaskAsPending(task: ExecutionTaskApply): ExecutionTask {
     return {
+      taskId: uuid(),
       status: 'pending',
       ...task,
     };

@@ -1,13 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PlanningAIResponse, Rect } from '@midscene/core';
-import { NodeType } from '@midscene/shared/constants';
 import {
-  compositeElementInfoImg,
+  annotateRects,
   imageInfoOfBase64,
   localImg2Base64,
 } from '@midscene/shared/img';
 import { WebPageContextParser } from '@midscene/web';
+
+export { annotateRects };
 
 export const repeatTime = 1;
 
@@ -219,27 +220,4 @@ export async function buildContext(pageName: string) {
 
   const context = await WebPageContextParser(fakePage as any, {});
   return context;
-}
-
-export async function annotateRects(
-  imgBase64: string,
-  rects: Rect[],
-  prompt?: string,
-) {
-  const markedImage = await compositeElementInfoImg({
-    inputImgBase64: imgBase64,
-    elementsPositionInfo: rects.map((rect, index) => {
-      return {
-        id: `rect-${index}`,
-        rect,
-        indexId: index + 1,
-        attributes: { nodeType: NodeType.CONTAINER },
-        content: '',
-        center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
-      };
-    }),
-    annotationPadding: 0,
-    prompt,
-  });
-  return markedImage;
 }

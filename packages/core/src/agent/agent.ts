@@ -1,3 +1,9 @@
+import type { TUserPrompt } from '../ai-model/index';
+import { ScreenshotItem } from '../screenshot-item';
+import Service from '../service/index';
+// Import types and values directly from their source files to avoid circular dependency
+// DO NOT import from '../index' as it creates a circular dependency:
+// index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
   type ActionParam,
   type ActionReturn,
@@ -7,31 +13,26 @@ import {
   type AgentWaitForOpt,
   type CacheConfig,
   type DeepThinkOption,
-  type DetailedLocateParam,
   type DeviceAction,
   ExecutionDump,
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type ExecutionTaskPlanning,
   GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
   type LocatorValidatorOption,
-  type MidsceneYamlScript,
   type OnTaskStartTip,
   type PlanningAction,
   type Rect,
-  ScreenshotItem,
   type ScrollParam,
-  Service,
   type ServiceAction,
   type ServiceExtractOption,
   type ServiceExtractParam,
-  type TUserPrompt,
   type UIContext,
-} from '../index';
+} from '../types';
+import type { MidsceneYamlScript } from '../yaml';
 export type TestStatus =
   | 'passed'
   | 'failed'
@@ -63,7 +64,7 @@ import {
 } from '@midscene/shared/env';
 import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
@@ -1350,6 +1351,7 @@ export class Agent<
     ];
     // 3. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
+      taskId: uuid(),
       type: 'Log',
       subType: 'Screenshot',
       status: 'finished',

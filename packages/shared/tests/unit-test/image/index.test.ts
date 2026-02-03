@@ -3,45 +3,65 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   httpImg2Base64,
-  imageInfo,
   imageInfoOfBase64,
   isValidPNGImageBuffer,
   localImg2Base64,
   resizeAndConvertImgBuffer,
   resizeImgBase64,
 } from 'src/img';
-import getJimp from 'src/img/get-jimp';
 import {
   createImgBase64ByFormat,
   cropByRect,
-  jimpFromBase64,
-  jimpToBase64,
-  paddingToMatchBlock,
+  paddingToMatchBlockByBase64,
   parseBase64,
   saveBase64Image,
 } from 'src/img/transform';
 import { getFixture } from 'tests/utils';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
+describe('imageInfoOfBase64', () => {
+  it('returns correct dimensions for PNG image', async () => {
+    const image = getFixture('icon.png');
+    const base64 = localImg2Base64(image);
+    const info = await imageInfoOfBase64(base64);
+
+    expect(info.width).toBe(68);
+    expect(info.height).toBe(56);
+  });
+
+  it('returns correct dimensions for JPEG image', async () => {
+    const image = getFixture('heytea.jpeg');
+    const base64 = localImg2Base64(image);
+    const info = await imageInfoOfBase64(base64);
+
+    expect(info.width).toBe(400);
+    expect(info.height).toBe(905);
+  });
+
+  it('works with base64 string without data URI header', async () => {
+    const image = getFixture('icon.png');
+    const base64WithHeader = localImg2Base64(image);
+    const base64Body = base64WithHeader.split(',')[1];
+
+    const info = await imageInfoOfBase64(base64Body);
+
+    expect(info.width).toBe(68);
+    expect(info.height).toBe(56);
+  });
+
+  it('throws error for invalid base64 data', async () => {
+    const invalidBase64 = 'data:image/png;base64,notvalidbase64data';
+
+    await expect(imageInfoOfBase64(invalidBase64)).rejects.toThrow();
+  });
+
+  it('throws error for empty string', async () => {
+    await expect(imageInfoOfBase64('')).rejects.toThrow();
+  });
+});
+
 describe('image utils', () => {
   const image = getFixture('icon.png');
-  it('imageInfo', async () => {
-    const info = await imageInfo(image);
-
-    // test basic properties of ImageInfo
-    expect(info.width).toMatchSnapshot();
-    expect(info.height).toMatchSnapshot();
-
-    // test basic properties of jimpImage
-    expect(typeof info.jimpImage.getBuffer).toBe('function');
-    expect(typeof info.jimpImage.getBufferAsync).toBe('function');
-    expect(typeof info.jimpImage.getPixelColour).toBe('function');
-    expect(typeof info.jimpImage.setPixelColour).toBe('function');
-    expect(typeof info.jimpImage.writeAsync).toBe('function');
-
-    // shapeMode is inconsistent across environments
-    expect(info.jimpImage.bitmap).toMatchSnapshot();
-  });
 
   it('localImg2Base64', () => {
     const base64 = localImg2Base64(image);
@@ -67,15 +87,6 @@ describe('image utils', () => {
     expect(info.height).toMatchSnapshot();
   });
 
-  it('jimp + imageInfo', async () => {
-    const image = getFixture('heytea.jpeg');
-    const jimp = await getJimp();
-    const jimpImage = await jimp.read(image);
-    const info = await imageInfo(jimpImage);
-    expect(info.width).toMatchSnapshot();
-    expect(info.height).toMatchSnapshot();
-  });
-
   it('resizeImgBase64', async () => {
     const image = getFixture('heytea.jpeg');
 
@@ -87,21 +98,17 @@ describe('image utils', () => {
     expect(resizedBase64).toContain(';base64,');
   });
 
-  it('paddingToMatchBlock', async () => {
+  it('paddingToMatchBlockByBase64', async () => {
     const image = getFixture('heytea.jpeg');
     const base64 = localImg2Base64(image);
-    const jimpImage = await jimpFromBase64(base64);
-    const result = await paddingToMatchBlock(jimpImage);
+    const result = await paddingToMatchBlockByBase64(base64);
 
-    const width = result.image.bitmap.width;
-    expect(width).toMatchSnapshot();
-
-    const height = result.image.bitmap.height;
-    expect(height).toMatchSnapshot();
+    expect(result.width).toMatchSnapshot();
+    expect(result.height).toMatchSnapshot();
 
     const tmpFile = join(tmpdir(), 'heytea-padded.jpeg');
     await saveBase64Image({
-      base64Data: await jimpToBase64(result.image),
+      base64Data: result.imageBase64,
       outputPath: tmpFile,
     });
     // console.log('tmpFile', tmpFile);

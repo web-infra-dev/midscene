@@ -1,8 +1,5 @@
 import './App.less';
-import {
-  PLAYGROUND_SERVER_PORT,
-  SCRCPY_SERVER_PORT,
-} from '@midscene/shared/constants';
+import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
   ScreenshotViewer,
   globalThemeConfig,
@@ -34,7 +31,7 @@ export default function App() {
   const [connectToDevice, setConnectToDevice] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [serverUrl, setServerUrl] = useState(
-    `http://localhost:${SCRCPY_SERVER_PORT}`,
+    `http://${window.location.hostname}:${SCRCPY_SERVER_PORT}`,
   );
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [usePollingMode, setUsePollingMode] = useState(false);
@@ -51,7 +48,7 @@ export default function App() {
   useEffect(() => {
     const scrcpyPort = (window as any).SCRCPY_PORT;
     if (scrcpyPort) {
-      setServerUrl(`http://localhost:${scrcpyPort}`);
+      setServerUrl(`http://${window.location.hostname}:${scrcpyPort}`);
     }
   }, []);
 
@@ -183,14 +180,10 @@ export default function App() {
                 ) : (
                   <ScreenshotViewer
                     getScreenshot={() =>
-                      fetch(
-                        `http://localhost:${PLAYGROUND_SERVER_PORT}/screenshot`,
-                      ).then((r) => r.json())
+                      fetch('/screenshot').then((r) => r.json())
                     }
                     getInterfaceInfo={() =>
-                      fetch(
-                        `http://localhost:${PLAYGROUND_SERVER_PORT}/interface-info`,
-                      ).then((r) => r.json())
+                      fetch('/interface-info').then((r) => r.json())
                     }
                     serverOnline={true}
                     isUserOperating={false}

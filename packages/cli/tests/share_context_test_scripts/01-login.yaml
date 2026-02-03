@@ -1,0 +1,28 @@
+# First YAML file - Sets all storage types
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Set all storage
+    flow:
+      # Set storage directly via JavaScript (faster than AI actions)
+      - javascript: |
+          (function() {
+            // Set cookie
+            document.cookie = 'authToken=test-token-123; path=/';
+            // Set localStorage
+            localStorage.setItem('userId', 'user-456');
+            localStorage.setItem('userName', 'TestUser');
+            // Set sessionStorage
+            sessionStorage.setItem('sessionId', 'session-789');
+
+            console.log('=== First YAML File - Storage Set ===');
+            console.log('Cookie:', document.cookie);
+            console.log('localStorage:', JSON.stringify(localStorage));
+            console.log('sessionStorage:', JSON.stringify(sessionStorage));
+
+            return { success: true };
+          })()
+        name: set_storage

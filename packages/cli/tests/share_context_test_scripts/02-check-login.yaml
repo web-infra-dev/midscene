@@ -1,0 +1,41 @@
+# Second YAML file - Checks if storage is preserved
+web:
+  url: http://127.0.0.1:18527/share-context-test.html
+  viewportWidth: 800
+  viewportHeight: 600
+
+tasks:
+  - name: Check storage is preserved
+    flow:
+      # Check storage via JavaScript
+      - javascript: |
+          (function() {
+            const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+              const [key, value] = cookie.trim().split('=');
+              if (key) acc[key] = value;
+              return acc;
+            }, {});
+
+            const result = {
+              cookie_authToken: cookies.authToken || null,
+              localStorage_userId: localStorage.getItem('userId'),
+              localStorage_userName: localStorage.getItem('userName'),
+              sessionStorage_sessionId: sessionStorage.getItem('sessionId')
+            };
+
+            console.log('=== Second YAML File - Storage Check ===');
+            console.log('Cookie authToken:', result.cookie_authToken);
+            console.log('localStorage userId:', result.localStorage_userId);
+            console.log('sessionStorage sessionId:', result.sessionStorage_sessionId);
+
+            // Verify all storage types are preserved
+            if (!result.sessionStorage_sessionId) {
+              throw new Error('sessionStorage was lost! Expected "session-789", got null');
+            }
+            if (!result.localStorage_userId) {
+              throw new Error('localStorage was lost! Expected "user-456", got null');
+            }
+
+            return result;
+          })()
+        name: check_storage

@@ -190,7 +190,7 @@
       .task-row {
         display: flex;
         cursor: pointer;
-        transition: background 0.1s;
+        transition: background 0.1s, border-left 0.1s;
         border-radius: 8px;
         height: 32px;
         align-items: center;
@@ -201,6 +201,38 @@
 
         &.selected {
           background: @selected-bg;
+        }
+
+        &.playing {
+          position: relative;
+          background: rgba(0, 0, 0, 0.02);
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(0, 0, 0, 0.04) 50%,
+              transparent 100%
+            );
+            animation: shimmer-subtle 1.2s ease-in-out infinite;
+            pointer-events: none;
+          }
+        }
+
+        @keyframes shimmer-subtle {
+          0% {
+            left: -50%;
+          }
+          100% {
+            left: 100%;
+          }
         }
 
         .task-cell {
@@ -451,6 +483,29 @@
 
         &.selected {
           background: rgba(255, 255, 255, 0.16);
+        }
+
+        &.playing {
+          position: relative;
+          background: rgba(255, 255, 255, 0.03);
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.06) 50%,
+              transparent 100%
+            );
+            animation: shimmer-subtle 1.2s ease-in-out infinite;
+            pointer-events: none;
+          }
         }
       }
 

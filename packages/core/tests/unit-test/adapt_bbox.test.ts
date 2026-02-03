@@ -366,3 +366,118 @@ describe('adaptBboxToRect - boundary overflow cases', () => {
     `);
   });
 });
+
+describe('adaptBboxToRect - with scale parameter', () => {
+  it('should work without scale (scale = 1)', () => {
+    const result = adaptBboxToRect(
+      [100, 200, 300, 400],
+      1000,
+      1000,
+      0,
+      0,
+      undefined,
+      undefined,
+      undefined,
+      1,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 201,
+        "left": 100,
+        "top": 200,
+        "width": 201,
+      }
+    `);
+  });
+
+  it('should scale down by 2 (scale = 2)', () => {
+    const result = adaptBboxToRect(
+      [200, 400, 600, 800],
+      2000,
+      2000,
+      0,
+      0,
+      undefined,
+      undefined,
+      undefined,
+      2,
+    );
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 401,
+        "left": 200,
+        "top": 400,
+        "width": 401,
+      }
+    `);
+  });
+
+  it('should scale down by 1.5 (scale = 1.5)', () => {
+    const result = adaptBboxToRect(
+      [150, 300, 450, 600],
+      1500,
+      1500,
+      0,
+      0,
+      undefined,
+      undefined,
+      undefined,
+      1.5,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 301,
+        "left": 150,
+        "top": 300,
+        "width": 301,
+      }
+    `);
+  });
+
+  it('should handle scale with offset', () => {
+    // Scaled 2x image with offset
+    const result = adaptBboxToRect(
+      [200, 400, 600, 800],
+      2000,
+      2000,
+      100, // offsetX
+      150, // offsetY
+      undefined,
+      undefined,
+      undefined,
+      2,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 401,
+        "left": 300,
+        "top": 550,
+        "width": 401,
+      }
+    `);
+  });
+
+  it('should work with different model families and scale', () => {
+    // Test with qwen2.5-vl model and scale = 2
+    const result = adaptBboxToRect(
+      [200, 400, 600, 800],
+      2000,
+      2000,
+      0,
+      0,
+      2000,
+      2000,
+      'qwen2.5-vl',
+      2,
+    );
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "height": 201,
+        "left": 100,
+        "top": 200,
+        "width": 201,
+      }
+    `);
+  });
+});
