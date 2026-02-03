@@ -265,6 +265,12 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
       const currentStep = Number.parseInt(flowItemIndex, 10);
       taskStatus.currentStep = currentStep;
       const flowItem = flow[flowItemIndex];
+
+      // Skip Finalize action from cache - it's a planning-only marker
+      if ('Finalize' in flowItem) {
+        continue;
+      }
+
       debug(
         `playing step ${flowItemIndex}, flowItem=${JSON.stringify(flowItem)}`,
       );
