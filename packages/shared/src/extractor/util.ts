@@ -376,11 +376,27 @@ export function getNodeAttributes(
     return {};
   }
 
+  // HTML boolean attributes that should be included even without a value
+  const booleanAttributes = [
+    'disabled',
+    'readonly',
+    'checked',
+    'required',
+    'multiple',
+    'selected',
+    'autofocus',
+    'hidden',
+  ];
+
   const attributesList = Array.from(node.attributes).map((attr) => {
     if (attr.name === 'class') {
       return [attr.name, `.${attr.value.split(' ').join('.')}`];
     }
     if (!attr.value) {
+      // Boolean attributes (like disabled, readonly) may have no value
+      if (booleanAttributes.includes(attr.name.toLowerCase())) {
+        return [attr.name, 'true'];
+      }
       return [];
     }
 

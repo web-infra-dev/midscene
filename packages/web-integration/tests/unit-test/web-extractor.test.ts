@@ -277,6 +277,62 @@ describe(
       await reset();
     });
 
+    it('should include boolean attributes like disabled, readonly, checked, required', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+
+      // Test disabled input
+      const disabledInput = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_disabled_input"]')`,
+      );
+      expect(disabledInput).toBeDefined();
+      expect(disabledInput.attributes.disabled).toBe('true');
+
+      // Test readonly input
+      const readonlyInput = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_readonly_input"]')`,
+      );
+      expect(readonlyInput).toBeDefined();
+      expect(readonlyInput.attributes.readonly).toBe('true');
+
+      // Test checked checkbox
+      const checkedCheckbox = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_checked_checkbox"]')`,
+      );
+      expect(checkedCheckbox).toBeDefined();
+      expect(checkedCheckbox.attributes.checked).toBe('true');
+
+      // Test required input
+      const requiredInput = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_required_input"]')`,
+      );
+      expect(requiredInput).toBeDefined();
+      expect(requiredInput.attributes.required).toBe('true');
+
+      // Test disabled button
+      const disabledButton = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_disabled_button"]')`,
+      );
+      expect(disabledButton).toBeDefined();
+      expect(disabledButton.attributes.disabled).toBe('true');
+
+      // Test disabled select
+      const disabledSelect = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_disabled_select"]')`,
+      );
+      expect(disabledSelect).toBeDefined();
+      expect(disabledSelect.attributes.disabled).toBe('true');
+
+      await reset();
+    });
+
     describe('locator functions integration tests', () => {
       it('getXpathsByPoint should work with order-sensitive and order-insensitive modes', async () => {
         const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
