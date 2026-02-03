@@ -6,8 +6,20 @@
 */
 
 import { limitOpenNewTabScript } from '@/web-element';
-import type { ElementTreeNode, Point, Size, UIContext } from '@midscene/core';
+import type {
+  ElementCacheFeature,
+  ElementTreeNode,
+  Point,
+  Rect,
+  Size,
+  UIContext,
+} from '@midscene/core';
+import {
+  AiJudgeOrderSensitive,
+  callAIWithObjectResponse,
+} from '@midscene/core/ai-model';
 import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
+import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -29,6 +41,20 @@ import {
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+type WebElementCacheFeature = ElementCacheFeature & {
+  xpaths?: string[];
+};
+
+const sanitizeXpaths = (xpaths: unknown): string[] => {
+  if (!Array.isArray(xpaths)) {
+    return [];
+  }
+
+  return xpaths.filter(
+    (xpath): xpath is string => typeof xpath === 'string' && xpath.length > 0,
+  );
+};
 
 export default class ChromeExtensionProxyPage implements AbstractInterface {
   interfaceType = 'chrome-extension-proxy';
@@ -404,6 +430,82 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       returnByValue: true,
     });
     return result.result.value;
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+    options?: {
+      targetDescription?: string;
+      modelConfig?: IModelConfig;
+    },
+  ): Promise<ElementCacheFeature> {
+    const point: Point = {
+      left: center[0],
+      top: center[1],
+    };
+
+    try {
+      // Determine isOrderSensitive
+      let isOrderSensitive = false;
+      if (options?.targetDescription && options?.modelConfig) {
+        try {
+          const judgeResult = await AiJudgeOrderSensitive(
+            options.targetDescription,
+            callAIWithObjectResponse,
+            options.modelConfig,
+          );
+          isOrderSensitive = judgeResult.isOrderSensitive;
+        } catch (error) {
+          // Fall back to false on error
+          console.warn('Failed to judge isOrderSensitive:', error);
+        }
+      }
+
+      const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
+      const sanitized = sanitizeXpaths(xpaths);
+      return {
+        xpaths: sanitized,
+      };
+    } catch (error) {
+      console.warn('cacheFeatureForPoint failed:', error);
+      return {
+        xpaths: [],
+      };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const webFeature = feature as WebElementCacheFeature;
+    const xpaths = sanitizeXpaths(webFeature.xpaths);
+
+    for (const xpath of xpaths) {
+      try {
+        const elementInfo = await this.getElementInfoByXpath(xpath);
+        if (elementInfo?.rect) {
+          const matchedRect: Rect = {
+            left: elementInfo.rect.left,
+            top: elementInfo.rect.top,
+            width: elementInfo.rect.width,
+            height: elementInfo.rect.height,
+          };
+
+          if (this.viewportSize?.dpr) {
+            matchedRect.dpr = this.viewportSize.dpr;
+          }
+
+          return matchedRect;
+        }
+      } catch (error) {
+        console.warn(
+          `rectMatchesCacheFeature failed for xpath ${xpath}:`,
+          error,
+        );
+      }
+    }
+
+    throw new Error(
+      `No matching element rect found for cache feature (tried ${xpaths.length} xpath(s))`,
+    );
   }
 
   async getElementsNodeTree() {
