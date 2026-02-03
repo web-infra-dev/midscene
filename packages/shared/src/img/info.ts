@@ -16,7 +16,9 @@ export async function imageInfoOfBase64(
 ): Promise<ImageInfo> {
   const { PhotonImage } = await getPhoton();
   const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-  const image = PhotonImage.new_from_base64(base64Data);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const result = PhotonImage.new_from_base64(base64Data);
+  const image = result instanceof Promise ? await result : result;
   const width = image.get_width();
   const height = image.get_height();
   image.free();

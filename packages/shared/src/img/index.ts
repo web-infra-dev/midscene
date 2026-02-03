@@ -6,6 +6,7 @@ export {
   saveBase64Image,
   paddingToMatchBlockByBase64,
   cropByRect,
+  scaleImage,
   localImg2Base64,
   httpImg2Base64,
   preProcessImageUrl,

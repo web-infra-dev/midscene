@@ -7,9 +7,7 @@ import {
 import {
   type MidsceneLocationResultType,
   dumpActionParam,
-  expandSearchArea,
   findAllMidsceneLocatorField,
-  mergeRects,
   pointToBbox,
 } from '@/common';
 import { type DeviceAction, getMidsceneLocationSchema } from '@/index';
@@ -17,14 +15,14 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-// @ts-ignore no types in es folder
-import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import { ifPlanLocateParamIsBbox } from '../../src/agent/utils';
 import {
   getTmpDir,
   getTmpFile,
   insertScriptBeforeClosingHtml,
   overlapped,
+  reportHTMLContent,
+  writeDumpReport,
 } from '../../src/utils';
 
 function createTempHtmlFile(content: string): string {
@@ -385,233 +383,6 @@ describe('pointToBbox', () => {
     expect(bbox[1]).toBe(985);
     expect(bbox[2]).toBe(15);
     expect(bbox[3]).toBe(1000);
-  });
-});
-
-describe('search area', () => {
-  it('mergeRects', () => {
-    const result = mergeRects([
-      { left: 10, top: 10, width: 10, height: 500 },
-      { left: 100, top: 100, width: 100, height: 100 },
-    ]);
-    expect(result).toMatchInlineSnapshot(`
-      {
-        "height": 500,
-        "left": 10,
-        "top": 10,
-        "width": 190,
-      }
-    `);
-  });
-
-  describe('expandSearchArea', () => {
-    it('should expand normal position rect to minimum size', () => {
-      const result = expandSearchArea(
-        { left: 100, top: 100, width: 100, height: 100 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      // For all modelFamily, minEdgeSize = 500, padding = 200 each side
-      expect(result).toEqual({
-        left: 0, // 100 - 200 = -100, clamped to 0
-        top: 0, // 100 - 200 = -100, clamped to 0
-        width: 500, // guaranteed minimum
-        height: 500, // guaranteed minimum
-      });
-    });
-
-    it('should expand normal position rect for doubao-vision', () => {
-      const result = expandSearchArea(
-        { left: 200, top: 200, width: 100, height: 100 },
-        { width: 1000, height: 1000 },
-        'doubao-vision',
-      );
-
-      // For doubao-vision, minEdgeSize = 500, padding = 200 each side
-      expect(result).toEqual({
-        left: 0, // 200 - 200 = 0
-        top: 0, // 200 - 200 = 0
-        width: 500, // guaranteed minimum
-        height: 500, // guaranteed minimum
-      });
-    });
-
-    it('should handle already large rect with default padding', () => {
-      const result = expandSearchArea(
-        { left: 100, top: 100, width: 500, height: 500 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      // rect is already > 300, so use defaultPadding = 160
-      expect(result).toEqual({
-        left: 0, // max(0, 100 - 160) = 0
-        top: 0, // max(0, 100 - 160) = 0
-        width: 820, // 500 + 160*2 = 820
-        height: 820, // 500 + 160*2 = 820
-      });
-    });
-
-    it('should handle left-most position', () => {
-      const result = expandSearchArea(
-        { left: 10, top: 100, width: 50, height: 50 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      // minEdgeSize = 500, padding = 225 each side
-      expect(result).toEqual({
-        left: 0, // max(0, 10 - 225) = 0
-        top: 0, // max(0, 100 - 225) = 0
-        width: 500, // minimum size
-        height: 500, // minimum size
-      });
-    });
-
-    it('should handle top-most position', () => {
-      const result = expandSearchArea(
-        { left: 100, top: 10, width: 50, height: 50 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      expect(result).toEqual({
-        left: 0, // max(0, 100 - 225) = 0
-        top: 0, // max(0, 10 - 225) = 0
-        width: 500, // minimum size
-        height: 500, // minimum size
-      });
-    });
-
-    it('should handle right-most position', () => {
-      const result = expandSearchArea(
-        { left: 950, top: 100, width: 50, height: 50 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      // Original position would be: left: 950 - 225 = 725, width: 500
-      // But 725 + 500 = 1225 > 1000, so shift left to 500
-      expect(result).toEqual({
-        left: 500, // 1000 - 500 = 500
-        top: 0, // max(0, 100 - 225) = 0
-        width: 500, // minimum size maintained
-        height: 500, // minimum size
-      });
-    });
-
-    it('should handle bottom-most position', () => {
-      const result = expandSearchArea(
-        { left: 100, top: 950, width: 50, height: 50 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      // Original position would be: top: 950 - 225 = 725, height: 500
-      // But 725 + 500 = 1225 > 1000, so shift up to 500
-      expect(result).toEqual({
-        left: 0, // max(0, 100 - 225) = 0
-        top: 500, // 1000 - 500 = 500
-        width: 500, // minimum size
-        height: 500, // minimum size maintained
-      });
-    });
-
-    it('should handle corner position (bottom-right)', () => {
-      const result = expandSearchArea(
-        { left: 950, top: 950, width: 30, height: 30 },
-        { width: 1000, height: 1000 },
-        undefined,
-      );
-
-      expect(result).toEqual({
-        left: 500, // 1000 - 500 = 500
-        top: 500, // 1000 - 500 = 500
-        width: 500, // minimum size maintained
-        height: 500, // minimum size maintained
-      });
-    });
-
-    it('should handle very small screen - cannot fit minimum size', () => {
-      const result = expandSearchArea(
-        { left: 50, top: 50, width: 20, height: 20 },
-        { width: 200, height: 200 },
-        undefined,
-      );
-
-      // Screen is 200x200, but minEdgeSize is 300
-      // Should clamp to screen size
-      expect(result).toEqual({
-        left: 0,
-        top: 0,
-        width: 200, // clamped to screen width
-        height: 200, // clamped to screen height
-      });
-    });
-
-    it('should handle very small screen with doubao-vision', () => {
-      const result = expandSearchArea(
-        { left: 100, top: 100, width: 50, height: 50 },
-        { width: 400, height: 400 },
-        'doubao-vision',
-      );
-
-      // minEdgeSize = 500, but screen is only 400x400
-      expect(result).toEqual({
-        left: 0,
-        top: 0,
-        width: 400, // clamped to screen width
-        height: 400, // clamped to screen height
-      });
-    });
-
-    it('should handle rect larger than screen', () => {
-      const result = expandSearchArea(
-        { left: 0, top: 0, width: 150, height: 150 },
-        { width: 100, height: 100 },
-        undefined,
-      );
-
-      expect(result).toEqual({
-        left: 0,
-        top: 0,
-        width: 100, // clamped to screen width
-        height: 100, // clamped to screen height
-      });
-    });
-
-    it('should handle edge case with minimum screen size', () => {
-      const result = expandSearchArea(
-        { left: 5, top: 5, width: 10, height: 10 },
-        { width: 50, height: 50 },
-        undefined,
-      );
-
-      expect(result).toEqual({
-        left: 0,
-        top: 0,
-        width: 50, // entire screen width
-        height: 50, // entire screen height
-      });
-    });
-
-    it('should handle qwen-vl mode edge case', () => {
-      const result = expandSearchArea(
-        { left: 25, top: 891, width: 127, height: 23 },
-        { width: 1900, height: 916 },
-        'qwen2.5-vl',
-      );
-
-      expect(result).toMatchInlineSnapshot(`
-        {
-          "height": 501,
-          "left": 0,
-          "top": 415,
-          "width": 501,
-        }
-      `);
-    });
   });
 });
 

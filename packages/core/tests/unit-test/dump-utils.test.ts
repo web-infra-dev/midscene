@@ -99,13 +99,13 @@ describe('dump/image-restoration', () => {
   };
 
   describe('restoreImageReferences', () => {
-    it('should restore screenshot references', () => {
+    it('should restore screenshot references to { base64 } format', () => {
       const data = {
         screenshot: { $screenshot: 'img1' },
       };
       const result = restoreImageReferences(data, imageMap);
       expect(result).toEqual({
-        screenshot: 'data:image/png;base64,abc123',
+        screenshot: { base64: 'data:image/png;base64,abc123' },
       });
     });
 
@@ -121,7 +121,7 @@ describe('dump/image-restoration', () => {
       expect(result).toEqual({
         level1: {
           level2: {
-            screenshot: 'data:image/png;base64,def456',
+            screenshot: { base64: 'data:image/png;base64,def456' },
           },
         },
       });
@@ -131,8 +131,8 @@ describe('dump/image-restoration', () => {
       const data = [{ $screenshot: 'img1' }, { $screenshot: 'img2' }];
       const result = restoreImageReferences(data, imageMap);
       expect(result).toEqual([
-        'data:image/png;base64,abc123',
-        'data:image/png;base64,def456',
+        { base64: 'data:image/png;base64,abc123' },
+        { base64: 'data:image/png;base64,def456' },
       ]);
     });
 
@@ -142,7 +142,7 @@ describe('dump/image-restoration', () => {
       };
       const result = restoreImageReferences(data, imageMap);
       expect(result).toEqual({
-        screenshot: 'data:image/png;base64,existing',
+        screenshot: { base64: 'data:image/png;base64,existing' },
       });
     });
 
@@ -152,17 +152,42 @@ describe('dump/image-restoration', () => {
       };
       const result = restoreImageReferences(data, imageMap);
       expect(result).toEqual({
-        screenshot: './images/test.png',
+        screenshot: { base64: './images/test.png' },
       });
     });
 
-    it('should handle missing image IDs', () => {
+    it('should fallback to directory path when image ID not in imageMap', () => {
+      // This is the key behavior for directory mode reports:
+      // When $screenshot ID is not found in imageMap, fallback to ./screenshots/{id}.png
       const data = {
-        screenshot: { $screenshot: 'missing' },
+        screenshot: { $screenshot: 'uuid-not-in-map' },
       };
       const result = restoreImageReferences(data, imageMap);
       expect(result).toEqual({
-        screenshot: 'missing',
+        screenshot: { base64: './screenshots/uuid-not-in-map.png' },
+      });
+    });
+
+    it('should work correctly for directory mode report flow', () => {
+      // Directory mode: dump contains { $screenshot: id }, no imageMap entries
+      // Browser should fallback to ./screenshots/{id}.png path
+      const emptyImageMap: Record<string, string> = {};
+      const data = {
+        executions: [
+          {
+            tasks: [
+              {
+                uiContext: {
+                  screenshot: { $screenshot: 'abc-123-def' },
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const result = restoreImageReferences(data, emptyImageMap);
+      expect(result.executions[0].tasks[0].uiContext.screenshot).toEqual({
+        base64: './screenshots/abc-123-def.png',
       });
     });
 

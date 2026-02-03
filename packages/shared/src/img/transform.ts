@@ -101,10 +101,15 @@ export async function resizeAndConvertImgBuffer(
     }
   }
 
-  // browser environment: use Photon
+  // browser environment: use Photon (or Canvas fallback)
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
   const inputBytes = new Uint8Array(inputData);
-  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const bytesliceResult = PhotonImage.new_from_byteslice(inputBytes);
+  const inputImage =
+    bytesliceResult instanceof Promise
+      ? await bytesliceResult
+      : bytesliceResult;
   const originalWidth = inputImage.get_width();
   const originalHeight = inputImage.get_height();
 
@@ -216,7 +221,9 @@ export async function photonFromBase64(
 ): Promise<PhotonImageType> {
   const { PhotonImage } = await getPhoton();
   const { body } = parseBase64(base64);
-  return PhotonImage.new_from_base64(body);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const result = PhotonImage.new_from_base64(body);
+  return result instanceof Promise ? await result : result;
 }
 
 // https://help.aliyun.com/zh/model-studio/user-guide/vision/
@@ -430,3 +437,117 @@ export const parseBase64 = (
     );
   }
 };
+
+/**
+ * Scales an image by a specified factor using Sharp or Photon
+ * @param imageBase64 - Base64 encoded image
+ * @param scale - Scale factor (e.g., 2 for 2x, 1.5 for 1.5x)
+ * @returns Scaled image with new dimensions
+ */
+export async function scaleImage(
+  imageBase64: string,
+  scale: number,
+): Promise<{
+  width: number;
+  height: number;
+  imageBase64: string;
+}> {
+  if (scale <= 0) {
+    throw new Error('Scale factor must be positive');
+  }
+
+  const { body } = parseBase64(imageBase64);
+  const buffer = Buffer.from(body, 'base64');
+
+  const scaleStartTime = Date.now();
+  imgDebug(`scaleImage start, scale factor: ${scale}`);
+
+  if (ifInNode) {
+    // Node.js environment: use Sharp
+    try {
+      const Sharp = await getSharp();
+      const metadata = await Sharp(buffer).metadata();
+      const originalWidth = metadata.width || 0;
+      const originalHeight = metadata.height || 0;
+
+      if (originalWidth === 0 || originalHeight === 0) {
+        throw new Error('Failed to get image dimensions');
+      }
+
+      const newWidth = Math.round(originalWidth * scale);
+      const newHeight = Math.round(originalHeight * scale);
+
+      const resizedBuffer = await Sharp(buffer)
+        .resize(newWidth, newHeight, {
+          kernel: 'lanczos3',
+          fit: 'fill',
+        })
+        .jpeg({
+          quality: 90,
+        })
+        .toBuffer();
+
+      const scaleEndTime = Date.now();
+      imgDebug(
+        `scaleImage done (Sharp): ${originalWidth}x${originalHeight} -> ${newWidth}x${newHeight} (scale=${scale}), cost: ${scaleEndTime - scaleStartTime}ms`,
+      );
+
+      const base64 = `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
+
+      return {
+        width: newWidth,
+        height: newHeight,
+        imageBase64: base64,
+      };
+    } catch (error) {
+      imgDebug('Sharp failed, falling back to Photon:', error);
+    }
+  }
+
+  // Browser environment or Sharp failed: use Photon (or Canvas fallback)
+  const { PhotonImage, SamplingFilter, resize } = await getPhoton();
+  const inputBytes = new Uint8Array(buffer);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const bytesliceResult = PhotonImage.new_from_byteslice(inputBytes);
+  const inputImage =
+    bytesliceResult instanceof Promise
+      ? await bytesliceResult
+      : bytesliceResult;
+  const originalWidth = inputImage.get_width();
+  const originalHeight = inputImage.get_height();
+
+  if (!originalWidth || !originalHeight) {
+    inputImage.free();
+    throw new Error('Failed to get image dimensions');
+  }
+
+  const newWidth = Math.round(originalWidth * scale);
+  const newHeight = Math.round(originalHeight * scale);
+
+  const outputImage = resize(
+    inputImage,
+    newWidth,
+    newHeight,
+    SamplingFilter.CatmullRom,
+  );
+
+  const outputBytes = outputImage.get_bytes_jpeg(90);
+  const resizedBuffer = Buffer.from(outputBytes);
+
+  // Free memory
+  inputImage.free();
+  outputImage.free();
+
+  const scaleEndTime = Date.now();
+  imgDebug(
+    `scaleImage done (Photon): ${originalWidth}x${originalHeight} -> ${newWidth}x${newHeight} (scale=${scale}), cost: ${scaleEndTime - scaleStartTime}ms`,
+  );
+
+  const base64 = `data:image/jpeg;base64,${resizedBuffer.toString('base64')}`;
+
+  return {
+    width: newWidth,
+    height: newHeight,
+    imageBase64: base64,
+  };
+}
