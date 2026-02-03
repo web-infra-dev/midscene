@@ -115,4 +115,23 @@ test.describe('file upload functionality', () => {
     await aiTap('Choose Single File', { fileChooserAccept: [testFile] });
     await aiAssert('page displays "test-file.txt"');
   });
+
+  test('should throw error when attempting to upload files to directory input', async ({
+    aiTap,
+    page,
+  }) => {
+    const testFile = join(__dirname, '../../fixtures/test-file.txt');
+
+    await page.goto(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+
+    // Attempt to upload file to directory input (has 'webkitdirectory' attribute)
+    // This should throw an error because the input expects directory paths
+    await expect(
+      aiTap('Choose Directory', {
+        fileChooserAccept: [testFile],
+      }),
+    ).rejects.toThrow(/File upload is not supported for directory inputs/);
+  });
 });

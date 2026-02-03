@@ -739,12 +739,24 @@ export class Page<
       try {
         await handler({
           accept: async (files: string[]) => {
+            // Get node information to check attributes
+            const { node } = await session.send('DOM.describeNode', {
+              backendNodeId: event.backendNodeId,
+            });
+
+            // attributes is a flat array: ['attr1', 'value1', 'attr2', 'value2', ...]
+            const hasWebkitDirectory =
+              node.attributes?.includes('webkitdirectory') ||
+              node.attributes?.includes('directory');
+
+            if (hasWebkitDirectory) {
+              throw new Error(
+                'File upload is not supported for directory inputs (inputs with webkitdirectory or directory attribute). Please use regular file inputs instead.',
+              );
+            }
+
             // Check if input supports multiple files
             if (files.length > 1) {
-              const { node } = await session.send('DOM.describeNode', {
-                backendNodeId: event.backendNodeId,
-              });
-              // attributes is a flat array: ['attr1', 'value1', 'attr2', 'value2', ...]
               const hasMultiple = node.attributes?.includes('multiple');
               if (!hasMultiple) {
                 throw new Error(

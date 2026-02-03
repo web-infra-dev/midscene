@@ -24,6 +24,24 @@ export class WebPage extends BasePage<'playwright', PlaywrightPageType> {
       try {
         await handler({
           accept: async (files: string[]) => {
+            // Check if input has webkitdirectory attribute
+            const element = chooser.element();
+            const hasWebkitDirectory = await element.evaluate((el) => {
+              if (el instanceof HTMLInputElement) {
+                return (
+                  el.hasAttribute('webkitdirectory') ||
+                  el.hasAttribute('directory')
+                );
+              }
+              return false;
+            });
+
+            if (hasWebkitDirectory) {
+              throw new Error(
+                'File upload is not supported for directory inputs (inputs with webkitdirectory or directory attribute). Please use regular file inputs instead.',
+              );
+            }
+
             await chooser.setFiles(files);
           },
         });
