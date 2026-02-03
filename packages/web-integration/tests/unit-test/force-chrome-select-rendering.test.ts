@@ -11,10 +11,11 @@ describe('forceChromeSelectRendering', () => {
 
     forceChromeSelectRendering(mockPuppeteerPage);
 
-    // Wait for async call to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Wait for evaluate to be called
+    await vi.waitFor(() => {
+      expect(evaluateFunc).toHaveBeenCalledTimes(1);
+    });
 
-    expect(evaluateFunc).toHaveBeenCalledTimes(1);
     const [func, args] = evaluateFunc.mock.calls[0];
     expect(typeof func).toBe('function');
     expect(args).toEqual({
@@ -32,10 +33,11 @@ describe('forceChromeSelectRendering', () => {
 
     forceChromeSelectRendering(mockPlaywrightPage);
 
-    // Wait for async call to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Wait for evaluate to be called
+    await vi.waitFor(() => {
+      expect(evaluateFunc).toHaveBeenCalledTimes(1);
+    });
 
-    expect(evaluateFunc).toHaveBeenCalledTimes(1);
     const [func, args] = evaluateFunc.mock.calls[0];
     expect(typeof func).toBe('function');
     // Verify arguments are passed as a single object
@@ -57,14 +59,14 @@ describe('forceChromeSelectRendering', () => {
 
     forceChromeSelectRendering(mockPage);
 
-    // Wait for async call to complete
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
-    expect(evaluateFunc).toHaveBeenCalledTimes(1);
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      'Midscene - Failed to add base-select appearance style:',
-      expect.any(Error),
-    );
+    // Wait for evaluate to be called and console.log to be invoked
+    await vi.waitFor(() => {
+      expect(evaluateFunc).toHaveBeenCalledTimes(1);
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        'Midscene - Failed to add base-select appearance style:',
+        expect.any(Error),
+      );
+    });
 
     consoleLogSpy.mockRestore();
   });
