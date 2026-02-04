@@ -58,6 +58,9 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     (store) => store.setHoverPreviewConfig,
   );
   const setPlayingTaskId = useExecutionDump((store) => store.setPlayingTaskId);
+  const setStartFromTaskId = useExecutionDump(
+    (store) => store.setStartFromTaskId,
+  );
   const allTasks = useAllCurrentTasks();
   const currentSelectedIndex = allTasks?.findIndex(
     (task) => task === activeTask,
@@ -732,6 +735,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <div
               className="icon-button"
               onClick={() => {
+                // Set startFromTaskId to current active task's taskId (if any)
+                setStartFromTaskId(activeTask?.taskId || null);
                 setReplayAllMode?.(true);
               }}
             >

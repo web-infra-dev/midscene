@@ -48,6 +48,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const insightHeight = useExecutionDump((store) => store.insightHeight);
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
   const setPlayingTaskId = useExecutionDump((store) => store.setPlayingTaskId);
+  const startFromTaskId = useExecutionDump((store) => store.startFromTaskId);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelBriefs = useExecutionDump((store) => store.modelBriefs);
@@ -129,11 +130,12 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     const content = replayAllMode ? (
       <div className="replay-all-mode-wrapper">
         <Player
-          key={`${executionDumpLoadId}`}
+          key={`${executionDumpLoadId}-${startFromTaskId || 'start'}`}
           replayScripts={replayAllScripts!}
           imageWidth={insightWidth!}
           imageHeight={insightHeight!}
           onTaskChange={setPlayingTaskId}
+          startFromTaskId={startFromTaskId}
         />
       </div>
     ) : (

@@ -72,6 +72,8 @@ export interface DumpStoreType {
   setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
   playingTaskId: string | null;
   setPlayingTaskId: (taskId: string | null) => void;
+  startFromTaskId: string | null;
+  setStartFromTaskId: (taskId: string | null) => void;
   reset: () => void;
 }
 /**
@@ -103,6 +105,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     hoverTimestamp: null,
     hoverPreviewConfig: null,
     playingTaskId: null,
+    startFromTaskId: null,
   };
 
   const resetActiveExecution = () => {
@@ -249,6 +252,9 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     },
     setPlayingTaskId(taskId: string | null) {
       set({ playingTaskId: taskId });
+    },
+    setStartFromTaskId(taskId: string | null) {
+      set({ startFromTaskId: taskId });
     },
     reset: () => {
       set(initData);
