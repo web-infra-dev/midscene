@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { ComputerDevice, type DisplayInfo } from './device';
 
 export interface EnvironmentCheck {
@@ -32,13 +33,15 @@ export function checkAccessibilityPermission(
   try {
     // Use node-mac-permissions to check accessibility permission
     // This is a macOS-only native module, so we need to handle the case where it's not available
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    // Use createRequire to dynamically load optional dependency
+    // This ensures the require happens at runtime, not bundle time
     let permissions: {
       getAuthStatus: (type: string) => string;
       askForAccessibilityAccess: () => void;
     };
     try {
-      permissions = require('node-mac-permissions');
+      const dynamicRequire = createRequire(import.meta.url);
+      permissions = dynamicRequire('node-mac-permissions');
     } catch {
       // node-mac-permissions not available (e.g., not on macOS or not installed)
       // Fall back to assuming permission is granted
