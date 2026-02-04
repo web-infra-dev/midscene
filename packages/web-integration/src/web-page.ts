@@ -26,6 +26,9 @@ import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 
 const debug = getDebug('web:page');
 
+// Default interval between taps in milliseconds for multiple tap action
+const DEFAULT_MULTIPLE_TAP_INTERVAL_MS = 50;
+
 function normalizeKeyInputs(value: string | string[]): string[] {
   const inputs = Array.isArray(value) ? value : [value];
   const result: string[] = [];
@@ -456,7 +459,7 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     const element = param.locate;
     assert(element, 'Element not found, cannot multiple tap');
     const count = param.count;
-    const interval = param.interval ?? 50; // Default interval of 50ms between taps
+    const interval = param.interval ?? DEFAULT_MULTIPLE_TAP_INTERVAL_MS;
 
     for (let i = 0; i < count; i++) {
       await page.mouse.click(element.center[0], element.center[1], {
