@@ -31,12 +31,24 @@ export function checkAccessibilityPermission(
 
   try {
     // Use node-mac-permissions to check accessibility permission
+    // This is a macOS-only native module, so we need to handle the case where it's not available
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const {
-      getAuthStatus,
-      askForAccessibilityAccess,
-    } = require('node-mac-permissions');
-    const status = getAuthStatus('accessibility');
+    let permissions: {
+      getAuthStatus: (type: string) => string;
+      askForAccessibilityAccess: () => void;
+    };
+    try {
+      permissions = require('node-mac-permissions');
+    } catch {
+      // node-mac-permissions not available (e.g., not on macOS or not installed)
+      // Fall back to assuming permission is granted
+      return {
+        hasPermission: true,
+        platform: process.platform,
+      };
+    }
+
+    const status = permissions.getAuthStatus('accessibility');
 
     if (status === 'authorized') {
       return {
@@ -47,19 +59,13 @@ export function checkAccessibilityPermission(
 
     // Trigger system prompt and open settings if requested
     if (promptIfNeeded) {
-      askForAccessibilityAccess();
+      permissions.askForAccessibilityAccess();
     }
 
     return {
       hasPermission: false,
       platform: process.platform,
-      error:
-        `macOS Accessibility permission is required (current status: ${status}).\n\n` +
-        'Please follow these steps:\n' +
-        '1. Open System Settings > Privacy & Security > Accessibility\n' +
-        '2. Enable the application running this script (e.g., Terminal, iTerm2, VS Code, WebStorm)\n' +
-        '3. Restart your terminal or IDE after granting permission\n\n' +
-        'For more details, see: https://github.com/nut-tree/nut.js#macos',
+      error: `macOS Accessibility permission is required (current status: ${status}).\n\nPlease follow these steps:\n1. Open System Settings > Privacy & Security > Accessibility\n2. Enable the application running this script (e.g., Terminal, iTerm2, VS Code, WebStorm)\n3. Restart your terminal or IDE after granting permission\n\nFor more details, see: https://github.com/nut-tree/nut.js#macos`,
     };
   } catch (error) {
     return {
