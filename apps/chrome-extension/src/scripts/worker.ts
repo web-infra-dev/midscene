@@ -317,7 +317,6 @@ async function initBackgroundBridge(): Promise<void> {
   }
 
   try {
-    // Always start listening on startup
     console.log('[BackgroundBridge] Auto-starting background bridge...');
     await startBackgroundBridge();
   } catch (error) {
@@ -534,23 +533,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-// Re-initialize background bridge on browser startup
-chrome.runtime.onStartup.addListener(() => {
-  console.log('[ServiceWorker] Browser startup - starting background bridge');
-  initBackgroundBridge();
-});
-
 // Reload all tabs after extension is installed or updated (development only)
 // This ensures content scripts are properly injected during development
 chrome.runtime.onInstalled.addListener(async (details) => {
-  // Re-initialize background bridge after extension update
-  if (details.reason === 'install' || details.reason === 'update') {
-    console.log(
-      '[ServiceWorker] Extension installed/updated - starting background bridge',
-    );
-    initBackgroundBridge();
-  }
-
   const isDevelopment = process.env.NODE_ENV === 'development';
   if (
     isDevelopment &&
