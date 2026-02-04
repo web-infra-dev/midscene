@@ -67,3 +67,65 @@ You can also customize or disable the timeout by options:
 ## Get an error 403 when using Ollama model in Chrome extension
 
 `OLLAMA_ORIGINS="*"` is required to allow the Chrome extension to access the Ollama model.
+
+## Inaccurate Element Positioning
+
+If you encounter inaccurate element positioning when using Midscene, follow these steps to troubleshoot and resolve the issue:
+
+### 1. Upgrade to the Latest Version
+
+Make sure you are using the latest version of Midscene, as new versions typically include optimizations and improvements for positioning accuracy.
+
+```bash
+# Web automation
+npm install @midscene/web@latest
+# iOS automation
+npm install @midscene/ios@latest
+# CLI tool
+npm install @midscene/cli@latest
+# Or other packages corresponding to your platform
+```
+
+### 2. Use Better Vision Models
+
+Midscene's element positioning capability relies on the AI model's visual understanding ability, so be sure to choose models that support visual capabilities.
+
+Among the models available to you, choosing the best model will help improve positioning effectiveness.
+
+Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For more model selection suggestions, please refer to [Model Strategy](./model-strategy).
+
+### 3. Check Model Family Configuration
+
+Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Model Configuration](./model-config) for details.
+
+### 4. Analyze the Cause of Positioning Offset
+
+Positioning offset typically occurs in two scenarios:
+
+**Scenario 1: The model cannot recognize the target element**
+- Symptoms: Positioning results randomly fall on unrelated elements, with significant variation in results each time.
+- Cause: The model may not understand your description. For example, `aiTap('favorite icon')` is a functional description of the element to be positioned, and the model may not know the specific style of a favorite icon; whereas `aiTap('star icon')` is a visual description, and the model can locate the element based on its visual characteristics.
+- Solution: Optimize prompts by combining visual features and position information to describe the element.
+  ```typescript
+  // ❌ Using only functional description
+  await agent.aiTap('favorite icon');
+  
+  // ✅ Using visual description
+  await agent.aiTap('star icon');
+  
+  // ✅ Combining visual features and position information
+  await agent.aiTap('star favorite button in the top right corner of the page');
+  ```
+
+The `favorite icon` here is just for illustration. Generally speaking, models can understand the functional semantics of many common icons. However, as you delve deeper into the automation field, you may encounter situations where the model is unfamiliar with the semantics of certain elements. Therefore, clearly describing the visual characteristics of the element to be positioned is a very practical technique.
+
+**Scenario 2: The model recognizes accurately but the positioning has deviation**
+- Symptoms: Positioning results fall near the target element but with a few pixels offset.
+- Solution: Enabling `deepThink` will significantly improve positioning effectiveness.
+  ```typescript
+  await agent.aiTap('Login button', {
+    deepThink: true
+  });
+  ```
+
+For more information about `deepThink`, please refer to the [API documentation](/api).
