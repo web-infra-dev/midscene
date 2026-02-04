@@ -3,6 +3,19 @@ import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
 
 const MAX_VALUE_LENGTH = 300;
+
+// HTML boolean attributes that should be included even without a value
+const BOOLEAN_ATTRIBUTES = [
+  'disabled',
+  'readonly',
+  'checked',
+  'required',
+  'multiple',
+  'selected',
+  'autofocus',
+  'hidden',
+] as const;
+
 let debugMode = false;
 
 export function setDebugMode(mode: boolean) {
@@ -376,25 +389,17 @@ export function getNodeAttributes(
     return {};
   }
 
-  // HTML boolean attributes that should be included even without a value
-  const booleanAttributes = [
-    'disabled',
-    'readonly',
-    'checked',
-    'required',
-    'multiple',
-    'selected',
-    'autofocus',
-    'hidden',
-  ];
-
   const attributesList = Array.from(node.attributes).map((attr) => {
     if (attr.name === 'class') {
       return [attr.name, `.${attr.value.split(' ').join('.')}`];
     }
     if (!attr.value) {
       // Boolean attributes (like disabled, readonly) may have no value
-      if (booleanAttributes.includes(attr.name.toLowerCase())) {
+      if (
+        BOOLEAN_ATTRIBUTES.includes(
+          attr.name.toLowerCase() as (typeof BOOLEAN_ATTRIBUTES)[number],
+        )
+      ) {
         return [attr.name, 'true'];
       }
       return [];
