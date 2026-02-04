@@ -60,8 +60,12 @@ export const useGlobalPreference = create<{
   const savedModelCallDetails =
     localStorage.getItem(MODEL_CALL_DETAILS_KEY) === 'true';
   const savedDarkMode = localStorage.getItem(DARK_MODE_KEY) === 'true';
-  const savedPlaybackSpeed = Number.parseFloat(
+  const parsedPlaybackSpeed = Number.parseFloat(
     localStorage.getItem(PLAYBACK_SPEED_KEY) || '1',
+  );
+  // Handle NaN case and ensure valid speed value
+  const savedPlaybackSpeed = (
+    Number.isNaN(parsedPlaybackSpeed) ? 1 : parsedPlaybackSpeed
   ) as PlaybackSpeedType;
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');

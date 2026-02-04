@@ -828,8 +828,12 @@ export function Player(props?: {
           throw new Error('scripts is required');
         }
         const { frame, cancel, timeout, sleep: baseSleep } = frameKit();
+
+        // Scale duration by playback speed (faster playback = shorter duration)
+        const scaleByPlaybackSpeed = (duration: number) =>
+          duration / playbackSpeed;
         // Wrap sleep to apply playback speed
-        const sleep = (ms: number) => baseSleep(ms / playbackSpeed);
+        const sleep = (ms: number) => baseSleep(scaleByPlaybackSpeed(ms));
         cancelFn = cancel;
         cancelAnimationRef.current = cancel;
         const allImages: string[] = scripts
@@ -846,7 +850,7 @@ export function Player(props?: {
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         await repaintImage();
         await updateCamera({ ...basicCameraState });
-        const totalDuration =
+        const totalDuration = scaleByPlaybackSpeed(
           scripts.reduce((acc, item) => {
             return (
               acc +
@@ -855,7 +859,8 @@ export function Player(props?: {
                 ? item.insightCameraDuration
                 : 0)
             );
-          }, 0) / playbackSpeed;
+          }, 0),
+        );
         // progress bar
         const progressUpdateInterval = 200;
         const startTime = performance.now();
@@ -914,7 +919,7 @@ export function Player(props?: {
               [],
               highlightElements,
               item.searchArea,
-              item.duration / playbackSpeed,
+              scaleByPlaybackSpeed(item.duration),
               frame,
             );
             if (item.camera) {
@@ -923,14 +928,14 @@ export function Player(props?: {
               }
               await cameraAnimation(
                 item.camera,
-                item.insightCameraDuration / playbackSpeed,
+                scaleByPlaybackSpeed(item.insightCameraDuration),
                 frame,
               );
             }
           } else if (item.type === 'clear-insight') {
             await fadeOutItem(
               insightMarkContainer,
-              item.duration / playbackSpeed,
+              scaleByPlaybackSpeed(item.duration),
               frame,
             );
             insightMarkContainer.removeChildren();
@@ -943,7 +948,7 @@ export function Player(props?: {
             if (item.camera) {
               await cameraAnimation(
                 item.camera,
-                item.duration / playbackSpeed,
+                scaleByPlaybackSpeed(item.duration),
                 frame,
               );
             } else {

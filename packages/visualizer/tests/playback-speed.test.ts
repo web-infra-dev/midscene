@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -74,11 +74,7 @@ describe('Playback Speed Store', () => {
 
   describe('Total duration calculation with speed', () => {
     it('should scale total animation duration correctly', () => {
-      const scripts = [
-        { duration: 500 },
-        { duration: 300 },
-        { duration: 800 },
-      ];
+      const scripts = [{ duration: 500 }, { duration: 300 }, { duration: 800 }];
 
       const baseTotalDuration = scripts.reduce(
         (acc, item) => acc + item.duration,
