@@ -1,5 +1,6 @@
 import './index.less';
 import { useAllCurrentTasks, useExecutionDump } from '@/components/store';
+import { PauseOutlined } from '@ant-design/icons';
 import type {
   AIUsageInfo,
   ExecutionTask,
@@ -46,6 +47,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     dumps,
     proModeEnabled = false,
     onProModeChange,
+    replayAllMode,
     setReplayAllMode,
   } = props;
   const groupedDump = useExecutionDump((store) => store.dump);
@@ -735,12 +737,24 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <div
               className="icon-button"
               onClick={() => {
-                // Set startFromTaskId to current active task's taskId (if any)
-                setStartFromTaskId(activeTask?.taskId || null);
-                setReplayAllMode?.(true);
+                if (replayAllMode) {
+                  // Pause: save current playing position for resume
+                  setStartFromTaskId(playingTaskId || null);
+                  setReplayAllMode?.(false);
+                } else {
+                  // Play: use activeTask if no startFromTaskId set, otherwise resume from last position
+                  if (!playingTaskId) {
+                    setStartFromTaskId(activeTask?.taskId || null);
+                  }
+                  setReplayAllMode?.(true);
+                }
               }}
             >
-              <PlayIcon />
+              {replayAllMode ? (
+                <PauseOutlined style={{ fontSize: 16 }} />
+              ) : (
+                <PlayIcon />
+              )}
             </div>
           </div>
         </div>

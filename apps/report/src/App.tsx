@@ -171,6 +171,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
               proModeEnabled={proModeEnabled}
               onProModeChange={setProModeEnabled}
               replayAllScripts={replayAllScripts}
+              replayAllMode={replayAllMode}
               setReplayAllMode={setReplayAllMode}
             />
           </div>
