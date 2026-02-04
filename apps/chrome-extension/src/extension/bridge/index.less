@@ -281,44 +281,21 @@
       margin-left: 16px;
     }
 
-    .bottom-status-btn {
+    .permission-info-inline {
       display: flex;
-      flex-direction: row;
       align-items: center;
-      justify-content: center;
+      gap: 4px;
       margin-left: 12px;
 
-      .stop-button {
-        border: none;
-        box-shadow: none;
-        background: transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 4px 8px;
+      .permission-info-text {
+        font-size: 13px;
+        color: rgba(0, 0, 0, 0.45);
+      }
 
-        &::before {
-          content: '';
-          display: inline-block;
-          width: 10px;
-          height: 10px;
-          background-color: #000;
-          border-radius: 2px;
-        }
-
-        &:hover,
-        &:focus {
-          background: none;
-          border: none;
-          box-shadow: none;
-        }
-
-        &:active {
-          background: none;
-          border: none;
-          box-shadow: none;
-        }
+      .reset-permission-btn {
+        font-size: 13px;
+        padding: 0;
+        height: auto;
       }
     }
 

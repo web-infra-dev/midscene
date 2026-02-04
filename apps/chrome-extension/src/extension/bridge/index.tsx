@@ -8,7 +8,6 @@ import {
 import { Button, Input, List, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import PlayIcon from '../../icons/play.svg?react';
 import type { BridgeStatus } from '../../utils/bridgeConnector';
 import { workerMessageTypes } from '../../utils/workerMessageTypes';
 import { iconForStatus } from '../misc';
@@ -118,32 +117,6 @@ export default function Bridge() {
     };
   }, []);
 
-  const stopConnection = () => {
-    chrome.runtime.sendMessage(
-      { type: workerMessageTypes.BRIDGE_STOP },
-      (response) => {
-        console.log('Bridge stop response:', response);
-      },
-    );
-  };
-
-  const startConnection = async () => {
-    // only reset the connection status message ID when starting a new connection
-    if (bridgeStatus === 'closed') {
-      connectionStatusMessageId.current = null;
-    }
-    const effectiveUrl = serverUrl || undefined;
-    chrome.runtime.sendMessage(
-      {
-        type: workerMessageTypes.BRIDGE_START,
-        payload: { serverEndpoint: effectiveUrl },
-      },
-      (response) => {
-        console.log('Bridge start response:', response);
-      },
-    );
-  };
-
   const handleResetPermission = () => {
     chrome.runtime.sendMessage(
       { type: workerMessageTypes.BRIDGE_RESET_PERMISSION },
@@ -226,21 +199,11 @@ export default function Bridge() {
 
   let statusIcon;
   let statusTip: string;
-  let statusBtn;
-  if (bridgeStatus === 'closed') {
-    statusIcon = iconForStatus('closed');
-    statusTip = 'Closed';
-    statusBtn = (
-      <Button
-        type="primary"
-        onClick={() => {
-          startConnection();
-        }}
-      >
-        Allow connection
-      </Button>
-    );
-  } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
+  if (
+    bridgeStatus === 'listening' ||
+    bridgeStatus === 'disconnected' ||
+    bridgeStatus === 'closed'
+  ) {
     statusIcon = (
       <Spin
         className="status-loading-icon"
@@ -249,29 +212,12 @@ export default function Bridge() {
       />
     );
     statusTip = 'Listening for connection';
-    statusBtn = (
-      <Button className="stop-button" onClick={stopConnection}>
-        Stop
-      </Button>
-    );
   } else if (bridgeStatus === 'connected') {
     statusIcon = iconForStatus('connected');
     statusTip = 'Connected';
-
-    statusBtn = (
-      <Button
-        className="stop-button"
-        onClick={() => {
-          stopConnection();
-        }}
-      >
-        Stop
-      </Button>
-    );
   } else {
     statusIcon = iconForStatus('failed');
     statusTip = `Unknown Status - ${bridgeStatus}`;
-    statusBtn = null;
   }
 
   return (
@@ -384,15 +330,18 @@ export default function Bridge() {
         </div>
       </div>
 
-      {/* bottom buttons */}
+      {/* bottom status bar */}
       <div className="bottom-button-container">
-        {bridgeStatus === 'closed' ? (
-          <>
-            {alwaysAllow && (
-              <div className="permission-info-container">
-                <span className="permission-info-text">
-                  Auto-allow is enabled
-                </span>
+        <div className="bottom-status-bar">
+          <div className="bottom-status-text">
+            <span className="bottom-status-icon">{statusIcon}</span>
+            <span className="bottom-status-tip">{statusTip}</span>
+          </div>
+          {alwaysAllow && (
+            <>
+              <div className="bottom-status-divider" />
+              <div className="permission-info-inline">
+                <span className="permission-info-text">Auto-allow</span>
                 <Button
                   type="link"
                   size="small"
@@ -402,28 +351,9 @@ export default function Bridge() {
                   Reset
                 </Button>
               </div>
-            )}
-            <Button
-              type="primary"
-              className="bottom-action-button"
-              icon={<PlayIcon />}
-              onClick={() => {
-                startConnection();
-              }}
-            >
-              Start Listening
-            </Button>
-          </>
-        ) : (
-          <div className="bottom-status-bar">
-            <div className="bottom-status-text">
-              <span className="bottom-status-icon">{statusIcon}</span>
-              <span className="bottom-status-tip">{statusTip}</span>
-            </div>
-            <div className="bottom-status-divider" />
-            <div className="bottom-status-btn">{statusBtn}</div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
