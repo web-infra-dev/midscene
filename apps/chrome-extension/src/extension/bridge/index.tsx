@@ -22,6 +22,14 @@ interface BridgeMessageItem {
   time: string;
 }
 
+// Message record from worker
+interface BridgeMessageRecord {
+  id: string;
+  content: string;
+  timestamp: number;
+  msgType: 'log' | 'status';
+}
+
 const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
 const DEFAULT_SERVER_URL = 'ws://localhost:3766';
 
@@ -72,6 +80,56 @@ export default function Bridge() {
     }
   };
 
+  // Convert history records to UI message format
+  const restoreMessagesFromHistory = (records: BridgeMessageRecord[]) => {
+    if (records.length === 0) return;
+
+    // Group messages into sessions (messages within 5 seconds are considered same session)
+    const SESSION_GAP = 5000;
+    const sessions: BridgeMessageRecord[][] = [];
+    let currentSession: BridgeMessageRecord[] = [];
+
+    for (const record of records) {
+      if (
+        currentSession.length === 0 ||
+        record.timestamp - currentSession[currentSession.length - 1].timestamp <
+          SESSION_GAP
+      ) {
+        currentSession.push(record);
+      } else {
+        sessions.push(currentSession);
+        currentSession = [record];
+      }
+    }
+    if (currentSession.length > 0) {
+      sessions.push(currentSession);
+    }
+
+    // Convert sessions to UI messages
+    const uiMessages: BridgeMessageItem[] = sessions.map((session) => {
+      const firstRecord = session[0];
+      const content = session
+        .map(
+          (r) => `${dayjs(r.timestamp).format('HH:mm:ss.SSS')} - ${r.content}`,
+        )
+        .join('\n');
+
+      return {
+        id: firstRecord.id,
+        type: 'status' as const,
+        content,
+        timestamp: new Date(firstRecord.timestamp),
+        time: dayjs(firstRecord.timestamp).format('HH:mm:ss.SSS'),
+      };
+    });
+
+    setMessageList(uiMessages);
+    // Set the last session's id as connectionStatusMessageId for appending new messages
+    if (sessions.length > 0) {
+      connectionStatusMessageId.current = uiMessages[uiMessages.length - 1].id;
+    }
+  };
+
   // Connect to Service Worker via port for receiving status updates
   useEffect(() => {
     const port = chrome.runtime.connect({ name: 'bridge-ui' });
@@ -101,13 +159,23 @@ export default function Bridge() {
       portRef.current = null;
     });
 
-    // Load permission config from Service Worker
+    // Load permission config and message history from Service Worker
     chrome.runtime.sendMessage(
       { type: workerMessageTypes.BRIDGE_GET_PERMISSION },
       (response) => {
         if (response) {
           setAlwaysAllow(response.alwaysAllow || false);
           setBridgeStatus(response.status || 'closed');
+        }
+      },
+    );
+
+    // Restore message history
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_GET_MESSAGES },
+      (response) => {
+        if (response?.messages && response.messages.length > 0) {
+          restoreMessagesFromHistory(response.messages);
         }
       },
     );
@@ -144,6 +212,10 @@ export default function Bridge() {
   const clearMessageList = () => {
     setMessageList([]);
     connectionStatusMessageId.current = null;
+    // Also clear history in worker
+    chrome.runtime.sendMessage({
+      type: workerMessageTypes.BRIDGE_CLEAR_MESSAGES,
+    });
   };
 
   // check if scrolled to bottom

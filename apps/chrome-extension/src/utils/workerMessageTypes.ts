@@ -8,6 +8,8 @@ export const workerMessageTypes = {
   BRIDGE_GET_STATUS: 'bridge-get-status',
   BRIDGE_GET_PERMISSION: 'bridge-get-permission',
   BRIDGE_RESET_PERMISSION: 'bridge-reset-permission',
+  BRIDGE_GET_MESSAGES: 'bridge-get-messages',
+  BRIDGE_CLEAR_MESSAGES: 'bridge-clear-messages',
   // Bridge status broadcast (from worker to UI)
   BRIDGE_STATUS_CHANGED: 'bridge-status-changed',
   BRIDGE_MESSAGE: 'bridge-message',

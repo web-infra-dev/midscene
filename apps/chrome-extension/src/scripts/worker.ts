@@ -24,6 +24,30 @@ const BRIDGE_PERMISSION_KEY = 'midscene_bridge_permission';
 let backgroundBridge: BridgeConnector | null = null;
 let currentBridgeStatus: BridgeStatus = 'closed';
 
+// Message history storage
+interface BridgeMessageRecord {
+  id: string;
+  content: string;
+  timestamp: number;
+  msgType: 'log' | 'status';
+}
+const MAX_MESSAGE_HISTORY = 100;
+let bridgeMessageHistory: BridgeMessageRecord[] = [];
+
+function addMessageToHistory(message: string, msgType: 'log' | 'status') {
+  const record: BridgeMessageRecord = {
+    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    content: message,
+    timestamp: Date.now(),
+    msgType,
+  };
+  bridgeMessageHistory.push(record);
+  // Limit history size
+  if (bridgeMessageHistory.length > MAX_MESSAGE_HISTORY) {
+    bridgeMessageHistory = bridgeMessageHistory.slice(-MAX_MESSAGE_HISTORY);
+  }
+}
+
 // Pending confirmation state
 let pendingConfirmResolve: ((allowed: boolean) => void) | null = null;
 let confirmWindowId: number | null = null;
@@ -141,6 +165,9 @@ function broadcastBridgeStatus(status: BridgeStatus) {
 
 // Broadcast bridge message to all connected UI pages
 function broadcastBridgeMessage(message: string, msgType: 'log' | 'status') {
+  // Save to history
+  addMessageToHistory(message, msgType);
+
   bridgePorts.forEach((port) => {
     try {
       port.postMessage({
@@ -468,6 +495,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     case workerMessageTypes.BRIDGE_GET_STATUS: {
       sendResponse({ status: currentBridgeStatus });
+      break;
+    }
+    case workerMessageTypes.BRIDGE_GET_MESSAGES: {
+      sendResponse({ messages: bridgeMessageHistory });
+      break;
+    }
+    case workerMessageTypes.BRIDGE_CLEAR_MESSAGES: {
+      bridgeMessageHistory = [];
+      sendResponse({ success: true });
       break;
     }
     case workerMessageTypes.BRIDGE_GET_PERMISSION: {
