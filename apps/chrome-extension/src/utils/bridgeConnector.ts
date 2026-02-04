@@ -26,6 +26,9 @@ export class BridgeConnector {
   }
 
   private setStatus(status: BridgeStatus) {
+    if (this.status === status) {
+      return; // No change, skip notification
+    }
     this.status = status;
     this.onStatusChange(status);
   }
@@ -53,11 +56,13 @@ export class BridgeConnector {
         }
 
         let activeBridgePage: ExtensionBridgePageBrowserSide | null = null;
+        let wasConnected = false;
         try {
           activeBridgePage = new ExtensionBridgePageBrowserSide(
             this.serverEndpoint,
             () => {
-              if (this.status !== 'closed') {
+              // Only set to disconnected if we were actually connected before
+              if (this.status === 'connected' || wasConnected) {
                 this.setStatus('disconnected');
                 this.activeBridgePage = null;
               }
@@ -69,9 +74,13 @@ export class BridgeConnector {
 
           await activeBridgePage.connect();
           this.activeBridgePage = activeBridgePage;
+          wasConnected = true;
           this.setStatus('connected');
         } catch (e: any) {
-          activeBridgePage?.destroy();
+          // Don't call destroy() if we were never connected - just clean up
+          if (wasConnected) {
+            activeBridgePage?.destroy();
+          }
           this.activeBridgePage = null;
 
           // If user denied the connection, continue listening for next connection
@@ -79,9 +88,13 @@ export class BridgeConnector {
             console.log(
               'Connection denied by user, continuing to listen for next connection',
             );
-            this.setStatus('listening');
           } else {
             console.warn('failed to setup connection', e);
+          }
+
+          // Keep listening status while retrying
+          if (this.status !== 'closed') {
+            this.setStatus('listening');
           }
 
           await new Promise((resolve) =>
