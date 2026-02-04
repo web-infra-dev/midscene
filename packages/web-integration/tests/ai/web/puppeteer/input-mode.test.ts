@@ -22,7 +22,7 @@ describe(
 
       try {
         // Step 1: Input first value (default replace mode)
-        await agent.aiInput('Test input', { value: 'Hello' });
+        await agent.aiInput('the input field', { value: 'Hello' });
 
         // Get the value after first input
         const valueAfterFirstInput = await originPage.$eval(
@@ -33,7 +33,7 @@ describe(
         expect(valueAfterFirstInput).toBe('Hello');
 
         // Step 2: Input second value with typeOnly mode (should append, not replace)
-        await agent.aiInput('Test input', {
+        await agent.aiInput('the input field', {
           value: ' World',
           mode: 'typeOnly',
         });
@@ -73,7 +73,7 @@ describe(
 
       try {
         // Step 1: Input first value
-        await agent.aiInput('Test input', { value: 'Hello' });
+        await agent.aiInput('the input field', { value: 'Hello' });
 
         const valueAfterFirstInput = await originPage.$eval(
           '#test-input',
@@ -83,7 +83,10 @@ describe(
         expect(valueAfterFirstInput).toBe('Hello');
 
         // Step 2: Input second value with replace mode (default, should clear first)
-        await agent.aiInput('Test input', { value: 'World', mode: 'replace' });
+        await agent.aiInput('the input field', {
+          value: 'World',
+          mode: 'replace',
+        });
 
         const valueAfterSecondInput = await originPage.$eval(
           '#test-input',

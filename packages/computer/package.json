@@ -37,6 +37,9 @@
     "clipboardy": "^4.0.0",
     "screenshot-desktop": "^1.15.3"
   },
+  "optionalDependencies": {
+    "node-mac-permissions": "2.5.0"
+  },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
     "@types/node": "^18.0.0",
