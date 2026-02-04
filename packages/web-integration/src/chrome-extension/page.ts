@@ -23,6 +23,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
 import { WebPageContextParser } from '../web-element';
@@ -37,6 +38,8 @@ import {
   injectStopWaterFlowAnimation,
   injectWaterFlowAnimation,
 } from './dynamic-scripts';
+
+const debug = getDebug('web:chrome-extension:page');
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -457,7 +460,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
           isOrderSensitive = judgeResult.isOrderSensitive;
         } catch (error) {
           // Fall back to false on error
-          console.warn('Failed to judge isOrderSensitive:', error);
+          debug('Failed to judge isOrderSensitive: %O', error);
         }
       }
 
@@ -467,7 +470,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         xpaths: sanitized,
       };
     } catch (error) {
-      console.warn('cacheFeatureForPoint failed:', error);
+      debug('cacheFeatureForPoint failed: %O', error);
       return {
         xpaths: [],
       };
@@ -496,10 +499,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
           return matchedRect;
         }
       } catch (error) {
-        console.warn(
-          `rectMatchesCacheFeature failed for xpath ${xpath}:`,
-          error,
-        );
+        debug('rectMatchesCacheFeature failed for xpath %s: %O', xpath, error);
       }
     }
 
