@@ -11,6 +11,7 @@ import type {
 } from '@midscene/core';
 import { type ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { getDebug } from '@midscene/shared/logger';
 import {
   buildChromeArgs,
   defaultViewportHeight,
@@ -29,6 +30,8 @@ import {
   spinnerInterval,
 } from './printer';
 import { TTYWindowRenderer } from './tty-renderer';
+
+const debug = getDebug('midscene:cli:batch-runner');
 
 export interface BatchRunnerConfig {
   files: string[];
@@ -154,12 +157,14 @@ class BatchRunner {
             console.log(
               `\n✅ All files passed, no retry needed (round ${round}/${retryRounds})`,
             );
+            debug('All files passed at round %d/%d', round, retryRounds);
             break;
           }
 
           console.log(
             `\n🔄 Retry round ${round}/${retryRounds}: retrying ${failedFiles.length} failed file(s)...`,
           );
+          debug('Retrying %d files: %o', failedFiles.length, failedFiles);
 
           // Create new contexts for failed files
           const retryContexts: BatchFileContext[] = [];

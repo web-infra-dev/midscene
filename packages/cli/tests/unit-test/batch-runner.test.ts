@@ -33,6 +33,9 @@ vi.mock('puppeteer', () => ({
 }));
 vi.mock('@/create-yaml-player');
 vi.mock('@midscene/shared/common');
+vi.mock('@midscene/shared/logger', () => ({
+  getDebug: vi.fn(() => vi.fn()),
+}));
 vi.mock('@midscene/core/yaml', async (importOriginal) => {
   const original = await importOriginal<typeof import('@midscene/core/yaml')>();
   return {
