@@ -14,7 +14,7 @@ Midscene 提供了 MCP 服务，可以将 Midscene Agent 中的原子化操作�
 
 | 工具名称 | 功能描述 |
 |---------|---------|
-| 设备连接，如 `web_connect`、`ios_connect`、`android_connect` | 连接到目标设备，如浏览器、iOS 设备、Android 设备 |
+| 设备连接，如 `web_connect`、`ios_connect`、`android_connect`、`computer_connect` | 连接到目标设备，如浏览器、iOS 设备、Android 设备、电脑桌面 |
 | `take_screenshot` | 获取最新截图 |
 | 设备操作 | 对应 Action Space 中的每个 Action，如 `Tap`、`Scroll` 等 |
 
@@ -119,6 +119,37 @@ open report_file_name.html
 }
 ```
 
+### 电脑桌面 MCP 服务
+
+`@midscene/computer-mcp` 支持将电脑桌面自动化能力发布为 MCP 服务，让 AI 可以通过鼠标、键盘和截图操作来控制你的电脑。
+
+**环境准备**
+
+- **AI 模型服务**：准备 OpenAI API Key 或其他支持的 AI 模型服务，更多信息参见 [模型策略](./model-strategy)。
+- **系统权限**：在 macOS 上，需要授予运行 MCP 服务的终端或应用程序辅助功能和屏幕录制权限。
+
+**配置**
+
+在 MCP 客户端中添加 Midscene Computer MCP 服务器（ `@midscene/computer-mcp` ）。其中模型配置的参数请参考 [模型策略](./model-strategy)。
+
+```json
+{
+  "mcpServers": {
+    "midscene-computer": {
+      "command": "npx",
+      "args": ["-y", "@midscene/computer-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "替换为你的模型服务地址",
+        "MIDSCENE_MODEL_API_KEY": "替换为你的 API Key",
+        "MIDSCENE_MODEL_NAME": "替换为你的模型名称",
+        "MIDSCENE_MODEL_FAMILY": "替换为你的模型系列",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```
+
 ## 实现自己的 MCP
 
 如果你想在自己的 MCP 服务中集成 Midscene 工具，可以使用 `mcpKitForAgent` 函数来获取工具定义，继而自己按需暴露 MCP 服务。
@@ -157,6 +188,11 @@ import { mcpKitForAgent } from '@midscene/ios/mcp-server';
 **Android 平台**
 ```typescript
 import { mcpKitForAgent } from '@midscene/android/mcp-server';
+```
+
+**Computer 平台**
+```typescript
+import { mcpKitForAgent } from '@midscene/computer/mcp-server';
 ```
 
 ### 集成到自定义 MCP 服务
