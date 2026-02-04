@@ -35,7 +35,7 @@ function isStorageReady(): boolean {
 
 /**
  * Determines if keepalive should be enabled based on storage config
- * @param storageKey - The storage key to check for auto-connect config
+ * @param storageKey - The storage key to check for permission config
  * @param currentBridgeStatus - Current bridge connection status
  */
 async function shouldEnableFromConfig(
@@ -43,9 +43,9 @@ async function shouldEnableFromConfig(
   currentBridgeStatus: string,
 ): Promise<boolean> {
   const result = await chrome.storage.local.get(storageKey);
-  const autoConnect = result[storageKey];
+  const permission = result[storageKey];
   return (
-    autoConnect?.enabled ||
+    permission?.alwaysAllow ||
     currentBridgeStatus === 'connected' ||
     currentBridgeStatus === 'listening'
   );

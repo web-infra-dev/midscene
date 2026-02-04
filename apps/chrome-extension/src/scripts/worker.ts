@@ -20,9 +20,13 @@ interface WorkerRequestGetContext {
 const console = globalThis.console;
 
 // Background Bridge for MCP connection
-const BRIDGE_STORAGE_KEY = 'midscene_bridge_auto_connect';
+const BRIDGE_PERMISSION_KEY = 'midscene_bridge_permission';
 let backgroundBridge: BridgeConnector | null = null;
 let currentBridgeStatus: BridgeStatus = 'closed';
+
+// Pending confirmation state
+let pendingConfirmResolve: ((allowed: boolean) => void) | null = null;
+let confirmWindowId: number | null = null;
 
 // Store connected ports for bridge status updates
 const bridgePorts = new Set<chrome.runtime.Port>();
@@ -151,6 +155,113 @@ function broadcastBridgeMessage(message: string, msgType: 'log' | 'status') {
   });
 }
 
+// Show connection confirm dialog
+async function showConnectionConfirmDialog(
+  serverEndpoint?: string,
+): Promise<boolean> {
+  const CONFIRM_TIMEOUT = 30000; // 30 seconds
+
+  // Check if already allowed
+  try {
+    const result = await chrome.storage.local.get(BRIDGE_PERMISSION_KEY);
+    const permission = result[BRIDGE_PERMISSION_KEY];
+    if (permission?.alwaysAllow) {
+      console.log('[BackgroundBridge] Connection auto-allowed by user setting');
+      return true;
+    }
+  } catch (error) {
+    console.error('[BackgroundBridge] Failed to check permission:', error);
+  }
+
+  // Create confirm popup - centered on screen
+  const serverUrl = serverEndpoint || 'ws://localhost:3766';
+  const popupWidth = 420;
+  const popupHeight = 340;
+
+  // Get current window to center the popup relative to it
+  let left: number | undefined;
+  let top: number | undefined;
+
+  try {
+    const currentWindow = await chrome.windows.getCurrent();
+    if (
+      currentWindow.left !== undefined &&
+      currentWindow.top !== undefined &&
+      currentWindow.width !== undefined &&
+      currentWindow.height !== undefined
+    ) {
+      left = Math.round(
+        currentWindow.left + (currentWindow.width - popupWidth) / 2,
+      );
+      top = Math.round(
+        currentWindow.top + (currentWindow.height - popupHeight) / 2,
+      );
+    }
+  } catch (e) {
+    console.warn('[BackgroundBridge] Failed to get current window:', e);
+  }
+
+  const confirmWindow = await chrome.windows.create({
+    url: chrome.runtime.getURL(
+      `confirm.html?serverUrl=${encodeURIComponent(serverUrl)}`,
+    ),
+    type: 'popup',
+    width: popupWidth,
+    height: popupHeight,
+    left,
+    top,
+    focused: true,
+  });
+
+  confirmWindowId = confirmWindow.id || null;
+
+  return new Promise((resolve) => {
+    pendingConfirmResolve = resolve;
+    let resolved = false;
+
+    // Timeout auto-deny
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        pendingConfirmResolve = null;
+        if (confirmWindowId) {
+          chrome.windows.remove(confirmWindowId).catch(() => {});
+          confirmWindowId = null;
+        }
+        resolve(false);
+      }
+    }, CONFIRM_TIMEOUT);
+
+    // Listen for window close (user clicked X)
+    const onRemoved = (windowId: number) => {
+      if (windowId === confirmWindowId && !resolved) {
+        resolved = true;
+        clearTimeout(timeout);
+        pendingConfirmResolve = null;
+        confirmWindowId = null;
+        chrome.windows.onRemoved.removeListener(onRemoved);
+        resolve(false);
+      }
+    };
+    chrome.windows.onRemoved.addListener(onRemoved);
+
+    // Store cleanup function for message handler
+    const cleanup = () => {
+      resolved = true;
+      clearTimeout(timeout);
+      pendingConfirmResolve = null;
+      confirmWindowId = null;
+      chrome.windows.onRemoved.removeListener(onRemoved);
+    };
+
+    // Override resolve to include cleanup
+    pendingConfirmResolve = (allowed: boolean) => {
+      cleanup();
+      resolve(allowed);
+    };
+  });
+}
+
 function createBackgroundBridge(serverEndpoint?: string): BridgeConnector {
   return new BridgeConnector(
     (message, type) => {
@@ -165,11 +276,12 @@ function createBackgroundBridge(serverEndpoint?: string): BridgeConnector {
       const shouldEnable = status === 'connected' || status === 'listening';
       safeSetupKeepalive({
         shouldEnable,
-        storageKey: BRIDGE_STORAGE_KEY,
+        storageKey: BRIDGE_PERMISSION_KEY,
         currentBridgeStatus,
       });
     },
     serverEndpoint,
+    () => showConnectionConfirmDialog(serverEndpoint),
   );
 }
 
@@ -188,57 +300,43 @@ async function stopBackgroundBridge(): Promise<void> {
     backgroundBridge = null;
     currentBridgeStatus = 'closed';
     console.log('[BackgroundBridge] Stopped');
-    // Update keepalive - check if auto-connect is still enabled
+    // Update keepalive
     safeSetupKeepalive({
-      storageKey: BRIDGE_STORAGE_KEY,
+      storageKey: BRIDGE_PERMISSION_KEY,
       currentBridgeStatus,
     });
   }
 }
 
-async function initBackgroundBridgeIfEnabled(): Promise<void> {
+async function initBackgroundBridge(): Promise<void> {
   // Wait for chrome.storage to be available
   if (!chrome?.storage?.local) {
     console.log('[BackgroundBridge] chrome.storage not ready, retrying...');
-    setTimeout(() => initBackgroundBridgeIfEnabled(), 100);
+    setTimeout(() => initBackgroundBridge(), 100);
     return;
   }
 
   try {
-    const result = await chrome.storage.local.get(BRIDGE_STORAGE_KEY);
-    const autoConnect = result[BRIDGE_STORAGE_KEY];
-    if (autoConnect?.enabled) {
-      console.log('[BackgroundBridge] Auto-connect enabled, starting...');
-      await startBackgroundBridge(autoConnect.serverEndpoint);
-    } else {
-      console.log('[BackgroundBridge] Auto-connect disabled or not configured');
-    }
+    // Always start listening on startup
+    console.log('[BackgroundBridge] Auto-starting background bridge...');
+    await startBackgroundBridge();
   } catch (error) {
     console.error('[BackgroundBridge] Failed to init:', error);
   }
 }
 
 // Initialize background bridge on startup (with delay to ensure chrome APIs are ready)
-setTimeout(() => initBackgroundBridgeIfEnabled(), 0);
+setTimeout(() => initBackgroundBridge(), 0);
 
 // ==================== Keepalive Mechanism ====================
 // Register alarm listener for keepalive pings
 registerAlarmListener();
 
-// Setup keepalive on startup
+// Setup keepalive on startup - always enable since we auto-start listening
 safeSetupKeepalive({
-  storageKey: BRIDGE_STORAGE_KEY,
+  shouldEnable: true,
+  storageKey: BRIDGE_PERMISSION_KEY,
   currentBridgeStatus,
-});
-
-// Re-setup keepalive when auto-connect setting changes
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local' && changes[BRIDGE_STORAGE_KEY]) {
-    safeSetupKeepalive({
-      storageKey: BRIDGE_STORAGE_KEY,
-      currentBridgeStatus,
-    });
-  }
 });
 
 chrome.sidePanel
@@ -373,41 +471,59 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ status: currentBridgeStatus });
       break;
     }
-    case workerMessageTypes.BRIDGE_SET_AUTO_CONNECT: {
-      const { enabled, serverEndpoint } = request.payload || {};
+    case workerMessageTypes.BRIDGE_GET_PERMISSION: {
+      if (!chrome?.storage?.local) {
+        sendResponse({ alwaysAllow: false, status: currentBridgeStatus });
+        return true;
+      }
+      chrome.storage.local
+        .get(BRIDGE_PERMISSION_KEY)
+        .then((result) => {
+          const permission = result[BRIDGE_PERMISSION_KEY] || {
+            alwaysAllow: false,
+          };
+          sendResponse({ ...permission, status: currentBridgeStatus });
+        })
+        .catch((error) =>
+          sendResponse({ success: false, error: error.message }),
+        );
+      return true;
+    }
+    case workerMessageTypes.BRIDGE_RESET_PERMISSION: {
       if (!chrome?.storage?.local) {
         sendResponse({ success: false, error: 'chrome.storage not available' });
         return true;
       }
       chrome.storage.local
-        .set({ [BRIDGE_STORAGE_KEY]: { enabled, serverEndpoint } })
-        .then(() => {
-          if (enabled) {
-            return startBackgroundBridge(serverEndpoint);
-          }
-          return stopBackgroundBridge();
-        })
+        .remove(BRIDGE_PERMISSION_KEY)
         .then(() => sendResponse({ success: true }))
         .catch((error) =>
           sendResponse({ success: false, error: error.message }),
         );
       return true;
     }
-    case workerMessageTypes.BRIDGE_GET_AUTO_CONNECT: {
-      if (!chrome?.storage?.local) {
-        sendResponse({ enabled: false, status: currentBridgeStatus });
-        return true;
+    case workerMessageTypes.BRIDGE_CONFIRM_RESPONSE: {
+      const { allowed, alwaysAllow } = request.payload || {};
+      console.log(
+        '[BackgroundBridge] Received confirm response:',
+        allowed,
+        alwaysAllow,
+      );
+
+      // Save "always allow" preference if user checked it
+      if (allowed && alwaysAllow && chrome?.storage?.local) {
+        chrome.storage.local.set({
+          [BRIDGE_PERMISSION_KEY]: { alwaysAllow: true },
+        });
       }
-      chrome.storage.local
-        .get(BRIDGE_STORAGE_KEY)
-        .then((result) => {
-          const config = result[BRIDGE_STORAGE_KEY] || { enabled: false };
-          sendResponse({ ...config, status: currentBridgeStatus });
-        })
-        .catch((error) =>
-          sendResponse({ success: false, error: error.message }),
-        );
-      return true;
+
+      // Resolve pending confirmation
+      if (pendingConfirmResolve) {
+        pendingConfirmResolve(allowed);
+      }
+
+      sendResponse({ success: true });
+      break;
     }
     default:
       sendResponse({ error: 'Unknown message type' });
@@ -420,8 +536,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Re-initialize background bridge on browser startup
 chrome.runtime.onStartup.addListener(() => {
-  console.log('[ServiceWorker] Browser startup - checking background bridge');
-  initBackgroundBridgeIfEnabled();
+  console.log('[ServiceWorker] Browser startup - starting background bridge');
+  initBackgroundBridge();
 });
 
 // Reload all tabs after extension is installed or updated (development only)
@@ -430,9 +546,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // Re-initialize background bridge after extension update
   if (details.reason === 'install' || details.reason === 'update') {
     console.log(
-      '[ServiceWorker] Extension installed/updated - checking background bridge',
+      '[ServiceWorker] Extension installed/updated - starting background bridge',
     );
-    initBackgroundBridgeIfEnabled();
+    initBackgroundBridge();
   }
 
   const isDevelopment = process.env.NODE_ENV === 'development';

@@ -5,10 +5,9 @@ import {
   DownOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { Button, Input, List, Spin, Switch } from 'antd';
+import { Button, Input, List, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import AutoConnectIcon from '../../icons/auto-connect.svg?react';
 import PlayIcon from '../../icons/play.svg?react';
 import type { BridgeStatus } from '../../utils/bridgeConnector';
 import { workerMessageTypes } from '../../utils/workerMessageTypes';
@@ -32,7 +31,7 @@ export default function Bridge() {
   const [messageList, setMessageList] = useState<BridgeMessageItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
-  const [autoConnect, setAutoConnect] = useState<boolean>(false);
+  const [alwaysAllow, setAlwaysAllow] = useState<boolean>(false);
   const [serverUrl, setServerUrl] = useState<string>(() => {
     // Only restore from localStorage if user has customized it
     return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
@@ -103,15 +102,12 @@ export default function Bridge() {
       portRef.current = null;
     });
 
-    // Load auto-connect config from Service Worker
+    // Load permission config from Service Worker
     chrome.runtime.sendMessage(
-      { type: workerMessageTypes.BRIDGE_GET_AUTO_CONNECT },
+      { type: workerMessageTypes.BRIDGE_GET_PERMISSION },
       (response) => {
         if (response) {
-          setAutoConnect(response.enabled || false);
-          if (response.serverEndpoint) {
-            setServerUrl(response.serverEndpoint);
-          }
+          setAlwaysAllow(response.alwaysAllow || false);
           setBridgeStatus(response.status || 'closed');
         }
       },
@@ -148,16 +144,13 @@ export default function Bridge() {
     );
   };
 
-  const handleAutoConnectChange = (checked: boolean) => {
-    setAutoConnect(checked);
-    const effectiveUrl = serverUrl || undefined;
+  const handleResetPermission = () => {
     chrome.runtime.sendMessage(
-      {
-        type: workerMessageTypes.BRIDGE_SET_AUTO_CONNECT,
-        payload: { enabled: checked, serverEndpoint: effectiveUrl },
-      },
+      { type: workerMessageTypes.BRIDGE_RESET_PERMISSION },
       (response) => {
-        console.log('Auto-connect set response:', response);
+        if (response?.success) {
+          setAlwaysAllow(false);
+        }
       },
     );
   };
@@ -395,22 +388,21 @@ export default function Bridge() {
       <div className="bottom-button-container">
         {bridgeStatus === 'closed' ? (
           <>
-            <div className="auto-connect-container">
-              <span className="auto-connect-icon">
-                <AutoConnectIcon />
-              </span>
-              <span
-                className="auto-connect-label"
-                title="When enabled, the bridge will automatically connect in the background even after closing this popup"
-              >
-                Auto-connect in background
-              </span>
-              <Switch
-                checked={autoConnect}
-                onChange={handleAutoConnectChange}
-                size="default"
-              />
-            </div>
+            {alwaysAllow && (
+              <div className="permission-info-container">
+                <span className="permission-info-text">
+                  Auto-allow is enabled
+                </span>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={handleResetPermission}
+                  className="reset-permission-btn"
+                >
+                  Reset
+                </Button>
+              </div>
+            )}
             <Button
               type="primary"
               className="bottom-action-button"
@@ -419,7 +411,7 @@ export default function Bridge() {
                 startConnection();
               }}
             >
-              Allow Connection
+              Start Listening
             </Button>
           </>
         ) : (

@@ -18,7 +18,12 @@ export class BridgeConnector {
     ) => void = () => {},
     private onStatusChange: (status: BridgeStatus) => void = () => {},
     private serverEndpoint?: string,
+    private onConnectionRequest?: () => Promise<boolean>,
   ) {}
+
+  getServerEndpoint(): string | undefined {
+    return this.serverEndpoint;
+  }
 
   private setStatus(status: BridgeStatus) {
     this.status = status;
@@ -58,14 +63,24 @@ export class BridgeConnector {
               }
             },
             this.onMessage,
+            true, // forceSameTabNavigation
+            this.onConnectionRequest,
           );
 
           await activeBridgePage.connect();
           this.activeBridgePage = activeBridgePage;
           this.setStatus('connected');
-        } catch (e) {
-          this.activeBridgePage?.destroy();
+        } catch (e: any) {
+          activeBridgePage?.destroy();
           this.activeBridgePage = null;
+
+          // If user denied the connection, stop the loop
+          if (e?.message === 'Connection denied by user') {
+            console.log('Connection denied by user, stopping bridge');
+            this.setStatus('closed');
+            break;
+          }
+
           console.warn('failed to setup connection', e);
           await new Promise((resolve) =>
             setTimeout(resolve, this.connectRetryInterval),

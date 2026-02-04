@@ -6,11 +6,13 @@ export const workerMessageTypes = {
   BRIDGE_START: 'bridge-start',
   BRIDGE_STOP: 'bridge-stop',
   BRIDGE_GET_STATUS: 'bridge-get-status',
-  BRIDGE_SET_AUTO_CONNECT: 'bridge-set-auto-connect',
-  BRIDGE_GET_AUTO_CONNECT: 'bridge-get-auto-connect',
+  BRIDGE_GET_PERMISSION: 'bridge-get-permission',
+  BRIDGE_RESET_PERMISSION: 'bridge-reset-permission',
   // Bridge status broadcast (from worker to UI)
   BRIDGE_STATUS_CHANGED: 'bridge-status-changed',
   BRIDGE_MESSAGE: 'bridge-message',
+  // Bridge connection confirmation (from confirm popup to worker)
+  BRIDGE_CONFIRM_RESPONSE: 'bridge-confirm-response',
 } as const;
 
 export type WorkerMessageType =
