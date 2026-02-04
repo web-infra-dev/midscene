@@ -48,6 +48,7 @@ export type CacheFileContent = {
 
 const lowestSupportedMidsceneVersion = '0.16.10';
 export const cacheFileExt = '.cache.yaml';
+const BROWSER_CACHE_KEY_PREFIX = 'midscene-cache-';
 
 export class TaskCache {
   cacheId: string;
@@ -101,8 +102,12 @@ export class TaskCache {
     this.writeOnlyMode = writeOnlyMode;
 
     let cacheContent;
-    if (this.cacheFilePath && !this.writeOnlyMode) {
-      cacheContent = this.loadCacheFromFile();
+    if (!this.writeOnlyMode) {
+      if (this.cacheFilePath) {
+        cacheContent = this.loadCacheFromFile();
+      } else if (ifInBrowser) {
+        cacheContent = this.loadCacheFromStorage();
+      }
     }
     if (!cacheContent) {
       cacheContent = {
@@ -266,6 +271,108 @@ export class TaskCache {
     }
   }
 
+  loadCacheFromStorage(): CacheFileContent | undefined {
+    if (!ifInBrowser) {
+      return undefined;
+    }
+
+    const storageKey = `${BROWSER_CACHE_KEY_PREFIX}${this.cacheId}`;
+    try {
+      const data = localStorage.getItem(storageKey);
+      if (!data) {
+        debug('no cache found in localStorage, key: %s', storageKey);
+        return undefined;
+      }
+
+      const jsonData = JSON.parse(data) as CacheFileContent;
+
+      const version = getMidsceneVersion();
+      if (!version) {
+        debug('no midscene version info, will not read cache from storage');
+        return undefined;
+      }
+
+      if (
+        semver.lt(jsonData.midsceneVersion, lowestSupportedMidsceneVersion) &&
+        !jsonData.midsceneVersion.includes('beta')
+      ) {
+        debug(
+          'cache version too old, will not use. cache version: %s',
+          jsonData.midsceneVersion,
+        );
+        return undefined;
+      }
+
+      debug(
+        'cache loaded from localStorage, key: %s, cache version: %s, record length: %s',
+        storageKey,
+        jsonData.midsceneVersion,
+        jsonData.caches.length,
+      );
+      jsonData.midsceneVersion = getMidsceneVersion();
+      return jsonData;
+    } catch (err) {
+      debug('load cache from localStorage failed, key: %s, error: %s', storageKey, err);
+      return undefined;
+    }
+  }
+
+  flushCacheToStorage(options?: { cleanUnused?: boolean }) {
+    if (!ifInBrowser) {
+      return;
+    }
+
+    const version = getMidsceneVersion();
+    if (!version) {
+      debug('no midscene version info, will not write cache to storage');
+      return;
+    }
+
+    // Clean unused caches if requested
+    if (options?.cleanUnused && this.isCacheResultUsed) {
+      const originalLength = this.cache.caches.length;
+
+      const usedIndices = new Set<number>();
+      for (const key of this.matchedCacheIndices) {
+        const parts = key.split(':');
+        const index = Number.parseInt(parts[parts.length - 1], 10);
+        if (!Number.isNaN(index)) {
+          usedIndices.add(index);
+        }
+      }
+
+      this.cache.caches = this.cache.caches.filter((_, index) => {
+        const isUsed = usedIndices.has(index);
+        const isNew = index >= this.cacheOriginalLength;
+        return isUsed || isNew;
+      });
+
+      const removedCount = originalLength - this.cache.caches.length;
+      if (removedCount > 0) {
+        debug('cleaned %d unused cache record(s)', removedCount);
+      }
+    }
+
+    const storageKey = `${BROWSER_CACHE_KEY_PREFIX}${this.cacheId}`;
+    try {
+      const sortedCaches = [...this.cache.caches].sort((a, b) => {
+        if (a.type === 'plan' && b.type === 'locate') return -1;
+        if (a.type === 'locate' && b.type === 'plan') return 1;
+        return 0;
+      });
+
+      const cacheToWrite = {
+        ...this.cache,
+        caches: sortedCaches,
+      };
+
+      localStorage.setItem(storageKey, JSON.stringify(cacheToWrite));
+      debug('cache flushed to localStorage: %s', storageKey);
+    } catch (err) {
+      debug('write cache to localStorage failed, key: %s, error: %s', storageKey, err);
+    }
+  }
+
   flushCacheToFile(options?: { cleanUnused?: boolean }) {
     const version = getMidsceneVersion();
     if (!version) {
@@ -274,7 +381,11 @@ export class TaskCache {
     }
 
     if (!this.cacheFilePath) {
-      debug('no cache file path, will not write cache to file');
+      if (ifInBrowser) {
+        this.flushCacheToStorage(options);
+      } else {
+        debug('no cache file path, will not write cache to file');
+      }
       return;
     }
 
