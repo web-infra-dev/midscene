@@ -131,6 +131,25 @@
     overflow-wrap: break-word;
     word-break: break-word;
     white-space: normal;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 18px;
+      padding: 0 4px;
+      color: #8c8c8c;
+      font-size: 12px;
+      font-weight: 500;
+      flex-shrink: 0;
+      font-family:
+        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+        'Roboto Mono', monospace;
+    }
   }
 
   // Flex Table styles
@@ -190,7 +209,9 @@
       .task-row {
         display: flex;
         cursor: pointer;
-        transition: background 0.1s, border-left 0.1s;
+        transition:
+          background 0.1s,
+          border-left 0.1s;
         border-radius: 8px;
         height: 32px;
         align-items: center;
@@ -291,6 +312,15 @@
     }
 
     // Column styles
+    .column-index {
+      color: #8c8c8c;
+      font-size: 12px;
+      text-align: center;
+      font-family:
+        'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Fira Mono',
+        'Roboto Mono', monospace;
+    }
+
     .column-type {
       .title {
         display: flex;
@@ -468,6 +498,10 @@
 
     .side-sub-title {
       color: #f8fafd;
+
+      .step-number {
+        color: rgba(255, 255, 255, 0.45);
+      }
     }
 
     .tasks-table {
@@ -507,6 +541,10 @@
             pointer-events: none;
           }
         }
+      }
+
+      .column-index {
+        color: rgba(255, 255, 255, 0.45);
       }
 
       .column-type .title {

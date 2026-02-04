@@ -30,6 +30,7 @@ type TableRowData = {
   isGroupHeader?: boolean;
   groupName?: string;
   task?: ExecutionTaskWithSearchAreaUsage;
+  stepNumber?: string; // e.g., "1", "1.1", "2.2"
 };
 
 interface SidebarProps {
@@ -69,18 +70,22 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
     const rows: TableRowData[] = [];
     groupedDump.executions.forEach((execution, executionIndex) => {
+      const mainStepNumber = executionIndex + 1;
       // Add group header row
       rows.push({
         key: `group-${executionIndex}`,
         isGroupHeader: true,
         groupName: execution.name,
+        stepNumber: String(mainStepNumber),
       });
 
       // Add task rows with taskId that matches the animation script format
       execution.tasks.forEach((task, taskIndex) => {
+        const subStepNumber = `${mainStepNumber}.${taskIndex + 1}`;
         rows.push({
           key: `task-${executionIndex}-${taskIndex}`,
           task: task as ExecutionTaskWithSearchAreaUsage,
+          stepNumber: subStepNumber,
         });
       });
     });
@@ -341,6 +346,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   // Define column configuration
   const columnConfig = useMemo(() => {
     return [
+      { key: 'index', label: 'Index', width: 50 },
       { key: 'type', label: 'Type', width: typeColumnMinWidth, flex: true },
       { key: 'time', label: 'Time', width: dynamicWidths.time },
       ...(proModeEnabled
@@ -482,6 +488,11 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     task: ExecutionTaskWithSearchAreaUsage,
   ) => {
     switch (columnKey) {
+      case 'index': {
+        // Find the stepNumber for this task from tableData
+        const taskRow = tableData.find((row) => row.task === task);
+        return taskRow?.stepNumber || '';
+      }
       case 'type': {
         const taskName =
           task.type === 'Planning' && task.output?.log
@@ -564,7 +575,10 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
               if (record.isGroupHeader) {
                 return (
                   <div key={record.key} className="group-header-row">
-                    <div className="side-sub-title">{record.groupName}</div>
+                    <div className="side-sub-title">
+                      <span className="step-number">{record.stepNumber}</span>
+                      {record.groupName}
+                    </div>
                   </div>
                 );
               }
