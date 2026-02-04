@@ -523,10 +523,15 @@ export class Agent<
     // update dump info
     this.dump.groupName = this.opts.groupName!;
     this.dump.groupDescription = this.opts.groupDescription;
+    // In browser environment, use inline screenshots since file system is not available
+    if (ifInBrowser) {
+      return this.dump.serializeWithInlineScreenshots();
+    }
     return this.dump.serialize();
   }
 
   reportHTMLString() {
+    // dumpDataString() handles browser environment with inline screenshots
     return reportHTMLContent(this.dumpDataString());
   }
 
