@@ -1,3 +1,4 @@
+import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
@@ -26,7 +27,27 @@ import { PackageManagerTabs } from '@theme';
 
 **Linux**：需要安装 [ImageMagick](https://imagemagick.org/script/download.php) 用于截图功能。
 
+## 试用 Playground（零代码）
+
+Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/computer` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
+
+1. 启动 Playground CLI：
+
+```bash
+npx --yes @midscene/computer-playground
+```
+
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
+
+## 开始体验
+
+<StartExperience />
+
 ## 与 Midscene Agent 集成
+
+当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
 ### 步骤 1. 安装依赖
 

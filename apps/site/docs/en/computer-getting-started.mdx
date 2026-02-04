@@ -1,3 +1,4 @@
+import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
@@ -26,7 +27,27 @@ Node.js 18.19.0 or higher is required.
 
 **Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
 
+## Try Playground (no code)
+
+Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/computer`, so anything that works here will behave the same once scripted.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
+
+1. Launch the Playground CLI:
+
+```bash
+npx --yes @midscene/computer-playground
+```
+
+2. Click the gear icon in the Playground window, then paste your API key configuration. Refer back to [Model configuration](./model-config) if you still need credentials.
+
+## Start experiencing
+
+<StartExperience />
+
 ## Integration with Midscene Agent
+
+Once Playground works, move to a repeatable script with the JavaScript SDK.
 
 ### Step 1. Install dependencies
 
