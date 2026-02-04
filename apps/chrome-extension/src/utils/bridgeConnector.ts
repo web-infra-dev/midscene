@@ -74,14 +74,16 @@ export class BridgeConnector {
           activeBridgePage?.destroy();
           this.activeBridgePage = null;
 
-          // If user denied the connection, stop the loop
+          // If user denied the connection, continue listening for next connection
           if (e?.message === 'Connection denied by user') {
-            console.log('Connection denied by user, stopping bridge');
-            this.setStatus('closed');
-            break;
+            console.log(
+              'Connection denied by user, continuing to listen for next connection',
+            );
+            this.setStatus('listening');
+          } else {
+            console.warn('failed to setup connection', e);
           }
 
-          console.warn('failed to setup connection', e);
           await new Promise((resolve) =>
             setTimeout(resolve, this.connectRetryInterval),
           );
