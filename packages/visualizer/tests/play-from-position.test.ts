@@ -87,7 +87,8 @@ describe('Play From Any Position Feature', () => {
       const foundIndex = mockScripts.findIndex(
         (item) => item.taskId === startFromTaskId,
       );
-      const startIndex = foundIndex > 0 ? foundIndex : 0;
+      // foundIndex >= 0 means a match was found
+      const startIndex = foundIndex >= 0 ? foundIndex : 0;
       const scriptsToPlay = mockScripts.slice(startIndex);
 
       expect(scriptsToPlay.length).toBe(5); // Scripts from index 2 onwards
@@ -99,7 +100,8 @@ describe('Play From Any Position Feature', () => {
       const foundIndex = mockScripts.findIndex(
         (item) => item.taskId === startFromTaskId,
       );
-      const startIndex = foundIndex > 0 ? foundIndex : 0;
+      // foundIndex is -1 when not found, so startIndex defaults to 0
+      const startIndex = foundIndex >= 0 ? foundIndex : 0;
       const scriptsToPlay = mockScripts.slice(startIndex);
 
       expect(scriptsToPlay.length).toBe(mockScripts.length);

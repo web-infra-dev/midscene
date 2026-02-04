@@ -858,6 +858,7 @@ export function Player(props?: {
           const foundIndex = scripts.findIndex(
             (item) => item.taskId === props.startFromTaskId,
           );
+          // foundIndex >= 0 means a match was found (0 is valid for first task)
           if (foundIndex >= 0) {
             startIndex = foundIndex;
             // Set initial state to the start position's screenshot
