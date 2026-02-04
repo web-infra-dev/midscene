@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -34,7 +34,14 @@ interface MockAnimationScript {
 describe('Play From Any Position Feature', () => {
   const mockScripts: MockAnimationScript[] = [
     { type: 'img', taskId: 'task-1', img: 'img1', duration: 500 },
-    { type: 'insight', taskId: 'task-1', img: 'img2', duration: 800, camera: { left: 0, top: 0, width: 100 }, insightCameraDuration: 400 },
+    {
+      type: 'insight',
+      taskId: 'task-1',
+      img: 'img2',
+      duration: 800,
+      camera: { left: 0, top: 0, width: 100 },
+      insightCameraDuration: 400,
+    },
     { type: 'sleep', taskId: 'task-2', duration: 300 },
     { type: 'img', taskId: 'task-2', img: 'img3', duration: 500 },
     { type: 'clear-insight', taskId: 'task-3', duration: 200 },

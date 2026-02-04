@@ -865,7 +865,10 @@ export function Player(props?: {
             const startScript = scripts[foundIndex];
             if (startScript?.img) {
               currentImg.current = startScript.img;
-              await repaintImage(startScript.imageWidth, startScript.imageHeight);
+              await repaintImage(
+                startScript.imageWidth,
+                startScript.imageHeight,
+              );
             }
           }
         }
