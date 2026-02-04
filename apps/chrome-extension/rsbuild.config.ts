@@ -33,6 +33,14 @@ export default defineConfig({
           confirm: './src/extension/confirm/index.tsx',
         },
       },
+      html: {
+        title: ({ entryName }) => {
+          if (entryName === 'confirm') {
+            return 'Midscene Bridge';
+          }
+          return 'Midscene';
+        },
+      },
       output: {
         target: 'web',
         sourceMap: true,

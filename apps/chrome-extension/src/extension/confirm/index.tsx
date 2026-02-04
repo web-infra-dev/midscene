@@ -1,5 +1,4 @@
 /// <reference types="chrome" />
-import { ApiOutlined } from '@ant-design/icons';
 import { globalThemeConfig } from '@midscene/visualizer';
 import { Button, Checkbox, ConfigProvider } from 'antd';
 import { useEffect, useState } from 'react';
@@ -58,10 +57,8 @@ function ConfirmDialog() {
     <ConfigProvider theme={globalThemeConfig()}>
       <div className="confirm-dialog">
         <div className="confirm-header">
-          <div className="confirm-icon">
-            <ApiOutlined style={{ fontSize: '20px' }} />
-          </div>
-          <h2 className="confirm-title">Connection Request</h2>
+          <img src="/icon128.png" alt="Midscene" className="confirm-logo" />
+          <h2 className="confirm-title">Midscene Bridge</h2>
         </div>
 
         <div className="confirm-content">
@@ -84,9 +81,8 @@ function ConfirmDialog() {
         </div>
 
         <div className="confirm-footer">
-          <div className="countdown-text">Auto-deny in {countdown}s</div>
           <div className="confirm-buttons">
-            <Button onClick={handleDeny}>Deny</Button>
+            <Button onClick={handleDeny}>Deny ({countdown}s)</Button>
             <Button type="primary" onClick={handleAllow}>
               Allow
             </Button>
