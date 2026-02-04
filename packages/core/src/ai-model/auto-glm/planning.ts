@@ -46,10 +46,18 @@ export async function autoGLMPlanning(
     ...conversationHistory.snapshot(1),
   ];
 
-  const { content: rawResponse, usage } = await callAIWithStringResponse(
-    msgs,
-    modelConfig,
-  );
+  let rawResponse: string;
+  let usage: Awaited<ReturnType<typeof callAIWithStringResponse>>['usage'];
+
+  try {
+    const result = await callAIWithStringResponse(msgs, modelConfig);
+    rawResponse = result.content;
+    usage = result.usage;
+  } catch (callError) {
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    throw new AIResponseParseError(errorMessage, errorMessage, undefined);
+  }
 
   debug('autoGLMPlanning rawResponse:', rawResponse);
 

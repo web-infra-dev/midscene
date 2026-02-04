@@ -1,4 +1,5 @@
 import type {
+  AIUsageInfo,
   DeepThinkOption,
   DeviceAction,
   InterfaceType,
@@ -225,13 +226,26 @@ export async function plan(
     ...historyLog,
   ];
 
-  const {
-    content: rawResponse,
-    usage,
-    reasoning_content,
-  } = await callAI(msgs, modelConfig, {
-    deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
-  });
+  let rawResponse: string;
+  let usage: AIUsageInfo | undefined;
+  let reasoning_content: string | undefined;
+
+  try {
+    const result = await callAI(msgs, modelConfig, {
+      deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+    });
+    rawResponse = result.content;
+    usage = result.usage;
+    reasoning_content = result.reasoning_content;
+  } catch (callError) {
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    throw new AIResponseParseError(
+      errorMessage,
+      errorMessage,
+      undefined,
+    );
+  }
 
   // Parse XML response to JSON object, capture parsing errors
   let planFromAI: RawResponsePlanningAIResponse;

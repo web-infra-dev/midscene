@@ -75,16 +75,23 @@ export async function uiTarsPlanning(
     ],
   });
 
-  const res = await callAIWithStringResponse(
-    [
-      {
-        role: 'user',
-        content: systemPrompt,
-      },
-      ...conversationHistory.snapshot(),
-    ],
-    modelConfig,
-  );
+  let res: Awaited<ReturnType<typeof callAIWithStringResponse>>;
+  try {
+    res = await callAIWithStringResponse(
+      [
+        {
+          role: 'user',
+          content: systemPrompt,
+        },
+        ...conversationHistory.snapshot(),
+      ],
+      modelConfig,
+    );
+  } catch (callError) {
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    throw new AIResponseParseError(errorMessage, errorMessage, undefined);
+  }
 
   let convertedText: string;
   let parsed: ReturnType<typeof actionParser>['parsed'];
