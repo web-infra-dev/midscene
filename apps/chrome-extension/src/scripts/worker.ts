@@ -47,8 +47,10 @@ async function updateExtensionBadge(status: BridgeStatus) {
         status === 'listening'
           ? STATUS_COLORS.listening
           : STATUS_COLORS.connected;
+      console.log('[Badge] Setting dot with color:', color);
       await setIconWithDot(color);
     } else {
+      console.log('[Badge] Restoring original icon for status:', status);
       await restoreOriginalIcon();
     }
   } catch (error) {
@@ -92,15 +94,33 @@ async function setIconWithDot(dotColor: string) {
 
 // Restore the original icon without dot
 async function restoreOriginalIcon() {
+  const size = 128;
+
+  // Load original icon if not cached
+  if (!originalIconBitmap) {
+    const response = await fetch(chrome.runtime.getURL('icon128.png'));
+    const blob = await response.blob();
+    originalIconBitmap = await createImageBitmap(blob);
+  }
+
+  // Draw original icon without dot
+  const canvas = new OffscreenCanvas(size, size);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  ctx.drawImage(originalIconBitmap, 0, 0, size, size);
+  const imageData = ctx.getImageData(0, 0, size, size);
+
   await chrome.action.setIcon({
-    path: { 128: 'icon128.png' },
+    imageData: { 128: imageData },
   });
 }
 
 // Broadcast bridge status to all connected UI pages
 function broadcastBridgeStatus(status: BridgeStatus) {
   // Update extension icon badge
-  updateExtensionBadge(status);
+  console.log('[Badge] Updating icon for status:', status);
+  void updateExtensionBadge(status);
 
   bridgePorts.forEach((port) => {
     try {
