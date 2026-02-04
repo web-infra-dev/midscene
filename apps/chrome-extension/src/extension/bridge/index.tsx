@@ -332,27 +332,24 @@ export default function Bridge() {
 
       {/* bottom status bar */}
       <div className="bottom-button-container">
+        {alwaysAllow && (
+          <div className="permission-info-container">
+            <span className="permission-info-text">Auto-allow is enabled</span>
+            <Button
+              type="link"
+              size="small"
+              onClick={handleResetPermission}
+              className="reset-permission-btn"
+            >
+              Reset
+            </Button>
+          </div>
+        )}
         <div className="bottom-status-bar">
           <div className="bottom-status-text">
             <span className="bottom-status-icon">{statusIcon}</span>
             <span className="bottom-status-tip">{statusTip}</span>
           </div>
-          {alwaysAllow && (
-            <>
-              <div className="bottom-status-divider" />
-              <div className="permission-info-inline">
-                <span className="permission-info-text">Auto-allow</span>
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={handleResetPermission}
-                  className="reset-permission-btn"
-                >
-                  Reset
-                </Button>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>

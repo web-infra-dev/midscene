@@ -20,6 +20,8 @@ export default defineConfig({
           'dist/**', // Only ignore THIS app's dist folder, not workspace packages
           '**/node_modules/**',
         ],
+        // Wait for workspace packages to finish building before recompiling
+        aggregateTimeout: 3000,
       },
       ignoreWarnings: commonIgnoreWarnings,
     },
