@@ -14,18 +14,20 @@ import type {
   Size,
   UIContext,
 } from '@midscene/core';
-import {
-  AiJudgeOrderSensitive,
-  callAIWithObjectResponse,
-} from '@midscene/core/ai-model';
 import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
-import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
+import {
+  type CacheFeatureOptions,
+  type WebElementCacheFeature,
+  buildRectFromElementInfo,
+  judgeOrderSensitive,
+  sanitizeXpaths,
+} from '../common/cache-helper';
 import { WebPageContextParser } from '../web-element';
 import {
   type KeyInput,
@@ -44,20 +46,6 @@ const debug = getDebug('web:chrome-extension:page');
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
-
-type WebElementCacheFeature = ElementCacheFeature & {
-  xpaths?: string[];
-};
-
-const sanitizeXpaths = (xpaths: unknown): string[] => {
-  if (!Array.isArray(xpaths)) {
-    return [];
-  }
-
-  return xpaths.filter(
-    (xpath): xpath is string => typeof xpath === 'string' && xpath.length > 0,
-  );
-};
 
 export default class ChromeExtensionProxyPage implements AbstractInterface {
   interfaceType = 'chrome-extension-proxy';
@@ -437,66 +425,28 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async cacheFeatureForPoint(
     center: [number, number],
-    options?: {
-      targetDescription?: string;
-      modelConfig?: IModelConfig;
-    },
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
-    const point: Point = {
-      left: center[0],
-      top: center[1],
-    };
+    const point: Point = { left: center[0], top: center[1] };
 
     try {
-      // Determine isOrderSensitive
-      let isOrderSensitive = false;
-      if (options?.targetDescription && options?.modelConfig) {
-        try {
-          const judgeResult = await AiJudgeOrderSensitive(
-            options.targetDescription,
-            callAIWithObjectResponse,
-            options.modelConfig,
-          );
-          isOrderSensitive = judgeResult.isOrderSensitive;
-        } catch (error) {
-          // Fall back to false on error
-          debug('Failed to judge isOrderSensitive: %O', error);
-        }
-      }
-
+      const isOrderSensitive = await judgeOrderSensitive(options, debug);
       const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
-      const sanitized = sanitizeXpaths(xpaths);
-      return {
-        xpaths: sanitized,
-      };
+      return { xpaths: sanitizeXpaths(xpaths) };
     } catch (error) {
       debug('cacheFeatureForPoint failed: %O', error);
-      return {
-        xpaths: [],
-      };
+      return { xpaths: [] };
     }
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const webFeature = feature as WebElementCacheFeature;
-    const xpaths = sanitizeXpaths(webFeature.xpaths);
+    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
 
     for (const xpath of xpaths) {
       try {
         const elementInfo = await this.getElementInfoByXpath(xpath);
         if (elementInfo?.rect) {
-          const matchedRect: Rect = {
-            left: elementInfo.rect.left,
-            top: elementInfo.rect.top,
-            width: elementInfo.rect.width,
-            height: elementInfo.rect.height,
-          };
-
-          if (this.viewportSize?.dpr) {
-            matchedRect.dpr = this.viewportSize.dpr;
-          }
-
-          return matchedRect;
+          return buildRectFromElementInfo(elementInfo, this.viewportSize?.dpr);
         }
       } catch (error) {
         debug('rectMatchesCacheFeature failed for xpath %s: %O', xpath, error);
