@@ -90,9 +90,9 @@ npm install @midscene/cli@latest
 
 Midscene's element positioning capability relies on the AI model's visual understanding ability, so be sure to choose models that support visual capabilities.
 
-Among the models available to you, choosing the best model will help improve positioning effectiveness.
+Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
 
-Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For more model selection suggestions, please refer to [Model Strategy](./model-strategy).
+For more model selection suggestions, please refer to [Model Strategy](./model-strategy).
 
 ### 3. Check Model Family Configuration
 
@@ -102,22 +102,20 @@ Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model
 
 Positioning offset typically occurs in two scenarios:
 
-**Scenario 1: The model cannot recognize the target element**
+**Scenario 1: The model cannot understand semantics**
 - Symptoms: Positioning results randomly fall on unrelated elements, with significant variation in results each time.
-- Cause: The model may not understand your description. For example, `aiTap('favorite icon')` is a functional description of the element to be positioned, and the model may not know the specific style of a favorite icon; whereas `aiTap('star icon')` is a visual description, and the model can locate the element based on its visual characteristics.
+- Cause: The model may not understand the semantics behind icon buttons. For example, `aiTap('profile center')` is a functional description, and the model may not know the specific style of a profile center icon; whereas `aiTap('person avatar icon')` is a visual description, and the model can locate the element based on its visual characteristics.
 - Solution: Optimize prompts by combining visual features and position information to describe the element.
   ```typescript
   // ❌ Using only functional description
-  await agent.aiTap('favorite icon');
-  
-  // ✅ Using visual description
-  await agent.aiTap('star icon');
-  
-  // ✅ Combining visual features and position information
-  await agent.aiTap('star favorite button in the top right corner of the page');
-  ```
+  await agent.aiTap('profile center');
 
-The `favorite icon` here is just for illustration. Generally speaking, models can understand the functional semantics of many common icons. However, as you delve deeper into the automation field, you may encounter situations where the model is unfamiliar with the semantics of certain elements. Therefore, clearly describing the visual characteristics of the element to be positioned is a very practical technique.
+  // ✅ Using visual description
+  await agent.aiTap('person avatar icon');
+
+  // ✅ Combining visual features and position information
+  await agent.aiTap('person avatar icon in the top right corner of the page');
+  ```
 
 **Scenario 2: The model recognizes accurately but the positioning has deviation**
 - Symptoms: Positioning results fall near the target element but with a few pixels offset.
@@ -129,3 +127,7 @@ The `favorite icon` here is just for illustration. Generally speaking, models ca
   ```
 
 For more information about `deepThink`, please refer to the [API documentation](/api).
+
+## Does the Doubao phone use Midscene under the hood?
+
+No.
