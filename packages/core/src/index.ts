@@ -6,6 +6,8 @@ import { getVersion } from './utils';
 export {
   plan,
   AiLocateElement,
+  AiLocateElements,
+  type AiBatchLocateElementResult,
   getMidsceneLocationSchema,
   type MidsceneLocationResultType,
   PointSchema,
