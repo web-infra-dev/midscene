@@ -12,7 +12,7 @@ import {
   ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
-import { Dropdown, Select, Spin, Switch, Tooltip, message } from 'antd';
+import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
@@ -1163,124 +1163,81 @@ export function Player(props?: {
               overlayStyle={{
                 minWidth: '148px',
               }}
-              dropdownRender={(menu) => (
-                <div
-                  style={{
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.08)',
-                    backgroundColor: '#fff',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {menu}
+              dropdownRender={() => (
+                <div className="player-settings-dropdown">
+                  <div
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <GlobalPerspectiveIcon
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                        Focus on cursor
+                      </span>
+                    </div>
+                    <Switch
+                      size="small"
+                      checked={autoZoom}
+                      onChange={(checked) => {
+                        setAutoZoom(checked);
+                        triggerReplay();
+                      }}
+                    />
+                  </div>
+                  <div className="player-settings-divider" />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      height: '32px',
+                      padding: '0 8px',
+                    }}
+                  >
+                    <ThunderboltOutlined
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span style={{ fontSize: '12px' }}>Playback speed</span>
+                  </div>
+                  {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
+                    <div
+                      key={speed}
+                      onClick={() => {
+                        setPlaybackSpeed(speed);
+                        triggerReplay();
+                      }}
+                      style={{
+                        height: '32px',
+                        lineHeight: '32px',
+                        padding: '0 8px 0 24px',
+                        fontSize: '12px',
+                        fontWeight: playbackSpeed === speed ? 600 : 'normal',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                      }}
+                      className="player-speed-option"
+                    >
+                      {speed}x
+                    </div>
+                  ))}
                 </div>
               )}
-              menu={{
-                style: {
-                  borderRadius: '8px',
-                  padding: 0,
-                },
-                items: [
-                  {
-                    key: 'autoZoom',
-                    style: {
-                      height: '39px',
-                      margin: 0,
-                      padding: '0 12px',
-                    },
-                    label: (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          height: '39px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <GlobalPerspectiveIcon
-                            style={{ width: '16px', height: '16px' }}
-                          />
-                          <span
-                            style={{ fontSize: '12px', marginRight: '16px' }}
-                          >
-                            Focus on cursor
-                          </span>
-                        </div>
-                        <Switch
-                          size="small"
-                          checked={autoZoom}
-                          onChange={(checked) => {
-                            setAutoZoom(checked);
-                            triggerReplay();
-                          }}
-                          onClick={(_, e) => e?.stopPropagation?.()}
-                        />
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'playbackSpeed',
-                    style: {
-                      height: '39px',
-                      margin: 0,
-                      padding: '0 12px',
-                    },
-                    label: (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          height: '39px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <ThunderboltOutlined
-                            style={{ fontSize: '14px', color: '#666' }}
-                          />
-                          <span
-                            style={{ fontSize: '12px', marginRight: '16px' }}
-                          >
-                            Playback speed
-                          </span>
-                        </div>
-                        <Select
-                          size="small"
-                          value={playbackSpeed}
-                          onChange={(value: PlaybackSpeedType) => {
-                            setPlaybackSpeed(value);
-                            triggerReplay();
-                          }}
-                          onClick={(e) => e?.stopPropagation?.()}
-                          style={{ width: 70 }}
-                          options={[
-                            { value: 0.5, label: '0.5x' },
-                            { value: 1, label: '1x' },
-                            { value: 1.5, label: '1.5x' },
-                            { value: 2, label: '2x' },
-                          ]}
-                        />
-                      </div>
-                    ),
-                  },
-                ],
-              }}
+              menu={{ items: [] }}
             >
               <div
                 className="status-icon"
