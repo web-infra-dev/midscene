@@ -43,15 +43,11 @@ export type AnyValue<T> = {
 
 interface ServiceOptions {
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
-  aiVendorFn?: typeof callAIWithObjectResponse;
 }
 
 const debug = getDebug('ai:service');
 export default class Service {
   contextRetrieverFn: () => Promise<UIContext> | UIContext;
-
-  aiVendorFn: Exclude<ServiceOptions['aiVendorFn'], undefined> =
-    callAIWithObjectResponse;
 
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
@@ -66,10 +62,6 @@ export default class Service {
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
 
-    // just for unit test, aiVendorFn is callAIWithObjectResponse by default
-    if (typeof opt?.aiVendorFn !== 'undefined') {
-      this.aiVendorFn = opt.aiVendorFn;
-    }
     if (typeof opt?.taskInfo !== 'undefined') {
       this.taskInfo = opt.taskInfo;
     }
@@ -138,7 +130,6 @@ export default class Service {
     const startTime = Date.now();
     const { parseResult, rect, rawResponse, usage, reasoning_content } =
       await AiLocateElement({
-        callAIFn: this.aiVendorFn,
         context,
         targetElementDescription: queryPrompt,
         searchConfig: searchAreaResponse,
@@ -398,10 +389,10 @@ export default class Service {
       },
     ];
 
-    const callAIFn = this
-      .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
-
-    const res = await callAIFn(msgs, modelConfig);
+    const res = await callAIWithObjectResponse<AIDescribeElementResponse>(
+      msgs,
+      modelConfig,
+    );
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);
