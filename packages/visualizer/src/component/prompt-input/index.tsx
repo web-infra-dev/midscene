@@ -207,10 +207,17 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const hasConfigOptions = useMemo(() => {
     const hasTracking = serviceMode === 'In-Browser-Extension';
     const hasDeepThink = showDeepThinkOption;
+    const hasCache = serviceMode === 'In-Browser-Extension';
     const hasDataExtraction =
       showDataExtractionOptions && !hideDomAndScreenshotOptions;
     const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
-    return hasTracking || hasDeepThink || hasDataExtraction || hasDeviceOptions;
+    return (
+      hasTracking ||
+      hasDeepThink ||
+      hasCache ||
+      hasDataExtraction ||
+      hasDeviceOptions
+    );
   }, [
     serviceMode,
     showDeepThinkOption,
@@ -1034,6 +1041,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <ConfigSelector
                 enableTracking={serviceMode === 'In-Browser-Extension'}
                 showDeepThinkOption={showDeepThinkOption}
+                showCacheOption={serviceMode === 'In-Browser-Extension'}
                 showDataExtractionOptions={showDataExtractionOptions}
                 hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}
                 deviceType={deviceType}

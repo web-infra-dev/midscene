@@ -23,9 +23,14 @@ import {
   ChromeExtensionProxyPageAgent,
 } from '@midscene/web/chrome-extension';
 // remember to destroy the agent when the tab is destroyed: agent.page.destroy()
-const extensionAgentForTab = (forceSameTabNavigation = true) => {
+const extensionAgentForTab = (
+  forceSameTabNavigation = true,
+  cacheEnabled = false,
+) => {
   const page = new ChromeExtensionProxyPage(forceSameTabNavigation);
-  return new ChromeExtensionProxyPageAgent(page);
+  return new ChromeExtensionProxyPageAgent(page, {
+    cache: cacheEnabled ? { id: 'chrome-extension-playground' } : false,
+  });
 };
 
 const STORAGE_KEY = 'midscene-popup-mode';
@@ -39,7 +44,7 @@ export function PlaygroundPopup() {
     return (savedMode as 'playground' | 'bridge' | 'recorder') || 'playground';
   });
 
-  const { config } = useEnvConfig();
+  const { config, cacheEnabled } = useEnvConfig();
 
   // Sync popupTab with saved mode on mount
   useEffect(() => {
@@ -123,8 +128,10 @@ export function PlaygroundPopup() {
               console.log(
                 'getAgent called with forceSameTabNavigation:',
                 forceSameTabNavigation,
+                'cacheEnabled:',
+                cacheEnabled,
               );
-              return extensionAgentForTab(forceSameTabNavigation);
+              return extensionAgentForTab(forceSameTabNavigation, cacheEnabled);
             }}
             showContextPreview={false}
           />

@@ -6,6 +6,7 @@ import type { DeviceType } from '../../types';
 import {
   alwaysRefreshScreenInfoTip,
   autoDismissKeyboardTip,
+  cacheEnabledTip,
   deepThinkTip,
   domIncludedTip,
   imeStrategyTip,
@@ -19,6 +20,7 @@ interface ConfigSelectorProps {
   enableTracking: boolean;
   showDataExtractionOptions: boolean;
   hideDomAndScreenshotOptions?: boolean; // Hide domIncluded and screenshotIncluded options
+  showCacheOption?: boolean; // Show cache enable/disable option
   deviceType?: DeviceType;
 }
 
@@ -27,6 +29,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   enableTracking = false,
   showDataExtractionOptions = false,
   hideDomAndScreenshotOptions = false,
+  showCacheOption = false,
   deviceType,
 }) => {
   const forceSameTabNavigation = useEnvConfig(
@@ -43,6 +46,8 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   );
   const domIncluded = useEnvConfig((state) => state.domIncluded);
   const setDomIncluded = useEnvConfig((state) => state.setDomIncluded);
+  const cacheEnabled = useEnvConfig((state) => state.cacheEnabled);
+  const setCacheEnabled = useEnvConfig((state) => state.setCacheEnabled);
 
   // Device-specific configuration
   const imeStrategy = useEnvConfig((state) => state.imeStrategy);
@@ -72,6 +77,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     !enableTracking &&
     !showDeepThinkOption &&
     !showDataExtractionOptions &&
+    !showCacheOption &&
     !hasDeviceOptions
   ) {
     return null;
@@ -117,6 +123,22 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
           </Checkbox>
         ),
         key: 'deep-think-config',
+      });
+    }
+
+    if (showCacheOption) {
+      items.push({
+        label: (
+          <Checkbox
+            onChange={(e) => {
+              setCacheEnabled(e.target.checked);
+            }}
+            checked={cacheEnabled}
+          >
+            {cacheEnabledTip}
+          </Checkbox>
+        ),
+        key: 'cache-enabled-config',
       });
     }
 

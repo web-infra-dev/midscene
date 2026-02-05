@@ -103,6 +103,7 @@ const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
 const DEEP_THINK_KEY = 'midscene-deep-think';
 const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
 const DOM_INCLUDED_KEY = 'midscene-dom-included';
+const CACHE_ENABLED_KEY = 'midscene-cache-enabled';
 
 // Device-specific configuration keys
 const IME_STRATEGY_KEY = 'midscene-ime-strategy';
@@ -172,6 +173,9 @@ export const useEnvConfig = create<{
   setDomIncluded: (domIncluded: boolean | 'visible-only') => void;
   popupTab: 'playground' | 'bridge' | 'recorder';
   setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => void;
+  // Cache configuration
+  cacheEnabled: boolean;
+  setCacheEnabled: (cacheEnabled: boolean) => void;
   // Device-specific configuration options
   imeStrategy: ImeStrategyType;
   setImeStrategy: (imeStrategy: ImeStrategyType) => void;
@@ -196,6 +200,7 @@ export const useEnvConfig = create<{
   const savedScreenshotIncluded =
     localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
   const savedDomIncluded = localStorage.getItem(DOM_INCLUDED_KEY) || 'false';
+  const savedCacheEnabled = localStorage.getItem(CACHE_ENABLED_KEY) === 'true'; // default false
 
   // Load device-specific configuration from localStorage
   const savedImeStrategy =
@@ -264,6 +269,12 @@ export const useEnvConfig = create<{
     popupTab: 'playground',
     setPopupTab: (tab: 'playground' | 'bridge' | 'recorder') => {
       set({ popupTab: tab });
+    },
+    // Cache configuration
+    cacheEnabled: savedCacheEnabled,
+    setCacheEnabled: (cacheEnabled: boolean) => {
+      set({ cacheEnabled });
+      localStorage.setItem(CACHE_ENABLED_KEY, cacheEnabled.toString());
     },
     // Device-specific configuration options
     imeStrategy: savedImeStrategy,

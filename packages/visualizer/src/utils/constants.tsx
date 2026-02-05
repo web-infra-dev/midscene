@@ -12,6 +12,9 @@ export const screenshotIncludedTip = 'Include screenshot in request';
 // dom included tip
 export const domIncludedTip = 'Include DOM info in request';
 
+// cache tip
+export const cacheEnabledTip = 'Enable cache';
+
 // Android device options tips
 export const imeStrategyTip = 'IME strategy';
 export const autoDismissKeyboardTip = 'Auto dismiss keyboard';

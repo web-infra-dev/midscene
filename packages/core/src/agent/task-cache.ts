@@ -1,7 +1,6 @@
 import assert from 'node:assert';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 import type { TUserPrompt } from '@/ai-model';
 import type { ElementCacheFeature } from '@/types';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -137,7 +136,7 @@ export class TaskCache {
       const key = `${type}:${promptStr}:${i}`;
       if (
         item.type === type &&
-        isDeepStrictEqual(item.prompt, prompt) &&
+        JSON.stringify(item.prompt) === JSON.stringify(prompt) &&
         !this.matchedCacheIndices.has(key)
       ) {
         if (item.type === 'locate') {
@@ -312,7 +311,11 @@ export class TaskCache {
       jsonData.midsceneVersion = getMidsceneVersion();
       return jsonData;
     } catch (err) {
-      debug('load cache from localStorage failed, key: %s, error: %s', storageKey, err);
+      debug(
+        'load cache from localStorage failed, key: %s, error: %s',
+        storageKey,
+        err,
+      );
       return undefined;
     }
   }
@@ -369,7 +372,11 @@ export class TaskCache {
       localStorage.setItem(storageKey, JSON.stringify(cacheToWrite));
       debug('cache flushed to localStorage: %s', storageKey);
     } catch (err) {
-      debug('write cache to localStorage failed, key: %s, error: %s', storageKey, err);
+      debug(
+        'write cache to localStorage failed, key: %s, error: %s',
+        storageKey,
+        err,
+      );
     }
   }
 
