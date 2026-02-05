@@ -305,6 +305,21 @@
         </div>
     </div>
 
+    <!-- Test attributes without value: disabled, readonly, checked, required, data-flag -->
+    <div id="boolean-attrs-test" style="margin: 20px 0;">
+        <input type="text" id="J_disabled_input" disabled placeholder="I am disabled" />
+        <input type="text" id="J_readonly_input" readonly value="I am readonly" />
+        <input type="checkbox" id="J_checked_checkbox" checked />
+        <input type="text" id="J_required_input" required placeholder="I am required" />
+        <button id="J_disabled_button" disabled>Disabled Button</button>
+        <select id="J_disabled_select" disabled>
+            <option value="1">Option 1</option>
+            <option value="2" selected>Option 2</option>
+        </select>
+        <!-- Test custom data attributes without value -->
+        <div id="J_data_flag_div" data-flag data-active>Custom data attrs without value</div>
+    </div>
+
     <!-- div with content editable -->
     <div contenteditable="true" class="content-editable-div" style="position: relative; width: 300px; height: 100px; background-color: #ccc;">
         <!-- I am a content editable div. -->

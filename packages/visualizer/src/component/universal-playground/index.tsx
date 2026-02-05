@@ -137,7 +137,12 @@ export function UniversalPlayground({
     interruptedFlagRef,
     clearInfoList,
     handleScrollToBottom,
-  } = usePlaygroundState(playgroundSDK, effectiveStorage, contextProvider);
+  } = usePlaygroundState(
+    playgroundSDK,
+    effectiveStorage,
+    contextProvider,
+    branding.targetName,
+  );
 
   // Use execution hook
   const {

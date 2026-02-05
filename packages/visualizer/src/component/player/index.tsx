@@ -9,12 +9,13 @@ import {
   DownloadOutlined,
   ExportOutlined,
   LoadingOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
-import { useGlobalPreference } from '../../store/store';
+import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import { getTextureFromCache, loadTexture } from '../../utils/pixi-loader';
 import type {
   AnimationScript,
@@ -227,7 +228,8 @@ export function Player(props?: {
 }) {
   const [titleText, setTitleText] = useState('');
   const [subTitleText, setSubTitleText] = useState('');
-  const { autoZoom, setAutoZoom } = useGlobalPreference();
+  const { autoZoom, setAutoZoom, playbackSpeed, setPlaybackSpeed } =
+    useGlobalPreference();
 
   // Update state when prop changes
   useEffect(() => {
@@ -825,7 +827,13 @@ export function Player(props?: {
         if (!scripts) {
           throw new Error('scripts is required');
         }
-        const { frame, cancel, timeout, sleep } = frameKit();
+        const { frame, cancel, timeout, sleep: baseSleep } = frameKit();
+
+        // Scale duration by playback speed (faster playback = shorter duration)
+        const scaleByPlaybackSpeed = (duration: number) =>
+          duration / playbackSpeed;
+        // Wrap sleep to apply playback speed
+        const sleep = (ms: number) => baseSleep(scaleByPlaybackSpeed(ms));
         cancelFn = cancel;
         cancelAnimationRef.current = cancel;
         const allImages: string[] = scripts
@@ -842,15 +850,17 @@ export function Player(props?: {
         await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
         await repaintImage();
         await updateCamera({ ...basicCameraState });
-        const totalDuration = scripts.reduce((acc, item) => {
-          return (
-            acc +
-            item.duration +
-            (item.camera && item.insightCameraDuration
-              ? item.insightCameraDuration
-              : 0)
-          );
-        }, 0);
+        const totalDuration = scaleByPlaybackSpeed(
+          scripts.reduce((acc, item) => {
+            return (
+              acc +
+              item.duration +
+              (item.camera && item.insightCameraDuration
+                ? item.insightCameraDuration
+                : 0)
+            );
+          }, 0),
+        );
         // progress bar
         const progressUpdateInterval = 200;
         const startTime = performance.now();
@@ -909,7 +919,7 @@ export function Player(props?: {
               [],
               highlightElements,
               item.searchArea,
-              item.duration,
+              scaleByPlaybackSpeed(item.duration),
               frame,
             );
             if (item.camera) {
@@ -918,12 +928,16 @@ export function Player(props?: {
               }
               await cameraAnimation(
                 item.camera,
-                item.insightCameraDuration,
+                scaleByPlaybackSpeed(item.insightCameraDuration),
                 frame,
               );
             }
           } else if (item.type === 'clear-insight') {
-            await fadeOutItem(insightMarkContainer, item.duration, frame);
+            await fadeOutItem(
+              insightMarkContainer,
+              scaleByPlaybackSpeed(item.duration),
+              frame,
+            );
             insightMarkContainer.removeChildren();
             insightMarkContainer.alpha = 1;
           } else if (item.type === 'img') {
@@ -932,7 +946,11 @@ export function Player(props?: {
               await repaintImage(item.imageWidth, item.imageHeight);
             }
             if (item.camera) {
-              await cameraAnimation(item.camera, item.duration, frame);
+              await cameraAnimation(
+                item.camera,
+                scaleByPlaybackSpeed(item.duration),
+                frame,
+              );
             } else {
               await sleep(item.duration);
             }
@@ -1145,72 +1163,81 @@ export function Player(props?: {
               overlayStyle={{
                 minWidth: '148px',
               }}
-              dropdownRender={(menu) => (
-                <div
-                  style={{
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.08)',
-                    backgroundColor: '#fff',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {menu}
+              dropdownRender={() => (
+                <div className="player-settings-dropdown">
+                  <div
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <GlobalPerspectiveIcon
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                        Focus on cursor
+                      </span>
+                    </div>
+                    <Switch
+                      size="small"
+                      checked={autoZoom}
+                      onChange={(checked) => {
+                        setAutoZoom(checked);
+                        triggerReplay();
+                      }}
+                    />
+                  </div>
+                  <div className="player-settings-divider" />
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      height: '32px',
+                      padding: '0 8px',
+                    }}
+                  >
+                    <ThunderboltOutlined
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span style={{ fontSize: '12px' }}>Playback speed</span>
+                  </div>
+                  {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
+                    <div
+                      key={speed}
+                      onClick={() => {
+                        setPlaybackSpeed(speed);
+                        triggerReplay();
+                      }}
+                      style={{
+                        height: '32px',
+                        lineHeight: '32px',
+                        padding: '0 8px 0 24px',
+                        fontSize: '12px',
+                        fontWeight: playbackSpeed === speed ? 600 : 'normal',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                      }}
+                      className="player-speed-option"
+                    >
+                      {speed}x
+                    </div>
+                  ))}
                 </div>
               )}
-              menu={{
-                style: {
-                  borderRadius: '8px',
-                  padding: 0,
-                },
-                items: [
-                  {
-                    key: 'autoZoom',
-                    style: {
-                      height: '39px',
-                      margin: 0,
-                      padding: '0 12px',
-                    },
-                    label: (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          width: '100%',
-                          height: '39px',
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <GlobalPerspectiveIcon
-                            style={{ width: '16px', height: '16px' }}
-                          />
-                          <span
-                            style={{ fontSize: '12px', marginRight: '16px' }}
-                          >
-                            Focus on cursor
-                          </span>
-                        </div>
-                        <Switch
-                          size="small"
-                          checked={autoZoom}
-                          onChange={(checked) => {
-                            setAutoZoom(checked);
-                            triggerReplay();
-                          }}
-                          onClick={(_, e) => e?.stopPropagation?.()}
-                        />
-                      </div>
-                    ),
-                  },
-                ],
-              }}
+              menu={{ items: [] }}
             >
               <div
                 className="status-icon"

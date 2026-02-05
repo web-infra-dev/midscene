@@ -14,7 +14,7 @@ Because Midscene Agent relies on a vision model, configure the environment varia
 
 | Tool name | Description |
 |---------|---------|
-| Device connections such as `web_connect`, `ios_connect`, `android_connect` | Connect to target devices such as browsers, iOS devices, or Android devices |
+| Device connections such as `web_connect`, `ios_connect`, `android_connect`, `computer_connect` | Connect to target devices such as browsers, iOS devices, Android devices, or computer desktops |
 | `take_screenshot` | Get the latest screenshot |
 | Device actions | Each Action in the Action Space, such as `Tap`, `Scroll`, etc. |
 
@@ -119,6 +119,37 @@ Add the Midscene Android MCP server (`@midscene/android-mcp`) in your MCP client
 }
 ```
 
+### Computer Desktop MCP service
+
+`@midscene/computer-mcp` exposes the computer desktop automation capabilities as an MCP service, allowing AI to control your computer through mouse, keyboard, and screenshot operations.
+
+**Environment preparation**
+
+- **AI model service**: Prepare an OpenAI API Key or another supported AI model service. See [Model strategy](./model-strategy) for more details.
+- **System permissions**: On macOS, you need to grant accessibility and screen recording permissions to the terminal or application running the MCP service.
+
+**Configuration**
+
+Add the Midscene Computer MCP server (`@midscene/computer-mcp`) in your MCP client. For model configuration parameters, see [Model strategy](./model-strategy).
+
+```json
+{
+  "mcpServers": {
+    "midscene-computer": {
+      "command": "npx",
+      "args": ["-y", "@midscene/computer-mcp"],
+      "env": {
+        "MIDSCENE_MODEL_BASE_URL": "replace with your model service URL",
+        "MIDSCENE_MODEL_API_KEY": "replace with your API Key",
+        "MIDSCENE_MODEL_NAME": "replace with your model name",
+        "MIDSCENE_MODEL_FAMILY": "replace with your model family",
+        "MCP_SERVER_REQUEST_TIMEOUT": "800000"
+      }
+    }
+  }
+}
+```
+
 ## Implement your own MCP
 
 If you want to integrate Midscene tools into your own MCP service, you can use the `mcpKitForAgent` function to get tool definitions and expose your own MCP service as needed.
@@ -157,6 +188,11 @@ import { mcpKitForAgent } from '@midscene/ios/mcp-server';
 **Android platform**
 ```typescript
 import { mcpKitForAgent } from '@midscene/android/mcp-server';
+```
+
+**Computer platform**
+```typescript
+import { mcpKitForAgent } from '@midscene/computer/mcp-server';
 ```
 
 ### Integrate into custom MCP service

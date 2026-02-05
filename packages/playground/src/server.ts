@@ -452,7 +452,9 @@ class PlaygroundServer {
       }
 
       try {
-        const dumpString = this.agent.dumpDataString();
+        const dumpString = this.agent.dumpDataString({
+          inlineScreenshots: true,
+        });
         if (dumpString) {
           const groupedDump =
             GroupedActionDump.fromSerializedString(dumpString);
@@ -461,7 +463,8 @@ class PlaygroundServer {
         } else {
           response.dump = null;
         }
-        response.reportHTML = this.agent.reportHTMLString() || null;
+        response.reportHTML =
+          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
 
         this.agent.writeOutActionDumps();
         this.agent.resetDump();
@@ -523,7 +526,9 @@ class PlaygroundServer {
           let reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.();
+            const dumpString = this.agent.dumpDataString?.({
+              inlineScreenshots: true,
+            });
             if (dumpString) {
               const groupedDump =
                 GroupedActionDump.fromSerializedString(dumpString);
@@ -531,7 +536,9 @@ class PlaygroundServer {
               dump = groupedDump.executions?.[0] || null;
             }
 
-            reportHTML = this.agent.reportHTMLString?.() || null;
+            reportHTML =
+              this.agent.reportHTMLString?.({ inlineScreenshots: true }) ||
+              null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }

@@ -241,3 +241,41 @@
     }
   }
 }
+
+.player-settings-dropdown {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background-color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  padding: 4px;
+}
+
+.player-settings-divider {
+  height: 1px;
+  background: rgba(0, 0, 0, 0.06);
+  margin: 4px 0;
+}
+
+.player-speed-option:hover,
+.player-settings-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme='dark'] {
+  .player-settings-dropdown {
+    background-color: #1f1f1f;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    color: #f8fafd;
+  }
+
+  .player-settings-divider {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .player-speed-option:hover,
+  .player-settings-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
