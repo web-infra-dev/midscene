@@ -1251,10 +1251,13 @@ export class Agent<
     return this.aiAct(...args);
   }
 
-  async runYaml(yamlScriptContent: string): Promise<{
+  async runYaml(
+    yamlScriptContent: string,
+    opt?: { interpolateProcessEnv?: boolean },
+  ): Promise<{
     result: Record<string, any>;
   }> {
-    const script = parseYamlScript(yamlScriptContent, 'yaml');
+    const script = parseYamlScript(yamlScriptContent, 'yaml', opt);
     const player = new ScriptPlayer(script, async () => {
       return { agent: this, freeFn: [] };
     });

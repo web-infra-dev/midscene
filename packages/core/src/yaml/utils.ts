@@ -39,6 +39,9 @@ export function interpolateEnvVars(content: string): string {
 export function parseYamlScript(
   content: string,
   filePath?: string,
+  opt?: {
+    interpolateProcessEnv?: boolean;
+  },
 ): MidsceneYamlScript {
   let processedContent = content;
   if (content.indexOf('android') !== -1 && content.match(/deviceId:\s*(\d+)/)) {
@@ -54,7 +57,10 @@ export function parseYamlScript(
       `please use string-style deviceId in yaml script, for example: deviceId: "${matchedDeviceId}"`,
     );
   }
-  const interpolatedContent = interpolateEnvVars(processedContent);
+  const shouldInterpolate = opt?.interpolateProcessEnv ?? true;
+  const interpolatedContent = shouldInterpolate
+    ? interpolateEnvVars(processedContent)
+    : processedContent;
   const obj = yaml.load(interpolatedContent, {
     schema: yaml.JSON_SCHEMA,
   }) as MidsceneYamlScript;

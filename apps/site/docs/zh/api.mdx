@@ -849,12 +849,17 @@ await agent.aiWaitFor('购物车图标显示数量为 2', {
 - 类型
 
 ```typescript
-function runYaml(yamlScriptContent: string): Promise<{ result: any }>;
+function runYaml(
+  yamlScriptContent: string,
+  opt?: { interpolateProcessEnv?: boolean },
+): Promise<{ result: any }>;
 ```
 
 - 参数：
 
   - `yamlScriptContent: string` - YAML 格式的脚本内容
+  - `opt?: object` - 可选配置。
+    - `interpolateProcessEnv?: boolean` - 是否将 `${ENV_VAR}` 占位符替换为 `process.env` 中的值（默认为 `true`）。
 
 - 返回值：
 
