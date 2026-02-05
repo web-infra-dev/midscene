@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Disabled & Custom Attributes Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .form-group { margin: 15px 0; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input, button, select { padding: 8px 12px; font-size: 14px; }
+    button { cursor: pointer; }
+    .tag { display: inline-block; padding: 4px 12px; margin: 4px; border: 1px solid #ccc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Form with Disabled Elements</h1>
+
+  <div class="form-group">
+    <label for="username">Username</label>
+    <input type="text" id="username" value="admin" disabled />
+  </div>
+
+  <div class="form-group">
+    <label for="email">Email</label>
+    <input type="email" id="email" value="test@example.com" readonly />
+  </div>
+
+  <div class="form-group">
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Enter password" />
+  </div>
+
+  <div class="form-group">
+    <label>Options</label>
+    <input type="checkbox" id="agree" checked /> <label for="agree" style="display:inline">I agree to terms</label>
+  </div>
+
+  <div class="form-group">
+    <button id="submit-btn" disabled>Submit</button>
+    <button id="cancel-btn">Cancel</button>
+  </div>
+
+  <div class="form-group">
+    <label>Tags</label>
+    <span class="tag" data-flag data-category="important">Important</span>
+    <span class="tag" data-active data-category="normal">Active Tag</span>
+    <span class="tag" data-archived>Archived</span>
+  </div>
+</body>
+</html>
