@@ -3,6 +3,7 @@ import { generateHashId } from '../utils';
 import { extractTextWithPosition } from './web-extractor';
 
 const MAX_VALUE_LENGTH = 300;
+
 let debugMode = false;
 
 export function setDebugMode(mode: boolean) {
@@ -379,9 +380,6 @@ export function getNodeAttributes(
   const attributesList = Array.from(node.attributes).map((attr) => {
     if (attr.name === 'class') {
       return [attr.name, `.${attr.value.split(' ').join('.')}`];
-    }
-    if (!attr.value) {
-      return [];
     }
 
     let value = attr.value;
