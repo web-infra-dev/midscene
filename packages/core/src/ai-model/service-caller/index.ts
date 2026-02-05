@@ -495,10 +495,11 @@ export async function callAIWithObjectResponse<T>(
   const response = await callAI(messages, modelConfig, {
     deepThink: options?.deepThink,
   });
-  if (!response) {
+  if (!response || !response.content) {
     throw new AIResponseParseError(
       `empty response from model (${modelConfig.modelName})`,
-      '',
+      response?.content ?? '',
+      response?.usage,
     );
   }
   const modelFamily = modelConfig.modelFamily;
