@@ -105,7 +105,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   // Get the currently playing task
   const playingTask = playingTaskId ? taskIdToTaskMap.get(playingTaskId) : null;
 
-
   const hasCachedInput = useMemo(() => {
     if (!groupedDump) return false;
 
