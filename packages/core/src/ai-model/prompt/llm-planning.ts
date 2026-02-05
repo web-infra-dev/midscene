@@ -345,6 +345,10 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
 
+**Special case - Conditional instructions:**
+- If the user's instruction is conditional (e.g., "if ... then ...", "if there is a ... click ...", "when ... do ..."), and the condition is NOT satisfied (e.g., the element doesn't exist), this is NOT an error. Mark the goal as accomplished (success="true") and explain that the condition was not met so no action was taken.
+- Example: "If there is a cookie consent prompt, click Accept" - if no cookie prompt exists, return <complete-goal success="true">No cookie consent prompt found on the page, no action needed</complete-goal>
+
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
