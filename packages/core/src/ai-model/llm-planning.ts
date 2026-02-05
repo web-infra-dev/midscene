@@ -318,6 +318,10 @@ export async function plan(
         conversationHistory.markSubGoalFinished(index);
       }
     }
+    // Append the planning log to the currently running sub-goal
+    if (planFromAI.log) {
+      conversationHistory.appendSubGoalLog(planFromAI.log);
+    }
   }
 
   // Append memory to conversation history if present

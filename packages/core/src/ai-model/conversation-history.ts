@@ -106,7 +106,8 @@ export class ConversationHistory {
   }
 
   /**
-   * Update a single sub-goal by index
+   * Update a single sub-goal by index.
+   * Clears logs if status or description actually changes.
    * @returns true if the sub-goal was found and updated, false otherwise
    */
   updateSubGoal(
@@ -118,23 +119,36 @@ export class ConversationHistory {
       return false;
     }
 
-    if (updates.status !== undefined) {
+    let changed = false;
+
+    if (updates.status !== undefined && updates.status !== goal.status) {
       goal.status = updates.status;
+      changed = true;
     }
-    if (updates.description !== undefined) {
+    if (
+      updates.description !== undefined &&
+      updates.description !== goal.description
+    ) {
       goal.description = updates.description;
+      changed = true;
+    }
+
+    if (changed) {
+      goal.logs = [];
     }
 
     return true;
   }
 
   /**
-   * Mark the first pending sub-goal as running
+   * Mark the first pending sub-goal as running.
+   * Clears logs since status changes.
    */
   markFirstPendingAsRunning(): void {
     const firstPending = this.subGoals.find((g) => g.status === 'pending');
     if (firstPending) {
       firstPending.status = 'running';
+      firstPending.logs = [];
     }
   }
 
@@ -152,16 +166,38 @@ export class ConversationHistory {
   }
 
   /**
-   * Mark all sub-goals as finished
+   * Mark all sub-goals as finished.
+   * Clears logs for any goal whose status actually changes.
    */
   markAllSubGoalsFinished(): void {
     for (const goal of this.subGoals) {
+      if (goal.status !== 'finished') {
+        goal.logs = [];
+      }
       goal.status = 'finished';
     }
   }
 
   /**
-   * Convert sub-goals to text representation
+   * Append a log entry to the currently running sub-goal.
+   * The log describes an action performed while working on the sub-goal.
+   */
+  appendSubGoalLog(log: string): void {
+    if (!log) {
+      return;
+    }
+    const runningGoal = this.subGoals.find((g) => g.status === 'running');
+    if (runningGoal) {
+      if (!runningGoal.logs) {
+        runningGoal.logs = [];
+      }
+      runningGoal.logs.push(log);
+    }
+  }
+
+  /**
+   * Convert sub-goals to text representation.
+   * Includes actions performed (logs) for the current sub-goal.
    */
   subGoalsToText(): string {
     if (this.subGoals.length === 0) {
@@ -176,9 +212,15 @@ export class ConversationHistory {
     const currentGoal =
       this.subGoals.find((goal) => goal.status === 'running') ||
       this.subGoals.find((goal) => goal.status === 'pending');
-    const currentGoalText = currentGoal
-      ? `\nCurrent sub-goal is: ${currentGoal.description}`
-      : '';
+
+    let currentGoalText = '';
+    if (currentGoal) {
+      currentGoalText = `\nCurrent sub-goal is: ${currentGoal.description}`;
+      if (currentGoal.logs && currentGoal.logs.length > 0) {
+        const logLines = currentGoal.logs.map((log) => `- ${log}`).join('\n');
+        currentGoalText += `\nActions performed for current sub-goal:\n${logLines}`;
+      }
+    }
 
     return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
   }

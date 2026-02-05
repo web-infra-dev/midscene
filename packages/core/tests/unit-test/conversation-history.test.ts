@@ -335,6 +335,165 @@ describe('ConversationHistory', () => {
     `);
   });
 
+  // Sub-goal log tracking tests
+
+  it('appends log to the currently running sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    // Task 1 is automatically running
+    history.appendSubGoalLog('Clicked login button');
+    history.appendSubGoalLog('Typed username');
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (running)
+      2. Task 2 (pending)
+      Current sub-goal is: Task 1
+      Actions performed for current sub-goal:
+      - Clicked login button
+      - Typed username"
+    `);
+  });
+
+  it('ignores empty log strings', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+
+    history.appendSubGoalLog('');
+    history.appendSubGoalLog('Valid log');
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (running)
+      Current sub-goal is: Task 1
+      Actions performed for current sub-goal:
+      - Valid log"
+    `);
+  });
+
+  it('does nothing when appending log with no running sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'finished', description: 'Task 2' },
+    ]);
+
+    history.appendSubGoalLog('Some log');
+
+    // No running goal, so no logs appear
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
+  });
+
+  it('clears logs when sub-goal status changes via markSubGoalFinished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    // Append logs to Task 1 (running)
+    history.appendSubGoalLog('Step A');
+    history.appendSubGoalLog('Step B');
+
+    // Mark Task 1 finished -> Task 2 becomes running (logs cleared for both)
+    history.markSubGoalFinished(1);
+
+    // Task 2 is now running with no logs
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (running)
+      Current sub-goal is: Task 2"
+    `);
+  });
+
+  it('clears logs when sub-goal description changes via updateSubGoal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+
+    history.appendSubGoalLog('Did something');
+
+    // Update description -> logs should be cleared
+    history.updateSubGoal(1, { description: 'Updated Task 1' });
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Updated Task 1 (running)
+      Current sub-goal is: Updated Task 1"
+    `);
+  });
+
+  it('preserves logs when updateSubGoal sets same values', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+
+    history.appendSubGoalLog('Did something');
+
+    // Update with same status and description -> no change, logs preserved
+    history.updateSubGoal(1, { status: 'running', description: 'Task 1' });
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (running)
+      Current sub-goal is: Task 1
+      Actions performed for current sub-goal:
+      - Did something"
+    `);
+  });
+
+  it('clears logs when setSubGoals replaces all sub-goals', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Old task' },
+    ]);
+
+    history.appendSubGoalLog('Old log');
+
+    // Replace all sub-goals
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'New task' },
+    ]);
+
+    // New sub-goals start with no logs
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. New task (running)
+      Current sub-goal is: New task"
+    `);
+  });
+
+  it('clears logs for non-finished goals when markAllSubGoalsFinished is called', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    history.appendSubGoalLog('Some work');
+    history.markAllSubGoalsFinished();
+
+    // All finished, no current goal, no logs shown
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
+  });
+
   // Memory management tests
 
   it('initializes with empty memories', () => {
