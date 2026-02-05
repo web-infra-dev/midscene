@@ -1,7 +1,6 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import {
   descriptionForAction,
-  planSchema,
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
