@@ -469,7 +469,7 @@ export async function callAI(
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
-    console.error(' call AI error', e);
+    console.error('call AI error', e);
     const newError = new Error(
       `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {
