@@ -23,6 +23,9 @@ export default defineConfig({
   },
   define: {
     __VERSION__: `'${version}'`,
+    __DEV_REPORT_PATH__: JSON.stringify(
+      path.resolve(__dirname, '../../apps/report/dist/index.html'),
+    ),
   },
   resolve: {
     alias: {

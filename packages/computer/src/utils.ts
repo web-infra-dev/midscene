@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { ComputerDevice, type DisplayInfo } from './device';
 
 export interface EnvironmentCheck {
@@ -7,13 +8,84 @@ export interface EnvironmentCheck {
   displays: number;
 }
 
+export interface AccessibilityCheckResult {
+  hasPermission: boolean;
+  platform: string;
+  error?: string;
+}
+
+/**
+ * Check if macOS accessibility permission is granted
+ * On other platforms, always returns true
+ *
+ * @param promptIfNeeded - If true, will trigger system prompt and open settings when permission is not granted (macOS only)
+ */
+export function checkAccessibilityPermission(
+  promptIfNeeded = false,
+): AccessibilityCheckResult {
+  if (process.platform !== 'darwin') {
+    return {
+      hasPermission: true,
+      platform: process.platform,
+    };
+  }
+
+  try {
+    // Use node-mac-permissions to check accessibility permission
+    // This is a macOS-only native module, so we need to handle the case where it's not available
+    // Use createRequire to dynamically load optional dependency
+    // This ensures the require happens at runtime, not bundle time
+    let permissions: {
+      getAuthStatus: (type: string) => string;
+      askForAccessibilityAccess: () => void;
+    };
+    try {
+      const dynamicRequire = createRequire(import.meta.url);
+      permissions = dynamicRequire('node-mac-permissions');
+    } catch {
+      // node-mac-permissions not available (e.g., not on macOS or not installed)
+      // Fall back to assuming permission is granted
+      return {
+        hasPermission: true,
+        platform: process.platform,
+      };
+    }
+
+    const status = permissions.getAuthStatus('accessibility');
+
+    if (status === 'authorized') {
+      return {
+        hasPermission: true,
+        platform: process.platform,
+      };
+    }
+
+    // Trigger system prompt and open settings if requested
+    if (promptIfNeeded) {
+      permissions.askForAccessibilityAccess();
+    }
+
+    return {
+      hasPermission: false,
+      platform: process.platform,
+      error: `macOS Accessibility permission is required (current status: ${status}).\n\nPlease follow these steps:\n1. Open System Settings > Privacy & Security > Accessibility\n2. Enable the application running this script (e.g., Terminal, iTerm2, VS Code, WebStorm)\n3. Restart your terminal or IDE after granting permission\n\nFor more details, see: https://github.com/nut-tree/nut.js#macos`,
+    };
+  } catch (error) {
+    return {
+      hasPermission: false,
+      platform: process.platform,
+      error: `Failed to check accessibility permission: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
 /**
  * Check if the computer environment is available
  */
 export async function checkComputerEnvironment(): Promise<EnvironmentCheck> {
   try {
     const libnutModule = await import(
-      '@computer-use/libnut/dist/import_libnut'
+      '@computer-use/libnut/dist/import_libnut.js'
     );
     const libnut = libnutModule.libnut;
     const screenSize = libnut.getScreenSize();

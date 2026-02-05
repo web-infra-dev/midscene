@@ -15,14 +15,14 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-// @ts-ignore no types in es folder
-import { reportHTMLContent, writeDumpReport } from '../../dist/es/utils'; // use modules from dist, otherwise we will miss the template file
 import { ifPlanLocateParamIsBbox } from '../../src/agent/utils';
 import {
   getTmpDir,
   getTmpFile,
   insertScriptBeforeClosingHtml,
   overlapped,
+  reportHTMLContent,
+  writeDumpReport,
 } from '../../src/utils';
 
 function createTempHtmlFile(content: string): string {

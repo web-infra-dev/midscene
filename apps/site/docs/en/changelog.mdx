@@ -1,5 +1,70 @@
 # Changelog
 
+## v1.3 - PC Desktop Automation Support
+
+v1.3 introduces brand new PC desktop automation capabilities, significantly improves Android screenshot performance, and brings multiple enhancements to report system and stability.
+
+### New PC Desktop Automation Support
+
+Midscene now supports PC desktop automation on Windows, macOS, and Linux, driving native keyboard and mouse controls. Whether it's Electron, Qt, WPF, or native desktop applications, they can all be automated through the visual model approach.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
+
+**Core Capabilities:**
+- **Mouse Operations**: click, double-click, right-click, mouse move, drag and drop
+- **Keyboard Input**: text input, key combinations (Cmd/Ctrl/Alt/Shift)
+- **Screenshots**: capture screenshots from any monitor
+- **Multi-monitor Support**: operate across multiple displays simultaneously
+
+**Usage Methods:**
+- Zero-code trial via Computer Playground
+- JavaScript SDK for scripting
+- YAML automation scripts and CLI tools
+- HTML report playback for all operation paths
+
+See documentation: [PC Desktop Automation](./computer-introduction)
+
+### Major Android Screenshot Performance Improvement
+
+With Scrcpy screenshot mode enabled, screenshot time drops from 500–2000ms to **100–200ms**, significantly improving Android automation response speed. This is particularly useful for remote device debugging and high frame rate scenarios.
+
+See documentation: [Scrcpy Screenshot Mode](./android-api-reference#scrcpy)
+
+### Deep Thinking Mode Enhancement
+
+The `aiAct` deep thinking (deepThink) mode now not only helps with element location but also optimizes overall task planning, achieving better execution results in complex forms and multi-step workflows.
+
+### Report Experience Optimization
+
+- **Timeline Collapse**: New collapse toggle button for easier viewing of long task flows
+- **Time Unit Changed to Seconds**: More readable
+- **Step Sync Highlighting**: Sidebar step highlighting syncs in real-time with player playback
+- **Reduced Memory Usage**: Optimized report generation mechanism to effectively reduce runtime memory usage
+
+### Mobile Platform Improvements
+
+#### Android
+- More stable special character and Unicode input
+- More relaxed app package name matching for Launch action (ignores case and spaces)
+- Auto-retry when screenshot anomalies occur on certain devices
+
+#### iOS
+- More relaxed Bundle ID matching (ignores case and spaces)
+
+### Web Automation Improvements
+
+- Fixed issue where Puppeteer could hang when taking screenshots of inactive tabs
+- Fixed inaccurate window size in headed mode
+- `shareBrowserContext` mode now supports preserving localStorage and sessionStorage
+- Playwright multi-project configuration automatically distinguishes test cases by browser in reports
+- Fixed `typeOnly` mode not working in YAML script input actions
+
+### Other Improvements
+
+- Image processing performance improved
+- SVG icon cache issue fixed
+- Playground now displays specific reasons for model configuration errors
+
 ## v1.2 - Zhipu AI Open-Source Model Support and File Upload Support
 
 v1.2 introduces support for Zhipu AI open-source models, adds file upload functionality, and fixes several issues affecting user experience, making automated testing more reliable.
