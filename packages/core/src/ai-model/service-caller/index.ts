@@ -25,7 +25,7 @@ import {
 } from '@midscene/shared/env';
 
 import { getDebug } from '@midscene/shared/logger';
-import { assert, ifInBrowser } from '@midscene/shared/utils';
+import { ifInBrowser } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
@@ -495,7 +495,12 @@ export async function callAIWithObjectResponse<T>(
   const response = await callAI(messages, modelConfig, {
     deepThink: options?.deepThink,
   });
-  assert(response, 'empty response');
+  if (!response) {
+    throw new AIResponseParseError(
+      `empty response from model (${modelConfig.modelName})`,
+      '',
+    );
+  }
   const modelFamily = modelConfig.modelFamily;
   const jsonContent = safeParseJson(response.content, modelFamily);
   if (typeof jsonContent !== 'object') {
