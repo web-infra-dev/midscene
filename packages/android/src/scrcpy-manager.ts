@@ -232,7 +232,10 @@ export class ScrcpyScreenshotManager {
   private getFfmpegPath(): string {
     try {
       // Try npm-installed ffmpeg first
-      const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
+      // Use createRequire to dynamically load optional dependency
+      // This ensures the require happens at runtime, not bundle time
+      const dynamicRequire = createRequire(import.meta.url);
+      const ffmpegInstaller = dynamicRequire('@ffmpeg-installer/ffmpeg');
       debugScrcpy(`Using ffmpeg from npm package: ${ffmpegInstaller.path}`);
       return ffmpegInstaller.path;
     } catch (error) {

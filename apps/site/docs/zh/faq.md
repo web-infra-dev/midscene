@@ -67,3 +67,67 @@ await page.setViewport({
 ## 在 Chrome 插件中使用 Ollama 模型出现 403 错误
 
 需要设置环境变量 `OLLAMA_ORIGINS="*"`，以允许 Chrome 插件访问 Ollama 模型。
+
+## 元素定位出现偏移
+
+如果在使用 Midscene 时遇到元素定位不准确的问题，可以按照以下步骤排查和解决：
+
+### 1. 升级到最新版本
+
+确保你使用的是最新版本的 Midscene，新版本通常包含定位准确性的优化和改进。
+
+```bash
+# Web 自动化
+npm install @midscene/web@latest
+# iOS 自动化
+npm install @midscene/ios@latest
+# CLI 工具
+npm install @midscene/cli@latest
+# 或者其他和你平台对应的 package
+```
+
+### 2. 使用更好的视觉模型
+
+Midscene 的元素定位能力依赖于 AI 模型的视觉理解能力，所以请务必选择支持视觉能力的模型。
+
+通常来说新版本、参数大的模型会比老版本、参数小的模型表现更好。比如 Qwen3-VL 会好于 Qwen2.5-VL，它的 plus 版本会好于 flash 版本。
+
+更多模型选择建议请参考 [模型策略](./model-strategy)。
+
+### 3. 检查 Model Family 配置
+
+确认你的模型配置中 `MIDSCENE_MODEL_FAMILY` 参数设置是否正确，`MIDSCENE_MODEL_FAMILY` 配置错误会影响 Midscene 对模型的适配逻辑。详见 [模型配置](./model-config)。
+
+### 4. 分析定位偏移的原因
+
+定位偏移通常有两种情况：
+
+**情况一：模型无法理解语义**
+- 表现：定位结果随机落在不相关的元素上，每次执行结果差异较大。
+- 原因：模型可能无法理解图标按钮背后的语义。以 `aiTap('个人中心')` 为例，这是一个功能性描述，模型可能并不了解个人中心图标具体的样式；而 `aiTap('人形头像 icon')` 是一个视觉性的描述，模型可以根据其视觉特征完成元素定位。
+- 解决方法：优化提示词，结合视觉特征和位置信息来描述元素。
+  ```typescript
+  // ❌ 仅使用功能性描述
+  await agent.aiTap('个人中心');
+
+  // ✅ 使用视觉性描述
+  await agent.aiTap('人形头像 icon');
+
+  // ✅ 结合视觉特征和位置信息
+  await agent.aiTap('页面右上角的人形头像图标');
+  ```
+
+**情况二：模型识别准确但定位有偏差**
+- 表现：定位结果落在目标元素附近，但有若干像素的偏移。
+- 解决方法：开启 `deepThink` 会对定位效果有明显提升。
+  ```typescript
+  await agent.aiTap('登录按钮', {
+    deepThink: true
+  });
+  ```
+
+更多关于 `deepThink` 的说明，请参阅 [API 文档](/zh/api)。
+
+## 豆包手机是否使用了 Midscene 作为底层方案？
+
+没有。

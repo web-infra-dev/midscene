@@ -7,7 +7,7 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { logMsg } from '@midscene/shared/utils';
+import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
@@ -73,6 +73,9 @@ export class ReportGenerator implements IReportGenerator {
     },
   ): IReportGenerator {
     if (opts.generateReport === false) return nullReportGenerator;
+
+    // In browser environment, file system is not available
+    if (ifInBrowser) return nullReportGenerator;
 
     if (opts.outputFormat === 'html-and-external-assets') {
       const outputDir = join(getMidsceneRunSubDir('report'), reportFileName);

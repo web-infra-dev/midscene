@@ -121,9 +121,6 @@ const promptsToChatParam = async (
 export async function AiLocateElement(options: {
   context: UIContext;
   targetElementDescription: TUserPrompt;
-  callAIFn: typeof callAIWithObjectResponse<
-    AIElementResponse | [number, number]
-  >;
   searchConfig?: Awaited<ReturnType<typeof AiLocateSection>>;
   modelConfig: IModelConfig;
 }): Promise<{
@@ -136,7 +133,7 @@ export async function AiLocateElement(options: {
   usage?: AIUsageInfo;
   reasoning_content?: string;
 }> {
-  const { context, targetElementDescription, callAIFn, modelConfig } = options;
+  const { context, targetElementDescription, modelConfig } = options;
   const { modelFamily } = modelConfig;
   const screenshotBase64 = context.screenshot.base64;
 
@@ -273,9 +270,16 @@ export async function AiLocateElement(options: {
     };
   }
 
-  let res: Awaited<ReturnType<typeof callAIFn>>;
+  let res: Awaited<
+    ReturnType<
+      typeof callAIWithObjectResponse<AIElementResponse | [number, number]>
+    >
+  >;
   try {
-    res = await callAIFn(msgs, modelConfig);
+    res = await callAIWithObjectResponse<AIElementResponse | [number, number]>(
+      msgs,
+      modelConfig,
+    );
   } catch (callError) {
     // Return error with usage and rawResponse if available
     const errorMessage =

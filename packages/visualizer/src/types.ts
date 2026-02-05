@@ -373,6 +373,7 @@ export interface PlaygroundBranding {
   title?: string;
   icon?: ComponentType<any>;
   version?: string;
+  targetName?: string; // e.g., "web page", "computer", "screen"
 }
 
 // main component props interface

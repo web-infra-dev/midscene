@@ -426,6 +426,7 @@ exports[`extractor > basic 1`] = `
       "placeholder": "验证码",
       "tabindex": "0",
       "type": "text",
+      "value": "",
     },
     "content": "验证码",
   },
@@ -592,6 +593,77 @@ exports[`extractor > basic 1`] = `
       "nodeType": "TEXT Node",
     },
     "content": "i am fixed child content",
+  },
+  {
+    "attributes": {
+      "disabled": "",
+      "htmlTagName": "<input>",
+      "id": "J_disabled_input",
+      "nodeType": "FORM_ITEM Node",
+      "placeholder": "I am disabled",
+      "type": "text",
+    },
+    "content": "I am disabled",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<input>",
+      "id": "J_readonly_input",
+      "nodeType": "FORM_ITEM Node",
+      "readonly": "",
+      "type": "text",
+      "value": "I am readonly",
+    },
+    "content": "I am readonly",
+  },
+  {
+    "attributes": {
+      "checked": "",
+      "htmlTagName": "<input>",
+      "id": "J_checked_checkbox",
+      "nodeType": "FORM_ITEM Node",
+      "type": "checkbox",
+    },
+    "content": "on",
+  },
+  {
+    "attributes": {
+      "htmlTagName": "<input>",
+      "id": "J_required_input",
+      "nodeType": "FORM_ITEM Node",
+      "placeholder": "I am required",
+      "required": "",
+      "type": "text",
+    },
+    "content": "I am required",
+  },
+  {
+    "attributes": {
+      "disabled": "",
+      "htmlTagName": "<button>",
+      "id": "J_disabled_button",
+      "nodeType": "BUTTON Node",
+    },
+    "content": "Disabled Button",
+  },
+  {
+    "attributes": {
+      "disabled": "",
+      "htmlTagName": "<select>",
+      "id": "J_disabled_select",
+      "nodeType": "FORM_ITEM Node",
+    },
+    "content": "Option 2",
+  },
+  {
+    "attributes": {
+      "data-active": "",
+      "data-flag": "",
+      "htmlTagName": "<div>",
+      "id": "J_data_flag_div",
+      "nodeType": "TEXT Node",
+    },
+    "content": "Custom data attrs without value",
   },
   {
     "attributes": {
@@ -1323,6 +1395,7 @@ exports[`extractor > basic 2`] = `
           "placeholder": "验证码",
           "tabindex": "0",
           "type": "text",
+          "value": "",
         },
         "content": "验证码",
         "indexId": 54,
@@ -1576,11 +1649,110 @@ exports[`extractor > basic 2`] = `
       "children": [],
       "node": {
         "attributes": {
+          "disabled": "",
+          "htmlTagName": "<input>",
+          "id": "J_disabled_input",
+          "nodeType": "FORM_ITEM Node",
+          "placeholder": "I am disabled",
+          "type": "text",
+        },
+        "content": "I am disabled",
+        "indexId": 75,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "htmlTagName": "<input>",
+          "id": "J_readonly_input",
+          "nodeType": "FORM_ITEM Node",
+          "readonly": "",
+          "type": "text",
+          "value": "I am readonly",
+        },
+        "content": "I am readonly",
+        "indexId": 76,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "checked": "",
+          "htmlTagName": "<input>",
+          "id": "J_checked_checkbox",
+          "nodeType": "FORM_ITEM Node",
+          "type": "checkbox",
+        },
+        "content": "on",
+        "indexId": 77,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "htmlTagName": "<input>",
+          "id": "J_required_input",
+          "nodeType": "FORM_ITEM Node",
+          "placeholder": "I am required",
+          "required": "",
+          "type": "text",
+        },
+        "content": "I am required",
+        "indexId": 78,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "disabled": "",
+          "htmlTagName": "<button>",
+          "id": "J_disabled_button",
+          "nodeType": "BUTTON Node",
+        },
+        "content": "Disabled Button",
+        "indexId": 79,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "disabled": "",
+          "htmlTagName": "<select>",
+          "id": "J_disabled_select",
+          "nodeType": "FORM_ITEM Node",
+        },
+        "content": "Option 2",
+        "indexId": 80,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
+          "data-active": "",
+          "data-flag": "",
+          "htmlTagName": "<div>",
+          "id": "J_data_flag_div",
+          "nodeType": "TEXT Node",
+        },
+        "content": "Custom data attrs without value",
+        "indexId": 81,
+      },
+    },
+    {
+      "children": [],
+      "node": {
+        "attributes": {
           "htmlTagName": "<span>",
           "nodeType": "TEXT Node",
         },
         "content": "abcd efg",
-        "indexId": 75,
+        "indexId": 82,
       },
     },
     {
@@ -1592,7 +1764,7 @@ exports[`extractor > basic 2`] = `
           "style": "position: absolute; left: 0px; bottom: 0; width: 100%; height: 50px; background-color: #EEE;",
         },
         "content": "content editable div content. We should collect the parent.",
-        "indexId": 76,
+        "indexId": 83,
       },
     },
     {
@@ -1603,7 +1775,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "absolute child content",
-        "indexId": 77,
+        "indexId": 84,
       },
     },
     {
@@ -1615,7 +1787,7 @@ exports[`extractor > basic 2`] = `
           "style": "position: absolute; top: 0px; left: 0; width: 100%;text-align: right;",
         },
         "content": "content Right",
-        "indexId": 78,
+        "indexId": 85,
       },
     },
     {
@@ -1627,7 +1799,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "CONTAINER Node",
         },
         "content": "",
-        "indexId": 79,
+        "indexId": 86,
       },
     },
     {
@@ -1639,7 +1811,7 @@ exports[`extractor > basic 2`] = `
           "style": "width: 120px; height: 120px; background-color: #EEE;",
         },
         "content": "AAA",
-        "indexId": 80,
+        "indexId": 87,
       },
     },
     {
@@ -1651,7 +1823,7 @@ exports[`extractor > basic 2`] = `
           "style": "position: absolute; bottom: 200px; right: 0; width: 120px; height: 120px; background-color: #CCC;",
         },
         "content": "This should be collected",
-        "indexId": 81,
+        "indexId": 88,
       },
     },
     {
@@ -1662,7 +1834,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Child Page",
-        "indexId": 83,
+        "indexId": 90,
       },
     },
     {
@@ -1673,7 +1845,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "This is a child page.",
-        "indexId": 84,
+        "indexId": 91,
       },
     },
     {
@@ -1684,7 +1856,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Click me",
-        "indexId": 85,
+        "indexId": 92,
       },
     },
     {
@@ -1695,7 +1867,7 @@ exports[`extractor > basic 2`] = `
           "nodeType": "TEXT Node",
         },
         "content": "Something beyong 200px",
-        "indexId": 86,
+        "indexId": 93,
       },
     },
   ],

@@ -1,3 +1,4 @@
+import StartExperience from './common/start-experience.mdx';
 import SetupEnv from './common/setup-env.mdx';
 
 import { PackageManagerTabs } from '@theme';
@@ -24,9 +25,31 @@ import { PackageManagerTabs } from '@theme';
 
 ### 平台特定依赖
 
+**macOS**：需要辅助功能权限才能控制键盘和鼠标。首次运行脚本时，macOS 会提示你授予访问权限。前往 **系统设置 > 隐私与安全性 > 辅助功能**，为运行脚本的应用程序（如 Terminal、iTerm2、VS Code、WebStorm 或其他 IDE）启用权限。更多详情请参阅 [nut.js macOS 设置](https://github.com/nut-tree/nut.js#macos)。
+
 **Linux**：需要安装 [ImageMagick](https://imagemagick.org/script/download.php) 用于截图功能。
 
+## 试用 Playground（零代码）
+
+Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/computer` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/pc-twitter2.mp4" controls/>
+
+1. 启动 Playground CLI：
+
+```bash
+npx --yes @midscene/computer-playground
+```
+
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
+
+## 开始体验
+
+<StartExperience />
+
 ## 与 Midscene Agent 集成
+
+当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
 
 ### 步骤 1. 安装依赖
 

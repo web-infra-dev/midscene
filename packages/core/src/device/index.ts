@@ -196,7 +196,6 @@ export const actionInputParamSchema = z.object({
     z
       .enum(['replace', 'clear', 'typeOnly'])
       .default('replace')
-      .optional()
       .describe(
         'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
       ),

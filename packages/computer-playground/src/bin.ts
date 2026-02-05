@@ -1,6 +1,10 @@
 import os from 'node:os';
 import path from 'node:path';
-import { ComputerDevice, agentFromComputer } from '@midscene/computer';
+import {
+  ComputerDevice,
+  agentFromComputer,
+  checkAccessibilityPermission,
+} from '@midscene/computer';
 import { PlaygroundServer } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
@@ -10,6 +14,15 @@ const staticDir = path.join(__dirname, '../../static');
 
 const main = async () => {
   try {
+    // Check accessibility permission first (macOS only)
+    // Pass true to trigger system prompt and open settings if permission is not granted
+    const accessibilityCheck = checkAccessibilityPermission(true);
+    if (!accessibilityCheck.hasPermission) {
+      console.error('❌ Permission Error:\n');
+      console.error(accessibilityCheck.error);
+      process.exit(1);
+    }
+
     // List available displays
     const displays = await ComputerDevice.listDisplays();
     if (displays.length > 0) {

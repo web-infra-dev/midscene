@@ -460,10 +460,15 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     const element = param.locate;
     if (element && param.mode !== 'typeOnly') {
       await page.clearInput(element as unknown as ElementInfo);
+    } else if (element && param.mode === 'typeOnly') {
+      // typeOnly mode: click to focus and move cursor to end, but don't clear
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'left',
+      });
+      await page.keyboard.press([{ key: 'End' }]);
     }
 
     if (param.mode === 'clear') {
-      // Clear mode removes existing text without entering new characters
       return;
     }
 
