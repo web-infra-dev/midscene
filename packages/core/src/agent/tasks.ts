@@ -14,7 +14,7 @@ import {
 import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
-import { TaskExecutionError } from '@/task-runner';
+import { MidsceneAbortedError, TaskExecutionError } from '@/task-runner';
 import type {
   DeepThinkOption,
   DeviceAction,
@@ -244,6 +244,7 @@ export class TaskExecutor {
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
     fileChooserAccept?: string[],
+    signal?: AbortSignal,
   ): Promise<
     ExecutionResult<
       | {
@@ -264,6 +265,7 @@ export class TaskExecutor {
         replanningCycleLimitOverride,
         imagesIncludeCount,
         deepThink,
+        signal,
       );
     });
   }
@@ -278,6 +280,7 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
+    signal?: AbortSignal,
   ): Promise<
     ExecutionResult<
       | {
@@ -308,6 +311,11 @@ export class TaskExecutor {
 
     // Main planning loop - unified plan/replan logic
     while (true) {
+      // Check if the operation has been aborted
+      if (signal?.aborted) {
+        throw new MidsceneAbortedError(signal.reason);
+      }
+
       // Get sub-goal status text if available
       const subGoalStatus =
         this.conversationHistory.subGoalsToText() || undefined;
@@ -431,6 +439,7 @@ export class TaskExecutor {
         },
         {
           allowWhenError: true,
+          signal,
         },
       );
 
@@ -470,8 +479,12 @@ export class TaskExecutor {
       this.conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
       try {
-        await session.appendAndRun(executables.tasks);
+        await session.appendAndRun(executables.tasks, { signal });
       } catch (error: any) {
+        // Abort errors must propagate immediately, not be retried
+        if (error instanceof MidsceneAbortedError) {
+          throw error;
+        }
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();

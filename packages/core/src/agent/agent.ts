@@ -142,6 +142,20 @@ export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   deepThink?: DeepThinkOption;
+  /**
+   * An optional AbortSignal that can be used to abort the execution.
+   * When the signal is aborted, the current planning loop and task execution
+   * will stop at the next check point, and a `MidsceneAbortedError` will be thrown.
+   *
+   * @example
+   * ```ts
+   * const controller = new AbortController();
+   * // abort after 30s
+   * setTimeout(() => controller.abort(), 30_000);
+   * await agent.aiAct('do something', { signal: controller.signal });
+   * ```
+   */
+  signal?: AbortSignal;
 };
 
 export class Agent<
@@ -924,6 +938,7 @@ export class Agent<
         imagesIncludeCount,
         deepThink,
         fileChooserAccept,
+        opt?.signal,
       );
 
       // update cache

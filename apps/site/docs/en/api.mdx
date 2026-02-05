@@ -137,6 +137,7 @@ function aiAct(
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
     fileChooserAccept?: string | string[];
+    signal?: AbortSignal;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // shorthand form
@@ -151,10 +152,11 @@ function ai(prompt: string): Promise<void>; // shorthand form
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
+    - `signal?: AbortSignal` - An optional [AbortSignal](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) to cancel the execution. When the signal is aborted, the ongoing planning loop and task execution will stop at the next checkpoint, and a `MidsceneAbortedError` will be thrown. This is useful for implementing timeouts or user-triggered cancellation.
 
 - Return Value:
 
-  - Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown.
+  - Returns a Promise that resolves to void when all steps are completed; if execution fails, an error is thrown. If the operation is aborted via the `signal`, a `MidsceneAbortedError` is thrown.
 
 - Examples:
 
@@ -171,6 +173,23 @@ await agent.ai(
 
 // When using UI Agent models like ui-tars, you can try a more goal-driven prompt
 await agent.aiAct('Post a Tweet "Hello World"');
+
+// Using AbortController to cancel the execution
+import { MidsceneAbortedError } from '@midscene/core';
+
+const controller = new AbortController();
+// Abort after 30 seconds
+setTimeout(() => controller.abort('timeout'), 30_000);
+
+try {
+  await agent.aiAct('Complete a complex multi-step workflow', {
+    signal: controller.signal,
+  });
+} catch (error) {
+  if (error instanceof MidsceneAbortedError) {
+    console.log('Execution was aborted');
+  }
+}
 ```
 
 :::tip

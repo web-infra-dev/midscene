@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import Service from './service/index';
-import { TaskRunner } from './task-runner';
+import { MidsceneAbortedError, TaskRunner } from './task-runner';
 import { getVersion } from './utils';
 
 export {
@@ -34,7 +34,7 @@ export {
 export { z };
 
 export default Service;
-export { TaskRunner, Service, getVersion };
+export { MidsceneAbortedError, TaskRunner, Service, getVersion };
 
 export type {
   MidsceneYamlScript,
