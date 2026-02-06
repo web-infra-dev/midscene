@@ -1226,11 +1226,10 @@ export function Player(props?: {
                         lineHeight: '32px',
                         padding: '0 8px 0 24px',
                         fontSize: '12px',
-                        fontWeight: playbackSpeed === speed ? 600 : 'normal',
                         cursor: 'pointer',
                         borderRadius: '4px',
                       }}
-                      className="player-speed-option"
+                      className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
                     >
                       {speed}x
                     </div>
