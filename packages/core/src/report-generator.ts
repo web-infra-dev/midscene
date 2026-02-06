@@ -7,6 +7,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_REPORT_QUIET,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
@@ -27,7 +31,7 @@ export interface IReportGenerator {
    */
   flush(): Promise<void>;
   /**
-   * Finalize the report. Calls flush() internally before printing the final message.
+   * Finalize the report. Calls flush() internally.
    */
   finalize(dump: GroupedActionDump): Promise<string | undefined>;
   getReportPath(): string | undefined;
@@ -112,25 +116,22 @@ export class ReportGenerator implements IReportGenerator {
     await this.flush();
     this.destroyed = true;
 
-    if (this.autoPrint && this.reportPath) {
-      if (this.screenshotMode === 'directory') {
-        console.log('\n[Midscene] Directory report generated.');
-        console.log(
-          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
-        );
-        console.log(
-          `[Midscene] Example: npx serve ${dirname(this.reportPath)}`,
-        );
-      } else {
-        logMsg(`Midscene - report file updated: ${this.reportPath}`);
-      }
-    }
-
     return this.reportPath;
   }
 
   getReportPath(): string | undefined {
     return this.reportPath;
+  }
+
+  private printReportPath(): void {
+    if (!this.autoPrint || !this.reportPath) return;
+    if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) return;
+
+    if (this.screenshotMode === 'directory') {
+      logMsg(`Midscene - report updated: npx serve ${dirname(this.reportPath)}`);
+    } else {
+      logMsg(`Midscene - report file updated: ${this.reportPath}`);
+    }
   }
 
   private doWrite(dump: GroupedActionDump): void {
@@ -139,6 +140,7 @@ export class ReportGenerator implements IReportGenerator {
     } else {
       this.writeDirectoryReport(dump);
     }
+    this.printReportPath();
   }
 
   private writeInlineReport(dump: GroupedActionDump): void {

@@ -20,7 +20,8 @@ jobs:
         node-version: [24.13.0]
 
     # do NOT provide API keys here. The test cases should not rely on any API keys.
-    # env:
+    env:
+      MIDSCENE_REPORT_QUIET: "true"
 
     steps:
     - uses: actions/checkout@v4
