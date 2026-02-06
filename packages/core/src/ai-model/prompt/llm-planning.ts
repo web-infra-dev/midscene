@@ -482,7 +482,10 @@ The previous action has been executed, here is the latest screenshot. Please con
 Sub-goals:
 1. Fill in the Name field with 'John' (running)
 2. Fill in the Email field with 'john@example.com' (pending)
+3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Name field with 'John'
+Actions performed for current sub-goal:
+- Click on the Name field to start filling the form
 
 **Screenshot:** [Shows the form with Name field now focused/active]
 
@@ -504,7 +507,11 @@ The previous action has been executed, here is the latest screenshot. Please con
 Sub-goals:
 1. Fill in the Name field with 'John' (running)
 2. Fill in the Email field with 'john@example.com' (pending)
+3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Name field with 'John'
+Actions performed for current sub-goal:
+- Click on the Name field to start filling the form
+- Typing 'John' into the Name field
 
 **Screenshot:** [Shows the form with Name field containing 'John']
 
@@ -530,7 +537,10 @@ The previous action has been executed, here is the latest screenshot. Please con
 Sub-goals:
 1. Fill in the Name field with 'John' (finished)
 2. Fill in the Email field with 'john@example.com' (running)
+3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Email field with 'john@example.com'
+Actions performed for current sub-goal:
+- Moving to the Email field
 
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
@@ -554,6 +564,9 @@ Sub-goals:
 2. Fill in the Email field with 'john@example.com' (running)
 3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Email field with 'john@example.com'
+Actions performed for current sub-goal:
+- Moving to the Email field
+- Typing email address into the Email field
 
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 

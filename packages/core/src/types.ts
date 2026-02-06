@@ -252,6 +252,7 @@ export interface SubGoal {
   index: number;
   status: SubGoalStatus;
   description: string;
+  logs?: string[];
 }
 
 export interface RawResponsePlanningAIResponse {

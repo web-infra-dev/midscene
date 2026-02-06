@@ -420,14 +420,26 @@ export async function callAI(
           }
 
           content = result.choices[0].message.content!;
-          if (!content) {
-            throw new Error('empty content from AI model');
-          }
-
           accumulatedReasoning =
             (result.choices[0].message as any)?.reasoning_content || '';
           usage = result.usage;
           requestId = result._request_id;
+
+          if (
+            !content &&
+            accumulatedReasoning &&
+            modelFamily === 'doubao-vision'
+          ) {
+            console.warn(
+              'empty content from AI model, using reasoning content',
+            );
+            content = accumulatedReasoning;
+          }
+
+          if (!content) {
+            throw new Error('empty content from AI model');
+          }
+
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;

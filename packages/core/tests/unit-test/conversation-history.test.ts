@@ -40,6 +40,30 @@ describe('ConversationHistory', () => {
     expect(history.length).toBe(2);
   });
 
+  it('reset clears messages, memories, and subGoals', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('msg1'));
+    history.append(assistantMessage('msg2'));
+    history.appendMemory('Memory from task 1');
+    history.appendMemory('Another memory');
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Sub-goal 1' },
+      { index: 2, status: 'pending', description: 'Sub-goal 2' },
+    ]);
+
+    history.appendHistoricalLog('Step 1');
+    history.appendHistoricalLog('Step 2');
+
+    history.reset();
+
+    expect(history.length).toBe(0);
+    expect(history.snapshot()).toEqual([]);
+    expect(history.getMemories()).toEqual([]);
+    expect(history.memoriesToText()).toBe('');
+    expect(history.subGoalsToText()).toBe('');
+    expect(history.historicalLogsToText()).toBe('');
+  });
+
   it('clears pending feedback message only when set', () => {
     const history = new ConversationHistory();
 
@@ -333,6 +357,229 @@ describe('ConversationHistory', () => {
       3. Submit the form (running)
       Current sub-goal is: Submit the form"
     `);
+  });
+
+  // Sub-goal log tracking tests
+
+  it('appends log to the currently running sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    // Task 1 is automatically running
+    history.appendSubGoalLog('Clicked login button');
+    history.appendSubGoalLog('Typed username');
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (running)
+      2. Task 2 (pending)
+      Current sub-goal is: Task 1
+      Actions performed for current sub-goal:
+      - Clicked login button
+      - Typed username"
+    `);
+  });
+
+  it('ignores empty log strings', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+
+    history.appendSubGoalLog('');
+    history.appendSubGoalLog('Valid log');
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (running)
+      Current sub-goal is: Task 1
+      Actions performed for current sub-goal:
+      - Valid log"
+    `);
+  });
+
+  it('does nothing when appending log with no running sub-goal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'finished', description: 'Task 1' },
+      { index: 2, status: 'finished', description: 'Task 2' },
+    ]);
+
+    history.appendSubGoalLog('Some log');
+
+    // No running goal, so no logs appear
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
+  });
+
+  it('clears logs when sub-goal status changes via markSubGoalFinished', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    // Append logs to Task 1 (running)
+    history.appendSubGoalLog('Step A');
+    history.appendSubGoalLog('Step B');
+
+    // Mark Task 1 finished -> Task 2 becomes running (logs cleared for both)
+    history.markSubGoalFinished(1);
+
+    // Task 2 is now running with no logs
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (running)
+      Current sub-goal is: Task 2"
+    `);
+  });
+
+  it('clears logs when sub-goal description changes via updateSubGoal', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+
+    history.appendSubGoalLog('Did something');
+
+    // Update description -> logs should be cleared
+    history.updateSubGoal(1, { description: 'Updated Task 1' });
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Updated Task 1 (running)
+      Current sub-goal is: Updated Task 1"
+    `);
+  });
+
+  it('preserves logs when updateSubGoal sets same values', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+
+    history.appendSubGoalLog('Did something');
+
+    // Update with same status and description -> no change, logs preserved
+    history.updateSubGoal(1, { status: 'running', description: 'Task 1' });
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (running)
+      Current sub-goal is: Task 1
+      Actions performed for current sub-goal:
+      - Did something"
+    `);
+  });
+
+  it('clears logs when setSubGoals replaces all sub-goals', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Old task' },
+    ]);
+
+    history.appendSubGoalLog('Old log');
+
+    // Replace all sub-goals
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'New task' },
+    ]);
+
+    // New sub-goals start with no logs
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. New task (running)
+      Current sub-goal is: New task"
+    `);
+  });
+
+  it('clears logs for non-finished goals when markAllSubGoalsFinished is called', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+      { index: 2, status: 'pending', description: 'Task 2' },
+    ]);
+
+    history.appendSubGoalLog('Some work');
+    history.markAllSubGoalsFinished();
+
+    // All finished, no current goal, no logs shown
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Task 1 (finished)
+      2. Task 2 (finished)"
+    `);
+  });
+
+  // Historical log management tests (non-deepThink mode)
+
+  it('initializes with empty historical logs', () => {
+    const history = new ConversationHistory();
+    expect(history.historicalLogsToText()).toBe('');
+  });
+
+  it('appends historical logs', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Clicked the login button');
+    history.appendHistoricalLog('Typed username into the input');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Clicked the login button
+      - Typed username into the input"
+    `);
+  });
+
+  it('ignores empty historical log strings', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('');
+    history.appendHistoricalLog('Valid step');
+    history.appendHistoricalLog('');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Valid step"
+    `);
+  });
+
+  it('accumulates historical logs across multiple rounds', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Step 1: Navigated to page');
+    history.appendHistoricalLog('Step 2: Clicked search button');
+    history.appendHistoricalLog('Step 3: Entered search query');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Step 1: Navigated to page
+      - Step 2: Clicked search button
+      - Step 3: Entered search query"
+    `);
+  });
+
+  it('historical logs are independent from sub-goal logs', () => {
+    const history = new ConversationHistory();
+
+    // Set up sub-goals (deepThink mode scenario)
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+    history.appendSubGoalLog('Sub-goal log entry');
+
+    // Also add historical logs (non-deepThink mode scenario)
+    history.appendHistoricalLog('Historical log entry');
+
+    // Both should be independently tracked
+    expect(history.subGoalsToText()).toContain('Sub-goal log entry');
+    expect(history.historicalLogsToText()).toContain('Historical log entry');
+    expect(history.historicalLogsToText()).not.toContain('Sub-goal log entry');
+    expect(history.subGoalsToText()).not.toContain('Historical log entry');
   });
 
   // Memory management tests
