@@ -165,10 +165,12 @@ export async function plan(
 
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
-  // Build sub-goal status text to include in the message (only when deepThink is enabled)
+  // Build sub-goal status text to include in the message
+  // In deepThink mode: show full sub-goals with logs
+  // In non-deepThink mode: show historical execution logs
   const subGoalsText = includeSubGoals
     ? conversationHistory.subGoalsToText()
-    : '';
+    : conversationHistory.historicalLogsToText();
   const subGoalsSection = subGoalsText ? `\n\n${subGoalsText}` : '';
 
   // Build memories text to include in the message
@@ -321,6 +323,11 @@ export async function plan(
     // Append the planning log to the currently running sub-goal
     if (planFromAI.log) {
       conversationHistory.appendSubGoalLog(planFromAI.log);
+    }
+  } else {
+    // In non-deepThink mode, accumulate logs as historical execution steps
+    if (planFromAI.log) {
+      conversationHistory.appendHistoricalLog(planFromAI.log);
     }
   }
 

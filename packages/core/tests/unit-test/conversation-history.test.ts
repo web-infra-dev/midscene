@@ -51,6 +51,9 @@ describe('ConversationHistory', () => {
       { index: 2, status: 'pending', description: 'Sub-goal 2' },
     ]);
 
+    history.appendHistoricalLog('Step 1');
+    history.appendHistoricalLog('Step 2');
+
     history.reset();
 
     expect(history.length).toBe(0);
@@ -58,6 +61,7 @@ describe('ConversationHistory', () => {
     expect(history.getMemories()).toEqual([]);
     expect(history.memoriesToText()).toBe('');
     expect(history.subGoalsToText()).toBe('');
+    expect(history.historicalLogsToText()).toBe('');
   });
 
   it('clears pending feedback message only when set', () => {
@@ -512,6 +516,70 @@ describe('ConversationHistory', () => {
       1. Task 1 (finished)
       2. Task 2 (finished)"
     `);
+  });
+
+  // Historical log management tests (non-deepThink mode)
+
+  it('initializes with empty historical logs', () => {
+    const history = new ConversationHistory();
+    expect(history.historicalLogsToText()).toBe('');
+  });
+
+  it('appends historical logs', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Clicked the login button');
+    history.appendHistoricalLog('Typed username into the input');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Clicked the login button
+      - Typed username into the input"
+    `);
+  });
+
+  it('ignores empty historical log strings', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('');
+    history.appendHistoricalLog('Valid step');
+    history.appendHistoricalLog('');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Valid step"
+    `);
+  });
+
+  it('accumulates historical logs across multiple rounds', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Step 1: Navigated to page');
+    history.appendHistoricalLog('Step 2: Clicked search button');
+    history.appendHistoricalLog('Step 3: Entered search query');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Step 1: Navigated to page
+      - Step 2: Clicked search button
+      - Step 3: Entered search query"
+    `);
+  });
+
+  it('historical logs are independent from sub-goal logs', () => {
+    const history = new ConversationHistory();
+
+    // Set up sub-goals (deepThink mode scenario)
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Task 1' },
+    ]);
+    history.appendSubGoalLog('Sub-goal log entry');
+
+    // Also add historical logs (non-deepThink mode scenario)
+    history.appendHistoricalLog('Historical log entry');
+
+    // Both should be independently tracked
+    expect(history.subGoalsToText()).toContain('Sub-goal log entry');
+    expect(history.historicalLogsToText()).toContain('Historical log entry');
+    expect(history.historicalLogsToText()).not.toContain('Sub-goal log entry');
+    expect(history.subGoalsToText()).not.toContain('Historical log entry');
   });
 
   // Memory management tests
