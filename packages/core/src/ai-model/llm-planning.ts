@@ -239,6 +239,104 @@ export async function plan(
   let planFromAI: RawResponsePlanningAIResponse;
   try {
     planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+
+    if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+      console.warn(
+        'Planning response included both an action and complete-goal; ignoring complete-goal output.',
+      );
+      planFromAI.finalizeMessage = undefined;
+      planFromAI.finalizeSuccess = undefined;
+    }
+
+    const actions = planFromAI.action ? [planFromAI.action] : [];
+    let shouldContinuePlanning = true;
+
+    // Check if goal is completed via complete-goal tag
+    if (planFromAI.finalizeSuccess !== undefined) {
+      debug('goal completed via complete-goal tag, stop planning');
+      shouldContinuePlanning = false;
+      // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
+      if (includeSubGoals) {
+        conversationHistory.markAllSubGoalsFinished();
+      }
+    }
+
+    const returnValue: PlanningAIResponse = {
+      ...planFromAI,
+      actions,
+      rawResponse,
+      usage,
+      reasoning_content,
+      yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
+      shouldContinuePlanning,
+    };
+
+    assert(planFromAI, "can't get plans from AI");
+
+    actions.forEach((action) => {
+      const type = action.type;
+      const actionInActionSpace = opts.actionSpace.find(
+        (action) => action.name === type,
+      );
+
+      debug('actionInActionSpace matched', actionInActionSpace);
+      const locateFields = actionInActionSpace
+        ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
+        : [];
+
+      debug('locateFields', locateFields);
+
+      locateFields.forEach((field) => {
+        const locateResult = action.param[field];
+        if (locateResult && modelFamily !== undefined) {
+          // Always use model family to fill bbox parameters
+          action.param[field] = fillBboxParam(
+            locateResult,
+            imageWidth,
+            imageHeight,
+            modelFamily,
+          );
+        }
+      });
+    });
+
+    // Update sub-goals in conversation history based on response (only when deepThink is enabled)
+    if (includeSubGoals) {
+      if (planFromAI.updateSubGoals?.length) {
+        conversationHistory.setSubGoals(planFromAI.updateSubGoals);
+      }
+      if (planFromAI.markFinishedIndexes?.length) {
+        for (const index of planFromAI.markFinishedIndexes) {
+          conversationHistory.markSubGoalFinished(index);
+        }
+      }
+      // Append the planning log to the currently running sub-goal
+      if (planFromAI.log) {
+        conversationHistory.appendSubGoalLog(planFromAI.log);
+      }
+    } else {
+      // In non-deepThink mode, accumulate logs as historical execution steps
+      if (planFromAI.log) {
+        conversationHistory.appendHistoricalLog(planFromAI.log);
+      }
+    }
+
+    // Append memory to conversation history if present
+    if (planFromAI.memory) {
+      conversationHistory.appendMemory(planFromAI.memory);
+    }
+
+    conversationHistory.append({
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: rawResponse,
+        },
+      ],
+    });
+
+    return returnValue;
   } catch (parseError) {
     // Throw AIResponseParseError with usage and rawResponse preserved
     const errorMessage =
@@ -249,102 +347,4 @@ export async function plan(
       usage,
     );
   }
-
-  if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-    console.warn(
-      'Planning response included both an action and complete-goal; ignoring complete-goal output.',
-    );
-    planFromAI.finalizeMessage = undefined;
-    planFromAI.finalizeSuccess = undefined;
-  }
-
-  const actions = planFromAI.action ? [planFromAI.action] : [];
-  let shouldContinuePlanning = true;
-
-  // Check if goal is completed via complete-goal tag
-  if (planFromAI.finalizeSuccess !== undefined) {
-    debug('goal completed via complete-goal tag, stop planning');
-    shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
-    if (includeSubGoals) {
-      conversationHistory.markAllSubGoalsFinished();
-    }
-  }
-
-  const returnValue: PlanningAIResponse = {
-    ...planFromAI,
-    actions,
-    rawResponse,
-    usage,
-    reasoning_content,
-    yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
-    shouldContinuePlanning,
-  };
-
-  assert(planFromAI, "can't get plans from AI");
-
-  actions.forEach((action) => {
-    const type = action.type;
-    const actionInActionSpace = opts.actionSpace.find(
-      (action) => action.name === type,
-    );
-
-    debug('actionInActionSpace matched', actionInActionSpace);
-    const locateFields = actionInActionSpace
-      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-      : [];
-
-    debug('locateFields', locateFields);
-
-    locateFields.forEach((field) => {
-      const locateResult = action.param[field];
-      if (locateResult && modelFamily !== undefined) {
-        // Always use model family to fill bbox parameters
-        action.param[field] = fillBboxParam(
-          locateResult,
-          imageWidth,
-          imageHeight,
-          modelFamily,
-        );
-      }
-    });
-  });
-
-  // Update sub-goals in conversation history based on response (only when deepThink is enabled)
-  if (includeSubGoals) {
-    if (planFromAI.updateSubGoals?.length) {
-      conversationHistory.setSubGoals(planFromAI.updateSubGoals);
-    }
-    if (planFromAI.markFinishedIndexes?.length) {
-      for (const index of planFromAI.markFinishedIndexes) {
-        conversationHistory.markSubGoalFinished(index);
-      }
-    }
-    // Append the planning log to the currently running sub-goal
-    if (planFromAI.log) {
-      conversationHistory.appendSubGoalLog(planFromAI.log);
-    }
-  } else {
-    // In non-deepThink mode, accumulate logs as historical execution steps
-    if (planFromAI.log) {
-      conversationHistory.appendHistoricalLog(planFromAI.log);
-    }
-  }
-
-  // Append memory to conversation history if present
-  if (planFromAI.memory) {
-    conversationHistory.appendMemory(planFromAI.memory);
-  }
-
-  conversationHistory.append({
-    role: 'assistant',
-    content: [
-      {
-        type: 'text',
-        text: rawResponse,
-      },
-    ],
-  });
-
-  return returnValue;
 }

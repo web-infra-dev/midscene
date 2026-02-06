@@ -6,13 +6,28 @@
 */
 
 import { limitOpenNewTabScript } from '@/web-element';
-import type { ElementTreeNode, Point, Size, UIContext } from '@midscene/core';
+import type {
+  ElementCacheFeature,
+  ElementTreeNode,
+  Point,
+  Rect,
+  Size,
+  UIContext,
+} from '@midscene/core';
 import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
+import {
+  type CacheFeatureOptions,
+  type WebElementCacheFeature,
+  buildRectFromElementInfo,
+  judgeOrderSensitive,
+  sanitizeXpaths,
+} from '../common/cache-helper';
 import { WebPageContextParser } from '../web-element';
 import {
   type KeyInput,
@@ -25,6 +40,8 @@ import {
   injectStopWaterFlowAnimation,
   injectWaterFlowAnimation,
 } from './dynamic-scripts';
+
+const debug = getDebug('web:chrome-extension:page');
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -404,6 +421,41 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       returnByValue: true,
     });
     return result.result.value;
+  }
+
+  async cacheFeatureForPoint(
+    center: [number, number],
+    options?: CacheFeatureOptions,
+  ): Promise<ElementCacheFeature> {
+    const point: Point = { left: center[0], top: center[1] };
+
+    try {
+      const isOrderSensitive = await judgeOrderSensitive(options, debug);
+      const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
+      return { xpaths: sanitizeXpaths(xpaths) };
+    } catch (error) {
+      debug('cacheFeatureForPoint failed: %O', error);
+      return { xpaths: [] };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+
+    for (const xpath of xpaths) {
+      try {
+        const elementInfo = await this.getElementInfoByXpath(xpath);
+        if (elementInfo?.rect) {
+          return buildRectFromElementInfo(elementInfo, this.viewportSize?.dpr);
+        }
+      } catch (error) {
+        debug('rectMatchesCacheFeature failed for xpath %s: %O', xpath, error);
+      }
+    }
+
+    throw new Error(
+      `No matching element rect found for cache feature (tried ${xpaths.length} xpath(s))`,
+    );
   }
 
   async getElementsNodeTree() {
