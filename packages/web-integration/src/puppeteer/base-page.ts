@@ -793,15 +793,14 @@ select {
   const injectStyle = async () => {
     try {
       await (page as PuppeteerPage & PlaywrightPage).evaluate(
-        (id, content) => {
+        ({ id, content }: { id: string; content: string }) => {
           if (document.getElementById(id)) return;
           const style = document.createElement('style');
           style.id = id;
           style.textContent = content;
           document.head.appendChild(style);
         },
-        styleId,
-        styleContent,
+        { id: styleId, content: styleContent },
       );
       debugPage(
         'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',
