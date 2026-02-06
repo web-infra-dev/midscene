@@ -14,6 +14,7 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
@@ -21,37 +22,87 @@ import dayjs from 'dayjs';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
-const debugProfile = getDebug('web:tool:profile');
-
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
+  _opt: { uploadServerUrl?: string; screenshotShrinkFactor?: number },
 ): Promise<UIContext> {
+  const debug = getDebug('commonContextParser');
+
   assert(interfaceInstance, 'interfaceInstance is required');
 
-  debugProfile('Getting interface description');
+  debug('Getting interface description');
   const description = interfaceInstance.describe?.() || '';
-  debugProfile('Interface description end');
+  debug('Interface description end');
 
-  debugProfile('Uploading test info to server');
+  debug('Uploading test info to server');
   uploadTestInfoToServer({
     testUrl: description,
     serverUrl: _opt.uploadServerUrl,
   });
-  debugProfile('UploadTestInfoToServer end');
+  debug('UploadTestInfoToServer end');
 
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  debugProfile('will get size');
-  const size = await interfaceInstance.size();
-  debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
+  debug('will get size');
+  const logicalSize = await interfaceInstance.size();
+  debug(
+    `size: ${logicalSize.width}x${logicalSize.height} dpr: ${logicalSize.dpr}`,
+  );
 
-  const screenshot = ScreenshotItem.create(screenshotBase64!);
+  // Get physical screenshot dimensions
+  debug('will get screenshot dimensions');
+  const { width: imgWidth, height: imgHeight } =
+    await imageInfoOfBase64(screenshotBase64);
+
+  debug('screenshot dimensions', imgWidth, 'x', imgHeight);
+
+  // Validate user-specified shrink factor
+  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
+
+  if (userShrinkFactor < 1) {
+    throw new Error(
+      `screenshotShrinkFactor must be >= 1, but got ${userShrinkFactor}. Enlarging screenshots are not supported.`,
+    );
+  }
+
+  if (!logicalSize.dpr) {
+    throw new Error(
+      'Device pixel ratio (dpr) is not available in context size, cannot apply screenshot shrink factor correctly',
+    );
+  }
+
+  const shrunkShotToLogicalRatio = logicalSize.dpr / userShrinkFactor;
+
+  debug('shrunkShotToLogicalRatio', shrunkShotToLogicalRatio);
+
+  const targetWidth = Math.round(imgWidth / userShrinkFactor);
+  const targetHeight = Math.round(imgHeight / userShrinkFactor);
+
+  debug(
+    `Applying screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${targetWidth}x${targetHeight})`,
+  );
+
+  const screenshot = await (async () => {
+    if (userShrinkFactor !== 1) {
+      const resizedBase64 = await resizeImgBase64(screenshotBase64, {
+        width: targetWidth,
+        height: targetHeight,
+      });
+      return ScreenshotItem.create(resizedBase64);
+    }
+    return ScreenshotItem.create(screenshotBase64);
+  })();
 
   return {
-    size,
+    shotSize: {
+      width: targetWidth,
+      height: targetHeight,
+      // shotSize should not have dpr because it is the size of the screenshot, not the logical size
+      dpr: undefined,
+    },
     screenshot,
+    shrunkShotToLogicalRatio,
   };
 }
 

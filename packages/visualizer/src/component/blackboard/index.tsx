@@ -89,7 +89,7 @@ export const Blackboard = (props: {
   const highlightPoints = props.highlightPoints;
 
   // Handle undefined/null uiContext
-  if (!props.uiContext?.size) {
+  if (!props.uiContext?.shotSize) {
     return (
       <div className="blackboard">
         <div className="blackboard-main-content" style={{ padding: '20px' }}>
@@ -100,7 +100,7 @@ export const Blackboard = (props: {
   }
 
   const context = props.uiContext;
-  const { size, screenshot } = context;
+  const { shotSize, screenshot } = context;
 
   // Extract base64 string from screenshot
   // After restoreImageReferences(), screenshot is { base64: string }
@@ -113,8 +113,8 @@ export const Blackboard = (props: {
     return '';
   }, [screenshot]);
 
-  const screenWidth = size.width;
-  const screenHeight = size.height;
+  const screenWidth = shotSize.width;
+  const screenHeight = shotSize.height;
 
   const domRef = useRef<HTMLDivElement>(null); // Should be HTMLDivElement not HTMLInputElement
   const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
@@ -233,6 +233,7 @@ export const Blackboard = (props: {
     img.onerror = (e) => {
       console.error('load screenshot failed', e);
     };
+
     if (screenshotBase64) {
       img.src = screenshotBase64;
     } else {

@@ -209,16 +209,6 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
-  /**
-   * Screenshot scale factor derived from actual screenshot dimensions
-   */
-  private screenshotScale?: number;
-
-  /**
-   * Internal promise to deduplicate screenshot scale computation
-   */
-  private screenshotScalePromise?: Promise<number>;
-
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   private fullActionSpace: DeviceAction[];
@@ -244,54 +234,6 @@ export class Agent<
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
-    }
-  }
-
-  /**
-   * Lazily compute the ratio between the physical screenshot width and the logical page width
-   */
-  private async getScreenshotScale(context: UIContext): Promise<number> {
-    if (this.screenshotScale !== undefined) {
-      return this.screenshotScale;
-    }
-
-    if (!this.screenshotScalePromise) {
-      this.screenshotScalePromise = (async () => {
-        const pageWidth = context.size?.width;
-        assert(
-          pageWidth && pageWidth > 0,
-          `Invalid page width when computing screenshot scale: ${pageWidth}`,
-        );
-
-        debug('will get image info of base64');
-        const screenshotBase64 = context.screenshot.base64;
-        const { width: screenshotWidth } =
-          await imageInfoOfBase64(screenshotBase64);
-        debug('image info of base64 done');
-
-        assert(
-          Number.isFinite(screenshotWidth) && screenshotWidth > 0,
-          `Invalid screenshot width when computing screenshot scale: ${screenshotWidth}`,
-        );
-
-        const computedScale = screenshotWidth / pageWidth;
-        assert(
-          Number.isFinite(computedScale) && computedScale > 0,
-          `Invalid computed screenshot scale: ${computedScale}`,
-        );
-
-        debug(
-          `Computed screenshot scale ${computedScale} from screenshot width ${screenshotWidth} and page width ${pageWidth}`,
-        );
-        return computedScale;
-      })();
-    }
-
-    try {
-      this.screenshotScale = await this.screenshotScalePromise;
-      return this.screenshotScale;
-    } finally {
-      this.screenshotScalePromise = undefined;
     }
   }
 
@@ -431,38 +373,10 @@ export class Agent<
     }
 
     // Get original context
-    let context: UIContext;
-    if (this.interface.getContext) {
-      debug('Using page.getContext for action:', action);
-      context = await this.interface.getContext();
-    } else {
-      debug('Using commonContextParser');
-      context = await commonContextParser(this.interface, {
-        uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
-      });
-    }
-
-    debug('will get screenshot scale');
-    const computedScreenshotScale = await this.getScreenshotScale(context);
-    debug('computedScreenshotScale', computedScreenshotScale);
-
-    if (computedScreenshotScale !== 1) {
-      const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
-      debug(
-        `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
-      );
-      const targetWidth = Math.round(context.size.width);
-      const targetHeight = Math.round(context.size.height);
-      debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = context.screenshot.base64;
-      const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
-        width: targetWidth,
-        height: targetHeight,
-      });
-      context.screenshot = ScreenshotItem.create(resizedBase64);
-    } else {
-      debug(`screenshot scale=${computedScreenshotScale}`);
-    }
+    const context = await commonContextParser(this.interface, {
+      uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+      screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+    });
 
     return context;
   }

@@ -2,14 +2,10 @@ import type {
   AgentOpt,
   DeviceAction,
   Rect,
-  UIContext,
   WebElementInfo,
 } from '@midscene/core';
-import type { AbstractInterface } from '@midscene/core/device';
-import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 
-import { commonContextParser } from '@midscene/core/agent';
 import type { NodeType } from '@midscene/shared/constants';
 import type ChromeExtensionProxyPage from './chrome-extension/page';
 import type { PlaywrightWebPage } from './playwright';
@@ -95,36 +91,6 @@ export class WebElementInfoImpl implements WebElementInfo {
     this.xpaths = xpaths;
     this.isVisible = isVisible;
   }
-}
-
-const debug = getDebug('web:parse-context');
-export async function WebPageContextParser(
-  page: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
-): Promise<UIContext> {
-  const basicContext = await commonContextParser(page, {
-    uploadServerUrl: _opt.uploadServerUrl,
-  });
-
-  // debug('will traverse element tree');
-  // const tree = (await page.getElementsNodeTree?.()) || {
-  //   node: null,
-  //   children: [],
-  // };
-  // // const webTree = traverseTree(tree!, (elementInfo) => {
-  // //   const { rect, id, content, attributes, indexId, isVisible } = elementInfo;
-  // //   return new WebElementInfoImpl({
-  // //     rect,
-  // //     id,
-  // //     content,
-  // //     attributes,
-  // //     indexId,
-  // //     isVisible,
-  // //   });
-  // // });
-  // debug('traverse element tree end');
-
-  return basicContext;
 }
 
 export const limitOpenNewTabScript = `

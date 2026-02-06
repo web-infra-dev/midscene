@@ -92,13 +92,13 @@ export async function uiTarsPlanning(
   try {
     convertedText = convertBboxToCoordinates(res.content);
 
-    const { size } = context;
+    const { shotSize } = context;
     const parseResult = actionParser({
       prediction: convertedText,
       factor: [1000, 1000],
       screenContext: {
-        width: size.width,
-        height: size.height,
+        width: shotSize.width,
+        height: shotSize.height,
       },
       modelVer: uiTarsModelVersion,
     });
@@ -114,7 +114,7 @@ export async function uiTarsPlanning(
     );
   }
 
-  const { size } = context;
+  const { shotSize } = context;
 
   debug(
     'ui-tars modelVer',
@@ -130,14 +130,14 @@ export async function uiTarsPlanning(
     const actionType = (action.action_type || '').toLowerCase();
     if (actionType === 'click') {
       assert(action.action_inputs.start_box, 'start_box is required');
-      const point = getPoint(action.action_inputs.start_box, size);
+      const point = getPoint(action.action_inputs.start_box, shotSize);
 
       const locate = {
         prompt: action.thought || '',
         bbox: pointToBbox(
           { x: point[0], y: point[1] },
-          size.width,
-          size.height,
+          shotSize.width,
+          shotSize.height,
         ),
       };
 
@@ -149,14 +149,14 @@ export async function uiTarsPlanning(
       });
     } else if (actionType === 'left_double') {
       assert(action.action_inputs.start_box, 'start_box is required');
-      const point = getPoint(action.action_inputs.start_box, size);
+      const point = getPoint(action.action_inputs.start_box, shotSize);
 
       const locate = {
         prompt: action.thought || '',
         bbox: pointToBbox(
           { x: point[0], y: point[1] },
-          size.width,
-          size.height,
+          shotSize.width,
+          shotSize.height,
         ),
       };
 
@@ -169,14 +169,14 @@ export async function uiTarsPlanning(
       });
     } else if (actionType === 'right_single') {
       assert(action.action_inputs.start_box, 'start_box is required');
-      const point = getPoint(action.action_inputs.start_box, size);
+      const point = getPoint(action.action_inputs.start_box, shotSize);
 
       const locate = {
         prompt: action.thought || '',
         bbox: pointToBbox(
           { x: point[0], y: point[1] },
-          size.width,
-          size.height,
+          shotSize.width,
+          shotSize.height,
         ),
       };
 
@@ -190,8 +190,8 @@ export async function uiTarsPlanning(
     } else if (actionType === 'drag') {
       assert(action.action_inputs.start_box, 'start_box is required');
       assert(action.action_inputs.end_box, 'end_box is required');
-      const startPoint = getPoint(action.action_inputs.start_box, size);
-      const endPoint = getPoint(action.action_inputs.end_box, size);
+      const startPoint = getPoint(action.action_inputs.start_box, shotSize);
+      const endPoint = getPoint(action.action_inputs.end_box, shotSize);
       transformActions.push({
         type: 'DragAndDrop',
         param: {
@@ -199,16 +199,16 @@ export async function uiTarsPlanning(
             prompt: action.thought || '',
             bbox: pointToBbox(
               { x: startPoint[0], y: startPoint[1] },
-              size.width,
-              size.height,
+              shotSize.width,
+              shotSize.height,
             ),
           },
           to: {
             prompt: action.thought || '',
             bbox: pointToBbox(
               { x: endPoint[0], y: endPoint[1] },
-              size.width,
-              size.height,
+              shotSize.width,
+              shotSize.height,
             ),
           },
         },

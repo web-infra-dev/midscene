@@ -14,7 +14,7 @@ import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common'
 
 type WebUIContext = UIContext | {
   screenshotBase64?: string;
-  size: { width: number; height: number; dpr?: number };
+  shotSize: { width: number; height: number; dpr?: number };
 };
 
 const ThrowNotImplemented = (methodName: string) => {
@@ -83,8 +83,8 @@ export default class StaticPage implements AbstractInterface {
 
   async size() {
     return {
-      ...this.uiContext.size,
-      dpr: this.uiContext.size.dpr || 1,
+      ...this.uiContext.shotSize,
+      dpr: this.uiContext.shotSize.dpr || 1,
     };
   }
 
@@ -173,11 +173,12 @@ export default class StaticPage implements AbstractInterface {
     // Otherwise, create a proper UIContext from the legacy format
     const screenshotBase64 = await this.screenshotBase64();
     const screenshot = ScreenshotItem.create(screenshotBase64);
-    const size = await this.size();
+    const shotSize = await this.size();
 
     return {
       screenshot,
-      size,
+      shotSize,
+      shrunkShotToLogicalRatio: 1,
     };
   }
 

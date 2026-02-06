@@ -183,9 +183,9 @@ export const allScriptsFromDump = (
 
   normalizedDump.executions?.filter(Boolean).forEach((execution) => {
     execution.tasks.forEach((task) => {
-      if (task.uiContext?.size?.width) {
-        const w = task.uiContext.size.width;
-        const h = task.uiContext.size.height;
+      if (task.uiContext?.shotSize?.width) {
+        const w = task.uiContext.shotSize.width;
+        const h = task.uiContext.shotSize.height;
         if (!firstWidth) {
           firstWidth = w;
           firstHeight = h;
@@ -409,8 +409,8 @@ export const generateAnimationScripts = (
       const context = task.uiContext;
       if (context?.screenshot) {
         // show the original screenshot first
-        const width = context.size?.width || imageWidth;
-        const height = context.size?.height || imageHeight;
+        const width = context.shotSize?.width || imageWidth;
+        const height = context.shotSize?.height || imageHeight;
         const screenshotData = (
           context.screenshot as unknown as { base64: string }
         ).base64;
@@ -452,8 +452,8 @@ export const generateAnimationScripts = (
             insightCameraDuration: locateDuration,
             title,
             subTitle: element.description || subTitle,
-            imageWidth: context.size?.width || imageWidth,
-            imageHeight: context.size?.height || imageHeight,
+            imageWidth: context.shotSize?.width || imageWidth,
+            imageHeight: context.shotSize?.height || imageHeight,
             taskId: currentTaskId,
           });
 
@@ -480,8 +480,8 @@ export const generateAnimationScripts = (
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
-          imageWidth: task.uiContext?.size?.width || imageWidth,
-          imageHeight: task.uiContext?.size?.height || imageHeight,
+          imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+          imageHeight: task.uiContext?.shotSize?.height || imageHeight,
           taskId: currentTaskId,
         });
       }
@@ -525,8 +525,8 @@ export const generateAnimationScripts = (
         camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
         title,
         subTitle,
-        imageWidth: task.uiContext?.size?.width || imageWidth,
-        imageHeight: task.uiContext?.size?.height || imageHeight,
+        imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+        imageHeight: task.uiContext?.shotSize?.height || imageHeight,
         taskId: currentTaskId,
       });
     } else {
@@ -545,8 +545,8 @@ export const generateAnimationScripts = (
           camera: fullPageCameraState,
           title,
           subTitle,
-          imageWidth: task.uiContext?.size?.width || imageWidth,
-          imageHeight: task.uiContext?.size?.height || imageHeight,
+          imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+          imageHeight: task.uiContext?.shotSize?.height || imageHeight,
           taskId: currentTaskId,
         });
       }
@@ -569,8 +569,8 @@ export const generateAnimationScripts = (
         duration: stillDuration,
         title: errorTitle,
         subTitle: errorSubTitle,
-        imageWidth: task.uiContext?.size?.width || imageWidth,
-        imageHeight: task.uiContext?.size?.height || imageHeight,
+        imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+        imageHeight: task.uiContext?.shotSize?.height || imageHeight,
         taskId: currentTaskId,
       });
     }
