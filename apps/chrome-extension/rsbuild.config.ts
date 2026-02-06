@@ -20,6 +20,8 @@ export default defineConfig({
           'dist/**', // Only ignore THIS app's dist folder, not workspace packages
           '**/node_modules/**',
         ],
+        // Wait for workspace packages to finish building before recompiling
+        aggregateTimeout: 3000,
       },
       ignoreWarnings: commonIgnoreWarnings,
     },
@@ -30,6 +32,15 @@ export default defineConfig({
         entry: {
           index: './src/index.tsx',
           popup: './src/extension/popup/index.tsx',
+          confirm: './src/extension/confirm/index.tsx',
+        },
+      },
+      html: {
+        title: ({ entryName }) => {
+          if (entryName === 'confirm') {
+            return 'Midscene Bridge';
+          }
+          return 'Midscene';
         },
       },
       output: {

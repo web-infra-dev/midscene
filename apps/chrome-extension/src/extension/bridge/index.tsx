@@ -5,15 +5,11 @@ import {
   DownOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
-import { Button, Input, List, Spin, Switch } from 'antd';
+import { Button, Input, List, Spin } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
-import AutoConnectIcon from '../../icons/auto-connect.svg?react';
-import PlayIcon from '../../icons/play.svg?react';
-import {
-  BridgeConnector,
-  type BridgeStatus,
-} from '../../utils/bridgeConnector';
+import type { BridgeStatus } from '../../utils/bridgeConnector';
+import { workerMessageTypes } from '../../utils/workerMessageTypes';
 import { iconForStatus } from '../misc';
 
 import './index.less';
@@ -26,7 +22,14 @@ interface BridgeMessageItem {
   time: string;
 }
 
-const AUTO_CONNECT_STORAGE_KEY = 'midscene-bridge-auto-connect';
+// Message record from worker
+interface BridgeMessageRecord {
+  id: string;
+  content: string;
+  timestamp: number;
+  msgType: 'log' | 'status';
+}
+
 const BRIDGE_SERVER_URL_KEY = 'midscene-bridge-server-url';
 const DEFAULT_SERVER_URL = 'ws://localhost:3766';
 
@@ -35,10 +38,7 @@ export default function Bridge() {
   const [messageList, setMessageList] = useState<BridgeMessageItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
-  const [autoConnect, setAutoConnect] = useState<boolean>(() => {
-    const saved = localStorage.getItem(AUTO_CONNECT_STORAGE_KEY);
-    return saved === 'true';
-  });
+  const [alwaysAllow, setAlwaysAllow] = useState<boolean>(false);
   const [serverUrl, setServerUrl] = useState<string>(() => {
     // Only restore from localStorage if user has customized it
     return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
@@ -47,6 +47,7 @@ export default function Bridge() {
   const messageListRef = useRef<HTMLDivElement>(null);
   // useRef to track the ID of the connection status message
   const connectionStatusMessageId = useRef<string | null>(null);
+  const portRef = useRef<chrome.runtime.Port | null>(null);
 
   const appendBridgeMessage = (content: string) => {
     // if there is a connection status message, append all messages to the existing message
@@ -79,70 +80,120 @@ export default function Bridge() {
     }
   };
 
-  const bridgeConnectorRef = useRef<BridgeConnector | null>(null);
+  // Convert history records to UI message format
+  const restoreMessagesFromHistory = (records: BridgeMessageRecord[]) => {
+    if (records.length === 0) return;
 
-  // Initialize BridgeConnector when serverUrl changes or on first mount
-  useEffect(() => {
-    // Clean up existing connector
-    if (bridgeConnectorRef.current) {
-      bridgeConnectorRef.current.disconnect();
+    // Group messages into sessions (messages within 5 seconds are considered same session)
+    const SESSION_GAP = 5000;
+    const sessions: BridgeMessageRecord[][] = [];
+    let currentSession: BridgeMessageRecord[] = [];
+
+    for (const record of records) {
+      if (
+        currentSession.length === 0 ||
+        record.timestamp - currentSession[currentSession.length - 1].timestamp <
+          SESSION_GAP
+      ) {
+        currentSession.push(record);
+      } else {
+        sessions.push(currentSession);
+        currentSession = [record];
+      }
+    }
+    if (currentSession.length > 0) {
+      sessions.push(currentSession);
     }
 
-    // Use custom serverUrl if provided, otherwise use default
-    const effectiveUrl = serverUrl || DEFAULT_SERVER_URL;
+    // Convert sessions to UI messages
+    const uiMessages: BridgeMessageItem[] = sessions.map((session) => {
+      const firstRecord = session[0];
+      const content = session
+        .map(
+          (r) => `${dayjs(r.timestamp).format('HH:mm:ss.SSS')} - ${r.content}`,
+        )
+        .join('\n');
 
-    // Create new connector with current serverUrl
-    bridgeConnectorRef.current = new BridgeConnector(
-      (message, type) => {
-        appendBridgeMessage(message);
-        if (type === 'status') {
-          console.log('status tip changed event', type, message);
+      return {
+        id: firstRecord.id,
+        type: 'status' as const,
+        content,
+        timestamp: new Date(firstRecord.timestamp),
+        time: dayjs(firstRecord.timestamp).format('HH:mm:ss.SSS'),
+      };
+    });
+
+    setMessageList(uiMessages);
+    // Set the last session's id as connectionStatusMessageId for appending new messages
+    if (sessions.length > 0) {
+      connectionStatusMessageId.current = uiMessages[uiMessages.length - 1].id;
+    }
+  };
+
+  // Connect to Service Worker via port for receiving status updates
+  useEffect(() => {
+    const port = chrome.runtime.connect({ name: 'bridge-ui' });
+    portRef.current = port;
+
+    port.onMessage.addListener((message) => {
+      if (message.type === workerMessageTypes.BRIDGE_STATUS_CHANGED) {
+        console.log('Bridge status changed:', message.status);
+        setBridgeStatus(message.status);
+        if (message.status !== 'connected') {
+          appendBridgeMessage(`Bridge status changed to ${message.status}`);
+        }
+      } else if (message.type === workerMessageTypes.BRIDGE_MESSAGE) {
+        appendBridgeMessage(message.message);
+        if (message.msgType === 'status') {
+          console.log(
+            'status tip changed event',
+            message.msgType,
+            message.message,
+          );
+        }
+      }
+    });
+
+    port.onDisconnect.addListener(() => {
+      console.log('Disconnected from Service Worker');
+      portRef.current = null;
+    });
+
+    // Load permission config and message history from Service Worker
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_GET_PERMISSION },
+      (response) => {
+        if (response) {
+          setAlwaysAllow(response.alwaysAllow || false);
+          setBridgeStatus(response.status || 'closed');
         }
       },
-      (status) => {
-        console.log('status changed event', status);
-        setBridgeStatus(status);
+    );
 
-        if (status !== 'connected') {
-          appendBridgeMessage(`Bridge status changed to ${status}`);
+    // Restore message history
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_GET_MESSAGES },
+      (response) => {
+        if (response?.messages && response.messages.length > 0) {
+          restoreMessagesFromHistory(response.messages);
         }
       },
-      effectiveUrl !== DEFAULT_SERVER_URL ? effectiveUrl : undefined,
     );
 
     return () => {
-      bridgeConnectorRef.current?.disconnect();
+      port.disconnect();
     };
-  }, [serverUrl]);
+  }, []);
 
-  useEffect(() => {
-    // Auto-connect on component mount if enabled
-    // Only check on initial mount, not when autoConnect changes
-    if (
-      autoConnect &&
-      bridgeStatus === 'closed' &&
-      bridgeConnectorRef.current
-    ) {
-      startConnection();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
-
-  const stopConnection = () => {
-    bridgeConnectorRef.current?.disconnect();
-  };
-
-  const startConnection = async () => {
-    // only reset the connection status message ID when starting a new connection
-    if (bridgeStatus === 'closed') {
-      connectionStatusMessageId.current = null;
-    }
-    bridgeConnectorRef.current?.connect();
-  };
-
-  const handleAutoConnectChange = (checked: boolean) => {
-    setAutoConnect(checked);
-    localStorage.setItem(AUTO_CONNECT_STORAGE_KEY, String(checked));
+  const handleResetPermission = () => {
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_RESET_PERMISSION },
+      (response) => {
+        if (response?.success) {
+          setAlwaysAllow(false);
+        }
+      },
+    );
   };
 
   const handleServerUrlChange = (value: string) => {
@@ -161,6 +212,10 @@ export default function Bridge() {
   const clearMessageList = () => {
     setMessageList([]);
     connectionStatusMessageId.current = null;
+    // Also clear history in worker
+    chrome.runtime.sendMessage({
+      type: workerMessageTypes.BRIDGE_CLEAR_MESSAGES,
+    });
   };
 
   // check if scrolled to bottom
@@ -216,21 +271,11 @@ export default function Bridge() {
 
   let statusIcon;
   let statusTip: string;
-  let statusBtn;
-  if (bridgeStatus === 'closed') {
-    statusIcon = iconForStatus('closed');
-    statusTip = 'Closed';
-    statusBtn = (
-      <Button
-        type="primary"
-        onClick={() => {
-          startConnection();
-        }}
-      >
-        Allow connection
-      </Button>
-    );
-  } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
+  if (
+    bridgeStatus === 'listening' ||
+    bridgeStatus === 'disconnected' ||
+    bridgeStatus === 'closed'
+  ) {
     statusIcon = (
       <Spin
         className="status-loading-icon"
@@ -239,29 +284,12 @@ export default function Bridge() {
       />
     );
     statusTip = 'Listening for connection';
-    statusBtn = (
-      <Button className="stop-button" onClick={stopConnection}>
-        Stop
-      </Button>
-    );
   } else if (bridgeStatus === 'connected') {
     statusIcon = iconForStatus('connected');
     statusTip = 'Connected';
-
-    statusBtn = (
-      <Button
-        className="stop-button"
-        onClick={() => {
-          stopConnection();
-        }}
-      >
-        Stop
-      </Button>
-    );
   } else {
     statusIcon = iconForStatus('failed');
     statusTip = `Unknown Status - ${bridgeStatus}`;
-    statusBtn = null;
   }
 
   return (
@@ -374,44 +402,27 @@ export default function Bridge() {
         </div>
       </div>
 
-      {/* bottom buttons */}
+      {/* bottom status bar */}
       <div className="bottom-button-container">
-        {bridgeStatus === 'closed' ? (
-          <>
-            <div className="auto-connect-container">
-              <span className="auto-connect-icon">
-                <AutoConnectIcon />
-              </span>
-              <span className="auto-connect-label">
-                Auto allow in Bridge Mode
-              </span>
-              <Switch
-                checked={autoConnect}
-                onChange={handleAutoConnectChange}
-                size="default"
-              />
-            </div>
+        {alwaysAllow && (
+          <div className="permission-info-container">
+            <span className="permission-info-text">Auto-allow is enabled</span>
             <Button
-              type="primary"
-              className="bottom-action-button"
-              icon={<PlayIcon />}
-              onClick={() => {
-                startConnection();
-              }}
+              type="link"
+              size="small"
+              onClick={handleResetPermission}
+              className="reset-permission-btn"
             >
-              Allow Connection
+              Reset
             </Button>
-          </>
-        ) : (
-          <div className="bottom-status-bar">
-            <div className="bottom-status-text">
-              <span className="bottom-status-icon">{statusIcon}</span>
-              <span className="bottom-status-tip">{statusTip}</span>
-            </div>
-            <div className="bottom-status-divider" />
-            <div className="bottom-status-btn">{statusBtn}</div>
           </div>
         )}
+        <div className="bottom-status-bar">
+          <div className="bottom-status-text">
+            <span className="bottom-status-icon">{statusIcon}</span>
+            <span className="bottom-status-tip">{statusTip}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
