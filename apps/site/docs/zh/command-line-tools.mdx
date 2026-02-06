@@ -82,36 +82,35 @@ tasks:
       - aiAssert: 结果显示天气信息
 ```
 
-驱动 已连接 adb 的 Android 设备：
+驱动已连接 adb 的 Android 设备：
 
 ```yaml
 android:
-  # launch: https://www.bing.com
   deviceId: s4ey59 # device id 可以在 adb 命令行中通过 `adb devices` 命令获取
 
 tasks:
-  - name: 搜索天气
+  - name: 地图导航
     flow:
-      - ai: 打开浏览器并访问 bing.com
-      - ai: 搜索 "今日天气"
-      - sleep: 3000
-      - aiAssert: 结果显示天气信息
+      - ai: 打开地图应用
+      - ai: 在搜索栏输入 "杭州西湖"，然后点击搜索按钮
+      - ai: 点击第一个搜索结果，进入详情页
+      - ai: 点击 "路线" 按钮，进入路线规划页面
+      - ai: 点击 "开始" 按钮开始导航
 ```
 
 或者驱动配置好 WebDriverAgent 的 iOS 设备：
 
 ```yaml
 ios:
-  # launch: com.apple.mobilesafari
   wdaPort: 8100
 
 tasks:
-  - name: 搜索天气
+  - name: 修改系统设置
     flow:
-      - ai: 打开浏览器并访问 bing.com
-      - ai: 搜索 "今日天气"
-      - sleep: 3000
-      - aiAssert: 结果显示天气信息
+      - ai: 打开设置应用
+      - ai: 点击 "显示与亮度"
+      - ai: 开启 "深色模式"
+      - aiAssert: 深色模式已开启
 ```
 
 ### 运行脚本
