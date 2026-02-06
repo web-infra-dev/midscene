@@ -582,6 +582,90 @@ describe('ConversationHistory', () => {
     expect(history.subGoalsToText()).not.toContain('Historical log entry');
   });
 
+  it('seed() clears historical logs', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Step before seed');
+    history.appendHistoricalLog('Another step');
+
+    history.seed([userMessage('fresh start')]);
+
+    expect(history.historicalLogsToText()).toBe('');
+    expect(history.length).toBe(1);
+  });
+
+  it('compressHistory does not affect historical logs', () => {
+    const history = new ConversationHistory();
+    for (let i = 1; i <= 10; i++) {
+      history.append(userMessage(`msg${i}`));
+    }
+    history.appendHistoricalLog('Step 1: Clicked button');
+    history.appendHistoricalLog('Step 2: Typed text');
+
+    history.compressHistory(5, 3);
+
+    // Messages compressed, but historical logs remain intact
+    expect(history.length).toBe(4); // 1 placeholder + 3 kept
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Step 1: Clicked button
+      - Step 2: Typed text"
+    `);
+  });
+
+  it('clearMemories does not affect historical logs', () => {
+    const history = new ConversationHistory();
+    history.appendMemory('Some memory');
+    history.appendHistoricalLog('Some log');
+
+    history.clearMemories();
+
+    expect(history.getMemories()).toEqual([]);
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Some log"
+    `);
+  });
+
+  it('historical logs persist through sub-goal lifecycle operations', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Early step');
+
+    // setSubGoals should not affect historical logs
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Goal 1' },
+      { index: 2, status: 'pending', description: 'Goal 2' },
+    ]);
+    expect(history.historicalLogsToText()).toContain('Early step');
+
+    history.appendHistoricalLog('Mid step');
+
+    // markSubGoalFinished should not affect historical logs
+    history.markSubGoalFinished(1);
+    expect(history.historicalLogsToText()).toContain('Early step');
+    expect(history.historicalLogsToText()).toContain('Mid step');
+
+    history.appendHistoricalLog('Late step');
+
+    // markAllSubGoalsFinished should not affect historical logs
+    history.markAllSubGoalsFinished();
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Early step
+      - Mid step
+      - Late step"
+    `);
+  });
+
+  it('historicalLogsToText formats single log correctly', () => {
+    const history = new ConversationHistory();
+    history.appendHistoricalLog('Only one step');
+
+    expect(history.historicalLogsToText()).toMatchInlineSnapshot(`
+      "Here are the steps that have been executed:
+      - Only one step"
+    `);
+  });
+
   // Memory management tests
 
   it('initializes with empty memories', () => {
