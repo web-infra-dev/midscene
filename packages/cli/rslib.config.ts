@@ -41,6 +41,8 @@ export default defineConfig({
   source: {
     entry: {
       index: 'src/index.ts',
+      'ts-runner/runner': 'src/ts-runner/runner.ts',
+      'ts-runner/index': 'src/ts-runner/index.ts',
     },
     define: {
       __VERSION__: JSON.stringify(version),
