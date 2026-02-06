@@ -41,6 +41,8 @@ import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
 
 import { ADB } from 'appium-adb';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import {
   type DevicePhysicalInfo,
   ScrcpyDeviceAdapter,
@@ -1398,17 +1400,32 @@ ${Object.keys(size)
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
-    // Escape text for shell safety
-    const escapedText = escapeForShell(text);
-
     if (
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
       (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && shouldUseYadb)
     ) {
+      // yadb handles \n conversion internally
+      const escapedText = escapeForShell(text);
       await this.execYadb(escapedText);
     } else {
-      // for pure ASCII characters, directly use inputText
-      await adb.inputText(escapedText);
+      // For adb inputText, \n must be handled explicitly since
+      // adb shell input text treats \n as literal characters.
+      // Split by \n, input each segment, and press Enter for newlines.
+      // Long text is chunked to prevent character truncation by adb input.
+      const INPUT_CHUNK_SIZE = 30;
+      const segments = text.split('\n');
+      for (let i = 0; i < segments.length; i++) {
+        if (segments[i].length > 0) {
+          for (let j = 0; j < segments[i].length; j += INPUT_CHUNK_SIZE) {
+            const chunk = segments[i].substring(j, j + INPUT_CHUNK_SIZE);
+            const escapedChunk = escapeForShell(chunk);
+            await adb.inputText(escapedChunk);
+          }
+        }
+        if (i < segments.length - 1) {
+          await adb.keyevent(66); // Enter
+        }
+      }
     }
 
     if (shouldAutoDismissKeyboard === true) {
@@ -1872,7 +1889,19 @@ const createPlatformActions = (
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        // Use child_process execFile directly to avoid appium-adb's automatic trim()
+        // which would remove trailing newlines from the output
+        const execFileAsync = promisify(execFile);
+        const deviceId = adb.curDeviceId;
+        if (!deviceId) {
+          throw new Error('Device ID is not available');
+        }
+        const { stdout } = await execFileAsync(
+          await adb.getAdbPath(),
+          ['-s', deviceId, 'shell', param.command],
+          { encoding: 'utf8' },
+        );
+        return stdout;
       },
     }),
     Launch: defineAction({

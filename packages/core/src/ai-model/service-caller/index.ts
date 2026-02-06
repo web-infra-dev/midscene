@@ -658,15 +658,12 @@ function normalizeJsonObject(obj: any): any {
       // Trim the key to remove leading/trailing spaces
       const trimmedKey = key.trim();
 
-      // Recursively normalize the value
-      let normalizedValue = normalizeJsonObject(value);
-
-      // Trim all string values
-      if (typeof normalizedValue === 'string') {
-        normalizedValue = normalizedValue.trim();
+      // Preserve `value` field string as-is (may contain intentional whitespace)
+      if (trimmedKey === 'value' && typeof value === 'string') {
+        normalized[trimmedKey] = value;
+      } else {
+        normalized[trimmedKey] = normalizeJsonObject(value);
       }
-
-      normalized[trimmedKey] = normalizedValue;
     }
 
     return normalized;

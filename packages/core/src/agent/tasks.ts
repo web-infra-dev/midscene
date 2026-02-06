@@ -469,8 +469,24 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
       this.conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
+      let actionOutputs: string[] = [];
       try {
+        // Record the number of tasks before executing this round
+        const runner = session.getRunner();
+        const previousTaskCount = runner.tasks.length;
+
         await session.appendAndRun(executables.tasks);
+        // Collect string outputs from executed actions (e.g., RunAdbShell command output)
+        // Note: must read from runner.tasks, not executables.tasks,
+        // because appendAndRun wraps each task in a new object via markTaskAsPending
+        // Only iterate over newly executed tasks (from previousTaskCount to end)
+        for (let i = previousTaskCount; i < runner.tasks.length; i++) {
+          const task = runner.tasks[i];
+          const output = (task as any).output;
+          if (typeof output === 'string') {
+            actionOutputs.push(output);
+          }
+        }
       } catch (error: any) {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
@@ -501,6 +517,14 @@ export class TaskExecutor {
         return session.appendErrorPlan(errorMsg);
       }
 
+      // Append action outputs (e.g., RunAdbShell results) to feedback message
+      // Use JSON.stringify to preserve special characters like \n, \t, etc.
+      if (actionOutputs.length > 0) {
+        const formattedOutputs = actionOutputs.map((output) => JSON.stringify(output));
+        const actionOutputText = `\nAction output:\n${formattedOutputs.join('\n')}`;
+        this.conversationHistory.pendingFeedbackMessage =
+          (this.conversationHistory.pendingFeedbackMessage || '') + actionOutputText;
+      }
       if (!this.conversationHistory.pendingFeedbackMessage) {
         const timeString = await this.getTimeString();
         this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
