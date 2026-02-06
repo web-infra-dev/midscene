@@ -9,6 +9,7 @@ export class ConversationHistory {
   private readonly messages: ChatCompletionMessageParam[] = [];
   private subGoals: SubGoal[] = [];
   private memories: string[] = [];
+  private historicalLogs: string[] = [];
 
   public pendingFeedbackMessage: string;
 
@@ -40,6 +41,7 @@ export class ConversationHistory {
     this.messages.length = 0;
     this.memories.length = 0;
     this.subGoals.length = 0;
+    this.historicalLogs.length = 0;
   }
 
   /**
@@ -225,6 +227,31 @@ export class ConversationHistory {
     }
 
     return `Sub-goals:\n${lines.join('\n')}${currentGoalText}`;
+  }
+
+  // Historical log management methods (used in non-deepThink mode)
+
+  /**
+   * Append a log entry to the historical logs list.
+   * Used in non-deepThink mode to track executed steps across planning rounds.
+   */
+  appendHistoricalLog(log: string): void {
+    if (log) {
+      this.historicalLogs.push(log);
+    }
+  }
+
+  /**
+   * Convert historical logs to text representation.
+   * Provides context about previously executed steps to the model.
+   */
+  historicalLogsToText(): string {
+    if (this.historicalLogs.length === 0) {
+      return '';
+    }
+
+    const logLines = this.historicalLogs.map((log) => `- ${log}`).join('\n');
+    return `Here are the steps that have been executed:\n${logLines}`;
   }
 
   // Memory management methods
