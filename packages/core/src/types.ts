@@ -112,9 +112,22 @@ export interface AgentDescribeElementAtPointResult {
 export abstract class UIContext {
   abstract screenshot: ScreenshotItem;
 
-  abstract size: Size;
+  abstract shotSize: Size;
 
   abstract _isFrozen?: boolean;
+
+  /**
+   * The ratio for converting shrunk screenshot coordinates to logical coordinates.
+   *
+   * Example:
+   * - Physical screen width: 3000px, dpr=6
+   * - Logical width: 500px
+   * - User-defined screenshotShrinkFactor: 2
+   * - Actual shrunk screenshot width: 3000 / 2 = 1500px
+   * - shrunkShotToLogicalRatio: dpr / screenshotShrinkFactor = 6 / 2 = 3
+   * - To map back to logical coordinates: 1500 / shrunkShotToLogicalRatio = 500px
+   */
+  abstract shrunkShotToLogicalRatio: number;
 }
 
 export type EnsureObject<T> = { [K in keyof T]: any };
@@ -1032,6 +1045,28 @@ export interface AgentOpt {
    * host machine. Default: false
    */
   useDeviceTimestamp?: boolean;
+
+  /**
+   * Custom screenshot shrink factor to reduce AI token usage.
+   * When set, the screenshot will be scaled down by this factor from the physical resolution.
+   *
+   * Example:
+   * - Physical screen width: 3000px, dpr=6
+   * - Logical width: 500px
+   * - screenshotShrinkFactor: 2
+   * - Actual shrunk screenshot width: 3000 / 2 = 1500px
+   * - AI analyzes the 1500px screenshot
+   * - Coordinates are transformed back to logical (500px) before actions execute
+   *
+   * Benefits:
+   * - Reduces token usage for high-resolution screenshots
+   * - Maintains accuracy by scaling coordinates appropriately
+   *
+   * Must be >= 1 (shrinking only, enlarging is not supported).
+   *
+   * @default 1 (no shrinking, uses original physical screenshot)
+   */
+  screenshotShrinkFactor?: number;
 
   /**
    * Custom OpenAI client factory function

@@ -150,8 +150,8 @@ export async function AiLocateElement(options: {
     : systemPromptToLocateElement(modelFamily);
 
   let imagePayload = screenshotBase64;
-  let imageWidth = context.size.width;
-  let imageHeight = context.size.height;
+  let imageWidth = context.shotSize.width;
+  let imageHeight = context.shotSize.height;
   let originalImageWidth = imageWidth;
   let originalImageHeight = imageHeight;
 
@@ -442,12 +442,12 @@ export async function AiLocateSection(options: {
   if (sectionBbox) {
     const targetRect = adaptBboxToRect(
       sectionBbox,
-      context.size.width,
-      context.size.height,
+      context.shotSize.width,
+      context.shotSize.height,
       0,
       0,
-      context.size.width,
-      context.size.height,
+      context.shotSize.width,
+      context.shotSize.height,
       modelFamily,
     );
     debugSection('original targetRect %j', targetRect);
@@ -460,12 +460,12 @@ export async function AiLocateSection(options: {
       .map((bbox) => {
         return adaptBboxToRect(
           bbox,
-          context.size.width,
-          context.size.height,
+          context.shotSize.width,
+          context.shotSize.height,
           0,
           0,
-          context.size.width,
-          context.size.height,
+          context.shotSize.width,
+          context.shotSize.height,
           modelFamily,
         );
       });
@@ -475,7 +475,7 @@ export async function AiLocateSection(options: {
     const mergedRect = mergeRects([targetRect, ...referenceRects]);
     debugSection('mergedRect %j', mergedRect);
 
-    sectionRect = expandSearchArea(mergedRect, context.size);
+    sectionRect = expandSearchArea(mergedRect, context.shotSize);
     debugSection('expanded sectionRect %j', sectionRect);
   }
 

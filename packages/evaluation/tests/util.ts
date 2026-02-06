@@ -6,7 +6,6 @@ import {
   imageInfoOfBase64,
   localImg2Base64,
 } from '@midscene/shared/img';
-import { WebPageContextParser } from '@midscene/web';
 
 export { annotateRects };
 
