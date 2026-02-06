@@ -391,10 +391,20 @@ export async function callAI(
       const retryCount = modelConfig.retryCount ?? 1;
       const retryInterval = modelConfig.retryInterval ?? 2000;
       const maxAttempts = retryCount + 1; // retryCount=1 means 2 total attempts (1 initial + 1 retry)
+      const debugRetry = getDebug('ai:retry');
+
+      debugRetry(
+        `retry config: retryCount=${retryCount}, retryInterval=${retryInterval}ms, maxAttempts=${maxAttempts}`,
+      );
 
       let lastError: Error | undefined;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const attemptStartTime = Date.now();
+        debugRetry(
+          `attempt ${attempt}/${maxAttempts} starting for model ${modelName}`,
+        );
+
         try {
           const result = await completion.create({
             model: modelName,
@@ -404,6 +414,11 @@ export async function callAI(
           } as any);
 
           timeCost = Date.now() - startTime;
+          const attemptDuration = Date.now() - attemptStartTime;
+
+          debugRetry(
+            `attempt ${attempt}/${maxAttempts} succeeded in ${attemptDuration}ms`,
+          );
 
           debugProfileStats(
             `model, ${modelName}, mode, ${modelFamily || 'default'}, ui-tars-version, ${uiTarsModelVersion}, prompt-tokens, ${result.usage?.prompt_tokens || ''}, completion-tokens, ${result.usage?.completion_tokens || ''}, total-tokens, ${result.usage?.total_tokens || ''}, cost-ms, ${timeCost}, requestId, ${result._request_id || ''}, temperature, ${temperature ?? ''}`,
@@ -443,11 +458,23 @@ export async function callAI(
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;
+          const attemptDuration = Date.now() - attemptStartTime;
+
+          debugRetry(
+            `attempt ${attempt}/${maxAttempts} failed after ${attemptDuration}ms, error: ${lastError.message}`,
+          );
+          debugRetry(`error details: ${lastError.stack || lastError}`);
+
           if (attempt < maxAttempts) {
+            debugRetry(
+              `scheduling retry in ${retryInterval}ms (remaining attempts: ${maxAttempts - attempt})`,
+            );
             console.warn(
               `[Midscene] AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
             );
             await new Promise((resolve) => setTimeout(resolve, retryInterval));
+          } else {
+            debugRetry(`all ${maxAttempts} attempts exhausted, giving up`);
           }
         }
       }
