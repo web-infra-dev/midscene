@@ -219,7 +219,9 @@ export async function systemPromptToTaskPlanning({
     ? "First, observe the current screenshot and previous logs, then break down the user's instruction into multiple high-level sub-goals. Update the status of sub-goals based on what you see in the current screenshot."
     : 'First, observe the current screenshot and previous logs to understand the current state.';
 
-  const explicitInstructionRule = `CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`;
+  const explicitInstructionRule = shouldIncludeSubGoals
+    ? `CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`
+    : `CRITICAL - Following Instructions: You MUST execute ONLY the exact steps the user gives you - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.`;
 
   const thoughtTagDescription = shouldIncludeSubGoals
     ? `REQUIRED: You MUST always output the <thought> tag. Never skip it.
@@ -328,13 +330,16 @@ ${shouldIncludeSubGoals ? 'Based on the current screenshot and the status of all
 
 The user's instruction defines the EXACT scope of what you must accomplish. You MUST follow it precisely - nothing more, nothing less. Violating this rule may cause severe consequences such as data loss, unintended operations, or system failures.
 
-**Explicit instructions vs. High-level goals:**
+${shouldIncludeSubGoals ? `**Explicit instructions vs. High-level goals:**
 - If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
 - If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
 
 **What "goal accomplished" means:**
 - The goal is accomplished when you have done EXACTLY what the user asked - no extra steps, no assumptions.
-- Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
+- Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.` : `**Follow the instruction exactly:**
+- Treat the user's instruction as exact commands. Execute ONLY those steps, nothing more.
+- The goal is accomplished when you have done EXACTLY what the user asked - no extra steps, no assumptions.
+- Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.`}
 
 **Examples - Explicit instructions (execute exactly, no extra steps):**
 - "fill out the form" → Goal accomplished when all fields are filled. Do NOT submit the form.
