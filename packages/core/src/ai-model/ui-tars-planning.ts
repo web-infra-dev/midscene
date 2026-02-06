@@ -239,7 +239,7 @@ export async function uiTarsPlanning(
       });
     } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
-        console.warn(
+        debug(
           'No key found in action: hotkey. Will not perform action.',
         );
       } else {

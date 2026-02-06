@@ -241,7 +241,7 @@ export async function plan(
     planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-      console.warn(
+      debug(
         'Planning response included both an action and complete-goal; ignoring complete-goal output.',
       );
       planFromAI.finalizeMessage = undefined;
