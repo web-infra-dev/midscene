@@ -7,6 +7,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_REPORT_QUIET,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
@@ -112,15 +116,17 @@ export class ReportGenerator implements IReportGenerator {
     await this.flush();
     this.destroyed = true;
 
-    if (this.autoPrint && this.reportPath) {
+    if (
+      this.autoPrint &&
+      this.reportPath &&
+      !globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)
+    ) {
       if (this.screenshotMode === 'directory') {
-        console.log('\n[Midscene] Directory report generated.');
-        console.log(
+        logMsg('\n[Midscene] Directory report generated.');
+        logMsg(
           '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
         );
-        console.log(
-          `[Midscene] Example: npx serve ${dirname(this.reportPath)}`,
-        );
+        logMsg(`[Midscene] Example: npx serve ${dirname(this.reportPath)}`);
       } else {
         logMsg(`Midscene - report file updated: ${this.reportPath}`);
       }
