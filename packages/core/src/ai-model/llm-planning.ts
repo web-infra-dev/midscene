@@ -295,6 +295,7 @@ export async function plan(
     debug('locateFields', locateFields);
 
     locateFields.forEach((field) => {
+      if (!action.param) return;
       const locateResult = action.param[field];
       if (locateResult && modelFamily !== undefined) {
         // Always use model family to fill bbox parameters
