@@ -248,40 +248,40 @@ export async function plan(
     );
   }
 
-  if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-    console.warn(
-      'Planning response included both an action and complete-goal; ignoring complete-goal output.',
-    );
-    planFromAI.finalizeMessage = undefined;
-    planFromAI.finalizeSuccess = undefined;
-  }
-
-  const actions = planFromAI.action ? [planFromAI.action] : [];
-  let shouldContinuePlanning = true;
-
-  // Check if goal is completed via complete-goal tag
-  if (planFromAI.finalizeSuccess !== undefined) {
-    debug('goal completed via complete-goal tag, stop planning');
-    shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
-    if (includeSubGoals) {
-      conversationHistory.markAllSubGoalsFinished();
-    }
-  }
-
-  const returnValue: PlanningAIResponse = {
-    ...planFromAI,
-    actions,
-    rawResponse,
-    usage,
-    reasoning_content,
-    yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
-    shouldContinuePlanning,
-  };
-
-  assert(planFromAI, "can't get plans from AI");
-
   try {
+    if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+      console.warn(
+        'Planning response included both an action and complete-goal; ignoring complete-goal output.',
+      );
+      planFromAI.finalizeMessage = undefined;
+      planFromAI.finalizeSuccess = undefined;
+    }
+
+    const actions = planFromAI.action ? [planFromAI.action] : [];
+    let shouldContinuePlanning = true;
+
+    // Check if goal is completed via complete-goal tag
+    if (planFromAI.finalizeSuccess !== undefined) {
+      debug('goal completed via complete-goal tag, stop planning');
+      shouldContinuePlanning = false;
+      // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
+      if (includeSubGoals) {
+        conversationHistory.markAllSubGoalsFinished();
+      }
+    }
+
+    const returnValue: PlanningAIResponse = {
+      ...planFromAI,
+      actions,
+      rawResponse,
+      usage,
+      reasoning_content,
+      yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
+      shouldContinuePlanning,
+    };
+
+    assert(planFromAI, "can't get plans from AI");
+
     actions.forEach((action) => {
       const type = action.type;
       const actionInActionSpace = opts.actionSpace.find(
@@ -308,41 +308,44 @@ export async function plan(
         }
       });
     });
+
+    // Update sub-goals in conversation history based on response (only when deepThink is enabled)
+    if (includeSubGoals) {
+      if (planFromAI.updateSubGoals?.length) {
+        conversationHistory.setSubGoals(planFromAI.updateSubGoals);
+      }
+      if (planFromAI.markFinishedIndexes?.length) {
+        for (const index of planFromAI.markFinishedIndexes) {
+          conversationHistory.markSubGoalFinished(index);
+        }
+      }
+    }
+
+    // Append memory to conversation history if present
+    if (planFromAI.memory) {
+      conversationHistory.appendMemory(planFromAI.memory);
+    }
+
+    conversationHistory.append({
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: rawResponse,
+        },
+      ],
+    });
+
+    return returnValue;
   } catch (e) {
+    if (e instanceof AIResponseParseError) {
+      throw e;
+    }
     const errorMessage = e instanceof Error ? e.message : String(e);
     throw new AIResponseParseError(
-      `Failed to process actions: ${errorMessage}`,
+      `Failed to process planning response: ${errorMessage}`,
       rawResponse,
       usage,
     );
   }
-
-  // Update sub-goals in conversation history based on response (only when deepThink is enabled)
-  if (includeSubGoals) {
-    if (planFromAI.updateSubGoals?.length) {
-      conversationHistory.setSubGoals(planFromAI.updateSubGoals);
-    }
-    if (planFromAI.markFinishedIndexes?.length) {
-      for (const index of planFromAI.markFinishedIndexes) {
-        conversationHistory.markSubGoalFinished(index);
-      }
-    }
-  }
-
-  // Append memory to conversation history if present
-  if (planFromAI.memory) {
-    conversationHistory.appendMemory(planFromAI.memory);
-  }
-
-  conversationHistory.append({
-    role: 'assistant',
-    content: [
-      {
-        type: 'text',
-        text: rawResponse,
-      },
-    ],
-  });
-
-  return returnValue;
 }
