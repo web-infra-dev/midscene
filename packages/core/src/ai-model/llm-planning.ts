@@ -217,7 +217,7 @@ export async function plan(
   // Compress history if it exceeds the threshold to avoid context overflow
   conversationHistory.compressHistory(50, 20);
 
-  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount ?? 2);
+  const historyLog = conversationHistory.snapshot(opts.imagesIncludeCount);
 
   const msgs: ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
