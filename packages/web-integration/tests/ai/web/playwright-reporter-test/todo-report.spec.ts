@@ -15,7 +15,10 @@ test('ai report', async ({ page, ai, aiAssert, aiQuery }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(`file:${htmlFile}`);
   await ai(
-    'Move your mouse over the task file path (on the right of the logo, with a check or cross icon) and click ai todo from the drop-down list',
+    'In the left sidebar, click the dropdown selector that shows a status icon (✓ or ✗) with a test case name, to expand the dropdown list',
+  );
+  await ai(
+    'In the expanded dropdown list, click the option containing "ai todo"',
   );
   const actionsList = await aiQuery(
     'Array<{title: string(task name,include action、wait), actions: Array<string(task action name,Excluding time)>}>',
