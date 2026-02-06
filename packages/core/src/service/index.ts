@@ -3,6 +3,7 @@ import {
   AIResponseParseError,
   AiExtractElementInfo,
   AiLocateElement,
+  AiLocateElements,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
@@ -12,7 +13,9 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  LocateAllResultWithDump,
   LocateResultWithDump,
+  LocateResultsWithDump,
   PartialServiceDumpFromSDK,
   Rect,
   ServiceExtractOption,
@@ -29,12 +32,14 @@ import {
 } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
+import type { LocateResultElement } from '@midscene/shared/types';
 import { assert } from '@midscene/shared/utils';
 import type { TMultimodalPrompt } from '../common';
 import { createServiceDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
+  mode?: 'single' | 'multi' | 'all';
 }
 
 export type AnyValue<T> = {
@@ -69,9 +74,41 @@ export default class Service {
 
   async locate(
     query: DetailedLocateParam,
+    opt: LocateOpts & { mode?: 'single' },
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultWithDump>;
+  async locate(
+    query: DetailedLocateParam[],
+    opt: LocateOpts & { mode: 'multi' },
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultsWithDump<LocateResultElement | null>>;
+  async locate(
+    query: DetailedLocateParam,
+    opt: LocateOpts & { mode: 'all' },
+    modelConfig: IModelConfig,
+  ): Promise<LocateAllResultWithDump>;
+  async locate(
+    query: DetailedLocateParam | DetailedLocateParam[],
     opt: LocateOpts,
     modelConfig: IModelConfig,
-  ): Promise<LocateResultWithDump> {
+  ): Promise<
+    | LocateResultWithDump
+    | LocateResultsWithDump<LocateResultElement | null>
+    | LocateAllResultWithDump
+  > {
+    const mode = opt?.mode ?? (Array.isArray(query) ? 'multi' : 'single');
+    if (mode === 'multi') {
+      assert(Array.isArray(query), 'queries must be an array for locate multi');
+      return this.locateMulti(query, opt, modelConfig);
+    }
+    if (mode === 'all') {
+      assert(
+        !Array.isArray(query),
+        'query must be a single prompt for locate all',
+      );
+      return this.locateAll(query, opt, modelConfig);
+    }
+    assert(!Array.isArray(query), 'query must be a single prompt for locate');
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
 
@@ -201,6 +238,99 @@ export default class Service {
       element: null,
       rect,
       dump,
+    };
+  }
+
+  private async locateBatch(
+    queries: DetailedLocateParam | DetailedLocateParam[],
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+    mode: 'multi' | 'all',
+  ): Promise<LocateResultsWithDump<LocateResultElement | null>> {
+    const isMulti = mode === 'multi';
+    const queriesArray = Array.isArray(queries) ? queries : [queries];
+
+    if (isMulti) {
+      assert(queriesArray.length > 0, 'queries must not be empty');
+    }
+
+    const queryPrompts = queriesArray.map((q) =>
+      typeof q === 'string' ? q : q.prompt,
+    );
+    const context = opt?.context || (await this.contextRetrieverFn());
+
+    const startTime = Date.now();
+    const { parseResult, rawResponse, usage } = await AiLocateElements({
+      callAIFn: this.aiVendorFn,
+      context,
+      targetElementDescriptions: isMulti ? queryPrompts : queryPrompts[0],
+      mode,
+      modelConfig,
+    });
+
+    const timeCost = Date.now() - startTime;
+    const taskInfo: ServiceTaskInfo = {
+      ...(this.taskInfo ? this.taskInfo : {}),
+      durationMs: timeCost,
+      rawResponse: JSON.stringify(rawResponse),
+      formatResponse: JSON.stringify(parseResult),
+      usage,
+    };
+
+    let errorLog: string | undefined;
+    if (parseResult.errors?.length) {
+      errorLog = `failed to locate elements: \n${parseResult.errors.join('\n')}`;
+    }
+
+    const matchedElements = parseResult.elements.filter(
+      (e): e is LocateResultElement => e !== null,
+    );
+
+    const dumpData: PartialServiceDumpFromSDK = {
+      type: 'locate',
+      userQuery: {
+        element: isMulti
+          ? JSON.stringify(queryPrompts)
+          : JSON.stringify(queryPrompts[0]),
+      },
+      matchedElement: matchedElements,
+      data: null,
+      taskInfo,
+      deepThink: false,
+      error: errorLog,
+    };
+
+    const dump = createServiceDump(dumpData);
+
+    if (!isMulti && errorLog) {
+      throw new ServiceError(errorLog, dump);
+    }
+
+    return {
+      results: parseResult.elements,
+      dump,
+    };
+  }
+
+  async locateMulti(
+    queries: DetailedLocateParam[],
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultsWithDump<LocateResultElement | null>> {
+    return this.locateBatch(queries, opt, modelConfig, 'multi');
+  }
+
+  async locateAll(
+    query: DetailedLocateParam,
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<LocateAllResultWithDump> {
+    const result = await this.locateBatch(query, opt, modelConfig, 'all');
+    return {
+      results: result.results.filter(
+        (e): e is LocateResultElement => e !== null,
+      ),
+      dump: result.dump,
     };
   }
 

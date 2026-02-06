@@ -40,6 +40,11 @@ import {
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
 import {
+  type LocateMode,
+  findElementsPrompt,
+  systemPromptToLocateElements,
+} from './prompt/llm-locator-batch';
+import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
@@ -627,5 +632,118 @@ export async function AiJudgeOrderSensitive(
   return {
     isOrderSensitive: result.content.isOrderSensitive ?? false,
     usage: result.usage,
+  };
+}
+
+export async function AiLocateElements(options: {
+  context: UIContext;
+  targetElementDescriptions: TUserPrompt | TUserPrompt[];
+  mode: LocateMode;
+  callAIFn: typeof callAIWithObjectResponse<{
+    elements: Array<{ bbox: [number, number, number, number] | [] }>;
+    errors?: string[];
+  }>;
+  modelConfig: IModelConfig;
+}): Promise<{
+  parseResult: {
+    elements: Array<LocateResultElement | null>;
+    errors?: string[];
+  };
+  rawResponse: string;
+  usage?: AIUsageInfo;
+}> {
+  const { context, targetElementDescriptions, mode, callAIFn, modelConfig } =
+    options;
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = context.screenshot.base64;
+
+  // Normalize descriptions to array for uniform processing
+  const descriptionsArray = Array.isArray(targetElementDescriptions)
+    ? targetElementDescriptions
+    : [targetElementDescriptions];
+  const descriptionsText = descriptionsArray.map((d) =>
+    extraTextFromUserPrompt(d),
+  );
+
+  // For 'all' mode, use single description; for 'multi' mode, use array
+  const promptInput =
+    mode === 'all' ? descriptionsText[0] : descriptionsText;
+  const userInstructionPrompt = findElementsPrompt(promptInput, mode);
+  const systemPrompt = systemPromptToLocateElements(modelFamily, mode);
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: screenshotBase64,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: userInstructionPrompt,
+        },
+      ],
+    },
+  ];
+
+  const { content, usage, contentString } = await callAIFn(msgs, modelConfig);
+
+  const elements: Array<LocateResultElement | null> = [];
+  if (content.elements && Array.isArray(content.elements)) {
+    content.elements.forEach((item, index) => {
+      const bbox = item.bbox;
+      if (bbox && bbox.length === 4) {
+        const rect = adaptBboxToRect(
+          bbox,
+          context.size.width,
+          context.size.height,
+          undefined,
+          undefined,
+          context.size.width,
+          context.size.height,
+          modelFamily,
+        );
+        const center = {
+          x: Math.round(rect.left + rect.width / 2),
+          y: Math.round(rect.top + rect.height / 2),
+        };
+        // For 'all' mode, all elements share the same description
+        // For 'multi' mode, each element has its own description
+        const description =
+          mode === 'all' ? descriptionsText[0] : descriptionsText[index] || '';
+        elements.push({
+          rect,
+          center: [center.x, center.y],
+          description,
+        });
+      } else if (mode === 'multi') {
+        // Only push null for 'multi' mode when bbox is invalid
+        elements.push(null);
+      }
+    });
+  }
+
+  // For 'multi' mode, ensure output length matches input length
+  if (mode === 'multi') {
+    while (elements.length < descriptionsArray.length) {
+      elements.push(null);
+    }
+    if (elements.length > descriptionsArray.length) {
+      elements.length = descriptionsArray.length;
+    }
+  }
+
+  return {
+    parseResult: {
+      elements,
+      errors: content.errors,
+    },
+    rawResponse: contentString,
+    usage,
   };
 }
