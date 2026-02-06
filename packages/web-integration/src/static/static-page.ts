@@ -8,6 +8,7 @@ import {
   defineActionKeyboardPress,
   defineActionRightClick,
   defineActionScroll,
+  defineActionSwipe,
   defineActionTap,
 } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
@@ -56,6 +57,9 @@ export default class StaticPage implements AbstractInterface {
       }),
       defineActionDragAndDrop(async (param) => {
         ThrowNotImplemented('DragAndDrop');
+      }),
+      defineActionSwipe(async (param) => {
+        ThrowNotImplemented('Swipe');
       }),
     ];
   }

@@ -315,7 +315,7 @@ export const defineActionDragAndDrop = (
   >({
     name: 'DragAndDrop',
     description:
-      'Drag and drop (hold the mouse or finger down and move the mouse) ',
+      'Drag and drop to reposition a UI element from one location to another (e.g., drag a card to reorder, move a file to a folder, sort list items). Both "from" and "to" must be specific visible elements.',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
     call,
@@ -396,7 +396,7 @@ export const defineActionSwipe = (
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a swipe gesture. You must specify either "end" (target location) or "distance" + "direction" - they are mutually exclusive. Use "end" for precise location-based swipes, or "distance" + "direction" for relative movement.',
+      'Perform a touch swipe gesture that affects the viewport or content (e.g., swipe between pages, swipe to dismiss a notification, swipe to navigate). Use "distance" + "direction" for relative movement, or "end" for precise endpoint. Do NOT use this for repositioning UI elements -- use DragAndDrop instead.',
     paramSchema: ActionSwipeParamSchema,
     call,
   });
