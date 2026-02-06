@@ -912,7 +912,7 @@ export class Agent<
       }
 
       // If cache matched but yamlWorkflow is empty, fall through to normal execution
-      const imagesIncludeCount: number | undefined = deepThink ? undefined : 2;
+      const imagesIncludeCount: number | undefined = deepThink ? undefined : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
