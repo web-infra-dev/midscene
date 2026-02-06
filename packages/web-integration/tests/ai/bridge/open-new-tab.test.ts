@@ -15,17 +15,15 @@ describeIf('open new tab in bridge mode', () => {
       timeout: 3 * 60 * 1000,
     },
     async () => {
-      const agent = new AgentOverChromeBridge({
-        cache: { id: 'bridge-open-new-tab' },
-      });
-      await agent.connectNewTabWithUrl('https://www.baidu.com');
+      const agent = new AgentOverChromeBridge();
+      await agent.connectNewTabWithUrl('https://www.google.com');
 
-      await agent.aiAct('查询杭州今天的天气');
+      await agent.aiAct('search "midscene github" and open the first result');
 
       // sleep 3s
       await sleep(5000);
 
-      await agent.aiAssert('the page is "杭州天气"');
+      await agent.aiAssert('the page is "midscene github"');
 
       await agent.destroy();
     },
