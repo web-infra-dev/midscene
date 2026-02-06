@@ -447,18 +447,26 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const locatePrompt: TUserPrompt | undefined = locate ?? aiScroll;
 
         await agent.aiScroll(locatePrompt, scrollOptions);
+      } else if ('aiTap' in flowItem) {
+        const { aiTap, ...tapOptions } = flowItem as any;
+        const locatePrompt: TUserPrompt =
+          typeof aiTap === 'string'
+            ? aiTap
+            : (aiTap?.prompt ?? (tapOptions as any).locate);
+        assert(locatePrompt, 'missing prompt for aiTap');
+        await agent.aiTap(locatePrompt, tapOptions);
       } else {
         // generic action, find the action in actionSpace
 
-        /* for aiTap, aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
+        /* for aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
 
-        - aiTap: 'search input box'
-        - aiTap: 'search input box'
+        - aiRightClick: 'search input box'
+        - aiRightClick: 'search input box'
           deepThink: true
           cacheable: false
-        - aiTap:
+        - aiRightClick:
           prompt: 'search input box'
-        - aiTap:
+        - aiRightClick:
           prompt: 'search input box'
           deepThink: true
           cacheable: false
