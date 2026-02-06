@@ -281,32 +281,41 @@ export async function plan(
 
   assert(planFromAI, "can't get plans from AI");
 
-  actions.forEach((action) => {
-    const type = action.type;
-    const actionInActionSpace = opts.actionSpace.find(
-      (action) => action.name === type,
-    );
+  try {
+    actions.forEach((action) => {
+      const type = action.type;
+      const actionInActionSpace = opts.actionSpace.find(
+        (action) => action.name === type,
+      );
 
-    debug('actionInActionSpace matched', actionInActionSpace);
-    const locateFields = actionInActionSpace
-      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-      : [];
+      debug('actionInActionSpace matched', actionInActionSpace);
+      const locateFields = actionInActionSpace
+        ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
+        : [];
 
-    debug('locateFields', locateFields);
+      debug('locateFields', locateFields);
 
-    locateFields.forEach((field) => {
-      const locateResult = action.param[field];
-      if (locateResult && modelFamily !== undefined) {
-        // Always use model family to fill bbox parameters
-        action.param[field] = fillBboxParam(
-          locateResult,
-          imageWidth,
-          imageHeight,
-          modelFamily,
-        );
-      }
+      locateFields.forEach((field) => {
+        const locateResult = action.param[field];
+        if (locateResult && modelFamily !== undefined) {
+          // Always use model family to fill bbox parameters
+          action.param[field] = fillBboxParam(
+            locateResult,
+            imageWidth,
+            imageHeight,
+            modelFamily,
+          );
+        }
+      });
     });
-  });
+  } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    throw new AIResponseParseError(
+      `Failed to process actions: ${errorMessage}`,
+      rawResponse,
+      usage,
+    );
+  }
 
   // Update sub-goals in conversation history based on response (only when deepThink is enabled)
   if (includeSubGoals) {
