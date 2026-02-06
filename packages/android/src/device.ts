@@ -1834,17 +1834,15 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z.object({
-  command: z.string().describe('ADB shell command to execute'),
-});
+const runAdbShellParamSchema = z
+  .string()
+  .describe('ADB shell command to execute');
 
-const launchParamSchema = z.object({
-  uri: z
-    .string()
-    .describe(
-      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
-    ),
-});
+const launchParamSchema = z
+  .string()
+  .describe(
+    'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+  );
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
@@ -1867,12 +1865,12 @@ const createPlatformActions = (
       description: 'Execute ADB shell command on Android device',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
-      call: async (param) => {
-        if (!param.command || param.command.trim() === '') {
+      call: async (command: string) => {
+        if (!command || command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
         }
         const adb = await device.getAdb();
-        return await adb.shell(param.command);
+        return await adb.shell(command);
       },
     }),
     Launch: defineAction({
@@ -1880,11 +1878,11 @@ const createPlatformActions = (
       description: 'Launch an Android app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
-      call: async (param) => {
-        if (!param.uri || param.uri.trim() === '') {
+      call: async (uri: string) => {
+        if (!uri || uri.trim() === '') {
           throw new Error('Launch requires a non-empty uri parameter');
         }
-        await device.launch(param.uri);
+        await device.launch(uri);
       },
     }),
     AndroidBackButton: defineAction({

@@ -89,7 +89,7 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   async launch(uri: string): Promise<void> {
     const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
-    return action({ uri });
+    return action(uri);
   }
 
   /**
@@ -99,7 +99,7 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
   async runAdbShell(command: string): Promise<string> {
     const action =
       this.wrapActionInActionSpace<DeviceActionRunAdbShell>('RunAdbShell');
-    return action({ command });
+    return action(command);
   }
 
   private createActionWrapper<T extends DeviceAction>(
