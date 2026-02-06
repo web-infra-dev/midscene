@@ -38,6 +38,8 @@ export class ConversationHistory {
 
   reset() {
     this.messages.length = 0;
+    this.memories.length = 0;
+    this.subGoals.length = 0;
   }
 
   /**
