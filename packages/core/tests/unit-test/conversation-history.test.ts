@@ -40,6 +40,26 @@ describe('ConversationHistory', () => {
     expect(history.length).toBe(2);
   });
 
+  it('reset clears messages, memories, and subGoals', () => {
+    const history = new ConversationHistory();
+    history.append(userMessage('msg1'));
+    history.append(assistantMessage('msg2'));
+    history.appendMemory('Memory from task 1');
+    history.appendMemory('Another memory');
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Sub-goal 1' },
+      { index: 2, status: 'pending', description: 'Sub-goal 2' },
+    ]);
+
+    history.reset();
+
+    expect(history.length).toBe(0);
+    expect(history.snapshot()).toEqual([]);
+    expect(history.getMemories()).toEqual([]);
+    expect(history.memoriesToText()).toBe('');
+    expect(history.subGoalsToText()).toBe('');
+  });
+
   it('clears pending feedback message only when set', () => {
     const history = new ConversationHistory();
 
