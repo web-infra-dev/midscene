@@ -73,6 +73,14 @@ export function getDebug(topic: string): DebugFunction {
   return debugInstances.get(fullTopic)!;
 }
 
+export function getWarnLogger(topic: string): DebugFunction {
+  const debugFn = getDebug(topic);
+  return (...args: unknown[]): void => {
+    debugFn(...args);
+    console.warn('[Midscene]', ...args);
+  };
+}
+
 export function enableDebug(topic: string): void {
   if (ifInNode) {
     // In Node.js, we don't need to enable debug as we're using file logging

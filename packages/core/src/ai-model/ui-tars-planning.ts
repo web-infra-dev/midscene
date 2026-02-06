@@ -5,7 +5,7 @@ import type {
   UIContext,
 } from '@/types';
 import { type IModelConfig, UITarsModelVersion } from '@midscene/shared/env';
-import { getDebug } from '@midscene/shared/logger';
+import { getDebug, getWarnLogger } from '@midscene/shared/logger';
 import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 import { assert } from '@midscene/shared/utils';
 import { actionParser } from '@ui-tars/action-parser';
@@ -28,6 +28,7 @@ type ActionType =
   | 'wait';
 
 const debug = getDebug('ui-tars-planning');
+const warnLog = getWarnLogger('ui-tars-planning');
 const bboxSize = 10;
 const pointToBbox = (
   point: { x: number; y: number },
@@ -239,7 +240,7 @@ export async function uiTarsPlanning(
       });
     } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
-        debug(
+        warnLog(
           'No key found in action: hotkey. Will not perform action.',
         );
       } else {

@@ -8,7 +8,7 @@ import type {
 } from '@/types';
 import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
 import { paddingToMatchBlockByBase64 } from '@midscene/shared/img';
-import { getDebug } from '@midscene/shared/logger';
+import { getDebug, getWarnLogger } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import {
@@ -30,6 +30,7 @@ import {
 } from './service-caller/index';
 
 const debug = getDebug('planning');
+const warnLog = getWarnLogger('planning');
 
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
@@ -241,7 +242,7 @@ export async function plan(
     planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-      debug(
+      warnLog(
         'Planning response included both an action and complete-goal; ignoring complete-goal output.',
       );
       planFromAI.finalizeMessage = undefined;
