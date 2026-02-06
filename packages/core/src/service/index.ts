@@ -2,9 +2,8 @@ import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
   AIResponseParseError,
   AiExtractElementInfo,
-  AiLocateAllElements,
   AiLocateElement,
-  AiLocateMultipleElements,
+  AiLocateElements,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
 import { AiLocateSection } from '@/ai-model/inspect';
@@ -251,22 +250,30 @@ export default class Service {
     };
   }
 
-  async locateMulti(
-    queries: DetailedLocateParam[],
+  private async locateBatch(
+    queries: DetailedLocateParam | DetailedLocateParam[],
     opt: LocateOpts,
     modelConfig: IModelConfig,
+    mode: 'multi' | 'all',
   ): Promise<LocateResultsWithDump<LocateResultElement | null>> {
-    assert(queries.length > 0, 'queries must not be empty');
-    const queryPrompts = queries.map((q) =>
+    const isMulti = mode === 'multi';
+    const queriesArray = Array.isArray(queries) ? queries : [queries];
+
+    if (isMulti) {
+      assert(queriesArray.length > 0, 'queries must not be empty');
+    }
+
+    const queryPrompts = queriesArray.map((q) =>
       typeof q === 'string' ? q : q.prompt,
     );
     const context = opt?.context || (await this.contextRetrieverFn());
 
     const startTime = Date.now();
-    const { parseResult, rawResponse, usage } = await AiLocateMultipleElements({
+    const { parseResult, rawResponse, usage } = await AiLocateElements({
       callAIFn: this.aiVendorFn,
       context,
-      targetElementDescriptions: queryPrompts,
+      targetElementDescriptions: isMulti ? queryPrompts : queryPrompts[0],
+      mode,
       modelConfig,
     });
 
@@ -291,7 +298,9 @@ export default class Service {
     const dumpData: PartialServiceDumpFromSDK = {
       type: 'locate',
       userQuery: {
-        element: JSON.stringify(queryPrompts),
+        element: isMulti
+          ? JSON.stringify(queryPrompts)
+          : JSON.stringify(queryPrompts[0]),
       },
       matchedElement: matchedElements,
       data: null,
@@ -302,10 +311,22 @@ export default class Service {
 
     const dump = createServiceDump(dumpData);
 
+    if (!isMulti && errorLog) {
+      throw new ServiceError(errorLog, dump);
+    }
+
     return {
       results: parseResult.elements,
       dump,
     };
+  }
+
+  async locateMulti(
+    queries: DetailedLocateParam[],
+    opt: LocateOpts,
+    modelConfig: IModelConfig,
+  ): Promise<LocateResultsWithDump<LocateResultElement | null>> {
+    return this.locateBatch(queries, opt, modelConfig, 'multi');
   }
 
   async locateAll(
@@ -313,52 +334,12 @@ export default class Service {
     opt: LocateOpts,
     modelConfig: IModelConfig,
   ): Promise<LocateAllResultWithDump> {
-    const queryPrompt = typeof query === 'string' ? query : query.prompt;
-    const context = opt?.context || (await this.contextRetrieverFn());
-
-    const startTime = Date.now();
-    const { parseResult, rawResponse, usage } = await AiLocateAllElements({
-      callAIFn: this.aiVendorFn,
-      context,
-      targetElementDescription: queryPrompt,
-      modelConfig,
-    });
-
-    const timeCost = Date.now() - startTime;
-    const taskInfo: ServiceTaskInfo = {
-      ...(this.taskInfo ? this.taskInfo : {}),
-      durationMs: timeCost,
-      rawResponse: JSON.stringify(rawResponse),
-      formatResponse: JSON.stringify(parseResult),
-      usage,
-    };
-
-    let errorLog: string | undefined;
-    if (parseResult.errors?.length) {
-      errorLog = `failed to locate elements: \n${parseResult.errors.join('\n')}`;
-    }
-
-    const dumpData: PartialServiceDumpFromSDK = {
-      type: 'locate',
-      userQuery: {
-        element: JSON.stringify(queryPrompt),
-      },
-      matchedElement: parseResult.elements,
-      data: null,
-      taskInfo,
-      deepThink: false,
-      error: errorLog,
-    };
-
-    const dump = createServiceDump(dumpData);
-
-    if (errorLog) {
-      throw new ServiceError(errorLog, dump);
-    }
-
+    const result = await this.locateBatch(query, opt, modelConfig, 'all');
     return {
-      results: parseResult.elements,
-      dump,
+      results: result.results.filter(
+        (e): e is LocateResultElement => e !== null,
+      ),
+      dump: result.dump,
     };
   }
 
