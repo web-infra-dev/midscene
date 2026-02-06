@@ -5,6 +5,7 @@ import type {
   ElementCacheFeature,
   LocateResultElement,
   PlanningLocateParam,
+  Rect,
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
@@ -14,6 +15,7 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { generateElementByRect } from '@midscene/shared/extractor';
+import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import { assert, logMsg, uuid } from '@midscene/shared/utils';
@@ -21,38 +23,104 @@ import dayjs from 'dayjs';
 import type { TaskCache } from './task-cache';
 import { debug as cacheDebug } from './task-cache';
 
-const debugProfile = getDebug('web:tool:profile');
-
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
+  _opt: { uploadServerUrl?: string; screenshotShrinkFactor?: number },
 ): Promise<UIContext> {
+  const debug = getDebug('commonContextParser');
+
   assert(interfaceInstance, 'interfaceInstance is required');
 
-  debugProfile('Getting interface description');
+  debug('Getting interface description');
   const description = interfaceInstance.describe?.() || '';
-  debugProfile('Interface description end');
+  debug('Interface description end');
 
-  debugProfile('Uploading test info to server');
+  debug('Uploading test info to server');
   uploadTestInfoToServer({
     testUrl: description,
     serverUrl: _opt.uploadServerUrl,
   });
-  debugProfile('UploadTestInfoToServer end');
+  debug('UploadTestInfoToServer end');
+
+  debug('will get size');
+  const logicalSize = await interfaceInstance.size();
+  debug(
+    `size: ${logicalSize.width}x${logicalSize.height} dpr: ${logicalSize.dpr}`,
+  );
+
+  // Validate user-specified shrink factor
+  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
+
+  if (userShrinkFactor < 1) {
+    throw new Error(
+      `screenshotShrinkFactor must be >= 1, but got ${userShrinkFactor}. Enlarging screenshots are not supported.`,
+    );
+  }
 
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
-  debugProfile('will get size');
-  const size = await interfaceInstance.size();
-  debugProfile(`size: ${size.width}x${size.height} dpr: ${size.dpr}`);
+  const dpr = (() => {
+    if (logicalSize.dpr !== undefined) {
+      return logicalSize.dpr;
+    }
+    debug('dpr is not provided by interface, will treat as 1');
+    return 1;
+  })();
 
-  const screenshot = ScreenshotItem.create(screenshotBase64!);
+  if (dpr === 1 && userShrinkFactor === 1) {
+    return {
+      shotSize: {
+        width: logicalSize.width,
+        height: logicalSize.height,
+        // shotSize should not have dpr because it is the size of the screenshot, not the logical size
+        dpr: undefined,
+      },
+      screenshot: ScreenshotItem.create(screenshotBase64),
+      shrunkShotToLogicalRatio: 1,
+    };
+  } else {
+    // Get physical screenshot dimensions
+    debug('will get screenshot dimensions');
 
-  return {
-    size,
-    screenshot,
-  };
+    const { width: imgWidth, height: imgHeight } =
+      await imageInfoOfBase64(screenshotBase64);
+
+    debug('screenshot dimensions', imgWidth, 'x', imgHeight);
+
+    const shrunkShotToLogicalRatio = dpr / userShrinkFactor;
+
+    debug('shrunkShotToLogicalRatio', shrunkShotToLogicalRatio);
+
+    const targetWidth = Math.round(imgWidth / userShrinkFactor);
+    const targetHeight = Math.round(imgHeight / userShrinkFactor);
+
+    debug(
+      `Applying screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${targetWidth}x${targetHeight})`,
+    );
+
+    const screenshot = await (async () => {
+      if (userShrinkFactor !== 1) {
+        const resizedBase64 = await resizeImgBase64(screenshotBase64, {
+          width: targetWidth,
+          height: targetHeight,
+        });
+        return ScreenshotItem.create(resizedBase64);
+      }
+      return ScreenshotItem.create(screenshotBase64);
+    })();
+
+    return {
+      shotSize: {
+        width: targetWidth,
+        height: targetHeight,
+        // shotSize should not have dpr because it is the size of the screenshot, not the logical size
+        dpr: undefined,
+      },
+      screenshot,
+      shrunkShotToLogicalRatio,
+    };
+  }
 }
 
 export function getReportFileName(tag = 'web') {
@@ -249,5 +317,79 @@ export const parsePrompt = (
           convertHttpImage2Base64: !!prompt.convertHttpImage2Base64,
         }
       : undefined,
+  };
+};
+
+/**
+ * Transform coordinates from screenshot coordinate system to logical coordinate system.
+ * When shrunkShotToLogicalRatio > 1, the screenshot is larger than logical size,
+ * so we need to divide coordinates by shrunkShotToLogicalRatio.
+ *
+ * @param element - The locate result element with coordinates in screenshot space
+ * @param shrunkShotToLogicalRatio - The ratio of screenshot size to logical size
+ * @returns A new element with coordinates transformed to logical space
+ */
+export const transformScreenshotElementToLogical = (
+  element: LocateResultElement,
+  shrunkShotToLogicalRatio: number,
+): LocateResultElement => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return element;
+  }
+
+  return {
+    ...element,
+    center: [
+      Math.round(element.center[0] / shrunkShotToLogicalRatio),
+      Math.round(element.center[1] / shrunkShotToLogicalRatio),
+    ],
+    rect: {
+      ...element.rect,
+      left: Math.round(element.rect.left / shrunkShotToLogicalRatio),
+      top: Math.round(element.rect.top / shrunkShotToLogicalRatio),
+      width: Math.round(element.rect.width / shrunkShotToLogicalRatio),
+      height: Math.round(element.rect.height / shrunkShotToLogicalRatio),
+    },
+  };
+};
+
+export const transformLogicalElementToScreenshot = (
+  element: LocateResultElement,
+  shrunkShotToLogicalRatio: number,
+): LocateResultElement => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return element;
+  }
+
+  return {
+    ...element,
+    center: [
+      Math.round(element.center[0] * shrunkShotToLogicalRatio),
+      Math.round(element.center[1] * shrunkShotToLogicalRatio),
+    ],
+    rect: {
+      ...element.rect,
+      left: Math.round(element.rect.left * shrunkShotToLogicalRatio),
+      top: Math.round(element.rect.top * shrunkShotToLogicalRatio),
+      width: Math.round(element.rect.width * shrunkShotToLogicalRatio),
+      height: Math.round(element.rect.height * shrunkShotToLogicalRatio),
+    },
+  };
+};
+
+export const transformLogicalRectToScreenshotRect = (
+  rect: Rect,
+  shrunkShotToLogicalRatio: number,
+): Rect => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return rect;
+  }
+
+  return {
+    ...rect,
+    left: Math.round(rect.left * shrunkShotToLogicalRatio),
+    top: Math.round(rect.top * shrunkShotToLogicalRatio),
+    width: Math.round(rect.width * shrunkShotToLogicalRatio),
+    height: Math.round(rect.height * shrunkShotToLogicalRatio),
   };
 };

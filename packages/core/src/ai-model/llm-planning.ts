@@ -118,7 +118,7 @@ export async function plan(
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
-  const { size } = context;
+  const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
 
   const { modelFamily } = modelConfig;
@@ -135,8 +135,8 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64;
-  let imageWidth = size.width;
-  let imageHeight = size.height;
+  let imageWidth = shotSize.width;
+  let imageHeight = shotSize.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
 
