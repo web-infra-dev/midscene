@@ -30,6 +30,7 @@ import {
 } from './service-caller/index';
 
 const debug = getDebug('planning');
+const warnLog = getDebug('planning', { console: true });
 
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
@@ -241,7 +242,7 @@ export async function plan(
     planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-      console.warn(
+      warnLog(
         'Planning response included both an action and <complete>; ignoring <complete> output.',
       );
       planFromAI.finalizeMessage = undefined;
