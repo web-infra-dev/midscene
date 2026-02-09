@@ -24,7 +24,7 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 
-import { getDebug, getWarnLogger } from '@midscene/shared/logger';
+import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser } from '@midscene/shared/utils';
 import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
@@ -59,9 +59,9 @@ async function createChatClient({
   } = modelConfig;
 
   let proxyAgent: any = undefined;
-  const warnClient = getWarnLogger('ai:call');
+  const warnClient = getDebug('ai:call', { console: true });
   const debugProxy = getDebug('ai:call:proxy');
-  const warnProxy = getWarnLogger('ai:call:proxy');
+  const warnProxy = getDebug('ai:call:proxy', { console: true });
 
   // Helper function to sanitize proxy URL for logging (remove credentials)
   // Uses URL API instead of regex to avoid ReDoS vulnerabilities
@@ -240,7 +240,7 @@ export async function callAI(
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
-  const warnCall = getWarnLogger('ai:call');
+  const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
 
