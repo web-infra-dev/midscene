@@ -1834,15 +1834,15 @@ ${Object.keys(size)
  * Platform-specific action definitions for Android
  * Single source of truth for both runtime behavior and type definitions
  */
-const runAdbShellParamSchema = z
-  .string()
-  .describe('ADB shell command to execute');
+const runAdbShellParamSchema = z.string().describe('ADB shell command to execute');
 
-const launchParamSchema = z
-  .string()
-  .describe(
-    'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
-  );
+const launchParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'App name, package name, or URL to launch. Prioritize using the exact package name or URL the user has provided. If none provided, use the accurate app name.',
+    ),
+});
 
 type RunAdbShellParam = z.infer<typeof runAdbShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
@@ -1878,11 +1878,11 @@ const createPlatformActions = (
       description: 'Launch an Android app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
-      call: async (uri: string) => {
-        if (!uri || uri.trim() === '') {
+      call: async (param) => {
+        if (!param.uri || param.uri.trim() === '') {
           throw new Error('Launch requires a non-empty uri parameter');
         }
-        await device.launch(uri);
+        await device.launch(param.uri);
       },
     }),
     AndroidBackButton: defineAction({

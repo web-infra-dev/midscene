@@ -89,7 +89,7 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   async launch(uri: string): Promise<void> {
     const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
-    return action(uri);
+    return action({ uri });
   }
 
   /**
