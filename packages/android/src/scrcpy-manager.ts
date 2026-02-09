@@ -17,7 +17,7 @@ const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
 // Configuration defaults
 const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
-const DEFAULT_VIDEO_BIT_RATE = 2_000_000; // 2Mbps - balanced quality and performance
+const DEFAULT_VIDEO_BIT_RATE = 8_000_000; // 8Mbps - high quality for screenshot clarity
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
