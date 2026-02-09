@@ -64,8 +64,8 @@ export class ScrcpyDeviceAdapter {
 
   /**
    * Resolve scrcpy config.
-   * When maxSize is not explicitly set, auto-calculate to half the physical resolution.
-   * This provides 2x oversampling for Sharp lanczos3 downscale while keeping
+   * When maxSize is not explicitly set, auto-calculate to 2/3 of the physical resolution.
+   * This provides sufficient oversampling for Sharp lanczos3 downscale while keeping
    * the H.264 encoder fast enough to avoid stale-frame issues (残影).
    * videoBitRate is auto-scaled proportionally to the resolved pixel count.
    */
@@ -75,15 +75,15 @@ export class ScrcpyDeviceAdapter {
     const config = this.scrcpyConfig;
     let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
-    // Auto-calculate maxSize: half of physical resolution (2x oversampling)
+    // Auto-calculate maxSize: 2/3 of physical resolution
     if (config?.maxSize === undefined) {
       const physicalMax = Math.max(
         deviceInfo.physicalWidth,
         deviceInfo.physicalHeight,
       );
-      maxSize = Math.round(physicalMax / 2);
+      maxSize = Math.round((physicalMax * 2) / 3);
       debugAdapter(
-        `Auto-calculated maxSize: ${maxSize} (physical=${physicalMax}, half-resolution for 2x oversampling)`,
+        `Auto-calculated maxSize: ${maxSize} (physical=${physicalMax}, 2/3 resolution)`,
       );
     }
 

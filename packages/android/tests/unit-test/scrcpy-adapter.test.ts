@@ -96,17 +96,17 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('resolveConfig', () => {
-    it('should auto-calculate maxSize to half physical resolution', () => {
+    it('should auto-calculate maxSize to 2/3 physical resolution', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // max(1080, 1920) = 1920, half = 960
-      expect(config.maxSize).toBe(960);
+      // max(1080, 1920) = 1920, 2/3 = 1280
+      expect(config.maxSize).toBe(1280);
     });
 
     it('should auto-calculate maxSize regardless of screenshotResizeScale', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, 0.5);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(1280);
     });
 
     it('should use explicit maxSize without auto-calculation', () => {
@@ -134,9 +134,9 @@ describe('ScrcpyDeviceAdapter', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
-      // defaultDeviceInfo: 1080x1920, maxSize=960, scaleFactor=960/1920=0.5
-      // resolvedPixels = 1080*0.5 * 1920*0.5 = 518400
-      // ratio = 518400 / (1920*1080) = 0.25 → clamp to base 8Mbps
+      // defaultDeviceInfo: 1080x1920, maxSize=1280, scaleFactor=1280/1920=2/3
+      // resolvedPixels = 1080*(2/3) * 1920*(2/3) = 921600
+      // ratio = 921600 / (1920*1080) ≈ 0.44 → clamp to base 8Mbps
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
@@ -167,9 +167,9 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 0,
       };
       const config = adapter.resolveConfig(highRes);
-      // maxSize = round(3120/2) = 1560, scaleFactor = 1560/3120 = 0.5
-      // resolvedPixels = 1440*0.5 * 3120*0.5 = 1123200
-      // ratio = 1123200 / (1920*1080) ≈ 0.542 → clamp to base 8Mbps
+      // maxSize = round(3120*2/3) = 2080, scaleFactor = 2080/3120 = 2/3
+      // resolvedPixels = 1440*(2/3) * 3120*(2/3) = 1996800
+      // ratio = 1996800 / (1920*1080) ≈ 0.963 → clamp to base 8Mbps
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
@@ -198,8 +198,8 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 1,
       };
       const config = adapter.resolveConfig(landscape);
-      // max(1920, 1080) = 1920, half = 960
-      expect(config.maxSize).toBe(960);
+      // max(1920, 1080) = 1920, 2/3 = 1280
+      expect(config.maxSize).toBe(1280);
     });
   });
 
