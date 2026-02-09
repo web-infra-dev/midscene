@@ -231,9 +231,7 @@ ${explicitInstructionRule}`
 
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
-${explicitInstructionRule}
-
-CRITICAL - Page Navigation Restriction: Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only. Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs). If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure using <complete-goal success="false"> instead of attempting to navigate to other pages.`;
+${explicitInstructionRule}`;
 
   const subGoalTags = shouldIncludeSubGoals
     ? `
@@ -346,7 +344,12 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
-
+${!shouldIncludeSubGoals ? `
+**Page navigation restriction:**
+- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
+- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
+- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+` : ''}
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
@@ -364,7 +367,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
-${!shouldIncludeSubGoals ? '- IMPORTANT: Unless the user explicitly instructs you to click a link or navigate to another page, do NOT perform any action that would navigate away from the current page (such as clicking links to other pages, using browser navigation, or opening new URLs). All actions must be performed within the current page. If the required element or functionality is not available on the current page and the user has not asked you to navigate, report a failure instead of navigating elsewhere.' : ''}
 
 ### Supporting actions list
 
