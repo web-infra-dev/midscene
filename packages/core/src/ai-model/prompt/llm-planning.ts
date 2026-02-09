@@ -345,12 +345,16 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${shouldIncludeSubGoals ? 'the goal' : 'it'} as failed (success="false").
 - If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
-${!shouldIncludeSubGoals ? `
+${
+  !shouldIncludeSubGoals
+    ? `
 **Page navigation restriction:**
 - Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
 - Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
 - If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
-` : ''}
+`
+    : ''
+}
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
