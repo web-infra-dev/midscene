@@ -918,6 +918,9 @@ importers:
 
   packages/computer-mcp:
     dependencies:
+      '@computer-use/libnut':
+        specifier: ^4.2.0
+        version: 4.2.0(@computer-use/nut-js@4.2.0)
       '@silvia-odwyer/photon':
         specifier: 0.3.3
         version: 0.3.3
