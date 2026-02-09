@@ -449,12 +449,25 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         await agent.aiScroll(locatePrompt, scrollOptions);
       } else if ('aiTap' in flowItem) {
         const { aiTap, prompt, locate, ...tapOptions } = flowItem as any;
-        const locatePrompt: TUserPrompt =
-          typeof aiTap === 'string'
-            ? aiTap
-            : (aiTap?.prompt ?? prompt ?? locate);
+
+        let locatePrompt: TUserPrompt;
+        let opts = tapOptions;
+
+        if (typeof aiTap === 'string' && aiTap) {
+          // User YAML: aiTap: 'search input box'
+          locatePrompt = aiTap;
+        } else if (typeof locate === 'object' && locate?.prompt) {
+          // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepThink, cacheable } }
+          const { prompt: lp, ...locateOpts } = locate;
+          locatePrompt = lp;
+          opts = { ...locateOpts, ...tapOptions };
+        } else {
+          // User YAML: aiTap: { prompt: '...' } or aiTap: null + prompt: '...'
+          locatePrompt = aiTap?.prompt || prompt || locate;
+        }
+
         assert(locatePrompt, 'missing prompt for aiTap');
-        await agent.aiTap(locatePrompt, tapOptions);
+        await agent.aiTap(locatePrompt, opts);
       } else {
         // generic action, find the action in actionSpace
 
