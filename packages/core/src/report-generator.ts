@@ -7,6 +7,10 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_REPORT_QUIET,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
@@ -27,7 +31,7 @@ export interface IReportGenerator {
    */
   flush(): Promise<void>;
   /**
-   * Finalize the report. Calls flush() internally before printing the final message.
+   * Finalize the report. Calls flush() internally.
    */
   finalize(dump: GroupedActionDump): Promise<string | undefined>;
   getReportPath(): string | undefined;
@@ -45,6 +49,7 @@ export class ReportGenerator implements IReportGenerator {
   private screenshotMode: 'inline' | 'directory';
   private autoPrint: boolean;
   private writtenScreenshots = new Set<string>();
+  private firstWriteDone = false;
 
   // inline mode state
   private imageEndOffset = 0;
@@ -62,6 +67,7 @@ export class ReportGenerator implements IReportGenerator {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
     this.autoPrint = options.autoPrint ?? true;
+    this.printReportPath('will be generated at');
   }
 
   static create(
@@ -111,20 +117,7 @@ export class ReportGenerator implements IReportGenerator {
     this.onDumpUpdate(dump);
     await this.flush();
     this.destroyed = true;
-
-    if (this.autoPrint && this.reportPath) {
-      if (this.screenshotMode === 'directory') {
-        console.log('\n[Midscene] Directory report generated.');
-        console.log(
-          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
-        );
-        console.log(
-          `[Midscene] Example: npx serve ${dirname(this.reportPath)}`,
-        );
-      } else {
-        logMsg(`Midscene - report file updated: ${this.reportPath}`);
-      }
-    }
+    this.printReportPath('finalized');
 
     return this.reportPath;
   }
@@ -133,11 +126,29 @@ export class ReportGenerator implements IReportGenerator {
     return this.reportPath;
   }
 
+  private printReportPath(verb: string): void {
+    if (!this.autoPrint || !this.reportPath) return;
+    if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET))
+      return;
+
+    if (this.screenshotMode === 'directory') {
+      logMsg(
+        `Midscene - report ${verb}: npx serve ${dirname(this.reportPath)}`,
+      );
+    } else {
+      logMsg(`Midscene - report ${verb}: ${this.reportPath}`);
+    }
+  }
+
   private doWrite(dump: GroupedActionDump): void {
     if (this.screenshotMode === 'inline') {
       this.writeInlineReport(dump);
     } else {
       this.writeDirectoryReport(dump);
+    }
+    if (!this.firstWriteDone) {
+      this.firstWriteDone = true;
+      this.printReportPath('generated');
     }
   }
 
