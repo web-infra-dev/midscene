@@ -51,10 +51,7 @@ describe('IOSWebDriverClient.executeRequest session prefix', () => {
       .spyOn(client as any, 'makeRequest')
       .mockResolvedValue({ value: { ok: true } });
 
-    await client.executeRequest(
-      'GET',
-      '/session/fake-session-id/wda/screen',
-    );
+    await client.executeRequest('GET', '/session/fake-session-id/wda/screen');
 
     expect(makeRequestSpy).toHaveBeenCalledWith(
       'GET',
@@ -73,8 +70,8 @@ describe('IOSWebDriverClient.executeRequest session prefix', () => {
     });
 
     // No session set
-    await expect(
-      client.executeRequest('GET', '/wda/screen'),
-    ).rejects.toThrow('No active WebDriver session');
+    await expect(client.executeRequest('GET', '/wda/screen')).rejects.toThrow(
+      'No active WebDriver session',
+    );
   });
 });

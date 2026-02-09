@@ -41,8 +41,8 @@ describe('WebDriverClient.buildSessionEndpoint', () => {
       port: 8100,
       host: 'localhost',
     });
-    expect(() => noSessionClient.testBuildSessionEndpoint('/wda/screen')).toThrow(
-      'No active WebDriver session',
-    );
+    expect(() =>
+      noSessionClient.testBuildSessionEndpoint('/wda/screen'),
+    ).toThrow('No active WebDriver session');
   });
 });
