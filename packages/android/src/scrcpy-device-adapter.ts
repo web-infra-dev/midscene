@@ -63,31 +63,15 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Resolve scrcpy config with auto-calculated maxSize.
-   * Auto-calculation uses 1/DPR or screenshotResizeScale to match Agent layer's logical size.
+   * Resolve scrcpy config.
+   * maxSize defaults to 0 (no scaling) to preserve full physical resolution.
+   * Agent layer handles downscaling via Sharp lanczos3 for better quality.
    */
   resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
-    let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
-
-    // Auto-calculate maxSize if not explicitly set
-    if (config?.maxSize === undefined) {
-      const physicalMax = Math.max(
-        deviceInfo.physicalWidth,
-        deviceInfo.physicalHeight,
-      );
-      const scale = this.screenshotResizeScale ?? 1 / deviceInfo.dpr;
-      maxSize = Math.round(physicalMax * scale);
-      debugAdapter(
-        `Auto-calculated maxSize: ${maxSize} (physical=${physicalMax}, scale=${scale.toFixed(3)}, ${
-          this.screenshotResizeScale !== undefined
-            ? 'from screenshotResizeScale'
-            : 'from 1/dpr'
-        })`,
-      );
-    }
+    const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
     this.resolvedConfig = {
       enabled: this.isEnabled(),

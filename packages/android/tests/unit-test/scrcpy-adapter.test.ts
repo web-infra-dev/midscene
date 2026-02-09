@@ -96,21 +96,16 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('resolveConfig', () => {
-    it('should auto-calculate maxSize from 1/dpr when no explicit maxSize', () => {
+    it('should default maxSize to 0 (no scaling) when not explicitly set', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // physicalMax = max(1080, 1920) = 1920
-      // scale = 1 / 2.625 ≈ 0.381
-      // maxSize = round(1920 * 0.381) = 731
-      const expected = Math.round(1920 * (1 / 2.625));
-      expect(config.maxSize).toBe(expected);
+      expect(config.maxSize).toBe(0);
     });
 
-    it('should prefer screenshotResizeScale over 1/dpr', () => {
+    it('should default maxSize to 0 even with screenshotResizeScale', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, 0.5);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // physicalMax = 1920, scale = 0.5 → maxSize = 960
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(0);
     });
 
     it('should use explicit maxSize without auto-calculation', () => {
@@ -159,7 +154,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config1).toBe(config2);
     });
 
-    it('should handle landscape device (width > height)', () => {
+    it('should default maxSize to 0 for landscape device', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const landscape: DevicePhysicalInfo = {
         physicalWidth: 1920,
@@ -168,8 +163,7 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 1,
       };
       const config = adapter.resolveConfig(landscape);
-      // max(1920, 1080) = 1920, scale = 1/2 = 0.5 → maxSize = 960
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(0);
     });
   });
 

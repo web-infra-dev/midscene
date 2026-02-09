@@ -849,26 +849,8 @@ ${Object.keys(size)
   async size(): Promise<Size> {
     const deviceInfo = await this.getDevicePhysicalInfo();
 
-    // If scrcpy is enabled and connected, return its actual resolution
-    // This ensures size() matches the screenshot resolution exactly, avoiding Agent-layer resize
-    const adapter = this.getScrcpyAdapter();
-    if (adapter.isEnabled()) {
-      const scrcpySize = adapter.getSize(deviceInfo);
-      if (scrcpySize) {
-        const isLandscape =
-          deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
-        const shouldSwap =
-          deviceInfo.isCurrentOrientation !== true && isLandscape;
-        const physicalWidth = shouldSwap
-          ? deviceInfo.physicalHeight
-          : deviceInfo.physicalWidth;
-        this.scalingRatio =
-          adapter.getScalingRatio(physicalWidth) ?? this.scalingRatio;
-        return scrcpySize;
-      }
-    }
-
-    // Standard path: calculate logical size from physical size and DPR/screenshotResizeScale
+    // Always use standard path: calculate logical size from physical size and DPR/screenshotResizeScale
+    // Both ADB and scrcpy screenshots go through Agent-layer Sharp resize for consistent quality
     const isLandscape =
       deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
     const shouldSwap = deviceInfo.isCurrentOrientation !== true && isLandscape;
