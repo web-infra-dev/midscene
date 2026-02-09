@@ -9,6 +9,19 @@ import {
 } from 'remotion';
 import { mousePointer } from '../../../utils';
 import type { StepSegment } from './frame-calculator';
+import {
+  CYBER_CYAN,
+  CYBER_MAGENTA,
+  getCursorTrail,
+  getGlitchSlices,
+  getHudCorners,
+  getImageBlur,
+  getNeonFlicker,
+  getNeonTextShadow,
+  getRippleState,
+  getScanlineOffset,
+  getTypewriterChars,
+} from './visual-effects';
 
 // Easing functions
 const easeInOut = (t: number): number =>
@@ -34,18 +47,12 @@ interface FlatKeyframe {
   imageHeight: number;
 }
 
-/**
- * A single component that renders the entire steps timeline.
- * No per-step Sequences — one continuous animation with smooth
- * camera/pointer interpolation and image crossfades.
- */
 export const StepsTimeline: React.FC<{
   segments: StepSegment[];
 }> = ({ segments }) => {
   const frame = useCurrentFrame();
   const { fps, width: compWidth, height: compHeight } = useVideoConfig();
 
-  // Flatten all keyframes into a single timeline with local frame offsets
   const stepsOffset = segments[0]?.startFrame ?? 0;
 
   const timeline = useMemo<FlatKeyframe[]>(() => {
@@ -83,36 +90,30 @@ export const StepsTimeline: React.FC<{
   const curr = timeline[currIdx];
   const prev = currIdx > 0 ? timeline[currIdx - 1] : curr;
 
-  // Progress within current keyframe (0 → 1)
   const rawProgress = Math.min(
     Math.max((frame - curr.localStart) / curr.duration, 0),
     1,
   );
 
-  // --- Pointer leads, camera follows (matching PIXI player behaviour) ---
   const pointerMoved =
     Math.abs(prev.pointerLeft - curr.pointerLeft) > 1 ||
     Math.abs(prev.pointerTop - curr.pointerTop) > 1;
 
-  // Pointer: completes during first 37.5% of keyframe (linear, like PIXI)
   const pointerT = pointerMoved
     ? Math.min(rawProgress / POINTER_PHASE, 1)
     : rawProgress;
 
-  // Camera: waits for pointer, then moves in the remaining 62.5%
   const cameraT = pointerMoved
     ? rawProgress <= POINTER_PHASE
       ? 0
       : easeInOut((rawProgress - POINTER_PHASE) / (1 - POINTER_PHASE))
     : easeInOut(rawProgress);
 
-  // --- Interpolate pointer (linear, arrives early) ---
   const pointerLeft =
     prev.pointerLeft + (curr.pointerLeft - prev.pointerLeft) * pointerT;
   const pointerTop =
     prev.pointerTop + (curr.pointerTop - prev.pointerTop) * pointerT;
 
-  // --- Interpolate camera (starts after pointer arrives) ---
   const cameraLeft =
     prev.cameraLeft + (curr.cameraLeft - prev.cameraLeft) * cameraT;
   const cameraTop =
@@ -123,30 +124,28 @@ export const StepsTimeline: React.FC<{
   const imgW = curr.imageWidth;
   const imgH = curr.imageHeight;
 
-  // --- CSS transform for zoom / pan ---
   const zoom = imgW / cameraWidth;
   const tx = -cameraLeft * (compWidth / imgW);
   const ty = -cameraTop * (compHeight / imgH);
   const transformStyle = `scale(${zoom}) translate(${tx}px, ${ty}px)`;
 
-  // --- Pointer screen position ---
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * compWidth;
   const ptrY = ((pointerTop - cameraTop) / camH) * compHeight;
   const showCursor = zoom > 1.08;
 
-  // --- Image crossfade when screenshot changes ---
   const imageChanged = currIdx > 0 && prev.img !== curr.img;
   const crossfadeAlpha = imageChanged
     ? Math.min((frame - curr.localStart) / CROSSFADE_FRAMES, 1)
     : 1;
 
-  // --- Gentle fade-in at the very start (opening → steps transition) ---
+  const framesIntoKf = frame - curr.localStart;
+  const blurPx = getImageBlur(framesIntoKf, imageChanged);
+
   const initialFade = interpolate(frame, [0, 8], [0, 1], {
     extrapolateRight: 'clamp',
   });
 
-  // --- Step badge & title (reset spring when stepIndex changes) ---
   const stepStartLocal = (() => {
     const seg = segments.find((s) => s.stepIndex === curr.stepIndex);
     return seg ? seg.startFrame - stepsOffset : 0;
@@ -168,9 +167,82 @@ export const StepsTimeline: React.FC<{
     extrapolateRight: 'clamp',
   });
 
+  const typewriter = getTypewriterChars(curr.title, frameInStep, 8, 1.5);
+  const flicker = getNeonFlicker(frame);
+  const scanOffset = getScanlineOffset(frame);
+  const hudCorners = getHudCorners(compWidth, compHeight, 8);
+
+  // Click ripple — dual neon rings
+  const pointerArrivalFrame =
+    curr.localStart + Math.floor(curr.duration * POINTER_PHASE);
+  const framesAfterArrival = frame - pointerArrivalFrame;
+  const ripple = pointerMoved
+    ? getRippleState(framesAfterArrival)
+    : { active: false, radius: 0, opacity: 0 };
+  // Second ring slightly delayed
+  const ripple2 = pointerMoved
+    ? getRippleState(framesAfterArrival - 3)
+    : { active: false, radius: 0, opacity: 0 };
+
+  // Glitch on image transition
+  const glitchSlices = imageChanged
+    ? getGlitchSlices(frame, curr.localStart)
+    : [];
+
+  // Cursor trail
+  const trailPositions = useMemo(() => {
+    if (!showCursor) return [];
+    const positions: { x: number; y: number }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const pastFrame = frame - i;
+      if (pastFrame < curr.localStart) break;
+      const pastRaw = Math.min(
+        Math.max((pastFrame - curr.localStart) / curr.duration, 0),
+        1,
+      );
+      const pastPT = pointerMoved
+        ? Math.min(pastRaw / POINTER_PHASE, 1)
+        : pastRaw;
+      const pastCT = pointerMoved
+        ? pastRaw <= POINTER_PHASE
+          ? 0
+          : easeInOut((pastRaw - POINTER_PHASE) / (1 - POINTER_PHASE))
+        : easeInOut(pastRaw);
+      const pastPtrX =
+        prev.pointerLeft + (curr.pointerLeft - prev.pointerLeft) * pastPT;
+      const pastPtrY =
+        prev.pointerTop + (curr.pointerTop - prev.pointerTop) * pastPT;
+      const pastCamL =
+        prev.cameraLeft + (curr.cameraLeft - prev.cameraLeft) * pastCT;
+      const pastCamT =
+        prev.cameraTop + (curr.cameraTop - prev.cameraTop) * pastCT;
+      const pastCamW =
+        prev.cameraWidth + (curr.cameraWidth - prev.cameraWidth) * pastCT;
+      const pastCamH = pastCamW * (imgH / imgW);
+      positions.push({
+        x: ((pastPtrX - pastCamL) / pastCamW) * compWidth,
+        y: ((pastPtrY - pastCamT) / pastCamH) * compHeight,
+      });
+    }
+    return positions;
+  }, [
+    frame,
+    curr,
+    prev,
+    pointerMoved,
+    showCursor,
+    compWidth,
+    compHeight,
+    imgW,
+    imgH,
+  ]);
+
+  const trail =
+    showCursor && pointerMoved ? getCursorTrail(trailPositions) : [];
+
   return (
     <AbsoluteFill style={{ backgroundColor: '#000', opacity: initialFade }}>
-      {/* Previous image — shown during crossfade */}
+      {/* Previous image — crossfade */}
       {imageChanged && crossfadeAlpha < 1 && (
         <div
           style={{
@@ -193,7 +265,7 @@ export const StepsTimeline: React.FC<{
         </div>
       )}
 
-      {/* Current image */}
+      {/* Current image (with blur transition) */}
       <div
         style={{
           position: 'absolute',
@@ -210,9 +282,66 @@ export const StepsTimeline: React.FC<{
             height: compHeight,
             transformOrigin: '0 0',
             transform: transformStyle,
+            filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
           }}
         />
       </div>
+
+      {/* Glitch slices overlay */}
+      {glitchSlices.map((slice, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: slice.offsetX,
+            top: `${slice.y * 100}%`,
+            width: compWidth,
+            height: `${slice.height * 100}%`,
+            overflow: 'hidden',
+            opacity: 0.7,
+            mixBlendMode: 'screen',
+            pointerEvents: 'none',
+          }}
+        >
+          {/* Cyan channel offset */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: `rgba(0,255,255,0.15)`,
+              transform: `translateX(${slice.rgbSplit}px)`,
+            }}
+          />
+          {/* Magenta channel offset */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: `rgba(255,0,255,0.15)`,
+              transform: `translateX(${-slice.rgbSplit}px)`,
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Cursor trail dots — neon cyan */}
+      {trail.map((pt, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: pt.x - pt.size / 2,
+            top: pt.y - pt.size / 2,
+            width: pt.size,
+            height: pt.size,
+            borderRadius: '50%',
+            backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
+            boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
+            filter: `blur(${pt.size * 0.3}px)`,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
 
       {/* Mouse cursor */}
       {showCursor && (
@@ -224,35 +353,72 @@ export const StepsTimeline: React.FC<{
             top: ptrY - 2,
             width: 22,
             height: 28,
-            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+            filter:
+              'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
           }}
         />
       )}
 
-      {/* Step number badge */}
+      {/* Click ripple — dual neon rings (cyan + magenta) */}
+      {ripple.active && (
+        <div
+          style={{
+            position: 'absolute',
+            left: ptrX - ripple.radius,
+            top: ptrY - ripple.radius,
+            width: ripple.radius * 2,
+            height: ripple.radius * 2,
+            borderRadius: '50%',
+            border: `2px solid rgba(0, 255, 255, ${ripple.opacity})`,
+            boxShadow: `0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.6}), inset 0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.3})`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      {ripple2.active && (
+        <div
+          style={{
+            position: 'absolute',
+            left: ptrX - ripple2.radius,
+            top: ptrY - ripple2.radius,
+            width: ripple2.radius * 2,
+            height: ripple2.radius * 2,
+            borderRadius: '50%',
+            border: `1.5px solid rgba(255, 0, 255, ${ripple2.opacity * 0.7})`,
+            boxShadow: `0 0 6px rgba(255, 0, 255, ${ripple2.opacity * 0.4})`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      {/* Step number badge — neon style */}
       <div
         style={{
           position: 'absolute',
           top: 20,
           left: 20,
           transform: `scale(${badgeScale})`,
-          backgroundColor: '#2B83FF',
-          color: '#fff',
+          backgroundColor: 'rgba(0, 20, 40, 0.8)',
+          color: '#0ff',
           width: 40,
           height: 40,
-          borderRadius: 20,
+          borderRadius: 4,
+          border: '1px solid rgba(0, 255, 255, 0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: 18,
           fontWeight: 700,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          fontFamily: 'monospace',
+          boxShadow:
+            '0 0 8px rgba(0,255,255,0.3), inset 0 0 8px rgba(0,255,255,0.1)',
+          textShadow: '0 0 6px rgba(0,255,255,0.8)',
         }}
       >
         {curr.stepIndex + 1}
       </div>
 
-      {/* Title card */}
+      {/* Title card — cyberpunk glass panel with neon typewriter */}
       <div
         style={{
           position: 'absolute',
@@ -261,28 +427,108 @@ export const StepsTimeline: React.FC<{
           right: 0,
           display: 'flex',
           justifyContent: 'center',
-          opacity: titleOpacity,
+          opacity: titleOpacity * flicker,
           transform: `translateY(${titleTranslateY}px)`,
         }}
       >
         <div
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            backgroundColor: 'rgba(0, 10, 20, 0.85)',
+            border: '1px solid rgba(0, 255, 255, 0.3)',
             backdropFilter: 'blur(8px)',
             color: '#fff',
             padding: '10px 24px',
-            borderRadius: 8,
+            borderRadius: 2,
             fontSize: 16,
             fontWeight: 500,
+            fontFamily: 'monospace, sans-serif',
             maxWidth: '80%',
+            minWidth: 100,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
+            textShadow: getNeonTextShadow(CYBER_CYAN, 0.4),
+            boxShadow:
+              '0 0 12px rgba(0,255,255,0.15), inset 0 0 12px rgba(0,255,255,0.05)',
           }}
         >
-          {curr.title}
+          {typewriter.text}
+          {typewriter.showCursor && (
+            <span style={{ color: '#0ff', opacity: 0.9 }}>_</span>
+          )}
+          <span style={{ visibility: 'hidden', position: 'absolute' }}>
+            {curr.title}
+          </span>
         </div>
       </div>
+
+      {/* HUD corner brackets */}
+      {hudCorners.map((c, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: c.x - (c.flipX ? 16 : 0),
+            top: c.y - (c.flipY ? 16 : 0),
+            width: 16,
+            height: 16,
+            opacity: 0.4,
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: 16,
+              height: 1,
+              backgroundColor: 'rgba(0,255,255,0.6)',
+              transform: `scaleX(${c.flipX ? -1 : 1})`,
+              transformOrigin: c.flipX ? 'right' : 'left',
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: 1,
+              height: 16,
+              backgroundColor: 'rgba(0,255,255,0.6)',
+              transform: `scaleY(${c.flipY ? -1 : 1})`,
+              transformOrigin: c.flipY ? 'bottom' : 'top',
+            }}
+          />
+        </div>
+      ))}
+
+      {/* Scan lines overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage: `repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 3px,
+            rgba(0, 0, 0, 0.06) 3px,
+            rgba(0, 0, 0, 0.06) 4px
+          )`,
+          backgroundPositionY: scanOffset,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Subtle edge glow */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          boxShadow: 'inset 0 0 60px rgba(0,255,255,0.03)',
+          pointerEvents: 'none',
+        }}
+      />
     </AbsoluteFill>
   );
 };
