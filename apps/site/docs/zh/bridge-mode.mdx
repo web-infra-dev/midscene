@@ -43,7 +43,6 @@ Promise.resolve(
     const agent = new AgentOverChromeBridge();
 
     // 连接到桌面 Chrome 的新标签页
-    // 记得先启动 Chrome 插件并点击 “Allow connection”，否则会超时
     await agent.connectNewTabWithUrl("https://www.bing.com");
 
     // 与普通 Midscene agent 的 API 相同
@@ -56,15 +55,7 @@ Promise.resolve(
 );
 ```
 
-### 第四步：启动 Chrome 插件
-
-启动 Chrome 插件并切换到 “Bridge Mode” Tab，点击 “Allow connection”。
-
-<p align="center">
-  <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
-</p>
-
-### 第五步：运行脚本
+### 第四步：运行脚本
 
 运行脚本：
 
@@ -72,11 +63,15 @@ Promise.resolve(
 tsx demo-new-tab.ts
 ```
 
-执行后你会看到插件状态变为 “connected”，桌面 Chrome 也会打开一个新标签页并交由脚本控制。
+脚本运行后，Chrome 扩展会弹出一个确认窗口，询问是否允许连接。点击 "Allow" 允许本次连接，或点击 "Always Allow" 以后自动允许所有连接请求（可在 Bridge Mode 面板中重置）。确认后你会看到桌面 Chrome 打开一个新标签页并交由脚本控制。
+
+<p align="center">
+  <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
+</p>
 
 :::tip
 
-先运行脚本还是先点击 “Allow connection” 均可。
+扩展安装后默认在后台持续监听连接请求，无需手动操作。扩展图标会显示状态徽标：黄点表示正在监听，绿点表示已连接。
 
 :::
 
@@ -96,7 +91,7 @@ tasks:
 midscene ./bing.yaml
 ```
 
-运行脚本后，请确保在插件里点击 “Allow connection”。
+运行脚本后，在弹出的确认窗口中点击 "Allow" 即可。
 
 ### 不支持的选项
 
@@ -130,10 +125,10 @@ const agent = new AgentOverChromeBridge({
 **Client 端（Chrome 插件）**
 
 1. 打开插件的 Bridge Mode 页面
-2. 在 “Bridge Server URL” 输入框中填写服务器地址
-   - 本地：`ws://localhost:3766`
+2. 在 "Bridge Server URL" 输入框中填写服务器地址
+   - 本地：`ws://localhost:3766`（默认）
    - 远程：`ws://192.168.1.100:3766`（替换成你的服务器 IP）
-3. 点击 “Allow Connection” 按钮
+3. 运行脚本后，在弹出的确认窗口中点击 "Allow" 即可
 
 <p align="center">
   <img src="/bridge_remote_config.png" alt="bridge remote config" width="400"/>

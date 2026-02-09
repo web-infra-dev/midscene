@@ -8,7 +8,9 @@
     "tabs",
     "sidePanel",
     "debugger",
-    "scripting"
+    "scripting",
+    "storage",
+    "alarms"
   ],
   "incognito": "split",
   "background": {
