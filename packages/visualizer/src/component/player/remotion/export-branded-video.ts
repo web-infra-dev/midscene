@@ -2,8 +2,12 @@ import { mousePointer } from '../../../utils';
 import { LogoUrl } from '../../logo';
 import type { FrameMap, StepSegment } from './frame-calculator';
 import {
+  CHROME_BORDER_RADIUS,
+  CHROME_DOTS,
+  CHROME_TITLE_BAR_H,
   CYBER_CYAN,
   CYBER_MAGENTA,
+  getBrowser3DTransform,
   getCursorTrail,
   getCyberParticleColor,
   getDataStream,
@@ -230,6 +234,76 @@ function drawDataStream(
   ctx.restore();
 }
 
+// ── chrome browser shell ─────────────────────────────────
+
+const BROWSER_MARGIN = 24;
+
+function drawChromeTitleBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = CHROME_TITLE_BAR_H;
+  // Title bar background
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, '#2a2a35');
+  g.addColorStop(1, '#1e1e28');
+  ctx.fillStyle = g;
+  roundRect(ctx, x, y, w, h, 0);
+  // Round top corners only
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + CHROME_BORDER_RADIUS, y);
+  ctx.lineTo(x + w - CHROME_BORDER_RADIUS, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + CHROME_BORDER_RADIUS);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + CHROME_BORDER_RADIUS);
+  ctx.quadraticCurveTo(x, y, x + CHROME_BORDER_RADIUS, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // Bottom border
+  ctx.strokeStyle = 'rgba(0,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+
+  // Traffic lights
+  for (const dot of CHROME_DOTS) {
+    ctx.beginPath();
+    ctx.arc(x + dot.x, y + h / 2, 5, 0, Math.PI * 2);
+    ctx.fillStyle = dot.color;
+    ctx.fill();
+  }
+
+  // Address bar
+  const abx = x + 70;
+  const aby = y + h / 2 - 11;
+  const abw = w - 84;
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  roundRect(ctx, abx, aby, abw, 22, 6);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, abx, aby, abw, 22, 6);
+  ctx.stroke();
+
+  // URL text
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(0,255,255,0.4)';
+  ctx.fillText('https://', abx + 10, y + h / 2);
+  const protoW = ctx.measureText('https://').width;
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('app.example.com', abx + 10 + protoW, y + h / 2);
+}
+
 // ── scene renderers ──────────────────────────────────────
 
 function drawOpening(
@@ -401,16 +475,25 @@ function drawSteps(
     : easeInOut(raw);
 
   const camL = lerp(prev.cameraLeft, curr.cameraLeft, cT);
-  const camT = lerp(prev.cameraTop, curr.cameraTop, cT);
+  const camT2 = lerp(prev.cameraTop, curr.cameraTop, cT);
   const camW = lerp(prev.cameraWidth, curr.cameraWidth, cT);
   const ptrX = lerp(prev.pointerLeft, curr.pointerLeft, pT);
   const ptrY = lerp(prev.pointerTop, curr.pointerTop, pT);
 
   const imgW = curr.imageWidth;
   const imgH = curr.imageHeight;
+
+  // Browser shell dimensions
+  const browserW = W - BROWSER_MARGIN * 2;
+  const contentH = H - BROWSER_MARGIN * 2 - CHROME_TITLE_BAR_H;
+  const browserH = contentH + CHROME_TITLE_BAR_H;
+  const bx = BROWSER_MARGIN;
+  const by = BROWSER_MARGIN;
+
+  // Camera transform relative to content area
   const zoom = imgW / camW;
-  const tx = -camL * (W / imgW);
-  const ty = -camT * (H / imgH);
+  const tx = -camL * (browserW / imgW);
+  const ty = -camT2 * (contentH / imgH);
 
   const initAlpha = clamp(stepsFrame / 8, 0, 1);
 
@@ -422,10 +505,73 @@ function drawSteps(
   const framesIntoKf = stepsFrame - curr.localStart;
   const blurPx = getImageBlur(framesIntoKf, imgChanged);
 
+  const stepStart = findSegStartLocal(segments, curr.stepIndex);
+  const fInStep = stepsFrame - stepStart;
+
+  // 3D transform (simulated with scale in Canvas 2D)
+  // 3D transform — only on the first step
+  const isFirstStep = curr.stepIndex === 0;
+  const transform3d = isFirstStep
+    ? getBrowser3DTransform(fInStep, stepsFrame)
+    : { rotateX: 0, rotateY: 0, translateZ: 0, scale: 1 };
+
+  // Dark background
+  ctx.fillStyle = '#0a0a12';
+  ctx.fillRect(0, 0, W, H);
+
   ctx.save();
   ctx.globalAlpha = initAlpha;
 
-  // helper to draw a screenshot with camera transform
+  // Apply 3D-like transform: translate to center, scale, translate back
+  const centerX = bx + browserW / 2;
+  const centerY = by + browserH / 2;
+  ctx.translate(centerX, centerY);
+  ctx.scale(transform3d.scale, transform3d.scale);
+  ctx.translate(-centerX, -centerY);
+
+  // Browser shadow
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#1e1e28';
+  roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
+  ctx.fill();
+  ctx.restore();
+
+  // Chrome title bar
+  drawChromeTitleBar(ctx, bx, by, browserW);
+
+  // Content area — clip to browser bounds
+  const contentY = by + CHROME_TITLE_BAR_H;
+
+  ctx.save();
+  ctx.beginPath();
+  // Bottom rounded corners only
+  ctx.moveTo(bx, contentY);
+  ctx.lineTo(bx + browserW, contentY);
+  ctx.lineTo(bx + browserW, contentY + contentH - CHROME_BORDER_RADIUS);
+  ctx.quadraticCurveTo(
+    bx + browserW,
+    contentY + contentH,
+    bx + browserW - CHROME_BORDER_RADIUS,
+    contentY + contentH,
+  );
+  ctx.lineTo(bx + CHROME_BORDER_RADIUS, contentY + contentH);
+  ctx.quadraticCurveTo(
+    bx,
+    contentY + contentH,
+    bx,
+    contentY + contentH - CHROME_BORDER_RADIUS,
+  );
+  ctx.closePath();
+  ctx.clip();
+
+  // Black background for content
+  ctx.fillStyle = '#000';
+  ctx.fillRect(bx, contentY, browserW, contentH);
+
+  // Helper to draw screenshot within content area
   const drawImg = (src: string, alpha: number, applyBlur = false) => {
     const img = imgCache.get(src);
     if (!img || alpha <= 0) return;
@@ -435,51 +581,50 @@ function drawSteps(
       ctx.filter = `blur(${blurPx}px)`;
     }
     ctx.beginPath();
-    ctx.rect(0, 0, W, H);
+    ctx.rect(bx, contentY, browserW, contentH);
     ctx.clip();
-    ctx.translate(tx * zoom, ty * zoom);
+    ctx.translate(bx + tx * zoom, contentY + ty * zoom);
     ctx.scale(zoom, zoom);
-    ctx.drawImage(img, 0, 0, W, H);
+    ctx.drawImage(img, 0, 0, browserW, contentH);
     ctx.restore();
   };
 
-  // draw prev then curr during crossfade
+  // Draw prev then curr during crossfade
   if (imgChanged && crossAlpha < 1) {
     drawImg(prev.img, 1 - crossAlpha);
   }
   drawImg(curr.img, imgChanged ? crossAlpha : 1, true);
 
-  // glitch slices on transition
+  // Glitch slices
   if (imgChanged) {
     const glitchSlices = getGlitchSlices(stepsFrame, curr.localStart);
     for (const slice of glitchSlices) {
       ctx.save();
       ctx.globalAlpha = 0.15;
-      // Cyan channel
       ctx.fillStyle = 'rgba(0,255,255,1)';
       ctx.fillRect(
-        slice.offsetX + slice.rgbSplit,
-        slice.y * H,
-        W,
-        slice.height * H,
+        bx + slice.offsetX + slice.rgbSplit,
+        contentY + slice.y * contentH,
+        browserW,
+        slice.height * contentH,
       );
-      // Magenta channel
       ctx.fillStyle = 'rgba(255,0,255,1)';
       ctx.fillRect(
-        slice.offsetX - slice.rgbSplit,
-        slice.y * H,
-        W,
-        slice.height * H,
+        bx + slice.offsetX - slice.rgbSplit,
+        contentY + slice.y * contentH,
+        browserW,
+        slice.height * contentH,
       );
       ctx.restore();
     }
   }
 
-  // cursor trail
+  // Pointer screen position (relative to content area)
   const camH = camW * (imgH / imgW);
-  const sX = ((ptrX - camL) / camW) * W;
-  const sY = ((ptrY - camT) / camH) * H;
+  const sX = bx + ((ptrX - camL) / camW) * browserW;
+  const sY = contentY + ((ptrY - camT2) / camH) * contentH;
 
+  // Cursor trail
   if (zoom > 1.08 && pMoved) {
     const trailPositions: { x: number; y: number }[] = [];
     for (let i = 0; i < 6; i++) {
@@ -503,8 +648,8 @@ function drawSteps(
       const pastCamW = lerp(prev.cameraWidth, curr.cameraWidth, pastCT);
       const pastCamH = pastCamW * (imgH / imgW);
       trailPositions.push({
-        x: ((pastPtrX - pastCamL) / pastCamW) * W,
-        y: ((pastPtrY - pastCamT) / pastCamH) * H,
+        x: bx + ((pastPtrX - pastCamL) / pastCamW) * browserW,
+        y: contentY + ((pastPtrY - pastCamT) / pastCamH) * contentH,
       });
     }
     const trail = getCursorTrail(trailPositions);
@@ -521,7 +666,7 @@ function drawSteps(
     }
   }
 
-  // cursor with neon glow
+  // Cursor
   if (zoom > 1.08 && cursorImg) {
     ctx.save();
     ctx.shadowColor = 'rgba(0,255,255,0.6)';
@@ -530,12 +675,11 @@ function drawSteps(
     ctx.restore();
   }
 
-  // click ripple — dual neon rings
+  // Click ripple — dual neon rings
   if (pMoved) {
     const pointerArrivalFrame =
       curr.localStart + Math.floor(curr.duration * POINTER_PHASE);
     const framesAfterArrival = stepsFrame - pointerArrivalFrame;
-    // Cyan ring
     const ripple = getRippleState(framesAfterArrival);
     if (ripple.active) {
       ctx.save();
@@ -548,7 +692,6 @@ function drawSteps(
       ctx.stroke();
       ctx.restore();
     }
-    // Magenta ring (delayed by 3 frames)
     const ripple2 = getRippleState(framesAfterArrival - 3);
     if (ripple2.active) {
       ctx.save();
@@ -563,26 +706,41 @@ function drawSteps(
     }
   }
 
-  // badge — cyberpunk style
-  const stepStart = findSegStartLocal(segments, curr.stepIndex);
-  const fInStep = stepsFrame - stepStart;
+  // Scan lines inside content
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  const scanOff = getScanlineOffset(stepsFrame);
+  for (let y = contentY + scanOff; y < contentY + contentH; y += 4) {
+    ctx.fillRect(bx, y, browserW, 1);
+  }
+  ctx.restore();
+
+  ctx.restore(); // end content clip
+
+  // Neon edge glow on browser frame
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,255,255,0.2)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
+  ctx.stroke();
+  ctx.restore();
+
+  // Badge — top-left, outside browser
   const bScale = clamp((fInStep - 5) / 10, 0, 1);
   if (bScale > 0) {
     ctx.save();
-    ctx.translate(40, 40);
+    ctx.translate(26, 26);
     ctx.scale(bScale, bScale);
-    // Dark panel with neon border
-    ctx.fillStyle = 'rgba(0, 20, 40, 0.8)';
+    ctx.fillStyle = 'rgba(0, 20, 40, 0.9)';
     ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
     ctx.lineWidth = 1;
     ctx.shadowColor = 'rgba(0,255,255,0.3)';
     ctx.shadowBlur = 8;
-    roundRect(ctx, -20, -20, 40, 40, 4);
+    roundRect(ctx, -18, -18, 36, 36, 4);
     ctx.fill();
     ctx.stroke();
     ctx.shadowBlur = 0;
-    // Neon number
-    ctx.font = 'bold 18px monospace';
+    ctx.font = 'bold 16px monospace';
     ctx.fillStyle = '#0ff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -592,55 +750,38 @@ function drawSteps(
     ctx.restore();
   }
 
-  // title card — cyberpunk glass panel with typewriter
+  // Title card — bottom center, outside browser
   const flicker = getNeonFlicker(stepsFrame);
   const tAlpha = clamp((fInStep - 5) / 15, 0, 1);
-  const tYPos = H - 16 - 20 + (1 - tAlpha) * 40;
+  const tYPos = H - 6 - 16 + (1 - tAlpha) * 40;
   if (tAlpha > 0 && curr.title) {
     const typewriter = getTypewriterChars(curr.title, fInStep, 8, 1.5);
     const displayText = typewriter.text + (typewriter.showCursor ? '_' : '');
     ctx.save();
-    ctx.globalAlpha = ctx.globalAlpha * tAlpha * flicker;
-    ctx.font = '500 16px monospace';
-    // Full title width for stable card
-    const tw = Math.min(ctx.measureText(curr.title).width + 48, W * 0.8);
+    ctx.globalAlpha = initAlpha * tAlpha * flicker;
+    ctx.font = '500 14px monospace';
+    const tw = Math.min(ctx.measureText(curr.title).width + 40, W * 0.8);
     const rx = (W - tw) / 2;
-    // Dark glass panel
-    ctx.fillStyle = 'rgba(0, 10, 20, 0.85)';
+    ctx.fillStyle = 'rgba(0, 10, 20, 0.9)';
     ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
     ctx.lineWidth = 1;
     ctx.shadowColor = 'rgba(0,255,255,0.15)';
     ctx.shadowBlur = 12;
-    roundRect(ctx, rx, tYPos, tw, 36, 2);
+    roundRect(ctx, rx, tYPos, tw, 32, 2);
     ctx.fill();
     ctx.stroke();
     ctx.shadowBlur = 0;
-    // Neon text
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.shadowColor = 'rgba(0,255,255,0.4)';
     ctx.shadowBlur = 4;
-    ctx.fillText(displayText, W / 2, tYPos + 18, W * 0.75);
+    ctx.fillText(displayText, W / 2, tYPos + 16, W * 0.75);
     ctx.restore();
   }
 
   // HUD corners
-  drawHudCorners(ctx, 0.4, 8, 16);
-
-  // Scan lines (lighter on steps)
-  drawScanlines(ctx, stepsFrame, 0.06);
-
-  // Subtle edge glow
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,255,255,0.03)';
-  ctx.shadowBlur = 60;
-  ctx.strokeStyle = 'transparent';
-  ctx.lineWidth = 0;
-  ctx.beginPath();
-  ctx.rect(0, 0, W, H);
-  ctx.stroke();
-  ctx.restore();
+  drawHudCorners(ctx, 0.3, 8, 16);
 
   ctx.restore();
 }

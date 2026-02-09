@@ -376,3 +376,57 @@ export function getDataStream(
   }
   return { chars, offset: (frame * 2) % 100 };
 }
+
+// ── Chrome browser shell ────────────────────────────────────
+
+export const CHROME_TITLE_BAR_H = 36;
+export const CHROME_BORDER_RADIUS = 10;
+
+// Traffic light dot colors
+export const CHROME_DOTS = [
+  { color: '#FF5F57', x: 14 },
+  { color: '#FFBD2E', x: 30 },
+  { color: '#28CA41', x: 46 },
+] as const;
+
+// ── Browser 3D transform ────────────────────────────────────
+
+export interface Browser3D {
+  rotateX: number; // degrees
+  rotateY: number; // degrees
+  translateZ: number; // px
+  scale: number;
+}
+
+/**
+ * 3D perspective animation for the browser shell.
+ * - Entry: fly in from tilted angle, scale up
+ * - Idle: gentle floating sway
+ * - Step change: subtle bounce
+ */
+export function getBrowser3DTransform(
+  frameInStep: number,
+  frame: number,
+): Browser3D {
+  // Entry animation: first 20 frames, fly in from tilted
+  const entryT = Math.min(frameInStep / 20, 1);
+  const entryEase = 1 - (1 - entryT) * (1 - entryT); // ease-out quad
+
+  // Start tilted, end at idle position
+  const entryRotateX = 12 * (1 - entryEase); // 12° → ~0°
+  const entryRotateY = -8 * (1 - entryEase); // -8° → ~0°
+  const entryScale = 0.85 + 0.15 * entryEase; // 0.85 → 1.0
+  const entryZ = -80 * (1 - entryEase); // -80 → 0
+
+  // Idle floating: gentle sinusoidal sway
+  const swayX = Math.sin(frame * 0.03) * 1.5; // ±1.5° on X
+  const swayY = Math.cos(frame * 0.025) * 1.0; // ±1.0° on Y
+  const swayZ = Math.sin(frame * 0.02) * 5; // ±5px depth wobble
+
+  return {
+    rotateX: entryRotateX + swayX,
+    rotateY: entryRotateY + swayY,
+    translateZ: entryZ + swayZ,
+    scale: entryScale,
+  };
+}

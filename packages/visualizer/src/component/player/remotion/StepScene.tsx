@@ -10,8 +10,11 @@ import {
 import { mousePointer } from '../../../utils';
 import type { StepSegment } from './frame-calculator';
 import {
+  CHROME_BORDER_RADIUS,
+  CHROME_DOTS,
+  CHROME_TITLE_BAR_H,
   CYBER_CYAN,
-  CYBER_MAGENTA,
+  getBrowser3DTransform,
   getCursorTrail,
   getGlitchSlices,
   getHudCorners,
@@ -23,14 +26,15 @@ import {
   getTypewriterChars,
 } from './visual-effects';
 
-// Easing functions
 const easeInOut = (t: number): number =>
   t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 
-// Matching PIXI player: pointer takes first 37.5%, camera takes rest
 const POINTER_PHASE = 0.375;
-
 const CROSSFADE_FRAMES = 10;
+
+// Chrome shell sizing: the browser frame takes most of the viewport
+// with a small margin for 3D breathing room
+const BROWSER_MARGIN = 24;
 
 interface FlatKeyframe {
   img: string;
@@ -76,7 +80,6 @@ export const StepsTimeline: React.FC<{
 
   if (timeline.length === 0) return null;
 
-  // --- Locate current keyframe ---
   let currIdx = 0;
   for (let i = 0; i < timeline.length; i++) {
     const kf = timeline[i];
@@ -124,14 +127,21 @@ export const StepsTimeline: React.FC<{
   const imgW = curr.imageWidth;
   const imgH = curr.imageHeight;
 
+  // Browser content area dimensions
+  const browserW = compWidth - BROWSER_MARGIN * 2;
+  const contentH = compHeight - BROWSER_MARGIN * 2 - CHROME_TITLE_BAR_H;
+  const browserH = contentH + CHROME_TITLE_BAR_H;
+
+  // Camera transform within content area
   const zoom = imgW / cameraWidth;
-  const tx = -cameraLeft * (compWidth / imgW);
-  const ty = -cameraTop * (compHeight / imgH);
+  const tx = -cameraLeft * (browserW / imgW);
+  const ty = -cameraTop * (contentH / imgH);
   const transformStyle = `scale(${zoom}) translate(${tx}px, ${ty}px)`;
 
+  // Pointer screen position (relative to content area)
   const camH = cameraWidth * (imgH / imgW);
-  const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * compWidth;
-  const ptrY = ((pointerTop - cameraTop) / camH) * compHeight;
+  const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
+  const ptrY = ((pointerTop - cameraTop) / camH) * contentH;
   const showCursor = zoom > 1.08;
 
   const imageChanged = currIdx > 0 && prev.img !== curr.img;
@@ -172,6 +182,12 @@ export const StepsTimeline: React.FC<{
   const scanOffset = getScanlineOffset(frame);
   const hudCorners = getHudCorners(compWidth, compHeight, 8);
 
+  // 3D transform — only on the first step
+  const isFirstStep = curr.stepIndex === 0;
+  const transform3d = isFirstStep
+    ? getBrowser3DTransform(frameInStep, frame)
+    : { rotateX: 0, rotateY: 0, translateZ: 0, scale: 1 };
+
   // Click ripple — dual neon rings
   const pointerArrivalFrame =
     curr.localStart + Math.floor(curr.duration * POINTER_PHASE);
@@ -179,7 +195,6 @@ export const StepsTimeline: React.FC<{
   const ripple = pointerMoved
     ? getRippleState(framesAfterArrival)
     : { active: false, radius: 0, opacity: 0 };
-  // Second ring slightly delayed
   const ripple2 = pointerMoved
     ? getRippleState(framesAfterArrival - 3)
     : { active: false, radius: 0, opacity: 0 };
@@ -220,8 +235,8 @@ export const StepsTimeline: React.FC<{
         prev.cameraWidth + (curr.cameraWidth - prev.cameraWidth) * pastCT;
       const pastCamH = pastCamW * (imgH / imgW);
       positions.push({
-        x: ((pastPtrX - pastCamL) / pastCamW) * compWidth,
-        y: ((pastPtrY - pastCamT) / pastCamH) * compHeight,
+        x: ((pastPtrX - pastCamL) / pastCamW) * browserW,
+        y: ((pastPtrY - pastCamT) / pastCamH) * contentH,
       });
     }
     return positions;
@@ -231,8 +246,8 @@ export const StepsTimeline: React.FC<{
     prev,
     pointerMoved,
     showCursor,
-    compWidth,
-    compHeight,
+    browserW,
+    contentH,
     imgW,
     imgH,
   ]);
@@ -241,209 +256,352 @@ export const StepsTimeline: React.FC<{
     showCursor && pointerMoved ? getCursorTrail(trailPositions) : [];
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000', opacity: initialFade }}>
-      {/* Previous image — crossfade */}
-      {imageChanged && crossfadeAlpha < 1 && (
-        <div
-          style={{
-            position: 'absolute',
-            width: compWidth,
-            height: compHeight,
-            overflow: 'hidden',
-            opacity: 1 - crossfadeAlpha,
-          }}
-        >
-          <Img
-            src={prev.img}
-            style={{
-              width: compWidth,
-              height: compHeight,
-              transformOrigin: '0 0',
-              transform: transformStyle,
-            }}
-          />
-        </div>
-      )}
-
-      {/* Current image (with blur transition) */}
+    <AbsoluteFill
+      style={{
+        backgroundColor: '#0a0a12',
+        opacity: initialFade,
+        perspective: 1200,
+      }}
+    >
+      {/* 3D Browser Shell */}
       <div
         style={{
           position: 'absolute',
-          width: compWidth,
-          height: compHeight,
+          left: BROWSER_MARGIN,
+          top: BROWSER_MARGIN,
+          width: browserW,
+          height: browserH,
+          transformStyle: 'preserve-3d',
+          transform: [
+            `scale(${transform3d.scale})`,
+            `rotateX(${transform3d.rotateX}deg)`,
+            `rotateY(${transform3d.rotateY}deg)`,
+            `translateZ(${transform3d.translateZ}px)`,
+          ].join(' '),
+          borderRadius: CHROME_BORDER_RADIUS,
           overflow: 'hidden',
-          opacity: imageChanged ? crossfadeAlpha : 1,
+          boxShadow: [
+            '0 20px 60px rgba(0,0,0,0.6)',
+            '0 0 1px rgba(0,255,255,0.3)',
+            '0 0 30px rgba(0,255,255,0.08)',
+          ].join(', '),
         }}
       >
-        <Img
-          src={curr.img}
+        {/* Chrome title bar */}
+        <div
           style={{
-            width: compWidth,
-            height: compHeight,
-            transformOrigin: '0 0',
-            transform: transformStyle,
-            filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
+            width: browserW,
+            height: CHROME_TITLE_BAR_H,
+            background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: 0,
+            borderBottom: '1px solid rgba(0,255,255,0.15)',
+            position: 'relative',
+            flexShrink: 0,
+          }}
+        >
+          {/* Traffic lights */}
+          {CHROME_DOTS.map((dot) => (
+            <div
+              key={dot.color}
+              style={{
+                position: 'absolute',
+                left: dot.x,
+                top: '50%',
+                marginTop: -5,
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: dot.color,
+                boxShadow: `0 0 4px ${dot.color}40`,
+              }}
+            />
+          ))}
+          {/* Address bar */}
+          <div
+            style={{
+              position: 'absolute',
+              left: 70,
+              right: 14,
+              top: '50%',
+              marginTop: -11,
+              height: 22,
+              backgroundColor: 'rgba(0,0,0,0.4)',
+              borderRadius: 6,
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              paddingLeft: 10,
+              paddingRight: 10,
+            }}
+          >
+            <span
+              style={{
+                color: 'rgba(0,255,255,0.4)',
+                fontSize: 10,
+                fontFamily: 'monospace',
+                letterSpacing: 0.5,
+              }}
+            >
+              https://
+            </span>
+            <span
+              style={{
+                color: 'rgba(255,255,255,0.5)',
+                fontSize: 10,
+                fontFamily: 'monospace',
+                letterSpacing: 0.5,
+              }}
+            >
+              app.example.com
+            </span>
+          </div>
+        </div>
+
+        {/* Browser content area */}
+        <div
+          style={{
+            width: browserW,
+            height: contentH,
+            position: 'relative',
+            overflow: 'hidden',
+            backgroundColor: '#000',
+          }}
+        >
+          {/* Previous image — crossfade */}
+          {imageChanged && crossfadeAlpha < 1 && (
+            <div
+              style={{
+                position: 'absolute',
+                width: browserW,
+                height: contentH,
+                overflow: 'hidden',
+                opacity: 1 - crossfadeAlpha,
+              }}
+            >
+              <Img
+                src={prev.img}
+                style={{
+                  width: browserW,
+                  height: contentH,
+                  transformOrigin: '0 0',
+                  transform: transformStyle,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Current image (with blur transition) */}
+          <div
+            style={{
+              position: 'absolute',
+              width: browserW,
+              height: contentH,
+              overflow: 'hidden',
+              opacity: imageChanged ? crossfadeAlpha : 1,
+            }}
+          >
+            <Img
+              src={curr.img}
+              style={{
+                width: browserW,
+                height: contentH,
+                transformOrigin: '0 0',
+                transform: transformStyle,
+                filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
+              }}
+            />
+          </div>
+
+          {/* Glitch slices */}
+          {glitchSlices.map((slice, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: slice.offsetX,
+                top: `${slice.y * 100}%`,
+                width: browserW,
+                height: `${slice.height * 100}%`,
+                overflow: 'hidden',
+                opacity: 0.7,
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(0,255,255,0.15)',
+                  transform: `translateX(${slice.rgbSplit}px)`,
+                }}
+              />
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  backgroundColor: 'rgba(255,0,255,0.15)',
+                  transform: `translateX(${-slice.rgbSplit}px)`,
+                }}
+              />
+            </div>
+          ))}
+
+          {/* Cursor trail */}
+          {trail.map((pt, i) => (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: pt.x - pt.size / 2,
+                top: pt.y - pt.size / 2,
+                width: pt.size,
+                height: pt.size,
+                borderRadius: '50%',
+                backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
+                boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
+                filter: `blur(${pt.size * 0.3}px)`,
+                pointerEvents: 'none',
+              }}
+            />
+          ))}
+
+          {/* Mouse cursor */}
+          {showCursor && (
+            <Img
+              src={mousePointer}
+              style={{
+                position: 'absolute',
+                left: ptrX - 3,
+                top: ptrY - 2,
+                width: 22,
+                height: 28,
+                filter:
+                  'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+              }}
+            />
+          )}
+
+          {/* Click ripple — cyan */}
+          {ripple.active && (
+            <div
+              style={{
+                position: 'absolute',
+                left: ptrX - ripple.radius,
+                top: ptrY - ripple.radius,
+                width: ripple.radius * 2,
+                height: ripple.radius * 2,
+                borderRadius: '50%',
+                border: `2px solid rgba(0, 255, 255, ${ripple.opacity})`,
+                boxShadow: `0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.6}), inset 0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.3})`,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+          {/* Click ripple — magenta (delayed) */}
+          {ripple2.active && (
+            <div
+              style={{
+                position: 'absolute',
+                left: ptrX - ripple2.radius,
+                top: ptrY - ripple2.radius,
+                width: ripple2.radius * 2,
+                height: ripple2.radius * 2,
+                borderRadius: '50%',
+                border: `1.5px solid rgba(255, 0, 255, ${ripple2.opacity * 0.7})`,
+                boxShadow: `0 0 6px rgba(255, 0, 255, ${ripple2.opacity * 0.4})`,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
+
+          {/* Scan lines inside content */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 3px,
+                rgba(0, 0, 0, 0.05) 3px,
+                rgba(0, 0, 0, 0.05) 4px
+              )`,
+              backgroundPositionY: scanOffset,
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
+
+        {/* Neon edge glow on browser frame */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: CHROME_BORDER_RADIUS,
+            boxShadow: 'inset 0 0 1px rgba(0,255,255,0.2)',
+            pointerEvents: 'none',
           }}
         />
       </div>
 
-      {/* Glitch slices overlay */}
-      {glitchSlices.map((slice, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: slice.offsetX,
-            top: `${slice.y * 100}%`,
-            width: compWidth,
-            height: `${slice.height * 100}%`,
-            overflow: 'hidden',
-            opacity: 0.7,
-            mixBlendMode: 'screen',
-            pointerEvents: 'none',
-          }}
-        >
-          {/* Cyan channel offset */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: `rgba(0,255,255,0.15)`,
-              transform: `translateX(${slice.rgbSplit}px)`,
-            }}
-          />
-          {/* Magenta channel offset */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: `rgba(255,0,255,0.15)`,
-              transform: `translateX(${-slice.rgbSplit}px)`,
-            }}
-          />
-        </div>
-      ))}
-
-      {/* Cursor trail dots — neon cyan */}
-      {trail.map((pt, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: pt.x - pt.size / 2,
-            top: pt.y - pt.size / 2,
-            width: pt.size,
-            height: pt.size,
-            borderRadius: '50%',
-            backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
-            boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
-            filter: `blur(${pt.size * 0.3}px)`,
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
-
-      {/* Mouse cursor */}
-      {showCursor && (
-        <Img
-          src={mousePointer}
-          style={{
-            position: 'absolute',
-            left: ptrX - 3,
-            top: ptrY - 2,
-            width: 22,
-            height: 28,
-            filter:
-              'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
-          }}
-        />
-      )}
-
-      {/* Click ripple — dual neon rings (cyan + magenta) */}
-      {ripple.active && (
-        <div
-          style={{
-            position: 'absolute',
-            left: ptrX - ripple.radius,
-            top: ptrY - ripple.radius,
-            width: ripple.radius * 2,
-            height: ripple.radius * 2,
-            borderRadius: '50%',
-            border: `2px solid rgba(0, 255, 255, ${ripple.opacity})`,
-            boxShadow: `0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.6}), inset 0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.3})`,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-      {ripple2.active && (
-        <div
-          style={{
-            position: 'absolute',
-            left: ptrX - ripple2.radius,
-            top: ptrY - ripple2.radius,
-            width: ripple2.radius * 2,
-            height: ripple2.radius * 2,
-            borderRadius: '50%',
-            border: `1.5px solid rgba(255, 0, 255, ${ripple2.opacity * 0.7})`,
-            boxShadow: `0 0 6px rgba(255, 0, 255, ${ripple2.opacity * 0.4})`,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
-      {/* Step number badge — neon style */}
+      {/* Step number badge — outside browser, top-left */}
       <div
         style={{
           position: 'absolute',
-          top: 20,
-          left: 20,
+          top: 8,
+          left: 8,
           transform: `scale(${badgeScale})`,
-          backgroundColor: 'rgba(0, 20, 40, 0.8)',
+          backgroundColor: 'rgba(0, 20, 40, 0.9)',
           color: '#0ff',
-          width: 40,
-          height: 40,
+          width: 36,
+          height: 36,
           borderRadius: 4,
           border: '1px solid rgba(0, 255, 255, 0.5)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: 700,
           fontFamily: 'monospace',
           boxShadow:
             '0 0 8px rgba(0,255,255,0.3), inset 0 0 8px rgba(0,255,255,0.1)',
           textShadow: '0 0 6px rgba(0,255,255,0.8)',
+          zIndex: 10,
         }}
       >
         {curr.stepIndex + 1}
       </div>
 
-      {/* Title card — cyberpunk glass panel with neon typewriter */}
+      {/* Title card — outside browser, bottom center */}
       <div
         style={{
           position: 'absolute',
-          bottom: 16,
+          bottom: 6,
           left: 0,
           right: 0,
           display: 'flex',
           justifyContent: 'center',
           opacity: titleOpacity * flicker,
           transform: `translateY(${titleTranslateY}px)`,
+          zIndex: 10,
         }}
       >
         <div
           style={{
-            backgroundColor: 'rgba(0, 10, 20, 0.85)',
+            backgroundColor: 'rgba(0, 10, 20, 0.9)',
             border: '1px solid rgba(0, 255, 255, 0.3)',
             backdropFilter: 'blur(8px)',
             color: '#fff',
-            padding: '10px 24px',
+            padding: '8px 20px',
             borderRadius: 2,
-            fontSize: 16,
+            fontSize: 14,
             fontWeight: 500,
             fontFamily: 'monospace, sans-serif',
             maxWidth: '80%',
-            minWidth: 100,
+            minWidth: 80,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -462,7 +620,7 @@ export const StepsTimeline: React.FC<{
         </div>
       </div>
 
-      {/* HUD corner brackets */}
+      {/* HUD corner brackets — on the full viewport */}
       {hudCorners.map((c, i) => (
         <div
           key={i}
@@ -472,7 +630,7 @@ export const StepsTimeline: React.FC<{
             top: c.y - (c.flipY ? 16 : 0),
             width: 16,
             height: 16,
-            opacity: 0.4,
+            opacity: 0.3,
             pointerEvents: 'none',
           }}
         >
@@ -502,33 +660,6 @@ export const StepsTimeline: React.FC<{
           />
         </div>
       ))}
-
-      {/* Scan lines overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 3px,
-            rgba(0, 0, 0, 0.06) 3px,
-            rgba(0, 0, 0, 0.06) 4px
-          )`,
-          backgroundPositionY: scanOffset,
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Subtle edge glow */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          boxShadow: 'inset 0 0 60px rgba(0,255,255,0.03)',
-          pointerEvents: 'none',
-        }}
-      />
     </AbsoluteFill>
   );
 };
