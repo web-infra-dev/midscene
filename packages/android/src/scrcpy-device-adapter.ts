@@ -65,7 +65,8 @@ export class ScrcpyDeviceAdapter {
   /**
    * Resolve scrcpy config.
    * maxSize defaults to 0 (no scaling) to preserve full physical resolution.
-   * Agent layer handles downscaling via Sharp lanczos3 for better quality.
+   * When streaming at full resolution, videoBitRate is auto-scaled proportionally
+   * to avoid H.264 compression artifacts (花屏).
    */
   resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
@@ -73,12 +74,32 @@ export class ScrcpyDeviceAdapter {
     const config = this.scrcpyConfig;
     const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
+    let videoBitRate =
+      config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
+
+    // Auto-scale bitrate when user hasn't explicitly set it
+    if (config?.videoBitRate === undefined) {
+      const physicalPixels =
+        deviceInfo.physicalWidth * deviceInfo.physicalHeight;
+      const BASE_PIXELS = 1920 * 1080;
+      const ratio = physicalPixels / BASE_PIXELS;
+      videoBitRate = Math.round(
+        Math.max(
+          DEFAULT_SCRCPY_CONFIG.videoBitRate,
+          DEFAULT_SCRCPY_CONFIG.videoBitRate * ratio,
+        ),
+      );
+      debugAdapter(
+        `Auto-scaled videoBitRate: ${(videoBitRate / 1_000_000).toFixed(1)}Mbps (pixels=${physicalPixels}, ratio=${ratio.toFixed(2)})`,
+      );
+    }
+
     this.resolvedConfig = {
       enabled: this.isEnabled(),
       maxSize,
       idleTimeoutMs:
         config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
-      videoBitRate: config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
+      videoBitRate,
     };
 
     return this.resolvedConfig;

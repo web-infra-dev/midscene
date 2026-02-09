@@ -154,6 +154,39 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config1).toBe(config2);
     });
 
+    it('should auto-scale videoBitRate for high-resolution devices', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const highRes: DevicePhysicalInfo = {
+        physicalWidth: 1440,
+        physicalHeight: 3120,
+        dpr: 3.2,
+        orientation: 0,
+      };
+      const config = adapter.resolveConfig(highRes);
+      // 1440*3120 / (1920*1080) ≈ 2.17, so bitrate should be ~2.17x default
+      const expectedRatio = (1440 * 3120) / (1920 * 1080);
+      const expectedBitRate = Math.round(
+        DEFAULT_SCRCPY_CONFIG.videoBitRate * expectedRatio,
+      );
+      expect(config.videoBitRate).toBe(expectedBitRate);
+    });
+
+    it('should not auto-scale videoBitRate when explicitly set', () => {
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { videoBitRate: 4_000_000 },
+        undefined,
+      );
+      const highRes: DevicePhysicalInfo = {
+        physicalWidth: 1440,
+        physicalHeight: 3120,
+        dpr: 3.2,
+        orientation: 0,
+      };
+      const config = adapter.resolveConfig(highRes);
+      expect(config.videoBitRate).toBe(4_000_000);
+    });
+
     it('should default maxSize to 0 for landscape device', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const landscape: DevicePhysicalInfo = {
