@@ -10,6 +10,7 @@ import {
   ExportOutlined,
   LoadingOutlined,
   ThunderboltOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
 import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
@@ -23,6 +24,7 @@ import type {
   TargetCameraState,
 } from '../../utils/replay-scripts';
 import { rectMarkForItem } from '../blackboard';
+import { BrandedVideoModal } from './remotion/BrandedVideoModal';
 
 const canvasPaddingLeft = 0;
 const canvasPaddingTop = 0;
@@ -779,6 +781,7 @@ export function Player(props?: {
     windowContentContainer.addChild(insightMarkContainer);
   };
 
+  const [brandedModalOpen, setBrandedModalOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recorderSessionRef = useRef<RecordingSession | null>(null);
   const cancelAnimationRef = useRef<(() => void) | null>(null);
@@ -1141,6 +1144,17 @@ export function Player(props?: {
                 </div>
               </Tooltip>
             ) : null}
+            {scripts && scripts.length > 0 && (
+              <Tooltip title="Branded Video Preview">
+                <div
+                  className="status-icon"
+                  onClick={() => setBrandedModalOpen(true)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <VideoCameraOutlined />
+                </div>
+              </Tooltip>
+            )}
             <Tooltip title={isRecording ? 'Generating...' : 'Export Video'}>
               <div
                 className="status-icon"
@@ -1257,6 +1271,13 @@ export function Player(props?: {
           </div>
         </div>
       </div>
+      {scripts && scripts.length > 0 && (
+        <BrandedVideoModal
+          open={brandedModalOpen}
+          onClose={() => setBrandedModalOpen(false)}
+          scripts={scripts}
+        />
+      )}
     </div>
   );
 }

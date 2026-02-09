@@ -1427,6 +1427,9 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      '@remotion/player':
+        specifier: 4.0.419
+        version: 4.0.419(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -1436,22 +1439,25 @@ importers:
       dayjs:
         specifier: ^1.11.11
         version: 1.11.13
+      remotion:
+        specifier: 4.0.419
+        version: 4.0.419(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@pixi/unsafe-eval':
         specifier: 7.4.2
         version: 7.4.2(@pixi/core@7.4.3)
       '@rsbuild/plugin-less':
         specifier: ^1.5.0
-        version: 1.5.0(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
+        version: 1.5.0(@rsbuild/core@1.6.15)
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.2
-        version: 1.4.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
+        version: 1.4.2(@rsbuild/core@1.6.15)
       '@rsbuild/plugin-react':
         specifier: ^1.4.1
-        version: 1.4.1(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
+        version: 1.4.1(@rsbuild/core@1.6.15)
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
-        version: 1.2.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))(typescript@5.8.3)
+        version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
@@ -3956,6 +3962,12 @@ packages:
     peerDependencies:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
+
+  '@remotion/player@4.0.419':
+    resolution: {integrity: sha512-bG0K9rJifXs8iHKBq/cHIM+Ivzvk/tw75pKTK+rRZ6lGdTvriNBwx9dl4bGjhkcjqhUBzES1zkNzKfeoyEs/6g==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@rollup/rollup-android-arm-eabi@4.24.3':
     resolution: {integrity: sha512-ufb2CH2KfBWPJok95frEZZ82LtDl0A6QKTa8MoM+cWwDZvVGl5/jNb79pIhRvAalUu+7LD91VYR0nwRD799HkQ==}
@@ -9893,6 +9905,12 @@ packages:
   remark-stringify@11.0.0:
     resolution: {integrity: sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==}
 
+  remotion@4.0.419:
+    resolution: {integrity: sha512-h00WpNrcksePPfpyC5RZhZKBIUqGWERN6RTtVjLWvHijTpGKgO0LkXkCpihzJ5y2l+V2CIOvRINl/KykcaQDRg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -14497,6 +14515,12 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
+  '@remotion/player@4.0.419(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      remotion: 4.0.419(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+
   '@rollup/rollup-android-arm-eabi@4.24.3':
     optional: true
 
@@ -14585,12 +14609,6 @@ snapshots:
       deepmerge: 4.3.1
       reduce-configs: 1.1.1
 
-  '@rsbuild/plugin-less@1.5.0(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))':
-    dependencies:
-      '@rsbuild/core': 2.0.0-beta.1(core-js@3.47.0)
-      deepmerge: 4.3.1
-      reduce-configs: 1.1.1
-
   '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.15)':
     dependencies:
       assert: 2.1.0
@@ -14618,34 +14636,6 @@ snapshots:
       vm-browserify: 1.1.2
     optionalDependencies:
       '@rsbuild/core': 1.6.15
-
-  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))':
-    dependencies:
-      assert: 2.1.0
-      browserify-zlib: 0.2.0
-      buffer: 5.7.1
-      console-browserify: 1.2.0
-      constants-browserify: 1.0.0
-      crypto-browserify: 3.12.1
-      domain-browser: 5.7.0
-      events: 3.3.0
-      https-browserify: 1.0.0
-      os-browserify: 0.3.0
-      path-browserify: 1.0.1
-      process: 0.11.10
-      punycode: 2.3.1
-      querystring-es3: 0.2.1
-      readable-stream: 4.7.0
-      stream-browserify: 3.0.0
-      stream-http: 3.2.0
-      string_decoder: 1.3.0
-      timers-browserify: 2.0.12
-      tty-browserify: 0.0.1
-      url: 0.11.4
-      util: 0.12.5
-      vm-browserify: 1.1.2
-    optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.1(core-js@3.47.0)
 
   '@rsbuild/plugin-react@1.4.1(@rsbuild/core@1.6.15)':
     dependencies:
@@ -14683,20 +14673,6 @@ snapshots:
     dependencies:
       '@rsbuild/core': 1.6.15
       '@rsbuild/plugin-react': 1.4.1(@rsbuild/core@1.6.15)
-      '@svgr/core': 8.1.0(typescript@5.8.3)
-      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))
-      '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))(typescript@5.8.3)
-      deepmerge: 4.3.1
-      loader-utils: 3.3.1
-    transitivePeerDependencies:
-      - supports-color
-      - typescript
-      - webpack-hot-middleware
-
-  '@rsbuild/plugin-svgr@1.2.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))(typescript@5.8.3)':
-    dependencies:
-      '@rsbuild/core': 2.0.0-beta.1(core-js@3.47.0)
-      '@rsbuild/plugin-react': 1.4.1(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
       '@svgr/core': 8.1.0(typescript@5.8.3)
       '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))
       '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))(typescript@5.8.3)
@@ -21864,6 +21840,11 @@ snapshots:
       '@types/mdast': 4.0.4
       mdast-util-to-markdown: 2.1.2
       unified: 11.0.5
+
+  remotion@4.0.419(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   require-directory@2.1.1: {}
 
