@@ -21,6 +21,7 @@ import {
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
+  normalizeMobileSwipeParam,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -172,53 +173,8 @@ export class IOSDevice implements AbstractInterface {
         );
       }),
       defineActionSwipe(async (param) => {
-        const { width, height } = await this.size();
-        const { start, end } = param;
-
-        const startPoint = start
-          ? { x: start.center[0], y: start.center[1] }
-          : { x: width / 2, y: height / 2 };
-
-        let endPoint: { x: number; y: number };
-
-        if (end) {
-          endPoint = { x: end.center[0], y: end.center[1] };
-        } else if (param.distance) {
-          const direction = param.direction;
-          if (!direction) {
-            throw new Error('direction is required for swipe gesture');
-          }
-          endPoint = {
-            x:
-              startPoint.x +
-              (direction === 'right'
-                ? param.distance
-                : direction === 'left'
-                  ? -param.distance
-                  : 0),
-            y:
-              startPoint.y +
-              (direction === 'down'
-                ? param.distance
-                : direction === 'up'
-                  ? -param.distance
-                  : 0),
-          };
-        } else {
-          throw new Error(
-            'Either end or distance must be specified for swipe gesture',
-          );
-        }
-
-        endPoint.x = Math.max(0, Math.min(endPoint.x, width));
-        endPoint.y = Math.max(0, Math.min(endPoint.y, height));
-
-        const duration = param.duration ?? 300;
-
-        let repeatCount = typeof param.repeat === 'number' ? param.repeat : 1;
-        if (repeatCount === 0) {
-          repeatCount = 10;
-        }
+        const { startPoint, endPoint, duration, repeatCount } =
+          normalizeMobileSwipeParam(param, await this.size());
         for (let i = 0; i < repeatCount; i++) {
           await this.swipe(
             startPoint.x,
