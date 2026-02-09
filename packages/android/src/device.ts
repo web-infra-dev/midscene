@@ -23,7 +23,9 @@ import {
   defineActionDragAndDrop,
   defineActionKeyboardPress,
   defineActionScroll,
+  defineActionSwipe,
   defineActionTap,
+  normalizeMobileSwipeParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -220,6 +222,13 @@ export class AndroidDevice implements AbstractInterface {
             y: to.center[1],
           },
         );
+      }),
+      defineActionSwipe(async (param) => {
+        const { startPoint, endPoint, duration, repeatCount } =
+          normalizeMobileSwipeParam(param, await this.size());
+        for (let i = 0; i < repeatCount; i++) {
+          await this.mouseDrag(startPoint, endPoint, duration);
+        }
       }),
       defineActionKeyboardPress(async (param) => {
         await this.keyboardPress(param.keyName);
