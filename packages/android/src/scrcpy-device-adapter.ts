@@ -64,25 +64,46 @@ export class ScrcpyDeviceAdapter {
 
   /**
    * Resolve scrcpy config.
-   * maxSize defaults to 0 (no scaling) to preserve full physical resolution.
-   * When streaming at full resolution, videoBitRate is auto-scaled proportionally
-   * to avoid H.264 compression artifacts (花屏).
+   * When maxSize is not explicitly set, auto-calculate to half the physical resolution.
+   * This provides 2x oversampling for Sharp lanczos3 downscale while keeping
+   * the H.264 encoder fast enough to avoid stale-frame issues (残影).
+   * videoBitRate is auto-scaled proportionally to the resolved pixel count.
    */
   resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
-    const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
+    let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
+    // Auto-calculate maxSize: half of physical resolution (2x oversampling)
+    if (config?.maxSize === undefined) {
+      const physicalMax = Math.max(
+        deviceInfo.physicalWidth,
+        deviceInfo.physicalHeight,
+      );
+      maxSize = Math.round(physicalMax / 2);
+      debugAdapter(
+        `Auto-calculated maxSize: ${maxSize} (physical=${physicalMax}, half-resolution for 2x oversampling)`,
+      );
+    }
+
+    // Auto-scale bitrate based on resolved pixel count
     let videoBitRate =
       config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
 
-    // Auto-scale bitrate when user hasn't explicitly set it
     if (config?.videoBitRate === undefined) {
-      const physicalPixels =
-        deviceInfo.physicalWidth * deviceInfo.physicalHeight;
+      // Estimate resolved pixel count from maxSize
+      const physicalMax = Math.max(
+        deviceInfo.physicalWidth,
+        deviceInfo.physicalHeight,
+      );
+      const scaleFactor = maxSize > 0 ? maxSize / physicalMax : 1;
+      const resolvedPixels =
+        deviceInfo.physicalWidth *
+        scaleFactor *
+        (deviceInfo.physicalHeight * scaleFactor);
       const BASE_PIXELS = 1920 * 1080;
-      const ratio = physicalPixels / BASE_PIXELS;
+      const ratio = resolvedPixels / BASE_PIXELS;
       videoBitRate = Math.round(
         Math.max(
           DEFAULT_SCRCPY_CONFIG.videoBitRate,
@@ -90,7 +111,7 @@ export class ScrcpyDeviceAdapter {
         ),
       );
       debugAdapter(
-        `Auto-scaled videoBitRate: ${(videoBitRate / 1_000_000).toFixed(1)}Mbps (pixels=${physicalPixels}, ratio=${ratio.toFixed(2)})`,
+        `Auto-scaled videoBitRate: ${(videoBitRate / 1_000_000).toFixed(1)}Mbps (resolvedPixels=${Math.round(resolvedPixels)}, ratio=${ratio.toFixed(2)})`,
       );
     }
 

@@ -96,16 +96,17 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('resolveConfig', () => {
-    it('should default maxSize to 0 (no scaling) when not explicitly set', () => {
+    it('should auto-calculate maxSize to half physical resolution', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      expect(config.maxSize).toBe(0);
+      // max(1080, 1920) = 1920, half = 960
+      expect(config.maxSize).toBe(960);
     });
 
-    it('should default maxSize to 0 even with screenshotResizeScale', () => {
+    it('should auto-calculate maxSize regardless of screenshotResizeScale', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, 0.5);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      expect(config.maxSize).toBe(0);
+      expect(config.maxSize).toBe(960);
     });
 
     it('should use explicit maxSize without auto-calculation', () => {
@@ -129,10 +130,13 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config.maxSize).toBe(0);
     });
 
-    it('should use default idleTimeoutMs and videoBitRate when not provided', () => {
+    it('should auto-scale videoBitRate based on resolved resolution', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
+      // defaultDeviceInfo: 1080x1920, maxSize=960, scaleFactor=960/1920=0.5
+      // resolvedPixels = 1080*0.5 * 1920*0.5 = 518400
+      // ratio = 518400 / (1920*1080) = 0.25 → clamp to base 8Mbps
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
@@ -163,12 +167,10 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 0,
       };
       const config = adapter.resolveConfig(highRes);
-      // 1440*3120 / (1920*1080) ≈ 2.17, so bitrate should be ~2.17x default
-      const expectedRatio = (1440 * 3120) / (1920 * 1080);
-      const expectedBitRate = Math.round(
-        DEFAULT_SCRCPY_CONFIG.videoBitRate * expectedRatio,
-      );
-      expect(config.videoBitRate).toBe(expectedBitRate);
+      // maxSize = round(3120/2) = 1560, scaleFactor = 1560/3120 = 0.5
+      // resolvedPixels = 1440*0.5 * 3120*0.5 = 1123200
+      // ratio = 1123200 / (1920*1080) ≈ 0.542 → clamp to base 8Mbps
+      expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
     it('should not auto-scale videoBitRate when explicitly set', () => {
@@ -187,7 +189,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config.videoBitRate).toBe(4_000_000);
     });
 
-    it('should default maxSize to 0 for landscape device', () => {
+    it('should auto-calculate maxSize for landscape device', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const landscape: DevicePhysicalInfo = {
         physicalWidth: 1920,
@@ -196,7 +198,8 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 1,
       };
       const config = adapter.resolveConfig(landscape);
-      expect(config.maxSize).toBe(0);
+      // max(1920, 1080) = 1920, half = 960
+      expect(config.maxSize).toBe(960);
     });
   });
 
