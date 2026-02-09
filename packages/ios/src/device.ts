@@ -15,6 +15,7 @@ import {
   type IOSDeviceOpt,
   defineAction,
   defineActionClearInput,
+  defineActionCursorMove,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
@@ -171,6 +172,15 @@ export class IOSDevice implements AbstractInterface {
       }),
       defineActionKeyboardPress(async (param) => {
         await this.pressKey(param.keyName);
+      }),
+      defineActionCursorMove(async (param) => {
+        const arrowKey =
+          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        const times = param.times ?? 1;
+        for (let i = 0; i < times; i++) {
+          await this.pressKey(arrowKey);
+          await sleep(100);
+        }
       }),
       defineAction<
         z.ZodObject<{
