@@ -244,13 +244,13 @@ I should identify the button first.</think>
       expect(dataJson).toBe('{"name": "John", "age": 30}');
     });
 
-    it('should handle complete-goal extraction with think prefix', () => {
+    it('should handle complete extraction with think prefix', () => {
       const xml = `<think>The task has been completed successfully</think>
 <thought>Task completed</thought>
-<complete-goal success="true">Successfully hovered over the left menu</complete-goal>`;
+<complete success="true">Successfully hovered over the left menu</complete>`;
       const thought = extractXMLTag(xml, 'thought');
       expect(thought).toBe('Task completed');
-      // Note: complete-goal has attributes, so extractXMLTag won't match it directly
+      // Note: complete has attributes, so extractXMLTag won't match it directly
       // This is handled separately in parseXMLPlanningResponse
     });
   });

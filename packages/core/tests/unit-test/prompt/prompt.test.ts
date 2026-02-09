@@ -314,10 +314,10 @@ describe('system prompts', () => {
     );
     expect(prompt).toContain('<mark-sub-goal-done>');
     expect(prompt).toContain("<memory>Name field has been filled with 'John'");
-    // Should show returning specific value in complete-goal
+    // Should show returning specific value in complete
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
-      '<complete-goal success="true">john@example.com</complete-goal>',
+      '<complete success="true">john@example.com</complete>',
     );
   });
 
@@ -335,10 +335,10 @@ describe('system prompts', () => {
     expect(prompt).not.toContain(
       "<memory>Name field has been filled with 'John'",
     );
-    // Should still show returning specific value in complete-goal
+    // Should still show returning specific value in complete
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
-      '<complete-goal success="true">john@example.com</complete-goal>',
+      '<complete success="true">john@example.com</complete>',
     );
   });
 
