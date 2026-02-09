@@ -43,7 +43,6 @@ Promise.resolve(
     const agent = new AgentOverChromeBridge();
 
     // This will connect to a new tab on your desktop Chrome
-    // remember to start your chrome extension, click 'allow connection' button. Otherwise you will get an timeout error
     await agent.connectNewTabWithUrl("https://www.bing.com");
 
     // these are the same as normal Midscene agent
@@ -56,21 +55,7 @@ Promise.resolve(
 );
 ```
 
-### Step 4. Start the Chrome extension
-
-Start the chrome extension and switch to 'Bridge Mode' tab. Click "Allow connection".
-
-<p align="center">
-  <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
-</p>
-
-:::tip Auto-connect in background
-
-Enable the **Auto-connect in background** toggle to keep listening for connection requests even without opening the sidebar. The extension icon will display a status badge: yellow dot for listening, green dot for connected.
-
-:::
-
-### Step 5. Run the script
+### Step 4. Run the script
 
 Run your scripts
 
@@ -78,11 +63,15 @@ Run your scripts
 tsx demo-new-tab.ts
 ```
 
-After executing the script, you should see the status of the Chrome extension switched to 'connected', and a new tab has been opened. Now this tab is controlled by your scripts.
+After running the script, the Chrome extension will pop up a confirmation dialog asking whether to allow the connection. Click "Allow" to allow the current connection, or click "Always Allow" to automatically allow all future connection requests (can be reset in the Bridge Mode panel). You should then see a new tab opened in your desktop Chrome, controlled by your scripts.
+
+<p align="center">
+  <img src="/bridge_in_extension.png" alt="bridge in extension" width="400"/>
+</p>
 
 :::tip
 
-⁠Whether the scripts are run before or after clicking 'Allow connection' in the browser is not significant.
+The extension listens for connection requests in the background by default, no manual action is needed. The extension icon will display a status badge: yellow dot for listening, green dot for connected.
 
 :::
 
@@ -110,7 +99,7 @@ Run the script:
 midscene ./bing.yaml
 ```
 
-Remember to start the chrome extension and click 'Allow connection' button after the script is running.
+After the script starts, click "Allow" in the confirmation dialog to proceed.
 
 ### Unsupported options
 
@@ -147,7 +136,7 @@ const agent = new AgentOverChromeBridge({
 2. Fill in the server address in the "Bridge Server URL" input field
    - Local mode: `ws://localhost:3766` (default)
    - Remote mode: `ws://192.168.1.100:3766` (replace with your server IP)
-3. Click the "Allow Connection" button
+3. Run your script and click "Allow" in the confirmation dialog
 
 <p align="center">
   <img src="/bridge_remote_config.png" alt="bridge remote config" width="400"/>
