@@ -1,17 +1,16 @@
 import { AbsoluteFill, Sequence } from 'remotion';
-import type { AnimationScript } from '../../../utils/replay-scripts';
 import { EndingScene } from './EndingScene';
 import { OpeningScene } from './OpeningScene';
 import { ProgressBar } from './ProgressBar';
 import { StepsTimeline } from './StepScene';
 import type { FrameMap } from './frame-calculator';
 
-export const BrandedComposition: React.FC<{
+export const Composition: React.FC<{
   frameMap: FrameMap;
-  scripts: AnimationScript[];
-}> = ({ frameMap }) => {
+  effects: boolean;
+  autoZoom: boolean;
+}> = ({ frameMap, effects, autoZoom }) => {
   const {
-    segments,
     openingDurationInFrames,
     endingDurationInFrames,
     stepsDurationInFrames,
@@ -21,29 +20,38 @@ export const BrandedComposition: React.FC<{
   const endingStart = totalDurationInFrames - endingDurationInFrames;
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000' }}>
-      {/* Opening */}
-      <Sequence from={0} durationInFrames={openingDurationInFrames}>
-        <OpeningScene />
-      </Sequence>
-
-      {/* All steps as a single continuous timeline */}
-      {segments.length > 0 && (
-        <Sequence
-          from={openingDurationInFrames}
-          durationInFrames={stepsDurationInFrames}
-        >
-          <StepsTimeline segments={segments} />
+    <AbsoluteFill style={{ backgroundColor: effects ? '#000' : '#f4f4f4' }}>
+      {/* Opening — effects mode only */}
+      {effects && openingDurationInFrames > 0 && (
+        <Sequence from={0} durationInFrames={openingDurationInFrames}>
+          <OpeningScene />
         </Sequence>
       )}
 
-      {/* Ending */}
-      <Sequence from={endingStart} durationInFrames={endingDurationInFrames}>
-        <EndingScene />
+      {/* Steps — always render */}
+      <Sequence
+        from={openingDurationInFrames}
+        durationInFrames={stepsDurationInFrames}
+      >
+        <StepsTimeline
+          frameMap={frameMap}
+          effects={effects}
+          autoZoom={autoZoom}
+        />
       </Sequence>
 
-      {/* Progress bar overlay */}
-      <ProgressBar />
+      {/* Ending — effects mode only */}
+      {effects && endingDurationInFrames > 0 && (
+        <Sequence from={endingStart} durationInFrames={endingDurationInFrames}>
+          <EndingScene />
+        </Sequence>
+      )}
+
+      {/* Progress bar — effects mode only */}
+      {effects && <ProgressBar />}
     </AbsoluteFill>
   );
 };
+
+/** @deprecated Use Composition instead */
+export const BrandedComposition = Composition;
