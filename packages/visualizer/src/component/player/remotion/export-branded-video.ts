@@ -1,6 +1,6 @@
-import { mousePointer } from '../../../utils';
+import { mouseLoading, mousePointer } from '../../../utils';
 import { LogoUrl } from '../../logo';
-import type { FrameMap, StepSegment } from './frame-calculator';
+import type { FrameMap, ScriptFrame } from './frame-calculator';
 import {
   CHROME_BORDER_RADIUS,
   CHROME_DOTS,
@@ -29,10 +29,7 @@ const H = 540;
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
 
-// ── helpers ──────────────────────────────────────────────
-
-const easeInOut = (t: number): number =>
-  t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+// ── helpers ──
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(Math.max(v, lo), hi);
@@ -49,50 +46,214 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// ── flat timeline (shared logic with StepsTimeline.tsx) ──
+// ── State derivation from ScriptFrame timeline ──
 
-interface FlatKf {
-  img: string;
-  cameraLeft: number;
-  cameraTop: number;
-  cameraWidth: number;
+interface CameraState {
+  left: number;
+  top: number;
+  width: number;
   pointerLeft: number;
   pointerTop: number;
-  localStart: number;
-  duration: number;
-  title: string;
-  stepIndex: number;
+}
+
+interface InsightOverlay {
+  highlightRect?: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    description?: string;
+  };
+  searchArea?: { left: number; top: number; width: number; height: number };
+  alpha: number;
+}
+
+interface FrameState {
+  img: string;
+  prevImg: string | null;
   imageWidth: number;
   imageHeight: number;
+  camera: CameraState;
+  prevCamera: CameraState;
+  pointerMoved: boolean;
+  imageChanged: boolean;
+  rawProgress: number;
+  frameInScript: number;
+  scriptIndex: number;
+  title: string;
+  spinning: boolean;
+  spinningElapsedMs: number;
+  currentPointerImg: string;
+  insights: InsightOverlay[];
 }
 
-function buildTimeline(segments: StepSegment[]): FlatKf[] {
-  const off = segments[0]?.startFrame ?? 0;
-  return segments.flatMap((seg) =>
-    seg.keyframes.map((kf) => ({
-      img: kf.img,
-      cameraLeft: kf.cameraLeft,
-      cameraTop: kf.cameraTop,
-      cameraWidth: kf.cameraWidth,
-      pointerLeft: kf.pointerLeft,
-      pointerTop: kf.pointerTop,
-      localStart: seg.startFrame - off + kf.startFrame,
-      duration: kf.durationInFrames,
-      title: seg.title,
-      stepIndex: seg.stepIndex,
-      imageWidth: seg.imageWidth,
-      imageHeight: seg.imageHeight,
-    })),
-  );
+function deriveFrameState(
+  scriptFrames: ScriptFrame[],
+  stepsFrame: number,
+  baseW: number,
+  baseH: number,
+  fps: number,
+): FrameState {
+  const defaultCam: CameraState = {
+    left: 0,
+    top: 0,
+    width: baseW,
+    pointerLeft: Math.round(baseW / 2),
+    pointerTop: Math.round(baseH / 2),
+  };
+
+  let curImg = '';
+  let curIW = baseW;
+  let curIH = baseH;
+  let curCam = { ...defaultCam };
+  let prevCam = { ...defaultCam };
+  let prevImg: string | null = null;
+  let insights: InsightOverlay[] = [];
+  let spinning = false;
+  let spinMs = 0;
+  let ptrImg = mousePointer;
+  let curTitle = '';
+  let fInScript = 0;
+  let sIdx = 0;
+  let imgChanged = false;
+  let pMoved = false;
+  let rawProg = 0;
+
+  for (let i = 0; i < scriptFrames.length; i++) {
+    const sf = scriptFrames[i];
+    const sfEnd = sf.startFrame + sf.durationInFrames;
+
+    if (sf.durationInFrames === 0) {
+      if (sf.startFrame <= stepsFrame) {
+        if (sf.type === 'pointer' && sf.pointerImg) ptrImg = sf.pointerImg;
+        curTitle = sf.title || curTitle;
+        sIdx = i;
+      }
+      continue;
+    }
+
+    if (stepsFrame < sf.startFrame) break;
+
+    curTitle = sf.title || curTitle;
+    sIdx = i;
+    fInScript = stepsFrame - sf.startFrame;
+    rawProg = Math.min(fInScript / sf.durationInFrames, 1);
+
+    switch (sf.type) {
+      case 'img': {
+        if (sf.img) {
+          if (curImg && sf.img !== curImg) {
+            prevImg = curImg;
+            imgChanged = true;
+          }
+          curImg = sf.img;
+          curIW = sf.imageWidth || baseW;
+          curIH = sf.imageHeight || baseH;
+        }
+        if (sf.cameraTarget) {
+          prevCam = { ...curCam };
+          curCam = { ...sf.cameraTarget };
+          pMoved =
+            Math.abs(prevCam.pointerLeft - curCam.pointerLeft) > 1 ||
+            Math.abs(prevCam.pointerTop - curCam.pointerTop) > 1;
+        }
+        spinning = false;
+        break;
+      }
+      case 'insight': {
+        if (sf.img) {
+          if (curImg && sf.img !== curImg) {
+            prevImg = curImg;
+            imgChanged = true;
+          }
+          curImg = sf.img;
+          curIW = sf.imageWidth || baseW;
+          curIH = sf.imageHeight || baseH;
+        }
+        const already = insights.some(
+          (ai) =>
+            ai.highlightRect?.left === sf.highlightElement?.rect.left &&
+            ai.searchArea?.left === sf.searchArea?.left,
+        );
+        if (!already) {
+          insights.push({
+            highlightRect: sf.highlightElement
+              ? {
+                  ...sf.highlightElement.rect,
+                  description: sf.highlightElement.description,
+                }
+              : undefined,
+            searchArea: sf.searchArea ? { ...sf.searchArea } : undefined,
+            alpha: 1,
+          });
+        }
+        if (sf.cameraTarget && sf.insightPhaseFrames !== undefined) {
+          const cameraStart = sf.startFrame + sf.insightPhaseFrames;
+          if (stepsFrame >= cameraStart) {
+            prevCam = { ...curCam };
+            curCam = { ...sf.cameraTarget };
+            const cFIn = stepsFrame - cameraStart;
+            const cDur = sf.cameraPhaseFrames || 1;
+            rawProg = Math.min(cFIn / cDur, 1);
+            pMoved =
+              Math.abs(prevCam.pointerLeft - curCam.pointerLeft) > 1 ||
+              Math.abs(prevCam.pointerTop - curCam.pointerTop) > 1;
+          }
+        }
+        spinning = false;
+        break;
+      }
+      case 'clear-insight': {
+        const alpha = 1 - rawProg;
+        insights = insights.map((ai) => ({ ...ai, alpha }));
+        if (stepsFrame >= sfEnd) insights = [];
+        spinning = false;
+        break;
+      }
+      case 'spinning-pointer': {
+        spinning = true;
+        spinMs = (fInScript / fps) * 1000;
+        break;
+      }
+      case 'sleep': {
+        spinning = false;
+        break;
+      }
+    }
+
+    if (stepsFrame >= sfEnd) {
+      if (sf.type !== 'clear-insight') imgChanged = false;
+      pMoved = false;
+      rawProg = 1;
+      // Commit camera position so subsequent scripts without camera
+      // don't interpolate back to a stale prevCam
+      if (sf.cameraTarget) {
+        prevCam = { ...curCam };
+      }
+    }
+  }
+
+  return {
+    img: curImg,
+    prevImg: imgChanged ? prevImg : null,
+    imageWidth: curIW,
+    imageHeight: curIH,
+    camera: curCam,
+    prevCamera: prevCam,
+    pointerMoved: pMoved,
+    imageChanged: imgChanged,
+    rawProgress: rawProg,
+    frameInScript: fInScript,
+    scriptIndex: sIdx,
+    title: curTitle,
+    spinning,
+    spinningElapsedMs: spinMs,
+    currentPointerImg: ptrImg,
+    insights,
+  };
 }
 
-function findSegStartLocal(segments: StepSegment[], stepIndex: number): number {
-  const off = segments[0]?.startFrame ?? 0;
-  const seg = segments.find((s) => s.stepIndex === stepIndex);
-  return seg ? seg.startFrame - off : 0;
-}
-
-// ── cyberpunk background ─────────────────────────────────
+// ── cyberpunk background ──
 
 function drawCyberBackground(ctx: CanvasRenderingContext2D) {
   const g = ctx.createRadialGradient(W / 2, H * 1.2, 0, W / 2, H / 2, W);
@@ -103,16 +264,11 @@ function drawCyberBackground(ctx: CanvasRenderingContext2D) {
   ctx.fillRect(0, 0, W, H);
 }
 
-// ── perspective grid ─────────────────────────────────────
-
 function drawCyberGrid(ctx: CanvasRenderingContext2D, frame: number) {
   const gridH = getGridLines(frame);
   const gridV = getVerticalGridLines();
-
   ctx.save();
   ctx.globalAlpha = 0.5;
-
-  // Horizontal lines
   for (const line of gridH) {
     const y = line.y * H;
     ctx.strokeStyle = `rgba(0, 255, 255, ${line.alpha * 0.4})`;
@@ -124,8 +280,6 @@ function drawCyberGrid(ctx: CanvasRenderingContext2D, frame: number) {
     ctx.lineTo(W, y);
     ctx.stroke();
   }
-
-  // Vertical lines (bottom half only)
   ctx.shadowBlur = 3;
   for (const line of gridV) {
     const x = line.x * W;
@@ -135,12 +289,9 @@ function drawCyberGrid(ctx: CanvasRenderingContext2D, frame: number) {
     ctx.lineTo(x, H);
     ctx.stroke();
   }
-
   ctx.shadowBlur = 0;
   ctx.restore();
 }
-
-// ── neon particle renderer ───────────────────────────────
 
 function drawCyberParticles(ctx: CanvasRenderingContext2D, frame: number) {
   const particles = getParticles();
@@ -160,8 +311,6 @@ function drawCyberParticles(ctx: CanvasRenderingContext2D, frame: number) {
   }
 }
 
-// ── scan lines ───────────────────────────────────────────
-
 function drawScanlines(
   ctx: CanvasRenderingContext2D,
   frame: number,
@@ -170,13 +319,9 @@ function drawScanlines(
   const offset = getScanlineOffset(frame);
   ctx.save();
   ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-  for (let y = offset; y < H; y += 4) {
-    ctx.fillRect(0, y, W, 1);
-  }
+  for (let y = offset; y < H; y += 4) ctx.fillRect(0, y, W, 1);
   ctx.restore();
 }
-
-// ── vignette ─────────────────────────────────────────────
 
 function drawVignette(ctx: CanvasRenderingContext2D) {
   const g = ctx.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W);
@@ -185,8 +330,6 @@ function drawVignette(ctx: CanvasRenderingContext2D) {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 }
-
-// ── HUD corners ──────────────────────────────────────────
 
 function drawHudCorners(
   ctx: CanvasRenderingContext2D,
@@ -213,8 +356,6 @@ function drawHudCorners(
   ctx.restore();
 }
 
-// ── data stream ──────────────────────────────────────────
-
 function drawDataStream(
   ctx: CanvasRenderingContext2D,
   frame: number,
@@ -234,8 +375,6 @@ function drawDataStream(
   ctx.restore();
 }
 
-// ── chrome browser shell ─────────────────────────────────
-
 const BROWSER_MARGIN = 24;
 
 function drawChromeTitleBar(
@@ -245,13 +384,6 @@ function drawChromeTitleBar(
   w: number,
 ) {
   const h = CHROME_TITLE_BAR_H;
-  // Title bar background
-  const g = ctx.createLinearGradient(x, y, x, y + h);
-  g.addColorStop(0, '#2a2a35');
-  g.addColorStop(1, '#1e1e28');
-  ctx.fillStyle = g;
-  roundRect(ctx, x, y, w, h, 0);
-  // Round top corners only
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(x + CHROME_BORDER_RADIUS, y);
@@ -262,29 +394,27 @@ function drawChromeTitleBar(
   ctx.lineTo(x, y + CHROME_BORDER_RADIUS);
   ctx.quadraticCurveTo(x, y, x + CHROME_BORDER_RADIUS, y);
   ctx.closePath();
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, '#2a2a35');
+  g.addColorStop(1, '#1e1e28');
+  ctx.fillStyle = g;
   ctx.fill();
   ctx.restore();
-
-  // Bottom border
   ctx.strokeStyle = 'rgba(0,255,255,0.15)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(x, y + h);
   ctx.lineTo(x + w, y + h);
   ctx.stroke();
-
-  // Traffic lights
   for (const dot of CHROME_DOTS) {
     ctx.beginPath();
     ctx.arc(x + dot.x, y + h / 2, 5, 0, Math.PI * 2);
     ctx.fillStyle = dot.color;
     ctx.fill();
   }
-
-  // Address bar
-  const abx = x + 70;
-  const aby = y + h / 2 - 11;
-  const abw = w - 84;
+  const abx = x + 70,
+    aby = y + h / 2 - 11,
+    abw = w - 84;
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   roundRect(ctx, abx, aby, abw, 22, 6);
   ctx.fill();
@@ -292,8 +422,6 @@ function drawChromeTitleBar(
   ctx.lineWidth = 1;
   roundRect(ctx, abx, aby, abw, 22, 6);
   ctx.stroke();
-
-  // URL text
   ctx.font = '10px monospace';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -304,7 +432,107 @@ function drawChromeTitleBar(
   ctx.fillText('app.example.com', abx + 10 + protoW, y + h / 2);
 }
 
-// ── scene renderers ──────────────────────────────────────
+// ── Insight overlay drawing ──
+
+function drawInsightOverlays(
+  ctx: CanvasRenderingContext2D,
+  insights: InsightOverlay[],
+  cameraTransform: { zoom: number; tx: number; ty: number },
+  bx: number,
+  contentY: number,
+  browserW: number,
+  contentH: number,
+) {
+  for (const insight of insights) {
+    if (insight.alpha <= 0) continue;
+    ctx.save();
+    ctx.globalAlpha *= insight.alpha;
+
+    if (insight.highlightRect) {
+      const r = insight.highlightRect;
+      const rx =
+        bx +
+        (r.left * cameraTransform.zoom +
+          cameraTransform.tx * cameraTransform.zoom);
+      const ry =
+        contentY +
+        (r.top * cameraTransform.zoom +
+          cameraTransform.ty * cameraTransform.zoom);
+      const rw = r.width * cameraTransform.zoom;
+      const rh = r.height * cameraTransform.zoom;
+
+      ctx.fillStyle = 'rgba(253, 89, 7, 0.4)';
+      ctx.fillRect(rx, ry, rw, rh);
+      ctx.strokeStyle = '#fd5907';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.shadowColor = 'rgba(51, 51, 51, 0.4)';
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetX = 4;
+      ctx.shadowOffsetY = 4;
+      ctx.strokeRect(rx, ry, rw, rh);
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
+      if (r.description) {
+        ctx.font = '18px sans-serif';
+        ctx.fillStyle = '#000';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(r.description, rx, ry - 4);
+      }
+    }
+
+    if (insight.searchArea) {
+      const r = insight.searchArea;
+      const rx =
+        bx +
+        (r.left * cameraTransform.zoom +
+          cameraTransform.tx * cameraTransform.zoom);
+      const ry =
+        contentY +
+        (r.top * cameraTransform.zoom +
+          cameraTransform.ty * cameraTransform.zoom);
+      const rw = r.width * cameraTransform.zoom;
+      const rh = r.height * cameraTransform.zoom;
+
+      ctx.fillStyle = 'rgba(2, 131, 145, 0.4)';
+      ctx.fillRect(rx, ry, rw, rh);
+      ctx.strokeStyle = '#028391';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(rx, ry, rw, rh);
+
+      ctx.font = '18px sans-serif';
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('Search Area', rx, ry - 4);
+    }
+
+    ctx.restore();
+  }
+}
+
+// ── Spinning pointer Canvas drawing ──
+
+function drawSpinningPointer(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  elapsedMs: number,
+) {
+  const progress = (Math.sin(elapsedMs / 500 - Math.PI / 2) + 1) / 2;
+  const rotation = progress * Math.PI * 2;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  ctx.drawImage(img, -11, -14, 22, 28);
+  ctx.restore();
+}
+
+// ── scene renderers ──
 
 function drawOpening(
   ctx: CanvasRenderingContext2D,
@@ -315,7 +543,6 @@ function drawOpening(
   drawCyberBackground(ctx);
   drawCyberGrid(ctx, f);
   drawCyberParticles(ctx, f);
-
   const opacity = clamp(
     f < 20 ? f / 20 : f > dur - 20 ? (dur - f) / 20 : 1,
     0,
@@ -325,15 +552,12 @@ function drawOpening(
   const ty = f > dur - 30 ? ((f - (dur - 30)) / 30) * -60 : 0;
   const breathing = getLogoBreathing(f);
   const flicker = getNeonFlicker(f);
-
   ctx.save();
   ctx.globalAlpha = opacity * flicker;
   ctx.translate(W / 2, H / 2 + ty);
   ctx.scale(scale * breathing.scale, scale * breathing.scale);
-
   if (logo) {
     ctx.save();
-    // Dual glow: cyan + magenta
     ctx.shadowColor = `rgba(0,255,255,${breathing.glowIntensity})`;
     ctx.shadowBlur = breathing.glowRadius;
     ctx.drawImage(logo, -60, -80, 120, 120);
@@ -342,20 +566,14 @@ function drawOpening(
     ctx.drawImage(logo, -60, -80, 120, 120);
     ctx.restore();
   }
-
-  // Neon title text
   ctx.font = 'bold 48px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
-  // Glow layers
   ctx.shadowColor = 'rgba(0,255,255,0.8)';
   ctx.shadowBlur = 16;
   ctx.fillStyle = '#fff';
   ctx.fillText('Midscene', 0, 80);
   ctx.shadowBlur = 0;
-
-  // Chromatic aberration subtitle
   ctx.font = '14px monospace';
   ctx.save();
   ctx.globalAlpha = 0.5;
@@ -366,10 +584,7 @@ function drawOpening(
   ctx.restore();
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.fillText('AI-POWERED AUTOMATION', 0, 110);
-
   ctx.restore();
-
-  // HUD
   const hudAlpha = clamp((f - 10) / 20, 0, 1);
   drawHudCorners(ctx, hudAlpha);
   drawDataStream(ctx, f, 20, H - 20, 32, hudAlpha * 0.5);
@@ -386,16 +601,13 @@ function drawEnding(
   drawCyberBackground(ctx);
   drawCyberGrid(ctx, f);
   drawCyberParticles(ctx, f);
-
   const fadeIn = clamp(f / 20, 0, 1);
   const fadeOut = clamp((dur - f) / 20, 0, 1);
   const opacity = fadeIn * fadeOut;
   const flicker = getNeonFlicker(f);
-
   ctx.save();
   ctx.globalAlpha = opacity * flicker;
   ctx.translate(W / 2, H / 2);
-
   if (logo) {
     ctx.save();
     ctx.shadowColor = 'rgba(0,255,255,0.5)';
@@ -406,8 +618,6 @@ function drawEnding(
     ctx.drawImage(logo, -40, -60, 80, 80);
     ctx.restore();
   }
-
-  // Neon text
   ctx.font = '500 20px monospace';
   ctx.textAlign = 'center';
   ctx.shadowColor = 'rgba(0,255,255,0.6)';
@@ -415,8 +625,6 @@ function drawEnding(
   ctx.fillStyle = 'rgba(255,255,255,0.9)';
   ctx.fillText('Powered by Midscene', 0, 48);
   ctx.shadowBlur = 0;
-
-  // Chromatic URL
   ctx.font = '14px monospace';
   ctx.save();
   ctx.globalAlpha = 0.4;
@@ -427,9 +635,7 @@ function drawEnding(
   ctx.restore();
   ctx.fillStyle = 'rgba(255,255,255,0.6)';
   ctx.fillText('midscenejs.com', 0, 72);
-
   ctx.restore();
-
   drawHudCorners(ctx, opacity * 0.7);
   drawDataStream(ctx, f, W - 200, H - 20, 24, opacity * 0.4);
   drawScanlines(ctx, f);
@@ -439,218 +645,200 @@ function drawEnding(
 function drawSteps(
   ctx: CanvasRenderingContext2D,
   stepsFrame: number,
-  segments: StepSegment[],
-  timeline: FlatKf[],
+  frameMap: FrameMap,
   imgCache: Map<string, HTMLImageElement>,
   cursorImg: HTMLImageElement | null,
+  spinnerImg: HTMLImageElement | null,
+  effectsMode: boolean,
 ) {
-  if (timeline.length === 0) return;
+  const { scriptFrames, imageWidth: baseW, imageHeight: baseH, fps } = frameMap;
+  const st = deriveFrameState(scriptFrames, stepsFrame, baseW, baseH, fps);
+  if (!st.img) return;
 
-  // locate keyframe
-  let ci = 0;
-  for (let i = 0; i < timeline.length; i++) {
-    const kf = timeline[i];
-    if (
-      stepsFrame >= kf.localStart &&
-      stepsFrame < kf.localStart + kf.duration
-    ) {
-      ci = i;
-      break;
-    }
-    if (i === timeline.length - 1) ci = i;
-  }
+  const {
+    img,
+    prevImg,
+    imageWidth: imgW,
+    imageHeight: imgH,
+    camera,
+    prevCamera,
+    pointerMoved,
+    imageChanged,
+    rawProgress,
+    frameInScript: fInScript,
+    scriptIndex,
+    title,
+    spinning,
+    spinningElapsedMs,
+    insights,
+  } = st;
 
-  const curr = timeline[ci];
-  const prev = ci > 0 ? timeline[ci - 1] : curr;
-  const raw = clamp((stepsFrame - curr.localStart) / curr.duration, 0, 1);
-
-  const pMoved =
-    Math.abs(prev.pointerLeft - curr.pointerLeft) > 1 ||
-    Math.abs(prev.pointerTop - curr.pointerTop) > 1;
-  const pT = pMoved ? Math.min(raw / POINTER_PHASE, 1) : raw;
-  const cT = pMoved
-    ? raw <= POINTER_PHASE
+  // Linear interpolation — matches original pixi.js cubicMouse/cubicImage
+  const pT = pointerMoved
+    ? Math.min(rawProgress / POINTER_PHASE, 1)
+    : rawProgress;
+  const cT = pointerMoved
+    ? rawProgress <= POINTER_PHASE
       ? 0
-      : easeInOut((raw - POINTER_PHASE) / (1 - POINTER_PHASE))
-    : easeInOut(raw);
+      : Math.min((rawProgress - POINTER_PHASE) / (1 - POINTER_PHASE), 1)
+    : rawProgress;
 
-  const camL = lerp(prev.cameraLeft, curr.cameraLeft, cT);
-  const camT2 = lerp(prev.cameraTop, curr.cameraTop, cT);
-  const camW = lerp(prev.cameraWidth, curr.cameraWidth, cT);
-  const ptrX = lerp(prev.pointerLeft, curr.pointerLeft, pT);
-  const ptrY = lerp(prev.pointerTop, curr.pointerTop, pT);
+  const camL = lerp(prevCamera.left, camera.left, cT);
+  const camT2 = lerp(prevCamera.top, camera.top, cT);
+  const camW = lerp(prevCamera.width, camera.width, cT);
+  const ptrX = lerp(prevCamera.pointerLeft, camera.pointerLeft, pT);
+  const ptrY = lerp(prevCamera.pointerTop, camera.pointerTop, pT);
 
-  const imgW = curr.imageWidth;
-  const imgH = curr.imageHeight;
+  const browserW = effectsMode ? W - BROWSER_MARGIN * 2 : W;
+  const contentH = effectsMode
+    ? H - BROWSER_MARGIN * 2 - CHROME_TITLE_BAR_H
+    : H;
+  const browserH = contentH + (effectsMode ? CHROME_TITLE_BAR_H : 0);
+  const bx = effectsMode ? BROWSER_MARGIN : 0;
+  const by = effectsMode ? BROWSER_MARGIN : 0;
 
-  // Browser shell dimensions
-  const browserW = W - BROWSER_MARGIN * 2;
-  const contentH = H - BROWSER_MARGIN * 2 - CHROME_TITLE_BAR_H;
-  const browserH = contentH + CHROME_TITLE_BAR_H;
-  const bx = BROWSER_MARGIN;
-  const by = BROWSER_MARGIN;
-
-  // Camera transform relative to content area
   const zoom = imgW / camW;
   const tx = -camL * (browserW / imgW);
   const ty = -camT2 * (contentH / imgH);
 
   const initAlpha = clamp(stepsFrame / 8, 0, 1);
-
-  const imgChanged = ci > 0 && prev.img !== curr.img;
-  const crossAlpha = imgChanged
-    ? clamp((stepsFrame - curr.localStart) / CROSSFADE_FRAMES, 0, 1)
+  const crossAlpha = imageChanged
+    ? clamp((stepsFrame - (stepsFrame - fInScript)) / CROSSFADE_FRAMES, 0, 1)
     : 1;
+  const blurPx = effectsMode ? getImageBlur(fInScript, imageChanged) : 0;
 
-  const framesIntoKf = stepsFrame - curr.localStart;
-  const blurPx = getImageBlur(framesIntoKf, imgChanged);
+  const isFirstStep = scriptIndex === 0;
+  const transform3d =
+    effectsMode && isFirstStep
+      ? getBrowser3DTransform(fInScript, stepsFrame)
+      : { rotateX: 0, rotateY: 0, translateZ: 0, scale: 1 };
 
-  const stepStart = findSegStartLocal(segments, curr.stepIndex);
-  const fInStep = stepsFrame - stepStart;
-
-  // 3D transform (simulated with scale in Canvas 2D)
-  // 3D transform — only on the first step
-  const isFirstStep = curr.stepIndex === 0;
-  const transform3d = isFirstStep
-    ? getBrowser3DTransform(fInStep, stepsFrame)
-    : { rotateX: 0, rotateY: 0, translateZ: 0, scale: 1 };
-
-  // Dark background
-  ctx.fillStyle = '#0a0a12';
+  // Background
+  ctx.fillStyle = effectsMode ? '#0a0a12' : '#f4f4f4';
   ctx.fillRect(0, 0, W, H);
 
   ctx.save();
   ctx.globalAlpha = initAlpha;
 
-  // Apply 3D-like transform: translate to center, scale, translate back
-  const centerX = bx + browserW / 2;
-  const centerY = by + browserH / 2;
-  ctx.translate(centerX, centerY);
-  ctx.scale(transform3d.scale, transform3d.scale);
-  ctx.translate(-centerX, -centerY);
+  if (effectsMode) {
+    const centerX = bx + browserW / 2;
+    const centerY = by + browserH / 2;
+    ctx.translate(centerX, centerY);
+    ctx.scale(transform3d.scale, transform3d.scale);
+    ctx.translate(-centerX, -centerY);
 
-  // Browser shadow
+    // Browser shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = '#1e1e28';
+    roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
+    ctx.fill();
+    ctx.restore();
+
+    drawChromeTitleBar(ctx, bx, by, browserW);
+  }
+
+  const contentY = by + (effectsMode ? CHROME_TITLE_BAR_H : 0);
+
   ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.6)';
-  ctx.shadowBlur = 20;
-  ctx.shadowOffsetY = 10;
-  ctx.fillStyle = '#1e1e28';
-  roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
-  ctx.fill();
-  ctx.restore();
+  if (effectsMode) {
+    ctx.beginPath();
+    ctx.moveTo(bx, contentY);
+    ctx.lineTo(bx + browserW, contentY);
+    ctx.lineTo(bx + browserW, contentY + contentH - CHROME_BORDER_RADIUS);
+    ctx.quadraticCurveTo(
+      bx + browserW,
+      contentY + contentH,
+      bx + browserW - CHROME_BORDER_RADIUS,
+      contentY + contentH,
+    );
+    ctx.lineTo(bx + CHROME_BORDER_RADIUS, contentY + contentH);
+    ctx.quadraticCurveTo(
+      bx,
+      contentY + contentH,
+      bx,
+      contentY + contentH - CHROME_BORDER_RADIUS,
+    );
+    ctx.closePath();
+    ctx.clip();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(bx, contentY, browserW, contentH);
+  }
 
-  // Chrome title bar
-  drawChromeTitleBar(ctx, bx, by, browserW);
-
-  // Content area — clip to browser bounds
-  const contentY = by + CHROME_TITLE_BAR_H;
-
-  ctx.save();
-  ctx.beginPath();
-  // Bottom rounded corners only
-  ctx.moveTo(bx, contentY);
-  ctx.lineTo(bx + browserW, contentY);
-  ctx.lineTo(bx + browserW, contentY + contentH - CHROME_BORDER_RADIUS);
-  ctx.quadraticCurveTo(
-    bx + browserW,
-    contentY + contentH,
-    bx + browserW - CHROME_BORDER_RADIUS,
-    contentY + contentH,
-  );
-  ctx.lineTo(bx + CHROME_BORDER_RADIUS, contentY + contentH);
-  ctx.quadraticCurveTo(
-    bx,
-    contentY + contentH,
-    bx,
-    contentY + contentH - CHROME_BORDER_RADIUS,
-  );
-  ctx.closePath();
-  ctx.clip();
-
-  // Black background for content
-  ctx.fillStyle = '#000';
-  ctx.fillRect(bx, contentY, browserW, contentH);
-
-  // Helper to draw screenshot within content area
+  // Draw screenshot
   const drawImg = (src: string, alpha: number, applyBlur = false) => {
-    const img = imgCache.get(src);
-    if (!img || alpha <= 0) return;
+    const imgEl = imgCache.get(src);
+    if (!imgEl || alpha <= 0) return;
     ctx.save();
     ctx.globalAlpha = ctx.globalAlpha * alpha;
-    if (applyBlur && blurPx > 0) {
-      ctx.filter = `blur(${blurPx}px)`;
-    }
+    if (applyBlur && blurPx > 0) ctx.filter = `blur(${blurPx}px)`;
     ctx.beginPath();
     ctx.rect(bx, contentY, browserW, contentH);
     ctx.clip();
     ctx.translate(bx + tx * zoom, contentY + ty * zoom);
     ctx.scale(zoom, zoom);
-    ctx.drawImage(img, 0, 0, browserW, contentH);
+    ctx.drawImage(imgEl, 0, 0, browserW, contentH);
     ctx.restore();
   };
 
-  // Draw prev then curr during crossfade
-  if (imgChanged && crossAlpha < 1) {
-    drawImg(prev.img, 1 - crossAlpha);
+  if (imageChanged && prevImg && crossAlpha < 1) {
+    drawImg(prevImg, 1 - crossAlpha);
   }
-  drawImg(curr.img, imgChanged ? crossAlpha : 1, true);
+  drawImg(img, imageChanged ? crossAlpha : 1, true);
 
-  // Glitch slices
-  if (imgChanged) {
-    const glitchSlices = getGlitchSlices(stepsFrame, curr.localStart);
-    for (const slice of glitchSlices) {
-      ctx.save();
-      ctx.globalAlpha = 0.15;
-      ctx.fillStyle = 'rgba(0,255,255,1)';
-      ctx.fillRect(
-        bx + slice.offsetX + slice.rgbSplit,
-        contentY + slice.y * contentH,
-        browserW,
-        slice.height * contentH,
-      );
-      ctx.fillStyle = 'rgba(255,0,255,1)';
-      ctx.fillRect(
-        bx + slice.offsetX - slice.rgbSplit,
-        contentY + slice.y * contentH,
-        browserW,
-        slice.height * contentH,
-      );
-      ctx.restore();
+  // Insight overlays
+  if (insights.length > 0) {
+    drawInsightOverlays(
+      ctx,
+      insights,
+      { zoom, tx, ty },
+      bx,
+      contentY,
+      browserW,
+      contentH,
+    );
+  }
+
+  // Effects-only: glitch, trail, ripple, scanlines
+  if (effectsMode) {
+    if (imageChanged) {
+      const glitchSlices = getGlitchSlices(stepsFrame, stepsFrame - fInScript);
+      for (const slice of glitchSlices) {
+        ctx.save();
+        ctx.globalAlpha = 0.15;
+        ctx.fillStyle = 'rgba(0,255,255,1)';
+        ctx.fillRect(
+          bx + slice.offsetX + slice.rgbSplit,
+          contentY + slice.y * contentH,
+          browserW,
+          slice.height * contentH,
+        );
+        ctx.fillStyle = 'rgba(255,0,255,1)';
+        ctx.fillRect(
+          bx + slice.offsetX - slice.rgbSplit,
+          contentY + slice.y * contentH,
+          browserW,
+          slice.height * contentH,
+        );
+        ctx.restore();
+      }
     }
   }
 
-  // Pointer screen position (relative to content area)
+  // Pointer screen position
   const camH = camW * (imgH / imgW);
   const sX = bx + ((ptrX - camL) / camW) * browserW;
   const sY = contentY + ((ptrY - camT2) / camH) * contentH;
 
-  // Cursor trail
-  if (zoom > 1.08 && pMoved) {
+  // Cursor trail (effects only)
+  if (effectsMode && zoom > 1.08 && pointerMoved) {
     const trailPositions: { x: number; y: number }[] = [];
     for (let i = 0; i < 6; i++) {
       const pastFrame = stepsFrame - i;
-      if (pastFrame < curr.localStart) break;
-      const pastRaw = clamp(
-        (pastFrame - curr.localStart) / curr.duration,
-        0,
-        1,
-      );
-      const pastPT = pMoved ? Math.min(pastRaw / POINTER_PHASE, 1) : pastRaw;
-      const pastCT = pMoved
-        ? pastRaw <= POINTER_PHASE
-          ? 0
-          : easeInOut((pastRaw - POINTER_PHASE) / (1 - POINTER_PHASE))
-        : easeInOut(pastRaw);
-      const pastPtrX = lerp(prev.pointerLeft, curr.pointerLeft, pastPT);
-      const pastPtrY = lerp(prev.pointerTop, curr.pointerTop, pastPT);
-      const pastCamL = lerp(prev.cameraLeft, curr.cameraLeft, pastCT);
-      const pastCamT = lerp(prev.cameraTop, curr.cameraTop, pastCT);
-      const pastCamW = lerp(prev.cameraWidth, curr.cameraWidth, pastCT);
-      const pastCamH = pastCamW * (imgH / imgW);
-      trailPositions.push({
-        x: bx + ((pastPtrX - pastCamL) / pastCamW) * browserW,
-        y: contentY + ((pastPtrY - pastCamT) / pastCamH) * contentH,
-      });
+      if (pastFrame < 0) break;
+      trailPositions.push({ x: sX, y: sY });
     }
     const trail = getCursorTrail(trailPositions);
     for (const pt of trail) {
@@ -666,20 +854,26 @@ function drawSteps(
     }
   }
 
+  // Spinning pointer
+  if (spinning && spinnerImg) {
+    drawSpinningPointer(ctx, spinnerImg, sX, sY, st.spinningElapsedMs);
+  }
+
   // Cursor
-  if (zoom > 1.08 && cursorImg) {
+  if (!spinning && zoom > 1.08 && cursorImg) {
     ctx.save();
-    ctx.shadowColor = 'rgba(0,255,255,0.6)';
-    ctx.shadowBlur = 4;
+    if (effectsMode) {
+      ctx.shadowColor = 'rgba(0,255,255,0.6)';
+      ctx.shadowBlur = 4;
+    }
     ctx.drawImage(cursorImg, sX - 3, sY - 2, 22, 28);
     ctx.restore();
   }
 
-  // Click ripple — dual neon rings
-  if (pMoved) {
-    const pointerArrivalFrame =
-      curr.localStart + Math.floor(curr.duration * POINTER_PHASE);
-    const framesAfterArrival = stepsFrame - pointerArrivalFrame;
+  // Click ripple (effects only)
+  if (effectsMode && pointerMoved) {
+    const pointerArrivalFrame = Math.floor(fInScript * POINTER_PHASE);
+    const framesAfterArrival = fInScript - pointerArrivalFrame;
     const ripple = getRippleState(framesAfterArrival);
     if (ripple.active) {
       ctx.save();
@@ -706,82 +900,103 @@ function drawSteps(
     }
   }
 
-  // Scan lines inside content
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.05)';
-  const scanOff = getScanlineOffset(stepsFrame);
-  for (let y = contentY + scanOff; y < contentY + contentH; y += 4) {
-    ctx.fillRect(bx, y, browserW, 1);
+  // Scan lines (effects only)
+  if (effectsMode) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    const scanOff = getScanlineOffset(stepsFrame);
+    for (let y = contentY + scanOff; y < contentY + contentH; y += 4)
+      ctx.fillRect(bx, y, browserW, 1);
+    ctx.restore();
   }
-  ctx.restore();
 
   ctx.restore(); // end content clip
 
-  // Neon edge glow on browser frame
-  ctx.save();
-  ctx.strokeStyle = 'rgba(0,255,255,0.2)';
-  ctx.lineWidth = 1;
-  roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
-  ctx.stroke();
-  ctx.restore();
-
-  // Badge — top-left, outside browser
-  const bScale = clamp((fInStep - 5) / 10, 0, 1);
-  if (bScale > 0) {
+  if (effectsMode) {
+    // Neon edge glow
     ctx.save();
-    ctx.translate(26, 26);
-    ctx.scale(bScale, bScale);
-    ctx.fillStyle = 'rgba(0, 20, 40, 0.9)';
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+    ctx.strokeStyle = 'rgba(0,255,255,0.2)';
     ctx.lineWidth = 1;
-    ctx.shadowColor = 'rgba(0,255,255,0.3)';
-    ctx.shadowBlur = 8;
-    roundRect(ctx, -18, -18, 36, 36, 4);
-    ctx.fill();
+    roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
     ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.font = 'bold 16px monospace';
-    ctx.fillStyle = '#0ff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,255,255,0.8)';
-    ctx.shadowBlur = 6;
-    ctx.fillText(String(curr.stepIndex + 1), 0, 0);
     ctx.restore();
-  }
 
-  // Title card — bottom center, outside browser
-  const flicker = getNeonFlicker(stepsFrame);
-  const tAlpha = clamp((fInStep - 5) / 15, 0, 1);
-  const tYPos = H - 6 - 16 + (1 - tAlpha) * 40;
-  if (tAlpha > 0 && curr.title) {
-    const typewriter = getTypewriterChars(curr.title, fInStep, 8, 1.5);
-    const displayText = typewriter.text + (typewriter.showCursor ? '_' : '');
-    ctx.save();
-    ctx.globalAlpha = initAlpha * tAlpha * flicker;
-    ctx.font = '500 14px monospace';
-    const tw = Math.min(ctx.measureText(curr.title).width + 40, W * 0.8);
-    const rx = (W - tw) / 2;
-    ctx.fillStyle = 'rgba(0, 10, 20, 0.9)';
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
-    ctx.lineWidth = 1;
-    ctx.shadowColor = 'rgba(0,255,255,0.15)';
-    ctx.shadowBlur = 12;
-    roundRect(ctx, rx, tYPos, tw, 32, 2);
-    ctx.fill();
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,255,255,0.4)';
-    ctx.shadowBlur = 4;
-    ctx.fillText(displayText, W / 2, tYPos + 16, W * 0.75);
-    ctx.restore();
-  }
+    // Badge
+    const bScale = clamp((fInScript - 5) / 10, 0, 1);
+    if (bScale > 0) {
+      ctx.save();
+      ctx.translate(26, 26);
+      ctx.scale(bScale, bScale);
+      ctx.fillStyle = 'rgba(0, 20, 40, 0.9)';
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.5)';
+      ctx.lineWidth = 1;
+      ctx.shadowColor = 'rgba(0,255,255,0.3)';
+      ctx.shadowBlur = 8;
+      roundRect(ctx, -18, -18, 36, 36, 4);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.font = 'bold 16px monospace';
+      ctx.fillStyle = '#0ff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,255,255,0.8)';
+      ctx.shadowBlur = 6;
+      ctx.fillText(String(scriptIndex + 1), 0, 0);
+      ctx.restore();
+    }
 
-  // HUD corners
-  drawHudCorners(ctx, 0.3, 8, 16);
+    // Title card
+    const flicker = getNeonFlicker(stepsFrame);
+    const tAlpha = clamp((fInScript - 5) / 15, 0, 1);
+    const tYPos = H - 6 - 16 + (1 - tAlpha) * 40;
+    if (tAlpha > 0 && title) {
+      const typewriter = getTypewriterChars(title, fInScript, 8, 1.5);
+      const displayText = typewriter.text + (typewriter.showCursor ? '_' : '');
+      ctx.save();
+      ctx.globalAlpha = initAlpha * tAlpha * flicker;
+      ctx.font = '500 14px monospace';
+      const tw = Math.min(ctx.measureText(title).width + 40, W * 0.8);
+      const rx = (W - tw) / 2;
+      ctx.fillStyle = 'rgba(0, 10, 20, 0.9)';
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.shadowColor = 'rgba(0,255,255,0.15)';
+      ctx.shadowBlur = 12;
+      roundRect(ctx, rx, tYPos, tw, 32, 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(0,255,255,0.4)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(displayText, W / 2, tYPos + 16, W * 0.75);
+      ctx.restore();
+    }
+
+    drawHudCorners(ctx, 0.3, 8, 16);
+  } else {
+    // Clean mode title
+    const tAlpha = clamp((fInScript - 5) / 15, 0, 1);
+    if (tAlpha > 0 && title) {
+      ctx.save();
+      ctx.globalAlpha = initAlpha * tAlpha;
+      ctx.font = '500 13px sans-serif';
+      const tw = Math.min(ctx.measureText(title).width + 32, W * 0.8);
+      const rx = (W - tw) / 2;
+      const tYPos = H - 8 - 28;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      roundRect(ctx, rx, tYPos, tw, 28, 4);
+      ctx.fill();
+      ctx.fillStyle = '#333';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(title, W / 2, tYPos + 14, W * 0.75);
+      ctx.restore();
+    }
+  }
 
   ctx.restore();
 }
@@ -792,17 +1007,14 @@ function drawProgressBar(
   total: number,
 ) {
   const pct = f / total;
-  // Dark track
   ctx.fillStyle = 'rgba(255,255,255,0.05)';
   ctx.fillRect(0, H - 4, W, 4);
-  // Neon cyan bar with glow
   ctx.save();
   ctx.shadowColor = 'rgba(0,255,255,0.5)';
   ctx.shadowBlur = 8;
   ctx.fillStyle = '#0ff';
   ctx.fillRect(0, H - 4, W * pct, 4);
   ctx.restore();
-  // Bright tip
   if (pct > 0.01) {
     ctx.save();
     ctx.fillStyle = '#fff';
@@ -834,24 +1046,24 @@ function roundRect(
   ctx.closePath();
 }
 
-// ── main export function ─────────────────────────────────
+// ── main export function ──
 
 export async function exportBrandedVideo(
   frameMap: FrameMap,
+  effects: boolean,
   onProgress?: (pct: number) => void,
 ): Promise<void> {
   const {
     totalDurationInFrames: total,
     fps,
-    segments,
     openingDurationInFrames: openDur,
     endingDurationInFrames: endDur,
   } = frameMap;
 
   // 1. pre-load all images
   const imgSrcs = new Set<string>();
-  for (const seg of segments) {
-    for (const kf of seg.keyframes) imgSrcs.add(kf.img);
+  for (const sf of frameMap.scriptFrames) {
+    if (sf.img) imgSrcs.add(sf.img);
   }
   const imgCache = new Map<string, HTMLImageElement>();
   await Promise.all(
@@ -859,28 +1071,31 @@ export async function exportBrandedVideo(
       try {
         imgCache.set(src, await loadImage(src));
       } catch {
-        /* skip broken images */
+        /* skip */
       }
     }),
   );
 
   let logoImg: HTMLImageElement | null = null;
   let cursorImg: HTMLImageElement | null = null;
+  let spinnerImg: HTMLImageElement | null = null;
   try {
     logoImg = await loadImage(LogoUrl);
   } catch {
-    /* logo optional */
+    /* optional */
   }
   try {
     cursorImg = await loadImage(mousePointer);
   } catch {
-    /* cursor optional */
+    /* optional */
+  }
+  try {
+    spinnerImg = await loadImage(mouseLoading);
+  } catch {
+    /* optional */
   }
 
-  // 2. flat timeline
-  const timeline = buildTimeline(segments);
-
-  // 3. canvas + recorder
+  // 2. canvas + recorder
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
@@ -893,10 +1108,9 @@ export async function exportBrandedVideo(
     if (e.data.size > 0) chunks.push(e.data);
   };
 
-  // 4. render loop — real-time so MediaRecorder timestamps are correct
+  // 3. render loop
   return new Promise<void>((resolve, reject) => {
     recorder.onerror = () => reject(new Error('MediaRecorder error'));
-
     recorder.onstop = () => {
       if (chunks.length === 0) {
         reject(new Error('No video data'));
@@ -906,14 +1120,13 @@ export async function exportBrandedVideo(
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'midscene_branded.webm';
+      a.download = effects ? 'midscene_branded.webm' : 'midscene_replay.webm';
       a.click();
       URL.revokeObjectURL(url);
       resolve();
     };
 
     recorder.start();
-
     const frameDuration = 1000 / fps;
     const startTime = performance.now();
     let lastFrame = -1;
@@ -928,31 +1141,35 @@ export async function exportBrandedVideo(
       if (targetFrame > lastFrame) {
         lastFrame = targetFrame;
         const f = targetFrame;
-
-        // clear
         ctx.clearRect(0, 0, W, H);
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = effects ? '#000' : '#f4f4f4';
         ctx.fillRect(0, 0, W, H);
 
-        if (f < openDur) {
+        if (effects && f < openDur) {
           drawOpening(ctx, f, openDur, logoImg);
-        } else if (f >= total - endDur) {
+        } else if (effects && f >= total - endDur) {
           drawEnding(ctx, f - (total - endDur), endDur, logoImg);
         } else {
-          drawSteps(ctx, f - openDur, segments, timeline, imgCache, cursorImg);
+          const stepsFrame = f - openDur;
+          drawSteps(
+            ctx,
+            stepsFrame,
+            frameMap,
+            imgCache,
+            cursorImg,
+            spinnerImg,
+            effects,
+          );
         }
 
-        drawProgressBar(ctx, f, total);
+        if (effects) drawProgressBar(ctx, f, total);
         onProgress?.(f / total);
       }
 
       if (targetFrame < total - 1) {
         requestAnimationFrame(tick);
       } else {
-        // render the very last frame, then stop
-        setTimeout(() => {
-          recorder.stop();
-        }, frameDuration * 2);
+        setTimeout(() => recorder.stop(), frameDuration * 2);
       }
     };
 

@@ -1,8 +1,71 @@
+import type { LocateResultElement, Rect } from '@midscene/core';
 import type { AnimationScript } from '../../../utils/replay-scripts';
 
 export const FPS = 30;
 export const OPENING_FRAMES = 90; // 3 seconds
 export const ENDING_FRAMES = 90; // 3 seconds
+
+// ── New ScriptFrame-based data structures ──
+
+export interface ScriptFrame {
+  type:
+    | 'img'
+    | 'insight'
+    | 'clear-insight'
+    | 'pointer'
+    | 'spinning-pointer'
+    | 'sleep';
+  startFrame: number; // steps-local frame offset (0-based)
+  durationInFrames: number; // total frames this script occupies
+
+  // screenshot (img/insight)
+  img?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+
+  // camera target (img with camera / insight camera phase)
+  cameraTarget?: {
+    left: number;
+    top: number;
+    width: number;
+    pointerLeft: number;
+    pointerTop: number;
+  };
+
+  // insight two-phase: insightPhaseFrames + cameraPhaseFrames = durationInFrames
+  insightPhaseFrames?: number;
+  cameraPhaseFrames?: number;
+
+  // insight overlay
+  highlightElement?: LocateResultElement;
+  searchArea?: Rect;
+
+  // pointer type
+  pointerImg?: string;
+
+  // metadata
+  title?: string;
+  subTitle?: string;
+  taskId?: string;
+}
+
+export interface FrameMapOptions {
+  effects: boolean; // include opening/ending
+  playbackSpeed: number; // affects duration-to-frames conversion
+}
+
+export interface FrameMap {
+  scriptFrames: ScriptFrame[];
+  totalDurationInFrames: number;
+  fps: number; // 30
+  openingDurationInFrames: number;
+  endingDurationInFrames: number;
+  stepsDurationInFrames: number;
+  imageWidth: number;
+  imageHeight: number;
+}
+
+// ── Legacy types (deprecated – kept for compatibility) ──
 
 export interface CameraKeyframe {
   img: string;
@@ -11,11 +74,11 @@ export interface CameraKeyframe {
   cameraWidth: number;
   pointerLeft: number;
   pointerTop: number;
-  // Frame offset within the segment (0-based)
   startFrame: number;
   durationInFrames: number;
 }
 
+/** @deprecated Use ScriptFrame instead */
 export interface StepSegment {
   stepIndex: number;
   startFrame: number;
@@ -26,152 +89,179 @@ export interface StepSegment {
   keyframes: CameraKeyframe[];
 }
 
-export interface FrameMap {
-  segments: StepSegment[];
-  totalDurationInFrames: number;
-  fps: number;
-  openingDurationInFrames: number;
-  endingDurationInFrames: number;
-  stepsDurationInFrames: number;
-}
+// ── calculateFrameMap ──
 
-interface VisualKeyframe {
-  img: string;
-  imageWidth: number;
-  imageHeight: number;
-  cameraLeft: number;
-  cameraTop: number;
-  cameraWidth: number;
-  pointerLeft: number;
-  pointerTop: number;
-  title: string;
-  durationMs: number;
-  taskId?: string;
-}
+export function calculateFrameMap(
+  scripts: AnimationScript[],
+  options?: Partial<FrameMapOptions>,
+): FrameMap {
+  const effects = options?.effects ?? true;
+  const openingFrames = effects ? OPENING_FRAMES : 0;
+  const endingFrames = effects ? ENDING_FRAMES : 0;
 
-export function calculateFrameMap(scripts: AnimationScript[]): FrameMap {
-  const keyframes: VisualKeyframe[] = [];
-  let lastPointerX = 0;
-  let lastPointerY = 0;
-  let lastImageWidth = 1920;
-  let lastImageHeight = 1080;
-
-  // Initialize defaults from first img/insight script
+  // Determine base image dimensions from first img/insight script
+  let baseImageWidth = 1920;
+  let baseImageHeight = 1080;
   for (const s of scripts) {
     if ((s.type === 'img' || s.type === 'insight') && s.img) {
-      lastImageWidth = s.imageWidth || 1920;
-      lastImageHeight = s.imageHeight || 1080;
-      lastPointerX = Math.round(lastImageWidth / 2);
-      lastPointerY = Math.round(lastImageHeight / 2);
+      baseImageWidth = s.imageWidth || 1920;
+      baseImageHeight = s.imageHeight || 1080;
       break;
     }
   }
 
+  const scriptFrames: ScriptFrame[] = [];
+  let currentFrame = 0;
+
   for (const script of scripts) {
-    if (script.type !== 'img' && script.type !== 'insight') continue;
-    if (!script.img) continue;
+    const durationMs = script.duration;
 
-    const iw = script.imageWidth || lastImageWidth;
-    const ih = script.imageHeight || lastImageHeight;
-    const camera = script.camera;
-    const cameraLeft = camera?.left ?? 0;
-    const cameraTop = camera?.top ?? 0;
-    const cameraWidth = camera?.width ?? iw;
-    const pointerLeft = camera?.pointerLeft ?? lastPointerX;
-    const pointerTop = camera?.pointerTop ?? lastPointerY;
+    switch (script.type) {
+      case 'sleep': {
+        const frames = Math.ceil((durationMs / 1000) * FPS);
+        scriptFrames.push({
+          type: 'sleep',
+          startFrame: currentFrame,
+          durationInFrames: frames,
+          title: script.title,
+          subTitle: script.subTitle,
+          taskId: script.taskId,
+        });
+        currentFrame += frames;
+        break;
+      }
 
-    const durationMs = script.duration + (script.insightCameraDuration || 0);
+      case 'img': {
+        const frames = Math.max(Math.ceil((durationMs / 1000) * FPS), 1);
+        const camera = script.camera;
+        const iw = script.imageWidth || baseImageWidth;
+        const ih = script.imageHeight || baseImageHeight;
 
-    keyframes.push({
-      img: script.img,
-      imageWidth: iw,
-      imageHeight: ih,
-      cameraLeft,
-      cameraTop,
-      cameraWidth,
-      pointerLeft,
-      pointerTop,
-      title: script.title || script.subTitle || '',
-      durationMs: Math.max(durationMs, 500),
-      taskId: script.taskId,
-    });
+        const sf: ScriptFrame = {
+          type: 'img',
+          startFrame: currentFrame,
+          durationInFrames: frames,
+          img: script.img,
+          imageWidth: iw,
+          imageHeight: ih,
+          title: script.title,
+          subTitle: script.subTitle,
+          taskId: script.taskId,
+        };
 
-    lastImageWidth = iw;
-    lastImageHeight = ih;
-    lastPointerX = pointerLeft;
-    lastPointerY = pointerTop;
-  }
+        if (camera) {
+          sf.cameraTarget = {
+            left: camera.left,
+            top: camera.top,
+            width: camera.width,
+            pointerLeft: camera.pointerLeft ?? Math.round(iw / 2),
+            pointerTop: camera.pointerTop ?? Math.round(ih / 2),
+          };
+        }
 
-  // Group keyframes into segments by taskId
-  const segmentMap = new Map<string, VisualKeyframe[]>();
-  const segmentOrder: string[] = [];
+        scriptFrames.push(sf);
+        currentFrame += frames;
+        break;
+      }
 
-  for (const kf of keyframes) {
-    const key = kf.taskId || `__anon_${segmentOrder.length}`;
-    if (!segmentMap.has(key)) {
-      segmentMap.set(key, []);
-      segmentOrder.push(key);
+      case 'insight': {
+        const insightPhaseFrames = Math.max(
+          Math.ceil((durationMs / 1000) * FPS),
+          1,
+        );
+        const cameraDurationMs = script.insightCameraDuration || 0;
+        const cameraPhaseFrames = Math.ceil((cameraDurationMs / 1000) * FPS);
+        const totalFrames = insightPhaseFrames + cameraPhaseFrames;
+        const iw = script.imageWidth || baseImageWidth;
+        const ih = script.imageHeight || baseImageHeight;
+        const camera = script.camera;
+
+        const sf: ScriptFrame = {
+          type: 'insight',
+          startFrame: currentFrame,
+          durationInFrames: totalFrames,
+          img: script.img,
+          imageWidth: iw,
+          imageHeight: ih,
+          insightPhaseFrames,
+          cameraPhaseFrames,
+          highlightElement: script.highlightElement,
+          searchArea: script.searchArea,
+          title: script.title,
+          subTitle: script.subTitle,
+          taskId: script.taskId,
+        };
+
+        if (camera) {
+          sf.cameraTarget = {
+            left: camera.left,
+            top: camera.top,
+            width: camera.width,
+            pointerLeft: camera.pointerLeft ?? Math.round(iw / 2),
+            pointerTop: camera.pointerTop ?? Math.round(ih / 2),
+          };
+        }
+
+        scriptFrames.push(sf);
+        currentFrame += totalFrames;
+        break;
+      }
+
+      case 'clear-insight': {
+        const frames = Math.max(Math.ceil((durationMs / 1000) * FPS), 1);
+        scriptFrames.push({
+          type: 'clear-insight',
+          startFrame: currentFrame,
+          durationInFrames: frames,
+          title: script.title,
+          subTitle: script.subTitle,
+          taskId: script.taskId,
+        });
+        currentFrame += frames;
+        break;
+      }
+
+      case 'spinning-pointer': {
+        const frames = Math.max(Math.ceil((durationMs / 1000) * FPS), 1);
+        scriptFrames.push({
+          type: 'spinning-pointer',
+          startFrame: currentFrame,
+          durationInFrames: frames,
+          title: script.title,
+          subTitle: script.subTitle,
+          taskId: script.taskId,
+        });
+        currentFrame += frames;
+        break;
+      }
+
+      case 'pointer': {
+        // Instantaneous — 0 frames
+        scriptFrames.push({
+          type: 'pointer',
+          startFrame: currentFrame,
+          durationInFrames: 0,
+          pointerImg: script.img,
+          title: script.title,
+          subTitle: script.subTitle,
+          taskId: script.taskId,
+        });
+        // No frame advancement
+        break;
+      }
     }
-    segmentMap.get(key)!.push(kf);
   }
 
-  // Build segments with frame offsets
-  const segments: StepSegment[] = [];
-  let currentFrame = OPENING_FRAMES;
-
-  for (let i = 0; i < segmentOrder.length; i++) {
-    const key = segmentOrder[i];
-    const kfs = segmentMap.get(key)!;
-
-    const totalMs = kfs.reduce((sum, kf) => sum + kf.durationMs, 0);
-    const totalFrames = Math.max(Math.ceil((totalMs / 1000) * FPS), 30);
-
-    const cameraKeyframes: CameraKeyframe[] = [];
-    let frameOffset = 0;
-
-    for (let j = 0; j < kfs.length; j++) {
-      const kf = kfs[j];
-      const kfFrames =
-        j === kfs.length - 1
-          ? totalFrames - frameOffset
-          : Math.max(Math.round((kf.durationMs / totalMs) * totalFrames), 1);
-
-      cameraKeyframes.push({
-        img: kf.img,
-        cameraLeft: kf.cameraLeft,
-        cameraTop: kf.cameraTop,
-        cameraWidth: kf.cameraWidth,
-        pointerLeft: kf.pointerLeft,
-        pointerTop: kf.pointerTop,
-        startFrame: frameOffset,
-        durationInFrames: kfFrames,
-      });
-
-      frameOffset += kfFrames;
-    }
-
-    segments.push({
-      stepIndex: i,
-      startFrame: currentFrame,
-      durationInFrames: totalFrames,
-      title: kfs[0].title,
-      imageWidth: kfs[0].imageWidth,
-      imageHeight: kfs[0].imageHeight,
-      keyframes: cameraKeyframes,
-    });
-
-    currentFrame += totalFrames;
-  }
-
-  const stepsDurationInFrames = currentFrame - OPENING_FRAMES;
+  const stepsDurationInFrames = Math.max(currentFrame, 1);
 
   return {
-    segments,
-    totalDurationInFrames:
-      OPENING_FRAMES + stepsDurationInFrames + ENDING_FRAMES,
+    scriptFrames,
+    totalDurationInFrames: openingFrames + stepsDurationInFrames + endingFrames,
     fps: FPS,
-    openingDurationInFrames: OPENING_FRAMES,
-    endingDurationInFrames: ENDING_FRAMES,
+    openingDurationInFrames: openingFrames,
+    endingDurationInFrames: endingFrames,
     stepsDurationInFrames,
+    imageWidth: baseImageWidth,
+    imageHeight: baseImageHeight,
   };
 }
