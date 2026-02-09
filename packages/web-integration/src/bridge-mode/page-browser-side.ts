@@ -23,6 +23,9 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
 
   private newlyCreatedTabIds: number[] = [];
 
+  // Connection confirmation state
+  private confirmationPromise: Promise<boolean> | null = null;
+
   constructor(
     public serverEndpoint?: string,
     public onDisconnect: () => void = () => {},
@@ -31,6 +34,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       type: 'log' | 'status',
     ) => void = () => {},
     forceSameTabNavigation = true,
+    public onConnectionRequest?: () => Promise<boolean>,
   ) {
     super(forceSameTabNavigation);
   }
@@ -41,6 +45,14 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     this.bridgeClient = new BridgeClient(
       endpoint,
       async (method, args: any[]) => {
+        // Wait for user confirmation before processing any commands
+        if (this.confirmationPromise) {
+          const allowed = await this.confirmationPromise;
+          if (!allowed) {
+            throw new Error('Connection denied by user');
+          }
+        }
+
         console.log('bridge call from cli side', method, args);
         if (method === BridgeEvent.ConnectNewTabWithUrl) {
           return this.connectNewTabWithUrl.apply(
@@ -115,6 +127,22 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       },
     );
     await this.bridgeClient.connect();
+
+    // Request user confirmation after connection is established
+    if (this.onConnectionRequest) {
+      this.onLogMessage('Waiting for user confirmation...', 'log');
+      this.confirmationPromise = this.onConnectionRequest();
+      const allowed = await this.confirmationPromise;
+      this.confirmationPromise = null;
+
+      if (!allowed) {
+        this.onLogMessage('Connection denied by user', 'log');
+        this.bridgeClient.disconnect();
+        this.bridgeClient = null;
+        throw new Error('Connection denied by user');
+      }
+    }
+
     this.onLogMessage(
       `Bridge connected, cli-side version v${this.bridgeClient.serverVersion}, browser-side version v${__VERSION__}`,
       'log',

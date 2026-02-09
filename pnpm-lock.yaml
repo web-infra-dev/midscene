@@ -250,6 +250,9 @@ importers:
       openai:
         specifier: 6.3.0
         version: 6.3.0(ws@8.18.3)(zod@3.25.76)
+      rimraf:
+        specifier: ~3.0.2
+        version: 3.0.2
       rsbuild-plugin-workspace-dev:
         specifier: 0.0.1
         version: 0.0.1(@rsbuild/core@1.6.15)
@@ -915,6 +918,9 @@ importers:
 
   packages/computer-mcp:
     dependencies:
+      '@computer-use/libnut':
+        specifier: ^4.2.0
+        version: 4.2.0(@computer-use/nut-js@4.2.0)
       '@silvia-odwyer/photon':
         specifier: 0.3.3
         version: 0.3.3

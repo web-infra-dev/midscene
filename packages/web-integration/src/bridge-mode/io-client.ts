@@ -21,8 +21,13 @@ export class BridgeClient {
 
   async connect() {
     return new Promise((resolve, reject) => {
+      // Force WebSocket if XMLHttpRequest is not available (e.g., Service Worker)
+      const forceWebSocket = typeof XMLHttpRequest === 'undefined';
+
       this.socket = ClientIO(this.endpoint, {
         reconnection: false,
+        // Force WebSocket in environments without XHR (Service Worker)
+        ...(forceWebSocket ? { transports: ['websocket'] } : {}),
         query: {
           version: __VERSION__,
         },
@@ -37,7 +42,7 @@ export class BridgeClient {
         }
         this.socket = null;
         reject(new Error('failed to connect to bridge server after timeout'));
-      }, 1 * 1000);
+      }, 5 * 1000);
 
       // on disconnect
       this.socket.on('disconnect', (reason: string) => {

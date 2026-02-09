@@ -64,6 +64,7 @@ interface TaskBuilderDeps {
 interface BuildOptions {
   cacheable?: boolean;
   subTask?: boolean;
+  deepLocate?: boolean;
 }
 
 interface PlanBuildContext {
@@ -72,6 +73,7 @@ interface PlanBuildContext {
   modelConfigForDefaultIntent: IModelConfig;
   cacheable?: boolean;
   subTask: boolean;
+  deepLocate?: boolean;
 }
 
 export class TaskBuilder {
@@ -114,6 +116,7 @@ export class TaskBuilder {
       modelConfigForDefaultIntent,
       cacheable,
       subTask: !!options?.subTask,
+      deepLocate: options?.deepLocate,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -318,7 +321,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, modelConfigForDefaultIntent } = context;
+    const { cacheable, modelConfigForDefaultIntent, deepLocate } = context;
 
     let locateParam = detailedLocateParam;
 
@@ -332,6 +335,13 @@ export class TaskBuilder {
       locateParam = {
         ...locateParam,
         cacheable,
+      };
+    }
+
+    if (deepLocate && !locateParam.deepThink) {
+      locateParam = {
+        ...locateParam,
+        deepThink: true,
       };
     }
 

@@ -16,7 +16,7 @@ import { BrowserExtensionPlayground } from '../../components/playground';
 import Bridge from '../bridge';
 import Recorder from '../recorder';
 import './index.less';
-import { OPENAI_API_KEY } from '@midscene/shared/env';
+import { MIDSCENE_MODEL_API_KEY } from '@midscene/shared/env';
 import { safeOverrideAIConfig } from '@midscene/visualizer';
 import {
   ChromeExtensionProxyPage,
@@ -49,7 +49,7 @@ export function PlaygroundPopup() {
   // Override AI configuration
   useEffect(() => {
     console.log('Chrome Extension - Overriding AI config:', config);
-    console.log('OPENAI_API_KEY exists:', !!OPENAI_API_KEY);
+    console.log('MIDSCENE_MODEL_API_KEY exists:', !!MIDSCENE_MODEL_API_KEY);
 
     if (config && Object.keys(config).length >= 1) {
       safeOverrideAIConfig(config);

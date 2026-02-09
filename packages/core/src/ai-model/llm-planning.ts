@@ -46,9 +46,9 @@ export function parseXMLPlanningResponse(
   const actionType = extractXMLTag(xmlString, 'action-type');
   const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
 
-  // Parse complete-goal tag with success attribute
+  // Parse <complete> tag with success attribute
   const completeGoalRegex =
-    /<complete-goal\s+success="(true|false)">([\s\S]*?)<\/complete-goal>/i;
+    /<complete\s+success="(true|false)">([\s\S]*?)<\/complete>/i;
   const completeGoalMatch = xmlString.match(completeGoalRegex);
   let finalizeMessage: string | undefined;
   let finalizeSuccess: boolean | undefined;
@@ -243,7 +243,7 @@ export async function plan(
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
       warnLog(
-        'Planning response included both an action and complete-goal; ignoring complete-goal output.',
+        'Planning response included both an action and <complete>; ignoring <complete> output.',
       );
       planFromAI.finalizeMessage = undefined;
       planFromAI.finalizeSuccess = undefined;
@@ -252,9 +252,9 @@ export async function plan(
     const actions = planFromAI.action ? [planFromAI.action] : [];
     let shouldContinuePlanning = true;
 
-    // Check if goal is completed via complete-goal tag
+    // Check if task is completed via <complete> tag
     if (planFromAI.finalizeSuccess !== undefined) {
-      debug('goal completed via complete-goal tag, stop planning');
+      debug('task completed via <complete> tag, stop planning');
       shouldContinuePlanning = false;
       // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
       if (includeSubGoals) {

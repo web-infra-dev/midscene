@@ -289,7 +289,7 @@ export const defineActionScroll = (
   return defineAction<typeof actionScrollParamSchema, ActionScrollParam>({
     name: 'Scroll',
     description:
-      'Scroll the page or an element. The direction to scroll, the scroll type, and the distance to scroll. The distance is the number of pixels to scroll. If not specified, use `down` direction, `once` scroll type, and `null` distance.',
+      'Scroll the page or a scrollable element to browse content. This is the preferred way to scroll on all platforms, including mobile. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
     call,
@@ -315,7 +315,7 @@ export const defineActionDragAndDrop = (
   >({
     name: 'DragAndDrop',
     description:
-      'Drag and drop (hold the mouse or finger down and move the mouse) ',
+      'Pick up a specific UI element and move it to a new position (e.g., reorder a card, move a file into a folder, sort list items). The element itself moves with your finger/mouse.',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
     call,
@@ -390,13 +390,73 @@ export type ActionSwipeParam = {
   repeat?: number;
 };
 
+export function normalizeMobileSwipeParam(
+  param: ActionSwipeParam,
+  screenSize: { width: number; height: number },
+): {
+  startPoint: { x: number; y: number };
+  endPoint: { x: number; y: number };
+  duration: number;
+  repeatCount: number;
+} {
+  const { width, height } = screenSize;
+  const { start, end } = param;
+
+  const startPoint = start
+    ? { x: start.center[0], y: start.center[1] }
+    : { x: width / 2, y: height / 2 };
+
+  let endPoint: { x: number; y: number };
+
+  if (end) {
+    endPoint = { x: end.center[0], y: end.center[1] };
+  } else if (param.distance) {
+    const direction = param.direction;
+    if (!direction) {
+      throw new Error('direction is required for swipe gesture');
+    }
+    endPoint = {
+      x:
+        startPoint.x +
+        (direction === 'right'
+          ? param.distance
+          : direction === 'left'
+            ? -param.distance
+            : 0),
+      y:
+        startPoint.y +
+        (direction === 'down'
+          ? param.distance
+          : direction === 'up'
+            ? -param.distance
+            : 0),
+    };
+  } else {
+    throw new Error(
+      'Either end or distance must be specified for swipe gesture',
+    );
+  }
+
+  endPoint.x = Math.max(0, Math.min(endPoint.x, width));
+  endPoint.y = Math.max(0, Math.min(endPoint.y, height));
+
+  const duration = param.duration ?? 300;
+
+  let repeatCount = typeof param.repeat === 'number' ? param.repeat : 1;
+  if (repeatCount === 0) {
+    repeatCount = 10;
+  }
+
+  return { startPoint, endPoint, duration, repeatCount };
+}
+
 export const defineActionSwipe = (
   call: (param: ActionSwipeParam) => Promise<void>,
 ): DeviceAction<ActionSwipeParam> => {
   return defineAction<typeof ActionSwipeParamSchema, ActionSwipeParam>({
     name: 'Swipe',
     description:
-      'Perform a swipe gesture. You must specify either "end" (target location) or "distance" + "direction" - they are mutually exclusive. Use "end" for precise location-based swipes, or "distance" + "direction" for relative movement.',
+      'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
     paramSchema: ActionSwipeParamSchema,
     call,
   });
@@ -423,6 +483,40 @@ export const defineActionClearInput = (
     description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
+    call,
+  });
+};
+
+// CursorMove
+export const actionCursorMoveParamSchema = z.object({
+  direction: z
+    .enum(['left', 'right'])
+    .describe('The direction to move the cursor'),
+  times: z
+    .number()
+    .int()
+    .min(1)
+    .default(1)
+    .describe(
+      'The number of times to move the cursor in the specified direction',
+    ),
+});
+export type ActionCursorMoveParam = {
+  direction: 'left' | 'right';
+  times?: number;
+};
+
+export const defineActionCursorMove = (
+  call: (param: ActionCursorMoveParam) => Promise<void>,
+): DeviceAction<ActionCursorMoveParam> => {
+  return defineAction<
+    typeof actionCursorMoveParamSchema,
+    ActionCursorMoveParam
+  >({
+    name: 'CursorMove',
+    description:
+      'Move the text cursor (caret) left or right within an input field or text area. Use this to reposition the cursor without selecting text.',
+    paramSchema: actionCursorMoveParamSchema,
     call,
   });
 };

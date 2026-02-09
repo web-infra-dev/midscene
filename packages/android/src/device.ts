@@ -18,11 +18,14 @@ import {
   type AndroidDeviceOpt,
   defineAction,
   defineActionClearInput,
+  defineActionCursorMove,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
   defineActionScroll,
+  defineActionSwipe,
   defineActionTap,
+  normalizeMobileSwipeParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -220,8 +223,24 @@ export class AndroidDevice implements AbstractInterface {
           },
         );
       }),
+      defineActionSwipe(async (param) => {
+        const { startPoint, endPoint, duration, repeatCount } =
+          normalizeMobileSwipeParam(param, await this.size());
+        for (let i = 0; i < repeatCount; i++) {
+          await this.mouseDrag(startPoint, endPoint, duration);
+        }
+      }),
       defineActionKeyboardPress(async (param) => {
         await this.keyboardPress(param.keyName);
+      }),
+      defineActionCursorMove(async (param) => {
+        const arrowKey =
+          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        const times = param.times ?? 1;
+        for (let i = 0; i < times; i++) {
+          await this.keyboardPress(arrowKey);
+          await sleep(100);
+        }
       }),
       defineAction<
         z.ZodObject<{
