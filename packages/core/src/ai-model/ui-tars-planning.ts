@@ -240,9 +240,7 @@ export async function uiTarsPlanning(
       });
     } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
-        warnLog(
-          'No key found in action: hotkey. Will not perform action.',
-        );
+        warnLog('No key found in action: hotkey. Will not perform action.');
       } else {
         const keys = transformHotkeyInput(action.action_inputs.key);
 

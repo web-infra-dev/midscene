@@ -432,9 +432,7 @@ export async function callAI(
             accumulatedReasoning &&
             modelFamily === 'doubao-vision'
           ) {
-            warnCall(
-              'empty content from AI model, using reasoning content',
-            );
+            warnCall('empty content from AI model, using reasoning content');
             content = accumulatedReasoning;
           }
 
