@@ -320,7 +320,7 @@ Don't use this tag if no information needs to be preserved.
 `
     : ''
 }
-## Step ${checkGoalStepNumber}: ${shouldIncludeSubGoals ? 'Check if Goal is Accomplished' : 'Check if the Instruction is Fulfilled'} (related tags: <complete-goal>)
+## Step ${checkGoalStepNumber}: ${shouldIncludeSubGoals ? 'Check if Goal is Accomplished' : 'Check if the Instruction is Fulfilled'} (related tags: <complete>)
 
 ${shouldIncludeSubGoals ? 'Based on the current screenshot and the status of all sub-goals, determine' : 'Determine'} if the entire task is completed.
 
@@ -354,10 +354,10 @@ ${!shouldIncludeSubGoals ? `
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
-- Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
+- Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot. ' : ''}No matter what actions were executed or what errors occurred during execution, if the ${shouldIncludeSubGoals ? 'expected goal is accomplished' : 'instruction is fulfilled'}, set success="true". If the ${shouldIncludeSubGoals ? 'expected goal is not accomplished and cannot be accomplished' : 'instruction is not fulfilled and cannot be fulfilled'}, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
 ## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -391,7 +391,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete-goal' is NOT a valid action-type.
+- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -441,7 +441,7 @@ ${
 **Then choose ONE of the following paths:**
 
 **Path A: If the ${shouldIncludeSubGoals ? 'goal is accomplished' : 'instruction is fulfilled'} or failed (Step ${checkGoalStepNumber})**
-<complete-goal success="true|false">...</complete-goal>
+<complete success="true|false">...</complete>
 
 **Path B: If the ${shouldIncludeSubGoals ? 'goal is NOT complete' : 'instruction is NOT fulfilled'} yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
@@ -582,7 +582,7 @@ Actions performed for current sub-goal:
   <sub-goal index="2" status="finished" />
   <sub-goal index="3" status="finished" />
 </mark-sub-goal-done>
-<complete-goal success="true">john@example.com</complete-goal>
+<complete success="true">john@example.com</complete>
 `
     : `
 ## Multi-turn Conversation Example
@@ -666,7 +666,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 
 **Your response:**
 <thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</thought>
-<complete-goal success="true">john@example.com</complete-goal>
+<complete success="true">john@example.com</complete>
 `
 }`;
 }

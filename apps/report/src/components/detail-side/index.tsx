@@ -883,7 +883,7 @@ const DetailSide = (): JSX.Element => {
         }
       });
 
-      // Add output message if exists (from complete-goal)
+      // Add output message if exists (from <complete> tag)
       const outputMessage = (task as ExecutionTaskPlanning).output?.output;
       if (outputMessage) {
         planItems.push(
