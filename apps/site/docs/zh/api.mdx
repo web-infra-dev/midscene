@@ -139,6 +139,7 @@ function aiAct(
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
     fileChooserAccept?: string | string[];
+    signal?: AbortSignal;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
@@ -153,10 +154,11 @@ function ai(prompt: string): Promise<void>; // 简写形式
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
       - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
+    - `signal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于取消执行。当信号被中止时，正在进行的规划循环和任务执行将在下一个检查点停止，并抛出 `MidsceneAbortedError`。适用于实现超时控制或用户主动取消操作。
 
 - 返回值：
 
-  - 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。
+  - 返回一个 Promise。当所有步骤执行完成时解析为 void；若执行失败，则抛出错误。如果通过 `signal` 中止了操作，则抛出 `MidsceneAbortedError`。
 
 - 示例：
 
@@ -171,6 +173,23 @@ await agent.ai(
 
 // 使用 ui-tars 模型时，可以使用更目标驱动的提示词
 await agent.aiAct('发布一条微博，内容为 "Hello World"');
+
+// 使用 AbortController 取消执行
+import { MidsceneAbortedError } from '@midscene/core';
+
+const controller = new AbortController();
+// 30 秒后中止
+setTimeout(() => controller.abort('timeout'), 30_000);
+
+try {
+  await agent.aiAct('完成一个复杂的多步骤工作流', {
+    signal: controller.signal,
+  });
+} catch (error) {
+  if (error instanceof MidsceneAbortedError) {
+    console.log('执行已被中止');
+  }
+}
 ```
 
 :::tip
