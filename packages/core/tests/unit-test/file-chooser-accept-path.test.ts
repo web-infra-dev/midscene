@@ -12,7 +12,7 @@ const createMockInterface = () =>
 const fixturesDir = join(__dirname, '../fixtures');
 const testFilePath = join(fixturesDir, 'path-test-file.txt');
 
-// resolve() 基于 process.cwd() 解析，计算 fixture 相对于 cwd 的路径
+// resolve() resolves based on process.cwd(), compute fixture path relative to cwd
 const relativeFromCwd = relative(process.cwd(), testFilePath);
 
 describe('fileChooserAccept relative path support', () => {
@@ -48,7 +48,7 @@ describe('fileChooserAccept relative path support', () => {
   });
 
   it('should resolve relative path with ../', () => {
-    // 构造一个包含 ../ 的路径: tests/fixtures/../fixtures/path-test-file.txt
+    // Build a path containing ../: tests/fixtures/../fixtures/path-test-file.txt
     const parts = relativeFromCwd.split('/');
     const parentDir = parts[parts.length - 2]; // 'fixtures'
     const withDotDot = join(
