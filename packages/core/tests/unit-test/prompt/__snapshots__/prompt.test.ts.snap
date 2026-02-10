@@ -254,7 +254,7 @@ First, observe the current screenshot and previous logs to understand the curren
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
@@ -500,7 +500,7 @@ First, observe the current screenshot and previous logs to understand the curren
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
@@ -743,7 +743,7 @@ First, observe the current screenshot and previous logs to understand the curren
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
@@ -989,7 +989,7 @@ First, observe the current screenshot and previous logs to understand the curren
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
@@ -1235,7 +1235,7 @@ First, observe the current screenshot and previous logs to understand the curren
 
 REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 

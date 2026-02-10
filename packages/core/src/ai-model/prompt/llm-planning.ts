@@ -213,7 +213,7 @@ export async function systemPromptToTaskPlanning({
 
   const thoughtTagDescription = `REQUIRED: You MUST always output the <thought> tag. Never skip it.
 
-Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
+Include your thought process in the <thought> tag. It should answer: What is the user's requirement? What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 ${explicitInstructionRule}`;
 
