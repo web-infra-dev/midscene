@@ -46,6 +46,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   );
   const insightWidth = useExecutionDump((store) => store.insightWidth);
   const insightHeight = useExecutionDump((store) => store.insightHeight);
+  const deviceType = useExecutionDump((store) => store.deviceType);
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
   const setPlayingTaskId = useExecutionDump((store) => store.setPlayingTaskId);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
@@ -133,6 +134,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           replayScripts={replayAllScripts!}
           imageWidth={insightWidth!}
           imageHeight={insightHeight!}
+          deviceType={deviceType}
           onTaskChange={setPlayingTaskId}
         />
       </div>

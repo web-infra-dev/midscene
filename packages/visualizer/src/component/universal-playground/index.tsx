@@ -161,6 +161,7 @@ export function UniversalPlayground({
     verticalMode,
     currentRunningIdRef,
     interruptedFlagRef,
+    componentConfig.deviceType,
   );
 
   // Override SDK config when environment config changes

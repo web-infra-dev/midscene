@@ -377,6 +377,79 @@ export function getDataStream(
   return { chars, offset: (frame * 2) % 100 };
 }
 
+// ── Device shell types ──────────────────────────────────────
+
+export type DeviceShellType =
+  | 'desktop-browser'
+  | 'iphone'
+  | 'android'
+  | 'desktop-app';
+
+export function resolveShellType(deviceType?: string): DeviceShellType {
+  switch (deviceType) {
+    case 'android':
+      return 'android';
+    case 'ios':
+      return 'iphone';
+    case 'computer':
+      return 'desktop-app';
+    default:
+      return 'desktop-browser';
+  }
+}
+
+export interface DeviceLayout {
+  margin: number;
+  topInset: number;
+  bottomInset: number;
+  borderRadius: number;
+}
+
+// ── Device layout constants ──
+
+export const IPHONE_STATUS_BAR_H = 44;
+export const IPHONE_HOME_INDICATOR_H = 34;
+export const IPHONE_BORDER_RADIUS = 40;
+
+export const ANDROID_STATUS_BAR_H = 28;
+export const ANDROID_NAV_BAR_H = 32;
+export const ANDROID_BORDER_RADIUS = 24;
+
+export const DESKTOP_APP_TITLE_BAR_H = 36;
+
+export function getDeviceLayout(shellType: DeviceShellType): DeviceLayout {
+  switch (shellType) {
+    case 'iphone':
+      return {
+        margin: 20,
+        topInset: IPHONE_STATUS_BAR_H,
+        bottomInset: IPHONE_HOME_INDICATOR_H,
+        borderRadius: IPHONE_BORDER_RADIUS,
+      };
+    case 'android':
+      return {
+        margin: 20,
+        topInset: ANDROID_STATUS_BAR_H,
+        bottomInset: ANDROID_NAV_BAR_H,
+        borderRadius: ANDROID_BORDER_RADIUS,
+      };
+    case 'desktop-app':
+      return {
+        margin: 24,
+        topInset: DESKTOP_APP_TITLE_BAR_H,
+        bottomInset: 0,
+        borderRadius: 10,
+      };
+    default:
+      return {
+        margin: 24,
+        topInset: CHROME_TITLE_BAR_H,
+        bottomInset: 0,
+        borderRadius: CHROME_BORDER_RADIUS,
+      };
+  }
+}
+
 // ── Chrome browser shell ────────────────────────────────────
 
 export const CHROME_TITLE_BAR_H = 36;
