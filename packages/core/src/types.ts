@@ -795,7 +795,10 @@ export class GroupedActionDump implements IGroupedActionDump {
 
     for (const screenshot of screenshots) {
       if (screenshot.hasBase64()) {
-        const imagePath = join(screenshotsDir, `${screenshot.id}.png`);
+        const imagePath = join(
+          screenshotsDir,
+          `${screenshot.id}.${screenshot.extension}`,
+        );
         const rawBase64 = screenshot.rawBase64;
         writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
         screenshotMap[screenshot.id] = imagePath;

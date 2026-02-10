@@ -1,4 +1,3 @@
-import { sleep } from '@midscene/core/utils';
 import { describe, it, vi } from 'vitest';
 import { agentFromAdbDevice, getConnectedDevices } from '../../src';
 
@@ -9,7 +8,7 @@ vi.setConfig({
 describe(
   'android settings page',
   async () => {
-    it('Android settings page demo for scroll', async () => {
+    await it('Android settings page demo for scroll', async () => {
       const devices = await getConnectedDevices();
       const agent = await agentFromAdbDevice(devices[0].udid, {
         aiActionContext:
@@ -20,8 +19,20 @@ describe(
       });
 
       await agent.launch('com.android.settings/.Settings');
-      await sleep(2000);
-      await agent.aiAct('进入 WLAN 设置页面');
+      await agent.aiAct('pull down to refresh');
+      await agent.aiAct('long press chat list first chat');
+      await agent.aiAct('click recent apps button');
+      await agent.aiAct('click android home button');
+      await agent.aiAct('scroll list to bottom');
+      await agent.aiAct('open "More settings"');
+      await agent.aiAct('scroll left until left edge');
+      await agent.aiAct('scroll right until right edge');
+      await agent.aiAct('scroll list to top');
+      await agent.aiAct('scroll list to bottom');
+      await agent.aiAct('scroll down one screen');
+      await agent.aiAct('scroll up one screen');
+      await agent.aiAct('scroll right one screen');
+      await agent.aiAct('scroll left one screen');
     });
   },
   360 * 1000,

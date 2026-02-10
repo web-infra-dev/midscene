@@ -12,11 +12,20 @@ export type ScreenshotSerializeFormat =
   | { base64: string };
 
 /**
+ * Detect image format from base64 data URI prefix.
+ */
+function detectFormat(base64: string): 'png' | 'jpeg' {
+  if (base64.startsWith('data:image/jpeg')) return 'jpeg';
+  if (base64.startsWith('data:image/jpg')) return 'jpeg';
+  return 'png';
+}
+
+/**
  * ScreenshotItem encapsulates screenshot data.
  *
  * Supports lazy loading after memory release:
  * - inline mode: reads from HTML file using streaming (extractImageByIdSync)
- * - directory mode: reads from PNG file
+ * - directory mode: reads from file on disk
  *
  * After persistence, memory is released but the screenshot can be recovered
  * on-demand from disk, making it safe to release memory at any time.
@@ -24,13 +33,15 @@ export type ScreenshotSerializeFormat =
 export class ScreenshotItem {
   private _id: string;
   private _base64: string | null;
+  private _format: 'png' | 'jpeg';
   private _persistedAs: ScreenshotSerializeFormat | null = null;
-  private _persistedPath: string | null = null; // directory mode: PNG file path
-  private _persistedHtmlPath: string | null = null; // inline mode: HTML file path
+  private _persistedPath: string | null = null;
+  private _persistedHtmlPath: string | null = null;
 
   private constructor(id: string, base64: string) {
     this._id = id;
     this._base64 = base64;
+    this._format = detectFormat(base64);
   }
 
   /** Create a new ScreenshotItem from base64 data */
@@ -42,16 +53,26 @@ export class ScreenshotItem {
     return this._id;
   }
 
+  /** Get the image format (png or jpeg) */
+  get format(): 'png' | 'jpeg' {
+    return this._format;
+  }
+
+  /** Get the file extension for this screenshot */
+  get extension(): string {
+    return this._format === 'jpeg' ? 'jpeg' : 'png';
+  }
+
   get base64(): string {
     // If data is in memory, return it directly
     if (this._base64 !== null) {
       return this._base64;
     }
 
-    // Directory mode: recover from PNG file
+    // Directory mode: recover from file
     if (this._persistedPath !== null) {
       const buffer = readFileSync(this._persistedPath);
-      return `data:image/png;base64,${buffer.toString('base64')}`;
+      return `data:image/${this._format};base64,${buffer.toString('base64')}`;
     }
 
     // Inline mode: recover from HTML file using streaming
@@ -89,7 +110,7 @@ export class ScreenshotItem {
   /**
    * Mark as persisted to file (directory mode).
    * Releases base64 memory, but keeps file path for lazy loading recovery.
-   * @param relativePath - relative path for serialization (e.g., "./screenshots/id.png")
+   * @param relativePath - relative path for serialization (e.g., "./screenshots/id.jpeg")
    * @param absolutePath - absolute path for lazy loading recovery
    */
   markPersistedToPath(relativePath: string, absolutePath: string): void {
