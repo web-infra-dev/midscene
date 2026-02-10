@@ -258,7 +258,6 @@ Include your thought process in the <thought> tag. It should answer: What is the
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
-
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
@@ -505,7 +504,6 @@ Include your thought process in the <thought> tag. It should answer: What is the
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
-
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
@@ -748,7 +746,6 @@ REQUIRED: You MUST always output the <thought> tag. Never skip it.
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
-
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
 
@@ -996,7 +993,6 @@ Include your thought process in the <thought> tag. It should answer: What is the
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
 
-
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
 
 Determine if the entire task is completed.
@@ -1242,7 +1238,6 @@ REQUIRED: You MUST always output the <thought> tag. Never skip it.
 Include your thought process in the <thought> tag. It should answer: What is the current state based on the screenshot? What should be the next action? Write your thoughts naturally without numbering or section headers.
 
 CRITICAL - Following Explicit Instructions: When the user gives you specific operation steps (not high-level goals), you MUST execute ONLY those exact steps - nothing more, nothing less. Do NOT add extra actions even if they seem logical. For example: "fill out the form" means only fill fields, do NOT submit; "click the button" means only click, do NOT wait for page load or verify results; "type 'hello'" means only type, do NOT press Enter.
-
 
 ## Step 2: Check if the Instruction is Fulfilled (related tags: <complete>)
 
