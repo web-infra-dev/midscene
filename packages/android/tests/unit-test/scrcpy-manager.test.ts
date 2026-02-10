@@ -64,7 +64,7 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       const options = (manager as any).options;
       expect(options.maxSize).toBe(0);
-      expect(options.videoBitRate).toBe(200_000_000);
+      expect(options.videoBitRate).toBe(100_000_000);
       expect(options.idleTimeoutMs).toBe(30_000);
     });
 
@@ -86,8 +86,16 @@ describe('ScrcpyScreenshotManager', () => {
       });
       const options = (manager as any).options;
       expect(options.maxSize).toBe(512);
-      expect(options.videoBitRate).toBe(200_000_000); // default
+      expect(options.videoBitRate).toBe(100_000_000); // default
       expect(options.idleTimeoutMs).toBe(30_000); // default
+    });
+
+    it('should clamp videoBitRate to safe maximum', () => {
+      const manager = new ScrcpyScreenshotManager({} as any, {
+        videoBitRate: 500_000_000,
+      });
+      const options = (manager as any).options;
+      expect(options.videoBitRate).toBe(100_000_000);
     });
   });
 

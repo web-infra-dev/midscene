@@ -14,7 +14,8 @@ const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 
 // Configuration defaults
 const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
-const DEFAULT_VIDEO_BIT_RATE = 200_000_000; // 200Mbps - high bitrate for near-lossless I-frame quality over local ADB
+const DEFAULT_VIDEO_BIT_RATE = 100_000_000; // 100Mbps - high quality all-I-frame over local ADB
+const MAX_VIDEO_BIT_RATE = 100_000_000; // Safe upper limit for Android H.264 hardware encoders
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
@@ -111,9 +112,10 @@ export class ScrcpyScreenshotManager {
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
+    const requestedBitRate = options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE;
     this.options = {
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
-      videoBitRate: options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE,
+      videoBitRate: Math.min(requestedBitRate, MAX_VIDEO_BIT_RATE),
       idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
     };
   }
