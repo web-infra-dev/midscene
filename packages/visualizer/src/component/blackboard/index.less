@@ -19,24 +19,103 @@
 
   .bottom-tip-item {
     max-width: 500px;
-    color: #AAA;
+    color: #aaa;
     text-overflow: ellipsis;
     word-wrap: break-word;
   }
 }
 
-.blackboard-filter {
-  margin: 10px 0;
+.blackboard-main-content {
+  position: relative;
+  overflow: hidden;
 }
 
-.blackboard-main-content {
-  canvas {
-    width: 100%;
-    border: 1px solid @heavy-border-color;
-    box-sizing: border-box;
+.blackboard-screenshot {
+  width: 100%;
+  display: block;
+  border: 1px solid @heavy-border-color;
+  box-sizing: border-box;
+}
+
+.blackboard-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+// ── Rect overlays ──
+
+.blackboard-rect {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.blackboard-rect-label {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 1px 4px;
+  line-height: 1.4;
+}
+
+.blackboard-rect-search {
+  background: rgba(2, 131, 145, 0.4);
+  border: 1px solid #028391;
+  box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4);
+
+  .blackboard-rect-label {
+    color: #028391;
   }
 }
-// Dark mode styles
+
+.blackboard-rect-highlight {
+  background: rgba(253, 89, 7, 0.4);
+  border: 1px solid #fd5907;
+  box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4);
+  animation: blackboard-pulse 1.2s ease-in-out infinite;
+
+  .blackboard-rect-label {
+    color: #000;
+  }
+}
+
+// ── Point overlays ──
+
+.blackboard-point {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: rgba(253, 89, 7, 0.4);
+  border: 1px solid #fd5907;
+  box-shadow: 0 0 8px rgba(253, 89, 7, 0.5);
+  pointer-events: none;
+  animation: blackboard-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes blackboard-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4),
+      0 0 16px rgba(253, 89, 7, 0.5);
+  }
+}
+
+// ── Dark mode ──
+
 [data-theme='dark'] {
   .blackboard {
     .footer {
@@ -48,7 +127,11 @@
     }
   }
 
-  .blackboard-main-content canvas {
+  .blackboard-screenshot {
     border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .blackboard-rect-highlight .blackboard-rect-label {
+    color: #fff;
   }
 }

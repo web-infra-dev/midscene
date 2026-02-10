@@ -1443,21 +1443,18 @@ importers:
         specifier: 4.0.419
         version: 4.0.419(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
-      '@pixi/unsafe-eval':
-        specifier: 7.4.2
-        version: 7.4.2(@pixi/core@7.4.3)
       '@rsbuild/plugin-less':
         specifier: ^1.5.0
-        version: 1.5.0(@rsbuild/core@1.6.15)
+        version: 1.5.0(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
       '@rsbuild/plugin-node-polyfill':
         specifier: 1.4.2
-        version: 1.4.2(@rsbuild/core@1.6.15)
+        version: 1.4.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
       '@rsbuild/plugin-react':
         specifier: ^1.4.1
-        version: 1.4.1(@rsbuild/core@1.6.15)
+        version: 1.4.1(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
       '@rsbuild/plugin-svgr':
         specifier: ^1.2.2
-        version: 1.2.2(@rsbuild/core@1.6.15)(typescript@5.8.3)
+        version: 1.2.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))(typescript@5.8.3)
       '@rslib/core':
         specifier: ^0.18.3
         version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.62))(typescript@5.8.3)
@@ -1479,12 +1476,6 @@ importers:
       http-server:
         specifier: 14.1.1
         version: 14.1.1
-      pixi-filters:
-        specifier: 6.0.5
-        version: 6.0.5(pixi.js@8.1.1)
-      pixi.js:
-        specifier: 8.1.1
-        version: 8.1.1
       query-string:
         specifier: 9.1.1
         version: 9.1.1
@@ -3440,40 +3431,8 @@ packages:
     resolution: {integrity: sha512-kocjix+/sSggfJhwXqClZ3i9Y/MI0fp7b+g7kCRm6psy2dsf8uApTRclwG18h8Avm7C9+fnt+O36PspJ/OzoWg==}
     engines: {node: '>=14'}
 
-  '@pixi/color@7.4.3':
-    resolution: {integrity: sha512-a6R+bXKeXMDcRmjYQoBIK+v2EYqxSX49wcjAY579EYM/WrFKS98nSees6lqVUcLKrcQh2DT9srJHX7XMny3voQ==}
-
   '@pixi/colord@2.9.6':
     resolution: {integrity: sha512-nezytU2pw587fQstUu1AsJZDVEynjskwOL+kibwcdxsMBFqPsFFNA7xl0ii/gXuDi6M0xj3mfRJj8pBSc2jCfA==}
-
-  '@pixi/constants@7.4.3':
-    resolution: {integrity: sha512-QGmwJUNQy/vVEHzL6VGQvnwawLZ1wceZMI8HwJAT4/I2uAzbBeFDdmCS8WsTpSWLZjF/DszDc1D8BFp4pVJ5UQ==}
-
-  '@pixi/core@7.4.3':
-    resolution: {integrity: sha512-5YDs11faWgVVTL8VZtLU05/Fl47vaP5Tnsbf+y/WRR0VSW3KhRRGTBU1J3Gdc2xEWbJhUK07KGP7eSZpvtPVgA==}
-
-  '@pixi/extensions@7.4.3':
-    resolution: {integrity: sha512-FhoiYkHQEDYHUE7wXhqfsTRz6KxLXjuMbSiAwnLb9uG1vAgp6q6qd6HEsf4X30YaZbLFY8a4KY6hFZWjF+4Fdw==}
-
-  '@pixi/math@7.4.3':
-    resolution: {integrity: sha512-/uJOVhR2DOZ+zgdI6Bs/CwcXT4bNRKsS+TqX3ekRIxPCwaLra+Qdm7aDxT5cTToDzdxbKL5+rwiLu3Y1egILDw==}
-
-  '@pixi/runner@7.4.3':
-    resolution: {integrity: sha512-TJyfp7y23u5vvRAyYhVSa7ytq0PdKSvPLXu4G3meoFh1oxTLHH6g/RIzLuxUAThPG2z7ftthuW3qWq6dRV+dhw==}
-
-  '@pixi/settings@7.4.3':
-    resolution: {integrity: sha512-SmGK8smc0PxRB9nr0UJioEtE9hl4gvj9OedCvZx3bxBwA3omA5BmP3CyhQfN8XJ29+o2OUL01r3zAPVol4l4lA==}
-
-  '@pixi/ticker@7.4.3':
-    resolution: {integrity: sha512-tHsAD0iOUb6QSGGw+c8cyRBvxsq/NlfzIFBZLEHhWZ+Bx4a0MmXup6I/yJDGmyPCYE+ctCcAfY13wKAzdiVFgQ==}
-
-  '@pixi/unsafe-eval@7.4.2':
-    resolution: {integrity: sha512-45LM2mpqziNTeIORjgJl042CyssfZ17gfHHWcPZIZIGtiXSBPBy+mKvtHh5PraG0wBxAk/Bcr+nCYtAl8yuwgw==}
-    peerDependencies:
-      '@pixi/core': 7.4.2
-
-  '@pixi/utils@7.4.3':
-    resolution: {integrity: sha512-NO3Y9HAn2UKS1YdxffqsPp+kDpVm8XWvkZcS/E+rBzY9VTLnNOI7cawSRm+dacdET3a8Jad3aDKEDZ0HmAqAFA==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -13951,56 +13910,7 @@ snapshots:
   '@opentelemetry/semantic-conventions@1.38.0':
     optional: true
 
-  '@pixi/color@7.4.3':
-    dependencies:
-      '@pixi/colord': 2.9.6
-
   '@pixi/colord@2.9.6': {}
-
-  '@pixi/constants@7.4.3': {}
-
-  '@pixi/core@7.4.3':
-    dependencies:
-      '@pixi/color': 7.4.3
-      '@pixi/constants': 7.4.3
-      '@pixi/extensions': 7.4.3
-      '@pixi/math': 7.4.3
-      '@pixi/runner': 7.4.3
-      '@pixi/settings': 7.4.3
-      '@pixi/ticker': 7.4.3
-      '@pixi/utils': 7.4.3
-
-  '@pixi/extensions@7.4.3': {}
-
-  '@pixi/math@7.4.3': {}
-
-  '@pixi/runner@7.4.3': {}
-
-  '@pixi/settings@7.4.3':
-    dependencies:
-      '@pixi/constants': 7.4.3
-      '@types/css-font-loading-module': 0.0.12
-      ismobilejs: 1.1.1
-
-  '@pixi/ticker@7.4.3':
-    dependencies:
-      '@pixi/extensions': 7.4.3
-      '@pixi/settings': 7.4.3
-      '@pixi/utils': 7.4.3
-
-  '@pixi/unsafe-eval@7.4.2(@pixi/core@7.4.3)':
-    dependencies:
-      '@pixi/core': 7.4.3
-
-  '@pixi/utils@7.4.3':
-    dependencies:
-      '@pixi/color': 7.4.3
-      '@pixi/constants': 7.4.3
-      '@pixi/settings': 7.4.3
-      '@types/earcut': 2.1.4
-      earcut: 2.2.4
-      eventemitter3: 4.0.7
-      url: 0.11.4
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -14609,6 +14519,12 @@ snapshots:
       deepmerge: 4.3.1
       reduce-configs: 1.1.1
 
+  '@rsbuild/plugin-less@1.5.0(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))':
+    dependencies:
+      '@rsbuild/core': 2.0.0-beta.1(core-js@3.47.0)
+      deepmerge: 4.3.1
+      reduce-configs: 1.1.1
+
   '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@1.6.15)':
     dependencies:
       assert: 2.1.0
@@ -14636,6 +14552,34 @@ snapshots:
       vm-browserify: 1.1.2
     optionalDependencies:
       '@rsbuild/core': 1.6.15
+
+  '@rsbuild/plugin-node-polyfill@1.4.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))':
+    dependencies:
+      assert: 2.1.0
+      browserify-zlib: 0.2.0
+      buffer: 5.7.1
+      console-browserify: 1.2.0
+      constants-browserify: 1.0.0
+      crypto-browserify: 3.12.1
+      domain-browser: 5.7.0
+      events: 3.3.0
+      https-browserify: 1.0.0
+      os-browserify: 0.3.0
+      path-browserify: 1.0.1
+      process: 0.11.10
+      punycode: 2.3.1
+      querystring-es3: 0.2.1
+      readable-stream: 4.7.0
+      stream-browserify: 3.0.0
+      stream-http: 3.2.0
+      string_decoder: 1.3.0
+      timers-browserify: 2.0.12
+      tty-browserify: 0.0.1
+      url: 0.11.4
+      util: 0.12.5
+      vm-browserify: 1.1.2
+    optionalDependencies:
+      '@rsbuild/core': 2.0.0-beta.1(core-js@3.47.0)
 
   '@rsbuild/plugin-react@1.4.1(@rsbuild/core@1.6.15)':
     dependencies:
@@ -14673,6 +14617,20 @@ snapshots:
     dependencies:
       '@rsbuild/core': 1.6.15
       '@rsbuild/plugin-react': 1.4.1(@rsbuild/core@1.6.15)
+      '@svgr/core': 8.1.0(typescript@5.8.3)
+      '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))
+      '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))(typescript@5.8.3)
+      deepmerge: 4.3.1
+      loader-utils: 3.3.1
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+      - webpack-hot-middleware
+
+  '@rsbuild/plugin-svgr@1.2.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))(typescript@5.8.3)':
+    dependencies:
+      '@rsbuild/core': 2.0.0-beta.1(core-js@3.47.0)
+      '@rsbuild/plugin-react': 1.4.1(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
       '@svgr/core': 8.1.0(typescript@5.8.3)
       '@svgr/plugin-jsx': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))
       '@svgr/plugin-svgo': 8.1.0(@svgr/core@8.1.0(typescript@5.8.3))(typescript@5.8.3)
