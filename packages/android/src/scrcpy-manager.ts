@@ -6,13 +6,15 @@ import type { Adb } from '@yume-chan/adb';
 
 const debugScrcpy = getDebug('android:scrcpy');
 
-// H.264 NAL unit types
-const NAL_TYPE_IDR = 5; // IDR slice (keyframe/I-frame)
-const NAL_TYPE_SPS = 7; // Sequence Parameter Set
-const NAL_TYPE_PPS = 8; // Picture Parameter Set
-const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
+// H.265 NAL unit types (6 bits, extracted as (byte >> 1) & 0x3F)
+const H265_NAL_TYPE_IDR_W_RADL = 19;
+const H265_NAL_TYPE_IDR_N_LP = 20;
+const H265_NAL_TYPE_CRA = 21;
+const H265_NAL_TYPE_VPS = 32;
+const H265_NAL_TYPE_SPS = 33;
+const H265_NAL_TYPE_PPS = 34;
 
-// H.264 start codes
+// Annex B start code (shared by H.264 and H.265)
 const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
 
 // Configuration defaults
@@ -42,22 +44,25 @@ export interface ScrcpyScreenshotOptions {
 }
 
 /**
- * Check if NAL unit type indicates a keyframe (IDR, SPS, or PPS)
+ * Check if H.265 NAL unit type indicates a keyframe (IDR, CRA, VPS, SPS, or PPS)
  */
-function isKeyFrameNalType(nalUnitType: number): boolean {
+function isH265KeyFrameNalType(nalUnitType: number): boolean {
   return (
-    nalUnitType === NAL_TYPE_IDR ||
-    nalUnitType === NAL_TYPE_SPS ||
-    nalUnitType === NAL_TYPE_PPS
+    nalUnitType === H265_NAL_TYPE_IDR_W_RADL ||
+    nalUnitType === H265_NAL_TYPE_IDR_N_LP ||
+    nalUnitType === H265_NAL_TYPE_CRA ||
+    nalUnitType === H265_NAL_TYPE_VPS ||
+    nalUnitType === H265_NAL_TYPE_SPS ||
+    nalUnitType === H265_NAL_TYPE_PPS
   );
 }
 
 /**
- * Detect if H.264 frame contains keyframe (IDR) or SPS/PPS
- * Scans for H.264 start codes (0x00 0x00 0x00 0x01 or 0x00 0x00 0x01)
+ * Detect if H.265 frame contains keyframe (IDR/CRA) or VPS/SPS/PPS
+ * H.265 NAL header is 2 bytes: nal_unit_type is bits [1..6] of the first byte
  */
-function detectH264KeyFrame(buffer: Buffer): boolean {
-  const scanLimit = Math.min(buffer.length - 4, MAX_SCAN_BYTES);
+function detectH265KeyFrame(buffer: Buffer): boolean {
+  const scanLimit = Math.min(buffer.length - 5, MAX_SCAN_BYTES);
 
   for (let i = 0; i < scanLimit; i++) {
     // Check for 4-byte start code: 0x00 0x00 0x00 0x01
@@ -67,8 +72,8 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
       buffer[i + 2] === 0x00 &&
       buffer[i + 3] === 0x01
     ) {
-      const nalUnitType = buffer[i + 4] & NAL_TYPE_MASK;
-      if (isKeyFrameNalType(nalUnitType)) {
+      const nalUnitType = (buffer[i + 4] >> 1) & 0x3f;
+      if (isH265KeyFrameNalType(nalUnitType)) {
         return true;
       }
     }
@@ -78,8 +83,8 @@ function detectH264KeyFrame(buffer: Buffer): boolean {
       buffer[i + 1] === 0x00 &&
       buffer[i + 2] === 0x01
     ) {
-      const nalUnitType = buffer[i + 3] & NAL_TYPE_MASK;
-      if (isKeyFrameNalType(nalUnitType)) {
+      const nalUnitType = (buffer[i + 3] >> 1) & 0x3f;
+      if (isH265KeyFrameNalType(nalUnitType)) {
         return true;
       }
     }
@@ -110,7 +115,13 @@ export class ScrcpyScreenshotManager {
   private keyframeResolvers: Array<(buf: Buffer) => void> = [];
   private lastRawKeyframe: Buffer | null = null;
   private videoResolution: { width: number; height: number } | null = null;
-  private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
+  private h265SearchConfigFn:
+    | ((data: Uint8Array) => {
+        videoParameterSet: { data: Uint8Array };
+        sequenceParameterSet: { data: Uint8Array };
+        pictureParameterSet: { data: Uint8Array };
+      })
+    | null = null;
   private streamReader: any = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
@@ -162,11 +173,11 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/adb-scrcpy'
       );
       const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { ScrcpyOptions3_1, DefaultServerPath, h264SearchConfiguration } =
+      const { ScrcpyOptions3_1, DefaultServerPath, h265SearchConfiguration } =
         await import('@yume-chan/scrcpy');
 
-      // Cache h264SearchConfiguration for synchronous use in processFrame
-      this.h264SearchConfigFn = h264SearchConfiguration;
+      // Cache h265SearchConfiguration for synchronous use in processFrame
+      this.h265SearchConfigFn = h265SearchConfiguration;
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
@@ -181,6 +192,7 @@ export class ScrcpyScreenshotManager {
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
         sendFrameMeta: false,
+        videoCodec: 'h265',
         videoCodecOptions: 'i-frame-interval=0',
       });
 
@@ -279,7 +291,7 @@ export class ScrcpyScreenshotManager {
    */
   private processFrame(packet: any): void {
     const frameBuffer = Buffer.from(packet.data);
-    const actualKeyFrame = detectH264KeyFrame(frameBuffer);
+    const actualKeyFrame = detectH265KeyFrame(frameBuffer);
 
     if (actualKeyFrame && !this.spsHeader) {
       this.extractSpsHeader(frameBuffer);
@@ -295,28 +307,35 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Extract SPS/PPS header from keyframe
+   * Extract VPS/SPS/PPS header from H.265 keyframe.
+   * h265SearchConfiguration returns H265NaluRaw objects with .data property.
    */
   private extractSpsHeader(frameBuffer: Buffer): void {
-    if (!this.h264SearchConfigFn) return;
+    if (!this.h265SearchConfigFn) return;
     try {
-      const config = this.h264SearchConfigFn(new Uint8Array(frameBuffer));
-      if (!config.sequenceParameterSet || !config.pictureParameterSet) {
+      const config = this.h265SearchConfigFn(new Uint8Array(frameBuffer));
+      if (
+        !config.videoParameterSet ||
+        !config.sequenceParameterSet ||
+        !config.pictureParameterSet
+      ) {
         return;
       }
 
       this.spsHeader = Buffer.concat([
         START_CODE_4_BYTE,
-        Buffer.from(config.sequenceParameterSet),
+        Buffer.from(config.videoParameterSet.data),
         START_CODE_4_BYTE,
-        Buffer.from(config.pictureParameterSet),
+        Buffer.from(config.sequenceParameterSet.data),
+        START_CODE_4_BYTE,
+        Buffer.from(config.pictureParameterSet.data),
       ]);
 
       debugScrcpy(
-        `Extracted SPS/PPS: SPS=${config.sequenceParameterSet.length}B, PPS=${config.pictureParameterSet.length}B, total=${this.spsHeader.length}B`,
+        `Extracted VPS/SPS/PPS: VPS=${config.videoParameterSet.data.length}B, SPS=${config.sequenceParameterSet.data.length}B, PPS=${config.pictureParameterSet.data.length}B, total=${this.spsHeader.length}B`,
       );
     } catch (error) {
-      debugScrcpy(`Failed to extract SPS/PPS from keyframe: ${error}`);
+      debugScrcpy(`Failed to extract VPS/SPS/PPS from keyframe: ${error}`);
     }
   }
 
@@ -358,11 +377,11 @@ export class ScrcpyScreenshotManager {
     this.resetIdleTimer();
 
     debugScrcpy(
-      `Decoding H.264 stream: ${keyframeBuffer.length} bytes (${frameSource})`,
+      `Decoding H.265 stream: ${keyframeBuffer.length} bytes (${frameSource})`,
     );
 
     const t4 = Date.now();
-    const result = await this.decodeH264ToPng(keyframeBuffer);
+    const result = await this.decodeH265ToPng(keyframeBuffer);
     const decodeTime = Date.now() - t4;
 
     const totalTime = Date.now() - perfStart;
@@ -448,7 +467,7 @@ export class ScrcpyScreenshotManager {
     while (!this.spsHeader && Date.now() - startTime < MAX_KEYFRAME_WAIT_MS) {
       const elapsed = Date.now() - startTime;
       debugScrcpy(
-        `Waiting for first keyframe (SPS/PPS header)... ${elapsed}ms`,
+        `Waiting for first keyframe (VPS/SPS/PPS header)... ${elapsed}ms`,
       );
       await new Promise((resolve) =>
         setTimeout(resolve, KEYFRAME_POLL_INTERVAL_MS),
@@ -482,15 +501,15 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Decode H.264 data to PNG using ffmpeg
+   * Decode H.265 data to PNG using ffmpeg
    */
-  private async decodeH264ToPng(h264Buffer: Buffer): Promise<Buffer> {
+  private async decodeH265ToPng(hevcBuffer: Buffer): Promise<Buffer> {
     const { spawn } = await import('node:child_process');
 
     return new Promise((resolve, reject) => {
       const ffmpegArgs = [
         '-f',
-        'h264',
+        'hevc',
         '-i',
         'pipe:0',
         '-vframes',
@@ -530,7 +549,7 @@ export class ScrcpyScreenshotManager {
         } else {
           const errorMsg = stderrOutput || `FFmpeg exited with code ${code}`;
           debugScrcpy(`FFmpeg decode failed: ${errorMsg}`);
-          reject(new Error(`H.264 to PNG decode failed: ${errorMsg}`));
+          reject(new Error(`H.265 to PNG decode failed: ${errorMsg}`));
         }
       });
 
@@ -538,7 +557,7 @@ export class ScrcpyScreenshotManager {
         reject(new Error(`Failed to spawn ffmpeg process: ${error.message}`));
       });
 
-      ffmpeg.stdin.write(h264Buffer);
+      ffmpeg.stdin.write(hevcBuffer);
       ffmpeg.stdin.end();
     });
   }
@@ -580,7 +599,7 @@ export class ScrcpyScreenshotManager {
     this.spsHeader = null;
     this.lastRawKeyframe = null;
     this.isInitialized = false;
-    this.h264SearchConfigFn = null;
+    this.h265SearchConfigFn = null;
     this.keyframeResolvers = [];
 
     // Cancel reader first to stop consumeFramesLoop
