@@ -59,7 +59,9 @@ async function createChatClient({
   } = modelConfig;
 
   let proxyAgent: any = undefined;
+  const warnClient = getDebug('ai:call', { console: true });
   const debugProxy = getDebug('ai:call:proxy');
+  const warnProxy = getDebug('ai:call:proxy', { console: true });
 
   // Helper function to sanitize proxy URL for logging (remove credentials)
   // Uses URL API instead of regex to avoid ReDoS vulnerabilities
@@ -81,7 +83,7 @@ async function createChatClient({
   if (httpProxy) {
     debugProxy('using http proxy', sanitizeProxyUrl(httpProxy));
     if (ifInBrowser) {
-      console.warn(
+      warnProxy(
         'HTTP proxy is configured but not supported in browser environment',
       );
     } else {
@@ -96,7 +98,7 @@ async function createChatClient({
   } else if (socksProxy) {
     debugProxy('using socks proxy', sanitizeProxyUrl(socksProxy));
     if (ifInBrowser) {
-      console.warn(
+      warnProxy(
         'SOCKS proxy is configured but not supported in browser environment',
       );
     } else {
@@ -140,7 +142,7 @@ async function createChatClient({
           port: port,
         });
       } catch (error) {
-        console.error('Failed to configure SOCKS proxy:', error);
+        warnProxy('Failed to configure SOCKS proxy:', error);
         throw new Error(
           `Invalid SOCKS proxy URL: ${socksProxy}. Expected format: socks4://host:port, socks5://host:port, or with authentication: socks5://user:pass@host:port`,
         );
@@ -171,7 +173,7 @@ async function createChatClient({
     if (ifInBrowser) {
       throw new Error('langsmith is not supported in browser');
     }
-    console.log('DEBUGGING MODE: langsmith wrapper enabled');
+    warnClient('DEBUGGING MODE: langsmith wrapper enabled');
     // Use variable to prevent static analysis by bundlers
     const langsmithModule = 'langsmith/wrappers';
     const { wrapOpenAI } = await import(langsmithModule);
@@ -186,7 +188,7 @@ async function createChatClient({
     if (ifInBrowser) {
       throw new Error('langfuse is not supported in browser');
     }
-    console.log('DEBUGGING MODE: langfuse wrapper enabled');
+    warnClient('DEBUGGING MODE: langfuse wrapper enabled');
     // Use variable to prevent static analysis by bundlers
     const langfuseModule = '@langfuse/openai';
     const { observeOpenAI } = await import(langfuseModule);
@@ -238,6 +240,7 @@ export async function callAI(
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
   const debugCall = getDebug('ai:call');
+  const warnCall = getDebug('ai:call', { console: true });
   const debugProfileStats = getDebug('ai:profile:stats');
   const debugProfileDetail = getDebug('ai:profile:detail');
 
@@ -303,8 +306,7 @@ export async function callAI(
     debugCall(debugMessage);
   }
   if (warningMessage) {
-    debugCall(warningMessage);
-    console.warn(warningMessage);
+    warnCall(warningMessage);
   }
 
   try {
@@ -420,20 +422,30 @@ export async function callAI(
           }
 
           content = result.choices[0].message.content!;
-          if (!content) {
-            throw new Error('empty content from AI model');
-          }
-
           accumulatedReasoning =
             (result.choices[0].message as any)?.reasoning_content || '';
           usage = result.usage;
           requestId = result._request_id;
+
+          if (
+            !content &&
+            accumulatedReasoning &&
+            modelFamily === 'doubao-vision'
+          ) {
+            warnCall('empty content from AI model, using reasoning content');
+            content = accumulatedReasoning;
+          }
+
+          if (!content) {
+            throw new Error('empty content from AI model');
+          }
+
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;
           if (attempt < maxAttempts) {
-            console.warn(
-              `[Midscene] AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
+            warnCall(
+              `AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
             );
             await new Promise((resolve) => setTimeout(resolve, retryInterval));
           }
@@ -469,7 +481,7 @@ export async function callAI(
       isStreamed: !!isStreaming,
     };
   } catch (e: any) {
-    console.error('call AI error', e);
+    warnCall('call AI error', e);
     const newError = new Error(
       `failed to call ${isStreaming ? 'streaming ' : ''}AI model service (${modelName}): ${e.message}\nTrouble shooting: https://midscenejs.com/model-provider.html`,
       {

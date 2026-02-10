@@ -786,7 +786,7 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Some thought</thought>
-<complete-goal success="true">Task completed</complete-goal>
+<complete success="true">Task completed</complete>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -849,11 +849,11 @@ describe('parseXMLPlanningResponse', () => {
     expect(result.action?.param.locate.prompt).toBe('Button with & symbol');
   });
 
-  it('should parse complete-goal tag with success=true and message', () => {
+  it('should parse complete tag with success=true and message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Task completed successfully</thought>
-<complete-goal success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete-goal>
+<complete success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -868,11 +868,11 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse complete-goal tag with success=false and error message', () => {
+  it('should parse complete tag with success=false and error message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Task failed</thought>
-<complete-goal success="false">Unable to find the required element on the page</complete-goal>
+<complete success="false">Unable to find the required element on the page</complete>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -886,11 +886,11 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse complete-goal tag with empty message', () => {
+  it('should parse complete tag with empty message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Task completed</thought>
-<complete-goal success="true"></complete-goal>
+<complete success="true"></complete>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -903,16 +903,16 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse complete-goal tag with multiline message', () => {
+  it('should parse complete tag with multiline message', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Data extraction completed</thought>
-<complete-goal success="true">
+<complete success="true">
 Extracted data:
 - Item 1: Value A
 - Item 2: Value B
 - Item 3: Value C
-</complete-goal>
+</complete>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -927,12 +927,12 @@ Extracted data:
     });
   });
 
-  it('should parse complete-goal tag along with other optional fields', () => {
+  it('should parse complete tag along with other optional fields', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>All tasks completed successfully</thought>
 <memory>Total items processed: 10</memory>
-<complete-goal success="true">All 10 items have been processed</complete-goal>
+<complete success="true">All 10 items have been processed</complete>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -947,11 +947,11 @@ Extracted data:
     });
   });
 
-  it('should handle complete-goal tag case insensitively', () => {
+  it('should handle complete tag case insensitively', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <thought>Task done</thought>
-<COMPLETE-GOAL success="true">Success message</COMPLETE-GOAL>
+<COMPLETE success="true">Success message</COMPLETE>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);

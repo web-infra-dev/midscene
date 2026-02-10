@@ -161,6 +161,7 @@ export class TaskExecutor {
     options?: {
       cacheable?: boolean;
       subTask?: boolean;
+      deepLocate?: boolean;
     },
   ) {
     return this.taskBuilder.build(
@@ -244,6 +245,7 @@ export class TaskExecutor {
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
     fileChooserAccept?: string[],
+    deepLocate?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -264,6 +266,7 @@ export class TaskExecutor {
         replanningCycleLimitOverride,
         imagesIncludeCount,
         deepThink,
+        deepLocate,
       );
     });
   }
@@ -278,6 +281,7 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
+    deepLocate?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -449,6 +453,7 @@ export class TaskExecutor {
           {
             cacheable,
             subTask: true,
+            deepLocate,
           },
         );
       } catch (error) {

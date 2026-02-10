@@ -83,32 +83,31 @@ Drive an Android device connected over adb:
 
 ```yaml
 android:
-  # launch: https://www.bing.com
   deviceId: s4ey59 # find the device id with `adb devices`
 
 tasks:
-  - name: Search for weather
+  - name: Maps Navigation
     flow:
-      - ai: Open the browser and navigate to bing.com
-      - ai: Search for "today's weather"
-      - sleep: 3000
-      - aiAssert: The results show weather information
+      - ai: Open the Maps app
+      - ai: Input 'West Lake, Hangzhou' in the search bar, and click the search button
+      - ai: Click the first search result, enter the details page
+      - ai: Click "Directions" button, enter the route planning page
+      - ai: Click "Start" button to start navigation
 ```
 
 Or drive an iOS device with WebDriverAgent configured:
 
 ```yaml
 ios:
-  # launch: com.apple.mobilesafari
   wdaPort: 8100
 
 tasks:
-  - name: Search for weather
+  - name: Change System Settings
     flow:
-      - ai: Open the browser and navigate to bing.com
-      - ai: Search for "today's weather"
-      - sleep: 3000
-      - aiAssert: The results show weather information
+      - ai: Open the Settings app
+      - ai: Tap "Display & Brightness"
+      - ai: Turn on "Dark Mode"
+      - aiAssert: Dark Mode is enabled
 ```
 
 ### Run the script

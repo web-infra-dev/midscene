@@ -28,6 +28,7 @@ type ActionType =
   | 'wait';
 
 const debug = getDebug('ui-tars-planning');
+const warnLog = getDebug('ui-tars-planning', { console: true });
 const bboxSize = 10;
 const pointToBbox = (
   point: { x: number; y: number },
@@ -239,9 +240,7 @@ export async function uiTarsPlanning(
       });
     } else if (actionType === 'hotkey') {
       if (!action.action_inputs.key) {
-        console.warn(
-          'No key found in action: hotkey. Will not perform action.',
-        );
+        warnLog('No key found in action: hotkey. Will not perform action.');
       } else {
         const keys = transformHotkeyInput(action.action_inputs.key);
 

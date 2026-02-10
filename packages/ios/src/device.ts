@@ -15,11 +15,14 @@ import {
   type IOSDeviceOpt,
   defineAction,
   defineActionClearInput,
+  defineActionCursorMove,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
   defineActionScroll,
+  defineActionSwipe,
   defineActionTap,
+  normalizeMobileSwipeParam,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -167,10 +170,33 @@ export class IOSDevice implements AbstractInterface {
           from.center[1],
           to.center[0],
           to.center[1],
+          1000,
         );
+      }),
+      defineActionSwipe(async (param) => {
+        const { startPoint, endPoint, duration, repeatCount } =
+          normalizeMobileSwipeParam(param, await this.size());
+        for (let i = 0; i < repeatCount; i++) {
+          await this.swipe(
+            startPoint.x,
+            startPoint.y,
+            endPoint.x,
+            endPoint.y,
+            duration,
+          );
+        }
       }),
       defineActionKeyboardPress(async (param) => {
         await this.pressKey(param.keyName);
+      }),
+      defineActionCursorMove(async (param) => {
+        const arrowKey =
+          param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+        const times = param.times ?? 1;
+        for (let i = 0; i < times; i++) {
+          await this.pressKey(arrowKey);
+          await sleep(100);
+        }
       }),
       defineAction<
         z.ZodObject<{

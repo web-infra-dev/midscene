@@ -476,56 +476,42 @@ tasks:
     // console.log(player);
     expect(player.status).toBe('done');
 
-    // Verify aiRightClick was called with correct parameters
+    // Verify aiTap was called with correct parameters
+    expect(
+      (mockAgent.agent.aiTap as MockedFunction<any>).mock.calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "search input box",
+          {},
+        ],
+        [
+          "search input box",
+          {
+            "cacheable": false,
+            "deepThink": true,
+          },
+        ],
+        [
+          "search input box",
+          {},
+        ],
+        [
+          "search input box",
+          {
+            "cacheable": false,
+            "deepThink": true,
+          },
+        ],
+      ]
+    `);
+
+    // Verify remaining actions still go through callActionInActionSpace
     expect(
       (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
         .calls,
     ).toMatchInlineSnapshot(`
       [
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
         [
           "KeyboardPress",
           {
@@ -847,6 +833,7 @@ tasks:
         aiRightClick: vi.fn(async () => {
           throw new Error('Element not found for right click');
         }),
+        aiTap: vi.fn(),
         reportFile: null,
         onTaskStartTip: undefined,
         getActionSpace: async () => [
@@ -877,22 +864,14 @@ tasks:
     expect(player.taskStatusList[1].status).toBe('done');
     expect(player.status).toBe('done');
 
-    // Verify both methods were called
+    // Verify aiTap was called via agent.aiTap
     expect(
-      (errorMockSetup.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (errorMockSetup.agent.aiTap as MockedFunction<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
-          "aiTap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "some button",
-              "xpath": undefined,
-            },
-          },
+          "some button",
+          {},
         ],
       ]
     `);

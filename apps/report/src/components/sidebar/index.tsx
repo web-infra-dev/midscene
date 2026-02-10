@@ -105,14 +105,6 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   // Get the currently playing task
   const playingTask = playingTaskId ? taskIdToTaskMap.get(playingTaskId) : null;
 
-  // Auto scroll to playing task
-  useEffect(() => {
-    if (playingTaskId) {
-      const row = document.querySelector(`[data-task-id="${playingTaskId}"]`);
-      row?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [playingTaskId]);
-
   const hasCachedInput = useMemo(() => {
     if (!groupedDump) return false;
 

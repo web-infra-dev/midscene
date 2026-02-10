@@ -320,7 +320,7 @@ Don't use this tag if no information needs to be preserved.
 `
     : ''
 }
-## Step ${checkGoalStepNumber}: Check if Goal is Accomplished (related tags: <complete-goal>)
+## Step ${checkGoalStepNumber}: ${shouldIncludeSubGoals ? 'Check if Goal is Accomplished' : 'Check if the Instruction is Fulfilled'} (related tags: <complete>)
 
 ${shouldIncludeSubGoals ? 'Based on the current screenshot and the status of all sub-goals, determine' : 'Determine'} if the entire task is completed.
 
@@ -332,26 +332,36 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - If the user gives you **explicit operation steps** (e.g., "click X", "type Y", "fill out the form"), treat them as exact commands. Execute ONLY those steps, nothing more.
 - If the user gives you a **high-level goal** (e.g., "log in to the system", "complete the purchase"), you may determine the necessary steps to achieve it.
 
-**What "goal accomplished" means:**
-- The goal is accomplished when you have done EXACTLY what the user asked - no extra steps, no assumptions.
+**What "${shouldIncludeSubGoals ? 'goal accomplished' : 'instruction fulfilled'}" means:**
+- The ${shouldIncludeSubGoals ? 'goal is accomplished' : 'instruction is fulfilled'} when you have done EXACTLY what the user asked - no extra steps, no assumptions.
 - Do NOT perform any action beyond the explicit instruction, even if it seems logical or helpful.
 
 **Examples - Explicit instructions (execute exactly, no extra steps):**
-- "fill out the form" → Goal accomplished when all fields are filled. Do NOT submit the form.
-- "click the login button" → Goal accomplished once clicked. Do NOT wait for page load or verify login success.
-- "type 'hello' in the search box" → Goal accomplished when 'hello' is typed. Do NOT press Enter or trigger search.
-- "select the first item" → Goal accomplished when selected. Do NOT proceed to checkout.
+- "fill out the form" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when all fields are filled. Do NOT submit the form.
+- "click the login button" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} once clicked. Do NOT wait for page load or verify login success.
+- "type 'hello' in the search box" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when 'hello' is typed. Do NOT press Enter or trigger search.
+- "select the first item" → ${shouldIncludeSubGoals ? 'Goal accomplished' : 'Instruction fulfilled'} when selected. Do NOT proceed to checkout.
 
 **Special case - Assertion instructions:**
-- If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark the goal as failed (success="false").
-
+- If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${shouldIncludeSubGoals ? 'the goal' : 'it'} as failed (success="false").
+- If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
+${
+  !shouldIncludeSubGoals
+    ? `
+**Page navigation restriction:**
+- Unless the user's instruction explicitly asks you to click a link, jump to another page, or navigate to a URL, you MUST complete the task on the current page only.
+- Do NOT navigate away from the current page on your own initiative (e.g., do not click links that lead to other pages, do not use browser back/forward, do not open new URLs).
+- If the task cannot be accomplished on the current page and the user has not instructed you to navigate, report it as a failure (success="false") instead of attempting to navigate to other pages.
+`
+    : ''
+}
 ### Output Rules
 
 - If the task is NOT complete, skip this section and continue to Step ${actionStepNumber}.
-- Use the <complete-goal success="true|false">message</complete-goal> tag to output the result if the goal is accomplished or failed.
-  - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot. ' : ''}No matter what actions were executed or what errors occurred during execution, if the expected goal is accomplished, set success="true". If the expected goal is not accomplished and cannot be accomplished, set success="false".
+- Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
+  - the 'success' attribute is required. ${shouldIncludeSubGoals ? 'It means whether the expected goal is accomplished based on what you observe in the current screenshot. ' : ''}No matter what actions were executed or what errors occurred during execution, if the ${shouldIncludeSubGoals ? 'expected goal is accomplished' : 'instruction is fulfilled'}, set success="true". If the ${shouldIncludeSubGoals ? 'expected goal is not accomplished and cannot be accomplished' : 'instruction is not fulfilled and cannot be fulfilled'}, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete-goal>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
 
 ## Step ${actionStepNumber}: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
 
@@ -385,7 +395,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 ### If there is some action to do ...
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete-goal' is NOT a valid action-type.
+- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -434,10 +444,10 @@ ${
 }
 **Then choose ONE of the following paths:**
 
-**Path A: If the goal is accomplished or failed (Step ${checkGoalStepNumber})**
-<complete-goal success="true|false">...</complete-goal>
+**Path A: If the ${shouldIncludeSubGoals ? 'goal is accomplished' : 'instruction is fulfilled'} or failed (Step ${checkGoalStepNumber})**
+<complete success="true|false">...</complete>
 
-**Path B: If the goal is NOT complete yet (Step ${actionStepNumber})**
+**Path B: If the ${shouldIncludeSubGoals ? 'goal is NOT complete' : 'instruction is NOT fulfilled'} yet (Step ${actionStepNumber})**
 <!-- Determine next action -->
 <log>...</log>
 <action-type>...</action-type>
@@ -482,7 +492,10 @@ The previous action has been executed, here is the latest screenshot. Please con
 Sub-goals:
 1. Fill in the Name field with 'John' (running)
 2. Fill in the Email field with 'john@example.com' (pending)
+3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Name field with 'John'
+Actions performed for current sub-goal:
+- Click on the Name field to start filling the form
 
 **Screenshot:** [Shows the form with Name field now focused/active]
 
@@ -504,7 +517,11 @@ The previous action has been executed, here is the latest screenshot. Please con
 Sub-goals:
 1. Fill in the Name field with 'John' (running)
 2. Fill in the Email field with 'john@example.com' (pending)
+3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Name field with 'John'
+Actions performed for current sub-goal:
+- Click on the Name field to start filling the form
+- Typing 'John' into the Name field
 
 **Screenshot:** [Shows the form with Name field containing 'John']
 
@@ -530,7 +547,10 @@ The previous action has been executed, here is the latest screenshot. Please con
 Sub-goals:
 1. Fill in the Name field with 'John' (finished)
 2. Fill in the Email field with 'john@example.com' (running)
+3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Email field with 'john@example.com'
+Actions performed for current sub-goal:
+- Moving to the Email field
 
 **Screenshot:** [Shows the form with Name='John' and Email field focused]
 
@@ -554,6 +574,9 @@ Sub-goals:
 2. Fill in the Email field with 'john@example.com' (running)
 3. Return the filled email address (pending)
 Current sub-goal is: Fill in the Email field with 'john@example.com'
+Actions performed for current sub-goal:
+- Moving to the Email field
+- Typing email address into the Email field
 
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
@@ -563,7 +586,7 @@ Current sub-goal is: Fill in the Email field with 'john@example.com'
   <sub-goal index="2" status="finished" />
   <sub-goal index="3" status="finished" />
 </mark-sub-goal-done>
-<complete-goal success="true">john@example.com</complete-goal>
+<complete success="true">john@example.com</complete>
 `
     : `
 ## Multi-turn Conversation Example
@@ -638,7 +661,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 }
 </action-param-json>
 
-### Turn 5 - After entering email (Goal accomplished)
+### Turn 5 - After entering email (Instruction fulfilled)
 
 **User message:**
 The previous action has been executed, here is the latest screenshot. Please continue according to the instruction.
@@ -646,8 +669,8 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Screenshot:** [Shows the form with Name='John' and Email='john@example.com']
 
 **Your response:**
-<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. Goal accomplished.</thought>
-<complete-goal success="true">john@example.com</complete-goal>
+<thought>Both fields are now filled: Name shows 'John' and Email shows 'john@example.com'. The user asked me to return the filled email address, so I should include 'john@example.com' in my response. The instruction has been fulfilled.</thought>
+<complete success="true">john@example.com</complete>
 `
 }`;
 }

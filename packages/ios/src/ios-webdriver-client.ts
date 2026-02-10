@@ -527,7 +527,6 @@ export class IOSWebDriverClient extends WebDriverClient {
     endpoint: string,
     data?: any,
   ): Promise<TResult> {
-    this.ensureSession();
-    return this.makeRequest(method, endpoint, data);
+    return this.makeRequest(method, this.buildSessionEndpoint(endpoint), data);
   }
 }

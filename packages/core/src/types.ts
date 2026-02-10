@@ -252,6 +252,7 @@ export interface SubGoal {
   index: number;
   status: SubGoalStatus;
   description: string;
+  logs?: string[];
 }
 
 export interface RawResponsePlanningAIResponse {
@@ -276,7 +277,7 @@ export interface PlanningAIResponse
   error?: string;
   reasoning_content?: string;
   shouldContinuePlanning: boolean;
-  output?: string; // Output message from complete-goal (same as finalizeMessage)
+  output?: string; // Output message from <complete> tag (same as finalizeMessage)
 }
 
 export interface PlanningActionParamSleep {

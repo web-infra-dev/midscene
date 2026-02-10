@@ -52,25 +52,39 @@ function writeLogToFile(topic: string, message: string): void {
 
 export type DebugFunction = (...args: unknown[]) => void;
 
-export function getDebug(topic: string): DebugFunction {
+export function getDebug(
+  topic: string,
+  options?: { console?: boolean },
+): DebugFunction {
   const fullTopic = `${topicPrefix}:${topic}`;
+  const withConsole = options?.console ?? false;
+  const cacheKey = withConsole ? `${fullTopic}:withConsole` : fullTopic;
 
-  if (!debugInstances.has(fullTopic)) {
-    const debugFn = debug(fullTopic) as DebugFunction;
+  if (!debugInstances.has(cacheKey)) {
+    if (withConsole) {
+      const baseFn = getDebug(topic);
+      const wrapper = (...args: unknown[]): void => {
+        baseFn(...args);
+        console.warn('[Midscene]', ...args);
+      };
+      debugInstances.set(cacheKey, wrapper);
+    } else {
+      const debugFn = debug(fullTopic) as DebugFunction;
 
-    // Create wrapper that handles both file logging and debug output
-    const wrapper = (...args: unknown[]): void => {
-      if (ifInNode) {
-        const message = util.format(...args);
-        writeLogToFile(topic, message);
-      }
-      debugFn(...args);
-    };
+      // Create wrapper that handles both file logging and debug output
+      const wrapper = (...args: unknown[]): void => {
+        if (ifInNode) {
+          const message = util.format(...args);
+          writeLogToFile(topic, message);
+        }
+        debugFn(...args);
+      };
 
-    debugInstances.set(fullTopic, wrapper);
+      debugInstances.set(cacheKey, wrapper);
+    }
   }
 
-  return debugInstances.get(fullTopic)!;
+  return debugInstances.get(cacheKey)!;
 }
 
 export function enableDebug(topic: string): void {
