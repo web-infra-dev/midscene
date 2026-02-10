@@ -8,7 +8,7 @@ import {
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import { Player as RemotionPlayer } from '@remotion/player';
-import type { PlayerRef } from '@remotion/player';
+import type { PlayerRef, RenderCustomControls } from '@remotion/player';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
@@ -131,6 +131,178 @@ export function Player(props?: {
 
   const [mouseOverSettingsIcon, setMouseOverSettingsIcon] = useState(false);
 
+  const renderCustomControls: RenderCustomControls = useCallback(() => {
+    return (
+      <div className="player-custom-controls">
+        {props?.reportFileContent && props?.canDownloadReport !== false ? (
+          <Tooltip title="Download Report">
+            <div
+              className="status-icon"
+              onClick={() => downloadReport(props.reportFileContent!)}
+            >
+              <DownloadOutlined />
+            </div>
+          </Tooltip>
+        ) : null}
+
+        <Tooltip title={isExporting ? 'Generating...' : 'Export Video'}>
+          <div
+            className="status-icon"
+            onClick={isExporting ? undefined : handleExportVideo}
+            style={{
+              opacity: isExporting ? 0.5 : 1,
+              cursor: isExporting ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {isExporting ? (
+              <Spin size="small" percent={exportProgress} />
+            ) : (
+              <ExportOutlined />
+            )}
+          </div>
+        </Tooltip>
+
+        <Dropdown
+          trigger={['hover', 'click']}
+          placement="topRight"
+          overlayStyle={{ minWidth: '148px' }}
+          dropdownRender={() => (
+            <div className="player-settings-dropdown">
+              {/* Focus on cursor toggle */}
+              <div
+                className="player-settings-item"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  height: '32px',
+                  padding: '0 8px',
+                  borderRadius: '4px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <GlobalPerspectiveIcon
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                    Focus on cursor
+                  </span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={autoZoom}
+                  onChange={(checked) => setAutoZoom(checked)}
+                />
+              </div>
+
+              <div className="player-settings-divider" />
+
+              {/* Playback speed */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '32px',
+                  padding: '0 8px',
+                }}
+              >
+                <ThunderboltOutlined
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span style={{ fontSize: '12px' }}>Playback speed</span>
+              </div>
+              {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
+                <div
+                  key={speed}
+                  onClick={() => setPlaybackSpeed(speed)}
+                  style={{
+                    height: '32px',
+                    lineHeight: '32px',
+                    padding: '0 8px 0 24px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                  }}
+                  className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
+                >
+                  {speed}x
+                </div>
+              ))}
+
+              <div className="player-settings-divider" />
+
+              {/* Effects toggle */}
+              <div
+                className="player-settings-item"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  height: '32px',
+                  padding: '0 8px',
+                  borderRadius: '4px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <VideoCameraOutlined
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                  <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                    Effects
+                  </span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={effectsEnabled}
+                  onChange={(checked) => setEffectsEnabled(checked)}
+                />
+              </div>
+            </div>
+          )}
+          menu={{ items: [] }}
+        >
+          <div
+            className="status-icon"
+            onMouseEnter={() => setMouseOverSettingsIcon(true)}
+            onMouseLeave={() => setMouseOverSettingsIcon(false)}
+            style={{
+              opacity: mouseOverSettingsIcon ? 1 : 0.7,
+              transition: 'opacity 0.2s',
+            }}
+          >
+            <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
+          </div>
+        </Dropdown>
+      </div>
+    );
+  }, [
+    props?.reportFileContent,
+    props?.canDownloadReport,
+    isExporting,
+    exportProgress,
+    handleExportVideo,
+    autoZoom,
+    setAutoZoom,
+    playbackSpeed,
+    setPlaybackSpeed,
+    effectsEnabled,
+    setEffectsEnabled,
+    mouseOverSettingsIcon,
+  ]);
+
   // If no scripts, show empty
   if (!scripts || scripts.length === 0 || !frameMap) {
     return <div className="player-container" />;
@@ -141,7 +313,6 @@ export function Player(props?: {
 
   return (
     <div className="player-container">
-      {/* Remotion Player replacing pixi.js canvas */}
       <div className="canvas-container">
         <RemotionPlayer
           ref={playerRef}
@@ -158,6 +329,7 @@ export function Player(props?: {
           playbackRate={playbackSpeed}
           controls
           showVolumeControls={false}
+          renderCustomControls={renderCustomControls}
           autoPlay
           loop={false}
           style={{
@@ -165,170 +337,6 @@ export function Player(props?: {
             aspectRatio: `${compositionWidth}/${compositionHeight}`,
           }}
         />
-      </div>
-
-      {/* Toolbar: preserved existing structure */}
-      <div className="player-tools-wrapper">
-        <div className="player-tools">
-          <div className="player-control">
-            {props?.reportFileContent && props?.canDownloadReport !== false ? (
-              <Tooltip title="Download Report">
-                <div
-                  className="status-icon"
-                  onClick={() => downloadReport(props.reportFileContent!)}
-                >
-                  <DownloadOutlined color="#333" />
-                </div>
-              </Tooltip>
-            ) : null}
-
-            <Tooltip title={isExporting ? 'Generating...' : 'Export Video'}>
-              <div
-                className="status-icon"
-                onClick={isExporting ? undefined : handleExportVideo}
-                style={{
-                  opacity: isExporting ? 0.5 : 1,
-                  cursor: isExporting ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isExporting ? (
-                  <Spin size="default" percent={exportProgress} />
-                ) : (
-                  <ExportOutlined />
-                )}
-              </div>
-            </Tooltip>
-
-            <Dropdown
-              trigger={['hover', 'click']}
-              placement="bottomRight"
-              overlayStyle={{ minWidth: '148px' }}
-              dropdownRender={() => (
-                <div className="player-settings-dropdown">
-                  {/* Focus on cursor toggle */}
-                  <div
-                    className="player-settings-item"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      height: '32px',
-                      padding: '0 8px',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <GlobalPerspectiveIcon
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                        Focus on cursor
-                      </span>
-                    </div>
-                    <Switch
-                      size="small"
-                      checked={autoZoom}
-                      onChange={(checked) => setAutoZoom(checked)}
-                    />
-                  </div>
-
-                  <div className="player-settings-divider" />
-
-                  {/* Playback speed */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      height: '32px',
-                      padding: '0 8px',
-                    }}
-                  >
-                    <ThunderboltOutlined
-                      style={{ width: '16px', height: '16px' }}
-                    />
-                    <span style={{ fontSize: '12px' }}>Playback speed</span>
-                  </div>
-                  {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
-                    <div
-                      key={speed}
-                      onClick={() => setPlaybackSpeed(speed)}
-                      style={{
-                        height: '32px',
-                        lineHeight: '32px',
-                        padding: '0 8px 0 24px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        borderRadius: '4px',
-                      }}
-                      className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
-                    >
-                      {speed}x
-                    </div>
-                  ))}
-
-                  <div className="player-settings-divider" />
-
-                  {/* Effects toggle */}
-                  <div
-                    className="player-settings-item"
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      height: '32px',
-                      padding: '0 8px',
-                      borderRadius: '4px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                      }}
-                    >
-                      <VideoCameraOutlined
-                        style={{ width: '16px', height: '16px' }}
-                      />
-                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                        Effects
-                      </span>
-                    </div>
-                    <Switch
-                      size="small"
-                      checked={effectsEnabled}
-                      onChange={(checked) => setEffectsEnabled(checked)}
-                    />
-                  </div>
-                </div>
-              )}
-              menu={{ items: [] }}
-            >
-              <div
-                className="status-icon"
-                onMouseEnter={() => setMouseOverSettingsIcon(true)}
-                onMouseLeave={() => setMouseOverSettingsIcon(false)}
-                style={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: mouseOverSettingsIcon ? 1 : 0.7,
-                  transition: 'opacity 0.2s',
-                }}
-              >
-                <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
-              </div>
-            </Dropdown>
-          </div>
-        </div>
       </div>
     </div>
   );
