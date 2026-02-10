@@ -7,6 +7,14 @@ import {
 } from 'remotion';
 import { LogoUrl } from '../../logo';
 import {
+  ChromaticText,
+  HudCorners,
+  NeonParticles,
+  PerspectiveGrid,
+  ScanlineOverlay,
+  VignetteOverlay,
+} from './CyberOverlays';
+import {
   CYBER_CYAN,
   CYBER_MAGENTA,
   getCyberParticleColor,
@@ -37,15 +45,20 @@ export const EndingScene: React.FC = () => {
   const opacity = fadeIn * fadeOut;
 
   // Scale factor for narrow screens (reference width = 960)
-  const s = Math.min(width / 960, 1);
+  const scaleFactor = Math.min(width / 960, 1);
 
-  const particles = getParticles();
+  const rawParticles = getParticles();
   const flicker = getNeonFlicker(frame);
   const scanOffset = getScanlineOffset(frame);
   const gridH = getGridLines(frame);
   const gridV = getVerticalGridLines();
   const hudCorners = getHudCorners(width, height);
   const dataStream = getDataStream(frame, 24);
+
+  const particleData = rawParticles.map((p, i) => ({
+    state: getParticleState(p, frame),
+    color: getCyberParticleColor(i),
+  }));
 
   return (
     <AbsoluteFill
@@ -57,65 +70,12 @@ export const EndingScene: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Perspective grid */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: 0.5,
-          pointerEvents: 'none',
-        }}
-      >
-        {gridH.map((line, i) => (
-          <div
-            key={`h${i}`}
-            style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              top: `${line.y * 100}%`,
-              height: 1,
-              backgroundColor: `rgba(0, 255, 255, ${line.alpha * 0.3})`,
-              boxShadow: `0 0 3px rgba(0, 255, 255, ${line.alpha * 0.2})`,
-            }}
-          />
-        ))}
-        {gridV.map((line, i) => (
-          <div
-            key={`v${i}`}
-            style={{
-              position: 'absolute',
-              top: '45%',
-              bottom: 0,
-              left: `${line.x * 100}%`,
-              width: 1,
-              backgroundColor: `rgba(0, 255, 255, ${line.alpha * 0.2})`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Neon particles */}
-      {particles.map((p, i) => {
-        const s = getParticleState(p, frame);
-        const color = getCyberParticleColor(i);
-        return (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: `${s.x * 100}%`,
-              top: `${s.y * 100}%`,
-              width: s.size * 1.5,
-              height: s.size * 1.5,
-              borderRadius: '50%',
-              backgroundColor: `rgba(${color.r}, ${color.g}, ${color.b}, ${s.alpha})`,
-              boxShadow: `0 0 ${s.size * 3}px rgba(${color.r}, ${color.g}, ${color.b}, ${s.alpha * 0.6})`,
-              pointerEvents: 'none',
-            }}
-          />
-        );
-      })}
+      <PerspectiveGrid
+        horizontalLines={gridH}
+        verticalLines={gridV}
+        opacity={0.5}
+      />
+      <NeonParticles particles={particleData} />
 
       {/* Content */}
       <div
@@ -124,110 +84,45 @@ export const EndingScene: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16 * s,
+          gap: 16 * scaleFactor,
         }}
       >
         <Img
           src={LogoUrl}
           style={{
-            height: 80 * s,
+            height: 80 * scaleFactor,
             objectFit: 'contain',
-            borderRadius: 16 * s,
-            filter: `drop-shadow(0 0 12px rgba(0,255,255,0.5)) drop-shadow(0 0 24px rgba(255,0,255,0.3))`,
+            borderRadius: 16 * scaleFactor,
+            filter:
+              'drop-shadow(0 0 12px rgba(0,255,255,0.5)) drop-shadow(0 0 24px rgba(255,0,255,0.3))',
           }}
         />
         <div
           style={{
             color: 'rgba(255, 255, 255, 0.9)',
-            fontSize: 20 * s,
+            fontSize: 20 * scaleFactor,
             fontWeight: 500,
             fontFamily: 'monospace, sans-serif',
-            letterSpacing: 3 * s,
+            letterSpacing: 3 * scaleFactor,
             textShadow: getNeonTextShadow(CYBER_CYAN, 0.6),
           }}
         >
           Powered by Midscene
         </div>
-        {/* Chromatic aberration on URL */}
-        <div style={{ position: 'relative', height: 16 * s }}>
-          <span
-            style={{
-              position: 'absolute',
-              left: -1,
-              color: `rgba(${CYBER_CYAN.r},${CYBER_CYAN.g},${CYBER_CYAN.b},0.4)`,
-              fontSize: 14 * s,
-              fontFamily: 'monospace',
-              letterSpacing: 2 * s,
-            }}
-          >
-            midscenejs.com
-          </span>
-          <span
-            style={{
-              position: 'absolute',
-              left: 1,
-              color: `rgba(${CYBER_MAGENTA.r},${CYBER_MAGENTA.g},${CYBER_MAGENTA.b},0.4)`,
-              fontSize: 14 * s,
-              fontFamily: 'monospace',
-              letterSpacing: 2 * s,
-            }}
-          >
-            midscenejs.com
-          </span>
-          <span
-            style={{
-              position: 'relative',
-              color: 'rgba(255, 255, 255, 0.6)',
-              fontSize: 14 * s,
-              fontFamily: 'monospace',
-              letterSpacing: 2 * s,
-            }}
-          >
-            midscenejs.com
-          </span>
-        </div>
+        <ChromaticText
+          text="midscenejs.com"
+          fontSize={14 * scaleFactor}
+          cyanColor={CYBER_CYAN}
+          magentaColor={CYBER_MAGENTA}
+          baseColor="rgba(255, 255, 255, 0.6)"
+          cyanAlpha={0.4}
+          magentaAlpha={0.4}
+          letterSpacing={2 * scaleFactor}
+          height={16 * scaleFactor}
+        />
       </div>
 
-      {/* HUD corners */}
-      {hudCorners.map((c, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: c.x - (c.flipX ? 20 : 0),
-            top: c.y - (c.flipY ? 20 : 0),
-            width: 20,
-            height: 20,
-            opacity: opacity * 0.7,
-            pointerEvents: 'none',
-          }}
-        >
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: 20,
-              height: 2,
-              backgroundColor: 'rgba(0,255,255,0.6)',
-              transform: `scaleX(${c.flipX ? -1 : 1})`,
-              transformOrigin: c.flipX ? 'right' : 'left',
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              width: 2,
-              height: 20,
-              backgroundColor: 'rgba(0,255,255,0.6)',
-              transform: `scaleY(${c.flipY ? -1 : 1})`,
-              transformOrigin: c.flipY ? 'bottom' : 'top',
-            }}
-          />
-        </div>
-      ))}
+      <HudCorners corners={hudCorners} opacity={opacity * 0.7} />
 
       {/* Data stream */}
       <div
@@ -246,33 +141,8 @@ export const EndingScene: React.FC = () => {
         {dataStream.chars}
       </div>
 
-      {/* Scan lines */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `repeating-linear-gradient(
-            0deg,
-            transparent,
-            transparent 3px,
-            rgba(0, 0, 0, 0.08) 3px,
-            rgba(0, 0, 0, 0.08) 4px
-          )`,
-          backgroundPositionY: scanOffset,
-          pointerEvents: 'none',
-        }}
-      />
-
-      {/* Vignette */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background:
-            'radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%)',
-          pointerEvents: 'none',
-        }}
-      />
+      <ScanlineOverlay offset={scanOffset} />
+      <VignetteOverlay />
     </AbsoluteFill>
   );
 };

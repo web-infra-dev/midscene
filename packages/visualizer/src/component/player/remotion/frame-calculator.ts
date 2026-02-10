@@ -66,30 +66,6 @@ export interface FrameMap {
   deviceType?: string;
 }
 
-// ── Legacy types (deprecated – kept for compatibility) ──
-
-export interface CameraKeyframe {
-  img: string;
-  cameraLeft: number;
-  cameraTop: number;
-  cameraWidth: number;
-  pointerLeft: number;
-  pointerTop: number;
-  startFrame: number;
-  durationInFrames: number;
-}
-
-/** @deprecated Use ScriptFrame instead */
-export interface StepSegment {
-  stepIndex: number;
-  startFrame: number;
-  durationInFrames: number;
-  title: string;
-  imageWidth: number;
-  imageHeight: number;
-  keyframes: CameraKeyframe[];
-}
-
 // ── calculateFrameMap ──
 
 export function calculateFrameMap(

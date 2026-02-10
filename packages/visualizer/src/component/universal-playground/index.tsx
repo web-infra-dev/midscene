@@ -149,9 +149,9 @@ export function UniversalPlayground({
     handleRun: executeAction,
     handleStop,
     canStop,
-  } = usePlaygroundExecution(
+  } = usePlaygroundExecution({
     playgroundSDK,
-    effectiveStorage,
+    storage: effectiveStorage,
     actionSpace,
     loading,
     setLoading,
@@ -161,8 +161,8 @@ export function UniversalPlayground({
     verticalMode,
     currentRunningIdRef,
     interruptedFlagRef,
-    componentConfig.deviceType,
-  );
+    deviceType: componentConfig.deviceType,
+  });
 
   // Override SDK config when environment config changes
   useEffect(() => {

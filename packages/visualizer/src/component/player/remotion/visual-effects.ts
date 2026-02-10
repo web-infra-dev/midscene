@@ -407,6 +407,9 @@ export interface DeviceLayout {
 
 // ── Device layout constants ──
 
+export const CHROME_TITLE_BAR_H = 36;
+export const CHROME_BORDER_RADIUS = 10;
+
 export const IPHONE_STATUS_BAR_H = 44;
 export const IPHONE_HOME_INDICATOR_H = 34;
 export const IPHONE_BORDER_RADIUS = 40;
@@ -451,9 +454,6 @@ export function getDeviceLayout(shellType: DeviceShellType): DeviceLayout {
 }
 
 // ── Chrome browser shell ────────────────────────────────────
-
-export const CHROME_TITLE_BAR_H = 36;
-export const CHROME_BORDER_RADIUS = 10;
 
 // Traffic light dot colors
 export const CHROME_DOTS = [

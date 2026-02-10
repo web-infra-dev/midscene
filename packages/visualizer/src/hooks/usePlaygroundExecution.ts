@@ -82,23 +82,39 @@ function wrapExecutionDumpForReplay(
   };
 }
 
+export interface UsePlaygroundExecutionOptions {
+  playgroundSDK: PlaygroundSDKLike | null;
+  storage: StorageProvider | undefined | null;
+  actionSpace: DeviceAction<unknown>[];
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+  setInfoList: React.Dispatch<React.SetStateAction<InfoListItem[]>>;
+  replayCounter: number;
+  setReplayCounter: React.Dispatch<React.SetStateAction<number>>;
+  verticalMode: boolean;
+  currentRunningIdRef: React.MutableRefObject<number | null>;
+  interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>;
+  deviceType?: string;
+}
+
 /**
  * Hook for handling playground execution logic
  */
-export function usePlaygroundExecution(
-  playgroundSDK: PlaygroundSDKLike | null,
-  storage: StorageProvider | undefined | null,
-  actionSpace: DeviceAction<unknown>[],
-  loading: boolean,
-  setLoading: (loading: boolean) => void,
-  setInfoList: React.Dispatch<React.SetStateAction<InfoListItem[]>>,
-  replayCounter: number,
-  setReplayCounter: React.Dispatch<React.SetStateAction<number>>,
-  verticalMode: boolean,
-  currentRunningIdRef: React.MutableRefObject<number | null>,
-  interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
-  deviceType?: string,
-) {
+export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
+  const {
+    playgroundSDK,
+    storage,
+    actionSpace,
+    loading,
+    setLoading,
+    setInfoList,
+    replayCounter,
+    setReplayCounter,
+    verticalMode,
+    currentRunningIdRef,
+    interruptedFlagRef,
+    deviceType,
+  } = options;
   // Get execution options from environment config
   const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
 
