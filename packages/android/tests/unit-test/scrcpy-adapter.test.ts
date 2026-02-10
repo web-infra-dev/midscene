@@ -129,12 +129,10 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config.maxSize).toBe(0);
     });
 
-    it('should auto-scale videoBitRate based on physical resolution', () => {
+    it('should use default videoBitRate regardless of resolution', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
-      // defaultDeviceInfo: 1080x1920 = 2073600 pixels
-      // BASE_PIXELS = 1920*1080 = 2073600, ratio = 1.0
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
@@ -156,7 +154,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config1).toBe(config2);
     });
 
-    it('should auto-scale videoBitRate for high-resolution devices', () => {
+    it('should use default videoBitRate for high-resolution devices (no auto-scale)', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const highRes: DevicePhysicalInfo = {
         physicalWidth: 1440,
@@ -165,15 +163,10 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 0,
       };
       const config = adapter.resolveConfig(highRes);
-      // 1440*3120 = 4492800, BASE = 2073600, ratio ≈ 2.17
-      const expectedRatio = (1440 * 3120) / (1920 * 1080);
-      const expectedBitRate = Math.round(
-        DEFAULT_SCRCPY_CONFIG.videoBitRate * expectedRatio,
-      );
-      expect(config.videoBitRate).toBe(expectedBitRate);
+      expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
-    it('should not auto-scale videoBitRate when explicitly set', () => {
+    it('should use explicit videoBitRate for high-resolution devices', () => {
       const adapter = new ScrcpyDeviceAdapter(
         'device',
         { videoBitRate: 4_000_000 },

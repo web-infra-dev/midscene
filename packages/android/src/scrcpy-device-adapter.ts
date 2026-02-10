@@ -75,25 +75,8 @@ export class ScrcpyDeviceAdapter {
     const config = this.scrcpyConfig;
     const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
-    // Auto-scale bitrate based on physical pixel count
-    let videoBitRate =
+    const videoBitRate =
       config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
-
-    if (config?.videoBitRate === undefined) {
-      const physicalPixels =
-        deviceInfo.physicalWidth * deviceInfo.physicalHeight;
-      const BASE_PIXELS = 1920 * 1080;
-      const ratio = physicalPixels / BASE_PIXELS;
-      videoBitRate = Math.round(
-        Math.max(
-          DEFAULT_SCRCPY_CONFIG.videoBitRate,
-          DEFAULT_SCRCPY_CONFIG.videoBitRate * ratio,
-        ),
-      );
-      debugAdapter(
-        `Auto-scaled videoBitRate: ${(videoBitRate / 1_000_000).toFixed(1)}Mbps (pixels=${physicalPixels}, ratio=${ratio.toFixed(2)})`,
-      );
-    }
 
     this.resolvedConfig = {
       enabled: this.isEnabled(),
