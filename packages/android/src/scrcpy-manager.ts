@@ -14,7 +14,7 @@ const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 
 // Configuration defaults
 const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
-const DEFAULT_VIDEO_BIT_RATE = 8_000_000; // 8Mbps base rate, auto-scaled by adapter based on resolution
+const DEFAULT_VIDEO_BIT_RATE = 200_000_000; // 200Mbps - high bitrate for near-lossless I-frame quality over local ADB
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
