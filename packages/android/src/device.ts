@@ -38,7 +38,7 @@ import {
 import type { ElementInfo } from '@midscene/shared/extractor';
 import {
   createImgBase64ByFormat,
-  isValidPNGImageBuffer,
+  isValidImageBuffer,
 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison, repeat } from '@midscene/shared/utils';
@@ -1014,7 +1014,7 @@ ${Object.keys(size)
         }
 
         // check if the buffer is a valid PNG image, it might be a error string
-        if (!isValidPNGImageBuffer(screenshotBuffer)) {
+        if (!isValidImageBuffer(screenshotBuffer)) {
           debugDevice(
             'Invalid image buffer detected: not a valid image format',
           );
@@ -1086,7 +1086,7 @@ ${Object.keys(size)
           );
         }
 
-        if (!isValidPNGImageBuffer(screenshotBuffer)) {
+        if (!isValidImageBuffer(screenshotBuffer)) {
           throw new Error('Fallback screenshot buffer has invalid PNG format');
         }
 

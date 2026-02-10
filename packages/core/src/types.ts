@@ -840,7 +840,8 @@ export class GroupedActionDump implements IGroupedActionDump {
     for (const [id, filePath] of Object.entries(screenshotMap)) {
       if (existsSync(filePath)) {
         const data = readFileSync(filePath);
-        imageMap[id] = `data:image/png;base64,${data.toString('base64')}`;
+        const mime = filePath.endsWith('.jpeg') || filePath.endsWith('.jpg') ? 'jpeg' : 'png';
+        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
       }
     }
 
