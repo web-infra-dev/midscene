@@ -157,6 +157,7 @@ export function Player(props?: {
           fps={frameMap.fps}
           playbackRate={playbackSpeed}
           controls
+          showVolumeControls={false}
           autoPlay
           loop={false}
           style={{
