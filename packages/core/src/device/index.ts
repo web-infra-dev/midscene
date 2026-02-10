@@ -498,9 +498,16 @@ export const actionFinalizeParamSchema = z.object({
     .describe(
       'The conclusion, data, or return value that the user needs. This message will be provided to the user when the task is finalized.',
     ),
+  ifContainsFalsyAssert: z
+    .boolean()
+    .optional()
+    .describe(
+      'Set to true when the previous task is Print_Assert_Result and the assertion result is false.',
+    ),
 });
 export type ActionFinalizeParam = {
   message?: string;
+  ifContainsFalsyAssert?: boolean;
 };
 
 export const defineActionFinalize = (): DeviceAction<ActionFinalizeParam> => {

@@ -144,6 +144,14 @@ export async function plan(
   const actions = planFromAI.action ? [planFromAI.action] : [];
   let shouldContinuePlanning = true;
   if (actions[0]?.type === finalizeActionName) {
+    const ifContainsFalsyAssert = Boolean(
+      actions[0]?.param?.ifContainsFalsyAssert,
+    );
+    if (ifContainsFalsyAssert) {
+      throw new Error(
+        'Task finalized with a falsy assert result from the previous step.',
+      );
+    }
     debug('finalize action planned, stop planning');
     shouldContinuePlanning = false;
   }
