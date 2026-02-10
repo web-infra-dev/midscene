@@ -5,13 +5,13 @@ import { version } from '../package.json';
 import { BatchRunner } from './batch-runner';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
+import { runSkillCli } from './skill-cli';
 
-// Check if the first non-flag argument is "skill"
+// Check if the first argument is a platform name
 const rawArgs = process.argv.slice(2);
-if (rawArgs[0] === 'skill') {
-  import('./skill-cli').then(({ runSkillCli }) => {
-    runSkillCli(rawArgs.slice(1));
-  });
+const PLATFORMS = ['computer', 'web', 'android', 'ios'];
+if (PLATFORMS.includes(rawArgs[0])) {
+  runSkillCli(rawArgs);
 } else {
 
 Promise.resolve(
