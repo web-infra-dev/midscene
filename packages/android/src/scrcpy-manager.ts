@@ -158,8 +158,9 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/adb-scrcpy'
       );
       const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { ScrcpyOptions3_1, DefaultServerPath } =
-        await import('@yume-chan/scrcpy');
+      const { ScrcpyOptions3_1, DefaultServerPath } = await import(
+        '@yume-chan/scrcpy'
+      );
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
