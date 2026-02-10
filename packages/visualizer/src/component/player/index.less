@@ -58,91 +58,37 @@
     }
   }
 
-  .player-timeline-wrapper {
-    width: 100%;
-    height: @timeline-height;
-    flex: none;
-    margin-bottom: 2px;
-    position: relative;
-  }
-
-  .player-timeline {
-    width: 100%;
-    height: @timeline-height;
-    background: @player-control-bg;
-    position: relative;
-    flex-shrink: 0;
-
-    .player-timeline-progress {
-      transition-timing-function: linear;
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: @timeline-height;
-      background: @primary-color;
-    }
-  }
-
-  .player-tools-wrapper {
-    width: 100%;
-    height: @tools-height + @player-vertical-spacing * 2;
-    flex: none;
-    position: relative;
-    padding-top: @player-vertical-spacing;
-    padding-bottom: @player-vertical-spacing;
-    padding-left: 16px;
-    padding-right: 16px;
-    box-sizing: border-box;
-  }
-
-  .player-tools {
-    width: 100%;
-    height: @tools-height;
-    max-width: 100%;
-    overflow: hidden;
-    color: #000;
-    font-size: 14px;
-    box-sizing: border-box;
+  // Custom controls rendered inside Remotion Player's control bar
+  .player-custom-controls {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
-    flex-shrink: 0;
+    align-items: center;
+    gap: 2px;
 
     .ant-spin {
-      color: #333;
-    }
-
-    .player-control {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: flex-end;
-      overflow: hidden;
+      color: #fff;
     }
 
     .status-icon {
       transition: 0.2s;
-      width: 32px;
-      height: 32px;
-      border-radius: @radius;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      margin-left: 10px;
+      color: #fff;
+      cursor: pointer;
+
+      svg {
+        color: #fff;
+        font-size: 14px;
+      }
 
       &:hover {
-        cursor: pointer;
-        background: #f0f0f0;
+        background: rgba(255, 255, 255, 0.15);
       }
-    }
-
-    .player-tools-item {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
     }
   }
 }
@@ -166,23 +112,6 @@
       background-color: #1f1f1f;
     }
 
-    .player-tools {
-      color: #f8fafd;
-
-      .ant-spin {
-        color: #f8fafd;
-      }
-
-      .status-icon {
-        svg {
-          color: #f8fafd;
-        }
-
-        &:hover {
-          background: rgba(255, 255, 255, 0.08);
-        }
-      }
-    }
   }
 }
 
