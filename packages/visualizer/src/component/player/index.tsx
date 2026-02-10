@@ -47,27 +47,6 @@ function deriveTaskId(
   return taskId;
 }
 
-function deriveTitleSubtitle(
-  scriptFrames: ScriptFrame[],
-  stepsFrame: number,
-): { title: string; subTitle: string } {
-  let title = '';
-  let subTitle = '';
-  for (const sf of scriptFrames) {
-    if (sf.durationInFrames === 0) {
-      if (sf.startFrame <= stepsFrame) {
-        title = sf.title || title;
-        subTitle = sf.subTitle || subTitle;
-      }
-      continue;
-    }
-    if (stepsFrame < sf.startFrame) break;
-    title = sf.title || title;
-    subTitle = sf.subTitle || subTitle;
-  }
-  return { title, subTitle };
-}
-
 export function Player(props?: {
   replayScripts?: AnimationScript[];
   imageWidth?: number;
@@ -78,9 +57,8 @@ export function Player(props?: {
   autoZoom?: boolean;
   canDownloadReport?: boolean;
   onTaskChange?: (taskId: string | null) => void;
+  deviceType?: string;
 }) {
-  const [titleText, setTitleText] = useState('');
-  const [subTitleText, setSubTitleText] = useState('');
   const {
     autoZoom,
     setAutoZoom,
@@ -100,43 +78,31 @@ export function Player(props?: {
   const imageWidth = props?.imageWidth || 1920;
   const imageHeight = props?.imageHeight || 1080;
 
+  const deviceType = props?.deviceType;
   const frameMap = useMemo<FrameMap | null>(() => {
     if (!scripts || scripts.length === 0) return null;
     return calculateFrameMap(scripts, {
       effects: effectsEnabled,
       playbackSpeed: 1, // Speed handled by Remotion's playbackRate
+      deviceType,
     });
-  }, [scripts, effectsEnabled]);
+  }, [scripts, effectsEnabled, deviceType]);
 
   const playerRef = useRef<PlayerRef>(null);
 
-  // Track frame for title/subtitle and taskId
+  // Track frame for taskId callback
   useEffect(() => {
-    if (!frameMap) return;
+    if (!frameMap || !props?.onTaskChange) return;
     const interval = setInterval(() => {
       const player = playerRef.current;
       if (!player) return;
       const frame = player.getCurrentFrame() ?? 0;
       const stepsFrame = frame - frameMap.openingDurationInFrames;
-
-      // Derive title/subtitle
-      if (stepsFrame >= 0) {
-        const { title, subTitle } = deriveTitleSubtitle(
-          frameMap.scriptFrames,
-          stepsFrame,
-        );
-        setTitleText(title);
-        setSubTitleText(subTitle);
-      }
-
-      // Derive taskId for onTaskChange callback
-      if (props?.onTaskChange) {
-        const taskId =
-          stepsFrame >= 0
-            ? deriveTaskId(frameMap.scriptFrames, stepsFrame)
-            : null;
-        props.onTaskChange(taskId);
-      }
+      const taskId =
+        stepsFrame >= 0
+          ? deriveTaskId(frameMap.scriptFrames, stepsFrame)
+          : null;
+      props.onTaskChange!(taskId);
     }, 200);
     return () => clearInterval(interval);
   }, [frameMap, props?.onTaskChange]);
@@ -204,13 +170,6 @@ export function Player(props?: {
       <div className="player-tools-wrapper">
         <div className="player-tools">
           <div className="player-control">
-            <div className="status-text">
-              <div className="title">{titleText}</div>
-              <Tooltip title={subTitleText}>
-                <div className="subtitle">{subTitleText}</div>
-              </Tooltip>
-            </div>
-
             {props?.reportFileContent && props?.canDownloadReport !== false ? (
               <Tooltip title="Download Report">
                 <div

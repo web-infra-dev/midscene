@@ -59,6 +59,7 @@ export interface DumpStoreType {
   modelBriefs: string[];
   insightWidth: number | null;
   insightHeight: number | null;
+  deviceType: string | undefined;
   activeExecution: ExecutionDump | null;
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
@@ -94,6 +95,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     modelBriefs: [],
     insightWidth: null,
     insightHeight: null,
+    deviceType: undefined,
     activeTask: null,
     activeExecution: null,
     activeExecutionAnimation: null,
@@ -159,6 +161,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           height,
           modelBriefs,
           sdkVersion,
+          deviceType,
         } = allScriptsInfo;
 
         set({
@@ -167,6 +170,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           insightHeight: height,
           modelBriefs,
           sdkVersion,
+          deviceType,
         });
 
         const replayAvailable = allScripts.length > 0;

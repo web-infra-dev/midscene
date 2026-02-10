@@ -97,6 +97,9 @@ export const OpeningScene: React.FC = () => {
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
 
+  // Scale factor for narrow screens (reference width = 960)
+  const s = Math.min(width / 960, 1);
+
   const breathing = getLogoBreathing(frame);
   const particles = getParticles();
   const flicker = getNeonFlicker(frame);
@@ -191,15 +194,15 @@ export const OpeningScene: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 24,
+          gap: 24 * s,
         }}
       >
         <Img
           src={LogoUrl}
           style={{
-            height: 120,
+            height: 120 * s,
             objectFit: 'contain',
-            borderRadius: 24,
+            borderRadius: 24 * s,
             filter: [
               `drop-shadow(0 0 ${breathing.glowRadius}px rgba(0,255,255,${breathing.glowIntensity}))`,
               `drop-shadow(0 0 ${breathing.glowRadius * 2}px rgba(255,0,255,${breathing.glowIntensity * 0.4}))`,
@@ -209,9 +212,9 @@ export const OpeningScene: React.FC = () => {
         <div
           style={{
             color: '#fff',
-            fontSize: 48,
+            fontSize: 48 * s,
             fontWeight: 700,
-            letterSpacing: 4,
+            letterSpacing: 4 * s,
             textShadow: getNeonTextShadow(CYBER_CYAN, flicker),
             fontFamily: 'monospace, sans-serif',
           }}
@@ -219,15 +222,15 @@ export const OpeningScene: React.FC = () => {
           Midscene
         </div>
         {/* Chromatic aberration subtitle */}
-        <div style={{ position: 'relative', height: 20 }}>
+        <div style={{ position: 'relative', height: 20 * s }}>
           <span
             style={{
               position: 'absolute',
               left: -1,
               color: `rgba(${CYBER_CYAN.r},${CYBER_CYAN.g},${CYBER_CYAN.b},0.5)`,
-              fontSize: 14,
+              fontSize: 14 * s,
               fontFamily: 'monospace',
-              letterSpacing: 6,
+              letterSpacing: 6 * s,
               whiteSpace: 'nowrap',
             }}
           >
@@ -238,9 +241,9 @@ export const OpeningScene: React.FC = () => {
               position: 'absolute',
               left: 1,
               color: `rgba(${CYBER_MAGENTA.r},${CYBER_MAGENTA.g},${CYBER_MAGENTA.b},0.5)`,
-              fontSize: 14,
+              fontSize: 14 * s,
               fontFamily: 'monospace',
-              letterSpacing: 6,
+              letterSpacing: 6 * s,
               whiteSpace: 'nowrap',
             }}
           >
@@ -250,9 +253,9 @@ export const OpeningScene: React.FC = () => {
             style={{
               position: 'relative',
               color: 'rgba(255,255,255,0.8)',
-              fontSize: 14,
+              fontSize: 14 * s,
               fontFamily: 'monospace',
-              letterSpacing: 6,
+              letterSpacing: 6 * s,
               whiteSpace: 'nowrap',
             }}
           >

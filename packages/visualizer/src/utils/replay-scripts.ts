@@ -137,6 +137,7 @@ export interface ReplayScriptsInfo {
   height?: number;
   sdkVersion?: string;
   modelBriefs: string[];
+  deviceType?: string;
 }
 
 const capitalizeFirstLetter = (str: string) => {
@@ -271,6 +272,7 @@ export const allScriptsFromDump = (
     height: firstHeight,
     sdkVersion,
     modelBriefs,
+    deviceType: (normalizedDump as IGroupedActionDump).deviceType,
   };
 };
 

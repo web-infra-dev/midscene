@@ -674,6 +674,7 @@ export interface IGroupedActionDump {
   groupDescription?: string;
   modelBriefs: string[];
   executions: IExecutionDump[];
+  deviceType?: string;
 }
 
 /**
@@ -685,6 +686,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   groupDescription?: string;
   modelBriefs: string[];
   executions: ExecutionDump[];
+  deviceType?: string;
 
   constructor(data: IGroupedActionDump) {
     this.sdkVersion = data.sdkVersion;
@@ -694,6 +696,7 @@ export class GroupedActionDump implements IGroupedActionDump {
     this.executions = data.executions.map((exec) =>
       exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
     );
+    this.deviceType = data.deviceType;
   }
 
   /**
@@ -740,6 +743,7 @@ export class GroupedActionDump implements IGroupedActionDump {
       groupDescription: this.groupDescription,
       modelBriefs: this.modelBriefs,
       executions: this.executions.map((exec) => exec.toJSON()),
+      deviceType: this.deviceType,
     };
   }
 

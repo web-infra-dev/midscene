@@ -2,15 +2,23 @@ import { mouseLoading, mousePointer } from '../../../utils';
 import { LogoUrl } from '../../logo';
 import type { FrameMap, ScriptFrame } from './frame-calculator';
 import {
+  ANDROID_BORDER_RADIUS,
+  ANDROID_NAV_BAR_H,
+  ANDROID_STATUS_BAR_H,
   CHROME_BORDER_RADIUS,
   CHROME_DOTS,
   CHROME_TITLE_BAR_H,
   CYBER_CYAN,
   CYBER_MAGENTA,
+  DESKTOP_APP_TITLE_BAR_H,
+  IPHONE_BORDER_RADIUS,
+  IPHONE_HOME_INDICATOR_H,
+  IPHONE_STATUS_BAR_H,
   getBrowser3DTransform,
   getCursorTrail,
   getCyberParticleColor,
   getDataStream,
+  getDeviceLayout,
   getGlitchSlices,
   getGridLines,
   getImageBlur,
@@ -21,6 +29,7 @@ import {
   getRippleState,
   getScanlineOffset,
   getVerticalGridLines,
+  resolveShellType,
 } from './visual-effects';
 
 const W = 960;
@@ -379,8 +388,6 @@ function drawDataStream(
   ctx.restore();
 }
 
-const BROWSER_MARGIN = 24;
-
 function drawChromeTitleBar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -436,6 +443,168 @@ function drawChromeTitleBar(
   ctx.fillText('app.example.com', abx + 10 + protoW, y + h / 2);
 }
 
+function drawDesktopAppTitleBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = DESKTOP_APP_TITLE_BAR_H;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + CHROME_BORDER_RADIUS, y);
+  ctx.lineTo(x + w - CHROME_BORDER_RADIUS, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + CHROME_BORDER_RADIUS);
+  ctx.lineTo(x + w, y + h);
+  ctx.lineTo(x, y + h);
+  ctx.lineTo(x, y + CHROME_BORDER_RADIUS);
+  ctx.quadraticCurveTo(x, y, x + CHROME_BORDER_RADIUS, y);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(x, y, x, y + h);
+  g.addColorStop(0, '#2a2a35');
+  g.addColorStop(1, '#1e1e28');
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(0,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x, y + h);
+  ctx.lineTo(x + w, y + h);
+  ctx.stroke();
+  for (const dot of CHROME_DOTS) {
+    ctx.beginPath();
+    ctx.arc(x + dot.x, y + h / 2, 5, 0, Math.PI * 2);
+    ctx.fillStyle = dot.color;
+    ctx.fill();
+  }
+  ctx.font = '11px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('Desktop Application', x + w / 2, y + h / 2);
+}
+
+function drawIPhoneStatusBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = IPHONE_STATUS_BAR_H;
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x, y, w, h);
+  // Time
+  ctx.font = '600 14px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('9:41', x + 20, y + h / 2);
+  // Dynamic Island
+  ctx.fillStyle = '#000';
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth = 1;
+  roundRect(ctx, x + w / 2 - 60, y + h / 2 - 17, 120, 34, 17);
+  ctx.fill();
+  ctx.stroke();
+  // Battery
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1;
+  const batX = x + w - 42;
+  const batY = y + h / 2 - 5.5;
+  roundRect(ctx, batX, batY, 22, 11, 3);
+  ctx.stroke();
+  ctx.fillStyle = '#34c759';
+  ctx.fillRect(batX + 2, batY + 2, 15, 7);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillRect(batX + 22.5, batY + 3, 2, 5);
+  ctx.restore();
+}
+
+function drawIPhoneHomeIndicator(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = IPHONE_HOME_INDICATOR_H;
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  roundRect(ctx, x + w / 2 - 67, y + h - 13, 134, 5, 3);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawAndroidStatusBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = ANDROID_STATUS_BAR_H;
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x, y, w, h);
+  // Time
+  ctx.font = '12px Roboto, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('12:00', x + 16, y + h / 2);
+  // Punch hole camera
+  ctx.fillStyle = '#1a1a1a';
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(x + w / 2, y + h / 2, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // Battery
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  const batX = x + w - 38;
+  const batY = y + h / 2 - 5;
+  roundRect(ctx, batX, batY, 20, 10, 2);
+  ctx.stroke();
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(batX + 2, batY + 2, 12, 6);
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillRect(batX + 20.5, batY + 3, 2, 4);
+  ctx.restore();
+}
+
+function drawAndroidNavBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = ANDROID_NAV_BAR_H;
+  ctx.save();
+  ctx.fillStyle = '#000';
+  ctx.fillRect(x, y, w, h);
+  const cy = y + h / 2;
+  const cx = x + w / 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+  ctx.lineWidth = 1.5;
+  // Back triangle
+  ctx.beginPath();
+  ctx.moveTo(cx - 48 + 5.5, cy - 6);
+  ctx.lineTo(cx - 48 - 0.5, cy);
+  ctx.lineTo(cx - 48 + 5.5, cy + 6);
+  ctx.stroke();
+  // Home circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+  ctx.stroke();
+  // Recent square
+  roundRect(ctx, cx + 48 - 5, cy - 5, 10, 10, 1.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
 // ── Insight overlay drawing ──
 
 function drawInsightOverlays(
@@ -478,36 +647,6 @@ function drawInsightOverlays(
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-
-      if (r.description) {
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'bottom';
-        const labelY = ry - 6;
-        // AI badge
-        ctx.font = 'bold 9px sans-serif';
-        const badgeText = 'AI';
-        const badgeW = ctx.measureText(badgeText).width + 8;
-        const badgeH = 14;
-        const badgeX = rx;
-        const badgeY = labelY - badgeH;
-        const bg = ctx.createLinearGradient(
-          badgeX,
-          badgeY,
-          badgeX + badgeW,
-          badgeY + badgeH,
-        );
-        bg.addColorStop(0, '#8b5cf6');
-        bg.addColorStop(1, '#6366f1');
-        ctx.fillStyle = bg;
-        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 3);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.fillText(badgeText, badgeX + 4, labelY - 1);
-        // Description text
-        ctx.font = '600 14px sans-serif';
-        ctx.fillStyle = '#6d28d9';
-        ctx.fillText(r.description, badgeX + badgeW + 4, labelY - 1);
-      }
     }
 
     if (insight.searchArea) {
@@ -528,34 +667,6 @@ function drawInsightOverlays(
       ctx.strokeStyle = '#028391';
       ctx.lineWidth = 1;
       ctx.strokeRect(rx, ry, rw, rh);
-
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'bottom';
-      const saLabelY = ry - 6;
-      // AI badge for search area
-      ctx.font = 'bold 9px sans-serif';
-      const saBadgeText = 'AI';
-      const saBadgeW = ctx.measureText(saBadgeText).width + 8;
-      const saBadgeH = 14;
-      const saBadgeX = rx;
-      const saBadgeY = saLabelY - saBadgeH;
-      const saBg = ctx.createLinearGradient(
-        saBadgeX,
-        saBadgeY,
-        saBadgeX + saBadgeW,
-        saBadgeY + saBadgeH,
-      );
-      saBg.addColorStop(0, '#0891b2');
-      saBg.addColorStop(1, '#028391');
-      ctx.fillStyle = saBg;
-      roundRect(ctx, saBadgeX, saBadgeY, saBadgeW, saBadgeH, 3);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.fillText(saBadgeText, saBadgeX + 4, saLabelY - 1);
-      // Search Area text
-      ctx.font = '600 14px sans-serif';
-      ctx.fillStyle = '#0e7490';
-      ctx.fillText('Search Area', saBadgeX + saBadgeW + 4, saLabelY - 1);
     }
 
     ctx.restore();
@@ -736,13 +847,18 @@ function drawSteps(
   const ptrX = lerp(prevCamera.pointerLeft, camera.pointerLeft, pT);
   const ptrY = lerp(prevCamera.pointerTop, camera.pointerTop, pT);
 
-  const browserW = effectsMode ? W - BROWSER_MARGIN * 2 : W;
+  const shellType = resolveShellType(frameMap.deviceType);
+  const deviceLayout = getDeviceLayout(shellType);
+  const DEVICE_MARGIN = effectsMode ? deviceLayout.margin : 0;
+  const browserW = effectsMode ? W - DEVICE_MARGIN * 2 : W;
   const contentH = effectsMode
-    ? H - BROWSER_MARGIN * 2 - CHROME_TITLE_BAR_H
+    ? H - DEVICE_MARGIN * 2 - deviceLayout.topInset - deviceLayout.bottomInset
     : H;
-  const browserH = contentH + (effectsMode ? CHROME_TITLE_BAR_H : 0);
-  const bx = effectsMode ? BROWSER_MARGIN : 0;
-  const by = effectsMode ? BROWSER_MARGIN : 0;
+  const browserH = effectsMode
+    ? contentH + deviceLayout.topInset + deviceLayout.bottomInset
+    : H;
+  const bx = effectsMode ? DEVICE_MARGIN : 0;
+  const by = effectsMode ? DEVICE_MARGIN : 0;
 
   const zoom = imgW / camW;
   const tx = -camL * (browserW / imgW);
@@ -774,40 +890,53 @@ function drawSteps(
     ctx.scale(transform3d.scale, transform3d.scale);
     ctx.translate(-centerX, -centerY);
 
-    // Browser shadow
+    // Device shadow
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.6)';
     ctx.shadowBlur = 20;
     ctx.shadowOffsetY = 10;
-    ctx.fillStyle = '#1e1e28';
-    roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
+    ctx.fillStyle =
+      shellType === 'desktop-browser' || shellType === 'desktop-app'
+        ? '#1e1e28'
+        : '#000';
+    roundRect(ctx, bx, by, browserW, browserH, deviceLayout.borderRadius);
     ctx.fill();
     ctx.restore();
 
-    drawChromeTitleBar(ctx, bx, by, browserW);
+    // Device top bar
+    switch (shellType) {
+      case 'iphone':
+        drawIPhoneStatusBar(ctx, bx, by, browserW);
+        break;
+      case 'android':
+        drawAndroidStatusBar(ctx, bx, by, browserW);
+        break;
+      case 'desktop-app':
+        drawDesktopAppTitleBar(ctx, bx, by, browserW);
+        break;
+      default:
+        drawChromeTitleBar(ctx, bx, by, browserW);
+        break;
+    }
   }
 
-  const contentY = by + (effectsMode ? CHROME_TITLE_BAR_H : 0);
+  const contentY = by + (effectsMode ? deviceLayout.topInset : 0);
 
   ctx.save();
   if (effectsMode) {
+    const br = deviceLayout.borderRadius;
     ctx.beginPath();
     ctx.moveTo(bx, contentY);
     ctx.lineTo(bx + browserW, contentY);
-    ctx.lineTo(bx + browserW, contentY + contentH - CHROME_BORDER_RADIUS);
+    ctx.lineTo(bx + browserW, contentY + contentH - br);
     ctx.quadraticCurveTo(
       bx + browserW,
       contentY + contentH,
-      bx + browserW - CHROME_BORDER_RADIUS,
+      bx + browserW - br,
       contentY + contentH,
     );
-    ctx.lineTo(bx + CHROME_BORDER_RADIUS, contentY + contentH);
-    ctx.quadraticCurveTo(
-      bx,
-      contentY + contentH,
-      bx,
-      contentY + contentH - CHROME_BORDER_RADIUS,
-    );
+    ctx.lineTo(bx + br, contentY + contentH);
+    ctx.quadraticCurveTo(bx, contentY + contentH, bx, contentY + contentH - br);
     ctx.closePath();
     ctx.clip();
     ctx.fillStyle = '#000';
@@ -967,11 +1096,24 @@ function drawSteps(
   ctx.restore(); // end content clip
 
   if (effectsMode) {
+    // Device bottom bar
+    const bottomY = contentY + contentH;
+    switch (shellType) {
+      case 'iphone':
+        drawIPhoneHomeIndicator(ctx, bx, bottomY, browserW);
+        break;
+      case 'android':
+        drawAndroidNavBar(ctx, bx, bottomY, browserW);
+        break;
+      default:
+        break;
+    }
+
     // Neon edge glow
     ctx.save();
     ctx.strokeStyle = 'rgba(0,255,255,0.2)';
     ctx.lineWidth = 1;
-    roundRect(ctx, bx, by, browserW, browserH, CHROME_BORDER_RADIUS);
+    roundRect(ctx, bx, by, browserW, browserH, deviceLayout.borderRadius);
     ctx.stroke();
     ctx.restore();
 

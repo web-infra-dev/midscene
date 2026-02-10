@@ -84,6 +84,7 @@ const DetailPanel = (): JSX.Element => {
   );
   const imageWidth = useExecutionDump((store) => store.insightWidth);
   const imageHeight = useExecutionDump((store) => store.insightHeight);
+  const deviceType = useExecutionDump((store) => store.deviceType);
 
   // Check if page context is frozen
   const isPageContextFrozen = Boolean(
@@ -113,6 +114,7 @@ const DetailPanel = (): JSX.Element => {
         replayScripts={animationScripts || []}
         imageWidth={imageWidth || 0}
         imageHeight={imageHeight || 0}
+        deviceType={deviceType}
       />
     );
   } else if (!activeTask) {

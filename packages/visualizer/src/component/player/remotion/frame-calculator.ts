@@ -63,6 +63,7 @@ export interface FrameMap {
   stepsDurationInFrames: number;
   imageWidth: number;
   imageHeight: number;
+  deviceType?: string;
 }
 
 // ── Legacy types (deprecated – kept for compatibility) ──
@@ -93,7 +94,7 @@ export interface StepSegment {
 
 export function calculateFrameMap(
   scripts: AnimationScript[],
-  options?: Partial<FrameMapOptions>,
+  options?: Partial<FrameMapOptions> & { deviceType?: string },
 ): FrameMap {
   const effects = options?.effects ?? true;
   const openingFrames = effects ? OPENING_FRAMES : 0;
@@ -263,5 +264,6 @@ export function calculateFrameMap(
     stepsDurationInFrames,
     imageWidth: baseImageWidth,
     imageHeight: baseImageHeight,
+    deviceType: options?.deviceType,
   };
 }

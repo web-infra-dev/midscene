@@ -36,6 +36,9 @@ export const EndingScene: React.FC = () => {
   );
   const opacity = fadeIn * fadeOut;
 
+  // Scale factor for narrow screens (reference width = 960)
+  const s = Math.min(width / 960, 1);
+
   const particles = getParticles();
   const flicker = getNeonFlicker(frame);
   const scanOffset = getScanlineOffset(frame);
@@ -121,40 +124,40 @@ export const EndingScene: React.FC = () => {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 16,
+          gap: 16 * s,
         }}
       >
         <Img
           src={LogoUrl}
           style={{
-            height: 80,
+            height: 80 * s,
             objectFit: 'contain',
-            borderRadius: 16,
+            borderRadius: 16 * s,
             filter: `drop-shadow(0 0 12px rgba(0,255,255,0.5)) drop-shadow(0 0 24px rgba(255,0,255,0.3))`,
           }}
         />
         <div
           style={{
             color: 'rgba(255, 255, 255, 0.9)',
-            fontSize: 20,
+            fontSize: 20 * s,
             fontWeight: 500,
             fontFamily: 'monospace, sans-serif',
-            letterSpacing: 3,
+            letterSpacing: 3 * s,
             textShadow: getNeonTextShadow(CYBER_CYAN, 0.6),
           }}
         >
           Powered by Midscene
         </div>
         {/* Chromatic aberration on URL */}
-        <div style={{ position: 'relative', height: 16 }}>
+        <div style={{ position: 'relative', height: 16 * s }}>
           <span
             style={{
               position: 'absolute',
               left: -1,
               color: `rgba(${CYBER_CYAN.r},${CYBER_CYAN.g},${CYBER_CYAN.b},0.4)`,
-              fontSize: 14,
+              fontSize: 14 * s,
               fontFamily: 'monospace',
-              letterSpacing: 2,
+              letterSpacing: 2 * s,
             }}
           >
             midscenejs.com
@@ -164,9 +167,9 @@ export const EndingScene: React.FC = () => {
               position: 'absolute',
               left: 1,
               color: `rgba(${CYBER_MAGENTA.r},${CYBER_MAGENTA.g},${CYBER_MAGENTA.b},0.4)`,
-              fontSize: 14,
+              fontSize: 14 * s,
               fontFamily: 'monospace',
-              letterSpacing: 2,
+              letterSpacing: 2 * s,
             }}
           >
             midscenejs.com
@@ -175,9 +178,9 @@ export const EndingScene: React.FC = () => {
             style={{
               position: 'relative',
               color: 'rgba(255, 255, 255, 0.6)',
-              fontSize: 14,
+              fontSize: 14 * s,
               fontFamily: 'monospace',
-              letterSpacing: 2,
+              letterSpacing: 2 * s,
             }}
           >
             midscenejs.com

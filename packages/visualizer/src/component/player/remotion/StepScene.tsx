@@ -10,21 +10,30 @@ import {
 import { mouseLoading, mousePointer } from '../../../utils';
 import type { FrameMap, ScriptFrame } from './frame-calculator';
 import {
+  ANDROID_BORDER_RADIUS,
+  ANDROID_NAV_BAR_H,
+  ANDROID_STATUS_BAR_H,
   CHROME_BORDER_RADIUS,
   CHROME_DOTS,
   CHROME_TITLE_BAR_H,
+  DESKTOP_APP_TITLE_BAR_H,
+  type DeviceShellType,
+  IPHONE_BORDER_RADIUS,
+  IPHONE_HOME_INDICATOR_H,
+  IPHONE_STATUS_BAR_H,
   getBrowser3DTransform,
   getCursorTrail,
+  getDeviceLayout,
   getGlitchSlices,
   getHudCorners,
   getImageBlur,
   getRippleState,
   getScanlineOffset,
+  resolveShellType,
 } from './visual-effects';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
-const BROWSER_MARGIN = 24;
 
 // ── Helpers to derive state from ScriptFrame timeline ──
 
@@ -71,7 +80,6 @@ function deriveState(
   fps: number,
   autoZoom: boolean,
 ): DerivedState {
-  // Default camera: full image view
   const defaultCamera: CameraState = {
     left: 0,
     top: 0,
@@ -103,9 +111,7 @@ function deriveState(
     const sf = scriptFrames[i];
     const sfEnd = sf.startFrame + sf.durationInFrames;
 
-    // Process scripts that are at or before the current frame
     if (sf.durationInFrames === 0) {
-      // Instantaneous (pointer)
       if (sf.startFrame <= frame) {
         if (sf.type === 'pointer' && sf.pointerImg) {
           currentPointerImg = sf.pointerImg;
@@ -119,11 +125,9 @@ function deriveState(
     }
 
     if (frame < sf.startFrame) {
-      // Future scripts — stop
       break;
     }
 
-    // This script is active or has completed
     currentTitle = sf.title || currentTitle;
     currentSubTitle = sf.subTitle || currentSubTitle;
     currentTaskId = sf.taskId ?? currentTaskId;
@@ -156,7 +160,6 @@ function deriveState(
             Math.abs(prevCamera.pointerTop - currentCamera.pointerTop) > 1;
           pointerMoved = pDiff;
         } else if (frame >= sfEnd) {
-          // Script completed, no camera
           pointerMoved = false;
           imageChanged = false;
         }
@@ -175,7 +178,6 @@ function deriveState(
           currentImageHeight = sf.imageHeight || imageHeight;
         }
 
-        // Add to active insights
         const alreadyAdded = activeInsights.some(
           (ai) =>
             ai.highlightElement === sf.highlightElement &&
@@ -189,7 +191,6 @@ function deriveState(
           });
         }
 
-        // Camera phase
         if (sf.cameraTarget && sf.insightPhaseFrames !== undefined) {
           const cameraStartFrame = sf.startFrame + sf.insightPhaseFrames;
           if (frame >= cameraStartFrame) {
@@ -231,29 +232,23 @@ function deriveState(
       }
 
       case 'sleep': {
-        // Keep current state, do nothing
         isSpinning = false;
         break;
       }
     }
 
-    // If script is fully completed, reset transient state
     if (frame >= sfEnd) {
       if (sf.type !== 'clear-insight') {
         imageChanged = false;
       }
       pointerMoved = false;
       rawProgress = 1;
-      // Commit camera position so subsequent scripts without camera
-      // don't interpolate back to a stale prevCamera
       if (sf.cameraTarget) {
         prevCamera = { ...currentCamera };
       }
     }
   }
 
-  // Fallback: if no image found (e.g. frame 0 before first img script),
-  // use the first available image so the component never renders blank.
   if (!currentImg) {
     const firstImgScript = scriptFrames.find(
       (sf) => sf.type === 'img' && sf.img,
@@ -321,6 +316,8 @@ export const StepsTimeline: React.FC<{
     spinningPointer,
     spinningElapsedMs,
     currentPointerImg,
+    title,
+    subTitle,
     frameInScript,
     scriptIndex,
     imageChanged,
@@ -328,7 +325,7 @@ export const StepsTimeline: React.FC<{
     rawProgress,
   } = state;
 
-  // ── Camera interpolation (linear — matches original pixi.js cubicMouse/cubicImage) ──
+  // ── Camera interpolation ──
   const pT = pointerMoved
     ? Math.min(rawProgress / POINTER_PHASE, 1)
     : rawProgress;
@@ -354,11 +351,19 @@ export const StepsTimeline: React.FC<{
     : imgW;
 
   // ── Layout calculations ──
-  const browserW = effects ? compWidth - BROWSER_MARGIN * 2 : compWidth;
+  const shellType = resolveShellType(frameMap.deviceType);
+  const deviceLayout = getDeviceLayout(shellType);
+  const DEVICE_MARGIN = effects ? deviceLayout.margin : 0;
+  const browserW = effects ? compWidth - DEVICE_MARGIN * 2 : compWidth;
   const contentH = effects
-    ? compHeight - BROWSER_MARGIN * 2 - CHROME_TITLE_BAR_H
+    ? compHeight -
+      DEVICE_MARGIN * 2 -
+      deviceLayout.topInset -
+      deviceLayout.bottomInset
     : compHeight;
-  const browserH = effects ? contentH + CHROME_TITLE_BAR_H : compHeight;
+  const browserH = effects
+    ? contentH + deviceLayout.topInset + deviceLayout.bottomInset
+    : compHeight;
 
   const zoom = imgW / cameraWidth;
   const tx = -cameraLeft * (browserW / imgW);
@@ -368,7 +373,6 @@ export const StepsTimeline: React.FC<{
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
   const ptrY = ((pointerTop - cameraTop) / camH) * contentH;
-  // Always show cursor when there's camera data — pixi.js never hid it
   const hasPointerData =
     camera.pointerLeft !== Math.round(imgW / 2) ||
     camera.pointerTop !== Math.round(imgH / 2) ||
@@ -382,14 +386,10 @@ export const StepsTimeline: React.FC<{
 
   const blurPx = effects ? getImageBlur(frameInScript, imageChanged) : 0;
 
-  // Only fade-in when effects are on (opening scene plays first, so steps
-  // don't start at global frame 0).  In clean mode the player returns to
-  // frame 0 after ending — opacity must be 1 to avoid a blank page.
   const initialFade = effects
     ? interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' })
     : 1;
 
-  // Badge animation
   const badgeScale = spring({
     frame: frameInScript,
     fps,
@@ -423,14 +423,12 @@ export const StepsTimeline: React.FC<{
       ? getGlitchSlices(frame, frame - frameInScript)
       : [];
 
-  // Cursor trail
   const trailPositions = useMemo(() => {
     if (!showCursor || !effects) return [];
     const positions: { x: number; y: number }[] = [];
     for (let i = 0; i < 6; i++) {
       const pastFrame = frame - i;
       if (pastFrame < 0) break;
-      // Simplified trail positions at current pointer location
       positions.push({ x: ptrX, y: ptrY });
     }
     return positions;
@@ -439,16 +437,10 @@ export const StepsTimeline: React.FC<{
   const trail =
     showCursor && pointerMoved && effects ? getCursorTrail(trailPositions) : [];
 
-  // ── Spinning pointer rotation ──
   const spinRotation = spinningPointer
     ? ((Math.sin(spinningElapsedMs / 500 - Math.PI / 2) + 1) / 2) * Math.PI * 2
     : 0;
 
-  // ── Content rendering helpers ──
-  const contentOffset = effects ? BROWSER_MARGIN : 0;
-  const titleBarOffset = effects ? CHROME_TITLE_BAR_H : 0;
-
-  // Background color
   const bgColor = effects ? '#0a0a12' : '#f4f4f4';
 
   // ── Insight overlay rendering ──
@@ -475,45 +467,7 @@ export const StepsTimeline: React.FC<{
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
-          >
-            {el.description && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: -28,
-                  left: 0,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontWeight: 700,
-                    color: '#fff',
-                    background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                    padding: '1px 4px',
-                    borderRadius: 3,
-                    letterSpacing: 0.5,
-                    lineHeight: '14px',
-                  }}
-                >
-                  AI
-                </span>
-                <span
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: '#6d28d9',
-                  }}
-                >
-                  {el.description}
-                </span>
-              </span>
-            )}
-          </div>,
+          />,
         );
       }
 
@@ -534,43 +488,7 @@ export const StepsTimeline: React.FC<{
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
-          >
-            <span
-              style={{
-                position: 'absolute',
-                top: -28,
-                left: 0,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: '#fff',
-                  background: 'linear-gradient(135deg, #0891b2, #028391)',
-                  padding: '1px 4px',
-                  borderRadius: 3,
-                  letterSpacing: 0.5,
-                  lineHeight: '14px',
-                }}
-              >
-                AI
-              </span>
-              <span
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#0e7490',
-                }}
-              >
-                Search Area
-              </span>
-            </span>
-          </div>,
+          />,
         );
       }
 
@@ -578,8 +496,585 @@ export const StepsTimeline: React.FC<{
     });
   };
 
+  // ── Shared content area rendering (used by all device shells in effects mode) ──
+  const renderContentArea = (w: number, h: number) => (
+    <div
+      style={{
+        width: w,
+        height: h,
+        position: 'relative',
+        overflow: 'hidden',
+        backgroundColor: '#000',
+      }}
+    >
+      {imageChanged && prevImg && crossfadeAlpha < 1 && (
+        <div
+          style={{
+            position: 'absolute',
+            width: w,
+            height: h,
+            overflow: 'hidden',
+            opacity: 1 - crossfadeAlpha,
+          }}
+        >
+          <Img
+            src={prevImg}
+            style={{
+              width: w,
+              height: h,
+              transformOrigin: '0 0',
+              transform: transformStyle,
+            }}
+          />
+        </div>
+      )}
+
+      <div
+        style={{
+          position: 'absolute',
+          width: w,
+          height: h,
+          overflow: 'hidden',
+          opacity: imageChanged ? crossfadeAlpha : 1,
+        }}
+      >
+        <Img
+          src={img}
+          style={{
+            width: w,
+            height: h,
+            transformOrigin: '0 0',
+            transform: transformStyle,
+            filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: w,
+            height: h,
+            transformOrigin: '0 0',
+            transform: transformStyle,
+            pointerEvents: 'none',
+          }}
+        >
+          {renderInsightOverlays()}
+        </div>
+      </div>
+
+      {glitchSlices.map((slice, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: slice.offsetX,
+            top: `${slice.y * 100}%`,
+            width: w,
+            height: `${slice.height * 100}%`,
+            overflow: 'hidden',
+            opacity: 0.7,
+            mixBlendMode: 'screen',
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(0,255,255,0.15)',
+              transform: `translateX(${slice.rgbSplit}px)`,
+            }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(255,0,255,0.15)',
+              transform: `translateX(${-slice.rgbSplit}px)`,
+            }}
+          />
+        </div>
+      ))}
+
+      {trail.map((pt, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: pt.x - pt.size / 2,
+            top: pt.y - pt.size / 2,
+            width: pt.size,
+            height: pt.size,
+            borderRadius: '50%',
+            backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
+            boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
+            filter: `blur(${pt.size * 0.3}px)`,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {spinningPointer && (
+        <Img
+          src={mouseLoading}
+          style={{
+            position: 'absolute',
+            left: ptrX - 11,
+            top: ptrY - 14,
+            width: 22,
+            height: 28,
+            transform: `rotate(${spinRotation}rad)`,
+            transformOrigin: 'center center',
+            filter:
+              'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+          }}
+        />
+      )}
+
+      {showCursor && !spinningPointer && (
+        <Img
+          src={currentPointerImg}
+          style={{
+            position: 'absolute',
+            left: ptrX - 3,
+            top: ptrY - 2,
+            width: 22,
+            height: 28,
+            filter:
+              'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+          }}
+        />
+      )}
+
+      {ripple.active && (
+        <div
+          style={{
+            position: 'absolute',
+            left: ptrX - ripple.radius,
+            top: ptrY - ripple.radius,
+            width: ripple.radius * 2,
+            height: ripple.radius * 2,
+            borderRadius: '50%',
+            border: `2px solid rgba(0, 255, 255, ${ripple.opacity})`,
+            boxShadow: `0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.6}), inset 0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.3})`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+      {ripple2.active && (
+        <div
+          style={{
+            position: 'absolute',
+            left: ptrX - ripple2.radius,
+            top: ptrY - ripple2.radius,
+            width: ripple2.radius * 2,
+            height: ripple2.radius * 2,
+            borderRadius: '50%',
+            border: `1.5px solid rgba(255, 0, 255, ${ripple2.opacity * 0.7})`,
+            boxShadow: `0 0 6px rgba(255, 0, 255, ${ripple2.opacity * 0.4})`,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundImage:
+            'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.05) 3px, rgba(0, 0, 0, 0.05) 4px)',
+          backgroundPositionY: scanOffset,
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
+  );
+
+  // ── Device shell renderers ──
+
+  const renderDesktopBrowserTop = () => (
+    <div
+      style={{
+        width: browserW,
+        height: CHROME_TITLE_BAR_H,
+        background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        paddingLeft: 0,
+        borderBottom: '1px solid rgba(0,255,255,0.15)',
+        position: 'relative',
+        flexShrink: 0,
+      }}
+    >
+      {CHROME_DOTS.map((dot) => (
+        <div
+          key={dot.color}
+          style={{
+            position: 'absolute',
+            left: dot.x,
+            top: '50%',
+            marginTop: -5,
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            backgroundColor: dot.color,
+            boxShadow: `0 0 4px ${dot.color}40`,
+          }}
+        />
+      ))}
+      <div
+        style={{
+          position: 'absolute',
+          left: 70,
+          right: 14,
+          top: '50%',
+          marginTop: -11,
+          height: 22,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          borderRadius: 6,
+          border: '1px solid rgba(255,255,255,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          paddingLeft: 10,
+          paddingRight: 10,
+        }}
+      >
+        <span
+          style={{
+            color: 'rgba(0,255,255,0.4)',
+            fontSize: 10,
+            fontFamily: 'monospace',
+            letterSpacing: 0.5,
+          }}
+        >
+          https://
+        </span>
+        <span
+          style={{
+            color: 'rgba(255,255,255,0.5)',
+            fontSize: 10,
+            fontFamily: 'monospace',
+            letterSpacing: 0.5,
+          }}
+        >
+          app.example.com
+        </span>
+      </div>
+    </div>
+  );
+
+  const renderDesktopAppTop = () => (
+    <div
+      style={{
+        width: browserW,
+        height: DESKTOP_APP_TITLE_BAR_H,
+        background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        borderBottom: '1px solid rgba(0,255,255,0.15)',
+        position: 'relative',
+        flexShrink: 0,
+      }}
+    >
+      {CHROME_DOTS.map((dot) => (
+        <div
+          key={dot.color}
+          style={{
+            position: 'absolute',
+            left: dot.x,
+            top: '50%',
+            marginTop: -5,
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            backgroundColor: dot.color,
+            boxShadow: `0 0 4px ${dot.color}40`,
+          }}
+        />
+      ))}
+      <span
+        style={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          textAlign: 'center',
+          color: 'rgba(255,255,255,0.5)',
+          fontSize: 11,
+          fontFamily: 'monospace',
+          letterSpacing: 0.5,
+        }}
+      >
+        Desktop Application
+      </span>
+    </div>
+  );
+
+  const renderIPhoneTop = () => (
+    <div
+      style={{
+        width: browserW,
+        height: IPHONE_STATUS_BAR_H,
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 20px',
+        position: 'relative',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          color: '#fff',
+          fontSize: 14,
+          fontWeight: 600,
+          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+        }}
+      >
+        9:41
+      </span>
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 120,
+          height: 34,
+          borderRadius: 17,
+          backgroundColor: '#000',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <svg width="16" height="12" viewBox="0 0 16 12">
+          <rect x="0" y="8" width="3" height="4" rx="0.5" fill="#fff" />
+          <rect x="4" y="5" width="3" height="7" rx="0.5" fill="#fff" />
+          <rect x="8" y="2" width="3" height="10" rx="0.5" fill="#fff" />
+          <rect x="12" y="0" width="3" height="12" rx="0.5" fill="#fff" />
+        </svg>
+        <svg width="14" height="12" viewBox="0 0 14 12">
+          <path
+            d="M7 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM3.5 8.5C4.5 7.2 5.7 6.5 7 6.5s2.5.7 3.5 2"
+            stroke="#fff"
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+          <path
+            d="M1 5.5C2.8 3.2 4.8 2 7 2s4.2 1.2 6 3.5"
+            stroke="#fff"
+            strokeWidth="1.5"
+            fill="none"
+            strokeLinecap="round"
+          />
+        </svg>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div
+            style={{
+              width: 22,
+              height: 11,
+              border: '1px solid rgba(255,255,255,0.5)',
+              borderRadius: 3,
+              padding: 1,
+            }}
+          >
+            <div
+              style={{
+                width: '80%',
+                height: '100%',
+                backgroundColor: '#34c759',
+                borderRadius: 1.5,
+              }}
+            />
+          </div>
+          <div
+            style={{
+              width: 2,
+              height: 5,
+              backgroundColor: 'rgba(255,255,255,0.5)',
+              borderRadius: '0 1px 1px 0',
+              marginLeft: 0.5,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderIPhoneBottom = () => (
+    <div
+      style={{
+        width: browserW,
+        height: IPHONE_HOME_INDICATOR_H,
+        background: '#000',
+        display: 'flex',
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        paddingBottom: 8,
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          width: 134,
+          height: 5,
+          borderRadius: 3,
+          backgroundColor: 'rgba(255,255,255,0.5)',
+        }}
+      />
+    </div>
+  );
+
+  const renderAndroidTop = () => (
+    <div
+      style={{
+        width: browserW,
+        height: ANDROID_STATUS_BAR_H,
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 16px',
+        position: 'relative',
+        flexShrink: 0,
+      }}
+    >
+      <span
+        style={{
+          color: '#fff',
+          fontSize: 12,
+          fontFamily: 'Roboto, sans-serif',
+        }}
+      >
+        12:00
+      </span>
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          backgroundColor: '#1a1a1a',
+          border: '1px solid rgba(255,255,255,0.1)',
+        }}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <svg width="14" height="12" viewBox="0 0 14 12">
+          <rect x="0" y="8" width="2.5" height="4" rx="0.5" fill="#fff" />
+          <rect x="3.5" y="5" width="2.5" height="7" rx="0.5" fill="#fff" />
+          <rect x="7" y="2" width="2.5" height="10" rx="0.5" fill="#fff" />
+          <rect x="10.5" y="0" width="2.5" height="12" rx="0.5" fill="#fff" />
+        </svg>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div
+            style={{
+              width: 20,
+              height: 10,
+              border: '1px solid rgba(255,255,255,0.5)',
+              borderRadius: 2,
+              padding: 1,
+            }}
+          >
+            <div
+              style={{
+                width: '75%',
+                height: '100%',
+                backgroundColor: '#fff',
+                borderRadius: 1,
+              }}
+            />
+          </div>
+          <div
+            style={{
+              width: 2,
+              height: 4,
+              backgroundColor: 'rgba(255,255,255,0.5)',
+              borderRadius: '0 1px 1px 0',
+              marginLeft: 0.5,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAndroidBottom = () => (
+    <div
+      style={{
+        width: browserW,
+        height: ANDROID_NAV_BAR_H,
+        background: '#000',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 48,
+        flexShrink: 0,
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <polygon
+          points="11,2 5,8 11,14"
+          fill="none"
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth="1.5"
+        />
+      </svg>
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <circle
+          cx="8"
+          cy="8"
+          r="6"
+          fill="none"
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth="1.5"
+        />
+      </svg>
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <rect
+          x="3"
+          y="3"
+          width="10"
+          height="10"
+          rx="1.5"
+          fill="none"
+          stroke="rgba(255,255,255,0.6)"
+          strokeWidth="1.5"
+        />
+      </svg>
+    </div>
+  );
+
+  const renderDeviceTop = (st: DeviceShellType) => {
+    switch (st) {
+      case 'iphone':
+        return renderIPhoneTop();
+      case 'android':
+        return renderAndroidTop();
+      case 'desktop-app':
+        return renderDesktopAppTop();
+      default:
+        return renderDesktopBrowserTop();
+    }
+  };
+
+  const renderDeviceBottom = (st: DeviceShellType) => {
+    switch (st) {
+      case 'iphone':
+        return renderIPhoneBottom();
+      case 'android':
+        return renderAndroidBottom();
+      default:
+        return null;
+    }
+  };
+
   if (effects) {
-    // ── Effects mode: cyberpunk chrome browser shell ──
     return (
       <AbsoluteFill
         style={{
@@ -588,12 +1083,12 @@ export const StepsTimeline: React.FC<{
           perspective: 1200,
         }}
       >
-        {/* 3D Browser Shell */}
+        {/* 3D Device Shell */}
         <div
           style={{
             position: 'absolute',
-            left: BROWSER_MARGIN,
-            top: BROWSER_MARGIN,
+            left: DEVICE_MARGIN,
+            top: DEVICE_MARGIN,
             width: browserW,
             height: browserH,
             transformStyle: 'preserve-3d',
@@ -603,7 +1098,7 @@ export const StepsTimeline: React.FC<{
               `rotateY(${transform3d.rotateY}deg)`,
               `translateZ(${transform3d.translateZ}px)`,
             ].join(' '),
-            borderRadius: CHROME_BORDER_RADIUS,
+            borderRadius: deviceLayout.borderRadius,
             overflow: 'hidden',
             boxShadow: [
               '0 20px 60px rgba(0,0,0,0.6)',
@@ -612,285 +1107,15 @@ export const StepsTimeline: React.FC<{
             ].join(', '),
           }}
         >
-          {/* Chrome title bar */}
-          <div
-            style={{
-              width: browserW,
-              height: CHROME_TITLE_BAR_H,
-              background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              paddingLeft: 0,
-              borderBottom: '1px solid rgba(0,255,255,0.15)',
-              position: 'relative',
-              flexShrink: 0,
-            }}
-          >
-            {CHROME_DOTS.map((dot) => (
-              <div
-                key={dot.color}
-                style={{
-                  position: 'absolute',
-                  left: dot.x,
-                  top: '50%',
-                  marginTop: -5,
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: dot.color,
-                  boxShadow: `0 0 4px ${dot.color}40`,
-                }}
-              />
-            ))}
-            <div
-              style={{
-                position: 'absolute',
-                left: 70,
-                right: 14,
-                top: '50%',
-                marginTop: -11,
-                height: 22,
-                backgroundColor: 'rgba(0,0,0,0.4)',
-                borderRadius: 6,
-                border: '1px solid rgba(255,255,255,0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: 10,
-                paddingRight: 10,
-              }}
-            >
-              <span
-                style={{
-                  color: 'rgba(0,255,255,0.4)',
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                  letterSpacing: 0.5,
-                }}
-              >
-                https://
-              </span>
-              <span
-                style={{
-                  color: 'rgba(255,255,255,0.5)',
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                  letterSpacing: 0.5,
-                }}
-              >
-                app.example.com
-              </span>
-            </div>
-          </div>
+          {renderDeviceTop(shellType)}
+          {renderContentArea(browserW, contentH)}
+          {renderDeviceBottom(shellType)}
 
-          {/* Browser content area */}
-          <div
-            style={{
-              width: browserW,
-              height: contentH,
-              position: 'relative',
-              overflow: 'hidden',
-              backgroundColor: '#000',
-            }}
-          >
-            {/* Previous image — crossfade */}
-            {imageChanged && prevImg && crossfadeAlpha < 1 && (
-              <div
-                style={{
-                  position: 'absolute',
-                  width: browserW,
-                  height: contentH,
-                  overflow: 'hidden',
-                  opacity: 1 - crossfadeAlpha,
-                }}
-              >
-                <Img
-                  src={prevImg}
-                  style={{
-                    width: browserW,
-                    height: contentH,
-                    transformOrigin: '0 0',
-                    transform: transformStyle,
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Current image */}
-            <div
-              style={{
-                position: 'absolute',
-                width: browserW,
-                height: contentH,
-                overflow: 'hidden',
-                opacity: imageChanged ? crossfadeAlpha : 1,
-              }}
-            >
-              <Img
-                src={img}
-                style={{
-                  width: browserW,
-                  height: contentH,
-                  transformOrigin: '0 0',
-                  transform: transformStyle,
-                  filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
-                }}
-              />
-              {/* Insight overlays (inside camera transform) */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: browserW,
-                  height: contentH,
-                  transformOrigin: '0 0',
-                  transform: transformStyle,
-                  pointerEvents: 'none',
-                }}
-              >
-                {renderInsightOverlays()}
-              </div>
-            </div>
-
-            {/* Glitch slices */}
-            {glitchSlices.map((slice, i) => (
-              <div
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: slice.offsetX,
-                  top: `${slice.y * 100}%`,
-                  width: browserW,
-                  height: `${slice.height * 100}%`,
-                  overflow: 'hidden',
-                  opacity: 0.7,
-                  mixBlendMode: 'screen',
-                  pointerEvents: 'none',
-                }}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundColor: 'rgba(0,255,255,0.15)',
-                    transform: `translateX(${slice.rgbSplit}px)`,
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundColor: 'rgba(255,0,255,0.15)',
-                    transform: `translateX(${-slice.rgbSplit}px)`,
-                  }}
-                />
-              </div>
-            ))}
-
-            {/* Cursor trail */}
-            {trail.map((pt, i) => (
-              <div
-                key={i}
-                style={{
-                  position: 'absolute',
-                  left: pt.x - pt.size / 2,
-                  top: pt.y - pt.size / 2,
-                  width: pt.size,
-                  height: pt.size,
-                  borderRadius: '50%',
-                  backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
-                  boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
-                  filter: `blur(${pt.size * 0.3}px)`,
-                  pointerEvents: 'none',
-                }}
-              />
-            ))}
-
-            {/* Spinning pointer */}
-            {spinningPointer && (
-              <Img
-                src={mouseLoading}
-                style={{
-                  position: 'absolute',
-                  left: ptrX - 11,
-                  top: ptrY - 14,
-                  width: 22,
-                  height: 28,
-                  transform: `rotate(${spinRotation}rad)`,
-                  transformOrigin: 'center center',
-                  filter: effects
-                    ? 'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))'
-                    : undefined,
-                }}
-              />
-            )}
-
-            {/* Mouse cursor */}
-            {showCursor && !spinningPointer && (
-              <Img
-                src={currentPointerImg}
-                style={{
-                  position: 'absolute',
-                  left: ptrX - 3,
-                  top: ptrY - 2,
-                  width: 22,
-                  height: 28,
-                  filter:
-                    'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
-                }}
-              />
-            )}
-
-            {/* Click ripple — cyan */}
-            {ripple.active && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: ptrX - ripple.radius,
-                  top: ptrY - ripple.radius,
-                  width: ripple.radius * 2,
-                  height: ripple.radius * 2,
-                  borderRadius: '50%',
-                  border: `2px solid rgba(0, 255, 255, ${ripple.opacity})`,
-                  boxShadow: `0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.6}), inset 0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.3})`,
-                  pointerEvents: 'none',
-                }}
-              />
-            )}
-            {ripple2.active && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: ptrX - ripple2.radius,
-                  top: ptrY - ripple2.radius,
-                  width: ripple2.radius * 2,
-                  height: ripple2.radius * 2,
-                  borderRadius: '50%',
-                  border: `1.5px solid rgba(255, 0, 255, ${ripple2.opacity * 0.7})`,
-                  boxShadow: `0 0 6px rgba(255, 0, 255, ${ripple2.opacity * 0.4})`,
-                  pointerEvents: 'none',
-                }}
-              />
-            )}
-
-            {/* Scan lines inside content */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.05) 3px, rgba(0, 0, 0, 0.05) 4px)`,
-                backgroundPositionY: scanOffset,
-                pointerEvents: 'none',
-              }}
-            />
-          </div>
-
-          {/* Neon edge glow */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
-              borderRadius: CHROME_BORDER_RADIUS,
+              borderRadius: deviceLayout.borderRadius,
               boxShadow: 'inset 0 0 1px rgba(0,255,255,0.2)',
               pointerEvents: 'none',
             }}
@@ -924,6 +1149,75 @@ export const StepsTimeline: React.FC<{
         >
           {scriptIndex + 1}
         </div>
+
+        {/* AI prompt indicator */}
+        {(title || subTitle) && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: DEVICE_MARGIN + 8,
+              left: DEVICE_MARGIN,
+              right: DEVICE_MARGIN,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 6,
+              padding: '6px 10px',
+              background: 'rgba(0, 10, 20, 0.75)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 6,
+              border: '1px solid rgba(0, 255, 255, 0.15)',
+              zIndex: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: '#fff',
+                background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                padding: '2px 5px',
+                borderRadius: 3,
+                letterSpacing: 0.5,
+                lineHeight: '14px',
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            >
+              AI
+            </span>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              {title && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#fff',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textShadow: '0 0 6px rgba(0,255,255,0.4)',
+                  }}
+                >
+                  {title}
+                </div>
+              )}
+              {subTitle && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'rgba(255,255,255,0.6)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    marginTop: 1,
+                  }}
+                >
+                  {subTitle}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* HUD corners */}
         {hudCorners.map((c, i) => (
@@ -977,7 +1271,6 @@ export const StepsTimeline: React.FC<{
         opacity: initialFade,
       }}
     >
-      {/* Content area — full viewport */}
       <div
         style={{
           width: compWidth,
@@ -986,7 +1279,6 @@ export const StepsTimeline: React.FC<{
           overflow: 'hidden',
         }}
       >
-        {/* Previous image — crossfade */}
         {imageChanged && prevImg && crossfadeAlpha < 1 && (
           <div
             style={{
@@ -1009,7 +1301,6 @@ export const StepsTimeline: React.FC<{
           </div>
         )}
 
-        {/* Current image */}
         <div
           style={{
             position: 'absolute',
@@ -1028,7 +1319,6 @@ export const StepsTimeline: React.FC<{
               transform: transformStyle,
             }}
           />
-          {/* Insight overlays */}
           <div
             style={{
               position: 'absolute',
@@ -1045,7 +1335,6 @@ export const StepsTimeline: React.FC<{
           </div>
         </div>
 
-        {/* Spinning pointer */}
         {spinningPointer && (
           <Img
             src={mouseLoading}
@@ -1061,7 +1350,6 @@ export const StepsTimeline: React.FC<{
           />
         )}
 
-        {/* Mouse cursor */}
         {showCursor && !spinningPointer && (
           <Img
             src={currentPointerImg}
@@ -1074,6 +1362,75 @@ export const StepsTimeline: React.FC<{
               filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
             }}
           />
+        )}
+
+        {/* AI prompt indicator */}
+        {(title || subTitle) && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 8,
+              left: 8,
+              right: 8,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 6,
+              padding: '6px 10px',
+              background: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 6,
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+              zIndex: 10,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: '#fff',
+                background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                padding: '2px 5px',
+                borderRadius: 3,
+                letterSpacing: 0.5,
+                lineHeight: '14px',
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            >
+              AI
+            </span>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              {title && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {title}
+                </div>
+              )}
+              {subTitle && (
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: '#666',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    marginTop: 1,
+                  }}
+                >
+                  {subTitle}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </AbsoluteFill>

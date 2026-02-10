@@ -50,6 +50,7 @@ function buildProgressContent(task: any): string {
  */
 function wrapExecutionDumpForReplay(
   dump: ExecutionDump | IExecutionDump,
+  deviceType?: string,
 ): IGroupedActionDump {
   const modelBriefsSet = new Set<string>();
 
@@ -77,6 +78,7 @@ function wrapExecutionDumpForReplay(
     groupName: 'Playground Execution',
     modelBriefs,
     executions: [dump],
+    deviceType,
   };
 }
 
@@ -95,6 +97,7 @@ export function usePlaygroundExecution(
   verticalMode: boolean,
   currentRunningIdRef: React.MutableRefObject<number | null>,
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
+  deviceType?: string,
 ) {
   // Get execution options from environment config
   const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
@@ -244,7 +247,10 @@ export function usePlaygroundExecution(
       // This allows noReplayAPIs to display both output and report
       if (result?.dump) {
         if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
-          const groupedDump = wrapExecutionDumpForReplay(result.dump);
+          const groupedDump = wrapExecutionDumpForReplay(
+            result.dump,
+            deviceType,
+          );
           const info = allScriptsFromDump(groupedDump);
           setReplayCounter((c) => c + 1);
           replayInfo = info;
@@ -315,6 +321,7 @@ export function usePlaygroundExecution(
       deepThink,
       screenshotIncluded,
       domIncluded,
+      deviceType,
     ],
   );
 
@@ -381,7 +388,10 @@ export function usePlaygroundExecution(
             executionData.dump?.tasks &&
             Array.isArray(executionData.dump.tasks)
           ) {
-            const groupedDump = wrapExecutionDumpForReplay(executionData.dump);
+            const groupedDump = wrapExecutionDumpForReplay(
+              executionData.dump,
+              deviceType,
+            );
             replayInfo = allScriptsFromDump(groupedDump);
             setReplayCounter((c) => c + 1);
             counter = replayCounter + 1;
@@ -436,6 +446,7 @@ export function usePlaygroundExecution(
     setInfoList,
     verticalMode,
     replayCounter,
+    deviceType,
   ]);
 
   // Check if execution can be stopped
