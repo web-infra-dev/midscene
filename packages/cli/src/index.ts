@@ -6,6 +6,14 @@ import { BatchRunner } from './batch-runner';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
 
+// Check if the first non-flag argument is "skill"
+const rawArgs = process.argv.slice(2);
+if (rawArgs[0] === 'skill') {
+  import('./skill-cli').then(({ runSkillCli }) => {
+    runSkillCli(rawArgs.slice(1));
+  });
+} else {
+
 Promise.resolve(
   (async () => {
     const { options, path, files: cmdFiles } = await parseProcessArgs();
@@ -98,3 +106,5 @@ Promise.resolve(
     process.exit(1);
   }),
 );
+
+} // end of else branch for non-skill commands
