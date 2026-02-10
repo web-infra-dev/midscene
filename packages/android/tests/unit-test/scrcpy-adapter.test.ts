@@ -19,7 +19,7 @@ vi.mock('@yume-chan/adb-server-node-tcp', () => ({
 const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
   ensureConnected: vi.fn().mockResolvedValue(undefined),
-  getScreenshotPng: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
+  getScreenshotJpeg: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: vi.fn().mockReturnValue(null),
   disconnect: vi.fn().mockResolvedValue(undefined),
 });
@@ -321,7 +321,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
       const result = await adapter.screenshotBase64(defaultDeviceInfo);
       expect(result).toBe('data:image/png;base64,test');
-      expect(currentMockManager.getScreenshotPng).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
     });
   });
 

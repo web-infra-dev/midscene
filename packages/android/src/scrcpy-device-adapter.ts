@@ -146,9 +146,9 @@ export class ScrcpyDeviceAdapter {
    */
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     const manager = await this.ensureManager(deviceInfo);
-    const screenshotBuffer = await manager.getScreenshotPng();
+    const screenshotBuffer = await manager.getScreenshotJpeg();
 
-    return createImgBase64ByFormat('png', screenshotBuffer.toString('base64'));
+    return createImgBase64ByFormat('jpeg', screenshotBuffer.toString('base64'));
   }
 
   /**

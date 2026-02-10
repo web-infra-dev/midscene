@@ -299,11 +299,11 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Get screenshot as PNG.
+   * Get screenshot as JPEG.
    * Tries to get a fresh frame within a short timeout. If the screen is static
    * (no new frames arrive), falls back to the latest cached keyframe.
    */
-  async getScreenshotPng(): Promise<Buffer> {
+  async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
 
     const t1 = Date.now();
@@ -340,7 +340,7 @@ export class ScrcpyScreenshotManager {
     );
 
     const t4 = Date.now();
-    const result = await this.decodeH264ToPng(keyframeBuffer);
+    const result = await this.decodeH264ToJpeg(keyframeBuffer);
     const decodeTime = Date.now() - t4;
 
     const totalTime = Date.now() - perfStart;
@@ -460,9 +460,9 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Decode H.264 data to PNG using ffmpeg
+   * Decode H.264 data to JPEG using ffmpeg
    */
-  private async decodeH264ToPng(h264Buffer: Buffer): Promise<Buffer> {
+  private async decodeH264ToJpeg(h264Buffer: Buffer): Promise<Buffer> {
     const { spawn } = await import('node:child_process');
 
     return new Promise((resolve, reject) => {
@@ -476,7 +476,9 @@ export class ScrcpyScreenshotManager {
         '-f',
         'image2pipe',
         '-vcodec',
-        'png',
+        'mjpeg',
+        '-q:v',
+        '2',
         '-loglevel',
         'error',
         'pipe:1',
@@ -500,15 +502,15 @@ export class ScrcpyScreenshotManager {
 
       ffmpeg.on('close', (code) => {
         if (code === 0 && chunks.length > 0) {
-          const pngBuffer = Buffer.concat(chunks);
+          const jpegBuffer = Buffer.concat(chunks);
           debugScrcpy(
-            `FFmpeg decode successful, PNG size: ${pngBuffer.length} bytes`,
+            `FFmpeg decode successful, JPEG size: ${jpegBuffer.length} bytes`,
           );
-          resolve(pngBuffer);
+          resolve(jpegBuffer);
         } else {
           const errorMsg = stderrOutput || `FFmpeg exited with code ${code}`;
           debugScrcpy(`FFmpeg decode failed: ${errorMsg}`);
-          reject(new Error(`H.264 to PNG decode failed: ${errorMsg}`));
+          reject(new Error(`H.264 to JPEG decode failed: ${errorMsg}`));
         }
       });
 
