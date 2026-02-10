@@ -13,17 +13,13 @@ import {
   CHROME_BORDER_RADIUS,
   CHROME_DOTS,
   CHROME_TITLE_BAR_H,
-  CYBER_CYAN,
   getBrowser3DTransform,
   getCursorTrail,
   getGlitchSlices,
   getHudCorners,
   getImageBlur,
-  getNeonFlicker,
-  getNeonTextShadow,
   getRippleState,
   getScanlineOffset,
-  getTypewriterChars,
 } from './visual-effects';
 
 const POINTER_PHASE = 0.375;
@@ -256,6 +252,19 @@ function deriveState(
     }
   }
 
+  // Fallback: if no image found (e.g. frame 0 before first img script),
+  // use the first available image so the component never renders blank.
+  if (!currentImg) {
+    const firstImgScript = scriptFrames.find(
+      (sf) => sf.type === 'img' && sf.img,
+    );
+    if (firstImgScript) {
+      currentImg = firstImgScript.img!;
+      currentImageWidth = firstImgScript.imageWidth || imageWidth;
+      currentImageHeight = firstImgScript.imageHeight || imageHeight;
+    }
+  }
+
   return {
     img: currentImg,
     imageWidth: currentImageWidth,
@@ -312,7 +321,6 @@ export const StepsTimeline: React.FC<{
     spinningPointer,
     spinningElapsedMs,
     currentPointerImg,
-    title,
     frameInScript,
     scriptIndex,
     imageChanged,
@@ -360,7 +368,13 @@ export const StepsTimeline: React.FC<{
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
   const ptrY = ((pointerTop - cameraTop) / camH) * contentH;
-  const showCursor = autoZoom && zoom > 1.08;
+  // Always show cursor when there's camera data — pixi.js never hid it
+  const hasPointerData =
+    camera.pointerLeft !== Math.round(imgW / 2) ||
+    camera.pointerTop !== Math.round(imgH / 2) ||
+    prevCamera.pointerLeft !== Math.round(imgW / 2) ||
+    prevCamera.pointerTop !== Math.round(imgH / 2);
+  const showCursor = hasPointerData;
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -368,9 +382,12 @@ export const StepsTimeline: React.FC<{
 
   const blurPx = effects ? getImageBlur(frameInScript, imageChanged) : 0;
 
-  const initialFade = interpolate(frame, [0, 8], [0, 1], {
-    extrapolateRight: 'clamp',
-  });
+  // Only fade-in when effects are on (opening scene plays first, so steps
+  // don't start at global frame 0).  In clean mode the player returns to
+  // frame 0 after ending — opacity must be 1 to avoid a blank page.
+  const initialFade = effects
+    ? interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' })
+    : 1;
 
   // Badge animation
   const badgeScale = spring({
@@ -380,20 +397,7 @@ export const StepsTimeline: React.FC<{
     delay: 5,
   });
 
-  // Title animation
-  const titleTranslateY = interpolate(frameInScript, [5, 20], [40, 0], {
-    extrapolateLeft: 'clamp',
-    extrapolateRight: 'clamp',
-  });
-  const titleOpacity = interpolate(frameInScript, [5, 20], [0, 1], {
-    extrapolateRight: 'clamp',
-  });
-
   // ── Effects-only visual calculations ──
-  const typewriter = effects
-    ? getTypewriterChars(title, frameInScript, 8, 1.5)
-    : null;
-  const flicker = effects ? getNeonFlicker(frame) : 1;
   const scanOffset = effects ? getScanlineOffset(frame) : 0;
   const hudCorners = effects ? getHudCorners(compWidth, compHeight, 8) : [];
 
@@ -476,14 +480,37 @@ export const StepsTimeline: React.FC<{
               <span
                 style={{
                   position: 'absolute',
-                  top: -22,
+                  top: -28,
                   left: 0,
-                  fontSize: 18,
-                  color: '#000',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
                   whiteSpace: 'nowrap',
                 }}
               >
-                {el.description}
+                <span
+                  style={{
+                    fontSize: 9,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+                    padding: '1px 4px',
+                    borderRadius: 3,
+                    letterSpacing: 0.5,
+                    lineHeight: '14px',
+                  }}
+                >
+                  AI
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: '#6d28d9',
+                  }}
+                >
+                  {el.description}
+                </span>
               </span>
             )}
           </div>,
@@ -511,14 +538,37 @@ export const StepsTimeline: React.FC<{
             <span
               style={{
                 position: 'absolute',
-                top: -22,
+                top: -28,
                 left: 0,
-                fontSize: 18,
-                color: '#000',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
                 whiteSpace: 'nowrap',
               }}
             >
-              Search Area
+              <span
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: '#fff',
+                  background: 'linear-gradient(135deg, #0891b2, #028391)',
+                  padding: '1px 4px',
+                  borderRadius: 3,
+                  letterSpacing: 0.5,
+                  lineHeight: '14px',
+                }}
+              >
+                AI
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#0e7490',
+                }}
+              >
+                Search Area
+              </span>
             </span>
           </div>,
         );
@@ -875,53 +925,6 @@ export const StepsTimeline: React.FC<{
           {scriptIndex + 1}
         </div>
 
-        {/* Title card — cyberpunk typewriter */}
-        {typewriter && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 6,
-              left: 0,
-              right: 0,
-              display: 'flex',
-              justifyContent: 'center',
-              opacity: titleOpacity * flicker,
-              transform: `translateY(${titleTranslateY}px)`,
-              zIndex: 10,
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: 'rgba(0, 10, 20, 0.9)',
-                border: '1px solid rgba(0, 255, 255, 0.3)',
-                backdropFilter: 'blur(8px)',
-                color: '#fff',
-                padding: '8px 20px',
-                borderRadius: 2,
-                fontSize: 14,
-                fontWeight: 500,
-                fontFamily: 'monospace, sans-serif',
-                maxWidth: '80%',
-                minWidth: 80,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                textShadow: getNeonTextShadow(CYBER_CYAN, 0.4),
-                boxShadow:
-                  '0 0 12px rgba(0,255,255,0.15), inset 0 0 12px rgba(0,255,255,0.05)',
-              }}
-            >
-              {typewriter.text}
-              {typewriter.showCursor && (
-                <span style={{ color: '#0ff', opacity: 0.9 }}>_</span>
-              )}
-              <span style={{ visibility: 'hidden', position: 'absolute' }}>
-                {title}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* HUD corners */}
         {hudCorners.map((c, i) => (
           <div
@@ -1073,41 +1076,6 @@ export const StepsTimeline: React.FC<{
           />
         )}
       </div>
-
-      {/* Title — simple display at bottom */}
-      {title && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 8,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            opacity: titleOpacity,
-            transform: `translateY(${titleTranslateY}px)`,
-            zIndex: 10,
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              color: '#333',
-              padding: '6px 16px',
-              borderRadius: 4,
-              fontSize: 13,
-              fontWeight: 500,
-              maxWidth: '80%',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
-            }}
-          >
-            {title}
-          </div>
-        </div>
-      )}
     </AbsoluteFill>
   );
 };
