@@ -22,10 +22,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
  * Create a fake base64 string of a specified size (in bytes).
  * Uses repeating 'A' characters (valid base64).
  */
-function fakeBase64(
-  sizeBytes: number,
-  format: 'png' | 'jpeg' = 'png',
-): string {
+function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
   return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
 }
 
@@ -326,9 +323,9 @@ describe('ReportGenerator — constant memory guarantees', () => {
       expect(
         existsSync(join(screenshotsDir, `${jpegScreenshot.id}.jpeg`)),
       ).toBe(true);
-      expect(
-        existsSync(join(screenshotsDir, `${pngScreenshot.id}.png`)),
-      ).toBe(true);
+      expect(existsSync(join(screenshotsDir, `${pngScreenshot.id}.png`))).toBe(
+        true,
+      );
     });
 
     it('should not re-write existing PNG files on subsequent updates', async () => {
