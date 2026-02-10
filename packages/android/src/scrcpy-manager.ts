@@ -176,6 +176,7 @@ export class ScrcpyScreenshotManager {
         control: false,
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
+        maxFps: 10,
         sendFrameMeta: true,
         videoCodecOptions: 'i-frame-interval=0,bitrate-mode=2',
       });
