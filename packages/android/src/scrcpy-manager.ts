@@ -478,7 +478,7 @@ export class ScrcpyScreenshotManager {
         '-vcodec',
         'mjpeg',
         '-q:v',
-        '2',
+        '5',
         '-loglevel',
         'error',
         'pipe:1',
