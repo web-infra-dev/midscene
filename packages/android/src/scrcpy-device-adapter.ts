@@ -63,29 +63,35 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Resolve scrcpy config with auto-calculated maxSize.
-   * Auto-calculation uses 1/DPR or screenshotResizeScale to match Agent layer's logical size.
+   * Resolve scrcpy config.
+   * maxSize defaults to 0 (no scaling, full physical resolution) so the Agent layer
+   * receives the highest quality image for AI processing.
+   * videoBitRate is auto-scaled based on physical pixel count to ensure
+   * sufficient quality for all-I-frame H.264 encoding.
    */
   resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
-    let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
+    const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
-    // Auto-calculate maxSize if not explicitly set
-    if (config?.maxSize === undefined) {
-      const physicalMax = Math.max(
-        deviceInfo.physicalWidth,
-        deviceInfo.physicalHeight,
+    // Auto-scale bitrate based on physical pixel count
+    let videoBitRate =
+      config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
+
+    if (config?.videoBitRate === undefined) {
+      const physicalPixels =
+        deviceInfo.physicalWidth * deviceInfo.physicalHeight;
+      const BASE_PIXELS = 1920 * 1080;
+      const ratio = physicalPixels / BASE_PIXELS;
+      videoBitRate = Math.round(
+        Math.max(
+          DEFAULT_SCRCPY_CONFIG.videoBitRate,
+          DEFAULT_SCRCPY_CONFIG.videoBitRate * ratio,
+        ),
       );
-      const scale = this.screenshotResizeScale ?? 1 / deviceInfo.dpr;
-      maxSize = Math.round(physicalMax * scale);
       debugAdapter(
-        `Auto-calculated maxSize: ${maxSize} (physical=${physicalMax}, scale=${scale.toFixed(3)}, ${
-          this.screenshotResizeScale !== undefined
-            ? 'from screenshotResizeScale'
-            : 'from 1/dpr'
-        })`,
+        `Auto-scaled videoBitRate: ${(videoBitRate / 1_000_000).toFixed(1)}Mbps (pixels=${physicalPixels}, ratio=${ratio.toFixed(2)})`,
       );
     }
 
@@ -94,7 +100,7 @@ export class ScrcpyDeviceAdapter {
       maxSize,
       idleTimeoutMs:
         config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
-      videoBitRate: config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
+      videoBitRate,
     };
 
     return this.resolvedConfig;
@@ -158,6 +164,7 @@ export class ScrcpyDeviceAdapter {
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     const manager = await this.ensureManager(deviceInfo);
     const screenshotBuffer = await manager.getScreenshotPng();
+
     return createImgBase64ByFormat('png', screenshotBuffer.toString('base64'));
   }
 
