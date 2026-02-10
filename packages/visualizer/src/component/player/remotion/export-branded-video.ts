@@ -20,7 +20,6 @@ import {
   getParticles,
   getRippleState,
   getScanlineOffset,
-  getTypewriterChars,
   getVerticalGridLines,
 } from './visual-effects';
 
@@ -81,6 +80,7 @@ interface FrameState {
   frameInScript: number;
   scriptIndex: number;
   title: string;
+  subTitle: string;
   spinning: boolean;
   spinningElapsedMs: number;
   currentPointerImg: string;
@@ -113,6 +113,7 @@ function deriveFrameState(
   let spinMs = 0;
   let ptrImg = mousePointer;
   let curTitle = '';
+  let curSubTitle = '';
   let fInScript = 0;
   let sIdx = 0;
   let imgChanged = false;
@@ -127,6 +128,7 @@ function deriveFrameState(
       if (sf.startFrame <= stepsFrame) {
         if (sf.type === 'pointer' && sf.pointerImg) ptrImg = sf.pointerImg;
         curTitle = sf.title || curTitle;
+        curSubTitle = sf.subTitle || curSubTitle;
         sIdx = i;
       }
       continue;
@@ -135,6 +137,7 @@ function deriveFrameState(
     if (stepsFrame < sf.startFrame) break;
 
     curTitle = sf.title || curTitle;
+    curSubTitle = sf.subTitle || curSubTitle;
     sIdx = i;
     fInScript = stepsFrame - sf.startFrame;
     rawProg = Math.min(fInScript / sf.durationInFrames, 1);
@@ -246,6 +249,7 @@ function deriveFrameState(
     frameInScript: fInScript,
     scriptIndex: sIdx,
     title: curTitle,
+    subTitle: curSubTitle,
     spinning,
     spinningElapsedMs: spinMs,
     currentPointerImg: ptrImg,
@@ -476,11 +480,33 @@ function drawInsightOverlays(
       ctx.shadowOffsetY = 0;
 
       if (r.description) {
-        ctx.font = '18px sans-serif';
-        ctx.fillStyle = '#000';
         ctx.textAlign = 'left';
         ctx.textBaseline = 'bottom';
-        ctx.fillText(r.description, rx, ry - 4);
+        const labelY = ry - 6;
+        // AI badge
+        ctx.font = 'bold 9px sans-serif';
+        const badgeText = 'AI';
+        const badgeW = ctx.measureText(badgeText).width + 8;
+        const badgeH = 14;
+        const badgeX = rx;
+        const badgeY = labelY - badgeH;
+        const bg = ctx.createLinearGradient(
+          badgeX,
+          badgeY,
+          badgeX + badgeW,
+          badgeY + badgeH,
+        );
+        bg.addColorStop(0, '#8b5cf6');
+        bg.addColorStop(1, '#6366f1');
+        ctx.fillStyle = bg;
+        roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 3);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(badgeText, badgeX + 4, labelY - 1);
+        // Description text
+        ctx.font = '600 14px sans-serif';
+        ctx.fillStyle = '#6d28d9';
+        ctx.fillText(r.description, badgeX + badgeW + 4, labelY - 1);
       }
     }
 
@@ -503,11 +529,33 @@ function drawInsightOverlays(
       ctx.lineWidth = 1;
       ctx.strokeRect(rx, ry, rw, rh);
 
-      ctx.font = '18px sans-serif';
-      ctx.fillStyle = '#000';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'bottom';
-      ctx.fillText('Search Area', rx, ry - 4);
+      const saLabelY = ry - 6;
+      // AI badge for search area
+      ctx.font = 'bold 9px sans-serif';
+      const saBadgeText = 'AI';
+      const saBadgeW = ctx.measureText(saBadgeText).width + 8;
+      const saBadgeH = 14;
+      const saBadgeX = rx;
+      const saBadgeY = saLabelY - saBadgeH;
+      const saBg = ctx.createLinearGradient(
+        saBadgeX,
+        saBadgeY,
+        saBadgeX + saBadgeW,
+        saBadgeY + saBadgeH,
+      );
+      saBg.addColorStop(0, '#0891b2');
+      saBg.addColorStop(1, '#028391');
+      ctx.fillStyle = saBg;
+      roundRect(ctx, saBadgeX, saBadgeY, saBadgeW, saBadgeH, 3);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.fillText(saBadgeText, saBadgeX + 4, saLabelY - 1);
+      // Search Area text
+      ctx.font = '600 14px sans-serif';
+      ctx.fillStyle = '#0e7490';
+      ctx.fillText('Search Area', saBadgeX + saBadgeW + 4, saLabelY - 1);
     }
 
     ctx.restore();
@@ -667,7 +715,6 @@ function drawSteps(
     rawProgress,
     frameInScript: fInScript,
     scriptIndex,
-    title,
     spinning,
     spinningElapsedMs,
     insights,
@@ -832,8 +879,15 @@ function drawSteps(
   const sX = bx + ((ptrX - camL) / camW) * browserW;
   const sY = contentY + ((ptrY - camT2) / camH) * contentH;
 
+  // Check if pointer has moved from center
+  const hasPtrData =
+    Math.abs(camera.pointerLeft - Math.round(baseW / 2)) > 1 ||
+    Math.abs(camera.pointerTop - Math.round(baseH / 2)) > 1 ||
+    Math.abs(prevCamera.pointerLeft - Math.round(baseW / 2)) > 1 ||
+    Math.abs(prevCamera.pointerTop - Math.round(baseH / 2)) > 1;
+
   // Cursor trail (effects only)
-  if (effectsMode && zoom > 1.08 && pointerMoved) {
+  if (effectsMode && hasPtrData && pointerMoved) {
     const trailPositions: { x: number; y: number }[] = [];
     for (let i = 0; i < 6; i++) {
       const pastFrame = stepsFrame - i;
@@ -859,8 +913,8 @@ function drawSteps(
     drawSpinningPointer(ctx, spinnerImg, sX, sY, st.spinningElapsedMs);
   }
 
-  // Cursor
-  if (!spinning && zoom > 1.08 && cursorImg) {
+  // Cursor — always show when pointer has moved from center
+  if (!spinning && hasPtrData && cursorImg) {
     ctx.save();
     if (effectsMode) {
       ctx.shadowColor = 'rgba(0,255,255,0.6)';
@@ -946,56 +1000,7 @@ function drawSteps(
       ctx.restore();
     }
 
-    // Title card
-    const flicker = getNeonFlicker(stepsFrame);
-    const tAlpha = clamp((fInScript - 5) / 15, 0, 1);
-    const tYPos = H - 6 - 16 + (1 - tAlpha) * 40;
-    if (tAlpha > 0 && title) {
-      const typewriter = getTypewriterChars(title, fInScript, 8, 1.5);
-      const displayText = typewriter.text + (typewriter.showCursor ? '_' : '');
-      ctx.save();
-      ctx.globalAlpha = initAlpha * tAlpha * flicker;
-      ctx.font = '500 14px monospace';
-      const tw = Math.min(ctx.measureText(title).width + 40, W * 0.8);
-      const rx = (W - tw) / 2;
-      ctx.fillStyle = 'rgba(0, 10, 20, 0.9)';
-      ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
-      ctx.lineWidth = 1;
-      ctx.shadowColor = 'rgba(0,255,255,0.15)';
-      ctx.shadowBlur = 12;
-      roundRect(ctx, rx, tYPos, tw, 32, 2);
-      ctx.fill();
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.shadowColor = 'rgba(0,255,255,0.4)';
-      ctx.shadowBlur = 4;
-      ctx.fillText(displayText, W / 2, tYPos + 16, W * 0.75);
-      ctx.restore();
-    }
-
     drawHudCorners(ctx, 0.3, 8, 16);
-  } else {
-    // Clean mode title
-    const tAlpha = clamp((fInScript - 5) / 15, 0, 1);
-    if (tAlpha > 0 && title) {
-      ctx.save();
-      ctx.globalAlpha = initAlpha * tAlpha;
-      ctx.font = '500 13px sans-serif';
-      const tw = Math.min(ctx.measureText(title).width + 32, W * 0.8);
-      const rx = (W - tw) / 2;
-      const tYPos = H - 8 - 28;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-      roundRect(ctx, rx, tYPos, tw, 28, 4);
-      ctx.fill();
-      ctx.fillStyle = '#333';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(title, W / 2, tYPos + 14, W * 0.75);
-      ctx.restore();
-    }
   }
 
   ctx.restore();

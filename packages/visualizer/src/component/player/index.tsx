@@ -114,7 +114,9 @@ export function Player(props?: {
   useEffect(() => {
     if (!frameMap) return;
     const interval = setInterval(() => {
-      const frame = playerRef.current?.getCurrentFrame() ?? 0;
+      const player = playerRef.current;
+      if (!player) return;
+      const frame = player.getCurrentFrame() ?? 0;
       const stepsFrame = frame - frameMap.openingDurationInFrames;
 
       // Derive title/subtitle
