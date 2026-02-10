@@ -1,6 +1,8 @@
 import { mouseLoading, mousePointer } from '../../../utils';
 import { LogoUrl } from '../../logo';
-import type { FrameMap, ScriptFrame } from './frame-calculator';
+import { deriveFrameState } from './derive-frame-state';
+import type { InsightOverlay } from './derive-frame-state';
+import type { FrameMap } from './frame-calculator';
 import {
   ANDROID_BORDER_RADIUS,
   ANDROID_NAV_BAR_H,
@@ -39,10 +41,13 @@ const CROSSFADE_FRAMES = 10;
 
 // ── helpers ──
 
-const clamp = (v: number, lo: number, hi: number) =>
-  Math.min(Math.max(v, lo), hi);
+function clamp(v: number, lo: number, hi: number): number {
+  return Math.min(Math.max(v, lo), hi);
+}
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -52,218 +57,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject;
     img.src = src;
   });
-}
-
-// ── State derivation from ScriptFrame timeline ──
-
-interface CameraState {
-  left: number;
-  top: number;
-  width: number;
-  pointerLeft: number;
-  pointerTop: number;
-}
-
-interface InsightOverlay {
-  highlightRect?: {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-    description?: string;
-  };
-  searchArea?: { left: number; top: number; width: number; height: number };
-  alpha: number;
-}
-
-interface FrameState {
-  img: string;
-  prevImg: string | null;
-  imageWidth: number;
-  imageHeight: number;
-  camera: CameraState;
-  prevCamera: CameraState;
-  pointerMoved: boolean;
-  imageChanged: boolean;
-  rawProgress: number;
-  frameInScript: number;
-  scriptIndex: number;
-  title: string;
-  subTitle: string;
-  spinning: boolean;
-  spinningElapsedMs: number;
-  currentPointerImg: string;
-  insights: InsightOverlay[];
-}
-
-function deriveFrameState(
-  scriptFrames: ScriptFrame[],
-  stepsFrame: number,
-  baseW: number,
-  baseH: number,
-  fps: number,
-): FrameState {
-  const defaultCam: CameraState = {
-    left: 0,
-    top: 0,
-    width: baseW,
-    pointerLeft: Math.round(baseW / 2),
-    pointerTop: Math.round(baseH / 2),
-  };
-
-  let curImg = '';
-  let curIW = baseW;
-  let curIH = baseH;
-  let curCam = { ...defaultCam };
-  let prevCam = { ...defaultCam };
-  let prevImg: string | null = null;
-  let insights: InsightOverlay[] = [];
-  let spinning = false;
-  let spinMs = 0;
-  let ptrImg = mousePointer;
-  let curTitle = '';
-  let curSubTitle = '';
-  let fInScript = 0;
-  let sIdx = 0;
-  let imgChanged = false;
-  let pMoved = false;
-  let rawProg = 0;
-
-  for (let i = 0; i < scriptFrames.length; i++) {
-    const sf = scriptFrames[i];
-    const sfEnd = sf.startFrame + sf.durationInFrames;
-
-    if (sf.durationInFrames === 0) {
-      if (sf.startFrame <= stepsFrame) {
-        if (sf.type === 'pointer' && sf.pointerImg) ptrImg = sf.pointerImg;
-        curTitle = sf.title || curTitle;
-        curSubTitle = sf.subTitle || curSubTitle;
-        sIdx = i;
-      }
-      continue;
-    }
-
-    if (stepsFrame < sf.startFrame) break;
-
-    curTitle = sf.title || curTitle;
-    curSubTitle = sf.subTitle || curSubTitle;
-    sIdx = i;
-    fInScript = stepsFrame - sf.startFrame;
-    rawProg = Math.min(fInScript / sf.durationInFrames, 1);
-
-    switch (sf.type) {
-      case 'img': {
-        if (sf.img) {
-          if (curImg && sf.img !== curImg) {
-            prevImg = curImg;
-            imgChanged = true;
-          }
-          curImg = sf.img;
-          curIW = sf.imageWidth || baseW;
-          curIH = sf.imageHeight || baseH;
-        }
-        if (sf.cameraTarget) {
-          prevCam = { ...curCam };
-          curCam = { ...sf.cameraTarget };
-          pMoved =
-            Math.abs(prevCam.pointerLeft - curCam.pointerLeft) > 1 ||
-            Math.abs(prevCam.pointerTop - curCam.pointerTop) > 1;
-        }
-        spinning = false;
-        break;
-      }
-      case 'insight': {
-        if (sf.img) {
-          if (curImg && sf.img !== curImg) {
-            prevImg = curImg;
-            imgChanged = true;
-          }
-          curImg = sf.img;
-          curIW = sf.imageWidth || baseW;
-          curIH = sf.imageHeight || baseH;
-        }
-        const already = insights.some(
-          (ai) =>
-            ai.highlightRect?.left === sf.highlightElement?.rect.left &&
-            ai.searchArea?.left === sf.searchArea?.left,
-        );
-        if (!already) {
-          insights.push({
-            highlightRect: sf.highlightElement
-              ? {
-                  ...sf.highlightElement.rect,
-                  description: sf.highlightElement.description,
-                }
-              : undefined,
-            searchArea: sf.searchArea ? { ...sf.searchArea } : undefined,
-            alpha: 1,
-          });
-        }
-        if (sf.cameraTarget && sf.insightPhaseFrames !== undefined) {
-          const cameraStart = sf.startFrame + sf.insightPhaseFrames;
-          if (stepsFrame >= cameraStart) {
-            prevCam = { ...curCam };
-            curCam = { ...sf.cameraTarget };
-            const cFIn = stepsFrame - cameraStart;
-            const cDur = sf.cameraPhaseFrames || 1;
-            rawProg = Math.min(cFIn / cDur, 1);
-            pMoved =
-              Math.abs(prevCam.pointerLeft - curCam.pointerLeft) > 1 ||
-              Math.abs(prevCam.pointerTop - curCam.pointerTop) > 1;
-          }
-        }
-        spinning = false;
-        break;
-      }
-      case 'clear-insight': {
-        const alpha = 1 - rawProg;
-        insights = insights.map((ai) => ({ ...ai, alpha }));
-        if (stepsFrame >= sfEnd) insights = [];
-        spinning = false;
-        break;
-      }
-      case 'spinning-pointer': {
-        spinning = true;
-        spinMs = (fInScript / fps) * 1000;
-        break;
-      }
-      case 'sleep': {
-        spinning = false;
-        break;
-      }
-    }
-
-    if (stepsFrame >= sfEnd) {
-      if (sf.type !== 'clear-insight') imgChanged = false;
-      pMoved = false;
-      rawProg = 1;
-      // Commit camera position so subsequent scripts without camera
-      // don't interpolate back to a stale prevCam
-      if (sf.cameraTarget) {
-        prevCam = { ...curCam };
-      }
-    }
-  }
-
-  return {
-    img: curImg,
-    prevImg: imgChanged ? prevImg : null,
-    imageWidth: curIW,
-    imageHeight: curIH,
-    camera: curCam,
-    prevCamera: prevCam,
-    pointerMoved: pMoved,
-    imageChanged: imgChanged,
-    rawProgress: rawProg,
-    frameInScript: fInScript,
-    scriptIndex: sIdx,
-    title: curTitle,
-    subTitle: curSubTitle,
-    spinning,
-    spinningElapsedMs: spinMs,
-    currentPointerImg: ptrImg,
-    insights,
-  };
 }
 
 // ── cyberpunk background ──
@@ -388,13 +181,13 @@ function drawDataStream(
   ctx.restore();
 }
 
-function drawChromeTitleBar(
+function drawTitleBarBase(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   w: number,
+  h: number,
 ) {
-  const h = CHROME_TITLE_BAR_H;
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(x + CHROME_BORDER_RADIUS, y);
@@ -423,6 +216,16 @@ function drawChromeTitleBar(
     ctx.fillStyle = dot.color;
     ctx.fill();
   }
+}
+
+function drawChromeTitleBar(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+) {
+  const h = CHROME_TITLE_BAR_H;
+  drawTitleBarBase(ctx, x, y, w, h);
   const abx = x + 70,
     aby = y + h / 2 - 11,
     abw = w - 84;
@@ -450,34 +253,7 @@ function drawDesktopAppTitleBar(
   w: number,
 ) {
   const h = DESKTOP_APP_TITLE_BAR_H;
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(x + CHROME_BORDER_RADIUS, y);
-  ctx.lineTo(x + w - CHROME_BORDER_RADIUS, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + CHROME_BORDER_RADIUS);
-  ctx.lineTo(x + w, y + h);
-  ctx.lineTo(x, y + h);
-  ctx.lineTo(x, y + CHROME_BORDER_RADIUS);
-  ctx.quadraticCurveTo(x, y, x + CHROME_BORDER_RADIUS, y);
-  ctx.closePath();
-  const g = ctx.createLinearGradient(x, y, x, y + h);
-  g.addColorStop(0, '#2a2a35');
-  g.addColorStop(1, '#1e1e28');
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.restore();
-  ctx.strokeStyle = 'rgba(0,255,255,0.15)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(x, y + h);
-  ctx.lineTo(x + w, y + h);
-  ctx.stroke();
-  for (const dot of CHROME_DOTS) {
-    ctx.beginPath();
-    ctx.arc(x + dot.x, y + h / 2, 5, 0, Math.PI * 2);
-    ctx.fillStyle = dot.color;
-    ctx.fill();
-  }
+  drawTitleBarBase(ctx, x, y, w, h);
   ctx.font = '11px monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -613,16 +389,14 @@ function drawInsightOverlays(
   cameraTransform: { zoom: number; tx: number; ty: number },
   bx: number,
   contentY: number,
-  browserW: number,
-  contentH: number,
 ) {
   for (const insight of insights) {
     if (insight.alpha <= 0) continue;
     ctx.save();
     ctx.globalAlpha *= insight.alpha;
 
-    if (insight.highlightRect) {
-      const r = insight.highlightRect;
+    if (insight.highlightElement) {
+      const r = insight.highlightElement.rect;
       const rx =
         bx +
         (r.left * cameraTransform.zoom +
@@ -866,7 +640,7 @@ function drawSteps(
 
   const initAlpha = clamp(stepsFrame / 8, 0, 1);
   const crossAlpha = imageChanged
-    ? clamp((stepsFrame - (stepsFrame - fInScript)) / CROSSFADE_FRAMES, 0, 1)
+    ? clamp(fInScript / CROSSFADE_FRAMES, 0, 1)
     : 1;
   const blurPx = effectsMode ? getImageBlur(fInScript, imageChanged) : 0;
 
@@ -966,15 +740,7 @@ function drawSteps(
 
   // Insight overlays
   if (insights.length > 0) {
-    drawInsightOverlays(
-      ctx,
-      insights,
-      { zoom, tx, ty },
-      bx,
-      contentY,
-      browserW,
-      contentH,
-    );
+    drawInsightOverlays(ctx, insights, { zoom, tx, ty }, bx, contentY);
   }
 
   // Effects-only: glitch, trail, ripple, scanlines
@@ -1017,11 +783,32 @@ function drawSteps(
 
   // Cursor trail (effects only)
   if (effectsMode && hasPtrData && pointerMoved) {
+    const sf = scriptFrames[scriptIndex];
     const trailPositions: { x: number; y: number }[] = [];
-    for (let i = 0; i < 6; i++) {
-      const pastFrame = stepsFrame - i;
-      if (pastFrame < 0) break;
-      trailPositions.push({ x: sX, y: sY });
+    if (sf && sf.durationInFrames > 0) {
+      for (let i = 0; i < 6; i++) {
+        const pastLocal = fInScript - i;
+        if (pastLocal < 0) break;
+        const pastRaw = Math.min(pastLocal / sf.durationInFrames, 1);
+        const pastPT = Math.min(pastRaw / POINTER_PHASE, 1);
+        const pastPtrX = lerp(
+          prevCamera.pointerLeft,
+          camera.pointerLeft,
+          pastPT,
+        );
+        const pastPtrY = lerp(prevCamera.pointerTop, camera.pointerTop, pastPT);
+        const pastCT =
+          pastRaw <= POINTER_PHASE
+            ? 0
+            : Math.min((pastRaw - POINTER_PHASE) / (1 - POINTER_PHASE), 1);
+        const pastCamL = lerp(prevCamera.left, camera.left, pastCT);
+        const pastCamT = lerp(prevCamera.top, camera.top, pastCT);
+        const pastCamW = lerp(prevCamera.width, camera.width, pastCT);
+        const pastCamH = pastCamW * (imgH / imgW);
+        const tx2 = bx + ((pastPtrX - pastCamL) / pastCamW) * browserW;
+        const ty2 = contentY + ((pastPtrY - pastCamT) / pastCamH) * contentH;
+        trailPositions.push({ x: tx2, y: ty2 });
+      }
     }
     const trail = getCursorTrail(trailPositions);
     for (const pt of trail) {

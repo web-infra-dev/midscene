@@ -7,18 +7,23 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { mouseLoading, mousePointer } from '../../../utils';
-import type { FrameMap, ScriptFrame } from './frame-calculator';
+import { mouseLoading } from '../../../utils';
 import {
-  ANDROID_BORDER_RADIUS,
+  AndroidNavBar,
+  BatteryIcon,
+  HudCornerBracket,
+  SignalBarsIcon,
+  WifiIcon,
+} from './CyberOverlays';
+import { deriveFrameState } from './derive-frame-state';
+import type { FrameMap } from './frame-calculator';
+import {
   ANDROID_NAV_BAR_H,
   ANDROID_STATUS_BAR_H,
-  CHROME_BORDER_RADIUS,
   CHROME_DOTS,
   CHROME_TITLE_BAR_H,
   DESKTOP_APP_TITLE_BAR_H,
   type DeviceShellType,
-  IPHONE_BORDER_RADIUS,
   IPHONE_HOME_INDICATOR_H,
   IPHONE_STATUS_BAR_H,
   getBrowser3DTransform,
@@ -34,253 +39,6 @@ import {
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
-
-// ── Helpers to derive state from ScriptFrame timeline ──
-
-interface ActiveInsight {
-  highlightElement?: ScriptFrame['highlightElement'];
-  searchArea?: ScriptFrame['searchArea'];
-  alpha: number; // 1 = fully visible, 0 = cleared
-}
-
-interface CameraState {
-  left: number;
-  top: number;
-  width: number;
-  pointerLeft: number;
-  pointerTop: number;
-}
-
-interface DerivedState {
-  img: string;
-  imageWidth: number;
-  imageHeight: number;
-  prevImg: string | null;
-  camera: CameraState;
-  prevCamera: CameraState;
-  activeInsights: ActiveInsight[];
-  spinningPointer: boolean;
-  spinningElapsedMs: number;
-  currentPointerImg: string;
-  title: string;
-  subTitle: string;
-  taskId: string | undefined;
-  frameInScript: number;
-  scriptIndex: number;
-  imageChanged: boolean;
-  pointerMoved: boolean;
-  rawProgress: number;
-}
-
-function deriveState(
-  scriptFrames: ScriptFrame[],
-  frame: number,
-  imageWidth: number,
-  imageHeight: number,
-  fps: number,
-  autoZoom: boolean,
-): DerivedState {
-  const defaultCamera: CameraState = {
-    left: 0,
-    top: 0,
-    width: imageWidth,
-    pointerLeft: Math.round(imageWidth / 2),
-    pointerTop: Math.round(imageHeight / 2),
-  };
-
-  let currentImg = '';
-  let currentImageWidth = imageWidth;
-  let currentImageHeight = imageHeight;
-  let currentCamera = { ...defaultCamera };
-  let prevCamera = { ...defaultCamera };
-  let prevImg: string | null = null;
-  let activeInsights: ActiveInsight[] = [];
-  let isSpinning = false;
-  let spinningElapsedMs = 0;
-  let currentPointerImg = mousePointer;
-  let currentTitle = '';
-  let currentSubTitle = '';
-  let currentTaskId: string | undefined;
-  let frameInScript = 0;
-  let currentScriptIndex = 0;
-  let imageChanged = false;
-  let pointerMoved = false;
-  let rawProgress = 0;
-
-  for (let i = 0; i < scriptFrames.length; i++) {
-    const sf = scriptFrames[i];
-    const sfEnd = sf.startFrame + sf.durationInFrames;
-
-    if (sf.durationInFrames === 0) {
-      if (sf.startFrame <= frame) {
-        if (sf.type === 'pointer' && sf.pointerImg) {
-          currentPointerImg = sf.pointerImg;
-        }
-        currentTitle = sf.title || currentTitle;
-        currentSubTitle = sf.subTitle || currentSubTitle;
-        currentTaskId = sf.taskId ?? currentTaskId;
-        currentScriptIndex = i;
-      }
-      continue;
-    }
-
-    if (frame < sf.startFrame) {
-      break;
-    }
-
-    currentTitle = sf.title || currentTitle;
-    currentSubTitle = sf.subTitle || currentSubTitle;
-    currentTaskId = sf.taskId ?? currentTaskId;
-    currentScriptIndex = i;
-    frameInScript = frame - sf.startFrame;
-    rawProgress = Math.min(frameInScript / sf.durationInFrames, 1);
-
-    switch (sf.type) {
-      case 'img': {
-        if (sf.img) {
-          if (currentImg && sf.img !== currentImg) {
-            prevImg = currentImg;
-            imageChanged = true;
-          }
-          currentImg = sf.img;
-          currentImageWidth = sf.imageWidth || imageWidth;
-          currentImageHeight = sf.imageHeight || imageHeight;
-        }
-        if (sf.cameraTarget) {
-          prevCamera = { ...currentCamera };
-          currentCamera = {
-            left: sf.cameraTarget.left,
-            top: sf.cameraTarget.top,
-            width: sf.cameraTarget.width,
-            pointerLeft: sf.cameraTarget.pointerLeft,
-            pointerTop: sf.cameraTarget.pointerTop,
-          };
-          const pDiff =
-            Math.abs(prevCamera.pointerLeft - currentCamera.pointerLeft) > 1 ||
-            Math.abs(prevCamera.pointerTop - currentCamera.pointerTop) > 1;
-          pointerMoved = pDiff;
-        } else if (frame >= sfEnd) {
-          pointerMoved = false;
-          imageChanged = false;
-        }
-        isSpinning = false;
-        break;
-      }
-
-      case 'insight': {
-        if (sf.img) {
-          if (currentImg && sf.img !== currentImg) {
-            prevImg = currentImg;
-            imageChanged = true;
-          }
-          currentImg = sf.img;
-          currentImageWidth = sf.imageWidth || imageWidth;
-          currentImageHeight = sf.imageHeight || imageHeight;
-        }
-
-        const alreadyAdded = activeInsights.some(
-          (ai) =>
-            ai.highlightElement === sf.highlightElement &&
-            ai.searchArea === sf.searchArea,
-        );
-        if (!alreadyAdded) {
-          activeInsights.push({
-            highlightElement: sf.highlightElement,
-            searchArea: sf.searchArea,
-            alpha: 1,
-          });
-        }
-
-        if (sf.cameraTarget && sf.insightPhaseFrames !== undefined) {
-          const cameraStartFrame = sf.startFrame + sf.insightPhaseFrames;
-          if (frame >= cameraStartFrame) {
-            prevCamera = { ...currentCamera };
-            currentCamera = {
-              left: sf.cameraTarget.left,
-              top: sf.cameraTarget.top,
-              width: sf.cameraTarget.width,
-              pointerLeft: sf.cameraTarget.pointerLeft,
-              pointerTop: sf.cameraTarget.pointerTop,
-            };
-            const cameraFrameIn = frame - cameraStartFrame;
-            const cameraDur = sf.cameraPhaseFrames || 1;
-            rawProgress = Math.min(cameraFrameIn / cameraDur, 1);
-            pointerMoved =
-              Math.abs(prevCamera.pointerLeft - currentCamera.pointerLeft) >
-                1 ||
-              Math.abs(prevCamera.pointerTop - currentCamera.pointerTop) > 1;
-          }
-        }
-        isSpinning = false;
-        break;
-      }
-
-      case 'clear-insight': {
-        const alpha = 1 - rawProgress;
-        activeInsights = activeInsights.map((ai) => ({ ...ai, alpha }));
-        if (frame >= sfEnd) {
-          activeInsights = [];
-        }
-        isSpinning = false;
-        break;
-      }
-
-      case 'spinning-pointer': {
-        isSpinning = true;
-        spinningElapsedMs = (frameInScript / fps) * 1000;
-        break;
-      }
-
-      case 'sleep': {
-        isSpinning = false;
-        break;
-      }
-    }
-
-    if (frame >= sfEnd) {
-      if (sf.type !== 'clear-insight') {
-        imageChanged = false;
-      }
-      pointerMoved = false;
-      rawProgress = 1;
-      if (sf.cameraTarget) {
-        prevCamera = { ...currentCamera };
-      }
-    }
-  }
-
-  if (!currentImg) {
-    const firstImgScript = scriptFrames.find(
-      (sf) => sf.type === 'img' && sf.img,
-    );
-    if (firstImgScript) {
-      currentImg = firstImgScript.img!;
-      currentImageWidth = firstImgScript.imageWidth || imageWidth;
-      currentImageHeight = firstImgScript.imageHeight || imageHeight;
-    }
-  }
-
-  return {
-    img: currentImg,
-    imageWidth: currentImageWidth,
-    imageHeight: currentImageHeight,
-    prevImg: imageChanged ? prevImg : null,
-    camera: currentCamera,
-    prevCamera,
-    activeInsights,
-    spinningPointer: isSpinning,
-    spinningElapsedMs,
-    currentPointerImg,
-    title: currentTitle,
-    subTitle: currentSubTitle,
-    taskId: currentTaskId,
-    frameInScript,
-    scriptIndex: currentScriptIndex,
-    imageChanged,
-    pointerMoved,
-    rawProgress,
-  };
-}
 
 // ── Main Component ──
 
@@ -299,8 +57,8 @@ export const StepsTimeline: React.FC<{
   } = frameMap;
 
   const state = useMemo(
-    () => deriveState(scriptFrames, frame, baseImgW, baseImgH, fps, autoZoom),
-    [scriptFrames, frame, baseImgW, baseImgH, fps, autoZoom],
+    () => deriveFrameState(scriptFrames, frame, baseImgW, baseImgH, fps),
+    [scriptFrames, frame, baseImgW, baseImgH, fps],
   );
 
   if (!state.img) return null;
@@ -312,8 +70,8 @@ export const StepsTimeline: React.FC<{
     prevImg,
     camera,
     prevCamera,
-    activeInsights,
-    spinningPointer,
+    insights,
+    spinning: spinningPointer,
     spinningElapsedMs,
     currentPointerImg,
     title,
@@ -373,12 +131,11 @@ export const StepsTimeline: React.FC<{
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
   const ptrY = ((pointerTop - cameraTop) / camH) * contentH;
-  const hasPointerData =
+  const showCursor =
     camera.pointerLeft !== Math.round(imgW / 2) ||
     camera.pointerTop !== Math.round(imgH / 2) ||
     prevCamera.pointerLeft !== Math.round(imgW / 2) ||
     prevCamera.pointerTop !== Math.round(imgH / 2);
-  const showCursor = hasPointerData;
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -424,15 +181,52 @@ export const StepsTimeline: React.FC<{
       : [];
 
   const trailPositions = useMemo(() => {
-    if (!showCursor || !effects) return [];
+    if (!showCursor || !effects || !pointerMoved) return [];
     const positions: { x: number; y: number }[] = [];
+    const sf = scriptFrames[scriptIndex];
+    if (!sf || sf.durationInFrames === 0) return [];
     for (let i = 0; i < 6; i++) {
-      const pastFrame = frame - i;
-      if (pastFrame < 0) break;
-      positions.push({ x: ptrX, y: ptrY });
+      const pastLocalFrame = frameInScript - i;
+      if (pastLocalFrame < 0) break;
+      const pastRaw = Math.min(pastLocalFrame / sf.durationInFrames, 1);
+      const pastPT = Math.min(pastRaw / POINTER_PHASE, 1);
+      const pastPtrLeft =
+        prevCamera.pointerLeft +
+        (camera.pointerLeft - prevCamera.pointerLeft) * pastPT;
+      const pastPtrTop =
+        prevCamera.pointerTop +
+        (camera.pointerTop - prevCamera.pointerTop) * pastPT;
+      const pastCT =
+        pastRaw <= POINTER_PHASE
+          ? 0
+          : Math.min((pastRaw - POINTER_PHASE) / (1 - POINTER_PHASE), 1);
+      const pastCamLeft =
+        prevCamera.left + (camera.left - prevCamera.left) * pastCT;
+      const pastCamTop =
+        prevCamera.top + (camera.top - prevCamera.top) * pastCT;
+      const pastCamW =
+        prevCamera.width + (camera.width - prevCamera.width) * pastCT;
+      const pastCamH = pastCamW * (imgH / imgW);
+      const x = ((pastPtrLeft - pastCamLeft) / pastCamW) * browserW;
+      const y = ((pastPtrTop - pastCamTop) / pastCamH) * contentH;
+      positions.push({ x, y });
     }
     return positions;
-  }, [frame, showCursor, effects, ptrX, ptrY]);
+  }, [
+    frame,
+    showCursor,
+    effects,
+    pointerMoved,
+    scriptFrames,
+    scriptIndex,
+    frameInScript,
+    prevCamera,
+    camera,
+    imgW,
+    imgH,
+    browserW,
+    contentH,
+  ]);
 
   const trail =
     showCursor && pointerMoved && effects ? getCursorTrail(trailPositions) : [];
@@ -445,8 +239,8 @@ export const StepsTimeline: React.FC<{
 
   // ── Insight overlay rendering ──
   const renderInsightOverlays = () => {
-    if (activeInsights.length === 0) return null;
-    return activeInsights.map((insight, idx) => {
+    if (insights.length === 0) return null;
+    return insights.map((insight, idx) => {
       const overlays: React.ReactNode[] = [];
 
       if (insight.highlightElement) {
@@ -496,7 +290,11 @@ export const StepsTimeline: React.FC<{
     });
   };
 
-  // ── Shared content area rendering (used by all device shells in effects mode) ──
+  // ── Shared content area rendering ──
+  const cursorFilter = effects
+    ? 'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))'
+    : 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))';
+
   const renderContentArea = (w: number, h: number) => (
     <div
       style={{
@@ -504,7 +302,7 @@ export const StepsTimeline: React.FC<{
         height: h,
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: '#000',
+        backgroundColor: effects ? '#000' : undefined,
       }}
     >
       {imageChanged && prevImg && crossfadeAlpha < 1 && (
@@ -564,57 +362,59 @@ export const StepsTimeline: React.FC<{
         </div>
       </div>
 
-      {glitchSlices.map((slice, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: slice.offsetX,
-            top: `${slice.y * 100}%`,
-            width: w,
-            height: `${slice.height * 100}%`,
-            overflow: 'hidden',
-            opacity: 0.7,
-            mixBlendMode: 'screen',
-            pointerEvents: 'none',
-          }}
-        >
+      {effects &&
+        glitchSlices.map((slice, i) => (
           <div
+            key={i}
             style={{
               position: 'absolute',
-              inset: 0,
-              backgroundColor: 'rgba(0,255,255,0.15)',
-              transform: `translateX(${slice.rgbSplit}px)`,
+              left: slice.offsetX,
+              top: `${slice.y * 100}%`,
+              width: w,
+              height: `${slice.height * 100}%`,
+              overflow: 'hidden',
+              opacity: 0.7,
+              mixBlendMode: 'screen',
+              pointerEvents: 'none',
             }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: 'rgba(255,0,255,0.15)',
-              transform: `translateX(${-slice.rgbSplit}px)`,
-            }}
-          />
-        </div>
-      ))}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(0,255,255,0.15)',
+                transform: `translateX(${slice.rgbSplit}px)`,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(255,0,255,0.15)',
+                transform: `translateX(${-slice.rgbSplit}px)`,
+              }}
+            />
+          </div>
+        ))}
 
-      {trail.map((pt, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            left: pt.x - pt.size / 2,
-            top: pt.y - pt.size / 2,
-            width: pt.size,
-            height: pt.size,
-            borderRadius: '50%',
-            backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
-            boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
-            filter: `blur(${pt.size * 0.3}px)`,
-            pointerEvents: 'none',
-          }}
-        />
-      ))}
+      {effects &&
+        trail.map((pt, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: pt.x - pt.size / 2,
+              top: pt.y - pt.size / 2,
+              width: pt.size,
+              height: pt.size,
+              borderRadius: '50%',
+              backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
+              boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
+              filter: `blur(${pt.size * 0.3}px)`,
+              pointerEvents: 'none',
+            }}
+          />
+        ))}
 
       {spinningPointer && (
         <Img
@@ -627,8 +427,7 @@ export const StepsTimeline: React.FC<{
             height: 28,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
-            filter:
-              'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+            filter: cursorFilter,
           }}
         />
       )}
@@ -642,13 +441,12 @@ export const StepsTimeline: React.FC<{
             top: ptrY - 2,
             width: 22,
             height: 28,
-            filter:
-              'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))',
+            filter: cursorFilter,
           }}
         />
       )}
 
-      {ripple.active && (
+      {effects && ripple.active && (
         <div
           style={{
             position: 'absolute',
@@ -663,7 +461,7 @@ export const StepsTimeline: React.FC<{
           }}
         />
       )}
-      {ripple2.active && (
+      {effects && ripple2.active && (
         <div
           style={{
             position: 'absolute',
@@ -679,51 +477,53 @@ export const StepsTimeline: React.FC<{
         />
       )}
 
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage:
-            'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.05) 3px, rgba(0, 0, 0, 0.05) 4px)',
-          backgroundPositionY: scanOffset,
-          pointerEvents: 'none',
-        }}
-      />
+      {effects && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.05) 3px, rgba(0, 0, 0, 0.05) 4px)',
+            backgroundPositionY: scanOffset,
+            pointerEvents: 'none',
+          }}
+        />
+      )}
     </div>
   );
 
   // ── Device shell renderers ──
 
-  const renderDesktopBrowserTop = () => (
+  const trafficLights = CHROME_DOTS.map((dot) => (
     <div
+      key={dot.color}
       style={{
-        width: browserW,
-        height: CHROME_TITLE_BAR_H,
-        background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        paddingLeft: 0,
-        borderBottom: '1px solid rgba(0,255,255,0.15)',
-        position: 'relative',
-        flexShrink: 0,
+        position: 'absolute',
+        left: dot.x,
+        top: '50%',
+        marginTop: -5,
+        width: 10,
+        height: 10,
+        borderRadius: '50%',
+        backgroundColor: dot.color,
+        boxShadow: `0 0 4px ${dot.color}40`,
       }}
-    >
-      {CHROME_DOTS.map((dot) => (
-        <div
-          key={dot.color}
-          style={{
-            position: 'absolute',
-            left: dot.x,
-            top: '50%',
-            marginTop: -5,
-            width: 10,
-            height: 10,
-            borderRadius: '50%',
-            backgroundColor: dot.color,
-            boxShadow: `0 0 4px ${dot.color}40`,
-          }}
-        />
-      ))}
+    />
+  ));
+
+  const titleBarBaseStyle: React.CSSProperties = {
+    width: browserW,
+    background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
+    display: 'flex',
+    alignItems: 'center',
+    borderBottom: '1px solid rgba(0,255,255,0.15)',
+    position: 'relative',
+    flexShrink: 0,
+  };
+
+  const renderDesktopBrowserTop = () => (
+    <div style={{ ...titleBarBaseStyle, height: CHROME_TITLE_BAR_H }}>
+      {trafficLights}
       <div
         style={{
           position: 'absolute',
@@ -766,34 +566,8 @@ export const StepsTimeline: React.FC<{
   );
 
   const renderDesktopAppTop = () => (
-    <div
-      style={{
-        width: browserW,
-        height: DESKTOP_APP_TITLE_BAR_H,
-        background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        borderBottom: '1px solid rgba(0,255,255,0.15)',
-        position: 'relative',
-        flexShrink: 0,
-      }}
-    >
-      {CHROME_DOTS.map((dot) => (
-        <div
-          key={dot.color}
-          style={{
-            position: 'absolute',
-            left: dot.x,
-            top: '50%',
-            marginTop: -5,
-            width: 10,
-            height: 10,
-            borderRadius: '50%',
-            backgroundColor: dot.color,
-            boxShadow: `0 0 4px ${dot.color}40`,
-          }}
-        />
-      ))}
+    <div style={{ ...titleBarBaseStyle, height: DESKTOP_APP_TITLE_BAR_H }}>
+      {trafficLights}
       <span
         style={{
           position: 'absolute',
@@ -849,57 +623,9 @@ export const StepsTimeline: React.FC<{
         }}
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <svg width="16" height="12" viewBox="0 0 16 12">
-          <rect x="0" y="8" width="3" height="4" rx="0.5" fill="#fff" />
-          <rect x="4" y="5" width="3" height="7" rx="0.5" fill="#fff" />
-          <rect x="8" y="2" width="3" height="10" rx="0.5" fill="#fff" />
-          <rect x="12" y="0" width="3" height="12" rx="0.5" fill="#fff" />
-        </svg>
-        <svg width="14" height="12" viewBox="0 0 14 12">
-          <path
-            d="M7 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM3.5 8.5C4.5 7.2 5.7 6.5 7 6.5s2.5.7 3.5 2"
-            stroke="#fff"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <path
-            d="M1 5.5C2.8 3.2 4.8 2 7 2s4.2 1.2 6 3.5"
-            stroke="#fff"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-          />
-        </svg>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div
-            style={{
-              width: 22,
-              height: 11,
-              border: '1px solid rgba(255,255,255,0.5)',
-              borderRadius: 3,
-              padding: 1,
-            }}
-          >
-            <div
-              style={{
-                width: '80%',
-                height: '100%',
-                backgroundColor: '#34c759',
-                borderRadius: 1.5,
-              }}
-            />
-          </div>
-          <div
-            style={{
-              width: 2,
-              height: 5,
-              backgroundColor: 'rgba(255,255,255,0.5)',
-              borderRadius: '0 1px 1px 0',
-              marginLeft: 0.5,
-            }}
-          />
-        </div>
+        <SignalBarsIcon barWidth={3} gap={1} />
+        <WifiIcon />
+        <BatteryIcon />
       </div>
     </div>
   );
@@ -965,41 +691,14 @@ export const StepsTimeline: React.FC<{
         }}
       />
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <svg width="14" height="12" viewBox="0 0 14 12">
-          <rect x="0" y="8" width="2.5" height="4" rx="0.5" fill="#fff" />
-          <rect x="3.5" y="5" width="2.5" height="7" rx="0.5" fill="#fff" />
-          <rect x="7" y="2" width="2.5" height="10" rx="0.5" fill="#fff" />
-          <rect x="10.5" y="0" width="2.5" height="12" rx="0.5" fill="#fff" />
-        </svg>
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div
-            style={{
-              width: 20,
-              height: 10,
-              border: '1px solid rgba(255,255,255,0.5)',
-              borderRadius: 2,
-              padding: 1,
-            }}
-          >
-            <div
-              style={{
-                width: '75%',
-                height: '100%',
-                backgroundColor: '#fff',
-                borderRadius: 1,
-              }}
-            />
-          </div>
-          <div
-            style={{
-              width: 2,
-              height: 4,
-              backgroundColor: 'rgba(255,255,255,0.5)',
-              borderRadius: '0 1px 1px 0',
-              marginLeft: 0.5,
-            }}
-          />
-        </div>
+        <SignalBarsIcon barWidth={2.5} gap={1} />
+        <BatteryIcon
+          width={20}
+          height={10}
+          fillPercent={75}
+          fillColor="#fff"
+          borderRadius={2}
+        />
       </div>
     </div>
   );
@@ -1017,36 +716,7 @@ export const StepsTimeline: React.FC<{
         flexShrink: 0,
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 16 16">
-        <polygon
-          points="11,2 5,8 11,14"
-          fill="none"
-          stroke="rgba(255,255,255,0.6)"
-          strokeWidth="1.5"
-        />
-      </svg>
-      <svg width="16" height="16" viewBox="0 0 16 16">
-        <circle
-          cx="8"
-          cy="8"
-          r="6"
-          fill="none"
-          stroke="rgba(255,255,255,0.6)"
-          strokeWidth="1.5"
-        />
-      </svg>
-      <svg width="16" height="16" viewBox="0 0 16 16">
-        <rect
-          x="3"
-          y="3"
-          width="10"
-          height="10"
-          rx="1.5"
-          fill="none"
-          stroke="rgba(255,255,255,0.6)"
-          strokeWidth="1.5"
-        />
-      </svg>
+      <AndroidNavBar />
     </div>
   );
 
@@ -1221,43 +891,7 @@ export const StepsTimeline: React.FC<{
 
         {/* HUD corners */}
         {hudCorners.map((c, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: c.x - (c.flipX ? 16 : 0),
-              top: c.y - (c.flipY ? 16 : 0),
-              width: 16,
-              height: 16,
-              opacity: 0.3,
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: 16,
-                height: 1,
-                backgroundColor: 'rgba(0,255,255,0.6)',
-                transform: `scaleX(${c.flipX ? -1 : 1})`,
-                transformOrigin: c.flipX ? 'right' : 'left',
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: 0,
-                width: 1,
-                height: 16,
-                backgroundColor: 'rgba(0,255,255,0.6)',
-                transform: `scaleY(${c.flipY ? -1 : 1})`,
-                transformOrigin: c.flipY ? 'bottom' : 'top',
-              }}
-            />
-          </div>
+          <HudCornerBracket key={i} {...c} opacity={0.3} size={16} />
         ))}
       </AbsoluteFill>
     );
@@ -1271,168 +905,76 @@ export const StepsTimeline: React.FC<{
         opacity: initialFade,
       }}
     >
-      <div
-        style={{
-          width: compWidth,
-          height: compHeight,
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {imageChanged && prevImg && crossfadeAlpha < 1 && (
-          <div
-            style={{
-              position: 'absolute',
-              width: compWidth,
-              height: compHeight,
-              overflow: 'hidden',
-              opacity: 1 - crossfadeAlpha,
-            }}
-          >
-            <Img
-              src={prevImg}
-              style={{
-                width: compWidth,
-                height: compHeight,
-                transformOrigin: '0 0',
-                transform: transformStyle,
-              }}
-            />
-          </div>
-        )}
+      {renderContentArea(compWidth, compHeight)}
 
+      {/* AI prompt indicator (clean mode) */}
+      {(title || subTitle) && (
         <div
           style={{
             position: 'absolute',
-            width: compWidth,
-            height: compHeight,
-            overflow: 'hidden',
-            opacity: imageChanged ? crossfadeAlpha : 1,
+            bottom: 8,
+            left: 8,
+            right: 8,
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 6,
+            padding: '6px 10px',
+            background: 'rgba(255, 255, 255, 0.85)',
+            backdropFilter: 'blur(8px)',
+            borderRadius: 6,
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+            zIndex: 10,
           }}
         >
-          <Img
-            src={img}
+          <span
             style={{
-              width: compWidth,
-              height: compHeight,
-              transformOrigin: '0 0',
-              transform: transformStyle,
-            }}
-          />
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: compWidth,
-              height: compHeight,
-              transformOrigin: '0 0',
-              transform: transformStyle,
-              pointerEvents: 'none',
+              fontSize: 9,
+              fontWeight: 700,
+              color: '#fff',
+              background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
+              padding: '2px 5px',
+              borderRadius: 3,
+              letterSpacing: 0.5,
+              lineHeight: '14px',
+              flexShrink: 0,
+              marginTop: 2,
             }}
           >
-            {renderInsightOverlays()}
+            AI
+          </span>
+          <div style={{ minWidth: 0, overflow: 'hidden' }}>
+            {title && (
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {title}
+              </div>
+            )}
+            {subTitle && (
+              <div
+                style={{
+                  fontSize: 11,
+                  color: '#666',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginTop: 1,
+                }}
+              >
+                {subTitle}
+              </div>
+            )}
           </div>
         </div>
-
-        {spinningPointer && (
-          <Img
-            src={mouseLoading}
-            style={{
-              position: 'absolute',
-              left: ptrX - 11,
-              top: ptrY - 14,
-              width: 22,
-              height: 28,
-              transform: `rotate(${spinRotation}rad)`,
-              transformOrigin: 'center center',
-            }}
-          />
-        )}
-
-        {showCursor && !spinningPointer && (
-          <Img
-            src={currentPointerImg}
-            style={{
-              position: 'absolute',
-              left: ptrX - 3,
-              top: ptrY - 2,
-              width: 22,
-              height: 28,
-              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
-            }}
-          />
-        )}
-
-        {/* AI prompt indicator */}
-        {(title || subTitle) && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: 8,
-              left: 8,
-              right: 8,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 6,
-              padding: '6px 10px',
-              background: 'rgba(255, 255, 255, 0.85)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: 6,
-              border: '1px solid rgba(0, 0, 0, 0.08)',
-              boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
-              zIndex: 10,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                color: '#fff',
-                background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                padding: '2px 5px',
-                borderRadius: 3,
-                letterSpacing: 0.5,
-                lineHeight: '14px',
-                flexShrink: 0,
-                marginTop: 2,
-              }}
-            >
-              AI
-            </span>
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
-              {title && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#1a1a1a',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {title}
-                </div>
-              )}
-              {subTitle && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: '#666',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    marginTop: 1,
-                  }}
-                >
-                  {subTitle}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </AbsoluteFill>
   );
 };
