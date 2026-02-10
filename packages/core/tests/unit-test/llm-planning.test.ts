@@ -619,15 +619,15 @@ describe('parseXMLPlanningResponse', () => {
 <memory>User credentials are already filled</memory>
 <log>Click the login button</log>
 <error></error>
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {
   "locate": {
     "prompt": "The login button",
     "bbox": [100, 200, 300, 400]
   }
 }
-</action-param-json>
+</param>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -652,14 +652,14 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <log>Performing action</log>
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {
   "locate": {
     "prompt": "Button"
   }
 }
-</action-param-json>
+</param>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -681,7 +681,7 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <log>Task completed</log>
-<action-type>null</action-type>
+<action>null</action>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -692,7 +692,7 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse XML response without action-type', () => {
+  it('should parse XML response without action tag', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <log>Just logging</log>
@@ -711,12 +711,12 @@ describe('parseXMLPlanningResponse', () => {
     const xml = `
 <log>Attempting to recover</log>
 <error>Previous action failed</error>
-<action-type>Scroll</action-type>
-<action-param-json>
+<action>Scroll</action>
+<param>
 {
   "direction": "down"
 }
-</action-param-json>
+</param>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -737,7 +737,7 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <log>Waiting</log>
-<action-type>Wait</action-type>
+<action>Wait</action>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -758,15 +758,15 @@ describe('parseXMLPlanningResponse', () => {
   spanning multiple lines
 </thought>
 <log>Executing complex action</log>
-<action-type>Input</action-type>
-<action-param-json>
+<action>Input</action>
+<param>
 {
   "value": "test value",
   "locate": {
     "prompt": "input field"
   }
 }
-</action-param-json>
+</param>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -795,18 +795,18 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should throw error when action-param-json is invalid JSON', () => {
+  it('should throw error when param is invalid JSON', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <log>Action</log>
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {invalid json}
-</action-param-json>
+</param>
     `.trim();
 
     expect(() => parseXMLPlanningResponse(xml, modelFamily)).toThrow(
-      'Failed to parse action-param-json',
+      'Failed to parse action param',
     );
   });
 
@@ -814,7 +814,7 @@ describe('parseXMLPlanningResponse', () => {
     const modelFamily = 'doubao-vision';
     const xml = `
 <LOG>Case insensitive log</LOG>
-<ACTION-TYPE>Tap</ACTION-TYPE>
+<ACTION>Tap</ACTION>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);
@@ -828,14 +828,14 @@ describe('parseXMLPlanningResponse', () => {
     const xml = `
 <log>Click "Submit" button</log>
 <memory>Values: <100 & >50</memory>
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {
   "locate": {
     "prompt": "Button with & symbol"
   }
 }
-</action-param-json>
+</param>
     `.trim();
 
     const result = parseXMLPlanningResponse(xml, modelFamily);

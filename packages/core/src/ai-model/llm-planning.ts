@@ -39,8 +39,8 @@ export function parseXMLPlanningResponse(
   const memory = extractXMLTag(xmlString, 'memory');
   const log = extractXMLTag(xmlString, 'log') || '';
   const error = extractXMLTag(xmlString, 'error');
-  const actionType = extractXMLTag(xmlString, 'action-type');
-  const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
+  const actionType = extractXMLTag(xmlString, 'action');
+  const actionParamStr = extractXMLTag(xmlString, 'param');
 
   // Parse <complete> tag with success attribute
   const completeGoalRegex =
@@ -62,10 +62,10 @@ export function parseXMLPlanningResponse(
 
     if (actionParamStr) {
       try {
-        // Parse the JSON string in action-param-json
+        // Parse the JSON string in param
         param = safeParseJson(actionParamStr, modelFamily);
       } catch (e) {
-        throw new Error(`Failed to parse action-param-json: ${e}`);
+        throw new Error(`Failed to parse action param: ${e}`);
       }
     }
 

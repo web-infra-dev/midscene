@@ -265,9 +265,9 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 - Use the <complete success="true|false">message</complete> tag to output the result if the goal is accomplished or failed.
   - the 'success' attribute is required. No matter what actions were executed or what errors occurred during execution, if the instruction is fulfilled, set success="true". If the instruction is not fulfilled and cannot be fulfilled, set success="false".
   - the 'message' is the information that will be provided to the user. If the user asks for a specific format, strictly follow that.
-- If you output <complete>, do NOT output <action-type> or <action-param-json>. The task ends here.
+- If you output <complete>, do NOT output <action> or <param>. The task ends here.
 
-## Step 3: Determine Next Action (related tags: <log>, <action-type>, <action-param-json>, <error>)
+## Step 3: Determine Next Action (related tags: <log>, <action>, <param>, <error>)
 
 ONLY if the task is not complete: Think what the next action is according to the current screenshot.
 
@@ -298,15 +298,15 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 ### If there is some action to do ...
 
-- Use the <action-type> and <action-param-json> tags to output the action to be executed.
-- The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Use the <action> and <param> tags to output the action to be executed.
+- The <action> MUST be one of the supporting actions. 'complete' is NOT a valid action type.
 For example:
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {
   "locate": ${locateExample1}
 }
-</action-param-json>
+</param>
 
 ### If you think there is an error ...
 
@@ -317,7 +317,7 @@ For example:
 
 ### If there is no action to do ...
 
-- Don't output <action-type> or <action-param-json> if there is no action to do.
+- Don't output <action> or <param> if there is no action to do.
 
 ## Return Format
 
@@ -335,8 +335,8 @@ Return in XML format following this decision flow:
 **Path B: If the instruction is NOT fulfilled yet (Step 3)**
 <!-- Determine next action -->
 <log>...</log>
-<action-type>...</action-type>
-<action-param-json>...</action-param-json>
+<action>...</action>
+<param>...</param>
 
 <!-- OR if there's an error -->
 <error>...</error>
@@ -355,12 +355,12 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 **Your response:**
 <thought>The user wants me to fill out the registration form with specific values and return the email address. I can see the form has two fields: Name and Email. Both are currently empty. I should start by clicking on the Name field. Note: The instruction is to fill the form only (not submit), and return the email at the end.</thought>
 <log>Click on the Name field to start filling the form</log>
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {
   "locate": ${locateNameField}
 }
-</action-param-json>
+</param>
 
 ### Turn 2 - After clicking Name field
 
@@ -372,12 +372,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 <thought>The Name field is now focused. I need to type 'John' into this field. After this, I'll need to fill the Email field as well.</thought>
 <log>Typing 'John' into the Name field</log>
-<action-type>Input</action-type>
-<action-param-json>
+<action>Input</action>
+<param>
 {
   "value": "John"
 }
-</action-param-json>
+</param>
 
 ### Turn 3 - After entering name
 
@@ -389,12 +389,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 <thought>The Name field now shows 'John'. Next, I need to fill the Email field with 'john@example.com'. I'll click on the Email field first.</thought>
 <log>Moving to the Email field</log>
-<action-type>Tap</action-type>
-<action-param-json>
+<action>Tap</action>
+<param>
 {
   "locate": ${locateEmailField}
 }
-</action-param-json>
+</param>
 
 ### Turn 4 - After clicking Email field
 
@@ -406,12 +406,12 @@ The previous action has been executed, here is the latest screenshot. Please con
 **Your response:**
 <thought>The Email field is now focused. I'll enter 'john@example.com'. After this, both required fields will be filled and my task will be complete.</thought>
 <log>Typing email address into the Email field</log>
-<action-type>Input</action-type>
-<action-param-json>
+<action>Input</action>
+<param>
 {
   "value": "john@example.com"
 }
-</action-param-json>
+</param>
 
 ### Turn 5 - After entering email (Instruction fulfilled)
 

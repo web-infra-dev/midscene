@@ -102,9 +102,9 @@ describe('extractXMLTag', () => {
   });
 
   it('should handle hyphenated tag names', () => {
-    const xml = '<action-type>Tap</action-type>';
-    const result = extractXMLTag(xml, 'action-type');
-    expect(result).toBe('Tap');
+    const xml = '<data-json>{"key": "value"}</data-json>';
+    const result = extractXMLTag(xml, 'data-json');
+    expect(result).toBe('{"key": "value"}');
   });
 
   it('should handle self-contained content with angle brackets', () => {
@@ -154,7 +154,7 @@ Line 1
       const xml = `"Okay, let's see. The user's instruction is to hover over the left menu..."</think>
 <thought>The user's instruction is to hover over the left menu. In the screenshot, the left menu is the vertical navigation bar.</thought>
 <log>Hovering over the left menu bar</log>
-<action-type>Hover</action-type>`;
+<action>Hover</action>`;
       const thought = extractXMLTag(xml, 'thought');
       expect(thought).toBe(
         "The user's instruction is to hover over the left menu. In the screenshot, the left menu is the vertical navigation bar.",
@@ -166,11 +166,11 @@ Line 1
 The user wants to click a button.
 I should identify the button first.</think>
 <thought>User wants to click the submit button</thought>
-<action-type>Tap</action-type>
-<action-param-json>{"locate": {"prompt": "submit button"}}</action-param-json>`;
+<action>Tap</action>
+<param>{"locate": {"prompt": "submit button"}}</param>`;
       const thought = extractXMLTag(xml, 'thought');
-      const actionType = extractXMLTag(xml, 'action-type');
-      const actionParam = extractXMLTag(xml, 'action-param-json');
+      const actionType = extractXMLTag(xml, 'action');
+      const actionParam = extractXMLTag(xml, 'param');
       expect(thought).toBe('User wants to click the submit button');
       expect(actionType).toBe('Tap');
       expect(actionParam).toBe('{"locate": {"prompt": "submit button"}}');
@@ -180,7 +180,7 @@ I should identify the button first.</think>
       // Some models might output <thought> in their thinking section too
       const xml = `<think><thought>Internal reasoning...</thought></think>
 <thought>Actual response thought</thought>
-<action-type>Click</action-type>`;
+<action>Click</action>`;
       const thought = extractXMLTag(xml, 'thought');
       expect(thought).toBe('Actual response thought');
     });
@@ -188,10 +188,10 @@ I should identify the button first.</think>
     it('should handle real-world bad case with mixed think/content', () => {
       // Real bad case from the issue
       const xml = `"Okay, let's see. The user's instruction is to \\"仅执行 鼠标悬停在左侧菜单\\" which translates to \\"Only perform mouse hover over the left menu.\\" So I need to figure out where the left menu is on this screenshot.\\n\\nLooking at the image, there's a vertical sidebar on the left side of the screen. It has some icons, maybe a menu. The leftmost part of the screen shows a vertical strip with icons.</think>\\n<thought>The user's instruction is to hover over the left menu.</thought>\\n<log>Hovering over the left menu bar</log>
-<action-type>Hover</action-type>
-<action-param-json>{\\n  \\"locate\\": {\\n    \\"prompt\\": \\"Left vertical navigation menu bar\\",\\n  \\"bbox\\": [0, 0, 50, 999]\\n  }\\n}</action-param-json>`;
+<action>Hover</action>
+<param>{\\n  \\"locate\\": {\\n    \\"prompt\\": \\"Left vertical navigation menu bar\\",\\n  \\"bbox\\": [0, 0, 50, 999]\\n  }\\n}</param>`;
       const thought = extractXMLTag(xml, 'thought');
-      const actionType = extractXMLTag(xml, 'action-type');
+      const actionType = extractXMLTag(xml, 'action');
       expect(thought).toBe(
         "The user's instruction is to hover over the left menu.",
       );
@@ -203,7 +203,7 @@ I should identify the button first.</think>
 <think>Second thinking block with more analysis</think>
 <thought>The actual thought for the response</thought>
 <log>Performing action</log>
-<action-type>Scroll</action-type>`;
+<action>Scroll</action>`;
       const thought = extractXMLTag(xml, 'thought');
       const log = extractXMLTag(xml, 'log');
       expect(thought).toBe('The actual thought for the response');
@@ -213,26 +213,26 @@ I should identify the button first.</think>
     it('should handle unclosed think tag at the start', () => {
       const xml = `Some raw thinking without proper tags...</think>
 <thought>Clean thought content</thought>
-<action-type>Tap</action-type>`;
+<action>Tap</action>`;
       const thought = extractXMLTag(xml, 'thought');
       expect(thought).toBe('Clean thought content');
     });
 
     it('should handle incomplete tag followed by complete tag', () => {
-      // Case: ...<action-type>..incomplete...<action-type>Hover</action-type>
+      // Case: ...<action>..incomplete...<action>Hover</action>
       // Should extract "Hover" from the last complete tag pair
       const xml =
-        '...<action-type>..some incomplete content...<action-type>Hover</action-type>';
-      const result = extractXMLTag(xml, 'action-type');
+        '...<action>..some incomplete content...<action>Hover</action>';
+      const result = extractXMLTag(xml, 'action');
       expect(result).toBe('Hover');
     });
 
     it('should handle partial tag inside think block then complete tag', () => {
       // Model might output partial tags inside thinking, then complete tags after
-      const xml = `<think>analyzing...<action-type>partial</think>
+      const xml = `<think>analyzing...<action>partial</think>
 <thought>User wants to hover</thought>
-<action-type>Hover</action-type>`;
-      const actionType = extractXMLTag(xml, 'action-type');
+<action>Hover</action>`;
+      const actionType = extractXMLTag(xml, 'action');
       expect(actionType).toBe('Hover');
     });
 
