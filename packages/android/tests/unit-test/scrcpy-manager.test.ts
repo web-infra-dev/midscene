@@ -145,7 +145,6 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).spsHeader = Buffer.from('sps');
       (manager as any).lastRawKeyframe = Buffer.from('keyframe');
       (manager as any).isInitialized = true;
-      (manager as any).h264SearchConfigFn = () => {};
       (manager as any).keyframeResolvers = [() => {}];
       (manager as any).streamReader = { cancel: vi.fn() };
 
@@ -154,7 +153,6 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).spsHeader).toBeNull();
       expect((manager as any).lastRawKeyframe).toBeNull();
       expect((manager as any).isInitialized).toBe(false);
-      expect((manager as any).h264SearchConfigFn).toBeNull();
       expect((manager as any).keyframeResolvers).toEqual([]);
       expect((manager as any).videoStream).toBeNull();
       expect((manager as any).scrcpyClient).toBeNull();

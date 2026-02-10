@@ -12,9 +12,6 @@ const NAL_TYPE_SPS = 7; // Sequence Parameter Set
 const NAL_TYPE_PPS = 8; // Picture Parameter Set
 const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 
-// Annex B start code
-const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
-
 // Configuration defaults
 const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
 const DEFAULT_VIDEO_BIT_RATE = 8_000_000; // 8Mbps base rate, auto-scaled by adapter based on resolution
@@ -110,7 +107,6 @@ export class ScrcpyScreenshotManager {
   private keyframeResolvers: Array<(buf: Buffer) => void> = [];
   private lastRawKeyframe: Buffer | null = null;
   private videoResolution: { width: number; height: number } | null = null;
-  private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
   private streamReader: any = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
@@ -162,11 +158,8 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/adb-scrcpy'
       );
       const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { ScrcpyOptions3_1, DefaultServerPath, h264SearchConfiguration } =
+      const { ScrcpyOptions3_1, DefaultServerPath } =
         await import('@yume-chan/scrcpy');
-
-      // Cache h264SearchConfiguration for synchronous use in processFrame
-      this.h264SearchConfigFn = h264SearchConfiguration;
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
@@ -180,8 +173,8 @@ export class ScrcpyScreenshotManager {
         control: false,
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
-        sendFrameMeta: false,
-        videoCodecOptions: 'i-frame-interval=0',
+        sendFrameMeta: true,
+        videoCodecOptions: 'i-frame-interval=0,bitrate-mode=2',
       });
 
       this.scrcpyClient = await AdbScrcpyClient.start(
@@ -273,50 +266,31 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Process a single video frame.
-   * Caches the raw keyframe buffer (without SPS concat) to minimize per-frame overhead.
-   * Buffer.concat with SPS header is deferred to when the frame is actually consumed.
+   * Process a single video packet from the scrcpy stream.
+   * With sendFrameMeta: true, the stream emits properly framed packets:
+   * - "configuration" packets contain SPS/PPS header data
+   * - "data" packets contain complete video frames with correct boundaries
+   * This avoids the frame-splitting issue that occurs with sendFrameMeta: false
+   * at high resolutions where raw chunks may not align with frame boundaries.
    */
   private processFrame(packet: any): void {
-    const frameBuffer = Buffer.from(packet.data);
-    const actualKeyFrame = detectH264KeyFrame(frameBuffer);
-
-    if (actualKeyFrame && !this.spsHeader) {
-      this.extractSpsHeader(frameBuffer);
+    if (packet.type === 'configuration') {
+      // Configuration packet contains SPS/PPS in Annex B format
+      this.spsHeader = Buffer.from(packet.data);
+      debugScrcpy(`Received SPS/PPS configuration: ${this.spsHeader.length}B`);
+      return;
     }
 
-    if (actualKeyFrame && this.spsHeader) {
+    // Data packet - each packet is a complete frame
+    const frameBuffer = Buffer.from(packet.data);
+    const isKeyFrame = detectH264KeyFrame(frameBuffer);
+
+    if (isKeyFrame && this.spsHeader) {
       this.lastRawKeyframe = frameBuffer;
       if (this.keyframeResolvers.length > 0) {
         const combined = Buffer.concat([this.spsHeader, frameBuffer]);
         this.notifyKeyframeWaiters(combined);
       }
-    }
-  }
-
-  /**
-   * Extract SPS/PPS header from keyframe
-   */
-  private extractSpsHeader(frameBuffer: Buffer): void {
-    if (!this.h264SearchConfigFn) return;
-    try {
-      const config = this.h264SearchConfigFn(new Uint8Array(frameBuffer));
-      if (!config.sequenceParameterSet || !config.pictureParameterSet) {
-        return;
-      }
-
-      this.spsHeader = Buffer.concat([
-        START_CODE_4_BYTE,
-        Buffer.from(config.sequenceParameterSet),
-        START_CODE_4_BYTE,
-        Buffer.from(config.pictureParameterSet),
-      ]);
-
-      debugScrcpy(
-        `Extracted SPS/PPS: SPS=${config.sequenceParameterSet.length}B, PPS=${config.pictureParameterSet.length}B, total=${this.spsHeader.length}B`,
-      );
-    } catch (error) {
-      debugScrcpy(`Failed to extract SPS/PPS from keyframe: ${error}`);
     }
   }
 
@@ -580,7 +554,6 @@ export class ScrcpyScreenshotManager {
     this.spsHeader = null;
     this.lastRawKeyframe = null;
     this.isInitialized = false;
-    this.h264SearchConfigFn = null;
     this.keyframeResolvers = [];
 
     // Cancel reader first to stop consumeFramesLoop
