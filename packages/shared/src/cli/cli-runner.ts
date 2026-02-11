@@ -23,7 +23,7 @@ export class CLIError extends Error {
   }
 }
 
-function parseValue(raw: string): unknown {
+export function parseValue(raw: string): unknown {
   // JSON objects/arrays
   if (raw.startsWith('{') || raw.startsWith('[')) {
     try {
@@ -41,7 +41,7 @@ function parseValue(raw: string): unknown {
   return raw;
 }
 
-function parseCliArgs(args: string[]): Record<string, unknown> {
+export function parseCliArgs(args: string[]): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (let i = 0; i < args.length; i++) {
@@ -96,7 +96,7 @@ function outputResult(result: ToolResult): void {
   }
 }
 
-function removePrefix(name: string, prefix?: string): string {
+export function removePrefix(name: string, prefix?: string): string {
   if (prefix && name.startsWith(prefix)) {
     return name.slice(prefix.length);
   }
