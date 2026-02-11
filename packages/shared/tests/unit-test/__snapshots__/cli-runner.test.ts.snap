@@ -5,9 +5,10 @@ exports[`runToolsCLI > --help output matches snapshot 1`] = `
 Usage: test-cli <command> [options]
 
 Commands:
-  connect                        connect command
-  disconnect                     disconnect command
-  take_screenshot                take_screenshot command
+  connect                        Connect to a device for automation
+  disconnect                     Disconnect from the current device
+  take_screenshot                Capture a screenshot of the current screen
+  tap                            Tap on a specific element or coordinate on the screen
 
 Run "test-cli <command> --help" for more info."
 `;

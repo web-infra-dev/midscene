@@ -239,21 +239,49 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  function createDetailedMockTools() {
+    return {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'connect',
+          description: 'Connect to a device for automation',
+          schema: {
+            url: { description: 'The device URL to connect to' },
+            timeout: { description: 'Connection timeout in ms' },
+          },
+          handler: vi.fn(),
+        },
+        {
+          name: 'disconnect',
+          description: 'Disconnect from the current device',
+          schema: {},
+          handler: vi.fn(),
+        },
+        {
+          name: 'take_screenshot',
+          description: 'Capture a screenshot of the current screen',
+          schema: {
+            format: { description: 'Image format (png or jpg)' },
+          },
+          handler: vi.fn(),
+        },
+        {
+          name: 'tap',
+          description: 'Tap on a specific element or coordinate on the screen',
+          schema: {
+            locate: { description: 'Locator JSON to find the element' },
+            x: { description: 'X coordinate to tap' },
+            y: { description: 'Y coordinate to tap' },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+  }
+
   it('--help output matches snapshot', async () => {
-    const tools = createMockTools([
-      {
-        name: 'connect',
-        handler: async () => ({ content: [], isError: false }),
-      },
-      {
-        name: 'disconnect',
-        handler: async () => ({ content: [], isError: false }),
-      },
-      {
-        name: 'take_screenshot',
-        handler: async () => ({ content: [], isError: false }),
-      },
-    ]);
+    const tools = createDetailedMockTools();
     const lines: string[] = [];
     const consoleSpy = vi
       .spyOn(console, 'log')
@@ -268,21 +296,7 @@ describe('runToolsCLI', () => {
   });
 
   it('command --help output matches snapshot', async () => {
-    const tools = {
-      initTools: vi.fn().mockResolvedValue(undefined),
-      getToolDefinitions: vi.fn().mockReturnValue([
-        {
-          name: 'connect',
-          description: 'Connect to a device for automation',
-          schema: {
-            url: { description: 'The device URL to connect to' },
-            timeout: { description: 'Connection timeout in ms' },
-          },
-          handler: vi.fn(),
-        },
-      ]),
-    } as any;
-
+    const tools = createDetailedMockTools();
     const lines: string[] = [];
     const consoleSpy = vi
       .spyOn(console, 'log')
