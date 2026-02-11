@@ -555,20 +555,22 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement | undefined;
 
-          if (element && param.mode !== 'append') {
-            // Click and clear
+          if (element) {
+            // Always click to ensure focus
             const [x, y] = element.center;
             libnut.moveMouse(Math.round(x), Math.round(y));
             libnut.mouseClick('left');
             await sleep(INPUT_FOCUS_DELAY);
 
-            // Select all and delete
-            const modifier =
-              process.platform === 'darwin' ? 'command' : 'control';
-            libnut.keyTap('a', [modifier]);
-            await sleep(50);
-            libnut.keyTap('backspace');
-            await sleep(INPUT_CLEAR_DELAY);
+            if (param.mode !== 'append') {
+              // Select all and delete
+              const modifier =
+                process.platform === 'darwin' ? 'command' : 'control';
+              libnut.keyTap('a', [modifier]);
+              await sleep(50);
+              libnut.keyTap('backspace');
+              await sleep(INPUT_CLEAR_DELAY);
+            }
           }
 
           if (param.mode === 'clear') {
