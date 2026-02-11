@@ -2,15 +2,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CommandModule } from 'yargs';
-import type { GlobalOptions, Platform } from '../global-options';
-import { type CommandResult, printResult } from '../output';
+import type { Platform } from '../global-options';
 import { puppeteerBrowserManager } from '../session';
-import { resolveTargetProfile } from '../target-config';
 import { loadEnv } from '../cli-utils';
 
 type DoCommand = 'act' | 'query' | 'assert' | 'screenshot' | 'navigate';
 
-interface DoOptions extends GlobalOptions {
+interface DoOptions {
+  platform: Platform;
   bridge?: boolean;
   url?: string;
   device?: string;
@@ -56,7 +55,6 @@ async function createPlatformAgent(platform: Platform, opts: DoOptions) {
 
       const headless = !opts.headed;
       const { browser, reused } = await puppeteerBrowserManager.getOrLaunch({
-        noAutoConnect: opts.noAutoConnect,
         headless,
       });
       puppeteerBrowserManager.activeBrowser = browser;
@@ -67,7 +65,7 @@ async function createPlatformAgent(platform: Platform, opts: DoOptions) {
 
       if (opts.url) {
         page = await browser.newPage();
-        await page.goto(opts.url, { timeout: opts.timeout ?? 30000, waitUntil: 'domcontentloaded' });
+        await page.goto(opts.url, { timeout: 30000, waitUntil: 'domcontentloaded' });
       } else {
         const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
         page =
@@ -95,11 +93,19 @@ async function createPlatformAgent(platform: Platform, opts: DoOptions) {
   }
 }
 
+interface DoResult {
+  success: boolean;
+  message?: string;
+  result?: unknown;
+  screenshot?: string;
+  error?: string;
+}
+
 async function handleDoCommand(
   command: DoCommand,
   args: string | undefined,
   opts: DoOptions,
-): Promise<CommandResult> {
+): Promise<DoResult> {
   const platform = opts.platform;
   const agentOpts: DoOptions = {
     ...opts,
@@ -179,33 +185,19 @@ async function handleDoCommand(
   }
 }
 
-function resolveDoOptions(argv: Record<string, unknown>): DoOptions {
-  // Apply target profile overrides
-  let targetOverrides: Partial<DoOptions> = {};
-  if (argv.target) {
-    const profile = resolveTargetProfile(argv.target as string);
-    targetOverrides = {
-      platform: profile.platform ?? (argv.platform as Platform),
-      url: profile.url,
-      bridge: profile.bridge,
-      device: profile.device,
-      display: profile.display,
-    };
+function printResult(result: DoResult): void {
+  if (result.result !== undefined) {
+    console.log(JSON.stringify(result.result, null, 2));
   }
-
-  return {
-    platform: targetOverrides.platform ?? (argv.platform as Platform) ?? 'web',
-    target: argv.target as string | undefined,
-    timeout: argv.timeout as number | undefined,
-    log: argv.log as GlobalOptions['log'],
-    json: (argv.json as boolean) ?? false,
-    noAutoConnect: (argv.noAutoConnect as boolean) ?? false,
-    bridge: (argv.bridge as boolean) ?? targetOverrides.bridge ?? false,
-    url: (argv.url as string) ?? targetOverrides.url,
-    device: (argv.device as string) ?? targetOverrides.device,
-    display: (argv.display as string) ?? targetOverrides.display,
-    headed: (argv.headed as boolean) ?? false,
-  };
+  if (result.message) {
+    console.log(result.message);
+  }
+  if (result.screenshot) {
+    console.log(`Screenshot: ${result.screenshot}`);
+  }
+  if (result.error) {
+    console.error(`Error: ${result.error}`);
+  }
 }
 
 export const doCommand: CommandModule = {
@@ -255,18 +247,22 @@ export const doCommand: CommandModule = {
 
     const command = argv.command as DoCommand;
     const args = argv.args as string | undefined;
-    const opts = resolveDoOptions(argv as Record<string, unknown>);
+    const opts: DoOptions = {
+      platform: (argv.platform as Platform) ?? 'web',
+      bridge: (argv.bridge as boolean) ?? false,
+      url: argv.url as string | undefined,
+      device: argv.device as string | undefined,
+      display: argv.display as string | undefined,
+      headed: (argv.headed as boolean) ?? false,
+    };
 
     try {
       const result = await handleDoCommand(command, args, opts);
-      printResult(result, opts.json);
-      if (!result.success) {
-        process.exit(1);
-      }
-      process.exit(0);
+      printResult(result);
+      process.exit(result.success ? 0 : 1);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      printResult({ success: false, error: message }, opts.json);
+      console.error(`Error: ${message}`);
       process.exit(1);
     }
   },

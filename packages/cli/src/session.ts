@@ -14,7 +14,6 @@ export const puppeteerBrowserManager = {
   },
 
   async getOrLaunch(opts?: {
-    noAutoConnect?: boolean;
     headless?: boolean;
   }): Promise<{ browser: Browser; reused: boolean }> {
     if (existsSync(this.endpointFile)) {
@@ -28,10 +27,6 @@ export const puppeteerBrowserManager = {
       } catch {
         try { await unlink(this.endpointFile); } catch {}
       }
-    }
-
-    if (opts?.noAutoConnect) {
-      throw new Error('No active browser session. Use "midscene connect" first, or remove --no-auto-connect.');
     }
 
     const wsEndpoint = await this.launchDetachedChrome({ headless: opts?.headless });

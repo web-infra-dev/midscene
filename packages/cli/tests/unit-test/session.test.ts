@@ -69,14 +69,6 @@ describe('puppeteerBrowserManager', () => {
       });
       expect(result.reused).toBe(true);
     });
-
-    test('should throw when noAutoConnect is true and no session exists', async () => {
-      vi.mocked(existsSync).mockReturnValue(false);
-
-      await expect(
-        puppeteerBrowserManager.getOrLaunch({ noAutoConnect: true }),
-      ).rejects.toThrow('No active browser session');
-    });
   });
 
   describe('closeBrowser', () => {

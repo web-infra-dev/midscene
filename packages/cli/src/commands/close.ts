@@ -1,31 +1,26 @@
 import type { CommandModule } from 'yargs';
-import type { GlobalOptions, Platform } from '../global-options';
-import { type CommandResult, printResult } from '../output';
+import type { Platform } from '../global-options';
 import { puppeteerBrowserManager } from '../session';
-import { resolveTargetProfile } from '../target-config';
 import { loadEnv } from '../cli-utils';
 
-async function handleClose(platform: Platform, opts: GlobalOptions & { bridge?: boolean }): Promise<CommandResult> {
+async function handleClose(platform: Platform, bridge: boolean): Promise<string> {
   switch (platform) {
     case 'web': {
-      if (opts.bridge) {
-        return { success: true, message: 'Chrome Bridge sessions are managed by the extension' };
+      if (bridge) {
+        return 'Chrome Bridge sessions are managed by the extension';
       }
       await puppeteerBrowserManager.closeBrowser();
-      return { success: true, message: 'Browser closed' };
+      return 'Browser closed';
     }
 
-    case 'computer': {
-      return { success: true, message: 'Computer session does not require explicit close' };
-    }
+    case 'computer':
+      return 'Computer session does not require explicit close';
 
-    case 'android': {
-      return { success: true, message: 'Android session does not require explicit close' };
-    }
+    case 'android':
+      return 'Android session does not require explicit close';
 
-    case 'ios': {
-      return { success: true, message: 'iOS session does not require explicit close' };
-    }
+    case 'ios':
+      return 'iOS session does not require explicit close';
 
     default:
       throw new Error(`Unknown platform: ${platform}`);
@@ -47,32 +42,16 @@ export const closeCommand: CommandModule = {
   handler: async (argv) => {
     loadEnv();
 
-    let targetPlatform = argv.platform as Platform;
-    let bridge = (argv.bridge as boolean) ?? false;
-
-    if (argv.target) {
-      const profile = resolveTargetProfile(argv.target as string);
-      if (profile.platform) targetPlatform = profile.platform;
-      if (profile.bridge) bridge = profile.bridge;
-    }
-
-    const opts: GlobalOptions & { bridge?: boolean } = {
-      platform: targetPlatform ?? 'web',
-      target: argv.target as string | undefined,
-      timeout: argv.timeout as number | undefined,
-      log: argv.log as GlobalOptions['log'],
-      json: (argv.json as boolean) ?? false,
-      noAutoConnect: false,
-      bridge,
-    };
+    const platform = (argv.platform as Platform) ?? 'web';
+    const bridge = (argv.bridge as boolean) ?? false;
 
     try {
-      const result = await handleClose(opts.platform, opts);
-      printResult(result, opts.json);
+      const message = await handleClose(platform, bridge);
+      console.log(message);
       process.exit(0);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
-      printResult({ success: false, error: message }, opts.json);
+      console.error(`Error: ${message}`);
       process.exit(1);
     }
   },
