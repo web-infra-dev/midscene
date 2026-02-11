@@ -1,10 +1,26 @@
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { getDebug } from '@midscene/shared/logger';
+import dotenv from 'dotenv';
 import { glob } from 'glob';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs/yargs';
 import { defaultConfig } from './config-factory';
+
+export function loadEnv(options?: {
+  debug?: boolean;
+  override?: boolean;
+  verbose?: boolean;
+}) {
+  const envFile = join(process.cwd(), '.env');
+  if (!existsSync(envFile)) return;
+  if (options?.verbose) console.log(`   Env file: ${envFile}`);
+  dotenv.config({
+    path: envFile,
+    debug: options?.debug,
+    override: options?.override,
+  });
+}
 
 declare const __VERSION__: string;
 

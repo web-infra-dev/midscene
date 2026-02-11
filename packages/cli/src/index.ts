@@ -1,110 +1,99 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import dotenv from 'dotenv';
 import { version } from '../package.json';
 import { BatchRunner } from './batch-runner';
-import { matchYamlFiles, parseProcessArgs } from './cli-utils';
+import { loadEnv, matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
-import { runSkillCli } from './skill-cli';
+import { VALID_PLATFORMS, runPlatformCli } from './skill-cli';
 
-// Check if the first argument is a platform name
 const rawArgs = process.argv.slice(2);
-const PLATFORMS = ['computer', 'web', 'android', 'ios'];
-if (PLATFORMS.includes(rawArgs[0])) {
-  runSkillCli(rawArgs);
+if (VALID_PLATFORMS.includes(rawArgs[0] as (typeof VALID_PLATFORMS)[number])) {
+  runPlatformCli(rawArgs);
 } else {
+  Promise.resolve(
+    (async () => {
+      const { options, path, files: cmdFiles } = await parseProcessArgs();
 
-Promise.resolve(
-  (async () => {
-    const { options, path, files: cmdFiles } = await parseProcessArgs();
+      const welcome = `\nWelcome to @midscene/cli v${version}\n`;
+      console.log(welcome);
 
-    const welcome = `\nWelcome to @midscene/cli v${version}\n`;
-    console.log(welcome);
-
-    if (options.url) {
-      console.error(
-        'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
-      );
-      process.exit(1);
-    }
-
-    const configFile = options.config as string | undefined;
-
-    if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
-      console.error('No script path, files, or config provided');
-      process.exit(1);
-    }
-
-    // Extract new configuration options
-    const configOptions = {
-      concurrent: options.concurrent,
-      continueOnError: options['continue-on-error'],
-      summary: options.summary,
-      shareBrowserContext: options['share-browser-context'],
-      headed: options.headed,
-      keepWindow: options['keep-window'],
-      dotenvOverride: options['dotenv-override'],
-      dotenvDebug: options['dotenv-debug'],
-      web: options.web,
-      android: options.android,
-      ios: options.ios,
-      files: cmdFiles,
-    };
-
-    let config;
-
-    if (configFile) {
-      config = await createConfig(configFile, configOptions);
-      console.log(`   Config file: ${configFile}`);
-    } else if (cmdFiles && cmdFiles.length > 0) {
-      console.log('   Executing YAML files from --files argument...');
-      config = await createFilesConfig(cmdFiles, configOptions);
-    } else if (path) {
-      const files = await matchYamlFiles(path);
-      if (files.length === 0) {
-        console.error(`No yaml files found in ${path}`);
+      if (options.url) {
+        console.error(
+          'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
+        );
         process.exit(1);
       }
-      console.log('   Executing YAML files...');
-      config = await createFilesConfig(files, configOptions);
-    }
 
-    if (!config) {
-      console.error('Could not create a valid configuration.');
-      process.exit(1);
-    }
+      const configFile = options.config as string | undefined;
 
-    const dotEnvConfigFile = join(process.cwd(), '.env');
-    if (existsSync(dotEnvConfigFile)) {
-      console.log(`   Env file: ${dotEnvConfigFile}`);
-      dotenv.config({
-        path: dotEnvConfigFile,
+      if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
+        console.error('No script path, files, or config provided');
+        process.exit(1);
+      }
+
+      // Extract new configuration options
+      const configOptions = {
+        concurrent: options.concurrent,
+        continueOnError: options['continue-on-error'],
+        summary: options.summary,
+        shareBrowserContext: options['share-browser-context'],
+        headed: options.headed,
+        keepWindow: options['keep-window'],
+        dotenvOverride: options['dotenv-override'],
+        dotenvDebug: options['dotenv-debug'],
+        web: options.web,
+        android: options.android,
+        ios: options.ios,
+        files: cmdFiles,
+      };
+
+      let config;
+
+      if (configFile) {
+        config = await createConfig(configFile, configOptions);
+        console.log(`   Config file: ${configFile}`);
+      } else if (cmdFiles && cmdFiles.length > 0) {
+        console.log('   Executing YAML files from --files argument...');
+        config = await createFilesConfig(cmdFiles, configOptions);
+      } else if (path) {
+        const files = await matchYamlFiles(path);
+        if (files.length === 0) {
+          console.error(`No yaml files found in ${path}`);
+          process.exit(1);
+        }
+        console.log('   Executing YAML files...');
+        config = await createFilesConfig(files, configOptions);
+      }
+
+      if (!config) {
+        console.error('Could not create a valid configuration.');
+        process.exit(1);
+      }
+
+      loadEnv({
         debug: config.dotenvDebug,
         override: config.dotenvOverride,
+        verbose: true,
       });
-    }
 
-    const executor = new BatchRunner(config);
+      const executor = new BatchRunner(config);
 
-    await executor.run();
+      await executor.run();
 
-    const success = executor.printExecutionSummary();
+      const success = executor.printExecutionSummary();
 
-    if (config.keepWindow) {
-      // hang the process to keep the browser window open
-      setInterval(() => {
-        console.log('browser is still running, use ctrl+c to stop it');
-      }, 5000);
-    } else {
-      if (!success) {
-        process.exit(1);
+      if (config.keepWindow) {
+        // hang the process to keep the browser window open
+        setInterval(() => {
+          console.log('browser is still running, use ctrl+c to stop it');
+        }, 5000);
+      } else {
+        if (!success) {
+          process.exit(1);
+        }
+        process.exit(0);
       }
-      process.exit(0);
-    }
-  })().catch((e) => {
-    console.error(e);
-    process.exit(1);
-  }),
-);
-
+    })().catch((e) => {
+      console.error(e);
+      process.exit(1);
+    }),
+  );
 } // end of else branch for non-skill commands
