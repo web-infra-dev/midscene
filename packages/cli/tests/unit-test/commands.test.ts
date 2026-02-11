@@ -121,13 +121,13 @@ describe('connect command yargs builder', () => {
     expect(parsed.headed).toBe(true);
   });
 
-  test('should default headed to true', async () => {
+  test('should default headed to false', async () => {
     const yargs = (await import('yargs/yargs')).default;
     const cli = yargs([]);
     const built = (connectCommand.builder as Function)(cli);
     const parsed = await built.parse([]);
 
-    expect(parsed.headed).toBe(true);
+    expect(parsed.headed).toBe(false);
   });
 });
 
