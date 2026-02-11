@@ -1,99 +1,68 @@
-import { version } from '../package.json';
-import { BatchRunner } from './batch-runner';
-import { loadEnv, matchYamlFiles, parseProcessArgs } from './cli-utils';
-import { createConfig, createFilesConfig } from './config-factory';
-import { VALID_PLATFORMS, runPlatformCli } from './skill-cli';
+import { hideBin } from 'yargs/helpers';
+import yargs from 'yargs/yargs';
+import { closeCommand } from './commands/close';
+import { connectCommand } from './commands/connect';
+import { doCommand } from './commands/do';
+import { runCommand, runFromFallback } from './commands/run';
+import { addGlobalOptions } from './global-options';
 
-const rawArgs = process.argv.slice(2);
-if (VALID_PLATFORMS.includes(rawArgs[0] as (typeof VALID_PLATFORMS)[number])) {
-  runPlatformCli(rawArgs);
-} else {
-  Promise.resolve(
-    (async () => {
-      const { options, path, files: cmdFiles } = await parseProcessArgs();
+declare const __VERSION__: string;
 
-      const welcome = `\nWelcome to @midscene/cli v${version}\n`;
-      console.log(welcome);
+function isYamlPath(arg: string | undefined): boolean {
+  if (!arg) return false;
+  return /\.(ya?ml)$/i.test(arg) || arg.includes('*');
+}
 
-      if (options.url) {
-        console.error(
-          'the cli mode is no longer supported, please use yaml file instead. See https://midscenejs.com/automate-with-scripts-in-yaml for more information. Sorry for the inconvenience.',
-        );
-        process.exit(1);
-      }
+const cli = yargs(hideBin(process.argv))
+  .scriptName('midscene')
+  .version('version', 'Show version number', __VERSION__);
 
-      const configFile = options.config as string | undefined;
+addGlobalOptions(cli);
 
-      if (!configFile && !path && !(cmdFiles && cmdFiles.length > 0)) {
-        console.error('No script path, files, or config provided');
-        process.exit(1);
-      }
-
-      // Extract new configuration options
-      const configOptions = {
-        concurrent: options.concurrent,
-        continueOnError: options['continue-on-error'],
-        summary: options.summary,
-        shareBrowserContext: options['share-browser-context'],
-        headed: options.headed,
-        keepWindow: options['keep-window'],
-        dotenvOverride: options['dotenv-override'],
-        dotenvDebug: options['dotenv-debug'],
-        web: options.web,
-        android: options.android,
-        ios: options.ios,
-        files: cmdFiles,
-      };
-
-      let config;
-
-      if (configFile) {
-        config = await createConfig(configFile, configOptions);
-        console.log(`   Config file: ${configFile}`);
-      } else if (cmdFiles && cmdFiles.length > 0) {
-        console.log('   Executing YAML files from --files argument...');
-        config = await createFilesConfig(cmdFiles, configOptions);
-      } else if (path) {
-        const files = await matchYamlFiles(path);
-        if (files.length === 0) {
-          console.error(`No yaml files found in ${path}`);
-          process.exit(1);
-        }
-        console.log('   Executing YAML files...');
-        config = await createFilesConfig(files, configOptions);
-      }
-
-      if (!config) {
-        console.error('Could not create a valid configuration.');
-        process.exit(1);
-      }
-
-      loadEnv({
-        debug: config.dotenvDebug,
-        override: config.dotenvOverride,
-        verbose: true,
+cli
+  .command(doCommand)
+  .command(runCommand)
+  .command(connectCommand)
+  .command(closeCommand)
+  .command(
+    '$0 [path]',
+    false, // hidden — backward compat
+    (yargs) => {
+      return yargs.positional('path', {
+        describe: 'Path to YAML script (backward compat)',
+        type: 'string',
       });
-
-      const executor = new BatchRunner(config);
-
-      await executor.run();
-
-      const success = executor.printExecutionSummary();
-
-      if (config.keepWindow) {
-        // hang the process to keep the browser window open
-        setInterval(() => {
-          console.log('browser is still running, use ctrl+c to stop it');
-        }, 5000);
+    },
+    async (argv) => {
+      const path = argv.path as string | undefined;
+      if (path && isYamlPath(path)) {
+        await runFromFallback();
+      } else if (!path) {
+        // No args — show help
+        cli.showHelp();
       } else {
-        if (!success) {
-          process.exit(1);
-        }
-        process.exit(0);
+        console.error(`Unknown command: ${path}`);
+        console.error('Use "midscene --help" for usage information.');
+        process.exit(1);
       }
-    })().catch((e) => {
-      console.error(e);
-      process.exit(1);
-    }),
-  );
-} // end of else branch for non-skill commands
+    },
+  )
+  .usage(
+    `Midscene CLI - AI-powered automation
+
+Usage:
+  $0 <command> [options]
+  $0 <script.yaml>           (backward compat, same as: $0 run <script.yaml>)
+
+Homepage: https://midscenejs.com
+Github: https://github.com/web-infra-dev/midscene`,
+  )
+  .example('$0 do act "click the login button" -p web', 'Perform a browser action')
+  .example('$0 do screenshot -p computer', 'Capture desktop screenshot')
+  .example('$0 do query "what is the page title?"', 'Extract information')
+  .example('$0 run script.yaml --headed', 'Run YAML script with headed browser')
+  .example('$0 script.yaml', 'Backward compat: run YAML script')
+  .strict(false)
+  .help()
+  .wrap(yargs().terminalWidth())
+  .parse();
