@@ -27,9 +27,6 @@ import {
   ifPlanLocateParamIsBbox,
   matchElementFromCache,
   matchElementFromPlan,
-  transformLogicalElementToScreenshot,
-  transformLogicalRectToScreenshotRect,
-  transformScreenshotElementToLogical,
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
@@ -283,31 +280,14 @@ export class TaskBuilder {
           }
         }
 
-        // Transform coordinates from screenshot space to logical space if needed
-        // This is necessary when shrunkShotToLogicalRatio !== 1
-        const { shrunkShotToLogicalRatio } = uiContext;
-        if (shrunkShotToLogicalRatio === undefined) {
-          throw new Error(
-            'shrunkShotToLogicalRatio is not defined in Action task',
-          );
-        }
-        if (shrunkShotToLogicalRatio !== 1) {
-          debug(
-            `Transforming coordinates for action ${action.name} with shrunkShotToLogicalRatio=${shrunkShotToLogicalRatio}`,
-          );
-
-          for (const field of locateFields) {
-            if (param[field] && typeof param[field] === 'object') {
-              const element = param[field] as LocateResultElement;
-              if (element.center && element.rect) {
-                param[field] = transformScreenshotElementToLogical(
-                  element,
-                  shrunkShotToLogicalRatio,
-                );
-                debug(
-                  `Transformed ${field}: center ${element.center} -> ${param[field].center}`,
-                );
-              }
+        for (const field of locateFields) {
+          if (param[field] && typeof param[field] === 'object') {
+            const element = param[field] as LocateResultElement;
+            if (element.center && element.rect) {
+              param[field] = this.service.screenshotElementToLogical(
+                element,
+                uiContext,
+              );
             }
           }
         }
@@ -400,13 +380,6 @@ export class TaskBuilder {
 
         assert(uiContext, 'uiContext is required for Service task');
 
-        const { shrunkShotToLogicalRatio } = uiContext;
-
-        if (shrunkShotToLogicalRatio === undefined) {
-          throw new Error(
-            'shrunkShotToLogicalRatio is not defined in locate task',
-          );
-        }
 
         let locateDump: ServiceDump | undefined;
         let locateResult: LocateResultWithDump | undefined;
@@ -454,10 +427,7 @@ export class TaskBuilder {
         const elementFromXpath = rectFromXpath
           ? generateElementByRect(
               // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
-              transformLogicalRectToScreenshotRect(
-                rectFromXpath,
-                shrunkShotToLogicalRatio,
-              ),
+              this.service.logicalRectToScreenshot(rectFromXpath, uiContext),
               typeof param.prompt === 'string'
                 ? param.prompt
                 : param.prompt?.prompt || '',
@@ -485,9 +455,9 @@ export class TaskBuilder {
 
         // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
         const elementFromCache = elementFromCacheResult
-          ? transformLogicalElementToScreenshot(
+          ? this.service.logicalElementToScreenshot(
               elementFromCacheResult,
-              shrunkShotToLogicalRatio,
+              uiContext,
             )
           : undefined;
 
@@ -545,17 +515,10 @@ export class TaskBuilder {
               // When element comes from AI (isPlanHit or elementFromAiLocate), coordinates are in screenshot space
               // When element comes from xpath, coordinates are already in logical space
               let pointForCache: [number, number] = element.center;
-              if (shrunkShotToLogicalRatio !== 1) {
-                pointForCache = [
-                  Math.round(element.center[0] / shrunkShotToLogicalRatio),
-                  Math.round(element.center[1] / shrunkShotToLogicalRatio),
-                ];
-                debug(
-                  'Transformed coordinates for cacheFeatureForPoint: %o -> %o',
-                  element.center,
-                  pointForCache,
-                );
-              }
+              pointForCache = this.service.screenshotElementToLogical(
+                element,
+                uiContext,
+              ).center;
 
               const feature = await this.interface.cacheFeatureForPoint(
                 pointForCache,

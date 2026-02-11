@@ -12,6 +12,7 @@ import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  LocateResultElement,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
   Rect,
@@ -201,6 +202,68 @@ export default class Service {
       element: null,
       rect,
       dump,
+    };
+  }
+
+  screenshotElementToLogical(
+    element: LocateResultElement,
+    context: UIContext,
+  ): LocateResultElement {
+    const ratio = context.shrunkShotToLogicalRatio;
+    if (ratio === 1) {
+      return element;
+    }
+
+    return {
+      ...element,
+      center: [
+        Math.round(element.center[0] / ratio),
+        Math.round(element.center[1] / ratio),
+      ],
+      rect: {
+        left: Math.round(element.rect.left / ratio),
+        top: Math.round(element.rect.top / ratio),
+        width: Math.round(element.rect.width / ratio),
+        height: Math.round(element.rect.height / ratio),
+      },
+    };
+  }
+
+  logicalElementToScreenshot(
+    element: LocateResultElement,
+    context: UIContext,
+  ): LocateResultElement {
+    const ratio = context.shrunkShotToLogicalRatio;
+    if (ratio === 1) {
+      return element;
+    }
+
+    return {
+      ...element,
+      center: [
+        Math.round(element.center[0] * ratio),
+        Math.round(element.center[1] * ratio),
+      ],
+      rect: {
+        left: Math.round(element.rect.left * ratio),
+        top: Math.round(element.rect.top * ratio),
+        width: Math.round(element.rect.width * ratio),
+        height: Math.round(element.rect.height * ratio),
+      },
+    };
+  }
+
+  logicalRectToScreenshot(rect: Rect, context: UIContext): Rect {
+    const ratio = context.shrunkShotToLogicalRatio;
+    if (ratio === 1) {
+      return rect;
+    }
+
+    return {
+      left: Math.round(rect.left * ratio),
+      top: Math.round(rect.top * ratio),
+      width: Math.round(rect.width * ratio),
+      height: Math.round(rect.height * ratio),
     };
   }
 
