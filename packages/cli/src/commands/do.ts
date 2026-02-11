@@ -193,7 +193,7 @@ function printResult(result: DoResult): void {
     console.log(result.message);
   }
   if (result.screenshot) {
-    console.log(`Screenshot: ${result.screenshot}`);
+    console.log(`Screenshot after running: ${result.screenshot}`);
   }
   if (result.error) {
     console.error(`Error: ${result.error}`);
