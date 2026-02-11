@@ -94,8 +94,8 @@ export const connectCommand: CommandModule = {
       })
       .option('headed', {
         type: 'boolean',
-        default: false,
-        description: 'Run browser in headed mode (web Puppeteer only)',
+        default: true,
+        description: 'Run browser in headed mode (web Puppeteer only, default is headed)',
       })
       .example('$0 connect -p web --headed', 'Start a headed browser session')
       .example('$0 connect -p android --device emulator-5554', 'Connect to Android device');
