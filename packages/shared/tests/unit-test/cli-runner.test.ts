@@ -239,6 +239,65 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  it('--help output matches snapshot', async () => {
+    const tools = createMockTools([
+      {
+        name: 'connect',
+        handler: async () => ({ content: [], isError: false }),
+      },
+      {
+        name: 'disconnect',
+        handler: async () => ({ content: [], isError: false }),
+      },
+      {
+        name: 'take_screenshot',
+        handler: async () => ({ content: [], isError: false }),
+      },
+    ]);
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: any[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'test-cli', { argv: ['--help'] });
+
+    expect(lines.join('\n')).toMatchSnapshot();
+    consoleSpy.mockRestore();
+  });
+
+  it('command --help output matches snapshot', async () => {
+    const tools = {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'connect',
+          description: 'Connect to a device for automation',
+          schema: {
+            url: { description: 'The device URL to connect to' },
+            timeout: { description: 'Connection timeout in ms' },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: any[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['connect', '--help'],
+    });
+
+    expect(lines.join('\n')).toMatchSnapshot();
+    consoleSpy.mockRestore();
+  });
+
   it('throws CLIError for unknown command', async () => {
     const tools = createMockTools([
       {

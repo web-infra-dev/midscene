@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`runToolsCLI > --help output matches snapshot 1`] = `
+"
+Usage: test-cli <command> [options]
+
+Commands:
+  connect                        connect command
+  disconnect                     disconnect command
+  take_screenshot                take_screenshot command
+
+Run "test-cli <command> --help" for more info."
+`;
+
+exports[`runToolsCLI > command --help output matches snapshot 1`] = `
+"
+Usage: test-cli connect [options]
+
+Connect to a device for automation
+
+Options:
+  --url                  The device URL to connect to
+  --timeout              Connection timeout in ms"
+`;
