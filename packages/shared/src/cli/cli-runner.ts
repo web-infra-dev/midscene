@@ -1,5 +1,6 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import dotenv from 'dotenv';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
 import type { ToolDefinition, ToolResult, ToolResultContent } from '../mcp/types';
 
@@ -135,6 +136,12 @@ export async function runToolsCLI(
   scriptName: string,
   options?: CLIRunnerOptions,
 ): Promise<void> {
+  // Load .env from cwd before any tool initialization
+  const envFile = join(process.cwd(), '.env');
+  if (existsSync(envFile)) {
+    dotenv.config({ path: envFile });
+  }
+
   await tools.initTools();
 
   const commands: CLICommand[] = tools.getToolDefinitions().map((def) => ({

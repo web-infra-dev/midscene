@@ -1363,6 +1363,9 @@ importers:
       debug:
         specifier: 4.4.0
         version: 4.4.0
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
       express:
         specifier: ^4.21.2
         version: 4.21.2
@@ -1391,9 +1394,6 @@ importers:
       '@ui-tars/shared':
         specifier: 1.2.0
         version: 1.2.0
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
       openai:
         specifier: 6.3.0
         version: 6.3.0(ws@8.18.3)(zod@3.24.3)
