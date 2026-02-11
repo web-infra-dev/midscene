@@ -1,97 +1,9 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import type { CommandModule } from 'yargs';
-import type { Platform } from '../global-options';
-import { puppeteerBrowserManager } from '../session';
+import { type AgentOptions, captureScreenshot, createPlatformAgent, destroyAgent } from '../agent-factory';
 import { loadEnv } from '../cli-utils';
+import type { Platform } from '../global-options';
 
 type DoCommand = 'act' | 'query' | 'assert' | 'screenshot' | 'navigate';
-
-interface DoOptions {
-  platform: Platform;
-  bridge?: boolean;
-  url?: string;
-  device?: string;
-  display?: string;
-  headed?: boolean;
-}
-
-async function saveScreenshot(base64: string): Promise<string> {
-  const dir = join(tmpdir(), 'midscene-screenshots');
-  await mkdir(dir, { recursive: true });
-  const filename = `screenshot-${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
-  const filepath = join(dir, filename);
-
-  const raw = base64.replace(/^data:image\/\w+;base64,/, '');
-  await writeFile(filepath, Buffer.from(raw, 'base64'));
-  return filepath;
-}
-
-async function captureScreenshot(agent: { page?: { screenshotBase64?: () => Promise<string> } }): Promise<string | undefined> {
-  const base64 = await agent.page?.screenshotBase64?.();
-  return base64 ? saveScreenshot(base64) : undefined;
-}
-
-async function createPlatformAgent(platform: Platform, opts: DoOptions) {
-  switch (platform) {
-    case 'computer': {
-      const { agentFromComputer } = await import('@midscene/computer');
-      return agentFromComputer(
-        opts.display ? { displayId: opts.display } : undefined,
-      );
-    }
-    case 'web': {
-      if (opts.bridge) {
-        const { AgentOverChromeBridge } = await import('@midscene/web/bridge-mode');
-        const agent = new AgentOverChromeBridge({ closeConflictServer: true });
-        if (opts.url) {
-          await agent.connectNewTabWithUrl(opts.url);
-        } else {
-          await agent.connectCurrentTab();
-        }
-        return agent;
-      }
-
-      const headless = !opts.headed;
-      const { browser, reused } = await puppeteerBrowserManager.getOrLaunch({
-        headless,
-      });
-      puppeteerBrowserManager.activeBrowser = browser;
-      const pages = await browser.pages();
-
-      const { PuppeteerAgent } = await import('@midscene/web/puppeteer');
-      let page: import('puppeteer').Page;
-
-      if (opts.url) {
-        page = await browser.newPage();
-        await page.goto(opts.url, { timeout: 30000, waitUntil: 'domcontentloaded' });
-      } else {
-        const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
-        page =
-          webPages.length > 0
-            ? webPages[webPages.length - 1]
-            : pages[pages.length - 1] || (await browser.newPage());
-
-        if (reused) {
-          await page.bringToFront();
-        }
-      }
-
-      return new PuppeteerAgent(page);
-    }
-    case 'android': {
-      const { agentFromAdbDevice } = await import('@midscene/android');
-      return agentFromAdbDevice(opts.device);
-    }
-    case 'ios': {
-      const { agentFromWebDriverAgent } = await import('@midscene/ios');
-      return agentFromWebDriverAgent();
-    }
-    default:
-      throw new Error(`Unknown platform: ${platform}`);
-  }
-}
 
 interface DoResult {
   success: boolean;
@@ -104,15 +16,14 @@ interface DoResult {
 async function handleDoCommand(
   command: DoCommand,
   args: string | undefined,
-  opts: DoOptions,
+  opts: AgentOptions,
 ): Promise<DoResult> {
-  const platform = opts.platform;
-  const agentOpts: DoOptions = {
+  const agentOpts: AgentOptions = {
     ...opts,
     url: command === 'navigate' ? args : opts.url,
   };
 
-  const agent = await createPlatformAgent(platform, agentOpts);
+  const agent = await createPlatformAgent(opts.platform, agentOpts);
 
   try {
     switch (command) {
@@ -176,12 +87,7 @@ async function handleDoCommand(
         throw new Error(`Unknown do command: ${command}`);
     }
   } finally {
-    const keepBrowserAlive = platform === 'web' && !opts.bridge;
-    if (keepBrowserAlive) {
-      puppeteerBrowserManager.disconnect();
-    } else {
-      try { await agent.destroy(); } catch {}
-    }
+    destroyAgent(opts.platform, agent, opts.bridge);
   }
 }
 
@@ -247,7 +153,7 @@ export const doCommand: CommandModule = {
 
     const command = argv.command as DoCommand;
     const args = argv.args as string | undefined;
-    const opts: DoOptions = {
+    const opts: AgentOptions = {
       platform: (argv.platform as Platform) ?? 'web',
       bridge: (argv.bridge as boolean) ?? false,
       url: argv.url as string | undefined,

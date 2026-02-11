@@ -1,74 +1,7 @@
 import type { CommandModule } from 'yargs';
-import type { Platform } from '../global-options';
-import { puppeteerBrowserManager } from '../session';
+import { type AgentOptions, createPlatformAgent, destroyAgent } from '../agent-factory';
 import { loadEnv } from '../cli-utils';
-
-interface ConnectOptions {
-  platform: Platform;
-  bridge?: boolean;
-  url?: string;
-  device?: string;
-  display?: string;
-  headed?: boolean;
-}
-
-async function handleConnect(opts: ConnectOptions): Promise<string> {
-  const platform = opts.platform;
-
-  switch (platform) {
-    case 'web': {
-      if (opts.bridge) {
-        const { AgentOverChromeBridge } = await import('@midscene/web/bridge-mode');
-        const agent = new AgentOverChromeBridge({ closeConflictServer: true });
-        if (opts.url) {
-          await agent.connectNewTabWithUrl(opts.url);
-        } else {
-          await agent.connectCurrentTab();
-        }
-        await agent.destroy();
-        return 'Connected to Chrome Bridge';
-      }
-
-      const headless = !opts.headed;
-      const { browser } = await puppeteerBrowserManager.getOrLaunch({ headless });
-      puppeteerBrowserManager.activeBrowser = browser;
-
-      if (opts.url) {
-        const page = await browser.newPage();
-        await page.goto(opts.url, { timeout: 30000, waitUntil: 'domcontentloaded' });
-      }
-
-      puppeteerBrowserManager.disconnect();
-      return 'Connected to Puppeteer browser (session kept alive)';
-    }
-
-    case 'computer': {
-      const { agentFromComputer } = await import('@midscene/computer');
-      const agent = await agentFromComputer(
-        opts.display ? { displayId: opts.display } : undefined,
-      );
-      try { await agent.destroy(); } catch {}
-      return 'Connected to computer';
-    }
-
-    case 'android': {
-      const { agentFromAdbDevice } = await import('@midscene/android');
-      const agent = await agentFromAdbDevice(opts.device);
-      try { await agent.destroy(); } catch {}
-      return `Connected to Android${opts.device ? ` (${opts.device})` : ''}`;
-    }
-
-    case 'ios': {
-      const { agentFromWebDriverAgent } = await import('@midscene/ios');
-      const agent = await agentFromWebDriverAgent();
-      try { await agent.destroy(); } catch {}
-      return 'Connected to iOS';
-    }
-
-    default:
-      throw new Error(`Unknown platform: ${platform}`);
-  }
-}
+import type { Platform } from '../global-options';
 
 export const connectCommand: CommandModule = {
   command: 'connect',
@@ -103,7 +36,7 @@ export const connectCommand: CommandModule = {
   handler: async (argv) => {
     loadEnv();
 
-    const opts: ConnectOptions = {
+    const opts: AgentOptions = {
       platform: (argv.platform as Platform) ?? 'web',
       bridge: (argv.bridge as boolean) ?? false,
       url: argv.url as string | undefined,
@@ -113,8 +46,11 @@ export const connectCommand: CommandModule = {
     };
 
     try {
-      const message = await handleConnect(opts);
-      console.log(message);
+      const agent = await createPlatformAgent(opts.platform, opts);
+      destroyAgent(opts.platform, agent, opts.bridge);
+
+      const label = opts.device ? `${opts.platform} (${opts.device})` : opts.platform;
+      console.log(`Connected to ${label}`);
       process.exit(0);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : String(e);
