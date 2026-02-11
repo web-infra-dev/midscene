@@ -293,8 +293,7 @@ export function generateToolsFromActionSpace(
 }
 
 /**
- * Generate common tools (screenshot, waitFor)
- * SIMPLIFIED: Only keep essential helper tools, removed assert
+ * Generate common tools (screenshot, act)
  */
 export function generateCommonTools(
   getAgent: () => Promise<BaseAgent>,
@@ -321,6 +320,35 @@ export function generateCommonTools(
           return createErrorResult(
             `Failed to capture screenshot: ${errorMessage}`,
           );
+        }
+      },
+    },
+    {
+      name: 'act',
+      description:
+        'Execute a natural language action. The AI will plan and perform multi-step operations in a single invocation, useful for transient UI interactions (e.g., Spotlight, dropdown menus) that disappear between separate commands.',
+      schema: {
+        prompt: z
+          .string()
+          .describe(
+            'Natural language description of the action to perform, e.g. "press Command+Space, type Safari, press Enter"',
+          ),
+      },
+      handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
+        const prompt = args.prompt as string;
+        try {
+          const agent = await getAgent();
+          if (!agent.aiAction) {
+            return createErrorResult(
+              'act is not supported by this agent',
+            );
+          }
+          await agent.aiAction(prompt);
+          return await captureScreenshotResult(agent, 'act');
+        } catch (error: unknown) {
+          const errorMessage = getErrorMessage(error);
+          console.error('Error executing act:', errorMessage);
+          return createErrorResult(`Failed to execute act: ${errorMessage}`);
         }
       },
     },
