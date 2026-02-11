@@ -827,7 +827,6 @@ describe('parseXMLPlanningResponse', () => {
     expect(result.action?.type).toBe('Tap');
   });
 
-
   it('should parse half-open action-type tag without closing tag', () => {
     const modelFamily = 'doubao-vision';
     const xml = `

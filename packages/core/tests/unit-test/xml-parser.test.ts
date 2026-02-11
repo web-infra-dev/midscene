@@ -236,7 +236,6 @@ I should identify the button first.</think>
       expect(actionType).toBe('Hover');
     });
 
-
     it('should extract content from half-open tag when closing tag is missing', () => {
       const xml = `<thought>Need to input value</thought>
 <log>Typing in field</log>
