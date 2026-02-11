@@ -121,6 +121,18 @@ const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
 };
 
 /**
+ * Type a string using AppleScript (macOS only)
+ * More reliable than libnut.typeString for system overlays (e.g. Spotlight/Raycast)
+ */
+function typeStringViaAppleScript(text: string): void {
+  // Escape backslashes and double quotes for AppleScript string
+  const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const script = `tell application "System Events" to keystroke "${escaped}"`;
+  debugDevice('typeStringViaAppleScript', { text });
+  execSync(`osascript -e '${script}'`);
+}
+
+/**
  * Send a key press using AppleScript (macOS only)
  * More reliable than libnut for TUI applications like Bubble Tea
  */
@@ -427,8 +439,13 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       await sleep(50);
 
       // 3. Simulate paste shortcut
-      const modifier = process.platform === 'darwin' ? 'command' : 'control';
-      libnut.keyTap('v', [modifier]);
+      if (this.useAppleScript) {
+        sendKeyViaAppleScript('v', ['command']);
+      } else {
+        const modifier =
+          process.platform === 'darwin' ? 'command' : 'control';
+        libnut.keyTap('v', [modifier]);
+      }
       await sleep(100);
     } finally {
       // 4. Restore old clipboard content
@@ -443,15 +460,24 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   /**
    * Smart type string with platform-specific strategy
-   * - macOS: Always use libnut (native support for non-ASCII)
+   * - macOS + AppleScript: Use AppleScript keystroke for ASCII, clipboard for non-ASCII
+   * - macOS + libnut: Use libnut directly (native support for non-ASCII)
    * - Windows/Linux: Use clipboard for non-ASCII characters
    */
   private async smartTypeString(text: string): Promise<void> {
     assert(libnut, 'libnut not initialized');
 
-    // macOS: use libnut directly (native Chinese support)
     if (process.platform === 'darwin') {
-      libnut.typeString(text);
+      if (this.useAppleScript) {
+        // AppleScript keystroke doesn't handle non-ASCII well
+        if (this.shouldUseClipboardForText(text)) {
+          await this.typeViaClipboard(text);
+        } else {
+          typeStringViaAppleScript(text);
+        }
+      } else {
+        libnut.typeString(text);
+      }
       return;
     }
 
