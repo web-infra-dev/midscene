@@ -1,3 +1,4 @@
+import { transformBboxToLogical } from '@/agent/utils';
 import type {
   PlanningAIResponse,
   PlanningAction,
@@ -307,6 +308,34 @@ export async function uiTarsPlanning(
       JSON.stringify(res.content, undefined, 2),
       res.usage,
     );
+  }
+
+  // Transform all bbox coordinates from screenshot space to logical space
+  const { shrunkShotToLogicalRatio } = context;
+  if (shrunkShotToLogicalRatio !== 1) {
+    for (const action of transformActions) {
+      const param = action.param as Record<string, any>;
+      // Handle locate.bbox
+      if (param?.locate?.bbox) {
+        param.locate.bbox = transformBboxToLogical(
+          param.locate.bbox,
+          shrunkShotToLogicalRatio,
+        );
+      }
+      // Handle from.bbox and to.bbox (DragAndDrop)
+      if (param?.from?.bbox) {
+        param.from.bbox = transformBboxToLogical(
+          param.from.bbox,
+          shrunkShotToLogicalRatio,
+        );
+      }
+      if (param?.to?.bbox) {
+        param.to.bbox = transformBboxToLogical(
+          param.to.bbox,
+          shrunkShotToLogicalRatio,
+        );
+      }
+    }
   }
 
   debug('transformActions', JSON.stringify(transformActions, null, 2));

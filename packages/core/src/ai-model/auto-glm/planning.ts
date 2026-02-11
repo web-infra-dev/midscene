@@ -1,3 +1,4 @@
+import { transformBboxToLogical } from '@/agent/utils';
 import type { PlanningAIResponse, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -64,6 +65,21 @@ export async function autoGLMPlanning(
     const parsedAction = parseAction(parsedResponse);
     debug('Parsed action object:', parsedAction);
     transformedActions = transformAutoGLMAction(parsedAction, context.shotSize);
+
+    // Transform bbox from screenshot space to logical space
+    const { shrunkShotToLogicalRatio } = context;
+    if (shrunkShotToLogicalRatio !== 1) {
+      for (const action of transformedActions) {
+        const param = action.param as Record<string, any>;
+        if (param?.locate?.bbox) {
+          param.locate.bbox = transformBboxToLogical(
+            param.locate.bbox,
+            shrunkShotToLogicalRatio,
+          );
+        }
+      }
+    }
+
     debug('Transformed actions:', transformedActions);
   } catch (parseError) {
     // Throw AIResponseParseError with usage and rawResponse preserved

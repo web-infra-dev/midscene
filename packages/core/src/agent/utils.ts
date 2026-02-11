@@ -393,3 +393,22 @@ export const transformLogicalRectToScreenshotRect = (
     height: Math.round(rect.height * shrunkShotToLogicalRatio),
   };
 };
+
+/**
+ * Transform a bbox [x1, y1, x2, y2] from screenshot coordinate system to logical coordinate system.
+ */
+export const transformBboxToLogical = (
+  bbox: [number, number, number, number],
+  shrunkShotToLogicalRatio: number,
+): [number, number, number, number] => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return bbox;
+  }
+
+  return [
+    Math.round(bbox[0] / shrunkShotToLogicalRatio),
+    Math.round(bbox[1] / shrunkShotToLogicalRatio),
+    Math.round(bbox[2] / shrunkShotToLogicalRatio),
+    Math.round(bbox[3] / shrunkShotToLogicalRatio),
+  ];
+};

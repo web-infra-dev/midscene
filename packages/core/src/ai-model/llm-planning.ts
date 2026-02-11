@@ -1,3 +1,4 @@
+import { transformBboxToLogical } from '@/agent/utils';
 import type {
   DeepThinkOption,
   DeviceAction,
@@ -274,6 +275,8 @@ export async function plan(
 
     assert(planFromAI, "can't get plans from AI");
 
+    const { shrunkShotToLogicalRatio } = context;
+
     actions.forEach((action) => {
       const type = action.type;
       const actionInActionSpace = opts.actionSpace.find(
@@ -290,13 +293,21 @@ export async function plan(
       locateFields.forEach((field) => {
         const locateResult = action.param[field];
         if (locateResult && modelFamily !== undefined) {
-          // Always use model family to fill bbox parameters
+          // Fill bbox parameters from model-specific format to screenshot pixel coordinates
           action.param[field] = fillBboxParam(
             locateResult,
             imageWidth,
             imageHeight,
             modelFamily,
           );
+
+          // Transform bbox from screenshot space to logical space
+          if (action.param[field]?.bbox && shrunkShotToLogicalRatio !== 1) {
+            action.param[field].bbox = transformBboxToLogical(
+              action.param[field].bbox,
+              shrunkShotToLogicalRatio,
+            );
+          }
         }
       });
     });

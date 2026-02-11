@@ -1,3 +1,4 @@
+import { transformScreenshotElementToLogical } from '@/agent/utils';
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import {
   AIResponseParseError,
@@ -186,12 +187,20 @@ export default class Service {
     }
 
     if (elements.length === 1) {
+      // Transform AI result from screenshot space to logical space
+      const rawElement = {
+        center: elements[0]!.center,
+        rect: elements[0]!.rect,
+        description: elements[0]!.description,
+      };
+      const { shrunkShotToLogicalRatio } = context;
+      const element = transformScreenshotElementToLogical(
+        rawElement,
+        shrunkShotToLogicalRatio,
+      );
+
       return {
-        element: {
-          center: elements[0]!.center,
-          rect: elements[0]!.rect,
-          description: elements[0]!.description,
-        },
+        element,
         rect,
         dump,
       };
