@@ -4,14 +4,6 @@
   "description": "Midscene MCP Server for Web automation (Bridge mode)",
   "bin": "dist/index.js",
   "files": ["dist"],
-  "main": "./dist/server.js",
-  "types": "./dist/server.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/server.d.ts",
-      "default": "./dist/server.js"
-    }
-  },
   "scripts": {
     "build": "rslib build",
     "dev": "npm run build:watch",
