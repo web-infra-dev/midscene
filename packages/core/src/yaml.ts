@@ -127,7 +127,7 @@ export interface MidsceneYamlScriptWebEnv
   acceptInsecureCerts?: boolean;
   viewportWidth?: number;
   viewportHeight?: number;
-  viewportScale?: number;
+  deviceScaleFactor?: number;
   waitForNetworkIdle?: {
     timeout?: number;
     continueOnNetworkIdleError?: boolean; // should continue if failed to wait for network idle, true for default
