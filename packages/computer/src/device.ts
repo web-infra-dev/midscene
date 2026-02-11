@@ -121,6 +121,18 @@ const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
 };
 
 /**
+ * Type a string using AppleScript (macOS only)
+ * More reliable than libnut.typeString for system overlays (e.g. Spotlight/Raycast)
+ */
+function typeStringViaAppleScript(text: string): void {
+  // Escape backslashes and double quotes for AppleScript string
+  const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  const script = `tell application "System Events" to keystroke "${escaped}"`;
+  debugDevice('typeStringViaAppleScript', { text });
+  execSync(`osascript -e '${script}'`);
+}
+
+/**
  * Send a key press using AppleScript (macOS only)
  * More reliable than libnut for TUI applications like Bubble Tea
  */
@@ -289,11 +301,18 @@ export class ComputerDevice implements AbstractInterface {
   private displayId?: string;
   private description?: string;
   private destroyed = false;
+  /**
+   * On macOS, use AppleScript for keyboard operations by default
+   * to avoid focus issues with system overlays (e.g. Spotlight).
+   */
+  private useAppleScript: boolean;
   uri?: string;
 
   constructor(options?: ComputerDeviceOpt) {
     this.options = options;
     this.displayId = options?.displayId;
+    this.useAppleScript =
+      process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
   }
 
   describe(): string {
@@ -420,8 +439,13 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       await sleep(50);
 
       // 3. Simulate paste shortcut
-      const modifier = process.platform === 'darwin' ? 'command' : 'control';
-      libnut.keyTap('v', [modifier]);
+      if (this.useAppleScript) {
+        sendKeyViaAppleScript('v', ['command']);
+      } else {
+        const modifier =
+          process.platform === 'darwin' ? 'command' : 'control';
+        libnut.keyTap('v', [modifier]);
+      }
       await sleep(100);
     } finally {
       // 4. Restore old clipboard content
@@ -436,15 +460,24 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   /**
    * Smart type string with platform-specific strategy
-   * - macOS: Always use libnut (native support for non-ASCII)
+   * - macOS + AppleScript: Use AppleScript keystroke for ASCII, clipboard for non-ASCII
+   * - macOS + libnut: Use libnut directly (native support for non-ASCII)
    * - Windows/Linux: Use clipboard for non-ASCII characters
    */
   private async smartTypeString(text: string): Promise<void> {
     assert(libnut, 'libnut not initialized');
 
-    // macOS: use libnut directly (native Chinese support)
     if (process.platform === 'darwin') {
-      libnut.typeString(text);
+      if (this.useAppleScript) {
+        // AppleScript keystroke doesn't handle non-ASCII well
+        if (this.shouldUseClipboardForText(text)) {
+          await this.typeViaClipboard(text);
+        } else {
+          typeStringViaAppleScript(text);
+        }
+      } else {
+        libnut.typeString(text);
+      }
       return;
     }
 
@@ -555,20 +588,28 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement | undefined;
 
-          if (element && param.mode !== 'append') {
-            // Click and clear
+          if (element) {
+            // Always click to ensure focus
             const [x, y] = element.center;
             libnut.moveMouse(Math.round(x), Math.round(y));
             libnut.mouseClick('left');
             await sleep(INPUT_FOCUS_DELAY);
 
-            // Select all and delete
-            const modifier =
-              process.platform === 'darwin' ? 'command' : 'control';
-            libnut.keyTap('a', [modifier]);
-            await sleep(50);
-            libnut.keyTap('backspace');
-            await sleep(INPUT_CLEAR_DELAY);
+            if (param.mode !== 'append') {
+              // Select all and delete
+              if (this.useAppleScript) {
+                sendKeyViaAppleScript('a', ['command']);
+                await sleep(50);
+                sendKeyViaAppleScript('backspace', []);
+              } else {
+                const modifier =
+                  process.platform === 'darwin' ? 'command' : 'control';
+                libnut.keyTap('a', [modifier]);
+                await sleep(50);
+                libnut.keyTap('backspace');
+              }
+              await sleep(INPUT_CLEAR_DELAY);
+            }
           }
 
           if (param.mode === 'clear') {
@@ -653,20 +694,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         // Use normalizePrimaryKey for the main key to handle modifier keys pressed alone
         const key = normalizePrimaryKey(keys[keys.length - 1]);
 
-        // On macOS, use AppleScript by default (more reliable for TUI apps)
-        // User can opt-out by setting keyboardDriver: 'libnut'
-        const useAppleScript =
-          process.platform === 'darwin' &&
-          this.options?.keyboardDriver !== 'libnut';
-
         debugDevice('KeyboardPress', {
           original: param.keyName,
           key,
           modifiers,
-          driver: useAppleScript ? 'applescript' : 'libnut',
+          driver: this.useAppleScript ? 'applescript' : 'libnut',
         });
 
-        if (useAppleScript) {
+        if (this.useAppleScript) {
           // Use AppleScript for all keys on macOS when keyboardDriver is 'applescript'
           sendKeyViaAppleScript(key, modifiers);
         } else {
@@ -709,9 +744,16 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         libnut.mouseClick('left');
         await sleep(100);
 
-        const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        libnut.keyTap('a', [modifier]);
-        libnut.keyTap('backspace');
+        if (this.useAppleScript) {
+          sendKeyViaAppleScript('a', ['command']);
+          await sleep(50);
+          sendKeyViaAppleScript('backspace', []);
+        } else {
+          const modifier =
+            process.platform === 'darwin' ? 'command' : 'control';
+          libnut.keyTap('a', [modifier]);
+          libnut.keyTap('backspace');
+        }
         await sleep(50);
       }),
     ];
