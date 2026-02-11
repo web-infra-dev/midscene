@@ -27,7 +27,7 @@ export async function launchPage(
       url,
       viewportWidth: opt?.viewport?.width,
       viewportHeight: opt?.viewport?.height,
-      viewportScale: opt?.viewport?.deviceScaleFactor,
+      deviceScaleFactor: opt?.viewport?.deviceScaleFactor,
       ...(opt?.targetOverrides || {}),
     },
     {

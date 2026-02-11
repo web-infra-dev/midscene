@@ -191,6 +191,17 @@ describe('dump/image-restoration', () => {
       });
     });
 
+    it('should preserve { base64: path } with JPEG extension as-is', () => {
+      // Directory mode with JPEG: dump contains { base64: "./screenshots/id.jpeg" }
+      const data = {
+        screenshot: { base64: './screenshots/abc-123.jpeg' },
+      };
+      const result = restoreImageReferences(data, imageMap);
+      expect(result).toEqual({
+        screenshot: { base64: './screenshots/abc-123.jpeg' },
+      });
+    });
+
     it('should handle primitive values', () => {
       expect(restoreImageReferences('string', imageMap)).toBe('string');
       expect(restoreImageReferences(123, imageMap)).toBe(123);
