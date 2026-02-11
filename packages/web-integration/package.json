@@ -108,7 +108,6 @@
     "e2e:ui:cache": "MIDSCENE_CACHE=true playwright test --config=tests/playwright.config.ts --ui"
   },
   "bin": {
-    "midscene-playground": "./bin/midscene-playground",
     "midscene-web": "./bin/midscene-web"
   },
   "files": ["static", "dist", "iife-script", "README.md", "bin"],
