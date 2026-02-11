@@ -289,11 +289,18 @@ export class ComputerDevice implements AbstractInterface {
   private displayId?: string;
   private description?: string;
   private destroyed = false;
+  /**
+   * On macOS, use AppleScript for keyboard operations by default
+   * to avoid focus issues with system overlays (e.g. Spotlight).
+   */
+  private useAppleScript: boolean;
   uri?: string;
 
   constructor(options?: ComputerDeviceOpt) {
     this.options = options;
     this.displayId = options?.displayId;
+    this.useAppleScript =
+      process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
   }
 
   describe(): string {
@@ -564,11 +571,17 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
             if (param.mode !== 'append') {
               // Select all and delete
-              const modifier =
-                process.platform === 'darwin' ? 'command' : 'control';
-              libnut.keyTap('a', [modifier]);
-              await sleep(50);
-              libnut.keyTap('backspace');
+              if (this.useAppleScript) {
+                sendKeyViaAppleScript('a', ['command']);
+                await sleep(50);
+                sendKeyViaAppleScript('backspace', []);
+              } else {
+                const modifier =
+                  process.platform === 'darwin' ? 'command' : 'control';
+                libnut.keyTap('a', [modifier]);
+                await sleep(50);
+                libnut.keyTap('backspace');
+              }
               await sleep(INPUT_CLEAR_DELAY);
             }
           }
@@ -655,20 +668,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         // Use normalizePrimaryKey for the main key to handle modifier keys pressed alone
         const key = normalizePrimaryKey(keys[keys.length - 1]);
 
-        // On macOS, use AppleScript by default (more reliable for TUI apps)
-        // User can opt-out by setting keyboardDriver: 'libnut'
-        const useAppleScript =
-          process.platform === 'darwin' &&
-          this.options?.keyboardDriver !== 'libnut';
-
         debugDevice('KeyboardPress', {
           original: param.keyName,
           key,
           modifiers,
-          driver: useAppleScript ? 'applescript' : 'libnut',
+          driver: this.useAppleScript ? 'applescript' : 'libnut',
         });
 
-        if (useAppleScript) {
+        if (this.useAppleScript) {
           // Use AppleScript for all keys on macOS when keyboardDriver is 'applescript'
           sendKeyViaAppleScript(key, modifiers);
         } else {
@@ -711,9 +718,16 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         libnut.mouseClick('left');
         await sleep(100);
 
-        const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        libnut.keyTap('a', [modifier]);
-        libnut.keyTap('backspace');
+        if (this.useAppleScript) {
+          sendKeyViaAppleScript('a', ['command']);
+          await sleep(50);
+          sendKeyViaAppleScript('backspace', []);
+        } else {
+          const modifier =
+            process.platform === 'darwin' ? 'command' : 'control';
+          libnut.keyTap('a', [modifier]);
+          libnut.keyTap('backspace');
+        }
         await sleep(50);
       }),
     ];
