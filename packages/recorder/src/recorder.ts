@@ -108,30 +108,76 @@ const getLastLabelClick = (
   return undefined;
 };
 
-// Check if a single element is scrollable
-function isElementScrollable(el: HTMLElement): boolean {
-  const style = window.getComputedStyle(el);
-  const overflowY = style.overflowY;
-  const overflowX = style.overflowX;
-  const isScrollableY =
-    (overflowY === 'auto' || overflowY === 'scroll') &&
-    el.scrollHeight > el.clientHeight;
-  const isScrollableX =
-    (overflowX === 'auto' || overflowX === 'scroll') &&
-    el.scrollWidth > el.clientWidth;
-  return isScrollableY || isScrollableX;
-}
+// Get all iframe elements
+const getAllIframeElements = (): HTMLIFrameElement[] => {
+  const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe');
+  return Array.from(iframes);
+};
 
-// Get all scrollable elements
-function getAllScrollableElements(): HTMLElement[] {
-  const elements: HTMLElement[] = [];
-  const all = document.querySelectorAll<HTMLElement>('body *');
-  all.forEach((el) => {
-    if (isElementScrollable(el)) {
-      elements.push(el);
-    }
-  });
-  return elements;
+const getIframeOffset = (
+  parentIframe?: HTMLIFrameElement | null,
+): {
+  x: number;
+  y: number;
+} => {
+  if (!parentIframe) return { x: 0, y: 0 };
+
+  const iframeRect = parentIframe.getBoundingClientRect();
+  return { x: iframeRect.left, y: iframeRect.top };
+};
+
+// https://stackoverflow.com/a/36155560
+function onceIframeLoaded(
+  iframeEl: HTMLIFrameElement,
+  listener: () => unknown,
+  iframeLoadTimeout = 5000,
+) {
+  const win = iframeEl.contentWindow;
+  if (!win) {
+    return;
+  }
+  // document is loading
+  let fired = false;
+
+  let readyState: DocumentReadyState;
+  try {
+    readyState = win.document.readyState;
+  } catch (error) {
+    return;
+  }
+  if (readyState !== 'complete') {
+    const timer = setTimeout(() => {
+      if (!fired) {
+        fired = true;
+        listener();
+      }
+    }, iframeLoadTimeout);
+    const onLoad = () => {
+      clearTimeout(timer);
+      if (!fired) {
+        fired = true;
+        listener();
+      }
+      iframeEl.addEventListener('load', listener);
+    };
+    iframeEl.addEventListener('load', onLoad, { once: true });
+    return;
+  }
+  // check blank frame for Chrome
+  const blankUrl = 'about:blank';
+  if (
+    win.location.href !== blankUrl ||
+    iframeEl.src === blankUrl ||
+    iframeEl.src === ''
+  ) {
+    // iframe was already loaded, make sure we wait to trigger the listener
+    // till _after_ the mutation that found this iframe has had time to process
+    setTimeout(listener, 0);
+
+    return iframeEl.addEventListener('load', listener); // keep listing for future loads
+  }
+  // use default listener
+  iframeEl.addEventListener('load', listener);
 }
 
 // Event recorder class
@@ -143,9 +189,9 @@ export class EventRecorder {
   private inputThrottleTimer: number | null = null;
   private inputThrottleDelay = 300; // 300ms throttle for input events
   private lastViewportScroll: { x: number; y: number } | null = null;
-  private scrollTargets: HTMLElement[] = [];
   private sessionId: string;
   private mutationObserver: MutationObserver | null = null;
+  private removeListenerByTarget = new Map<EventTarget, () => void>();
 
   constructor(eventCallback: EventCallback, sessionId: string) {
     this.eventCallback = eventCallback;
@@ -167,39 +213,101 @@ export class EventRecorder {
     };
   }
 
-  // Check and add scroll listeners to newly added elements
-  private checkAndAddScrollListeners(element: HTMLElement): void {
-    // Check if the element itself is scrollable
-    if (isElementScrollable(element) && !this.scrollTargets.includes(element)) {
-      element.addEventListener('scroll', this.handleScroll, { passive: true });
-      this.scrollTargets.push(element);
-      debugLog('Added scroll listener to dynamic element:', element);
+  // Add event listeners to a document (main document or iframe document)
+  private addEventListeners(
+    doc: Document,
+    parentIframe?: HTMLIFrameElement | null,
+  ): () => void {
+    // Create wrapper functions that capture the iframe variable
+    const clickHandler = (e: MouseEvent) => this.handleClick(e, parentIframe);
+    const inputHandler = (e: Event) => this.handleInput(e, parentIframe);
+    const scrollHandler = (e: Event) => this.handleScroll(e, parentIframe);
+
+    const options = { capture: true, passive: true };
+    // Store handlers for later removal
+    doc.addEventListener('click', clickHandler, options);
+    doc.addEventListener('input', inputHandler, options);
+    doc.addEventListener('scroll', scrollHandler, options);
+
+    return () => {
+      try {
+        // Check if document is still valid (iframe might have been removed)
+        doc.removeEventListener('click', clickHandler, options);
+        doc.removeEventListener('input', inputHandler, options);
+        doc.removeEventListener('scroll', scrollHandler, options);
+      } catch (e) {
+        // Document might have been removed or become invalid
+        debugLog(
+          'Unable to remove event listeners (document may have been removed):',
+          e,
+        );
+      }
+    };
+  }
+
+  // Add event listeners to an iframe
+  private addIframeListeners(iframe: HTMLIFrameElement): void {
+    const listener = () => {
+      try {
+        const iframeDoc = iframe.contentDocument;
+        if (iframeDoc) {
+          // If this iframe navigated/reloaded, remove the previous listeners first to avoid duplicates.
+          this.removeListenerByTarget.get(iframe)?.();
+
+          // Re-bind listeners to the current iframe document, and store its cleanup callback by iframe.
+          const removeIframeListener = this.addEventListeners(
+            iframeDoc,
+            iframe,
+          );
+          this.removeListenerByTarget.set(iframe, removeIframeListener);
+          debugLog('Added event listeners to iframe:', iframe);
+        }
+      } catch (e) {
+        debugLog('Unable to access iframe (cross-origin):', iframe, e);
+      }
+    };
+
+    onceIframeLoaded(iframe, listener);
+  }
+
+  // Attach listeners to iframes inside this newly added subtree
+  private attachIframeListenersFromSubtree(element: HTMLElement): void {
+    if (element.tagName === 'IFRAME') {
+      this.addIframeListeners(element as HTMLIFrameElement);
     }
 
-    // Check all descendant elements
-    const descendants = element.querySelectorAll<HTMLElement>('*');
-    descendants.forEach((descendant) => {
-      if (
-        isElementScrollable(descendant) &&
-        !this.scrollTargets.includes(descendant)
-      ) {
-        descendant.addEventListener('scroll', this.handleScroll, {
-          passive: true,
-        });
-        this.scrollTargets.push(descendant);
-        debugLog('Added scroll listener to dynamic descendant:', descendant);
-      }
+    const descendants = element.querySelectorAll<HTMLIFrameElement>('iframe');
+    descendants.forEach((iframe) => {
+      this.addIframeListeners(iframe);
     });
   }
 
-  // Handle DOM mutations to detect newly added scrollable elements
+  private detachIframeListenersFromSubtree(element: HTMLElement): void {
+    if (element.tagName === 'IFRAME') {
+      this.removeListenerByTarget.get(element)?.();
+      this.removeListenerByTarget.delete(element);
+    }
+
+    const descendants = element.querySelectorAll<HTMLIFrameElement>('iframe');
+    descendants.forEach((iframe) => {
+      this.removeListenerByTarget.get(iframe)?.();
+      this.removeListenerByTarget.delete(iframe);
+    });
+  }
+
+  // Handle DOM mutations to detect newly added iframe
   private handleMutations = (mutations: MutationRecord[]): void => {
     if (!this.isRecording) return;
 
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (node instanceof HTMLElement) {
-          this.checkAndAddScrollListeners(node);
+          this.attachIframeListenersFromSubtree(node);
+        }
+      });
+      mutation.removedNodes.forEach((node) => {
+        if (node instanceof HTMLElement) {
+          this.detachIframeListenersFromSubtree(node);
         }
       });
     });
@@ -215,46 +323,37 @@ export class EventRecorder {
     this.isRecording = true;
     debugLog('Starting event recording');
 
-    // Handle scroll targets
-    this.scrollTargets = [];
-    // If not specified, automatically detect all scrollable areas
-    if (this.scrollTargets.length === 0) {
-      this.scrollTargets = getAllScrollableElements();
-      // Also listen to page scrolling if page is scrollable
-      this.scrollTargets.push(document.body);
-    }
-
-    debugLog(
-      'Added event listeners for',
-      this.scrollTargets.length,
-      'scroll targets',
-    );
+    // Clear previous remove event listeners functions
+    this.removeListenerByTarget.forEach((removeListener) => removeListener());
+    this.removeListenerByTarget.clear();
 
     // Add final navigation event to capture the final page
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const navigationEvent = this.createNavigationEvent(
         window.location.href,
         document.title,
       );
       this.eventCallback(navigationEvent);
       debugLog('Added final navigation event', navigationEvent);
+      clearTimeout(timer);
     }, 0);
 
     // Add event listeners
-    document.addEventListener('click', this.handleClick, true);
-    document.addEventListener('input', this.handleInput);
-    document.addEventListener('scroll', this.handleScroll, { passive: true });
-    this.scrollTargets.forEach((target) => {
-      target.addEventListener('scroll', this.handleScroll, { passive: true });
+    const removeDocumentListener = this.addEventListeners(document);
+    this.removeListenerByTarget.set(document, removeDocumentListener);
+
+    const iframes = getAllIframeElements();
+    iframes.forEach((iframe) => {
+      this.addIframeListeners(iframe);
     });
 
-    // Start MutationObserver to detect dynamically added scrollable elements
+    // Start MutationObserver to detect dynamically added iframe
     this.mutationObserver = new MutationObserver(this.handleMutations);
     this.mutationObserver.observe(document.body, {
       childList: true,
       subtree: true,
     });
-    debugLog('MutationObserver started to detect dynamic scrollable elements');
+    debugLog('MutationObserver started to detect dynamic iframe');
   }
 
   // Stop recording
@@ -275,11 +374,10 @@ export class EventRecorder {
       clearTimeout(this.inputThrottleTimer);
       this.inputThrottleTimer = null;
     }
-    document.removeEventListener('click', this.handleClick);
-    document.removeEventListener('input', this.handleInput);
-    this.scrollTargets.forEach((target) => {
-      target.removeEventListener('scroll', this.handleScroll);
-    });
+
+    // Remove all event listeners
+    this.removeListenerByTarget.forEach((removeListener) => removeListener());
+    this.removeListenerByTarget.clear();
 
     // Stop MutationObserver
     if (this.mutationObserver) {
@@ -292,20 +390,26 @@ export class EventRecorder {
   }
 
   // Click event handler
-  private handleClick = (event: MouseEvent): void => {
+  private handleClick = (
+    event: MouseEvent,
+    parentIframe?: HTMLIFrameElement | null,
+  ): void => {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLElement;
     const { isLabelClick, labelInfo } = this.checkLabelClick(target);
+
+    const iframeOffset = getIframeOffset(parentIframe);
+
     const rect = target.getBoundingClientRect();
     const elementRect: ChromeRecordedEvent['elementRect'] = {
-      x: Number(event.clientX.toFixed(2)),
-      y: Number(event.clientY.toFixed(2)),
+      x: Number((event.clientX + iframeOffset.x).toFixed(2)),
+      y: Number((event.clientY + iframeOffset.y).toFixed(2)),
     };
     console.log('isNotContainerElement', isNotContainerElement(target));
     if (isNotContainerElement(target)) {
-      elementRect.left = Number(rect.left.toFixed(2));
-      elementRect.top = Number(rect.top.toFixed(2));
+      elementRect.left = Number((rect.left + iframeOffset.x).toFixed(2));
+      elementRect.top = Number((rect.top + iframeOffset.y).toFixed(2));
       elementRect.width = Number(rect.width.toFixed(2));
       elementRect.height = Number(rect.height.toFixed(2));
     }
@@ -327,34 +431,41 @@ export class EventRecorder {
       labelInfo,
       isTrusted: event.isTrusted,
       detail: event.detail,
-      // pageWidth: window.innerWidth,
-      // pageHeight: window.innerHeight,
     };
 
     this.eventCallback(clickEvent);
   };
 
   // Scroll event handler
-  private handleScroll = (event: Event): void => {
+  private handleScroll = (
+    event: Event,
+    parentIframe?: HTMLIFrameElement | null,
+  ): void => {
     if (!this.isRecording) return;
 
-    function isDocument(target: EventTarget): target is Document {
-      return target instanceof Document;
+    function isDocument(target: EventTarget): boolean {
+      return (
+        target instanceof Document || target === parentIframe?.contentDocument
+      );
     }
+
+    const currentwindow = parentIframe?.contentWindow || window;
+
+    const iframeOffset = getIframeOffset(parentIframe);
 
     const target = event.target as HTMLElement;
     const scrollXTarget = isDocument(target)
-      ? window.scrollX
+      ? currentwindow.scrollX
       : target.scrollLeft;
     const scrollYTarget = isDocument(target)
-      ? window.scrollY
+      ? currentwindow.scrollY
       : target.scrollTop;
     const rect = isDocument(target)
       ? {
           left: 0,
           top: 0,
-          width: window.innerWidth,
-          height: window.innerHeight,
+          width: currentwindow.innerWidth,
+          height: currentwindow.innerHeight,
         }
       : target.getBoundingClientRect();
     // Throttle logic: throttle each target separately (can be extended to Map)
@@ -364,14 +475,10 @@ export class EventRecorder {
     this.scrollThrottleTimer = window.setTimeout(() => {
       if (this.isRecording) {
         const elementRect = {
-          left: isDocument(target) ? 0 : Number(rect.left.toFixed(2)),
-          top: isDocument(target) ? 0 : Number(rect.top.toFixed(2)),
-          width: isDocument(target)
-            ? window.innerWidth
-            : Number(rect.width.toFixed(2)),
-          height: isDocument(target)
-            ? window.innerHeight
-            : Number(rect.height.toFixed(2)),
+          left: Number((rect.left + iframeOffset.x).toFixed(2)),
+          top: Number((rect.top + iframeOffset.y).toFixed(2)),
+          width: Number(rect.width.toFixed(2)),
+          height: Number(rect.height.toFixed(2)),
         };
         const scrollEvent: RecordedEvent = {
           type: 'scroll',
@@ -386,8 +493,6 @@ export class EventRecorder {
             ...elementRect,
           }),
           element: target,
-          // pageWidth: window.innerWidth,
-          // pageHeight: window.innerHeight,
         };
         this.eventCallback(scrollEvent);
       }
@@ -396,7 +501,10 @@ export class EventRecorder {
   };
 
   // Input event handler
-  private handleInput = (event: Event): void => {
+  private handleInput = (
+    event: Event,
+    parentIframe?: HTMLIFrameElement | null,
+  ): void => {
     if (!this.isRecording) return;
 
     const target = event.target as HTMLInputElement | HTMLTextAreaElement;
@@ -404,10 +512,13 @@ export class EventRecorder {
     if (target.type === 'checkbox') {
       return;
     }
+
+    const iframeOffset = getIframeOffset(parentIframe);
+
     const rect = target.getBoundingClientRect();
     const elementRect = {
-      left: Number(rect.left.toFixed(2)),
-      top: Number(rect.top.toFixed(2)),
+      left: Number((rect.left + iframeOffset.x).toFixed(2)),
+      top: Number((rect.top + iframeOffset.y).toFixed(2)),
       width: Number(rect.width.toFixed(2)),
       height: Number(rect.height.toFixed(2)),
     };
