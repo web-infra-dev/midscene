@@ -5,6 +5,7 @@ import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
 
 const debugScrcpy = getDebug('android:scrcpy');
+const warnScrcpy = getDebug('android:scrcpy', { console: true });
 
 // H.264 NAL unit types
 const NAL_TYPE_IDR = 5; // IDR slice (keyframe/I-frame)
@@ -113,9 +114,15 @@ export class ScrcpyScreenshotManager {
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
     const requestedBitRate = options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE;
+    const clampedBitRate = Math.min(requestedBitRate, MAX_VIDEO_BIT_RATE);
+    if (requestedBitRate > MAX_VIDEO_BIT_RATE) {
+      warnScrcpy(
+        `videoBitRate ${requestedBitRate} exceeds maximum ${MAX_VIDEO_BIT_RATE}, clamped to ${clampedBitRate}`,
+      );
+    }
     this.options = {
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
-      videoBitRate: Math.min(requestedBitRate, MAX_VIDEO_BIT_RATE),
+      videoBitRate: clampedBitRate,
       idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
     };
   }
