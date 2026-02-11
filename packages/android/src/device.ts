@@ -66,17 +66,15 @@ const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
 const debugDevice = getDebug('android:device');
 
 /**
- * Escape text for safe use in shell double-quoted strings.
- * This prevents shell injection and handles special characters.
- * Note: For yadb, \\n will be converted back to real newline by yadb itself.
+ * Escape text for safe use in shell single-quoted strings.
+ * In single quotes, all characters are literal except ' itself.
+ * Newlines (0x0A) are converted to literal \n for safe transport;
+ * yadb interprets \n back to a real newline.
  */
 export function escapeForShell(text: string): string {
   return text
-    .replace(/\\/g, '\\\\') // Escape backslashes first
-    .replace(/"/g, '\\"') // Escape double quotes
-    .replace(/`/g, '\\`') // Escape backticks (command substitution)
-    .replace(/\$/g, '\\$') // Escape dollar signs (variable expansion)
-    .replace(/\n/g, '\\n'); // Escape newlines
+    .replace(/'/g, "'\\''") // End quote, escaped quote, start quote: ' → '\''
+    .replace(/\n/g, '\\n'); // 0x0A → literal \n (yadb interprets back to newline)
 }
 
 export class AndroidDevice implements AbstractInterface {
@@ -575,7 +573,7 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     await adb.shell(
-      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard "${keyboardContent}"`,
+      `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -keyboard '${keyboardContent}'`,
     );
   }
 
@@ -1365,24 +1363,40 @@ ${Object.keys(size)
   }
 
   /**
-   * Check if text contains characters that may cause issues with ADB inputText
-   * This includes:
-   * - Non-ASCII characters (Unicode characters like ö, é, ñ, Chinese, Japanese, etc.)
-   * - Format specifiers that may be interpreted by shell (%, $)
-   * - Special shell characters that need escaping
-   * - Control characters like newlines, tabs, carriage returns
+   * Check if text contains characters that may cause issues with ADB inputText.
+   * appium-adb's inputText has known bugs with certain characters:
+   * - Backslash causes broken shell quoting
+   * - Backtick is not escaped at all
+   * - Text containing both " and ' throws an error
+   * - Dollar sign can cause variable expansion issues
+   *
+   * For these characters, we route through yadb which handles them correctly
+   * via escapeForShell + double-quoted shell context.
    */
   private shouldUseYadbForText(text: string): boolean {
     // Check for any non-ASCII characters (code point >= 128)
     // This covers Latin Unicode characters (ö, é, ñ), Chinese, Japanese, etc.
-    // Using positive match to avoid control character in regex
     const hasNonAscii = /[\x80-\uFFFF]/.test(text);
 
     // Check for format specifiers that may cause issues in shell
     // % can be interpreted as format specifier in some contexts
     const hasFormatSpecifiers = /%[a-zA-Z]/.test(text);
 
-    return hasNonAscii || hasFormatSpecifiers;
+    // Check for shell-special characters that appium-adb's inputText cannot handle correctly:
+    // \ (backslash) - causes broken quoting in inputText
+    // ` (backtick) - not escaped by inputText, causes command substitution
+    // $ (dollar) - can cause variable expansion issues with double escaping
+    const hasShellSpecialChars = /[\\`$]/.test(text);
+
+    // appium-adb throws if text contains both " and '
+    const hasBothQuotes = text.includes('"') && text.includes("'");
+
+    return (
+      hasNonAscii ||
+      hasFormatSpecifiers ||
+      hasShellSpecialChars ||
+      hasBothQuotes
+    );
   }
 
   async keyboardType(
@@ -1391,7 +1405,6 @@ ${Object.keys(size)
   ): Promise<void> {
     if (!text) return;
     const adb = await this.getAdb();
-    const shouldUseYadb = this.shouldUseYadbForText(text);
     const IME_STRATEGY =
       (this.options?.imeStrategy ||
         globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_IME_STRATEGY)) ??
@@ -1399,17 +1412,28 @@ ${Object.keys(size)
     const shouldAutoDismissKeyboard =
       options?.autoDismissKeyboard ?? this.options?.autoDismissKeyboard ?? true;
 
-    // Escape text for shell safety
-    const escapedText = escapeForShell(text);
-
-    if (
+    // Decide input path for the entire text, not per-segment.
+    const useYadb =
       IME_STRATEGY === IME_STRATEGY_ALWAYS_YADB ||
-      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII && shouldUseYadb)
-    ) {
-      await this.execYadb(escapedText);
+      (IME_STRATEGY === IME_STRATEGY_YADB_FOR_NON_ASCII &&
+        this.shouldUseYadbForText(text));
+
+    if (useYadb) {
+      // yadb handles newlines natively: escapeForShell converts \n (0x0A)
+      // to literal \n (two chars), which yadb interprets back as newline.
+      // Single adb call for the entire text.
+      await this.execYadb(escapeForShell(text));
     } else {
-      // for pure ASCII characters, directly use inputText
-      await adb.inputText(escapedText);
+      // inputText cannot handle newlines, so split by \n and press Enter between segments.
+      const segments = text.split('\n');
+      for (let i = 0; i < segments.length; i++) {
+        if (segments[i].length > 0) {
+          await adb.inputText(segments[i]);
+        }
+        if (i < segments.length - 1) {
+          await adb.keyevent(66);
+        }
+      }
     }
 
     if (shouldAutoDismissKeyboard === true) {
