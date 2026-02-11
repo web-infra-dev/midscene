@@ -32,13 +32,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
 
     if (this.agent) return this.agent;
 
-    // Bridge mode requires a URL to connect to browser
-    if (!openNewTabWithUrl) {
-      throw new Error(
-        'Bridge mode requires a URL. Use web_connect tool to connect to a page first.',
-      );
-    }
-
     this.agent = await this.initBridgeModeAgent(openNewTabWithUrl);
 
     return this.agent;
