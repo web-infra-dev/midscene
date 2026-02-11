@@ -62,6 +62,11 @@
       "import": "./dist/es/mcp/index.mjs",
       "require": "./dist/lib/mcp/index.js"
     },
+    "./cli": {
+      "types": "./dist/types/cli/index.d.ts",
+      "import": "./dist/es/cli/index.mjs",
+      "require": "./dist/lib/cli/index.js"
+    },
     "./logger": {
       "types": "./dist/types/logger.d.ts",
       "import": "./dist/es/logger.mjs",
