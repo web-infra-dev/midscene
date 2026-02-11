@@ -199,7 +199,10 @@ export async function launchPuppeteerPage(
     );
   }
   let dpr = defaultViewportScale;
-  if (target.deviceScaleFactor !== undefined && target.deviceScaleFactor !== null) {
+  if (
+    target.deviceScaleFactor !== undefined &&
+    target.deviceScaleFactor !== null
+  ) {
     assert(
       typeof target.deviceScaleFactor === 'number',
       'deviceScaleFactor must be a number',
