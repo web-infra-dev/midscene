@@ -5,6 +5,7 @@ import { getDebug } from '@midscene/shared/logger';
 import type { Adb } from '@yume-chan/adb';
 
 const debugScrcpy = getDebug('android:scrcpy');
+const warnScrcpy = getDebug('android:scrcpy', { console: true });
 
 // H.264 NAL unit types
 const NAL_TYPE_IDR = 5; // IDR slice (keyframe/I-frame)
@@ -12,12 +13,10 @@ const NAL_TYPE_SPS = 7; // Sequence Parameter Set
 const NAL_TYPE_PPS = 8; // Picture Parameter Set
 const NAL_TYPE_MASK = 0x1f; // Lower 5 bits
 
-// H.264 start codes
-const START_CODE_4_BYTE = Buffer.from([0x00, 0x00, 0x00, 0x01]);
-
 // Configuration defaults
 const DEFAULT_MAX_SIZE = 0; // 0 = no scaling, keep original resolution
-const DEFAULT_VIDEO_BIT_RATE = 2_000_000; // 2Mbps - balanced quality and performance
+const DEFAULT_VIDEO_BIT_RATE = 100_000_000; // 100Mbps - high quality all-I-frame over local ADB
+const MAX_VIDEO_BIT_RATE = 100_000_000; // Safe upper limit for Android H.264 hardware encoders
 const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
 
 // Timeouts and limits
@@ -110,14 +109,20 @@ export class ScrcpyScreenshotManager {
   private keyframeResolvers: Array<(buf: Buffer) => void> = [];
   private lastRawKeyframe: Buffer | null = null;
   private videoResolution: { width: number; height: number } | null = null;
-  private h264SearchConfigFn: ((data: Uint8Array) => any) | null = null;
   private streamReader: any = null;
 
   constructor(adb: Adb, options: ScrcpyScreenshotOptions = {}) {
     this.adb = adb;
+    const requestedBitRate = options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE;
+    const clampedBitRate = Math.min(requestedBitRate, MAX_VIDEO_BIT_RATE);
+    if (requestedBitRate > MAX_VIDEO_BIT_RATE) {
+      warnScrcpy(
+        `videoBitRate ${requestedBitRate} exceeds maximum ${MAX_VIDEO_BIT_RATE}, clamped to ${clampedBitRate}`,
+      );
+    }
     this.options = {
       maxSize: options.maxSize ?? DEFAULT_MAX_SIZE,
-      videoBitRate: options.videoBitRate ?? DEFAULT_VIDEO_BIT_RATE,
+      videoBitRate: clampedBitRate,
       idleTimeoutMs: options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS,
     };
   }
@@ -162,11 +167,9 @@ export class ScrcpyScreenshotManager {
         '@yume-chan/adb-scrcpy'
       );
       const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { ScrcpyOptions3_1, DefaultServerPath, h264SearchConfiguration } =
-        await import('@yume-chan/scrcpy');
-
-      // Cache h264SearchConfiguration for synchronous use in processFrame
-      this.h264SearchConfigFn = h264SearchConfiguration;
+      const { ScrcpyOptions3_1, DefaultServerPath } = await import(
+        '@yume-chan/scrcpy'
+      );
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
@@ -180,8 +183,9 @@ export class ScrcpyScreenshotManager {
         control: false,
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
-        sendFrameMeta: false,
-        videoCodecOptions: 'i-frame-interval=0',
+        maxFps: 10,
+        sendFrameMeta: true,
+        videoCodecOptions: 'i-frame-interval=0,bitrate-mode=2',
       });
 
       this.scrcpyClient = await AdbScrcpyClient.start(
@@ -273,19 +277,26 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Process a single video frame.
-   * Caches the raw keyframe buffer (without SPS concat) to minimize per-frame overhead.
-   * Buffer.concat with SPS header is deferred to when the frame is actually consumed.
+   * Process a single video packet from the scrcpy stream.
+   * With sendFrameMeta: true, the stream emits properly framed packets:
+   * - "configuration" packets contain SPS/PPS header data
+   * - "data" packets contain complete video frames with correct boundaries
+   * This avoids the frame-splitting issue that occurs with sendFrameMeta: false
+   * at high resolutions where raw chunks may not align with frame boundaries.
    */
   private processFrame(packet: any): void {
-    const frameBuffer = Buffer.from(packet.data);
-    const actualKeyFrame = detectH264KeyFrame(frameBuffer);
-
-    if (actualKeyFrame && !this.spsHeader) {
-      this.extractSpsHeader(frameBuffer);
+    if (packet.type === 'configuration') {
+      // Configuration packet contains SPS/PPS in Annex B format
+      this.spsHeader = Buffer.from(packet.data);
+      debugScrcpy(`Received SPS/PPS configuration: ${this.spsHeader.length}B`);
+      return;
     }
 
-    if (actualKeyFrame && this.spsHeader) {
+    // Data packet - each packet is a complete frame
+    const frameBuffer = Buffer.from(packet.data);
+    const isKeyFrame = detectH264KeyFrame(frameBuffer);
+
+    if (isKeyFrame && this.spsHeader) {
       this.lastRawKeyframe = frameBuffer;
       if (this.keyframeResolvers.length > 0) {
         const combined = Buffer.concat([this.spsHeader, frameBuffer]);
@@ -295,37 +306,11 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Extract SPS/PPS header from keyframe
-   */
-  private extractSpsHeader(frameBuffer: Buffer): void {
-    if (!this.h264SearchConfigFn) return;
-    try {
-      const config = this.h264SearchConfigFn(new Uint8Array(frameBuffer));
-      if (!config.sequenceParameterSet || !config.pictureParameterSet) {
-        return;
-      }
-
-      this.spsHeader = Buffer.concat([
-        START_CODE_4_BYTE,
-        Buffer.from(config.sequenceParameterSet),
-        START_CODE_4_BYTE,
-        Buffer.from(config.pictureParameterSet),
-      ]);
-
-      debugScrcpy(
-        `Extracted SPS/PPS: SPS=${config.sequenceParameterSet.length}B, PPS=${config.pictureParameterSet.length}B, total=${this.spsHeader.length}B`,
-      );
-    } catch (error) {
-      debugScrcpy(`Failed to extract SPS/PPS from keyframe: ${error}`);
-    }
-  }
-
-  /**
-   * Get screenshot as PNG.
+   * Get screenshot as JPEG.
    * Tries to get a fresh frame within a short timeout. If the screen is static
    * (no new frames arrive), falls back to the latest cached keyframe.
    */
-  async getScreenshotPng(): Promise<Buffer> {
+  async getScreenshotJpeg(): Promise<Buffer> {
     const perfStart = Date.now();
 
     const t1 = Date.now();
@@ -362,7 +347,7 @@ export class ScrcpyScreenshotManager {
     );
 
     const t4 = Date.now();
-    const result = await this.decodeH264ToPng(keyframeBuffer);
+    const result = await this.decodeH264ToJpeg(keyframeBuffer);
     const decodeTime = Date.now() - t4;
 
     const totalTime = Date.now() - perfStart;
@@ -482,9 +467,9 @@ export class ScrcpyScreenshotManager {
   }
 
   /**
-   * Decode H.264 data to PNG using ffmpeg
+   * Decode H.264 data to JPEG using ffmpeg
    */
-  private async decodeH264ToPng(h264Buffer: Buffer): Promise<Buffer> {
+  private async decodeH264ToJpeg(h264Buffer: Buffer): Promise<Buffer> {
     const { spawn } = await import('node:child_process');
 
     return new Promise((resolve, reject) => {
@@ -498,7 +483,9 @@ export class ScrcpyScreenshotManager {
         '-f',
         'image2pipe',
         '-vcodec',
-        'png',
+        'mjpeg',
+        '-q:v',
+        '5',
         '-loglevel',
         'error',
         'pipe:1',
@@ -522,15 +509,15 @@ export class ScrcpyScreenshotManager {
 
       ffmpeg.on('close', (code) => {
         if (code === 0 && chunks.length > 0) {
-          const pngBuffer = Buffer.concat(chunks);
+          const jpegBuffer = Buffer.concat(chunks);
           debugScrcpy(
-            `FFmpeg decode successful, PNG size: ${pngBuffer.length} bytes`,
+            `FFmpeg decode successful, JPEG size: ${jpegBuffer.length} bytes`,
           );
-          resolve(pngBuffer);
+          resolve(jpegBuffer);
         } else {
           const errorMsg = stderrOutput || `FFmpeg exited with code ${code}`;
           debugScrcpy(`FFmpeg decode failed: ${errorMsg}`);
-          reject(new Error(`H.264 to PNG decode failed: ${errorMsg}`));
+          reject(new Error(`H.264 to JPEG decode failed: ${errorMsg}`));
         }
       });
 
@@ -580,7 +567,6 @@ export class ScrcpyScreenshotManager {
     this.spsHeader = null;
     this.lastRawKeyframe = null;
     this.isInitialized = false;
-    this.h264SearchConfigFn = null;
     this.keyframeResolvers = [];
 
     // Cancel reader first to stop consumeFramesLoop

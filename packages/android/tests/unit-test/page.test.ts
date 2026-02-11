@@ -196,7 +196,7 @@ describe('AndroidDevice', () => {
         height: 1920,
         dpr: 2,
       });
-      vi.spyOn(ImgUtils, 'isValidPNGImageBuffer').mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
         async (format, buffer) => ({
           buffer,
@@ -1520,7 +1520,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1562,7 +1562,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1604,7 +1604,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1739,7 +1739,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,

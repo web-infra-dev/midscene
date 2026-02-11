@@ -19,7 +19,7 @@ vi.mock('@yume-chan/adb-server-node-tcp', () => ({
 const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
   ensureConnected: vi.fn().mockResolvedValue(undefined),
-  getScreenshotPng: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
+  getScreenshotJpeg: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: vi.fn().mockReturnValue(null),
   disconnect: vi.fn().mockResolvedValue(undefined),
 });
@@ -96,21 +96,16 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('resolveConfig', () => {
-    it('should auto-calculate maxSize from 1/dpr when no explicit maxSize', () => {
+    it('should default maxSize to 0 (no scaling) when not explicitly set', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // physicalMax = max(1080, 1920) = 1920
-      // scale = 1 / 2.625 ≈ 0.381
-      // maxSize = round(1920 * 0.381) = 731
-      const expected = Math.round(1920 * (1 / 2.625));
-      expect(config.maxSize).toBe(expected);
+      expect(config.maxSize).toBe(0);
     });
 
-    it('should prefer screenshotResizeScale over 1/dpr', () => {
+    it('should default maxSize to 0 regardless of screenshotResizeScale', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, 0.5);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // physicalMax = 1920, scale = 0.5 → maxSize = 960
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(0);
     });
 
     it('should use explicit maxSize without auto-calculation', () => {
@@ -134,7 +129,7 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config.maxSize).toBe(0);
     });
 
-    it('should use default idleTimeoutMs and videoBitRate when not provided', () => {
+    it('should use default videoBitRate regardless of resolution', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
@@ -159,7 +154,35 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(config1).toBe(config2);
     });
 
-    it('should handle landscape device (width > height)', () => {
+    it('should use default videoBitRate for high-resolution devices (no auto-scale)', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const highRes: DevicePhysicalInfo = {
+        physicalWidth: 1440,
+        physicalHeight: 3120,
+        dpr: 3.2,
+        orientation: 0,
+      };
+      const config = adapter.resolveConfig(highRes);
+      expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
+    });
+
+    it('should use explicit videoBitRate for high-resolution devices', () => {
+      const adapter = new ScrcpyDeviceAdapter(
+        'device',
+        { videoBitRate: 4_000_000 },
+        undefined,
+      );
+      const highRes: DevicePhysicalInfo = {
+        physicalWidth: 1440,
+        physicalHeight: 3120,
+        dpr: 3.2,
+        orientation: 0,
+      };
+      const config = adapter.resolveConfig(highRes);
+      expect(config.videoBitRate).toBe(4_000_000);
+    });
+
+    it('should default maxSize to 0 for landscape device', () => {
       const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
       const landscape: DevicePhysicalInfo = {
         physicalWidth: 1920,
@@ -168,8 +191,7 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 1,
       };
       const config = adapter.resolveConfig(landscape);
-      // max(1920, 1080) = 1920, scale = 1/2 = 0.5 → maxSize = 960
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(0);
     });
   });
 
@@ -299,7 +321,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
       const result = await adapter.screenshotBase64(defaultDeviceInfo);
       expect(result).toBe('data:image/png;base64,test');
-      expect(currentMockManager.getScreenshotPng).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
     });
   });
 

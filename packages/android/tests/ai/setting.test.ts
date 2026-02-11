@@ -13,6 +13,9 @@ describe(
       const agent = await agentFromAdbDevice(devices[0].udid, {
         aiActionContext:
           'If any location, permission, user agreement, etc. popup, click agree. If login page pops up, close it.',
+        scrcpyConfig: {
+          enabled: true,
+        },
       });
 
       await agent.launch('com.android.settings/.Settings');

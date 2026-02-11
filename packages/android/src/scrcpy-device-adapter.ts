@@ -63,38 +63,27 @@ export class ScrcpyDeviceAdapter {
   }
 
   /**
-   * Resolve scrcpy config with auto-calculated maxSize.
-   * Auto-calculation uses 1/DPR or screenshotResizeScale to match Agent layer's logical size.
+   * Resolve scrcpy config.
+   * maxSize defaults to 0 (no scaling, full physical resolution) so the Agent layer
+   * receives the highest quality image for AI processing.
+   * videoBitRate is auto-scaled based on physical pixel count to ensure
+   * sufficient quality for all-I-frame H.264 encoding.
    */
   resolveConfig(deviceInfo: DevicePhysicalInfo): ResolvedScrcpyConfig {
     if (this.resolvedConfig) return this.resolvedConfig;
 
     const config = this.scrcpyConfig;
-    let maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
+    const maxSize = config?.maxSize ?? DEFAULT_SCRCPY_CONFIG.maxSize;
 
-    // Auto-calculate maxSize if not explicitly set
-    if (config?.maxSize === undefined) {
-      const physicalMax = Math.max(
-        deviceInfo.physicalWidth,
-        deviceInfo.physicalHeight,
-      );
-      const scale = this.screenshotResizeScale ?? 1 / deviceInfo.dpr;
-      maxSize = Math.round(physicalMax * scale);
-      debugAdapter(
-        `Auto-calculated maxSize: ${maxSize} (physical=${physicalMax}, scale=${scale.toFixed(3)}, ${
-          this.screenshotResizeScale !== undefined
-            ? 'from screenshotResizeScale'
-            : 'from 1/dpr'
-        })`,
-      );
-    }
+    const videoBitRate =
+      config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate;
 
     this.resolvedConfig = {
       enabled: this.isEnabled(),
       maxSize,
       idleTimeoutMs:
         config?.idleTimeoutMs ?? DEFAULT_SCRCPY_CONFIG.idleTimeoutMs,
-      videoBitRate: config?.videoBitRate ?? DEFAULT_SCRCPY_CONFIG.videoBitRate,
+      videoBitRate,
     };
 
     return this.resolvedConfig;
@@ -157,8 +146,9 @@ export class ScrcpyDeviceAdapter {
    */
   async screenshotBase64(deviceInfo: DevicePhysicalInfo): Promise<string> {
     const manager = await this.ensureManager(deviceInfo);
-    const screenshotBuffer = await manager.getScreenshotPng();
-    return createImgBase64ByFormat('png', screenshotBuffer.toString('base64'));
+    const screenshotBuffer = await manager.getScreenshotJpeg();
+
+    return createImgBase64ByFormat('jpeg', screenshotBuffer.toString('base64'));
   }
 
   /**

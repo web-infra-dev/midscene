@@ -22,8 +22,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
  * Create a fake base64 string of a specified size (in bytes).
  * Uses repeating 'A' characters (valid base64).
  */
-function fakeBase64(sizeBytes: number): string {
-  return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
+function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
+  return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
 }
 
 /**
@@ -301,6 +301,31 @@ describe('ReportGenerator — constant memory guarantees', () => {
       for (const s of allScreenshots) {
         expect(existsSync(join(screenshotsDir, `${s.id}.png`))).toBe(true);
       }
+    });
+
+    it('should write JPEG screenshots with .jpeg extension', async () => {
+      const reportDir = join(tmpDir, 'dir-jpeg-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const jpegScreenshot = ScreenshotItem.create(fakeBase64(500, 'jpeg'));
+      const pngScreenshot = ScreenshotItem.create(fakeBase64(500, 'png'));
+      const dump = createDump([jpegScreenshot, pngScreenshot]);
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      const screenshotsDir = join(reportDir, 'screenshots');
+      expect(
+        existsSync(join(screenshotsDir, `${jpegScreenshot.id}.jpeg`)),
+      ).toBe(true);
+      expect(existsSync(join(screenshotsDir, `${pngScreenshot.id}.png`))).toBe(
+        true,
+      );
     });
 
     it('should not re-write existing PNG files on subsequent updates', async () => {
