@@ -344,7 +344,7 @@ The user's instruction defines the EXACT scope of what you must accomplish. You 
 
 **Special case - Assertion instructions:**
 - If the user's instruction includes an assertion (e.g., "verify that...", "check that...", "assert..."), and you observe from the screenshot that the assertion condition is NOT satisfied and cannot be satisfied, mark ${shouldIncludeSubGoals ? 'the goal' : 'it'} as failed (success="false").
-- If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Wait for the page to finish loading before evaluating the assertion.
+- If the page is still loading (e.g., you see a loading spinner, skeleton screen, or progress bar), do NOT assert yet. Use a \`Sleep\` action (1000ms) to wait for the page to finish loading before evaluating the assertion. If the page still has not finished loading after 5 consecutive waits, consider the task as failed (success="false").
 ${
   !shouldIncludeSubGoals
     ? `
@@ -372,6 +372,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+- **Page loading detection**: If the page is still loading (e.g., you see a loading spinner, skeleton screen, progress bar, or the page content is incomplete/not fully rendered), you MUST use a \`Sleep\` action (1000ms) to wait for the page to finish loading before continuing with subsequent actions or assertions. Do NOT interact with or assert on a page that is still loading. However, if you have already waited 5 or more times for the same page loading and it still has not completed, consider the task as failed and output \`<complete success="false">Page loading timeout: the page failed to finish loading after multiple attempts</complete>\`.
 
 ### Supporting actions list
 
