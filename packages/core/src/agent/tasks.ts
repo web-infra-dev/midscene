@@ -320,7 +320,10 @@ export class TaskExecutor {
       const memoriesStatus =
         this.conversationHistory.memoriesToText() || undefined;
 
-      const result = await session.appendAndRun(
+      let result;
+      let planResult: PlanningAIResponse | undefined;
+      try {
+      result = await session.appendAndRun(
         {
           type: 'Planning',
           subType: 'Plan',
@@ -438,31 +441,22 @@ export class TaskExecutor {
         },
       );
 
-      const planResult = result?.output as PlanningAIResponse | undefined;
+      planResult = result?.output as PlanningAIResponse | undefined;
 
       // Execute planned actions
       const plans = planResult?.actions || [];
       yamlFlow.push(...(planResult?.yamlFlow || []));
 
-      let executables: Awaited<ReturnType<typeof this.convertPlanToExecutable>>;
-      try {
-        executables = await this.convertPlanToExecutable(
-          plans,
-          modelConfigForPlanning,
-          modelConfigForDefaultIntent,
-          {
-            cacheable,
-            subTask: true,
-            deepLocate,
-          },
-        );
-      } catch (error) {
-        return session.appendErrorPlan(
-          `Error converting plans to executable tasks: ${error}, plans: ${JSON.stringify(
-            plans,
-          )}`,
-        );
-      }
+      const executables = await this.convertPlanToExecutable(
+        plans,
+        modelConfigForPlanning,
+        modelConfigForDefaultIntent,
+        {
+          cacheable,
+          subTask: true,
+          deepLocate,
+        },
+      );
       if (this.conversationHistory.pendingFeedbackMessage) {
         console.warn(
           'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
@@ -474,16 +468,22 @@ export class TaskExecutor {
       const initialTimeString = await this.getTimeString();
       this.conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
-      try {
-        await session.appendAndRun(executables.tasks);
-      } catch (error: any) {
-        // errorFlag = true;
+      await session.appendAndRun(executables.tasks);
+      } catch (e: any) {
+        // Planning errors: only AIResponseParseError is recoverable;
+        // other planning errors (task failures, assertions) should propagate.
+        if (!result) {
+          const originalError = e?.cause || e;
+          if (!(originalError instanceof AIResponseParseError)) {
+            throw e;
+          }
+        }
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();
-        this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
+        this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error in planning loop: ${e?.message || String(e)}`;
         debug(
-          'error when executing running tasks, but continue to run if it is not too many errors:',
-          error instanceof Error ? error.message : String(error),
+          'error in planning loop, continue to replan if not too many errors:',
+          e instanceof Error ? e.message : String(e),
           'current error count in one planning loop:',
           errorCountInOnePlanningLoop,
         );
@@ -493,8 +493,8 @@ export class TaskExecutor {
         return session.appendErrorPlan('Too many errors in one planning loop');
       }
 
-      // // Check if task is complete
-      if (!planResult?.shouldContinuePlanning) {
+      // Check if task is complete (only when planning succeeded and said to stop)
+      if (planResult && !planResult.shouldContinuePlanning) {
         break;
       }
 
