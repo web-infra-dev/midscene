@@ -1,4 +1,5 @@
 import { existsSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
@@ -79,7 +80,7 @@ function outputContentItem(item: ToolResultContent, isError: boolean): void {
 
     case 'image': {
       const filename = `screenshot-${Date.now()}.png`;
-      const filepath = join(process.cwd(), filename);
+      const filepath = join(tmpdir(), filename);
       writeFileSync(filepath, Buffer.from(item.data, 'base64'));
       console.log(`Screenshot saved: ${filepath}`);
       break;
