@@ -53,9 +53,6 @@ export abstract class AbstractInterface {
   // @deprecated do NOT extend this method
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 
-  // @deprecated do NOT extend this method
-  abstract getContext?(): Promise<UIContext>;
-
   /**
    * Get the current time from the device.
    * Returns the device's current timestamp in milliseconds.
