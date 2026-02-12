@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import http from 'node:http';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +50,9 @@ class PlaygroundServer {
   id: string; // Unique identifier for this server instance
 
   private _initialized = false;
+
+  // Native MJPEG stream probe: null = not tested, true/false = result
+  private _nativeMjpegAvailable: boolean | null = null;
 
   // Factory function for recreating agent
   private agentFactory?: (() => PageAgent | Promise<PageAgent>) | null;
@@ -594,8 +598,46 @@ class PlaygroundServer {
     });
 
     // MJPEG streaming endpoint for real-time screen preview
+    // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
+    // falls back to polling screenshotBase64() otherwise.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
-      if (typeof this.agent?.interface?.screenshotBase64 !== 'function') {
+      const iface = this.agent?.interface as any;
+
+      // Try native MJPEG stream first (e.g. WDA's built-in MJPEG server)
+      // Only probe once; cache the result to avoid repeated connection failures.
+      const nativeUrl: string | undefined = iface?.mjpegStreamUrl;
+      if (nativeUrl && this._nativeMjpegAvailable !== false) {
+        const proxyOk = await new Promise<boolean>((resolve) => {
+          console.log(`MJPEG: trying native stream from ${nativeUrl}`);
+          const proxyReq = http.get(nativeUrl, (proxyRes) => {
+            this._nativeMjpegAvailable = true;
+            console.log('MJPEG: streaming via native WDA MJPEG server');
+            const contentType = proxyRes.headers['content-type'];
+            if (contentType) {
+              res.setHeader('Content-Type', contentType);
+            }
+            res.setHeader(
+              'Cache-Control',
+              'no-cache, no-store, must-revalidate',
+            );
+            res.setHeader('Connection', 'keep-alive');
+            proxyRes.pipe(res);
+            req.on('close', () => proxyReq.destroy());
+            resolve(true);
+          });
+          proxyReq.on('error', (err) => {
+            this._nativeMjpegAvailable = false;
+            console.warn(
+              `MJPEG: native stream unavailable (${err.message}), using polling mode`,
+            );
+            resolve(false);
+          });
+        });
+        if (proxyOk) return;
+      }
+
+      // Fallback: poll screenshotBase64()
+      if (typeof iface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
@@ -604,6 +646,7 @@ class PlaygroundServer {
       const fps = Math.min(Math.max(Number(req.query.fps) || 10, 1), 30);
       const interval = Math.round(1000 / fps);
       const boundary = 'mjpeg-boundary';
+      console.log(`MJPEG: streaming via polling mode (${fps}fps)`);
 
       res.setHeader(
         'Content-Type',
