@@ -62,43 +62,15 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     const platformTools = this.preparePlatformTools();
     this.toolDefinitions.push(...platformTools);
 
-    // 2. Try to get agent and its action space (two-layer fallback)
-    let actionSpace: ActionSpaceItem[];
-    try {
-      // Layer 1: Try to use connected agent
-      const agent = await this.ensureAgent();
-      actionSpace = await agent.getActionSpace();
-      debug(
-        'Action space from connected agent:',
-        actionSpace.map((a) => a.name).join(', '),
-      );
-    } catch (error) {
-      // Layer 2: Create temporary device instance to read actionSpace
-      // This is expected behavior for bridge mode without URL or unconnected devices
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      if (
-        errorMessage.includes('requires a URL') ||
-        errorMessage.includes('web_connect')
-      ) {
-        debug(
-          'Bridge mode detected - agent will be initialized on first web_connect call',
-        );
-      } else {
-        debug(
-          'Agent not available yet, using temporary device for action space',
-        );
-      }
-      const tempDevice = this.createTemporaryDevice();
-      actionSpace = tempDevice.actionSpace();
-      debug(
-        'Action space from temporary device:',
-        actionSpace.map((a) => a.name).join(', '),
-      );
-
-      // Destroy temporary instance using optional chaining
-      await tempDevice.destroy?.();
-    }
+    // 2. Get action space from temporary device (fast, no connection needed).
+    //    Agent creation is deferred to the first real command.
+    const tempDevice = this.createTemporaryDevice();
+    const actionSpace = tempDevice.actionSpace();
+    await tempDevice.destroy?.();
+    debug(
+      'Action space from temporary device:',
+      actionSpace.map((a) => a.name).join(', '),
+    );
 
     // 3. Generate tools from action space (core innovation)
     const actionTools = generateToolsFromActionSpace(actionSpace, () =>
