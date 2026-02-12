@@ -29,6 +29,9 @@ Midscene 针对每个不同环境都有对应的 Agent。每个 Agent 的构造�
   - 使用 Node.js：`npx serve`
   - 使用 Python：`python -m http.server` 或 `python3 -m http.server`
   然后通过 `http://localhost:3000`（或终端显示的端口）访问报告。
+- `screenshotShrinkFactor: number`: 控制截图的缩放比例，以减少发送给 AI 模型的图像大小，从而减少 token 消耗。默认值为 1（不缩放）。如果将其设置为 2，则截图的宽高将缩小为原来的一半，面积缩小为原来的四分之一。你可以根据实际情况调整这个值，以在图像清晰度和 token 消耗之间找到最佳平衡点。
+  - 对于移动端设备，将 `screenshotShrinkFactor` 设置为 2 可以在保持清晰度的同时减少 token 的消耗，但不建议设置的值超过 3，否则可能会导致图像过于模糊，影响 AI 模型的理解。
+  - 对于 Web 页面，如果页面内容比较复杂或包含大量细节，不建议设置 `screenshotShrinkFactor`，以避免截图过于模糊。此外，如果为了让 Web 页面截图有更高的清晰度，可以配置 Puppeteer 或 Playwright 的 `deviceScaleFactor` 为 2，这可以让 Puppeteer 或 Playwright 按照高清屏的方式来渲染页面。
 
 ### 自定义模型
 

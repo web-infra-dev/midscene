@@ -66,6 +66,7 @@ const fakeUIContextBuilder = async () => {
     screenshot,
     tree: { node: null, children: [] },
     shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };
 
@@ -258,6 +259,7 @@ describe(
           screenshot,
           tree: { node: null, children: [] },
           shotSize: { width: 0, height: 0 },
+          shrunkShotToLogicalRatio: 1,
         } as unknown as UIContext;
       };
 
@@ -305,6 +307,7 @@ describe(
           screenshot: ScreenshotItem.create(''),
           tree: { node: null, children: [] },
           shotSize: { width: 0, height: 0 },
+          shrunkShotToLogicalRatio: 1,
         } as unknown as UIContext);
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {

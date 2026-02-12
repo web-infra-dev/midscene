@@ -24,6 +24,7 @@ vi.mock('@/web-element', () => ({
   WebPageContextParser: vi.fn().mockResolvedValue({
     tree: { node: null, children: [] },
     shotSize: { width: 1024, height: 768 },
+    shrunkShotToLogicalRatio: 1,
     screenshotBase64: 'mock-base64',
   }),
 }));

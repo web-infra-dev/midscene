@@ -141,6 +141,7 @@ export const generateAIDescription = async (
           width: event.pageInfo.width,
           height: event.pageInfo.height,
         },
+        shrunkShotToLogicalRatio: 1,
       } as UIContext;
 
       const service = new Service(mockContext);

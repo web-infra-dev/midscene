@@ -68,6 +68,7 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       contextRetrieverFn: vi.fn().mockResolvedValue({
         screenshotBase64: 'mock-screenshot-base64',
         shotSize: { width: 1024, height: 768 },
+        shrunkShotToLogicalRatio: 1,
         url: 'https://example.com',
         content: {
           text: 'page content',
