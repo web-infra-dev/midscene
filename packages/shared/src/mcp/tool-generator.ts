@@ -186,16 +186,45 @@ function serializeArgsToDescription(args: Record<string, unknown>): string {
 }
 
 /**
- * Build action instruction string from action name and args
+ * Build action instruction as natural language for better AI planning flexibility.
+ * Natural language instructions allow the planner to adjust strategies on replanning,
+ * unlike rigid structured instructions that cause repeated identical failures.
  */
 function buildActionInstruction(
   actionName: string,
   args: Record<string, unknown>,
 ): string {
-  const argsDescription = serializeArgsToDescription(args);
-  return argsDescription
-    ? `Use the action "${actionName}" with ${argsDescription}`
-    : `Use the action "${actionName}"`;
+  const locatePrompt =
+    args.locate && typeof args.locate === 'object'
+      ? (args.locate as { prompt?: string }).prompt
+      : undefined;
+
+  switch (actionName) {
+    case 'Tap':
+      return locatePrompt ? `Tap on "${locatePrompt}"` : 'Tap';
+    case 'Input': {
+      const value = args.value ?? args.content ?? '';
+      return locatePrompt
+        ? `Input "${value}" into "${locatePrompt}"`
+        : `Input "${value}"`;
+    }
+    case 'Scroll': {
+      const direction = args.direction ?? 'down';
+      return locatePrompt
+        ? `Scroll ${direction} on "${locatePrompt}"`
+        : `Scroll ${direction}`;
+    }
+    case 'Hover':
+      return locatePrompt ? `Hover over "${locatePrompt}"` : 'Hover';
+    case 'KeyboardPress': {
+      const key = args.value ?? args.key ?? '';
+      return `Press key "${key}"`;
+    }
+    default: {
+      const argsDescription = serializeArgsToDescription(args);
+      return argsDescription ? `${actionName}: ${argsDescription}` : actionName;
+    }
+  }
 }
 
 /**
@@ -245,6 +274,38 @@ function createErrorResult(message: string): ToolResult {
 }
 
 /**
+ * Capture screenshot and return as a non-error result with warning message.
+ * Used when an action fails but we want the AI agent to see the current state
+ * and decide how to recover, rather than treating it as a hard error (exit code 1).
+ */
+async function captureFailureResult(
+  agent: BaseAgent,
+  actionName: string,
+  errorMessage: string,
+): Promise<ToolResult> {
+  const warningText = `Warning: Action "${actionName}" failed: ${errorMessage}. Check the screenshot below for the current page state and decide how to proceed.`;
+  try {
+    const screenshot = await agent.page?.screenshotBase64();
+    if (!screenshot) {
+      return {
+        content: [{ type: 'text', text: warningText }],
+      };
+    }
+    const { mimeType, body } = parseBase64(screenshot);
+    return {
+      content: [
+        { type: 'text', text: warningText },
+        { type: 'image', data: body, mimeType },
+      ],
+    };
+  } catch {
+    return {
+      content: [{ type: 'text', text: warningText }],
+    };
+  }
+}
+
+/**
  * Converts DeviceAction from actionSpace into MCP ToolDefinition
  * This is the core logic that removes need for hardcoded tool definitions
  */
@@ -273,14 +334,19 @@ export function generateToolsFromActionSpace(
                 `Error executing action "${action.name}":`,
                 errorMessage,
               );
-              return createErrorResult(
-                `Failed to execute action "${action.name}": ${errorMessage}`,
+              // Return screenshot + warning instead of hard error,
+              // so the AI agent can see current state and decide to retry or adjust strategy
+              return await captureFailureResult(
+                agent,
+                action.name,
+                errorMessage,
               );
             }
           }
 
           return await captureScreenshotResult(agent, action.name);
         } catch (error: unknown) {
+          // Connection/agent errors are still hard errors
           const errorMessage = getErrorMessage(error);
           console.error(`Error in handler for "${action.name}":`, errorMessage);
           return createErrorResult(
