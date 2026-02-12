@@ -239,6 +239,79 @@ describe('runToolsCLI', () => {
     consoleSpy.mockRestore();
   });
 
+  function createDetailedMockTools() {
+    return {
+      initTools: vi.fn().mockResolvedValue(undefined),
+      getToolDefinitions: vi.fn().mockReturnValue([
+        {
+          name: 'connect',
+          description: 'Connect to a device for automation',
+          schema: {
+            url: { description: 'The device URL to connect to' },
+            timeout: { description: 'Connection timeout in ms' },
+          },
+          handler: vi.fn(),
+        },
+        {
+          name: 'disconnect',
+          description: 'Disconnect from the current device',
+          schema: {},
+          handler: vi.fn(),
+        },
+        {
+          name: 'take_screenshot',
+          description: 'Capture a screenshot of the current screen',
+          schema: {
+            format: { description: 'Image format (png or jpg)' },
+          },
+          handler: vi.fn(),
+        },
+        {
+          name: 'tap',
+          description: 'Tap on a specific element or coordinate on the screen',
+          schema: {
+            locate: { description: 'Locator JSON to find the element' },
+            x: { description: 'X coordinate to tap' },
+            y: { description: 'Y coordinate to tap' },
+          },
+          handler: vi.fn(),
+        },
+      ]),
+    } as any;
+  }
+
+  it('--help output matches snapshot', async () => {
+    const tools = createDetailedMockTools();
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: any[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'test-cli', { argv: ['--help'] });
+
+    expect(lines.join('\n')).toMatchSnapshot();
+    consoleSpy.mockRestore();
+  });
+
+  it('command --help output matches snapshot', async () => {
+    const tools = createDetailedMockTools();
+    const lines: string[] = [];
+    const consoleSpy = vi
+      .spyOn(console, 'log')
+      .mockImplementation((...args: any[]) => {
+        lines.push(args.map(String).join(' '));
+      });
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['connect', '--help'],
+    });
+
+    expect(lines.join('\n')).toMatchSnapshot();
+    consoleSpy.mockRestore();
+  });
+
   it('throws CLIError for unknown command', async () => {
     const tools = createMockTools([
       {
