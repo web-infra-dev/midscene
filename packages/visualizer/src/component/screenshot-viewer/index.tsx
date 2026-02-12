@@ -14,6 +14,7 @@ interface ScreenshotViewerProps {
   } | null>;
   serverOnline: boolean;
   isUserOperating?: boolean; // Whether user is currently operating
+  mjpegUrl?: string; // When provided, use MJPEG live stream instead of polling
 }
 
 export default function ScreenshotViewer({
@@ -21,6 +22,7 @@ export default function ScreenshotViewer({
   getInterfaceInfo,
   serverOnline,
   isUserOperating = false,
+  mjpegUrl,
 }: ScreenshotViewerProps) {
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -30,6 +32,10 @@ export default function ScreenshotViewer({
     type: string;
     description?: string;
   } | null>(null);
+  // Key to force-reload the MJPEG <img> tag
+  const [mjpegKey, setMjpegKey] = useState(0);
+
+  const isMjpeg = Boolean(mjpegUrl && serverOnline);
 
   // Refs for managing polling
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -122,10 +128,14 @@ export default function ScreenshotViewer({
     isPollingPausedRef.current = false;
   }, []);
 
-  // Manual refresh screenshot
+  // Manual refresh screenshot (or reload MJPEG stream)
   const handleManualRefresh = useCallback(() => {
-    fetchScreenshot(true);
-  }, [fetchScreenshot]);
+    if (isMjpeg) {
+      setMjpegKey((k) => k + 1);
+    } else {
+      fetchScreenshot(true);
+    }
+  }, [isMjpeg, fetchScreenshot]);
 
   // Manage server connection status changes
   useEffect(() => {
@@ -137,9 +147,17 @@ export default function ScreenshotViewer({
       return;
     }
 
+    // Fetch interface info regardless of mode
+    fetchInterfaceInfo();
+
+    // In MJPEG mode, skip polling entirely
+    if (isMjpeg) {
+      stopPolling();
+      return;
+    }
+
     // When server comes online, fetch screenshot and interface info immediately, then start polling
     fetchScreenshot(false);
-    fetchInterfaceInfo();
     startPolling();
 
     return () => {
@@ -147,6 +165,7 @@ export default function ScreenshotViewer({
     };
   }, [
     serverOnline,
+    isMjpeg,
     startPolling,
     stopPolling,
     fetchScreenshot,
@@ -191,7 +210,7 @@ export default function ScreenshotViewer({
     );
   }
 
-  if (loading && !screenshot) {
+  if (!isMjpeg && loading && !screenshot) {
     return (
       <div className="screenshot-viewer loading">
         <Spin size="large" />
@@ -200,7 +219,7 @@ export default function ScreenshotViewer({
     );
   }
 
-  if (error && !screenshot) {
+  if (!isMjpeg && error && !screenshot) {
     return (
       <div className="screenshot-viewer error">
         <div className="screenshot-placeholder">
@@ -236,29 +255,38 @@ export default function ScreenshotViewer({
               <InfoCircleOutlined size={16} className="info-icon" />
             </Tooltip>
           </div>
-          <div className="screenshot-controls">
-            {lastUpdateTime > 0 && (
-              <span className="last-update-time">
-                Last updated {formatLastUpdateTime(lastUpdateTime)}
-              </span>
-            )}
-            <Tooltip title="Refresh screenshot">
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={handleManualRefresh}
-                loading={loading}
-                size="small"
-              />
-            </Tooltip>
-            {isUserOperating && (
-              <span className="operation-indicator">
-                <Spin size="small" /> Operating...
-              </span>
-            )}
-          </div>
+          {!isMjpeg && (
+            <div className="screenshot-controls">
+              {lastUpdateTime > 0 && (
+                <span className="last-update-time">
+                  Last updated {formatLastUpdateTime(lastUpdateTime)}
+                </span>
+              )}
+              <Tooltip title="Refresh screenshot">
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={handleManualRefresh}
+                  loading={loading}
+                  size="small"
+                />
+              </Tooltip>
+              {isUserOperating && (
+                <span className="operation-indicator">
+                  <Spin size="small" /> Operating...
+                </span>
+              )}
+            </div>
+          )}
         </div>
         <div className="screenshot-content">
-          {screenshot ? (
+          {isMjpeg ? (
+            <img
+              key={mjpegKey}
+              src={mjpegUrl}
+              alt="Device Live Stream"
+              className="screenshot-image"
+            />
+          ) : screenshot ? (
             <img
               src={
                 screenshot.startsWith('data:image/')

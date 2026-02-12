@@ -593,6 +593,66 @@ class PlaygroundServer {
       }
     });
 
+    // MJPEG streaming endpoint for real-time screen preview
+    this._app.get('/mjpeg', async (req: Request, res: Response) => {
+      if (typeof this.agent?.interface?.screenshotBase64 !== 'function') {
+        return res.status(500).json({
+          error: 'Screenshot method not available on current interface',
+        });
+      }
+
+      const fps = Math.min(Math.max(Number(req.query.fps) || 10, 1), 30);
+      const interval = Math.round(1000 / fps);
+      const boundary = 'mjpeg-boundary';
+
+      res.setHeader(
+        'Content-Type',
+        `multipart/x-mixed-replace; boundary=${boundary}`,
+      );
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Connection', 'keep-alive');
+
+      let stopped = false;
+      let consecutiveErrors = 0;
+      req.on('close', () => {
+        stopped = true;
+      });
+
+      while (!stopped) {
+        try {
+          const base64 = await this.agent.interface.screenshotBase64();
+          if (stopped) break;
+          consecutiveErrors = 0;
+
+          // Strip data URL prefix if present
+          const raw = base64.replace(/^data:image\/\w+;base64,/, '');
+          const buf = Buffer.from(raw, 'base64');
+
+          res.write(`--${boundary}\r\n`);
+          res.write('Content-Type: image/jpeg\r\n');
+          res.write(`Content-Length: ${buf.length}\r\n\r\n`);
+          res.write(buf);
+          res.write('\r\n');
+        } catch (err) {
+          if (stopped) break;
+          consecutiveErrors++;
+          if (consecutiveErrors <= 3) {
+            console.error('MJPEG frame error:', err);
+          } else if (consecutiveErrors === 4) {
+            console.error(
+              'MJPEG: suppressing further errors, retrying silently...',
+            );
+          }
+          // Backoff: wait longer on consecutive failures (max 3s)
+          const backoff = Math.min(1000 * consecutiveErrors, 3000);
+          await new Promise((r) => setTimeout(r, backoff));
+          continue;
+        }
+
+        await new Promise((r) => setTimeout(r, interval));
+      }
+    });
+
     // Interface info API for getting interface type and description
     this._app.get('/interface-info', async (_req: Request, res: Response) => {
       try {
