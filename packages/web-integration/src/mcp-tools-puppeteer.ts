@@ -112,6 +112,7 @@ const browserManager = {
   async launchDetachedChrome(): Promise<string> {
     const chromePath = resolveChromePath();
     const args = [
+      '--headless=new',
       `--user-data-dir=${USER_DATA_DIR}`,
       '--remote-debugging-port=0',
       '--no-first-run',
