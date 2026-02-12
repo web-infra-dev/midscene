@@ -47,6 +47,23 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Maps a MouseButton name to the CDP `buttons` bitmask value.
+ * See: https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/buttons
+ */
+function mouseButtonToBitmask(button: MouseButton | 'none'): number {
+  switch (button) {
+    case 'left':
+      return 1;
+    case 'right':
+      return 2;
+    case 'middle':
+      return 4;
+    default:
+      return 0;
+  }
+}
+
 export default class ChromeExtensionProxyPage implements AbstractInterface {
   interfaceType = 'chrome-extension-proxy';
 
@@ -662,20 +679,28 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         });
       } else {
         // standard mousePressed + mouseReleased
+        const btnBitmask = mouseButtonToBitmask(button);
         for (let i = 0; i < count; i++) {
           await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
             type: 'mousePressed',
             x,
             y,
             button,
+            buttons: btnBitmask,
             clickCount: 1,
+            modifiers: 0,
+            pointerType: 'mouse',
+            force: 0.5,
           });
           await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
             type: 'mouseReleased',
             x,
             y,
             button,
+            buttons: 0,
             clickCount: 1,
+            modifiers: 0,
+            pointerType: 'mouse',
           });
           await sleep(50);
         }
@@ -696,6 +721,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         y: finalY,
         deltaX,
         deltaY,
+        button: 'none',
+        buttons: 0,
+        modifiers: 0,
+        pointerType: 'mouse',
       });
       this.latestMouseX = finalX;
       this.latestMouseY = finalY;
@@ -706,6 +735,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         type: 'mouseMoved',
         x,
         y,
+        button: 'none',
+        buttons: 0,
+        modifiers: 0,
+        pointerType: 'mouse',
       });
       this.latestMouseX = x;
       this.latestMouseY = y;
@@ -722,7 +755,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x: from.x,
         y: from.y,
         button: 'left',
+        buttons: 1,
         clickCount: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
+        force: 0.5,
       });
 
       await sleep(300);
@@ -731,6 +768,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         type: 'mouseMoved',
         x: to.x,
         y: to.y,
+        button: 'left',
+        buttons: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
       });
 
       await sleep(500);
@@ -740,7 +781,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x: to.x,
         y: to.y,
         button: 'left',
+        buttons: 0,
         clickCount: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
       });
 
       await sleep(200);
@@ -825,7 +869,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x,
         y,
         button: 'left',
+        buttons: 1,
         clickCount: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
+        force: 0.5,
       });
       await new Promise((res) => setTimeout(res, duration));
       await this.sendCommandToDebugger('Input.dispatchMouseEvent', {
@@ -833,7 +881,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x,
         y,
         button: 'left',
+        buttons: 0,
         clickCount: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
       });
     }
     this.latestMouseX = x;
@@ -898,7 +949,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x: from.x,
         y: from.y,
         button: 'left',
+        buttons: 1,
         clickCount: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
+        force: 0.5,
       });
 
       for (let i = 1; i <= steps; i++) {
@@ -913,7 +968,10 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         x: to.x,
         y: to.y,
         button: 'left',
+        buttons: 0,
         clickCount: 1,
+        modifiers: 0,
+        pointerType: 'mouse',
       });
     }
 
