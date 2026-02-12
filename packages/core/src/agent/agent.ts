@@ -823,7 +823,8 @@ export class Agent<
       typeof locatePromptOrOpt === 'object' &&
       ('direction' in locatePromptOrOpt ||
         'scrollType' in locatePromptOrOpt ||
-        'distance' in locatePromptOrOpt)
+        'distance' in locatePromptOrOpt ||
+        'duration' in locatePromptOrOpt)
     ) {
       // New signature: aiScroll(locatePrompt, opt)
       locatePrompt = locatePromptOrScrollParam as TUserPrompt;

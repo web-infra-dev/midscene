@@ -141,13 +141,29 @@ export class IOSDevice implements AbstractInterface {
           await this.scrollUntilLeft(startingPoint);
         } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance || undefined, startingPoint);
+            await this.scrollDown(
+              param?.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance || undefined, startingPoint);
+            await this.scrollUp(
+              param.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance || undefined, startingPoint);
+            await this.scrollLeft(
+              param.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance || undefined, startingPoint);
+            await this.scrollRight(
+              param.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else {
             throw new Error(`Unknown scroll direction: ${param.direction}`);
           }
@@ -515,27 +531,51 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
   }
 
   // Scroll methods
-  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollUp(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || height / 3);
 
-    await this.swipe(start.x, start.y, start.x, start.y + scrollDistance);
+    await this.swipe(
+      start.x,
+      start.y,
+      start.x,
+      start.y + scrollDistance,
+      duration,
+    );
   }
 
-  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollDown(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { width, height } = await this.size();
     const start = startPoint
       ? { x: Math.round(startPoint.left), y: Math.round(startPoint.top) }
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || height / 3);
 
-    await this.swipe(start.x, start.y, start.x, start.y - scrollDistance);
+    await this.swipe(
+      start.x,
+      start.y,
+      start.x,
+      start.y - scrollDistance,
+      duration,
+    );
   }
 
-  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollLeft(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { width, height } = await this.size();
     // scrollLeft: bring left content into view (swipe finger right)
     const start = startPoint
@@ -543,10 +583,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
-    await this.swipe(start.x, start.y, start.x + scrollDistance, start.y);
+    await this.swipe(
+      start.x,
+      start.y,
+      start.x + scrollDistance,
+      start.y,
+      duration,
+    );
   }
 
-  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollRight(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { width, height } = await this.size();
     // scrollRight: bring right content into view (swipe finger left)
     const start = startPoint
@@ -554,7 +604,13 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
       : { x: Math.round(width / 2), y: Math.round(height / 2) };
     const scrollDistance = Math.round(distance || width * 0.7); // Use 70% of width for sufficient scroll
 
-    await this.swipe(start.x, start.y, start.x - scrollDistance, start.y);
+    await this.swipe(
+      start.x,
+      start.y,
+      start.x - scrollDistance,
+      start.y,
+      duration,
+    );
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {

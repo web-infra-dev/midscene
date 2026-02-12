@@ -279,6 +279,12 @@ export const actionScrollParamSchema = z.object({
     .nullable()
     .optional()
     .describe('The distance in pixels to scroll'),
+  duration: z
+    .number()
+    .optional()
+    .describe(
+      'Duration of the scroll gesture in milliseconds. Only effective on mobile platforms (Android/iOS). A smaller value means faster scrolling.',
+    ),
   locate: getMidsceneLocationSchema()
     .optional()
     .describe(

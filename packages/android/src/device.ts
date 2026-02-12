@@ -185,13 +185,29 @@ export class AndroidDevice implements AbstractInterface {
           await this.scrollUntilLeft(startingPoint);
         } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance || undefined, startingPoint);
+            await this.scrollDown(
+              param?.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance || undefined, startingPoint);
+            await this.scrollUp(
+              param.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance || undefined, startingPoint);
+            await this.scrollLeft(
+              param.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance || undefined, startingPoint);
+            await this.scrollRight(
+              param.distance || undefined,
+              startingPoint,
+              param?.duration,
+            );
           } else {
             throw new Error(`Unknown scroll direction: ${param.direction}`);
           }
@@ -1256,7 +1272,11 @@ ${Object.keys(size)
     await sleep(1000);
   }
 
-  async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollUp(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
 
@@ -1272,14 +1292,18 @@ ${Object.keys(size)
         0,
         height,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, duration);
       return;
     }
 
-    await this.scroll(0, -scrollDistance);
+    await this.scroll(0, -scrollDistance, duration);
   }
 
-  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollDown(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { height } = await this.size();
     const scrollDistance = Math.round(distance || height);
 
@@ -1295,14 +1319,18 @@ ${Object.keys(size)
         0,
         height,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, duration);
       return;
     }
 
-    await this.scroll(0, scrollDistance);
+    await this.scroll(0, scrollDistance, duration);
   }
 
-  async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollLeft(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
 
@@ -1318,14 +1346,18 @@ ${Object.keys(size)
         width,
         0,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, duration);
       return;
     }
 
-    await this.scroll(-scrollDistance, 0);
+    await this.scroll(-scrollDistance, 0, duration);
   }
 
-  async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
+  async scrollRight(
+    distance?: number,
+    startPoint?: Point,
+    duration?: number,
+  ): Promise<void> {
     const { width } = await this.size();
     const scrollDistance = Math.round(distance || width);
 
@@ -1341,11 +1373,11 @@ ${Object.keys(size)
         width,
         0,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, duration);
       return;
     }
 
-    await this.scroll(scrollDistance, 0);
+    await this.scroll(scrollDistance, 0, duration);
   }
 
   async ensureYadb() {

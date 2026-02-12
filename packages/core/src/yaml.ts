@@ -39,6 +39,7 @@ export type ActionScrollParam = {
   direction?: 'down' | 'up' | 'right' | 'left';
   scrollType?: ScrollType;
   distance?: number | null;
+  duration?: number;
   locate?: LocateResultElement;
 };
 
