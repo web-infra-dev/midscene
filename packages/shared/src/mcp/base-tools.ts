@@ -62,15 +62,25 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     const platformTools = this.preparePlatformTools();
     this.toolDefinitions.push(...platformTools);
 
-    // 2. Get action space from temporary device (fast, no connection needed).
-    //    Agent creation is deferred to the first real command.
-    const tempDevice = this.createTemporaryDevice();
-    const actionSpace = tempDevice.actionSpace();
-    await tempDevice.destroy?.();
-    debug(
-      'Action space from temporary device:',
-      actionSpace.map((a) => a.name).join(', '),
-    );
+    // 2. Get action space: use pre-set agent if available, otherwise temp device.
+    //    When called via mcpKitForAgent(), agent is set before initTools().
+    //    For CLI usage, agent is deferred to the first real command.
+    let actionSpace: ActionSpaceItem[];
+    if (this.agent) {
+      actionSpace = await this.agent.getActionSpace();
+      debug(
+        'Action space from agent:',
+        actionSpace.map((a) => a.name).join(', '),
+      );
+    } else {
+      const tempDevice = this.createTemporaryDevice();
+      actionSpace = tempDevice.actionSpace();
+      await tempDevice.destroy?.();
+      debug(
+        'Action space from temporary device:',
+        actionSpace.map((a) => a.name).join(', '),
+      );
+    }
 
     // 3. Generate tools from action space (core innovation)
     const actionTools = generateToolsFromActionSpace(actionSpace, () =>
