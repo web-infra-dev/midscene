@@ -321,6 +321,46 @@ export class Page<
         const { button = 'left', count = 1 } = options || {};
         debugPage(`mouse click ${x}, ${y}, ${button}, ${count}`);
 
+        // Log the element info at click point for debugging
+        // Enable by: MIDSCENE_DEBUG_CLICK=1
+        if (process.env.MIDSCENE_DEBUG_CLICK) try {
+          const elementInfo = await this.evaluate(
+            (pos: { x: number; y: number }) => {
+              const el = document.elementFromPoint(pos.x, pos.y);
+              if (!el) return { found: false };
+              const styles = window.getComputedStyle(el);
+              return {
+                found: true,
+                tagName: el.tagName,
+                id: el.id || undefined,
+                className:
+                  typeof el.className === 'string'
+                    ? el.className.slice(0, 200)
+                    : undefined,
+                disabled: (el as HTMLButtonElement).disabled ?? undefined,
+                ariaDisabled: el.getAttribute('aria-disabled') ?? undefined,
+                pointerEvents: styles.pointerEvents,
+                visibility: styles.visibility,
+                opacity: styles.opacity,
+                textContent: (el.textContent || '').trim().slice(0, 80),
+                rect: (() => {
+                  const r = el.getBoundingClientRect();
+                  return {
+                    x: Math.round(r.x),
+                    y: Math.round(r.y),
+                    w: Math.round(r.width),
+                    h: Math.round(r.height),
+                  };
+                })(),
+              };
+            },
+            { x, y },
+          );
+          debugPage('element at click point (%d, %d): %o', x, y, elementInfo);
+        } catch (e) {
+          debugPage('failed to get element info at click point: %s', e);
+        }
+
         if (count === 2 && this.interfaceType === 'playwright') {
           await (this.underlyingPage as PlaywrightPage).mouse.dblclick(x, y, {
             button,
