@@ -12,6 +12,7 @@ import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
+const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
 
 function getSystemChromePath(): string | undefined {
   const platform = process.platform;
@@ -111,6 +112,7 @@ const browserManager = {
   async launchDetachedChrome(): Promise<string> {
     const chromePath = resolveChromePath();
     const args = [
+      `--user-data-dir=${USER_DATA_DIR}`,
       '--remote-debugging-port=0',
       '--no-first-run',
       '--no-default-browser-check',
