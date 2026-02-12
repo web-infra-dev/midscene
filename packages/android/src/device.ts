@@ -505,7 +505,6 @@ ${Object.keys(size)
     return {
       physicalWidth: Number.parseInt(match[1], 10),
       physicalHeight: Number.parseInt(match[2], 10),
-      dpr: this.devicePixelRatio,
       orientation: screenSize.orientation,
       isCurrentOrientation: screenSize.isCurrentOrientation,
     };
@@ -890,7 +889,6 @@ ${Object.keys(size)
     return {
       width: logicalWidth,
       height: logicalHeight,
-      dpr: this.devicePixelRatio,
     };
   }
 

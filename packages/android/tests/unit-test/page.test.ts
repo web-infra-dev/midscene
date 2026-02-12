@@ -131,7 +131,7 @@ describe('AndroidDevice', () => {
       const size1 = await device.size();
       const size2 = await device.size();
 
-      expect(size1).toEqual({ width: 540, height: 960, dpr: 2 });
+      expect(size1).toEqual({ width: 540, height: 960 });
       expect(size2).toEqual(size1);
       // Caching is removed, so it should be called twice
       expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
@@ -194,7 +194,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 2,
       });
       vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
@@ -1174,7 +1173,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 1,
       });
     });
 
@@ -1976,7 +1974,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 2,
       });
 
       await deviceWithDisplay.screenshotBase64();
@@ -2111,7 +2108,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 2,
       });
 
       await deviceWithDisplay.screenshotBase64();

@@ -115,6 +115,9 @@ export abstract class UIContext {
   abstract shotSize: Size;
 
   abstract _isFrozen?: boolean;
+
+  // @deprecated - backward compatibility for aiLocate
+  abstract deprecatedDpr?: number;
 }
 
 export type EnsureObject<T> = { [K in keyof T]: any };

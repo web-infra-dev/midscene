@@ -43,17 +43,21 @@ export async function commonContextParser(
   debug('UploadTestInfoToServer end');
 
   debug('will get size');
-  const {
-    width: logicalWidth,
-    height: logicalHeight,
-    dpr,
-  } = await interfaceInstance.size();
+  const interfaceSize = await interfaceInstance.size();
+  const { width: logicalWidth, height: logicalHeight } = interfaceSize;
+
+  if ((interfaceSize as unknown as { dpr: number }).dpr) {
+    console.warn(
+      'Warning: return value of interface.size() include a dpr property, which is not expected and ignored. ',
+    );
+  }
+
   if (!Number.isFinite(logicalWidth) || !Number.isFinite(logicalHeight)) {
     throw new Error(
       `Invalid interface size: width and height must be finite numbers. Received width: ${logicalWidth}, height: ${logicalHeight}`,
     );
   }
-  debug(`size: ${logicalWidth}x${logicalHeight} dpr: ${dpr}`);
+  debug(`size: ${logicalWidth}x${logicalHeight}`);
 
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
   assert(screenshotBase64!, 'screenshotBase64 is required');
@@ -84,9 +88,8 @@ export async function commonContextParser(
       shotSize: {
         width: targetWidth,
         height: targetHeight,
-        // DPR is not applicable after resizing, set to undefined to avoid confusion
-        dpr: undefined,
       },
+      deprecatedDpr: shrinkFactor,
       screenshot: ScreenshotItem.create(resizedBase64),
     };
   }
@@ -94,8 +97,8 @@ export async function commonContextParser(
     shotSize: {
       width: imgWidth,
       height: imgHeight,
-      dpr,
     },
+    deprecatedDpr: 1,
     screenshot: ScreenshotItem.create(screenshotBase64),
   };
 }

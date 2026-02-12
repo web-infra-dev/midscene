@@ -141,7 +141,7 @@ describe('TaskExecutor RightClick Action', () => {
     // Mock uiContext
     const mockUiContext = {
       screenshotBase64: 'mock-screenshot',
-      shotSize: { width: 1024, height: 768, dpr: 1 },
+      shotSize: { width: 1024, height: 768 },
       tree: { node: null, children: [] },
     };
 

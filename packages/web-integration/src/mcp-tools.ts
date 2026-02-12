@@ -13,7 +13,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     // Use screenshotBase64 field to avoid async ScreenshotItem.create()
     return new StaticPage({
       screenshot: ScreenshotItem.create(''),
-      shotSize: { width: 1920, height: 1080, dpr: 1 },
+      shotSize: { width: 1920, height: 1080 },
     });
   }
 

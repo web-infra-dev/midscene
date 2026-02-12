@@ -71,7 +71,6 @@ export interface SampleDeviceConfig {
   deviceName?: string;
   width?: number;
   height?: number;
-  dpr?: number;
 }
 
 /**
@@ -86,7 +85,6 @@ export class SampleDevice implements AbstractInterface {
       deviceName: config.deviceName || 'Sample Device',
       width: config.width || 1920,
       height: config.height || 1080,
-      dpr: config.dpr || 1,
     };
   }
 
@@ -101,12 +99,12 @@ export class SampleDevice implements AbstractInterface {
 
   /**
    * Required: Get interface dimensions
+   * The width and height here refer to the logical size of the interface, not considering the device pixel ratio (dpr). The coordinates obtained from actions like defineActionTap are also based on this logical coordinate system. You can convert logical coordinates to physical coordinates in your action implementations if needed.
    */
   async size(): Promise<Size> {
     return {
       width: this.config.width,
       height: this.config.height,
-      dpr: this.config.dpr,
     };
   }
 
@@ -287,7 +285,7 @@ These are the required methods that you need to implement:
 
 - `interfaceType: string`: define a name for the interface, this will not be provided to the AI model
 - `screenshotBase64(): Promise<string>`: take a screenshot of the interface and return the base64 string with the `'data:image/` prefix
-- `size(): Promise<Size>`: the size and dpr of the interface, which is an object with the `width`, `height`, and `dpr` properties
+- `size(): Promise<Size>`: the size of the interface, which is an object with the `width` and `height` properties
 - `actionSpace(): DeviceAction[] | Promise<DeviceAction[]>`: the action space of the interface, which is an array of `DeviceAction` objects. Use predefined actions or define any custom action.
 
 Type signatures:
