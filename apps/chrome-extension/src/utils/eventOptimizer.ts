@@ -137,11 +137,11 @@ export const generateAIDescription = async (
     try {
       const mockContext: UIContext = {
         screenshot: ScreenshotItem.create(event.screenshotBefore as string),
-        size: {
+        shotSize: {
           width: event.pageInfo.width,
           height: event.pageInfo.height,
         },
-      };
+      } as UIContext;
 
       const service = new Service(mockContext);
       const rect = extractRect(event);

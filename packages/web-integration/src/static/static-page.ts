@@ -82,8 +82,7 @@ export default class StaticPage implements AbstractInterface {
 
   async size() {
     return {
-      ...this.uiContext.size,
-      dpr: this.uiContext.size.dpr || 1,
+      ...this.uiContext.shotSize
     };
   }
 

@@ -157,7 +157,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
   protected createTemporaryDevice() {
     return new StaticPage({
       screenshot: ScreenshotItem.create(''),
-      size: { width: 1920, height: 1080 },
+      shotSize: { width: 1920, height: 1080 },
     });
   }
 

@@ -159,7 +159,7 @@ const DetailPanel = (): JSX.Element => {
     }
 
     contextLocatorView =
-      highlightElements.length > 0 && activeTask.uiContext?.size ? (
+      highlightElements.length > 0 && activeTask.uiContext?.shotSize ? (
         <ScreenshotDisplay
           title={isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'}
         >
