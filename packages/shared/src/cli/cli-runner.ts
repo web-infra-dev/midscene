@@ -127,11 +127,7 @@ function printHelp(scriptName: string, commands: CLICommand[]): void {
   console.log(`\nUsage: ${scriptName} <command> [options]\n`);
   console.log('Commands:');
   for (const { name, def } of commands) {
-    const desc =
-      def.description.length > 60
-        ? `${def.description.slice(0, 57)}...`
-        : def.description;
-    console.log(`  ${name.padEnd(30)} ${desc}`);
+    console.log(`  ${name.padEnd(30)} ${def.description}`);
   }
   console.log(`\nRun "${scriptName} <command> --help" for more info.`);
 }

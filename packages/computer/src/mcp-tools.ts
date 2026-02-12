@@ -47,7 +47,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
       {
         name: 'computer_connect',
         description:
-          'Connect to computer desktop. If displayId not provided, uses the primary display.',
+          'Connect to computer desktop. Use --displayId to specify a display (get available IDs from list_displays). If not provided, uses the primary display.',
         schema: {
           displayId: z
             .string()
