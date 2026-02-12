@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android",
-  "version": "1.3.11",
+  "version": "1.4.0",
   "description": "Android automation library for Midscene",
   "keywords": [
     "Android UI automation",
@@ -12,6 +12,9 @@
   "main": "./dist/lib/index.js",
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
+  "bin": {
+    "midscene-android": "./bin/midscene-android"
+  },
   "files": ["bin", "dist", "README.md"],
   "exports": {
     ".": {

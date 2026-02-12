@@ -67,6 +67,12 @@ jobs:
         VERSION=$(cat packages/core/package.json | jq -r '.version')
         echo "version=v${VERSION}" >> $GITHUB_OUTPUT
         echo "Core package version: v${VERSION}"
+        echo "## 🚀 Released v${VERSION}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "- **Version**: \`v${VERSION}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Type**: \`${{ github.event.inputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: \`${{ github.event.inputs.branch }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **NPM**: [\`@midscene/core@${VERSION}\`](https://www.npmjs.com/package/@midscene/core/v/${VERSION})" >> $GITHUB_STEP_SUMMARY
       
     - name: Upload output
       uses: actions/upload-artifact@v4

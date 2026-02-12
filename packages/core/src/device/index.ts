@@ -188,15 +188,12 @@ export const actionInputParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe(inputLocateDescription)
     .optional(),
-  mode: z.preprocess(
-    (val) => (val === 'append' ? 'typeOnly' : val),
-    z
-      .enum(['replace', 'clear', 'typeOnly'])
-      .default('replace')
-      .describe(
-        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-      ),
-  ),
+  mode: z
+    .enum(['replace', 'clear', 'typeOnly'])
+    .default('replace')
+    .describe(
+      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+    ),
 });
 export type ActionInputParam = {
   value: string;
@@ -212,7 +209,13 @@ export const defineActionInput = (
     description: 'Input the value into the element',
     interfaceAlias: 'aiInput',
     paramSchema: actionInputParamSchema,
-    call,
+    call: (param) => {
+      // backward compat: convert deprecated 'append' to 'typeOnly'
+      if ((param.mode as string) === 'append') {
+        param.mode = 'typeOnly';
+      }
+      return call(param);
+    },
   });
 };
 

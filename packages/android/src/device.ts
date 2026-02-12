@@ -1568,11 +1568,17 @@ ${Object.keys(size)
     const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
     const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
 
-    // Calculate the maximum swipeable range
-    const maxNegativeDeltaX = startX;
-    const maxPositiveDeltaX = Math.round((n - 1) * (width / n));
-    const maxNegativeDeltaY = startY;
-    const maxPositiveDeltaY = Math.round((n - 1) * (height / n));
+    // Calculate the maximum swipeable range so end coordinates stay in bounds.
+    // endX = startX - deltaX, endY = startY - deltaY
+    // Therefore:
+    //  - deltaX > 0 means moving left: max distance is startX
+    //  - deltaX < 0 means moving right: max distance is width - startX
+    //  - deltaY > 0 means moving up: max distance is startY
+    //  - deltaY < 0 means moving down: max distance is height - startY
+    const maxPositiveDeltaX = startX;
+    const maxNegativeDeltaX = width - startX;
+    const maxPositiveDeltaY = startY;
+    const maxNegativeDeltaY = height - startY;
 
     // Limit the swipe distance
     deltaX = Math.max(-maxNegativeDeltaX, Math.min(deltaX, maxPositiveDeltaX));
