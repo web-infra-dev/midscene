@@ -601,105 +601,24 @@ class PlaygroundServer {
     // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
     // falls back to polling screenshotBase64() otherwise.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
-      const iface = this.agent?.interface as any;
+      const nativeUrl = this.agent?.interface?.mjpegStreamUrl;
 
-      // Try native MJPEG stream first (e.g. WDA's built-in MJPEG server)
-      // Only probe once; cache the result to avoid repeated connection failures.
-      const nativeUrl: string | undefined = iface?.mjpegStreamUrl;
       if (nativeUrl && this._nativeMjpegAvailable !== false) {
-        const proxyOk = await new Promise<boolean>((resolve) => {
-          console.log(`MJPEG: trying native stream from ${nativeUrl}`);
-          const proxyReq = http.get(nativeUrl, (proxyRes) => {
-            this._nativeMjpegAvailable = true;
-            console.log('MJPEG: streaming via native WDA MJPEG server');
-            const contentType = proxyRes.headers['content-type'];
-            if (contentType) {
-              res.setHeader('Content-Type', contentType);
-            }
-            res.setHeader(
-              'Cache-Control',
-              'no-cache, no-store, must-revalidate',
-            );
-            res.setHeader('Connection', 'keep-alive');
-            proxyRes.pipe(res);
-            req.on('close', () => proxyReq.destroy());
-            resolve(true);
-          });
-          proxyReq.on('error', (err) => {
-            this._nativeMjpegAvailable = false;
-            console.warn(
-              `MJPEG: native stream unavailable (${err.message}), using polling mode`,
-            );
-            resolve(false);
-          });
-        });
+        const proxyOk = await this.probeAndProxyNativeMjpeg(
+          nativeUrl,
+          req,
+          res,
+        );
         if (proxyOk) return;
       }
 
-      // Fallback: poll screenshotBase64()
-      if (typeof iface?.screenshotBase64 !== 'function') {
+      if (typeof this.agent?.interface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
       }
 
-      const fps = Math.min(Math.max(Number(req.query.fps) || 10, 1), 30);
-      const interval = Math.round(1000 / fps);
-      const boundary = 'mjpeg-boundary';
-      console.log(`MJPEG: streaming via polling mode (${fps}fps)`);
-
-      res.setHeader(
-        'Content-Type',
-        `multipart/x-mixed-replace; boundary=${boundary}`,
-      );
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Connection', 'keep-alive');
-
-      let stopped = false;
-      let consecutiveErrors = 0;
-      req.on('close', () => {
-        stopped = true;
-      });
-
-      while (!stopped) {
-        const frameStart = Date.now();
-        try {
-          const base64 = await this.agent.interface.screenshotBase64();
-          if (stopped) break;
-          consecutiveErrors = 0;
-
-          // Strip data URL prefix if present
-          const raw = base64.replace(/^data:image\/\w+;base64,/, '');
-          const buf = Buffer.from(raw, 'base64');
-
-          res.write(`--${boundary}\r\n`);
-          res.write('Content-Type: image/jpeg\r\n');
-          res.write(`Content-Length: ${buf.length}\r\n\r\n`);
-          res.write(buf);
-          res.write('\r\n');
-        } catch (err) {
-          if (stopped) break;
-          consecutiveErrors++;
-          if (consecutiveErrors <= 3) {
-            console.error('MJPEG frame error:', err);
-          } else if (consecutiveErrors === 4) {
-            console.error(
-              'MJPEG: suppressing further errors, retrying silently...',
-            );
-          }
-          // Backoff: wait longer on consecutive failures (max 3s)
-          const backoff = Math.min(1000 * consecutiveErrors, 3000);
-          await new Promise((r) => setTimeout(r, backoff));
-          continue;
-        }
-
-        // Only sleep if the frame was faster than the target interval
-        const elapsed = Date.now() - frameStart;
-        const remaining = interval - elapsed;
-        if (remaining > 0) {
-          await new Promise((r) => setTimeout(r, remaining));
-        }
-      }
+      await this.startPollingMjpegStream(req, res);
     });
 
     // Interface info API for getting interface type and description
@@ -768,6 +687,111 @@ class PlaygroundServer {
           'AI config updated. Agent will be recreated on next execution.',
       });
     });
+  }
+
+  /**
+   * Probe and proxy a native MJPEG stream (e.g. WDA MJPEG server).
+   * Result is cached so we only probe once per server lifetime.
+   */
+  private probeAndProxyNativeMjpeg(
+    nativeUrl: string,
+    req: Request,
+    res: Response,
+  ): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      console.log(`MJPEG: trying native stream from ${nativeUrl}`);
+      const proxyReq = http.get(nativeUrl, (proxyRes) => {
+        this._nativeMjpegAvailable = true;
+        console.log('MJPEG: streaming via native WDA MJPEG server');
+        const contentType = proxyRes.headers['content-type'];
+        if (contentType) {
+          res.setHeader('Content-Type', contentType);
+        }
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Connection', 'keep-alive');
+        proxyRes.pipe(res);
+        req.on('close', () => proxyReq.destroy());
+        resolve(true);
+      });
+      proxyReq.on('error', (err) => {
+        this._nativeMjpegAvailable = false;
+        console.warn(
+          `MJPEG: native stream unavailable (${err.message}), using polling mode`,
+        );
+        resolve(false);
+      });
+    });
+  }
+
+  /**
+   * Stream screenshots as MJPEG by polling screenshotBase64().
+   */
+  private async startPollingMjpegStream(
+    req: Request,
+    res: Response,
+  ): Promise<void> {
+    const defaultMjpegFps = 10;
+    const maxMjpegFps = 30;
+    const maxErrorBackoffMs = 3000;
+    const errorLogThreshold = 3;
+
+    const fps = Math.min(
+      Math.max(Number(req.query.fps) ?? defaultMjpegFps, 1),
+      maxMjpegFps,
+    );
+    const interval = Math.round(1000 / fps);
+    const boundary = 'mjpeg-boundary';
+    console.log(`MJPEG: streaming via polling mode (${fps}fps)`);
+
+    res.setHeader(
+      'Content-Type',
+      `multipart/x-mixed-replace; boundary=${boundary}`,
+    );
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Connection', 'keep-alive');
+
+    let stopped = false;
+    let consecutiveErrors = 0;
+    req.on('close', () => {
+      stopped = true;
+    });
+
+    while (!stopped) {
+      const frameStart = Date.now();
+      try {
+        const base64 = await this.agent.interface.screenshotBase64();
+        if (stopped) break;
+        consecutiveErrors = 0;
+
+        const raw = base64.replace(/^data:image\/\w+;base64,/, '');
+        const buf = Buffer.from(raw, 'base64');
+
+        res.write(`--${boundary}\r\n`);
+        res.write('Content-Type: image/jpeg\r\n');
+        res.write(`Content-Length: ${buf.length}\r\n\r\n`);
+        res.write(buf);
+        res.write('\r\n');
+      } catch (err) {
+        if (stopped) break;
+        consecutiveErrors++;
+        if (consecutiveErrors <= errorLogThreshold) {
+          console.error('MJPEG frame error:', err);
+        } else if (consecutiveErrors === errorLogThreshold + 1) {
+          console.error(
+            'MJPEG: suppressing further errors, retrying silently...',
+          );
+        }
+        const backoff = Math.min(1000 * consecutiveErrors, maxErrorBackoffMs);
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      }
+
+      const elapsed = Date.now() - frameStart;
+      const remaining = interval - elapsed;
+      if (remaining > 0) {
+        await new Promise((r) => setTimeout(r, remaining));
+      }
+    }
   }
 
   /**

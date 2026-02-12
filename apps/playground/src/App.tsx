@@ -188,9 +188,7 @@ export default function App() {
                   serverOnline={serverOnline}
                   isUserOperating={isUserOperating}
                   mjpegUrl={
-                    deviceType === 'ios'
-                      ? `${__SERVER_URL__}/mjpeg?fps=30`
-                      : undefined
+                    deviceType === 'ios' ? `${__SERVER_URL__}/mjpeg` : undefined
                   }
                 />
               </div>

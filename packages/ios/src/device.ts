@@ -249,7 +249,7 @@ export class IOSDevice implements AbstractInterface {
 
     const wdaPort = options?.wdaPort || DEFAULT_WDA_PORT;
     const wdaHost = options?.wdaHost || 'localhost';
-    const mjpegPort = options?.wdaMjpegPort || DEFAULT_WDA_MJPEG_PORT;
+    const mjpegPort = options?.wdaMjpegPort ?? DEFAULT_WDA_MJPEG_PORT;
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,

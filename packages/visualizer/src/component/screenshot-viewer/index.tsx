@@ -32,9 +32,6 @@ export default function ScreenshotViewer({
     type: string;
     description?: string;
   } | null>(null);
-  // Key to force-reload the MJPEG <img> tag
-  const [mjpegKey, setMjpegKey] = useState(0);
-
   const isMjpeg = Boolean(mjpegUrl && serverOnline);
 
   // Refs for managing polling
@@ -128,14 +125,9 @@ export default function ScreenshotViewer({
     isPollingPausedRef.current = false;
   }, []);
 
-  // Manual refresh screenshot (or reload MJPEG stream)
   const handleManualRefresh = useCallback(() => {
-    if (isMjpeg) {
-      setMjpegKey((k) => k + 1);
-    } else {
-      fetchScreenshot(true);
-    }
-  }, [isMjpeg, fetchScreenshot]);
+    fetchScreenshot(true);
+  }, [fetchScreenshot]);
 
   // Manage server connection status changes
   useEffect(() => {
@@ -281,7 +273,6 @@ export default function ScreenshotViewer({
         <div className="screenshot-content">
           {isMjpeg ? (
             <img
-              key={mjpegKey}
               src={mjpegUrl}
               alt="Device Live Stream"
               className="screenshot-image"
