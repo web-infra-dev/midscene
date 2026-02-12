@@ -497,7 +497,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     if (!this.sessionId) return;
 
     try {
-      // Set iOS-specific session configuration
+      // Set iOS-specific session configuration + MJPEG server settings
       await this.makeRequest(
         'POST',
         `/session/${this.sessionId}/appium/settings`,
@@ -505,9 +505,12 @@ export class IOSWebDriverClient extends WebDriverClient {
           snapshotMaxDepth: 50,
           elementResponseAttributes:
             'type,label,name,value,rect,enabled,visible',
+          mjpegServerScreenshotQuality: 50,
+          mjpegServerFramerate: 30,
+          mjpegScalingFactor: 50,
         },
       );
-      debugIOS('iOS session configuration applied');
+      debugIOS('iOS session configuration applied (including MJPEG settings)');
     } catch (error) {
       debugIOS(`Failed to apply iOS session configuration: ${error}`);
       // Don't throw, this is optional configuration

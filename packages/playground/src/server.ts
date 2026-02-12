@@ -662,6 +662,7 @@ class PlaygroundServer {
       });
 
       while (!stopped) {
+        const frameStart = Date.now();
         try {
           const base64 = await this.agent.interface.screenshotBase64();
           if (stopped) break;
@@ -692,7 +693,12 @@ class PlaygroundServer {
           continue;
         }
 
-        await new Promise((r) => setTimeout(r, interval));
+        // Only sleep if the frame was faster than the target interval
+        const elapsed = Date.now() - frameStart;
+        const remaining = interval - elapsed;
+        if (remaining > 0) {
+          await new Promise((r) => setTimeout(r, remaining));
+        }
       }
     });
 
