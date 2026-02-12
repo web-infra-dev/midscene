@@ -10,6 +10,7 @@ const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
   return {
     screenshot,
     shotSize: { width: 1920, height: 1080 },
+    shrunkShotToLogicalRatio: 1,
   };
 };
 
@@ -18,6 +19,7 @@ const createEmptyUIContext = async () => {
   return {
     screenshot,
     shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
   };
 };
 
@@ -151,7 +153,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -196,7 +197,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -237,7 +237,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -276,7 +275,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -317,7 +315,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {

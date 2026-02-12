@@ -25,7 +25,7 @@ import { debug as cacheDebug } from './task-cache';
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string },
+  _opt: { uploadServerUrl?: string; screenshotShrinkFactor?: number },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
 
@@ -57,6 +57,13 @@ export async function commonContextParser(
       `Invalid interface size: width and height must be finite numbers. Received width: ${logicalWidth}, height: ${logicalHeight}`,
     );
   }
+
+  if (logicalWidth <= 0 || logicalHeight <= 0) {
+    throw new Error(
+      `Invalid interface size: width and height must be positive numbers. Received width: ${logicalWidth}, height: ${logicalHeight}`,
+    );
+  }
+
   debug(`size: ${logicalWidth}x${logicalHeight}`);
 
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
@@ -66,18 +73,42 @@ export async function commonContextParser(
   debug('will get screenshot dimensions');
   const { width: imgWidth, height: imgHeight } =
     await imageInfoOfBase64(screenshotBase64);
+
+  if (!Number.isFinite(imgWidth) || !Number.isFinite(imgHeight)) {
+    throw new Error(
+      `Invalid screenshot dimensions: width and height must be finite numbers. Received width: ${imgWidth}, height: ${imgHeight}`,
+    );
+  }
+  if (imgWidth <= 0 || imgHeight <= 0) {
+    throw new Error(
+      `Invalid screenshot dimensions: width and height must be positive numbers. Received width: ${imgWidth}, height: ${imgHeight}`,
+    );
+  }
   debug('screenshot dimensions', imgWidth, 'x', imgHeight);
 
-  const shrinkFactor = imgWidth / logicalWidth;
+  // Validate user-specified shrink factor
+  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
 
-  debug('calculated shrink factor:', shrinkFactor);
+  if (!Number.isFinite(userShrinkFactor) || userShrinkFactor < 1) {
+    throw new Error(
+      `Invalid screenshotShrinkFactor: must be a finite number >= 1. Received: ${userShrinkFactor}`,
+    );
+  }
 
-  if (shrinkFactor !== 1) {
-    const targetWidth = Math.round(imgWidth / shrinkFactor);
-    const targetHeight = Math.round(imgHeight / shrinkFactor);
+  const dpr = imgWidth / logicalWidth;
+
+  debug('calculated dpr:', dpr);
+
+  const shrunkShotToLogicalRatio = dpr / userShrinkFactor;
+
+  debug('shrunkShotToLogicalRatio', shrunkShotToLogicalRatio);
+
+  if (userShrinkFactor !== 1) {
+    const targetWidth = Math.round(imgWidth / userShrinkFactor);
+    const targetHeight = Math.round(imgHeight / userShrinkFactor);
 
     debug(
-      `Applying screenshot shrink factor: ${shrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${targetWidth}x${targetHeight})`,
+      `Applying screenshot shrink factor: ${userShrinkFactor} (physical: ${imgWidth}x${imgHeight} -> target: ${targetWidth}x${targetHeight})`,
     );
 
     const resizedBase64 = await resizeImgBase64(screenshotBase64, {
@@ -89,17 +120,20 @@ export async function commonContextParser(
         width: targetWidth,
         height: targetHeight,
       },
-      deprecatedDpr: shrinkFactor,
+      deprecatedDpr: dpr,
       screenshot: ScreenshotItem.create(resizedBase64),
+      shrunkShotToLogicalRatio,
     };
   }
+
   return {
     shotSize: {
       width: imgWidth,
       height: imgHeight,
     },
-    deprecatedDpr: 1,
+    deprecatedDpr: dpr,
     screenshot: ScreenshotItem.create(screenshotBase64),
+    shrunkShotToLogicalRatio,
   };
 }
 

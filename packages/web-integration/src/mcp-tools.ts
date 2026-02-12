@@ -14,6 +14,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     return new StaticPage({
       screenshot: ScreenshotItem.create(''),
       shotSize: { width: 1920, height: 1080 },
+      shrunkShotToLogicalRatio: 1,
     });
   }
 

@@ -47,7 +47,7 @@ const createMockUIContext = async (
   shotSize = { width: 1920, height: 1080 },
 ) => {
   const screenshot = ScreenshotItem.create(screenshotData);
-  return { screenshot, shotSize };
+  return { screenshot, shotSize, shrunkShotToLogicalRatio: 1 };
 };
 
 describe('bbox locate cache fix', () => {
@@ -105,6 +105,7 @@ describe('bbox locate cache fix', () => {
         return {
           screenshot,
           shotSize: { width: 1920, height: 1080 },
+          shrunkShotToLogicalRatio: 1,
           tree: {
             id: 'root',
             attributes: {},

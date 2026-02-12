@@ -33,6 +33,7 @@ const mockInsight = {
   contextRetrieverFn: vi.fn().mockResolvedValue({
     screenshotBase64: 'mock-screenshot',
     shotSize: { width: 1024, height: 768 },
+    shrunkShotToLogicalRatio: 1,
     tree: { node: null, children: [] },
   }),
 } as any;
@@ -142,6 +143,7 @@ describe('TaskExecutor RightClick Action', () => {
     const mockUiContext = {
       screenshotBase64: 'mock-screenshot',
       shotSize: { width: 1024, height: 768 },
+      shrunkShotToLogicalRatio: 1,
       tree: { node: null, children: [] },
     };
 

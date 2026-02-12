@@ -178,6 +178,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     const mockPageContext = {
       tree: { node: null, children: [] },
       shotSize: { width: 800, height: 600 },
+      shrunkShotToLogicalRatio: 1,
       screenshotBase64: 'mock-base64-string',
     };
     const options = {
@@ -209,6 +210,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       uiContext: {
         tree: { node: null, children: [] },
         shotSize: { width: 1024, height: 768 },
+        shrunkShotToLogicalRatio: 1,
         screenshotBase64: 'mock-base64-string',
       },
       customParam1: 'value1',
@@ -227,6 +229,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       uiContext: {
         tree: { node: null, children: [] },
         shotSize: { width: 1024, height: 768 },
+        shrunkShotToLogicalRatio: 1,
         screenshotBase64: 'mock-base64-string',
       },
       customParam1: 'value1',

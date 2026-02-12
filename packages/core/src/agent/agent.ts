@@ -375,6 +375,7 @@ export class Agent<
     // Get original context
     const context = await commonContextParser(this.interface, {
       uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+      screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
     });
 
     return context;

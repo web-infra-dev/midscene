@@ -101,6 +101,7 @@ export type MidsceneYamlScriptAgentOpt = Pick<
   | 'aiActContext'
   | 'aiActionContext'
   | 'cache'
+  | 'screenshotShrinkFactor'
 >;
 
 export interface MidsceneYamlScriptConfig {

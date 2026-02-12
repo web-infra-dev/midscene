@@ -152,7 +152,6 @@ export default class StaticPage implements AbstractInterface {
     //
   }
 
-
   updateContext(newContext: StaticPageUIContext): void {
     this.uiContext = newContext;
   }
