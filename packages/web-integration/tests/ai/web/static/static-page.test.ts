@@ -9,7 +9,6 @@ const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
 const context = readFileSync(dumpFilePath, { encoding: 'utf-8' });
 const contextJson = JSON.parse(context);
 
-contextJson.shotSize.dpr = undefined;
 contextJson.screenshot = contextJson.screenshotBase64;
 
 describe(

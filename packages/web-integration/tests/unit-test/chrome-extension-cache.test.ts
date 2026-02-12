@@ -147,29 +147,6 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       });
     });
 
-    it('should include dpr when viewportSize has dpr', async () => {
-      const mockElementInfo = {
-        rect: { left: 10, top: 20, width: 100, height: 50 },
-      };
-      vi.spyOn(page, 'getElementInfoByXpath').mockResolvedValue(
-        mockElementInfo as any,
-      );
-      // Set viewportSize with dpr
-      (page as any).viewportSize = { width: 1920, height: 1080, dpr: 2 };
-
-      const result = await page.rectMatchesCacheFeature({
-        xpaths: ['/html/body/button[1]'],
-      });
-
-      expect(result).toEqual({
-        left: 10,
-        top: 20,
-        width: 100,
-        height: 50,
-        dpr: 2,
-      });
-    });
-
     it('should try multiple xpaths and return first match', async () => {
       vi.spyOn(page, 'getElementInfoByXpath')
         .mockResolvedValueOnce(null as any) // First xpath fails

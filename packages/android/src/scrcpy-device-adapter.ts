@@ -23,7 +23,6 @@ interface ResolvedScrcpyConfig {
 export interface DevicePhysicalInfo {
   physicalWidth: number;
   physicalHeight: number;
-  dpr: number;
   orientation: number;
   isCurrentOrientation?: boolean;
 }
@@ -174,7 +173,6 @@ export class ScrcpyDeviceAdapter {
     return {
       width: resolution.width,
       height: resolution.height,
-      dpr: deviceInfo.dpr,
     };
   }
 

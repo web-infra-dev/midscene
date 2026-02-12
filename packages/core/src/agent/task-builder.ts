@@ -564,7 +564,11 @@ export class TaskBuilder {
 
         return {
           output: {
-            element,
+            element: {
+              ...element,
+              // backward compatibility for aiLocate, which return value needs a dpr field
+              dpr: uiContext.deprecatedDpr,
+            },
           },
           hitBy,
         };

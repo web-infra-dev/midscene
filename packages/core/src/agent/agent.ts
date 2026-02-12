@@ -1068,19 +1068,11 @@ export class Agent<
 
     const { element } = output;
 
-    const dprValue = await (this.interface.size() as any).dpr;
-    const dprEntry = dprValue
-      ? {
-          dpr: dprValue,
-        }
-      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      ...dprEntry,
-    } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr?: number; // this field is deprecated
-    };
+      dpr: element?.dpr,
+    } as Pick<LocateResultElement, 'rect' | 'center'>;
   }
 
   async aiAssert(

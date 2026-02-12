@@ -13,7 +13,7 @@ const mockPage = {
   actionSpace: vi.fn(() => []),
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
-  size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
+  size: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
   url: vi.fn().mockResolvedValue('https://example.com'),
   getContext: vi.fn().mockImplementation(async function (
     this: AbstractInterface,
@@ -38,7 +38,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     // Create mock contexts
     mockContext = {
-      shotSize: { width: 1920, height: 1080, dpr: 1 },
+      shotSize: { width: 1920, height: 1080 },
       screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       ),
@@ -55,7 +55,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
     } as unknown as UIContext;
 
     mockContext2 = {
-      shotSize: { width: 1920, height: 1080, dpr: 1 },
+      shotSize: { width: 1920, height: 1080 },
       shrunkShotToLogicalRatio: 1,
       screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',

@@ -19,12 +19,14 @@ const ThrowNotImplemented = (methodName: string) => {
   );
 };
 
+type StaticPageUIContext = Omit<UIContext, 'deprecatedDpr'>;
+
 export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
 
-  private uiContext: UIContext;
+  private uiContext: StaticPageUIContext;
 
-  constructor(uiContext: UIContext) {
+  constructor(uiContext: StaticPageUIContext) {
     this.uiContext = uiContext;
   }
 
@@ -151,7 +153,7 @@ export default class StaticPage implements AbstractInterface {
   }
 
 
-  updateContext(newContext: UIContext): void {
+  updateContext(newContext: StaticPageUIContext): void {
     this.uiContext = newContext;
   }
 }
