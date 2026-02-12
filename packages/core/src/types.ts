@@ -112,7 +112,7 @@ export interface AgentDescribeElementAtPointResult {
 export abstract class UIContext {
   abstract screenshot: ScreenshotItem;
 
-  abstract size: Size;
+  abstract shotSize: Size;
 
   abstract _isFrozen?: boolean;
 }

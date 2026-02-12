@@ -8,10 +8,7 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import {
-  globalConfigManager,
-  globalModelConfigManager,
-} from '@midscene/shared/env';
+import { globalModelConfigManager } from '@midscene/shared/env';
 import { saveBase64Image } from '@midscene/shared/img';
 import dotenv from 'dotenv';
 import { afterEach, beforeAll, describe, expect, test } from 'vitest';
@@ -167,8 +164,8 @@ describe.skipIf(!globalModelFamily)('ai planning - by coordinates', () => {
                 const indexId = index + 1;
                 testCase.response_rect = adaptBboxToRect(
                   res.action.locate.bbox,
-                  context.size.width,
-                  context.size.height,
+                  context.shotSize.width,
+                  context.shotSize.height,
                   0,
                   0,
                   modelConfig.modelFamily,

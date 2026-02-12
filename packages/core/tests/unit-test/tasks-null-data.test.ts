@@ -9,7 +9,7 @@ const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
   const screenshot = ScreenshotItem.create(screenshotData);
   return {
     screenshot,
-    size: { width: 1920, height: 1080 },
+    shotSize: { width: 1920, height: 1080 },
   };
 };
 
@@ -17,7 +17,7 @@ const createEmptyUIContext = async () => {
   const screenshot = ScreenshotItem.create('');
   return {
     screenshot,
-    size: { width: 0, height: 0 },
+    shotSize: { width: 0, height: 0 },
   };
 };
 

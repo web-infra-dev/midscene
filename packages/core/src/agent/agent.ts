@@ -62,7 +62,6 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';

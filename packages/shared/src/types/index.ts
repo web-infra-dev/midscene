@@ -12,7 +12,7 @@ export interface Size {
   dpr?: number; // this is deprecated, do NOT use it
 }
 
-export type Rect = Point & Size & { zoom?: number };
+export type Rect = Point & Size;
 
 export abstract class BaseElement {
   abstract id: string;

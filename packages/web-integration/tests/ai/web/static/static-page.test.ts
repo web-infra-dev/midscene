@@ -9,6 +9,7 @@ const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
 const context = readFileSync(dumpFilePath, { encoding: 'utf-8' });
 const contextJson = JSON.parse(context);
 
+contextJson.shotSize.dpr = undefined;
 contextJson.screenshot = contextJson.screenshotBase64;
 
 describe(
@@ -39,7 +40,7 @@ describe(
 
     it('server should work', async () => {
       const page = new StaticPage({
-        size: { width: 800, height: 600 },
+        shotSize: { width: 800, height: 600 },
         screenshot: ScreenshotItem.create(''),
       });
       const agent = new StaticPageAgent(page);

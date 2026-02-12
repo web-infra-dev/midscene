@@ -5,6 +5,7 @@ import type {
   ElementCacheFeature,
   LocateResultElement,
   PlanningLocateParam,
+  Rect,
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
@@ -80,7 +81,7 @@ export async function commonContextParser(
       height: targetHeight,
     });
     return {
-      size: {
+      shotSize: {
         width: targetWidth,
         height: targetHeight,
         // DPR is not applicable after resizing, set to undefined to avoid confusion
@@ -90,7 +91,7 @@ export async function commonContextParser(
     };
   }
   return {
-    size: {
+    shotSize: {
       width: imgWidth,
       height: imgHeight,
       dpr,
@@ -293,5 +294,79 @@ export const parsePrompt = (
           convertHttpImage2Base64: !!prompt.convertHttpImage2Base64,
         }
       : undefined,
+  };
+};
+
+/**
+ * Transform coordinates from screenshot coordinate system to logical coordinate system.
+ * When shrunkShotToLogicalRatio > 1, the screenshot is larger than logical size,
+ * so we need to divide coordinates by shrunkShotToLogicalRatio.
+ *
+ * @param element - The locate result element with coordinates in screenshot space
+ * @param shrunkShotToLogicalRatio - The ratio of screenshot size to logical size
+ * @returns A new element with coordinates transformed to logical space
+ */
+export const transformScreenshotElementToLogical = (
+  element: LocateResultElement,
+  shrunkShotToLogicalRatio: number,
+): LocateResultElement => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return element;
+  }
+
+  return {
+    ...element,
+    center: [
+      Math.round(element.center[0] / shrunkShotToLogicalRatio),
+      Math.round(element.center[1] / shrunkShotToLogicalRatio),
+    ],
+    rect: {
+      ...element.rect,
+      left: Math.round(element.rect.left / shrunkShotToLogicalRatio),
+      top: Math.round(element.rect.top / shrunkShotToLogicalRatio),
+      width: Math.round(element.rect.width / shrunkShotToLogicalRatio),
+      height: Math.round(element.rect.height / shrunkShotToLogicalRatio),
+    },
+  };
+};
+
+export const transformLogicalElementToScreenshot = (
+  element: LocateResultElement,
+  shrunkShotToLogicalRatio: number,
+): LocateResultElement => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return element;
+  }
+
+  return {
+    ...element,
+    center: [
+      Math.round(element.center[0] * shrunkShotToLogicalRatio),
+      Math.round(element.center[1] * shrunkShotToLogicalRatio),
+    ],
+    rect: {
+      ...element.rect,
+      left: Math.round(element.rect.left * shrunkShotToLogicalRatio),
+      top: Math.round(element.rect.top * shrunkShotToLogicalRatio),
+      width: Math.round(element.rect.width * shrunkShotToLogicalRatio),
+      height: Math.round(element.rect.height * shrunkShotToLogicalRatio),
+    },
+  };
+};
+
+export const transformLogicalRectToScreenshotRect = (
+  rect: Rect,
+  shrunkShotToLogicalRatio: number,
+): Rect => {
+  if (shrunkShotToLogicalRatio === 1) {
+    return rect;
+  }
+
+  return {
+    ...rect,
+    left: Math.round(rect.left * shrunkShotToLogicalRatio),
+    top: Math.round(rect.top * shrunkShotToLogicalRatio),
+    width: Math.round(rect.width * shrunkShotToLogicalRatio),
+    height: Math.round(rect.height * shrunkShotToLogicalRatio),
   };
 };

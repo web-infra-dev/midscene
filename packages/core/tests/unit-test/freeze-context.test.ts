@@ -38,7 +38,7 @@ describe('PageAgent freeze/unfreeze page context', () => {
 
     // Create mock contexts
     mockContext = {
-      size: { width: 1920, height: 1080, dpr: 1 },
+      shotSize: { width: 1920, height: 1080, dpr: 1 },
       screenshot: ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       ),
