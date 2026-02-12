@@ -1204,7 +1204,7 @@ describe('AndroidDevice', () => {
       it('should allow scrolling with non-zero deltaX and zero deltaY', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
           .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 540, y: 480 });
+          .mockReturnValueOnce({ x: 170, y: 480 });
 
         await expect((device as any).scroll(100, 0)).resolves.not.toThrow();
 
@@ -1225,10 +1225,27 @@ describe('AndroidDevice', () => {
         );
       });
 
+
+      it('should allow symmetric horizontal range from the same start position', async () => {
+        const adjustCoordinatesSpy = vi
+          .spyOn(device as any, 'adjustCoordinates')
+          .mockImplementation((x: number, y: number) => ({ x, y }));
+
+        await (device as any).scroll(9999999, 0);
+        const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(-1)?.[0] as string;
+
+        await (device as any).scroll(-9999999, 0);
+        const leftSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(-1)?.[0] as string;
+
+        expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
+        expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+
+        adjustCoordinatesSpy.mockRestore();
+      });
       it('should allow scrolling with both deltaX and deltaY non-zero', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
           .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 540, y: 240 });
+          .mockReturnValueOnce({ x: 220, y: 405 });
 
         await expect((device as any).scroll(50, 75)).resolves.not.toThrow();
 
