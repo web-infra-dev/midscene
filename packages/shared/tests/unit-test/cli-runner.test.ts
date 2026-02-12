@@ -1,4 +1,3 @@
-import { describe, expect, it, vi } from 'vitest';
 import {
   CLIError,
   parseCliArgs,
@@ -6,6 +5,7 @@ import {
   removePrefix,
   runToolsCLI,
 } from '@/cli/cli-runner';
+import { describe, expect, it, vi } from 'vitest';
 
 describe('parseValue', () => {
   it('parses JSON objects', () => {
@@ -92,11 +92,11 @@ describe('parseCliArgs', () => {
   });
 
   it('parses JSON values', () => {
-    expect(
-      parseCliArgs(['--locate', '{"prompt":"the login button"}']),
-    ).toEqual({
-      locate: { prompt: 'the login button' },
-    });
+    expect(parseCliArgs(['--locate', '{"prompt":"the login button"}'])).toEqual(
+      {
+        locate: { prompt: 'the login button' },
+      },
+    );
   });
 
   it('parses numeric values', () => {
@@ -180,9 +180,7 @@ describe('removePrefix', () => {
   });
 
   it('handles take_screenshot without platform prefix', () => {
-    expect(removePrefix('take_screenshot', 'android_')).toBe(
-      'take_screenshot',
-    );
+    expect(removePrefix('take_screenshot', 'android_')).toBe('take_screenshot');
   });
 });
 

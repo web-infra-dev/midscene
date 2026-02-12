@@ -83,9 +83,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
           return {
             content: [
               { type: 'text', text: `Connected to: ${label}` },
-              ...(screenshot
-                ? this.buildScreenshotContent(screenshot)
-                : []),
+              ...(screenshot ? this.buildScreenshotContent(screenshot) : []),
             ],
           };
         },

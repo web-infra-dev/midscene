@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
-import type { Page as PuppeteerPage } from 'puppeteer';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
 
@@ -161,9 +161,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     });
   }
 
-  protected async ensureAgent(
-    navigateToUrl?: string,
-  ): Promise<PuppeteerAgent> {
+  protected async ensureAgent(navigateToUrl?: string): Promise<PuppeteerAgent> {
     // Re-init if URL provided
     if (this.agent && navigateToUrl) {
       try {
@@ -235,9 +233,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
           return {
             content: [
               { type: 'text', text: `Connected to: ${label}` },
-              ...(screenshot
-                ? this.buildScreenshotContent(screenshot)
-                : []),
+              ...(screenshot ? this.buildScreenshotContent(screenshot) : []),
             ],
           };
         },

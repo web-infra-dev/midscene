@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
-import type { ToolDefinition, ToolResult, ToolResultContent } from '../mcp/types';
+import type {
+  ToolDefinition,
+  ToolResult,
+  ToolResultContent,
+} from '../mcp/types';
 
 interface CLICommand {
   name: string;

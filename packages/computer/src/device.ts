@@ -442,8 +442,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       if (this.useAppleScript) {
         sendKeyViaAppleScript('v', ['command']);
       } else {
-        const modifier =
-          process.platform === 'darwin' ? 'command' : 'control';
+        const modifier = process.platform === 'darwin' ? 'command' : 'control';
         libnut.keyTap('v', [modifier]);
       }
       await sleep(100);
