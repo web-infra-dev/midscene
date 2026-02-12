@@ -47,12 +47,12 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
       {
         name: 'computer_connect',
         description:
-          'Connect to computer desktop. If displayId not provided, uses the primary display.',
+          'Connect to computer desktop. Provide displayId to connect to a specific display (use computer_list_displays to get available IDs). If not provided, uses the primary display.',
         schema: {
           displayId: z
             .string()
             .optional()
-            .describe('Display ID (from list_displays)'),
+            .describe('Display ID (from computer_list_displays)'),
         },
         handler: async ({ displayId }: { displayId?: string }) => {
           const agent = await this.ensureAgent(displayId);
