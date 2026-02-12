@@ -1225,17 +1225,20 @@ describe('AndroidDevice', () => {
         );
       });
 
-
       it('should allow symmetric horizontal range from the same start position', async () => {
         const adjustCoordinatesSpy = vi
           .spyOn(device as any, 'adjustCoordinates')
           .mockImplementation((x: number, y: number) => ({ x, y }));
 
         await (device as any).scroll(9999999, 0);
-        const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(-1)?.[0] as string;
+        const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
+          -1,
+        )?.[0] as string;
 
         await (device as any).scroll(-9999999, 0);
-        const leftSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(-1)?.[0] as string;
+        const leftSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
+          -1,
+        )?.[0] as string;
 
         expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
         expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
