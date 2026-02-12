@@ -719,10 +719,14 @@ export class Agent<
     // Convert value to string to ensure consistency
     const stringValue = typeof value === 'number' ? String(value) : value;
 
+    // backward compat: convert deprecated 'append' to 'typeOnly'
+    const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
+
     return this.callActionInActionSpace('Input', {
       ...(opt || {}),
       value: stringValue,
       locate: detailedLocateParam,
+      mode,
     });
   }
 
