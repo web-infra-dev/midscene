@@ -1363,6 +1363,9 @@ importers:
       debug:
         specifier: 4.4.0
         version: 4.4.0
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
       express:
         specifier: ^4.21.2
         version: 4.21.2
@@ -1391,9 +1394,6 @@ importers:
       '@ui-tars/shared':
         specifier: 1.2.0
         version: 1.2.0
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
       openai:
         specifier: 6.3.0
         version: 6.3.0(ws@8.18.3)(zod@3.24.3)
@@ -1585,6 +1585,9 @@ importers:
       http-server:
         specifier: 14.1.1
         version: 14.1.1
+      puppeteer-core:
+        specifier: 24.6.0
+        version: 24.6.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
       socket.io:
         specifier: ^4.8.1
         version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -14040,7 +14043,7 @@ snapshots:
 
   '@puppeteer/browsers@2.9.0':
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.0
       extract-zip: 2.0.1
       progress: 2.0.3
       proxy-agent: 6.5.0
@@ -16856,7 +16859,7 @@ snapshots:
     dependencies:
       devtools-protocol: 0.0.1425554
       mitt: 3.0.1
-      zod: 3.25.76
+      zod: 3.24.3
 
   ci-info@3.9.0: {}
 
@@ -18146,7 +18149,7 @@ snapshots:
 
   extract-zip@2.0.1:
     dependencies:
-      debug: 4.4.3
+      debug: 4.4.0
       get-stream: 5.2.0
       yauzl: 2.10.0
     optionalDependencies:
@@ -18906,7 +18909,7 @@ snapshots:
   http-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -18953,7 +18956,7 @@ snapshots:
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
     transitivePeerDependencies:
       - supports-color
 
@@ -20768,7 +20771,7 @@ snapshots:
     dependencies:
       '@tootallnate/quickjs-emscripten': 0.23.0
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
       get-uri: 6.0.5
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
@@ -21108,7 +21111,7 @@ snapshots:
   proxy-agent@6.5.0:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
       http-proxy-agent: 7.0.2
       https-proxy-agent: 7.0.6
       lru-cache: 7.18.3
@@ -21156,7 +21159,7 @@ snapshots:
     dependencies:
       '@puppeteer/browsers': 2.9.0
       chromium-bidi: 3.0.0(devtools-protocol@0.0.1425554)
-      debug: 4.4.3
+      debug: 4.4.0
       devtools-protocol: 0.0.1425554
       typed-query-selector: 2.12.0
       ws: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
@@ -22521,7 +22524,7 @@ snapshots:
   socks-proxy-agent@8.0.5:
     dependencies:
       agent-base: 7.1.4
-      debug: 4.4.3
+      debug: 4.4.0
       socks: 2.8.7
     transitivePeerDependencies:
       - supports-color

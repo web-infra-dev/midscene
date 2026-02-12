@@ -15,7 +15,7 @@
   "types": "./dist/types/index.d.ts",
   "files": ["dist", "static", "bin", "README.md"],
   "bin": {
-    "midscene-ios-playground": "./bin/ios-playground"
+    "midscene-ios": "./bin/midscene-ios"
   },
   "exports": {
     ".": {

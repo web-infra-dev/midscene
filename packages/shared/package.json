@@ -62,6 +62,11 @@
       "import": "./dist/es/mcp/index.mjs",
       "require": "./dist/lib/mcp/index.js"
     },
+    "./cli": {
+      "types": "./dist/types/cli/index.d.ts",
+      "import": "./dist/es/cli/index.mjs",
+      "require": "./dist/lib/cli/index.js"
+    },
     "./logger": {
       "types": "./dist/types/logger.d.ts",
       "import": "./dist/es/logger.mjs",
@@ -92,6 +97,7 @@
     "express": "^4.21.2",
     "js-sha256": "0.11.0",
     "sharp": "^0.34.3",
+    "dotenv": "^16.4.5",
     "uuid": "11.1.0"
   },
   "devDependencies": {
@@ -100,7 +106,6 @@
     "@types/express": "^4.17.21",
     "@types/node": "^18.0.0",
     "@ui-tars/shared": "1.2.0",
-    "dotenv": "^16.4.5",
     "openai": "6.3.0",
     "rimraf": "~3.0.2",
     "typescript": "^5.8.3",
