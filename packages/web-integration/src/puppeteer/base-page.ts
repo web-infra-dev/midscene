@@ -1,4 +1,4 @@
-import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
+import type { WebPageAgentOpt } from '@/web-element';
 import type {
   DeviceAction,
   ElementCacheFeature,
@@ -6,7 +6,6 @@ import type {
   Point,
   Rect,
   Size,
-  UIContext,
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
@@ -560,9 +559,6 @@ export class Page<
 
   async destroy(): Promise<void> {}
 
-  async getContext(): Promise<UIContext> {
-    return await WebPageContextParser(this, {});
-  }
   async swipe(
     from: { x: number; y: number },
     to: { x: number; y: number },

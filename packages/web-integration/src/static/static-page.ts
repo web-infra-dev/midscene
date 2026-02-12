@@ -1,6 +1,5 @@
 import type { DeviceAction, Point, UIContext } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
-import { ScreenshotItem } from '@midscene/core';
 import {
   defineActionDragAndDrop,
   defineActionHover,
@@ -13,10 +12,6 @@ import {
 } from '@midscene/core/device';
 import { ERROR_CODE_NOT_IMPLEMENTED_AS_DESIGNED } from '@midscene/shared/common';
 
-type WebUIContext = UIContext | {
-  screenshotBase64?: string;
-  size: { width: number; height: number; dpr?: number };
-};
 
 const ThrowNotImplemented = (methodName: string) => {
   throw new Error(
@@ -27,9 +22,9 @@ const ThrowNotImplemented = (methodName: string) => {
 export default class StaticPage implements AbstractInterface {
   interfaceType = 'static';
 
-  private uiContext: WebUIContext;
+  private uiContext: UIContext;
 
-  constructor(uiContext: WebUIContext) {
+  constructor(uiContext: UIContext) {
     this.uiContext = uiContext;
   }
 
@@ -93,23 +88,11 @@ export default class StaticPage implements AbstractInterface {
   }
 
   async screenshotBase64() {
-    // Check if this is a UIContext with screenshot property
-    if ('screenshot' in this.uiContext && this.uiContext.screenshot) {
-      const screenshot = this.uiContext.screenshot;
-      if (typeof screenshot === 'object' && 'base64' in screenshot) {
-        return (screenshot as { base64: string }).base64;
-      }
-      return screenshot as unknown as string;
+    const screenshot = this.uiContext.screenshot;
+    if (typeof screenshot === 'object' && 'base64' in screenshot) {
+      return (screenshot as { base64: string }).base64;
     }
-
-    // Check legacy screenshotBase64 field
-    const legacyContext = this.uiContext as { screenshotBase64?: string };
-    const base64 = legacyContext.screenshotBase64;
-
-    if (!base64) {
-      throw new Error('screenshot base64 is empty');
-    }
-    return base64;
+    return screenshot as unknown as string;
   }
 
   async url() {
@@ -168,24 +151,8 @@ export default class StaticPage implements AbstractInterface {
     //
   }
 
-  async getContext(): Promise<UIContext> {
-    // If the context already has a screenshot property, return it as-is
-    if ('screenshot' in this.uiContext && this.uiContext.screenshot) {
-      return this.uiContext as UIContext;
-    }
 
-    // Otherwise, create a proper UIContext from the legacy format
-    const screenshotBase64 = await this.screenshotBase64();
-    const screenshot = ScreenshotItem.create(screenshotBase64);
-    const size = await this.size();
-
-    return {
-      screenshot,
-      size,
-    };
-  }
-
-  updateContext(newContext: WebUIContext): void {
+  updateContext(newContext: UIContext): void {
     this.uiContext = newContext;
   }
 }
