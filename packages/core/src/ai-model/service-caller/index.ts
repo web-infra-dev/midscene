@@ -289,7 +289,11 @@ export async function callAI(
       : {}),
     ...(modelFamily === 'doubao-vision' && modelConfig.reasoningEffort
       ? {
-          reasoning_effort: modelConfig.reasoningEffort,
+          reasoning_effort: modelConfig.reasoningEffort as
+            | 'minimal'
+            | 'low'
+            | 'medium'
+            | 'high',
         }
       : {}),
   };
