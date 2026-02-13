@@ -424,9 +424,7 @@ describe('runToolsCLI', () => {
     expect(output).toContain('  tap');
     expect(output).toContain('  scroll');
     // Command names column should not have uppercase originals
-    const commandLines = output
-      .split('\n')
-      .filter((l) => l.startsWith('  '));
+    const commandLines = output.split('\n').filter((l) => l.startsWith('  '));
     for (const line of commandLines) {
       const cmdName = line.trimStart().split(/\s{2,}/)[0];
       expect(cmdName).toBe(cmdName.toLowerCase());
