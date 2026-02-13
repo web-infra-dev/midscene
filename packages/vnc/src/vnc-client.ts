@@ -1,5 +1,6 @@
 import { getDebug } from '@midscene/shared/logger';
 import sharp from 'sharp';
+import { ARD_SECURITY_TYPE, createArdSecurityType } from './ard-auth';
 
 const debug = getDebug('vnc:client');
 
@@ -10,7 +11,12 @@ export interface VNCConnectionOptions {
   host: string;
   port: number;
   password?: string;
-  /** Username for NTLM authentication (only needed when VNC server uses NTLM auth) */
+  /**
+   * Username for authentication.
+   * - macOS Screen Sharing (ARD auth, type 30): required, use macOS account username
+   * - NTLM auth (type 4): required, use Windows account username
+   * - Standard VNC auth (type 2): not needed, only password is used
+   */
   username?: string;
   /** Windows domain for NTLM authentication (default: 'WORKGROUP') */
   domain?: string;
@@ -77,6 +83,11 @@ export class VNCClient {
         encodings.pseudoDesktopSize,
       ],
     });
+
+    // Inject ARD (type 30) security handler for macOS Screen Sharing
+    // The library only ships None/VNC/NTLM; we monkey-patch to add ARD support
+    (this.client as any)._securityTypes[ARD_SECURITY_TYPE] =
+      createArdSecurityType();
 
     return new Promise<void>((resolve, reject) => {
       let settled = false;
