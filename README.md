@@ -29,7 +29,7 @@ English | [简体中文](./README.zh.md)
   </a>
 </p>
 
-## 📣 Midscene Skills to control any platform
+## 📣 Control Any Platform with Midscene Skills
 
 > Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to control any platform.
 
