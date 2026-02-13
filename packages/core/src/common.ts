@@ -502,29 +502,6 @@ const MidsceneLocationInput = z
   })
   .passthrough();
 
-// Schema for locator field result (when AI returns locate results)
-const MidsceneLocationResult = z
-  .object({
-    [locateFieldFlagName]: z.literal(true),
-    prompt: TUserPromptSchema,
-
-    // optional fields
-    deepThink: z.boolean().optional(), // only available in vl model
-    cacheable: z.boolean().optional(),
-    xpath: z.boolean().optional(), // preset result for xpath
-
-    // these two fields will only appear in the result
-    center: z.tuple([z.number(), z.number()]),
-    rect: RectSchema,
-  })
-  .passthrough();
-
-// Export the result type - this is used for runtime results that include center and rect
-export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
-
-// Export the input type - this is the inferred type from getMidsceneLocationSchema()
-export type MidsceneLocationInputType = z.infer<typeof MidsceneLocationInput>;
-
 /**
  * Returns the schema for locator fields.
  * This now returns the input schema which is more permissive and suitable for validation.
