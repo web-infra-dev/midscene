@@ -16,12 +16,26 @@ There are several ways to improve the running time:
 
 ## The webpage continues to flash when running in headed mode
 
-It's common when the viewport `deviceScaleFactor` does not match your system settings. Setting it to 2 in OSX will solve the issue.
+In the local visualization interface, continuous flashing is usually caused by a mismatch between the viewport's `deviceScaleFactor` and the system/browser's pixel ratio (common on high-resolution or Retina screens).
+
+This flashing does not affect Midscene's screenshots or automation execution, but it does affect the local preview experience. To resolve this, set `deviceScaleFactor` to match your browser's `window.devicePixelRatio`, or use Puppeteer's auto-adaptation feature.
 
 ```typescript
+// Puppeteer: Set deviceScaleFactor to 0 to automatically use the device pixel ratio
 await page.setViewport({
-  deviceScaleFactor: 2,
+  deviceScaleFactor: 0,
 });
+
+// Playwright: Playwright does not support using 0 for auto-adaptation like Puppeteer
+const page = await browser.newPage({
+  deviceScaleFactor: 2, // Replace the number 2 with your window.devicePixelRatio
+})
+```
+
+If you are unsure of your browser's pixel ratio, you can press F12 on any page to open the console and type `window.devicePixelRatio` to check; or paste the following into the Chrome address bar and press Enter to see the value in a popup:
+
+```plain
+data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRatio}`)</script>
 ```
 
 ## How do I configure the midscene_run directory?
