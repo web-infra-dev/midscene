@@ -32,13 +32,15 @@ function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
  */
 function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
   const tasks = screenshots.map((s, i) => ({
+    taskId: `task-${i}`,
     type: 'Insight' as const,
     subType: 'Locate',
     param: { prompt: `task-${i}` },
     uiContext: {
       screenshot: s,
-      size: { width: 1920, height: 1080 },
-    } as UIContext,
+      shotSize: { width: 1920, height: 1080 },
+      shrunkShotToLogicalRatio: 1,
+    },
     executor: async () => undefined,
     recorder: [],
     status: 'running' as const,
@@ -553,13 +555,15 @@ describe('ReportGenerator — constant memory guarantees', () => {
         allScreenshots.push(screenshots);
 
         const tasks = screenshots.map((sc, i) => ({
+          taskId: `${e}-${i}`,
           type: 'Insight' as const,
           subType: 'Locate',
           param: { prompt: `exec-${e}-task-${i}` },
           uiContext: {
             screenshot: sc,
-            size: { width: 1920, height: 1080 },
-          } as UIContext,
+            shotSize: { width: 1920, height: 1080 },
+            shrunkShotToLogicalRatio: 1,
+          },
           executor: async () => undefined,
           recorder: [],
           status: 'running' as const,

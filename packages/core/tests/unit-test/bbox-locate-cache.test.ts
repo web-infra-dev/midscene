@@ -44,10 +44,10 @@ function getTaskCacheInternal(taskCache: TaskCache): TaskCacheInternal {
 // Helper function to create mock UIContext with ScreenshotItem
 const createMockUIContext = async (
   screenshotData: string,
-  size = { width: 1920, height: 1080, dpr: 1 },
+  shotSize = { width: 1920, height: 1080, dpr: 1 },
 ) => {
   const screenshot = ScreenshotItem.create(screenshotData);
-  return { screenshot, size };
+  return { screenshot, shotSize, shrunkShotToLogicalRatio: 1 };
 };
 
 describe('bbox locate cache fix', () => {
@@ -104,7 +104,8 @@ describe('bbox locate cache fix', () => {
         const screenshot = ScreenshotItem.create(validBase64Image);
         return {
           screenshot,
-          size: { width: 1920, height: 1080, dpr: 1 },
+          shotSize: { width: 1920, height: 1080, dpr: 1 },
+          shrunkShotToLogicalRatio: 1,
           tree: {
             id: 'root',
             attributes: {},

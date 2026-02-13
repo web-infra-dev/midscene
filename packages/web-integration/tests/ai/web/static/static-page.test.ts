@@ -3,10 +3,14 @@ import { join } from 'node:path';
 import { StaticPageAgent, StaticPage } from '@midscene/web/static';
 import { PlaygroundServer } from '@midscene/playground';
 import { afterEach, describe, expect, it } from 'vitest';
+import { ScreenshotItem } from '@midscene/core';
 
 const dumpFilePath = join(__dirname, '../../fixtures/ui-context.json');
 const context = readFileSync(dumpFilePath, { encoding: 'utf-8' });
 const contextJson = JSON.parse(context);
+
+contextJson.shotSize.dpr = undefined;
+contextJson.screenshot = contextJson.screenshotBase64;
 
 describe(
   'static page agent',
@@ -36,8 +40,9 @@ describe(
 
     it('server should work', async () => {
       const page = new StaticPage({
-        size: { width: 800, height: 600 },
-        screenshotBase64: '',
+        shotSize: { width: 800, height: 600 },
+        shrunkShotToLogicalRatio: 1,
+        screenshot: ScreenshotItem.create(''),
       });
       const agent = new StaticPageAgent(page);
       server = new PlaygroundServer(agent);

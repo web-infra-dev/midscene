@@ -42,7 +42,6 @@ const mockedModelConfig: IModelConfig = {
   modelName: 'mock-model',
   modelDescription: 'mock-model-description',
   intent: 'default',
-  from: 'legacy-env',
 };
 
 describe('TaskExecutor waitFor method with doNotThrowError', () => {
@@ -68,7 +67,8 @@ describe('TaskExecutor waitFor method with doNotThrowError', () => {
       extract: vi.fn(),
       contextRetrieverFn: vi.fn().mockResolvedValue({
         screenshotBase64: 'mock-screenshot-base64',
-        size: { width: 1024, height: 768, dpr: 1 },
+        shotSize: { width: 1024, height: 768, dpr: 1 },
+        shrunkShotToLogicalRatio: 1,
         url: 'https://example.com',
         content: {
           text: 'page content',

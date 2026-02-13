@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { z } from '@midscene/core';
+import { ScreenshotItem, z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
@@ -156,8 +156,9 @@ const browserManager = {
 export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
   protected createTemporaryDevice() {
     return new StaticPage({
-      screenshotBase64: '',
-      size: { width: 1920, height: 1080 },
+      screenshot: ScreenshotItem.create(''),
+      shotSize: { width: 1920, height: 1080 },
+      shrunkShotToLogicalRatio: 1,
     });
   }
 
