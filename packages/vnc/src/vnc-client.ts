@@ -255,6 +255,9 @@ export class VNCClient {
           });
           console.log('[VNC] Set pixel format to BGRX little-endian');
         }
+        // Send a harmless event to wake macOS display — Screen Sharing
+        // often sends black frames when the physical display is asleep.
+        this.wakeScreen();
         this.firstFrameReceived = true;
         this._connected = true;
         settle();
@@ -300,6 +303,26 @@ export class VNCClient {
   }
 
   /**
+   * Send a harmless event to wake the macOS display.
+   * macOS Screen Sharing sends black frames when the physical display is
+   * asleep or the screen saver is active. A Shift press+release wakes it
+   * without producing visible input.
+   */
+  private wakeScreen(): void {
+    if (!this.client) return;
+    try {
+      // Shift key press + release (keysym 0xFFE1)
+      if (typeof this.client.sendKeyEvent === 'function') {
+        this.client.sendKeyEvent(0xffe1, true);
+        this.client.sendKeyEvent(0xffe1, false);
+        console.log('[VNC] Sent wake event (Shift press+release)');
+      }
+    } catch {
+      // Ignore — best-effort
+    }
+  }
+
+  /**
    * Capture the current framebuffer as a PNG buffer
    */
   async screenshot(): Promise<Buffer> {
@@ -309,6 +332,15 @@ export class VNCClient {
 
     // Request a full (non-incremental) framebuffer update and wait for it
     await this.requestAndWaitForFrame();
+
+    // If the framebuffer looks all-black, the display may still be waking up.
+    // Send another wake event, wait briefly, and try one more frame update.
+    if (this.isFramebufferBlack()) {
+      console.log('[VNC] Framebuffer appears black, sending wake event and retrying...');
+      this.wakeScreen();
+      await new Promise((r) => setTimeout(r, 1000));
+      await this.requestAndWaitForFrame();
+    }
 
     const width = this.client.clientWidth;
     const height = this.client.clientHeight;
@@ -468,6 +500,25 @@ export class VNCClient {
   disconnect(): void {
     debug('Disconnecting from VNC server');
     this.cleanup();
+  }
+
+  /**
+   * Quick check whether the framebuffer is entirely black (all RGB=0).
+   * Samples the first 4096 bytes (~1024 pixels) for performance.
+   */
+  private isFramebufferBlack(): boolean {
+    const fb = this.client?.fb;
+    if (!fb || fb.length === 0) return true;
+    const bpp = (this.client.pixelFormat?.bitsPerPixel || 32) / 8;
+    const samplePixels = Math.min(1024, Math.floor(fb.length / bpp));
+    for (let i = 0; i < samplePixels; i++) {
+      const off = i * bpp;
+      // Check first 3 bytes of each pixel (RGB channels); skip alpha/padding
+      if (fb[off] !== 0 || fb[off + 1] !== 0 || fb[off + 2] !== 0) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private cleanup(): void {
