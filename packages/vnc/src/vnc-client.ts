@@ -73,7 +73,7 @@ export class VNCClient {
 
     const encodings = VncClient.consts.encodings;
     this.client = new VncClient({
-      debug: false,
+      debug: true, // Enable library-level debug logging
       fps: this.options.fps,
       encodings: [
         encodings.copyRect,
@@ -84,10 +84,24 @@ export class VNCClient {
       ],
     });
 
+    // Log the security types supported by the library before injection
+    const existingTypes = Object.keys(
+      (this.client as any)._securityTypes || {},
+    );
+    console.log(
+      '[VNC] Library built-in security types: [%s]',
+      existingTypes.join(', '),
+    );
+
     // Inject ARD (type 30) security handler for macOS Screen Sharing
     // The library only ships None/VNC/NTLM; we monkey-patch to add ARD support
     (this.client as any)._securityTypes[ARD_SECURITY_TYPE] =
       createArdSecurityType();
+
+    console.log(
+      '[VNC] After injection, security types: [%s]',
+      Object.keys((this.client as any)._securityTypes || {}).join(', '),
+    );
 
     return new Promise<void>((resolve, reject) => {
       let settled = false;
@@ -109,36 +123,41 @@ export class VNCClient {
         settled = true;
         clearTimeout(timeout);
         if (err) {
+          console.error('[VNC] settle() with error:', err.message);
           this.cleanup();
           reject(err);
         } else {
+          console.log('[VNC] settle() success');
           resolve();
         }
       };
 
       this.client.on('connected', () => {
-        debug(
-          'TCP connected to %s:%d',
+        console.log(
+          '[VNC] Event: connected (TCP to %s:%d)',
           this.options.host,
           this.options.port,
         );
       });
 
       this.client.on('authenticated', () => {
-        debug('Authenticated');
+        console.log('[VNC] Event: authenticated');
       });
 
       this.client.on('authError', () => {
+        console.error('[VNC] Event: authError');
         settle(new Error('VNC authentication failed'));
       });
 
       this.client.on('connectError', (error: Error) => {
+        console.error('[VNC] Event: connectError:', error?.message || error);
         settle(
           new Error(`VNC connection error: ${error?.message || error}`),
         );
       });
 
       this.client.on('connectTimeout', () => {
+        console.error('[VNC] Event: connectTimeout');
         settle(
           new Error(
             `VNC server did not respond within ${this.options.connectTimeout}ms`,
@@ -147,19 +166,19 @@ export class VNCClient {
       });
 
       this.client.on('closed', () => {
-        debug('Connection closed by server');
+        console.log('[VNC] Event: closed (connection closed by server)');
         this._connected = false;
         settle(new Error('VNC connection closed unexpectedly'));
       });
 
       this.client.on('disconnected', () => {
-        debug('Disconnected');
+        console.log('[VNC] Event: disconnected');
         this._connected = false;
       });
 
       this.client.on('firstFrameUpdate', () => {
-        debug(
-          'First frame received: %dx%d, name: %s',
+        console.log(
+          '[VNC] Event: firstFrameUpdate (%dx%d, name: %s)',
           this.client.clientWidth,
           this.client.clientHeight,
           this.client.clientName,
@@ -170,12 +189,17 @@ export class VNCClient {
       });
 
       this.client.on('desktopSizeChanged', (size: { width: number; height: number }) => {
-        debug('Desktop resized: %dx%d', size.width, size.height);
+        console.log('[VNC] Event: desktopSizeChanged %dx%d', size.width, size.height);
+      });
+
+      this.client.on('securityResult', (result: any) => {
+        console.log('[VNC] Event: securityResult:', result);
       });
 
       // Build auth object based on provided credentials
       // - VNC auth (type 2): only needs { password }
       // - NTLM auth (type 4): needs { username, password, domain? }
+      // - ARD auth (type 30): needs { username, password }
       // The server decides which auth type to use during handshake
       let auth: Record<string, string> | undefined;
       if (this.options.password || this.options.username) {
@@ -184,6 +208,13 @@ export class VNCClient {
         if (this.options.username) auth.username = this.options.username;
         if (this.options.domain) auth.domain = this.options.domain;
       }
+
+      console.log(
+        '[VNC] Calling client.connect() with host=%s, port=%d, auth=%s',
+        this.options.host,
+        this.options.port,
+        auth ? JSON.stringify(Object.keys(auth)) : 'none',
+      );
 
       // Initiate connection
       this.client.connect({

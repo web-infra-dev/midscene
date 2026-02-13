@@ -44,12 +44,6 @@ describe('ARD authentication (type 30)', () => {
     const prime = serverDH.getPrime();
     const serverPublicKey = serverDH.getPublicKey();
 
-    // Build the server message:
-    // generator(2 BE) + keyLength(2 BE) + prime(keyLength) + serverPubKey(keyLength)
-    const header = Buffer.alloc(4);
-    header.writeUInt16BE(generator, 0);
-    header.writeUInt16BE(keyLength, 2);
-
     // Pad prime and public key to exactly keyLength bytes (left-pad)
     const primePadded = Buffer.alloc(keyLength);
     prime.copy(primePadded, keyLength - prime.length);
@@ -57,18 +51,32 @@ describe('ARD authentication (type 30)', () => {
     const serverPubPadded = Buffer.alloc(keyLength);
     serverPublicKey.copy(serverPubPadded, keyLength - serverPublicKey.length);
 
-    const serverMessage = Buffer.concat([header, primePadded, serverPubPadded]);
+    // Build the full server data stream (what comes after security type selection):
+    // generator(2 BE) + keyLength(2 BE) + prime(keyLength) + serverPubKey(keyLength)
+    const serverData = Buffer.concat([
+      Buffer.from([
+        (generator >> 8) & 0xff,
+        generator & 0xff,
+        (keyLength >> 8) & 0xff,
+        keyLength & 0xff,
+      ]),
+      primePadded,
+      serverPubPadded,
+    ]);
 
-    // Mock SocketBuffer: serves data in two reads (header, then DH params)
-    let bufferOffset = 0;
+    // Mock SocketBuffer matching the library's interface:
+    // readUInt16BE(), readNBytesOffset(N) — same methods the real SocketBuffer has
+    let offset = 0;
     const mockSocket = {
-      buffer: serverMessage,
-      waitBytes: vi.fn().mockImplementation(async () => {
-        // Simulate data being available
+      readUInt16BE: vi.fn().mockImplementation(async () => {
+        const val = serverData.readUInt16BE(offset);
+        offset += 2;
+        return val;
       }),
-      flush: vi.fn().mockImplementation((n: number) => {
-        bufferOffset += n;
-        mockSocket.buffer = serverMessage.subarray(bufferOffset);
+      readNBytesOffset: vi.fn().mockImplementation(async (n: number) => {
+        const slice = serverData.subarray(offset, offset + n);
+        offset += n;
+        return slice;
       }),
     };
 
@@ -84,11 +92,11 @@ describe('ARD authentication (type 30)', () => {
       password: 'testpass',
     });
 
-    // Verify socket interactions
-    expect(mockSocket.waitBytes).toHaveBeenCalledTimes(2);
-    expect(mockSocket.waitBytes).toHaveBeenNthCalledWith(1, 4); // header
-    expect(mockSocket.waitBytes).toHaveBeenNthCalledWith(2, keyLength * 2); // prime + pubkey
-    expect(mockSocket.flush).toHaveBeenCalledTimes(2);
+    // Verify socket read calls
+    expect(mockSocket.readUInt16BE).toHaveBeenCalledTimes(2); // generator + keyLength
+    expect(mockSocket.readNBytesOffset).toHaveBeenCalledTimes(2); // prime + serverPubKey
+    expect(mockSocket.readNBytesOffset).toHaveBeenNthCalledWith(1, keyLength);
+    expect(mockSocket.readNBytesOffset).toHaveBeenNthCalledWith(2, keyLength);
 
     // Verify response was written
     expect(mockConn.write).toHaveBeenCalledTimes(1);
