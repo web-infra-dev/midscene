@@ -1,5 +1,59 @@
 # Changelog
 
+## v1.4 - Skills: Let AI Assistants Control Your Devices
+
+v1.4 introduces Midscene Skills — a set of installable skill packs for AI assistants like Claude Code and OpenClaw, enabling them to directly control browsers, desktops, Android, and iOS devices. This release also includes a standalone desktop MCP service, independent CLI entry points for each platform package, enhanced AI planning, and more.
+
+### Midscene Skills — Device Control Skills for AI Assistants
+
+Midscene Skills is a set of skill packs that can be installed into AI assistants like Claude Code and OpenClaw. Once installed, AI assistants can control browsers, desktops, Android, and iOS devices using natural language.
+
+Each platform package (`@midscene/android`, `@midscene/ios`, `@midscene/web`, etc.) now exposes an independent CLI entry point, which is the foundation that Skills is built upon.
+
+**Supported Platforms:**
+- Browser (Puppeteer headless mode)
+- Chrome Bridge (user's own desktop Chrome)
+- Desktop (macOS, Windows, Linux)
+- Android (via ADB)
+- iOS (via WebDriverAgent)
+
+See: [Midscene Skills](https://github.com/web-infra-dev/midscene-skills)
+
+### Standalone Desktop Automation MCP Package
+
+New `@midscene/computer-mcp` package provides PC desktop automation as a standalone MCP service. Developers can use desktop automation capabilities directly in MCP-compatible tools like Cursor and Trae without additional integration.
+
+See docs: [PC Desktop Automation](./computer-introduction)
+
+### Chrome Extension MCP Background Connection
+
+The Chrome extension now supports background Bridge mode MCP connection, exposing the desktop browser as an MCP tool to AI assistants, further expanding the MCP ecosystem.
+
+### AI Planning Enhancements
+
+- **New `deepLocate` option for `aiAct`**: Enable deep locating during action execution, improving element locating accuracy in complex interfaces
+- **Swipe vs DragAndDrop semantic distinction**: The model can now more precisely distinguish between swipe and drag-and-drop operations, reducing gesture planning errors
+- **LLM planning page navigation restrictions**: Prevents the model from generating unreasonable page navigation during planning, improving task execution stability
+- **AppleScript keyboard input on macOS**: Improved keyboard input stability and compatibility in desktop automation
+- **Cursor move action**: New cursor move action support
+
+### YAML Scripts & File Upload Enhancements
+
+- **YAML `aiTap` supports `fileChooserAccept`**: Handle file upload dialogs directly in YAML scripts
+- **Directory upload support**: Web supports `webkitdirectory` type folder selection upload
+
+### Chrome Extension Bridge Mode Caching
+
+Bridge mode now supports caching, reusing existing AI planning results to reduce repeated calls and improve debugging efficiency.
+
+### Android Improvements
+
+- Optimized text input logic for improved input stability
+
+### iOS Improvements
+
+- **Playground live screen stream**: iOS Playground now features live screen preview for real-time device monitoring during debugging.
+
 ## v1.3 - PC Desktop Automation Support
 
 v1.3 introduces brand new PC desktop automation capabilities, significantly improves Android screenshot performance, and brings multiple enhancements to report system and stability.

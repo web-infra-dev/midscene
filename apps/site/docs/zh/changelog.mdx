@@ -1,5 +1,59 @@
 # 更新日志
 
+## v1.4 - Skills：让 AI 助手直接操控你的设备
+
+v1.4 版本推出了 Midscene Skills —— 一套可安装到 Claude Code、OpenClaw 等 AI 助手中的技能包，让 AI 助手直接操控浏览器、桌面、Android 和 iOS 设备。同时本版本还包含独立桌面 MCP 服务、各平台 CLI 独立入口、AI 规划增强等多项改进。
+
+### Midscene Skills —— AI 助手的设备操控技能包
+
+Midscene Skills 是一套可安装到 Claude Code、OpenClaw 等 AI 助手中的技能包。安装后，AI 助手可以通过自然语言直接操控浏览器、桌面、Android 和 iOS 设备。
+
+各平台包（`@midscene/android`、`@midscene/ios`、`@midscene/web` 等）现在各自暴露了独立的 CLI 入口，Skills 正是基于此能力构建。
+
+**覆盖平台：**
+- 浏览器（Puppeteer 无头模式）
+- Chrome Bridge（用户自己的桌面 Chrome）
+- 桌面（macOS、Windows、Linux）
+- Android（通过 ADB）
+- iOS（通过 WebDriverAgent）
+
+详见：[Midscene Skills](https://github.com/web-infra-dev/midscene-skills)
+
+### 独立桌面自动化 MCP 包
+
+新增 `@midscene/computer-mcp` 包，将 PC 桌面自动化能力以独立 MCP 服务的形式提供。开发者可以直接在 Cursor、Trae 等支持 MCP 的工具中使用桌面自动化能力，无需额外集成。
+
+详见文档：[PC 桌面自动化](./computer-introduction)
+
+### Chrome 扩展支持 MCP 后台连接
+
+Chrome 扩展新增后台 Bridge 模式的 MCP 连接支持，可以将桌面浏览器作为 MCP 工具暴露给 AI 助手，进一步打通 MCP 生态。
+
+### AI 规划能力增强
+
+- **`aiAct` 新增 `deepLocate` 选项**：在执行操作时启用深度定位，提升复杂界面下的元素定位准确率
+- **Swipe 与 DragAndDrop 语义区分**：模型现在能更精确地区分滑动和拖放操作，减少手势规划错误
+- **LLM 规划增加页面导航限制**：防止模型在规划时生成不合理的页面跳转操作，提升任务执行稳定性
+- **macOS 键盘输入改用 AppleScript**：提升桌面自动化中键盘输入的稳定性和兼容性
+- **鼠标移动操作**：新增 cursor move 动作支持
+
+### YAML 脚本与文件上传增强
+
+- **YAML `aiTap` 支持 `fileChooserAccept`**：在 YAML 脚本中可直接处理文件上传对话框
+- **支持目录上传**：Web 端支持 `webkitdirectory` 类型的文件夹选择上传
+
+### Chrome 扩展 Bridge 模式缓存
+
+Bridge 模式下新增缓存支持，复用已有的 AI 规划结果，减少重复调用，提升调试效率。
+
+### Android 改进
+
+- 优化文字输入逻辑，提升输入稳定性
+
+### iOS 改进
+
+- **Playground 实时画面流**：iOS Playground 新增实时画面展示，调试时可实时预览设备屏幕。
+
 ## v1.3 - PC 桌面自动化支持
 
 v1.3 版本带来了全新的 PC 桌面自动化能力，大幅优化了 Android 截图性能，并对报告系统和稳定性进行了多项改进。

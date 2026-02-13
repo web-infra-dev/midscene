@@ -1,0 +1,59 @@
+# Control any platform with Skills
+
+[Agent Skills](https://github.com/anthropics/agent-skills) are a format for extending AI coding agents with specialized capabilities. Midscene provides Agent Skills that let AI coding tools (like Claude Code, Cline, etc.) drive UI automation through CLI commands — no MCP server setup required.
+
+Unlike [MCP integration](./mcp), Skills work by running CLI commands directly in the terminal. The AI agent acts as the brain: it takes screenshots, analyzes the UI, and decides which actions to perform next.
+
+## Supported platforms
+
+| Skill | Package | CLI command | Description |
+|-------|---------|-------------|-------------|
+| Browser Automation | `@midscene/web` | `npx @midscene/web` | Headless Chrome via Puppeteer, opens new browser tabs |
+| Chrome Bridge Automation | `@midscene/web` | `npx @midscene/web --bridge` | User's own Chrome browser, preserves cookies and sessions |
+| Desktop Computer Automation | `@midscene/computer` | `npx @midscene/computer` | macOS, Windows, Linux desktop control |
+| Android Device Automation | `@midscene/android` | `npx @midscene/android` | Android device control via ADB |
+| iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | iOS device control via WebDriverAgent |
+
+## Installation
+
+Make sure [Node.js](https://nodejs.org) is installed, then run:
+
+```bash
+# General installation
+npx skills add web-infra-dev/midscene-skills
+
+# Claude Code
+npx skills add web-infra-dev/midscene-skills -a claude-code
+
+# OpenClaw
+npx skills add web-infra-dev/midscene-skills -a openclaw
+```
+
+Skills repository: [github.com/web-infra-dev/midscene-skills](https://github.com/web-infra-dev/midscene-skills)
+
+## Model configuration
+
+Midscene skills require a vision model with strong visual grounding capabilities. Configure the following environment variables — either as system environment variables or in a `.env` file in the current working directory (Midscene loads `.env` automatically):
+
+```bash
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="model-name"
+MIDSCENE_MODEL_BASE_URL="https://..."
+MIDSCENE_MODEL_FAMILY="family-identifier"
+```
+
+For supported models and configuration details, see [Model strategy](./model-strategy) and [Common model configuration](./model-common-config).
+
+## Use skills
+
+In your AI chat assistant, you can use the following command to use skills:
+
+```markdown
+Open photo app, see what is the first photo in the album.
+```
+
+## More
+
+Please refer to the [Skills Repository](https://github.com/web-infra-dev/midscene-skills) for more details.
+
+

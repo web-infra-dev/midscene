@@ -5,7 +5,8 @@ export const EN_US = {
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'Driving all platforms UI automation with vision-based model. Fully open source.',
+  heroSubtitle:
+    'Driving all platforms UI automation with vision-based model. Fully open source.',
 
   // Banner - Stats
   githubStars: 'Github Stars',
