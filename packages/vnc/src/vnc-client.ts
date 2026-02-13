@@ -10,6 +10,10 @@ export interface VNCConnectionOptions {
   host: string;
   port: number;
   password?: string;
+  /** Username for NTLM authentication (only needed when VNC server uses NTLM auth) */
+  username?: string;
+  /** Windows domain for NTLM authentication (default: 'WORKGROUP') */
+  domain?: string;
   /** Connection timeout in milliseconds (default: 10000) */
   connectTimeout?: number;
   /** Target FPS for framebuffer updates (0 = as fast as possible, default: 0) */
@@ -158,14 +162,24 @@ export class VNCClient {
         debug('Desktop resized: %dx%d', size.width, size.height);
       });
 
+      // Build auth object based on provided credentials
+      // - VNC auth (type 2): only needs { password }
+      // - NTLM auth (type 4): needs { username, password, domain? }
+      // The server decides which auth type to use during handshake
+      let auth: Record<string, string> | undefined;
+      if (this.options.password || this.options.username) {
+        auth = {};
+        if (this.options.password) auth.password = this.options.password;
+        if (this.options.username) auth.username = this.options.username;
+        if (this.options.domain) auth.domain = this.options.domain;
+      }
+
       // Initiate connection
       this.client.connect({
         host: this.options.host,
         port: this.options.port,
         path: null,
-        auth: this.options.password
-          ? { password: this.options.password }
-          : undefined,
+        auth,
         set8BitColor: false,
       });
     });

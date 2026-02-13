@@ -19,13 +19,15 @@ export class VNCMidsceneTools extends BaseMidsceneTools<VNCAgent> {
     return new VNCDevice({ host: 'localhost', port: 5900 });
   }
 
-  protected async ensureAgent(
-    host?: string,
-    port?: number,
-    password?: string,
-  ): Promise<VNCAgent> {
-    const targetHost = host || this.currentHost || 'localhost';
-    const targetPort = port || this.currentPort || 5900;
+  protected async ensureAgent(opts: {
+    host?: string;
+    port?: number;
+    password?: string;
+    username?: string;
+    domain?: string;
+  }): Promise<VNCAgent> {
+    const targetHost = opts.host || this.currentHost || 'localhost';
+    const targetPort = opts.port || this.currentPort || 5900;
 
     // If reconnecting to a different server, destroy existing agent
     if (
@@ -48,7 +50,9 @@ export class VNCMidsceneTools extends BaseMidsceneTools<VNCAgent> {
     const agent = await agentFromVNC({
       host: targetHost,
       port: targetPort,
-      password,
+      password: opts.password,
+      username: opts.username,
+      domain: opts.domain,
     });
 
     this.agent = agent;
@@ -65,7 +69,7 @@ export class VNCMidsceneTools extends BaseMidsceneTools<VNCAgent> {
       {
         name: 'vnc_connect',
         description:
-          'Connect to a remote VNC server. Provide host and port to specify the target. An optional password can be provided for VNC authentication.',
+          'Connect to a remote VNC server. Provide host and port to specify the target. For standard VNC auth, provide password. For NTLM auth, provide username, password, and optionally domain.',
         schema: {
           host: z
             .string()
@@ -78,21 +82,27 @@ export class VNCMidsceneTools extends BaseMidsceneTools<VNCAgent> {
           password: z
             .string()
             .optional()
-            .describe('VNC server password (if authentication is required)'),
+            .describe('VNC password (for VNC auth or NTLM auth)'),
+          username: z
+            .string()
+            .optional()
+            .describe('Username (only for NTLM auth)'),
+          domain: z
+            .string()
+            .optional()
+            .describe("Windows domain (only for NTLM auth, default: 'WORKGROUP')"),
         },
-        handler: async ({
-          host,
-          port,
-          password,
-        }: {
+        handler: async (params: {
           host?: string;
           port?: number;
           password?: string;
+          username?: string;
+          domain?: string;
         }) => {
-          const agent = await this.ensureAgent(host, port, password);
+          const agent = await this.ensureAgent(params);
           const screenshot = await agent.interface.screenshotBase64();
-          const targetHost = host || 'localhost';
-          const targetPort = port || 5900;
+          const targetHost = params.host || 'localhost';
+          const targetPort = params.port || 5900;
 
           return {
             content: [
