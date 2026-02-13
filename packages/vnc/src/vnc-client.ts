@@ -329,9 +329,14 @@ export class VNCClient {
     for (let i = 0; i < Math.min(fb.length, 1024); i++) {
       if (fb[i] !== 0) nonZeroCount++;
     }
+    // Print raw bytes of first 8 pixels to diagnose byte layout
+    const rawSample = fb.subarray(0, Math.min(32, fb.length));
     console.log(
-      '[VNC] screenshot: first 1024 bytes non-zero count: %d',
+      '[VNC] screenshot: first 1024 bytes non-zero count: %d, first 8 pixels (raw): %s',
       nonZeroCount,
+      Array.from(rawSample).map((b, i) =>
+        (i % 4 === 0 && i > 0 ? '| ' : '') + b.toString(16).padStart(2, '0')
+      ).join(' '),
     );
 
     // Convert framebuffer to RGBA for sharp
