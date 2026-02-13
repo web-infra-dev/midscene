@@ -107,39 +107,47 @@ export class VNCClient {
     // The library only recognizes 003.003/006/007/008 and disconnects on 003.889.
     // macOS uses 003.889 to signal support for Apple Remote Desktop (RA2) auth.
     // We must echo "RFB 003.889\n" back so macOS offers security type 30 (ARD).
-    const origHandleVersion = (this.client as any)._handleVersion.bind(
-      this.client,
-    );
+    //
+    // We fully replace _handleVersion (not peek-then-delegate) because the
+    // SocketBuffer may not have data yet when this method is called. We must
+    // use readNBytesOffset(12) which properly awaits incoming data.
+    const MACOS_VER = 'RFB 003.889\n';
+    const VERSION_MAP: Record<string, { reply: string; ver: string }> = {
+      'RFB 003.003\n': { reply: 'RFB 003.003\n', ver: '3.3' },
+      'RFB 003.006\n': { reply: 'RFB 003.006\n', ver: '3.6' },
+      'RFB 003.007\n': { reply: 'RFB 003.007\n', ver: '3.7' },
+      'RFB 003.008\n': { reply: 'RFB 003.008\n', ver: '3.8' },
+      [MACOS_VER]: { reply: MACOS_VER, ver: '3.8' },
+    };
+
     (this.client as any)._handleVersion = async () => {
       const sb = (this.client as any)._socketBuffer;
-      // Peek at the 12-byte version string without consuming it
-      const verBuf = Buffer.from(
-        sb.buffer.subarray(sb.offset, sb.offset + 12),
-      );
-      const verStr = verBuf.toString('ascii');
+      // Await until 12 bytes arrive, then consume them
+      const verBuf = await sb.readNBytesOffset(12);
+      const verStr = Buffer.from(verBuf).toString('ascii');
       console.log(
-        '[VNC] Server RFB version raw: %s (hex: %s)',
+        '[VNC] Server RFB version: %s (hex: %s)',
         verStr.trim(),
-        verBuf.toString('hex'),
+        Buffer.from(verBuf).toString('hex'),
       );
 
-      if (verStr === 'RFB 003.889\n') {
-        // Consume the 12 bytes (same as the library does internally)
-        await sb.readNBytesOffset(12);
-        console.log(
-          '[VNC] macOS RFB 003.889 detected, responding with 003.889',
-        );
-        (this.client as any)._connection?.write(
-          Buffer.from('RFB 003.889\n', 'ascii'),
-        );
-        // Set internal version to 3.8 so security type negotiation follows
-        // the 3.7/3.8 path (server offers list, client selects)
-        (this.client as any)._version = '3.8';
-        (this.client as any)._waitingSecurityTypes = true;
-      } else {
-        // Fallback to original handler for standard versions
-        await origHandleVersion();
+      const match = VERSION_MAP[verStr];
+      if (!match) {
+        console.error('[VNC] Unknown RFB version: %s — disconnecting', verStr.trim());
+        (this.client as any).disconnect();
+        return;
       }
+
+      console.log(
+        '[VNC] Responding with version %s (internal: %s)',
+        match.reply.trim(),
+        match.ver,
+      );
+      (this.client as any)._connection?.write(
+        Buffer.from(match.reply, 'ascii'),
+      );
+      (this.client as any)._version = match.ver;
+      (this.client as any)._waitingSecurityTypes = true;
     };
 
     return new Promise<void>((resolve, reject) => {
