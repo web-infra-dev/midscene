@@ -25,7 +25,11 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { keyToKeysym, modifierToKeysym } from './keysym';
-import { VNCClient, VNC_BUTTON, type VNCConnectionOptions } from './vnc-client';
+import {
+  VNCClient,
+  VNC_BUTTON,
+  type VNCConnectionOptions,
+} from './vnc-client';
 
 const debugDevice = getDebug('vnc:device');
 
@@ -123,7 +127,7 @@ Screen Size: ${screenSize.width}x${screenSize.height}
     for (let i = 1; i <= steps; i++) {
       const stepX = Math.round(startX + ((targetX - startX) * i) / steps);
       const stepY = Math.round(startY + ((targetY - startY) * i) / steps);
-      this.client.pointerEvent(stepX, stepY, 0);
+      this.client.sendPointerEvent(stepX, stepY, 0);
       await sleep(stepDelay);
     }
   }
@@ -134,8 +138,8 @@ Screen Size: ${screenSize.width}x${screenSize.height}
   private async typeText(text: string): Promise<void> {
     for (const char of text) {
       const keysym = keyToKeysym(char);
-      this.client.keyEvent(keysym, true);
-      this.client.keyEvent(keysym, false);
+      this.client.sendKeyEvent(keysym, true);
+      this.client.sendKeyEvent(keysym, false);
       await sleep(KEY_PRESS_DELAY);
     }
   }
@@ -151,13 +155,13 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         const targetY = Math.round(y);
 
         // Move to position
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
         await sleep(SMOOTH_MOVE_DELAY);
 
         // Press and release left button
-        this.client.pointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
+        this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
         await sleep(CLICK_HOLD_DURATION);
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
       }),
 
       // DoubleClick
@@ -169,15 +173,15 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         const targetY = Math.round(y);
 
         // First click
-        this.client.pointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
+        this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
         await sleep(CLICK_HOLD_DURATION);
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
         await sleep(DOUBLE_CLICK_INTERVAL);
 
         // Second click
-        this.client.pointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
+        this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
         await sleep(CLICK_HOLD_DURATION);
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
       }),
 
       // RightClick
@@ -188,11 +192,11 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         const targetX = Math.round(x);
         const targetY = Math.round(y);
 
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
         await sleep(SMOOTH_MOVE_DELAY);
-        this.client.pointerEvent(targetX, targetY, VNC_BUTTON.RIGHT);
+        this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.RIGHT);
         await sleep(CLICK_HOLD_DURATION);
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
       }),
 
       // MouseMove (Hover)
@@ -243,21 +247,21 @@ Screen Size: ${screenSize.width}x${screenSize.height}
             const targetX = Math.round(x);
             const targetY = Math.round(y);
 
-            this.client.pointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
+            this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
             await sleep(CLICK_HOLD_DURATION);
-            this.client.pointerEvent(targetX, targetY, 0);
+            this.client.sendPointerEvent(targetX, targetY, 0);
             await sleep(INPUT_FOCUS_DELAY);
 
             if (param.mode !== 'append') {
               // Select all (Ctrl+A) and delete
-              this.client.keyEvent(keyToKeysym('ctrl'), true);
-              this.client.keyEvent(keyToKeysym('a'), true);
-              this.client.keyEvent(keyToKeysym('a'), false);
-              this.client.keyEvent(keyToKeysym('ctrl'), false);
+              this.client.sendKeyEvent(keyToKeysym('ctrl'), true);
+              this.client.sendKeyEvent(keyToKeysym('a'), true);
+              this.client.sendKeyEvent(keyToKeysym('a'), false);
+              this.client.sendKeyEvent(keyToKeysym('ctrl'), false);
               await sleep(50);
 
-              this.client.keyEvent(keyToKeysym('backspace'), true);
-              this.client.keyEvent(keyToKeysym('backspace'), false);
+              this.client.sendKeyEvent(keyToKeysym('backspace'), true);
+              this.client.sendKeyEvent(keyToKeysym('backspace'), false);
               await sleep(INPUT_CLEAR_DELAY);
             }
           }
@@ -292,7 +296,7 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         }
 
         // Move cursor to scroll position
-        this.client.pointerEvent(scrollX, scrollY, 0);
+        this.client.sendPointerEvent(scrollX, scrollY, 0);
 
         const scrollType = param?.scrollType;
 
@@ -307,9 +311,9 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         const edgeButton = scrollToEdgeActions[scrollType || ''];
         if (edgeButton) {
           for (let i = 0; i < SCROLL_REPEAT_COUNT; i++) {
-            this.client.pointerEvent(scrollX, scrollY, edgeButton);
+            this.client.sendPointerEvent(scrollX, scrollY, edgeButton);
             await sleep(SCROLL_STEP_DELAY);
-            this.client.pointerEvent(scrollX, scrollY, 0);
+            this.client.sendPointerEvent(scrollX, scrollY, 0);
           }
           return;
         }
@@ -330,9 +334,9 @@ Screen Size: ${screenSize.width}x${screenSize.height}
           const button = directionMap[direction] || VNC_BUTTON.SCROLL_DOWN;
 
           for (let i = 0; i < ticks; i++) {
-            this.client.pointerEvent(scrollX, scrollY, button);
+            this.client.sendPointerEvent(scrollX, scrollY, button);
             await sleep(50);
-            this.client.pointerEvent(scrollX, scrollY, 0);
+            this.client.sendPointerEvent(scrollX, scrollY, 0);
             await sleep(50);
           }
           await sleep(SCROLL_COMPLETE_DELAY);
@@ -350,9 +354,9 @@ Screen Size: ${screenSize.width}x${screenSize.height}
           const [x, y] = param.locate.center;
           const targetX = Math.round(x);
           const targetY = Math.round(y);
-          this.client.pointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
+          this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
           await sleep(CLICK_HOLD_DURATION);
-          this.client.pointerEvent(targetX, targetY, 0);
+          this.client.sendPointerEvent(targetX, targetY, 0);
           await sleep(50);
         }
 
@@ -364,18 +368,18 @@ Screen Size: ${screenSize.width}x${screenSize.height}
 
         // Press modifiers
         for (const mod of modifiers) {
-          this.client.keyEvent(modifierToKeysym(mod), true);
+          this.client.sendKeyEvent(modifierToKeysym(mod), true);
         }
 
         // Press and release the main key
         const mainKeysym = keyToKeysym(mainKey);
-        this.client.keyEvent(mainKeysym, true);
+        this.client.sendKeyEvent(mainKeysym, true);
         await sleep(KEY_PRESS_DELAY);
-        this.client.keyEvent(mainKeysym, false);
+        this.client.sendKeyEvent(mainKeysym, false);
 
         // Release modifiers (in reverse order)
         for (const mod of [...modifiers].reverse()) {
-          this.client.keyEvent(modifierToKeysym(mod), false);
+          this.client.sendKeyEvent(modifierToKeysym(mod), false);
         }
       }),
 
@@ -390,11 +394,11 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         const [toX, toY] = to.center;
 
         // Move to start position
-        this.client.pointerEvent(Math.round(fromX), Math.round(fromY), 0);
+        this.client.sendPointerEvent(Math.round(fromX), Math.round(fromY), 0);
         await sleep(50);
 
         // Press left button (start drag)
-        this.client.pointerEvent(
+        this.client.sendPointerEvent(
           Math.round(fromX),
           Math.round(fromY),
           VNC_BUTTON.LEFT,
@@ -402,7 +406,7 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         await sleep(100);
 
         // Move to target (with button held)
-        this.client.pointerEvent(
+        this.client.sendPointerEvent(
           Math.round(toX),
           Math.round(toY),
           VNC_BUTTON.LEFT,
@@ -410,7 +414,7 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         await sleep(100);
 
         // Release button (drop)
-        this.client.pointerEvent(Math.round(toX), Math.round(toY), 0);
+        this.client.sendPointerEvent(Math.round(toX), Math.round(toY), 0);
       }),
 
       // ClearInput
@@ -423,20 +427,20 @@ Screen Size: ${screenSize.width}x${screenSize.height}
         const targetY = Math.round(y);
 
         // Click to focus
-        this.client.pointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
+        this.client.sendPointerEvent(targetX, targetY, VNC_BUTTON.LEFT);
         await sleep(CLICK_HOLD_DURATION);
-        this.client.pointerEvent(targetX, targetY, 0);
+        this.client.sendPointerEvent(targetX, targetY, 0);
         await sleep(100);
 
         // Select all (Ctrl+A) and delete
-        this.client.keyEvent(keyToKeysym('ctrl'), true);
-        this.client.keyEvent(keyToKeysym('a'), true);
-        this.client.keyEvent(keyToKeysym('a'), false);
-        this.client.keyEvent(keyToKeysym('ctrl'), false);
+        this.client.sendKeyEvent(keyToKeysym('ctrl'), true);
+        this.client.sendKeyEvent(keyToKeysym('a'), true);
+        this.client.sendKeyEvent(keyToKeysym('a'), false);
+        this.client.sendKeyEvent(keyToKeysym('ctrl'), false);
         await sleep(50);
 
-        this.client.keyEvent(keyToKeysym('backspace'), true);
-        this.client.keyEvent(keyToKeysym('backspace'), false);
+        this.client.sendKeyEvent(keyToKeysym('backspace'), true);
+        this.client.sendKeyEvent(keyToKeysym('backspace'), false);
         await sleep(50);
       }),
     ];

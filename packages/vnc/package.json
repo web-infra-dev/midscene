@@ -35,6 +35,7 @@
     "test:ai": "AI_TEST_TYPE=vnc vitest run"
   },
   "dependencies": {
+    "@computernewb/nodejs-rfb": "^0.4.2",
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
     "sharp": "^0.34.3"
