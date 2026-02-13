@@ -1,0 +1,178 @@
+# 将设备操作暴露为 Skills
+
+[Agent Skills](https://github.com/anthropics/agent-skills) 是一种扩展 AI 编程助手能力的格式。Midscene 提供了 Agent Skills，让 AI 编程工具（如 Claude Code、Cline 等）可以通过 CLI 命令驱动 UI 自动化 —— 无需配置 MCP 服务。
+
+与 [MCP 集成](./mcp) 不同，Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充当"大脑"：截图、分析 UI、决定下一步操作。
+
+## 支持的平台
+
+| Skill | 包名 | CLI 命令 | 说明 |
+|-------|------|----------|------|
+| Browser Automation | `@midscene/web` | `npx @midscene/web` | 通过 Puppeteer 的无头 Chrome，打开新浏览器标签页 |
+| Chrome Bridge Automation | `@midscene/web` | `npx @midscene/web --bridge` | 使用用户自己的 Chrome 浏览器，保留 Cookie 和会话 |
+| Desktop Computer Automation | `@midscene/computer` | `npx @midscene/computer` | macOS、Windows、Linux 桌面控制 |
+| Android Device Automation | `@midscene/android` | `npx @midscene/android` | 通过 ADB 控制 Android 设备 |
+| iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | 通过 WebDriverAgent 控制 iOS 设备 |
+
+## 安装
+
+确保已安装 [Node.js](https://nodejs.org)，然后运行：
+
+```bash
+# 通用安装
+npx skills add web-infra-dev/midscene-skills
+
+# Claude Code
+npx skills add web-infra-dev/midscene-skills -a claude-code
+
+# OpenClaw
+npx skills add web-infra-dev/midscene-skills -a openclaw
+```
+
+源码：[github.com/web-infra-dev/midscene-skills](https://github.com/web-infra-dev/midscene-skills)
+
+## 模型配置
+
+Skills 需要具备强视觉定位能力的视觉模型。配置以下环境变量 —— 可以设为系统环境变量，也可以写在当前工作目录的 `.env` 文件中（Midscene 会自动加载 `.env`）：
+
+```bash
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="model-name"
+MIDSCENE_MODEL_BASE_URL="https://..."
+MIDSCENE_MODEL_FAMILY="family-identifier"
+```
+
+支持的模型和配置详情请参考 [模型策略](./model-strategy) 和 [常用模型配置](./model-common-config)。
+
+## 工作原理
+
+每个平台的 npm 包（`@midscene/web`、`@midscene/android`、`@midscene/ios`、`@midscene/computer`）都暴露了一个 CLI 二进制文件，内部复用与 MCP 相同的工具定义。每次 `npx` 调用直接对应一个工具调用，为 AI 编程助手提供跨平台一致的接口。
+
+AI 编程助手遵循 **截图-分析-操作** 循环：
+
+1. **连接** 到目标（URL、设备或桌面）
+2. **截图** 查看当前状态
+3. **分析** 截图并决定下一步操作
+4. **执行操作**（Tap、Input、Scroll 等）
+5. **再次截图** 验证结果
+6. 重复直到任务完成
+
+### 核心命令
+
+所有平台共享一致的命令结构。可用命令从每个平台的 Action Space 自动生成：
+
+| 命令 | 说明 |
+|------|------|
+| `connect` | 连接到目标设备或 URL |
+| `take_screenshot` | 截取当前屏幕 |
+| `Tap` | 点击 UI 元素 |
+| `Input` | 在输入框中输入文本 |
+| `Scroll` | 向指定方向滚动 |
+| `KeyboardPress` | 按下键盘按键或快捷键 |
+| `Hover` | 悬停在元素上 |
+| `DragAndDrop` | 将元素拖拽到目标位置 |
+| `act` | 通过自然语言执行多步操作 |
+| `disconnect` / `close` | 结束会话 |
+
+运行 `npx @midscene/web --help` 查看各平台的完整命令列表。
+
+### 元素定位
+
+与 UI 元素交互的操作使用 `--locate` 参数，通过自然语言描述来定位元素：
+
+```bash
+npx @midscene/web Tap --locate '{"prompt":"蓝色的提交按钮"}'
+npx @midscene/web Input --locate '{"prompt":"邮箱输入框"}' --value 'user@example.com'
+```
+
+通过视觉外观来描述元素 —— 文本标签、颜色、位置、周围上下文 —— 而不是 CSS 选择器或无障碍标识。
+
+### `act` 命令
+
+`act` 命令使用 Midscene 的 AI 规划器在单次 CLI 调用中执行多步操作。这对于**瞬态 UI**（下拉菜单、弹窗、Spotlight、右键菜单）尤为重要，因为这些 UI 在不同 CLI 调用之间会消失：
+
+```bash
+# 单个命令完成整个多步交互
+npx @midscene/web act --prompt "点击国家下拉框并选择日本"
+npx @midscene/computer act --prompt "按下 Command+Space，输入 Safari，按回车"
+```
+
+### 浏览器：Puppeteer 模式 vs Bridge 模式
+
+`@midscene/web` CLI 支持两种模式：
+
+- **默认（Puppeteer 模式）**：启动无头 Chrome，浏览器进程在 CLI 调用之间持久化，不会丢失会话。
+- **`--bridge` 模式**：通过 [Midscene Chrome 插件](./bridge-mode) 连接到用户自己的 Chrome 浏览器，保留 Cookie、会话和登录状态。
+
+```bash
+# Puppeteer 模式（默认）
+npx @midscene/web connect --url https://example.com
+
+# Bridge 模式
+npx @midscene/web --bridge connect --url https://example.com
+```
+
+## Skills 与 MCP 的对比
+
+本包提供了 Midscene 的 CLI 接口。如果你正在使用编程助手（Coding Agent），这是最佳选择。
+
+**Skills (CLI)**：现代编程助手越来越倾向于使用以 Skills 形式暴露的 CLI 工作流，而非 MCP，因为 CLI 调用更节省 Token —— 避免将大量工具 Schema 加载到模型上下文中，让编程助手通过简洁的专用命令来执行操作。这使得 CLI + Skills 更适合需要在有限上下文窗口中兼顾 UI 自动化、大型代码库、测试和推理的高吞吐量编程助手。
+
+**MCP**：MCP 更适合需要持久状态、丰富内省能力和对页面结构进行迭代推理的专用 Agent 循环，例如探索性自动化或长期运行的自主工作流，在这些场景中维持持续的设备上下文比 Token 开销更重要。了解更多关于 [Midscene MCP](./mcp)。
+
+## 示例
+
+### 浏览器：搜索并提取数据
+
+```bash
+npx @midscene/web connect --url 'https://www.google.com'
+npx @midscene/web take_screenshot
+npx @midscene/web Input --locate '{"prompt":"搜索输入框"}' --value 'Midscene.js'
+npx @midscene/web KeyboardPress --value Enter
+npx @midscene/web take_screenshot
+npx @midscene/web close
+```
+
+### Chrome Bridge：操作已登录的页面
+
+```bash
+npx @midscene/web --bridge connect --url 'https://github.com'
+npx @midscene/web --bridge take_screenshot
+npx @midscene/web --bridge Tap --locate '{"prompt":"个人头像菜单"}'
+npx @midscene/web --bridge take_screenshot
+npx @midscene/web --bridge disconnect
+```
+
+### Android：在应用中导航
+
+```bash
+npx @midscene/android connect
+npx @midscene/android take_screenshot
+npx @midscene/android Tap --locate '{"prompt":"地图应用图标"}'
+npx @midscene/android take_screenshot
+npx @midscene/android act --prompt "搜索中央公园并点击第一个搜索结果"
+npx @midscene/android take_screenshot
+npx @midscene/android disconnect
+```
+
+### iOS：与设备交互
+
+```bash
+npx @midscene/ios connect
+npx @midscene/ios take_screenshot
+npx @midscene/ios Tap --locate '{"prompt":"设置图标"}'
+npx @midscene/ios take_screenshot
+npx @midscene/ios act --prompt "点击显示与亮度，开启深色模式"
+npx @midscene/ios take_screenshot
+npx @midscene/ios disconnect
+```
+
+### 桌面：打开应用并交互
+
+```bash
+npx @midscene/computer connect
+npx @midscene/computer take_screenshot
+npx @midscene/computer act --prompt "按下 Command+Space，输入计算器，按回车"
+npx @midscene/computer take_screenshot
+npx @midscene/computer disconnect
+```

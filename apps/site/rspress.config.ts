@@ -174,6 +174,10 @@ export default defineConfig({
           link: '/mcp',
         },
         {
+          text: 'Expose agent as Skills',
+          link: '/skills',
+        },
+        {
           sectionHeaderText: 'API and config',
         },
         {
@@ -326,6 +330,10 @@ export default defineConfig({
         {
           text: '将设备操作暴露为 MCP',
           link: '/zh/mcp',
+        },
+        {
+          text: '将设备操作暴露为 Skills',
+          link: '/zh/skills',
         },
         {
           sectionHeaderText: 'API 与配置',

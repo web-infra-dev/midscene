@@ -1,0 +1,178 @@
+# Expose agent as Skills
+
+[Agent Skills](https://github.com/anthropics/agent-skills) are a format for extending AI coding agents with specialized capabilities. Midscene provides Agent Skills that let AI coding tools (like Claude Code, Cline, etc.) drive UI automation through CLI commands — no MCP server setup required.
+
+Unlike [MCP integration](./mcp), Skills work by running CLI commands directly in the terminal. The AI agent acts as the brain: it takes screenshots, analyzes the UI, and decides which actions to perform next.
+
+## Supported platforms
+
+| Skill | Package | CLI command | Description |
+|-------|---------|-------------|-------------|
+| Browser Automation | `@midscene/web` | `npx @midscene/web` | Headless Chrome via Puppeteer, opens new browser tabs |
+| Chrome Bridge Automation | `@midscene/web` | `npx @midscene/web --bridge` | User's own Chrome browser, preserves cookies and sessions |
+| Desktop Computer Automation | `@midscene/computer` | `npx @midscene/computer` | macOS, Windows, Linux desktop control |
+| Android Device Automation | `@midscene/android` | `npx @midscene/android` | Android device control via ADB |
+| iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | iOS device control via WebDriverAgent |
+
+## Installation
+
+Make sure [Node.js](https://nodejs.org) is installed, then run:
+
+```bash
+# General installation
+npx skills add web-infra-dev/midscene-skills
+
+# Claude Code
+npx skills add web-infra-dev/midscene-skills -a claude-code
+
+# OpenClaw
+npx skills add web-infra-dev/midscene-skills -a openclaw
+```
+
+Source code: [github.com/web-infra-dev/midscene-skills](https://github.com/web-infra-dev/midscene-skills)
+
+## Model configuration
+
+Skills require a vision model with strong visual grounding capabilities. Configure the following environment variables — either as system environment variables or in a `.env` file in the current working directory (Midscene loads `.env` automatically):
+
+```bash
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="model-name"
+MIDSCENE_MODEL_BASE_URL="https://..."
+MIDSCENE_MODEL_FAMILY="family-identifier"
+```
+
+For supported models and configuration details, see [Model strategy](./model-strategy) and [Common model configuration](./model-common-config).
+
+## How Skills work
+
+Each platform npm package (`@midscene/web`, `@midscene/android`, `@midscene/ios`, `@midscene/computer`) exposes a CLI binary that reuses the same tool definitions as MCP internally. Each `npx` call maps directly to one tool invocation, giving the AI agent a consistent interface across all platforms.
+
+The AI agent follows a **screenshot-analyze-act loop**:
+
+1. **Connect** to the target (URL, device, or desktop)
+2. **Take screenshot** to see the current state
+3. **Analyze** the screenshot and decide the next action
+4. **Execute action** (Tap, Input, Scroll, etc.)
+5. **Take screenshot** again to verify the result
+6. Repeat until the task is complete
+
+### Core commands
+
+All platforms share a consistent command structure. The available commands are auto-generated from each platform's Action Space:
+
+| Command | Description |
+|---------|-------------|
+| `connect` | Connect to the target device or URL |
+| `take_screenshot` | Capture the current screen |
+| `Tap` | Tap on a UI element |
+| `Input` | Type text into a field |
+| `Scroll` | Scroll in a direction |
+| `KeyboardPress` | Press a key or key combination |
+| `Hover` | Hover over an element |
+| `DragAndDrop` | Drag an element to a target |
+| `act` | Execute multi-step operations via natural language |
+| `disconnect` / `close` | End the session |
+
+Run `npx @midscene/web --help` to see the full list of available commands for each platform.
+
+### Element targeting
+
+Actions that interact with UI elements use the `--locate` parameter with a natural language description:
+
+```bash
+npx @midscene/web Tap --locate '{"prompt":"the blue Submit button"}'
+npx @midscene/web Input --locate '{"prompt":"the email field"}' --value 'user@example.com'
+```
+
+Describe elements by their visual appearance — text labels, colors, position, surrounding context — not CSS selectors or accessibility identifiers.
+
+### The `act` command
+
+The `act` command uses Midscene's AI planner to execute multi-step operations in a single CLI invocation. This is essential for **transient UI** (dropdowns, popups, Spotlight, context menus) that disappear between separate CLI calls:
+
+```bash
+# Single command handles the entire multi-step interaction
+npx @midscene/web act --prompt "click the country dropdown and select Japan"
+npx @midscene/computer act --prompt "press Command+Space, type Safari, press Enter"
+```
+
+### Browser: Puppeteer vs Bridge mode
+
+The `@midscene/web` CLI supports two modes:
+
+- **Default (Puppeteer mode)**: Launches a headless Chrome with a persistent browser process. The browser survives across CLI calls — no session loss between commands.
+- **`--bridge` mode**: Connects to the user's real Chrome browser via the [Midscene Chrome Extension](./bridge-mode), preserving cookies, sessions, and login state.
+
+```bash
+# Puppeteer mode (default)
+npx @midscene/web connect --url https://example.com
+
+# Bridge mode
+npx @midscene/web --bridge connect --url https://example.com
+```
+
+## Skills vs MCP
+
+This package provides a CLI interface into Midscene. If you are using coding agents, that is the best fit.
+
+**Skills (CLI)**: Modern coding agents increasingly favor CLI-based workflows exposed as Skills over MCP because CLI invocations are more token-efficient — they avoid loading large tool schemas into the model context, allowing agents to act through concise, purpose-built commands. This makes CLI + Skills better suited for high-throughput coding agents that must balance UI automation with large codebases, tests, and reasoning within limited context windows.
+
+**MCP**: MCP remains relevant for specialized agentic loops that benefit from persistent state, rich introspection, and iterative reasoning over page structure, such as exploratory automation or long-running autonomous workflows where maintaining continuous device context outweighs token cost concerns. Learn more about [Midscene MCP](./mcp).
+
+## Examples
+
+### Browser: search and extract data
+
+```bash
+npx @midscene/web connect --url 'https://www.google.com'
+npx @midscene/web take_screenshot
+npx @midscene/web Input --locate '{"prompt":"the search input field"}' --value 'Midscene.js'
+npx @midscene/web KeyboardPress --value Enter
+npx @midscene/web take_screenshot
+npx @midscene/web close
+```
+
+### Chrome Bridge: interact with logged-in pages
+
+```bash
+npx @midscene/web --bridge connect --url 'https://github.com'
+npx @midscene/web --bridge take_screenshot
+npx @midscene/web --bridge Tap --locate '{"prompt":"the profile menu"}'
+npx @midscene/web --bridge take_screenshot
+npx @midscene/web --bridge disconnect
+```
+
+### Android: navigate in an app
+
+```bash
+npx @midscene/android connect
+npx @midscene/android take_screenshot
+npx @midscene/android Tap --locate '{"prompt":"the Maps app icon"}'
+npx @midscene/android take_screenshot
+npx @midscene/android act --prompt "search for Central Park and tap the first result"
+npx @midscene/android take_screenshot
+npx @midscene/android disconnect
+```
+
+### iOS: interact with a device
+
+```bash
+npx @midscene/ios connect
+npx @midscene/ios take_screenshot
+npx @midscene/ios Tap --locate '{"prompt":"the Settings icon"}'
+npx @midscene/ios take_screenshot
+npx @midscene/ios act --prompt "tap Display & Brightness and turn on Dark Mode"
+npx @midscene/ios take_screenshot
+npx @midscene/ios disconnect
+```
+
+### Desktop: open an app and interact
+
+```bash
+npx @midscene/computer connect
+npx @midscene/computer take_screenshot
+npx @midscene/computer act --prompt "press Command+Space, type Calculator, press Enter"
+npx @midscene/computer take_screenshot
+npx @midscene/computer disconnect
+```
