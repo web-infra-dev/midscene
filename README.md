@@ -29,12 +29,9 @@ English | [简体中文](./README.zh.md)
   </a>
 </p>
 
-## 📣 v1.0 Release Notice
+## 📣 Midscene Skills to control any platform
 
-> **We have released v1.0.** It is currently published on npm.  
-> The v1.0 docs and code are on [https://midscenejs.com/](https://midscenejs.com/) and the `main` branch.  
-> The v0.x docs and code are on [https://v0.midscenejs.com/](https://v0.midscenejs.com/) and the `v0` branch.  
-> The v1.0 changelog: [https://midscenejs.com/changelog](https://midscenejs.com/changelog)
+> Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to control any platform.
 
 ## Showcases
 

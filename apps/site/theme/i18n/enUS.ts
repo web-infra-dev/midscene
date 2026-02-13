@@ -1,7 +1,7 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 is released',
-  changelogLink: "See what's new",
+  newBadge: 'Midscene Skills to control any platform',
+  changelogLink: 'Learn more',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
