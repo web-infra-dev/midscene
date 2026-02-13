@@ -102,15 +102,22 @@ describe('ARD authentication (type 30)', () => {
     expect(mockConn.write).toHaveBeenCalledTimes(1);
     const response = writtenChunks[0];
 
-    // Response should be: clientPublicKey(keyLength) + encryptedCredentials(128)
-    expect(response.length).toBe(keyLength + 128);
+    // Response should be: encryptedCredentials(128) + clientPublicKey(keyLength)
+    // Per Apple ARD spec: ciphertext first, then public key
+    expect(response.length).toBe(128 + keyLength);
 
     // Verify we can decrypt the credentials using the server's shared secret
-    const clientPublicKey = response.subarray(0, keyLength);
-    const encryptedCredentials = response.subarray(keyLength);
+    const encryptedCredentials = response.subarray(0, 128);
+    const clientPublicKey = response.subarray(128);
 
     const sharedSecret = serverDH.computeSecret(clientPublicKey);
-    const aesKey = crypto.createHash('md5').update(sharedSecret).digest();
+    // Pad shared secret to keyLength (same as implementation)
+    let paddedSecret = sharedSecret;
+    if (sharedSecret.length < keyLength) {
+      paddedSecret = Buffer.alloc(keyLength);
+      sharedSecret.copy(paddedSecret, keyLength - sharedSecret.length);
+    }
+    const aesKey = crypto.createHash('md5').update(paddedSecret).digest();
 
     const decipher = crypto.createDecipheriv('aes-128-ecb', aesKey, null);
     decipher.setAutoPadding(false);
@@ -119,15 +126,11 @@ describe('ARD authentication (type 30)', () => {
       decipher.final(),
     ]);
 
-    // Verify decrypted credentials
-    const decryptedUsername = decrypted
-      .subarray(0, 64)
-      .toString('utf-8')
-      .replace(/\0+$/, '');
-    const decryptedPassword = decrypted
-      .subarray(64, 128)
-      .toString('utf-8')
-      .replace(/\0+$/, '');
+    // Verify decrypted credentials (null-terminated, random-padded)
+    const usernameEnd = decrypted.indexOf(0, 0);
+    const decryptedUsername = decrypted.subarray(0, usernameEnd).toString('utf-8');
+    const passwordEnd = decrypted.indexOf(0, 64);
+    const decryptedPassword = decrypted.subarray(64, passwordEnd).toString('utf-8');
 
     expect(decryptedUsername).toBe('testuser');
     expect(decryptedPassword).toBe('testpass');

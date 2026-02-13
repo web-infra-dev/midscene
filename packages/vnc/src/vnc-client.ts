@@ -120,8 +120,11 @@ export class VNCClient {
       [MACOS_VER]: { reply: MACOS_VER, ver: '3.8' },
     };
 
+    const clientRef = this.client;
     (this.client as any)._handleVersion = async () => {
-      const sb = (this.client as any)._socketBuffer;
+      // Guard: after disconnect/cleanup, client internals may be null
+      const sb = clientRef?._socketBuffer;
+      if (!sb) return;
       // Await until 12 bytes arrive, then consume them
       const verBuf = await sb.readNBytesOffset(12);
       const verStr = Buffer.from(verBuf).toString('ascii');
@@ -134,7 +137,7 @@ export class VNCClient {
       const match = VERSION_MAP[verStr];
       if (!match) {
         console.error('[VNC] Unknown RFB version: %s — disconnecting', verStr.trim());
-        (this.client as any).disconnect();
+        clientRef?.disconnect();
         return;
       }
 
@@ -143,11 +146,11 @@ export class VNCClient {
         match.reply.trim(),
         match.ver,
       );
-      (this.client as any)._connection?.write(
+      clientRef?._connection?.write(
         Buffer.from(match.reply, 'ascii'),
       );
-      (this.client as any)._version = match.ver;
-      (this.client as any)._waitingSecurityTypes = true;
+      clientRef._version = match.ver;
+      clientRef._waitingSecurityTypes = true;
     };
 
     return new Promise<void>((resolve, reject) => {

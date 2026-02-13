@@ -10,12 +10,12 @@ import type net from 'node:net';
  * 2. Client generates DH keypair using the given prime and generator
  * 3. Client computes shared secret via DH
  * 4. Client derives AES key = MD5(sharedSecret)
- * 5. Client encrypts credentials (username 64 bytes + password 64 bytes) with AES-128-ECB
- * 6. Client sends: clientPublicKey(keyLength) + encryptedCredentials(128 bytes)
+ * 5. Client encrypts credentials { username[64], password[64] } with AES-128-ECB
+ * 6. Client sends: encryptedCredentials(128) + clientPublicKey(keyLength)
  *
  * References:
+ * - https://cafbit.com/post/apple_remote_desktop_quirks/
  * - https://github.com/novnc/noVNC/blob/master/core/ra2.js
- * - https://datatracker.ietf.org/doc/html/rfc6143
  */
 export function createArdSecurityType() {
   return {
@@ -57,7 +57,6 @@ export function createArdSecurityType() {
 
       try {
         // 1. Read DH parameters from server
-        // Use readUInt16BE() — same pattern as the library's built-in handlers
         console.log('[ARD] Step 1: Reading DH params (generator + keyLength)...');
         const generator = await socket.readUInt16BE();
         const keyLength = await socket.readUInt16BE();
@@ -96,30 +95,43 @@ export function createArdSecurityType() {
         console.log('[ARD] Step 5: Computing shared secret...');
         const sharedSecret = dh.computeSecret(Buffer.from(serverPublicKey));
         console.log(
-          '[ARD] Shared secret length: %d, (first 16 bytes): %s',
+          '[ARD] Shared secret raw length: %d, keyLength: %d',
           sharedSecret.length,
-          sharedSecret.subarray(0, 16).toString('hex'),
+          keyLength,
         );
 
+        // Pad shared secret to keyLength bytes (left-pad with zeros) if shorter
+        // This ensures consistent MD5 hash regardless of DH output length
+        let paddedSecret = sharedSecret;
+        if (sharedSecret.length < keyLength) {
+          paddedSecret = Buffer.alloc(keyLength);
+          sharedSecret.copy(paddedSecret, keyLength - sharedSecret.length);
+          console.log('[ARD] Shared secret padded from %d to %d bytes', sharedSecret.length, keyLength);
+        }
+
         // 4. Derive AES-128 key = MD5(sharedSecret)
-        const aesKey = crypto.createHash('md5').update(sharedSecret).digest();
+        const aesKey = crypto.createHash('md5').update(paddedSecret).digest();
         console.log('[ARD] AES key (MD5): %s', aesKey.toString('hex'));
 
         // 5. Prepare credentials block (128 bytes total)
-        // username: 64 bytes, null-padded UTF-8
-        // password: 64 bytes, null-padded UTF-8
-        const credentials = Buffer.alloc(128);
+        // { username[64], password[64] } — null-terminated, random-padded
+        // Per Apple ARD spec: fill unused bytes with random data
+        const credentials = crypto.randomBytes(128);
         const userBytes = Buffer.from(auth.username, 'utf-8');
         const passBytes = Buffer.from(auth.password, 'utf-8');
+        // Write username (null-terminated) into first 64 bytes
         userBytes.copy(credentials, 0, 0, Math.min(userBytes.length, 63));
+        credentials[Math.min(userBytes.length, 63)] = 0; // null terminator
+        // Write password (null-terminated) into bytes 64-127
         passBytes.copy(credentials, 64, 0, Math.min(passBytes.length, 63));
+        credentials[64 + Math.min(passBytes.length, 63)] = 0; // null terminator
         console.log(
-          '[ARD] Credentials block: user=%d bytes, pass=%d bytes',
+          '[ARD] Credentials block: user=%d bytes, pass=%d bytes (random-padded)',
           userBytes.length,
           passBytes.length,
         );
 
-        // 6. Encrypt credentials with AES-128-ECB (no padding, 128 bytes is 8 AES blocks)
+        // 6. Encrypt credentials with AES-128-ECB (no padding, 128 bytes = 8 AES blocks)
         const cipher = crypto.createCipheriv('aes-128-ecb', aesKey, null);
         cipher.setAutoPadding(false);
         const encrypted = Buffer.concat([
@@ -127,19 +139,13 @@ export function createArdSecurityType() {
           cipher.final(),
         ]);
         console.log(
-          '[ARD] Encrypted credentials: %d bytes, (first 16): %s',
+          '[ARD] Encrypted credentials: %d bytes',
           encrypted.length,
-          encrypted.subarray(0, 16).toString('hex'),
         );
 
         // 7. Prepare client DH public key (pad/trim to keyLength)
         const clientPublicKey = dh.getPublicKey();
         const clientKeyPadded = Buffer.alloc(keyLength);
-        console.log(
-          '[ARD] Client pubkey raw length: %d, target keyLength: %d',
-          clientPublicKey.length,
-          keyLength,
-        );
 
         if (clientPublicKey.length <= keyLength) {
           // Left-pad: copy to the right end of the buffer
@@ -156,17 +162,18 @@ export function createArdSecurityType() {
           );
         }
 
-        // 8. Send response: clientPublicKey(keyLength) + encryptedCredentials(128)
-        const response = Buffer.concat([clientKeyPadded, encrypted]);
+        // 8. Send response: encryptedCredentials(128) + clientPublicKey(keyLength)
+        // Per Apple ARD spec (cafbit.com): ciphertext first, then DH public key
+        const response = Buffer.concat([encrypted, clientKeyPadded]);
         console.log(
-          '[ARD] Step 6: Sending response (%d bytes = %d pubkey + %d encrypted)',
+          '[ARD] Step 6: Sending response (%d bytes = %d encrypted + %d pubkey)',
           response.length,
-          keyLength,
           encrypted.length,
+          keyLength,
         );
         connection.write(response);
 
-        console.log('[ARD] authenticate() completed successfully, waiting for SecurityResult...');
+        console.log('[ARD] authenticate() completed, waiting for SecurityResult...');
       } catch (err: any) {
         console.error('[ARD] authenticate() FAILED:', err.message);
         console.error('[ARD] Stack:', err.stack);
