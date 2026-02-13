@@ -103,6 +103,45 @@ export class VNCClient {
       Object.keys((this.client as any)._securityTypes || {}).join(', '),
     );
 
+    // Monkey-patch _handleVersion to support macOS Screen Sharing (RFB 003.889)
+    // The library only recognizes 003.003/006/007/008 and disconnects on 003.889.
+    // macOS uses 003.889 to signal support for Apple Remote Desktop (RA2) auth.
+    // We must echo "RFB 003.889\n" back so macOS offers security type 30 (ARD).
+    const origHandleVersion = (this.client as any)._handleVersion.bind(
+      this.client,
+    );
+    (this.client as any)._handleVersion = async () => {
+      const sb = (this.client as any)._socketBuffer;
+      // Peek at the 12-byte version string without consuming it
+      const verBuf = Buffer.from(
+        sb.buffer.subarray(sb.offset, sb.offset + 12),
+      );
+      const verStr = verBuf.toString('ascii');
+      console.log(
+        '[VNC] Server RFB version raw: %s (hex: %s)',
+        verStr.trim(),
+        verBuf.toString('hex'),
+      );
+
+      if (verStr === 'RFB 003.889\n') {
+        // Consume the 12 bytes (same as the library does internally)
+        await sb.readNBytesOffset(12);
+        console.log(
+          '[VNC] macOS RFB 003.889 detected, responding with 003.889',
+        );
+        (this.client as any)._connection?.write(
+          Buffer.from('RFB 003.889\n', 'ascii'),
+        );
+        // Set internal version to 3.8 so security type negotiation follows
+        // the 3.7/3.8 path (server offers list, client selects)
+        (this.client as any)._version = '3.8';
+        (this.client as any)._waitingSecurityTypes = true;
+      } else {
+        // Fallback to original handler for standard versions
+        await origHandleVersion();
+      }
+    };
+
     return new Promise<void>((resolve, reject) => {
       let settled = false;
 

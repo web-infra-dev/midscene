@@ -30,6 +30,11 @@ const { mockInstance, MockVncClient } = vi.hoisted(() => {
       blueShift: 0,
     },
     _securityTypes: {} as Record<number, any>,
+    _handleVersion: vi.fn(),
+    _socketBuffer: null as any,
+    _connection: null as any,
+    _version: '',
+    _waitingSecurityTypes: false,
   };
 
   const ctor = vi.fn(() => {
@@ -38,6 +43,7 @@ const { mockInstance, MockVncClient } = vi.hoisted(() => {
     instance.once = vi.fn();
     instance.connect = vi.fn();
     instance._securityTypes = {};
+    instance._handleVersion = vi.fn();
     return instance;
   });
 
