@@ -1,11 +1,11 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 is released',
-  changelogLink: "See what's new",
+  newBadge: 'Control Any Platform with Midscene Skills',
+  changelogLink: 'Details',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'Driving all platforms UI automation with vision-based model',
+  heroSubtitle: 'Driving all platforms UI automation with vision-based model. Fully open source.',
 
   // Banner - Stats
   githubStars: 'Github Stars',

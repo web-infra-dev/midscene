@@ -2,12 +2,12 @@ import type { EN_US } from './enUS';
 
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 正式发布',
-  changelogLink: '查看最新特性',
+  newBadge: '使用 Midscene Skills 控制任意平台',
+  changelogLink: '了解更多',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: '视觉模型驱动，支持全平台的 UI 自动化 SDK',
+  heroSubtitle: '视觉模型驱动，支持全平台的 UI 自动化 SDK。完全开源。',
 
   // Banner - Stats
   githubStars: 'Github Stars',
