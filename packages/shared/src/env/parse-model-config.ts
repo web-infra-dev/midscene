@@ -227,6 +227,7 @@ export const parseOpenaiSdkConfig = ({
         );
       return val;
     })(),
+    reasoningEffort: provider[keys.reasoningEffort]?.trim() || undefined,
   };
 };
 

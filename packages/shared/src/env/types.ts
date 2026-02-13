@@ -29,6 +29,7 @@ export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
 export const MIDSCENE_MODEL_TEMPERATURE = 'MIDSCENE_MODEL_TEMPERATURE';
 export const MIDSCENE_MODEL_RETRY_COUNT = 'MIDSCENE_MODEL_RETRY_COUNT';
 export const MIDSCENE_MODEL_RETRY_INTERVAL = 'MIDSCENE_MODEL_RETRY_INTERVAL';
+export const MIDSCENE_MODEL_REASONING_EFFORT = 'MIDSCENE_MODEL_REASONING_EFFORT';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -204,6 +205,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_TEMPERATURE,
   MIDSCENE_MODEL_RETRY_COUNT,
   MIDSCENE_MODEL_RETRY_INTERVAL,
+  MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -359,6 +361,8 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
+  // reasoning effort for doubao-vision (minimal/low/medium/high; minimal = no thinking)
+  [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -459,6 +463,11 @@ export interface IModelConfig {
    * Default is 2000.
    */
   retryInterval?: number;
+  /**
+   * Reasoning effort for doubao-vision: minimal (no thinking), low, medium, high.
+   * When set, passes reasoning_effort to the model API.
+   */
+  reasoningEffort?: string;
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', etc.
