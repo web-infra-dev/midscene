@@ -11,6 +11,7 @@ import {
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
@@ -117,6 +118,18 @@ describe('ModelConfigManager', () => {
 
     const config = manager.getModelConfig('default');
     expect(config.createOpenAIClient).toBe(createClient);
+  });
+
+  it('parses reasoningEffort for doubao-vision', () => {
+    const configWithReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_FAMILY]: 'doubao-vision',
+      [MIDSCENE_MODEL_REASONING_EFFORT]: 'medium',
+    };
+    const manager = new ModelConfigManager(configWithReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEffort).toBe('medium');
   });
 
   describe('per-intent timeout configuration', () => {
