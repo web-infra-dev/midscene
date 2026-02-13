@@ -8,7 +8,7 @@ v1.4 版本推出了 Midscene Skills —— 一套可安装到 Claude Code、Ope
 
 Midscene Skills 是一套可安装到 Claude Code、OpenClaw 等 AI 助手中的技能包。安装后，AI 助手可以通过自然语言直接操控浏览器、桌面、Android 和 iOS 设备。
 
-各平台包（`@midscene/android`、`@midscene/ios`、`@midscene/web` 等）现在各自暴露了独立的 CLI 入口，Skills 正是基于此能力构建。你也可以直接通过 `npx @midscene/android` 等方式在命令行中运行自动化脚本。
+各平台包（`@midscene/android`、`@midscene/ios`、`@midscene/web` 等）现在各自暴露了独立的 CLI 入口，Skills 正是基于此能力构建。
 
 **覆盖平台：**
 - 浏览器（Puppeteer 无头模式）
@@ -16,16 +16,6 @@ Midscene Skills 是一套可安装到 Claude Code、OpenClaw 等 AI 助手中的
 - 桌面（macOS、Windows、Linux）
 - Android（通过 ADB）
 - iOS（通过 WebDriverAgent）
-
-**安装方式：**
-
-```bash
-# Claude Code
-npx skills add web-infra-dev/midscene-skills -a claude-code
-
-# OpenClaw
-npx skills add web-infra-dev/midscene-skills -a openclaw
-```
 
 详见：[Midscene Skills](https://github.com/web-infra-dev/midscene-skills)
 

@@ -8,7 +8,7 @@ v1.4 introduces Midscene Skills — a set of installable skill packs for AI assi
 
 Midscene Skills is a set of skill packs that can be installed into AI assistants like Claude Code and OpenClaw. Once installed, AI assistants can control browsers, desktops, Android, and iOS devices using natural language.
 
-Each platform package (`@midscene/android`, `@midscene/ios`, `@midscene/web`, etc.) now exposes an independent CLI entry point, which is the foundation that Skills is built upon. You can also run automation scripts directly via `npx @midscene/android` and similar commands.
+Each platform package (`@midscene/android`, `@midscene/ios`, `@midscene/web`, etc.) now exposes an independent CLI entry point, which is the foundation that Skills is built upon.
 
 **Supported Platforms:**
 - Browser (Puppeteer headless mode)
@@ -16,16 +16,6 @@ Each platform package (`@midscene/android`, `@midscene/ios`, `@midscene/web`, et
 - Desktop (macOS, Windows, Linux)
 - Android (via ADB)
 - iOS (via WebDriverAgent)
-
-**Installation:**
-
-```bash
-# Claude Code
-npx skills add web-infra-dev/midscene-skills -a claude-code
-
-# OpenClaw
-npx skills add web-infra-dev/midscene-skills -a openclaw
-```
 
 See: [Midscene Skills](https://github.com/web-infra-dev/midscene-skills)
 

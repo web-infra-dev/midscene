@@ -79,6 +79,10 @@ export default defineConfig({
           link: '/model-common-config',
         },
         {
+          text: 'Control any platform with Skills 🔥',
+          link: '/skills',
+        },
+        {
           text: 'Showcases',
           link: '/showcases',
         },
@@ -151,15 +155,18 @@ export default defineConfig({
           link: '/computer-api-reference',
         },
         {
-          sectionHeaderText: 'More features',
+          sectionHeaderText: 'YAML automation',
         },
         {
-          text: 'Command line tools',
-          link: '/command-line-tools',
+          text: 'YAML script runner',
+          link: '/yaml-script-runner',
         },
         {
           text: 'Workflow in YAML format',
           link: '/automate-with-scripts-in-yaml',
+        },
+        {
+          sectionHeaderText: 'More features',
         },
         {
           text: 'Caching AI planning & locate',
@@ -172,10 +179,6 @@ export default defineConfig({
         {
           text: 'Expose agent as MCP server',
           link: '/mcp',
-        },
-        {
-          text: 'Expose agent as Skills',
-          link: '/skills',
         },
         {
           sectionHeaderText: 'API and config',
@@ -235,6 +238,10 @@ export default defineConfig({
         {
           text: '常用模型配置 🔥',
           link: '/zh/model-common-config',
+        },
+        {
+          text: '使用 Skills 控制任意平台 🔥',
+          link: '/zh/skills',
         },
         {
           text: '案例展示',
@@ -309,15 +316,18 @@ export default defineConfig({
           link: '/zh/computer-api-reference',
         },
         {
-          sectionHeaderText: '更多特性',
+          sectionHeaderText: 'YAML automation',
         },
         {
-          text: '命令行工具',
-          link: '/zh/command-line-tools',
+          text: 'YAML 脚本运行器',
+          link: '/zh/yaml-script-runner',
         },
         {
           text: 'YAML 格式的工作流',
           link: '/zh/automate-with-scripts-in-yaml',
+        },
+        {
+          sectionHeaderText: '更多特性',
         },
         {
           text: '缓存 AI 规划和定位',
@@ -330,10 +340,6 @@ export default defineConfig({
         {
           text: '将设备操作暴露为 MCP',
           link: '/zh/mcp',
-        },
-        {
-          text: '将设备操作暴露为 Skills',
-          link: '/zh/skills',
         },
         {
           sectionHeaderText: 'API 与配置',
@@ -549,6 +555,14 @@ export default defineConfig({
         {
           from: '^/zh/ios-playground(?:\\.html)?/?$',
           to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/command-line-tools(?:\\.html)?/?$',
+          to: '/yaml-script-runner',
+        },
+        {
+          from: '^/zh/command-line-tools(?:\\.html)?/?$',
+          to: '/zh/yaml-script-runner',
         },
       ],
     }),
