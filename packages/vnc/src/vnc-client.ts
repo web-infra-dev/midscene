@@ -233,6 +233,28 @@ export class VNCClient {
           this.client.clientHeight,
           this.client.clientName,
         );
+        console.log(
+          '[VNC] Server pixel format: %s',
+          JSON.stringify(this.client.pixelFormat),
+        );
+        // Force a known little-endian pixel format so our screenshot code works
+        // reliably. The library doesn't set pixel format for v3.8; the server's
+        // default may use big-endian or unusual shift values.
+        if (typeof this.client.setPixelFormat === 'function') {
+          this.client.setPixelFormat({
+            bitsPerPixel: 32,
+            depth: 24,
+            bigEndianFlag: 0,
+            trueColorFlag: 1,
+            redMax: 255,
+            greenMax: 255,
+            blueMax: 255,
+            redShift: 16,
+            greenShift: 8,
+            blueShift: 0,
+          });
+          console.log('[VNC] Set pixel format to BGRX little-endian');
+        }
         this.firstFrameReceived = true;
         this._connected = true;
         settle();
@@ -294,6 +316,23 @@ export class VNCClient {
     const bpp = this.client.pixelFormat?.bitsPerPixel || 32;
     const bytesPerPixel = bpp / 8;
     const pixelFormat = this.client.pixelFormat;
+    const expectedSize = width * height * bytesPerPixel;
+
+    console.log(
+      '[VNC] screenshot: %dx%d, bpp=%d, fb=%d bytes (expected %d), format=%s',
+      width, height, bpp, fb.length, expectedSize,
+      JSON.stringify(pixelFormat),
+    );
+
+    // Check if framebuffer has any non-zero data
+    let nonZeroCount = 0;
+    for (let i = 0; i < Math.min(fb.length, 1024); i++) {
+      if (fb[i] !== 0) nonZeroCount++;
+    }
+    console.log(
+      '[VNC] screenshot: first 1024 bytes non-zero count: %d',
+      nonZeroCount,
+    );
 
     // Convert framebuffer to RGBA for sharp
     const rgba = Buffer.alloc(width * height * 4);
@@ -302,17 +341,22 @@ export class VNCClient {
       const redShift = pixelFormat.redShift;
       const greenShift = pixelFormat.greenShift;
       const blueShift = pixelFormat.blueShift;
+      const isBE = pixelFormat.bigEndianFlag;
 
       for (let i = 0; i < width * height; i++) {
         const srcOff = i * bytesPerPixel;
         const dstOff = i * 4;
 
-        // Read the 32-bit pixel as little-endian (most VNC servers use LE)
-        const pixel =
-          fb[srcOff] |
-          (fb[srcOff + 1] << 8) |
-          (fb[srcOff + 2] << 16) |
-          ((fb[srcOff + 3] << 24) >>> 0);
+        // Read 32-bit pixel in the correct byte order
+        const pixel = isBE
+          ? ((fb[srcOff] << 24) >>> 0) |
+            (fb[srcOff + 1] << 16) |
+            (fb[srcOff + 2] << 8) |
+            fb[srcOff + 3]
+          : fb[srcOff] |
+            (fb[srcOff + 1] << 8) |
+            (fb[srcOff + 2] << 16) |
+            ((fb[srcOff + 3] << 24) >>> 0);
 
         rgba[dstOff] = (pixel >> redShift) & 0xff; // R
         rgba[dstOff + 1] = (pixel >> greenShift) & 0xff; // G
