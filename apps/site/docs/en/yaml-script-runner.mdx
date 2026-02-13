@@ -1,0 +1,259 @@
+import SetupEnv from './common/setup-env.mdx';
+
+# YAML script runner
+
+Midscene defines a YAML-based scripting format so you can quickly author automation scripts, then run them from the command line without extra setup. For more details on YAML scripts, see [Automate with scripts in YAML](./automate-with-scripts-in-yaml).
+
+For example, you can write a YAML script like this:
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Search for "today's weather"
+      - sleep: 3000
+      - aiAssert: The results show weather information
+```
+
+Run it with one command:
+
+```bash
+midscene ./bing-search.yaml
+```
+
+The CLI prints execution progress and generates a visual report when it finishes, while keeping setup simple.
+
+## Configure environment variables with `.env`
+
+The Midscene CLI uses [dotenv](https://www.npmjs.com/package/dotenv) to load a `.env` file from the directory where you run the tool. Create a `.env` file and add:
+
+```ini filename=.env
+MIDSCENE_MODEL_BASE_URL="replace with your model service URL/v1"
+MIDSCENE_MODEL_API_KEY="replace with your API Key"
+MIDSCENE_MODEL_NAME="replace with your model name"
+MIDSCENE_MODEL_FAMILY="replace with your model family"
+```
+
+For more configuration details, see the [Model strategy](./model-strategy) guide.
+
+Notes:
+
+- The file is optional; you can also set global environment variables instead.
+- Do not add an `export` prefix—this is how dotenv expects values.
+- Place `.env` in the directory where you run the tool, not necessarily next to the YAML file.
+- These values do **not** override existing global environment variables unless you enable `--dotenv-override` (see below).
+- Use `--dotenv-debug` if you need to debug how environment variables load.
+
+## Get started
+
+### Install the CLI
+
+Install `@midscene/cli` globally (recommended for first-time users):
+
+```bash
+npm i -g @midscene/cli
+```
+
+Or install it per project:
+
+```bash
+npm i @midscene/cli --save-dev
+```
+
+### Write your first script
+
+Create `bing-search.yaml` to drive a web browser:
+
+```yaml
+web:
+  url: https://www.bing.com
+
+tasks:
+  - name: Search for weather
+    flow:
+      - ai: Search for "today's weather"
+      - sleep: 3000
+      - aiAssert: The results show weather information
+```
+
+Drive an Android device connected over adb:
+
+```yaml
+android:
+  deviceId: s4ey59 # find the device id with `adb devices`
+
+tasks:
+  - name: Maps Navigation
+    flow:
+      - ai: Open the Maps app
+      - ai: Input 'West Lake, Hangzhou' in the search bar, and click the search button
+      - ai: Click the first search result, enter the details page
+      - ai: Click "Directions" button, enter the route planning page
+      - ai: Click "Start" button to start navigation
+```
+
+Or drive an iOS device with WebDriverAgent configured:
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: Change System Settings
+    flow:
+      - ai: Open the Settings app
+      - ai: Tap "Display & Brightness"
+      - ai: Turn on "Dark Mode"
+      - aiAssert: Dark Mode is enabled
+```
+
+### Run the script
+
+```bash
+midscene ./bing-search.yaml
+# If Midscene is installed in your project
+npx midscene ./bing-search.yaml
+```
+
+The CLI prints execution progress and generates a visual report when it finishes.
+
+## Advanced usage of the command-line tool
+
+### Use environment variables in `.yaml`
+
+Reference environment variables in your scripts with `${variable-name}`.
+
+```ini filename=.env
+topic=weather today
+```
+
+```yaml
+# ...
+- ai: type ${topic} in input box
+# ...
+```
+
+### Run multiple scripts
+
+`@midscene/cli` supports glob patterns to batch-execute scripts, which is a shorthand for the `--files` argument.
+
+```bash
+# Run a single script
+midscene ./bing-search.yaml
+
+# Use a glob pattern to run all matching scripts
+midscene './scripts/**/*.yaml'
+```
+
+### Analyze command-line output
+
+After execution, the output directory contains:
+
+- A JSON summary specified by `--summary` (defaults to `index.json`) with execution status and statistics for all scripts.
+- Individual execution results for each YAML file (JSON).
+- Visual reports for each script (HTML).
+
+### Run in headed mode
+
+> `web` scenarios only
+
+Headed mode opens the browser window. By default, scripts run headless.
+
+```bash
+# Run in headed mode
+midscene /path/to/yaml --headed
+
+# Run in headed mode and keep the window after finishing
+midscene /path/to/yaml --keep-window
+```
+
+### Use bridge mode
+
+> `web` scenarios only
+
+Bridge mode lets YAML scripts drive your existing desktop browser so you can reuse cookies, extensions, or state. Install the Chrome extension, then add:
+
+```diff
+web:
+  url: https://www.bing.com
++ bridgeMode: newTabWithUrl
+```
+
+See [Bridge Mode via Chrome Extension](./bridge-mode) for details.
+
+### Run YAML scripts with JavaScript
+
+Call the Agent's [`runYaml`](./api#runyaml) method to execute YAML from JavaScript. This runs only the `tasks` section of the script.
+
+## Command-line options
+
+The CLI provides parameters to control how scripts run:
+
+- `--files <file1> <file2> ...`: List of script files. Executes in order, sequentially by default (`--concurrent` is `1`), or concurrently when `--concurrent` is set. Supports [glob](https://www.npmjs.com/package/glob) patterns.
+- `--concurrent <number>`: Number of concurrent executions. Default `1`.
+- `--continue-on-error`: Continue running remaining scripts even if one fails. Default off.
+- `--share-browser-context`: Share browser context (cookies, `localStorage`, etc.) across scripts. Default off.
+- `--summary <filename>`: Path for the JSON summary report.
+- `--headed`: Run in a headed browser instead of headless.
+- `--keep-window`: Keep the browser window after execution; enables `--headed` automatically.
+- `--config <filename>`: Config file whose values become defaults for CLI arguments.
+- `--web.userAgent <ua>`: Override `web.userAgent` for all scripts.
+- `--web.viewportWidth <width>`: Override `web.viewportWidth` for all scripts.
+- `--web.viewportHeight <height>`: Override `web.viewportHeight` for all scripts.
+- `--android.deviceId <device-id>`: Override `android.deviceId` for all scripts.
+- `--ios.wdaPort <port>`: Override `ios.wdaPort` for all scripts.
+- `--ios.wdaHost <host>`: Override `ios.wdaHost` for all scripts.
+- `--dotenv-debug`: Enable dotenv debug logs. Default off.
+- `--dotenv-override`: Allow dotenv to override global environment variables. Default off.
+
+Examples:
+
+Use `--files` to specify execution order:
+
+```bash
+midscene --files ./login.yaml ./buy/*.yaml ./checkout.yaml
+```
+
+Run all scripts with a concurrency of 4 and continue when errors occur:
+
+```bash
+midscene --files './scripts/**/*.yaml' --concurrent 4 --continue-on-error
+```
+
+### Write command-line arguments in a file
+
+You can place arguments in a YAML config file and reference it with `--config`. Command-line arguments take priority over the config file.
+
+```yaml
+files:
+  - './scripts/login.yaml'
+  - './scripts/search.yaml'
+  - './scripts/**/*.yaml'
+
+concurrent: 4
+continueOnError: true
+shareBrowserContext: true
+```
+
+Run with:
+
+```bash
+midscene --config ./config.yaml
+```
+
+## FAQ
+
+**How can I export cookies from Chrome as JSON?**
+
+Use this [Chrome extension](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc) to export cookies.
+
+**How can I view dotenv debug logs?**
+
+Use the `--dotenv-debug` flag:
+
+```bash
+midscene /path/to/yaml --dotenv-debug=true
+```
