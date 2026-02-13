@@ -414,7 +414,7 @@ export function generateCommonTools(
               typeof result === 'string' ? result : JSON.stringify(result);
             screenshotResult.content.unshift({
               type: 'text',
-              text: `任务结束，message是: ${message}`,
+              text: `Task finished, message: ${message}`,
             });
           }
           return screenshotResult;
