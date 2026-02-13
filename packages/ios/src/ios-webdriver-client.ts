@@ -3,6 +3,11 @@ import { WebDriverClient } from '@midscene/webdriver';
 
 const debugIOS = getDebug('webdriver:ios');
 
+// WDA MJPEG server settings applied during session setup
+const WDA_MJPEG_SCREENSHOT_QUALITY = 50;
+const WDA_MJPEG_FRAMERATE = 30;
+const WDA_MJPEG_SCALING_FACTOR = 50;
+
 export class IOSWebDriverClient extends WebDriverClient {
   async launchApp(bundleId: string): Promise<void> {
     this.ensureSession();
@@ -497,7 +502,7 @@ export class IOSWebDriverClient extends WebDriverClient {
     if (!this.sessionId) return;
 
     try {
-      // Set iOS-specific session configuration
+      // Set iOS-specific session configuration + MJPEG server settings
       await this.makeRequest(
         'POST',
         `/session/${this.sessionId}/appium/settings`,
@@ -505,9 +510,12 @@ export class IOSWebDriverClient extends WebDriverClient {
           snapshotMaxDepth: 50,
           elementResponseAttributes:
             'type,label,name,value,rect,enabled,visible',
+          mjpegServerScreenshotQuality: WDA_MJPEG_SCREENSHOT_QUALITY,
+          mjpegServerFramerate: WDA_MJPEG_FRAMERATE,
+          mjpegScalingFactor: WDA_MJPEG_SCALING_FACTOR,
         },
       );
-      debugIOS('iOS session configuration applied');
+      debugIOS('iOS session configuration applied (including MJPEG settings)');
     } catch (error) {
       debugIOS(`Failed to apply iOS session configuration: ${error}`);
       // Don't throw, this is optional configuration

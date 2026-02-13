@@ -44,6 +44,8 @@ const debugDevice = getDebug('ios:device');
 export const WDA_HTTP_METHODS = ['GET', 'POST', 'DELETE', 'PUT'] as const;
 export type WDAHttpMethod = (typeof WDA_HTTP_METHODS)[number];
 
+const DEFAULT_WDA_MJPEG_PORT = 9100;
+
 export class IOSDevice implements AbstractInterface {
   private deviceId: string;
   private devicePixelRatio = 1;
@@ -53,6 +55,8 @@ export class IOSDevice implements AbstractInterface {
   private customActions?: DeviceAction<any>[];
   private wdaBackend: WebDriverAgentBackend;
   private wdaManager: WDAManager;
+  /** URL of WDA's native MJPEG server for real-time streaming */
+  mjpegStreamUrl: string;
   private appNameMapping: Record<string, string> = {};
   interfaceType: InterfaceType = 'ios';
   uri: string | undefined;
@@ -245,11 +249,13 @@ export class IOSDevice implements AbstractInterface {
 
     const wdaPort = options?.wdaPort || DEFAULT_WDA_PORT;
     const wdaHost = options?.wdaHost || 'localhost';
+    const mjpegPort = options?.wdaMjpegPort ?? DEFAULT_WDA_MJPEG_PORT;
     this.wdaBackend = new WebDriverAgentBackend({
       port: wdaPort,
       host: wdaHost,
     });
     this.wdaManager = WDAManager.getInstance(wdaPort, wdaHost);
+    this.mjpegStreamUrl = `http://${wdaHost}:${mjpegPort}`;
   }
 
   describe(): string {

@@ -127,4 +127,6 @@ export type IOSDeviceOpt = {
   wdaHost?: string;
   /** Whether to use WebDriverAgent */
   useWDA?: boolean;
+  /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
+  wdaMjpegPort?: number;
 } & IOSDeviceInputOpt;

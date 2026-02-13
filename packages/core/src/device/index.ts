@@ -62,6 +62,9 @@ export abstract class AbstractInterface {
    * This is useful when the system time and device time are not synchronized.
    */
   getTimestamp?(): Promise<number>;
+
+  /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
+  mjpegStreamUrl?: string;
 }
 
 // Generic function to define actions with proper type inference

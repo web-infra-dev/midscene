@@ -187,6 +187,9 @@ export default function App() {
                   getInterfaceInfo={() => playgroundSDK.getInterfaceInfo()}
                   serverOnline={serverOnline}
                   isUserOperating={isUserOperating}
+                  mjpegUrl={
+                    deviceType === 'ios' ? `${__SERVER_URL__}/mjpeg` : undefined
+                  }
                 />
               </div>
             </Panel>
