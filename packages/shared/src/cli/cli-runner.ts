@@ -146,7 +146,7 @@ export async function runToolsCLI(
   await tools.initTools();
 
   const commands: CLICommand[] = tools.getToolDefinitions().map((def) => ({
-    name: removePrefix(def.name, options?.stripPrefix),
+    name: removePrefix(def.name, options?.stripPrefix).toLowerCase(),
     def,
   }));
 
@@ -157,7 +157,9 @@ export async function runToolsCLI(
     return;
   }
 
-  const match = commands.find((c) => c.name === commandName);
+  const match = commands.find(
+    (c) => c.name.toLowerCase() === commandName.toLowerCase(),
+  );
   if (!match) {
     console.error(`Unknown command: ${commandName}`);
     printHelp(scriptName, commands);

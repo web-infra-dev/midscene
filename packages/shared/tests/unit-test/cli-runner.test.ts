@@ -380,6 +380,61 @@ describe('runToolsCLI', () => {
     vi.restoreAllMocks();
   });
 
+  it('matches commands case-insensitively', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'tapped' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'Tap', handler }]);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // Uppercase tool name should match lowercase user input
+    await runToolsCLI(tools, 'test-cli', { argv: ['tap'] });
+    expect(handler).toHaveBeenCalled();
+
+    handler.mockClear();
+
+    // Also works with original casing
+    await runToolsCLI(tools, 'test-cli', { argv: ['Tap'] });
+    expect(handler).toHaveBeenCalled();
+
+    vi.restoreAllMocks();
+  });
+
+  it('displays command names as lowercase in help', async () => {
+    const tools = createMockTools([
+      {
+        name: 'Tap',
+        handler: vi.fn().mockResolvedValue({ content: [], isError: false }),
+      },
+      {
+        name: 'Scroll',
+        handler: vi.fn().mockResolvedValue({ content: [], isError: false }),
+      },
+    ]);
+    const lines: string[] = [];
+    vi.spyOn(console, 'log').mockImplementation((...args: any[]) => {
+      lines.push(args.map(String).join(' '));
+    });
+
+    await runToolsCLI(tools, 'test-cli', { argv: ['--help'] });
+
+    const output = lines.join('\n');
+    // Command names should be lowercase
+    expect(output).toContain('  tap');
+    expect(output).toContain('  scroll');
+    // Command names column should not have uppercase originals
+    const commandLines = output
+      .split('\n')
+      .filter((l) => l.startsWith('  '));
+    for (const line of commandLines) {
+      const cmdName = line.trimStart().split(/\s{2,}/)[0];
+      expect(cmdName).toBe(cmdName.toLowerCase());
+    }
+
+    vi.restoreAllMocks();
+  });
+
   it('shows command help with --help after command name', async () => {
     const handler = vi.fn();
     const tools = createMockTools([{ name: 'connect', handler }]);
