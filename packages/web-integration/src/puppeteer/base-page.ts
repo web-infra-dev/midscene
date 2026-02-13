@@ -262,8 +262,8 @@ export class Page<
     if (this.viewportSize) return this.viewportSize;
     const sizeInfo: Size = await this.evaluate(() => {
       return {
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight,
+        width: window.innerWidth,
+        height: window.innerHeight,
         dpr: window.devicePixelRatio,
       };
     });

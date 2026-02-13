@@ -477,7 +477,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
     const result = await this.sendCommandToDebugger('Runtime.evaluate', {
       expression:
-        '({width: document.documentElement.clientWidth, height: document.documentElement.clientHeight, dpr: window.devicePixelRatio})',
+        '({width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio})',
       returnByValue: true,
     });
 
