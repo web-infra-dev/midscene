@@ -514,24 +514,16 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   /**
    * Smart type string with platform-specific strategy
-   * - macOS + AppleScript: Use AppleScript keystroke for ASCII, clipboard for non-ASCII
-   * - macOS + libnut: Use libnut directly (native support for non-ASCII)
+   * - macOS: Always use clipboard to avoid IME interference (Chinese input method
+   *   can swallow characters or convert English to Chinese when using keystroke)
    * - Windows/Linux: Use clipboard for non-ASCII characters
    */
   private async smartTypeString(text: string): Promise<void> {
     assert(libnut, 'libnut not initialized');
 
     if (process.platform === 'darwin') {
-      if (this.useAppleScript) {
-        // AppleScript keystroke doesn't handle non-ASCII well
-        if (this.shouldUseClipboardForText(text)) {
-          await this.typeViaClipboard(text);
-        } else {
-          typeStringViaAppleScript(text);
-        }
-      } else {
-        libnut.typeString(text);
-      }
+      // Always use clipboard on macOS to bypass IME issues
+      await this.typeViaClipboard(text);
       return;
     }
 
