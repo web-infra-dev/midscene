@@ -16,6 +16,7 @@ import {
   MIDSCENE_MODEL_HTTP_PROXY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_RETRY_COUNT,
   MIDSCENE_MODEL_RETRY_INTERVAL,
   MIDSCENE_MODEL_SOCKS_PROXY,
@@ -69,6 +70,10 @@ interface IModelConfigKeys {
    */
   retryCount: string;
   retryInterval: string;
+  /**
+   * Reasoning effort for doubao-vision (minimal, low, medium, high; minimal = no thinking)
+   */
+  reasoningEffort: string;
 }
 
 export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -101,6 +106,7 @@ export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    */
   retryCount: MIDSCENE_INSIGHT_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL,
+  reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
 } as const;
 
 export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
@@ -133,6 +139,7 @@ export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    */
   retryCount: MIDSCENE_PLANNING_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL,
+  reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
 } as const;
 
 // modelConfig return default
@@ -166,6 +173,7 @@ export const DEFAULT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
    */
   retryCount: MIDSCENE_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_MODEL_RETRY_INTERVAL,
+  reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
 } as const;
 
 // read from process.env
@@ -199,4 +207,5 @@ export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
    */
   retryCount: MIDSCENE_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_MODEL_RETRY_INTERVAL,
+  reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
 } as const;

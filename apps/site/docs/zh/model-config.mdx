@@ -26,6 +26,7 @@ Midscene 默认集成了 OpenAI SDK 调用 AI 服务，它限定了推理服务�
 | `MIDSCENE_MODEL_MAX_TOKENS` | 模型响应的 max_tokens 数配置，默认是 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | AI 调用失败时的重试次数，默认 1（即失败后重试 1 次）|
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | AI 调用重试间隔毫秒数，默认 2000 |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | 豆包 doubao-vision 的思考程度：`minimal`（不思考）、`low`、`medium`、`high`。设置后会将 `reasoning_effort` 传给模型 API |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS 代理配置，如 `http://127.0.0.1:8080` 或 `https://proxy.example.com:8080`，优先级高于 `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS 代理配置，如 `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | 覆盖 OpenAI SDK 初始化配置的 JSON |

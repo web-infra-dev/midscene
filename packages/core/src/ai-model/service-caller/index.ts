@@ -287,6 +287,15 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
+    ...(modelFamily === 'doubao-vision' && modelConfig.reasoningEffort
+      ? {
+          reasoning_effort: modelConfig.reasoningEffort as
+            | 'minimal'
+            | 'low'
+            | 'medium'
+            | 'high',
+        }
+      : {}),
   };
 
   if (isAutoGLM(modelFamily)) {
