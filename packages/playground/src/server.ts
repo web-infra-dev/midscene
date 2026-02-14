@@ -547,8 +547,15 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Recreate/destroy agent to cancel the current task
-          await this.recreateAgent();
+          // Destroy agent to cancel the current task
+          // No need to recreate here — /execute always creates a fresh agent before each run
+          try {
+            if (this.agent && typeof this.agent.destroy === 'function') {
+              await this.agent.destroy();
+            }
+          } catch (error) {
+            console.warn('Failed to destroy agent during cancel:', error);
+          }
 
           // Clean up
           delete this.taskExecutionDumps[requestId];
