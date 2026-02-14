@@ -225,12 +225,11 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
+  it('planning - should not contain sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       modelFamily: undefined,
       includeBbox: false,
-      includeSubGoals: false,
     });
 
     // Should not contain sub-goal related tags and content
@@ -243,98 +242,20 @@ describe('system prompts', () => {
 
     // Should have simplified Step 1 title
     expect(prompt).toContain('## Step 1: Observe (related tags: <thought>)');
-    expect(prompt).not.toContain(
-      '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
-    );
+    expect(prompt).not.toContain('Observe and Plan');
   });
 
-  it('planning - includeSubGoals true should contain sub-goal tags', async () => {
+  it('planning - multi-turn example should not have sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
       modelFamily: undefined,
       includeBbox: false,
-      includeSubGoals: true,
-    });
-
-    // Should contain sub-goal related tags and content
-    expect(prompt).toContain('<update-plan-content>');
-    expect(prompt).toContain('<mark-sub-goal-done>');
-    expect(prompt).toContain('<sub-goal');
-
-    // Should still contain thought tag
-    expect(prompt).toContain('<thought>');
-
-    // Should have full Step 1 title with sub-goal tags
-    expect(prompt).toContain(
-      '## Step 1: Observe and Plan (related tags: <thought>, <update-plan-content>, <mark-sub-goal-done>)',
-    );
-  });
-
-  it('planning - includeSubGoals true should include sub-goal examples', async () => {
-    const prompt = await systemPromptToTaskPlanning({
-      actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
-      includeSubGoals: true,
-    });
-
-    // Should contain sub-goal example content
-    expect(prompt).toContain('Log in to the system');
-    expect(prompt).toContain('Complete all to-do items');
-    expect(prompt).toContain('Submit the registration form');
-    expect(prompt).toContain('status="finished|pending"');
-  });
-
-  it('planning - includeSubGoals false should not include sub-goal examples', async () => {
-    const prompt = await systemPromptToTaskPlanning({
-      actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
-      includeSubGoals: false,
-    });
-
-    // Should not contain sub-goal example content
-    expect(prompt).not.toContain('Log in to the system');
-    expect(prompt).not.toContain('Complete all to-do items');
-    expect(prompt).not.toContain('Submit the registration form');
-  });
-
-  it('planning - multi-turn example with includeSubGoals true should have sub-goal tags', async () => {
-    const prompt = await systemPromptToTaskPlanning({
-      actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
-      includeSubGoals: true,
-    });
-
-    // Multi-turn example should contain sub-goal related content
-    expect(prompt).toContain('## Multi-turn Conversation Example');
-    expect(prompt).toContain(
-      '<sub-goal index="1" status="pending">Fill in the Name field',
-    );
-    expect(prompt).toContain('<mark-sub-goal-done>');
-    expect(prompt).toContain("<memory>Name field has been filled with 'John'");
-    // Should show returning specific value in complete
-    expect(prompt).toContain('then return the filled email address');
-    expect(prompt).toContain(
-      '<complete success="true">john@example.com</complete>',
-    );
-  });
-
-  it('planning - multi-turn example with includeSubGoals false should not have sub-goal tags', async () => {
-    const prompt = await systemPromptToTaskPlanning({
-      actionSpace: mockActionSpace,
-      modelFamily: undefined,
-      includeBbox: false,
-      includeSubGoals: false,
     });
 
     // Multi-turn example should exist but without sub-goal tags
     expect(prompt).toContain('## Multi-turn Conversation Example');
-    expect(prompt).not.toContain('Fill in the Name field');
-    expect(prompt).not.toContain(
-      "<memory>Name field has been filled with 'John'",
-    );
+    expect(prompt).not.toContain('<sub-goal');
+    expect(prompt).not.toContain('<mark-sub-goal-done>');
     // Should still show returning specific value in complete
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
@@ -347,7 +268,6 @@ describe('system prompts', () => {
       actionSpace: mockActionSpace,
       modelFamily: 'gpt-4o',
       includeBbox: true,
-      includeSubGoals: false,
     });
 
     // Multi-turn example should contain bbox in locate examples
@@ -361,7 +281,6 @@ describe('system prompts', () => {
       actionSpace: mockActionSpace,
       modelFamily: undefined,
       includeBbox: false,
-      includeSubGoals: false,
     });
 
     // Multi-turn example should not contain bbox
