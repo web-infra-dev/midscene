@@ -393,9 +393,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       const targetX = startPos.x + offsetX;
       const targetY = startPos.y + offsetY;
 
-      console.log(
-        `[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`,
-      );
+      console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
       libnut.moveMouse(targetX, targetY);
       await sleep(50);
 
