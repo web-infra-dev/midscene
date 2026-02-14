@@ -358,6 +358,61 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
     }
+
+    // Health check: verify screenshot and mouse control are working
+    await this.healthCheck();
+  }
+
+  private async healthCheck(): Promise<void> {
+    console.log('[HealthCheck] Starting health check...');
+
+    // Step 1: Take a screenshot
+    console.log('[HealthCheck] Taking screenshot...');
+    try {
+      const base64 = await this.screenshotBase64();
+      console.log(
+        `[HealthCheck] Screenshot succeeded (length=${base64.length})`,
+      );
+    } catch (error) {
+      console.error(`[HealthCheck] Screenshot failed: ${error}`);
+      process.exit(1);
+    }
+
+    // Step 2: Move the mouse
+    console.log('[HealthCheck] Moving mouse...');
+    try {
+      assert(libnut, 'libnut not initialized');
+      const startPos = libnut.getMousePos();
+      console.log(
+        `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
+      );
+
+      // Move the mouse by a small random offset, then move it back
+      const offsetX = Math.floor(Math.random() * 40) + 10;
+      const offsetY = Math.floor(Math.random() * 40) + 10;
+      const targetX = startPos.x + offsetX;
+      const targetY = startPos.y + offsetY;
+
+      console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
+      libnut.moveMouse(targetX, targetY);
+      await sleep(50);
+
+      const movedPos = libnut.getMousePos();
+      console.log(
+        `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
+      );
+
+      // Restore original position
+      libnut.moveMouse(startPos.x, startPos.y);
+      console.log(
+        `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
+      );
+    } catch (error) {
+      console.error(`[HealthCheck] Mouse move failed: ${error}`);
+      process.exit(1);
+    }
+
+    console.log('[HealthCheck] Health check passed');
   }
 
   async screenshotBase64(): Promise<string> {
