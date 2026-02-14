@@ -778,6 +778,9 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../web-integration
+      dotenv:
+        specifier: ^16.4.5
+        version: 16.4.5
       http-server:
         specifier: 14.1.1
         version: 14.1.1
@@ -787,6 +790,9 @@ importers:
       puppeteer:
         specifier: 24.6.0
         version: 24.6.0(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.19.2
     devDependencies:
       '@rslib/core':
         specifier: ^0.18.3
@@ -812,9 +818,6 @@ importers:
       cli-spinners:
         specifier: 3.2.0
         version: 3.2.0
-      dotenv:
-        specifier: ^16.4.5
-        version: 16.4.5
       execa:
         specifier: 9.3.0
         version: 9.3.0
@@ -873,7 +876,7 @@ importers:
         version: 1.15.0
       dotenv:
         specifier: ^16.4.5
-        version: 16.4.7
+        version: 16.4.5
       tsx:
         specifier: ^4.19.2
         version: 4.19.2
@@ -966,7 +969,7 @@ importers:
         version: 18.19.118
       dotenv:
         specifier: ^16.4.5
-        version: 16.4.7
+        version: 16.4.5
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -6403,10 +6406,6 @@ packages:
 
   dotenv@16.4.5:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
-    engines: {node: '>=12'}
-
-  dotenv@16.4.7:
-    resolution: {integrity: sha512-47qPchRCykZC03FhkYAhrvwU4xDBFIj1QPqaarj6mdM/hgUzfPHcpkHJOn3mJAufFeeAxAzeGsr5X0M4k6fLZQ==}
     engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
@@ -17537,11 +17536,9 @@ snapshots:
 
   dotenv-expand@11.0.7:
     dependencies:
-      dotenv: 16.4.7
+      dotenv: 16.4.5
 
   dotenv@16.4.5: {}
-
-  dotenv@16.4.7: {}
 
   dunder-proto@1.0.1:
     dependencies:
@@ -20533,7 +20530,7 @@ snapshots:
       cli-cursor: 3.1.0
       cli-spinners: 2.6.1
       cliui: 8.0.1
-      dotenv: 16.4.7
+      dotenv: 16.4.5
       dotenv-expand: 11.0.7
       enquirer: 2.3.6
       figures: 3.2.0
