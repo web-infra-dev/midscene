@@ -193,7 +193,6 @@ describe('AndroidDevice', () => {
     it('scalingRatio should recalculate after devicePixelRatio changes', async () => {
       // Initial DPR
       (device as any).devicePixelRatio = 2;
-      (device as any).devicePixelRatioInitialized = true;
 
       const adjusted1 = (device as any).adjustCoordinates(100, 100);
       // scale = 0.5, so 100/0.5 = 200
@@ -201,7 +200,6 @@ describe('AndroidDevice', () => {
 
       // Simulate DPR change (as initializeDevicePixelRatio would do)
       (device as any).devicePixelRatio = 3;
-      (device as any).scalingRatioInitialized = false; // Reset flag
 
       const adjusted2 = (device as any).adjustCoordinates(100, 100);
       // scale = 1/3, so 100/(1/3) = 300

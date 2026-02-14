@@ -82,8 +82,6 @@ export class AndroidDevice implements AbstractInterface {
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
-  private scalingRatioInitialized = false; // Whether scaling ratio has been computed
-  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -753,7 +751,6 @@ ${Object.keys(size)
     const densityNum = await this.getDisplayDensity();
     // Standard density is 160, calculate the ratio
     this.devicePixelRatio = Number(densityNum) / 160;
-    this.scalingRatioInitialized = false; // Reset so scaling ratio is recalculated with new DPR
     debugDevice(`Initialized device pixel ratio: ${this.devicePixelRatio}`);
 
     this.devicePixelRatioInitialized = true;
@@ -893,12 +890,7 @@ ${Object.keys(size)
   }
 
   private getScalingRatio(): number {
-    if (!this.scalingRatioInitialized) {
-      this.scalingRatio =
-        this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
-      this.scalingRatioInitialized = true;
-    }
-    return this.scalingRatio;
+    return this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
   }
 
   private adjustCoordinates(x: number, y: number): { x: number; y: number } {
