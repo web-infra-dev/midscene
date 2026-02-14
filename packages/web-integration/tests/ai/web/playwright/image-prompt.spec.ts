@@ -33,13 +33,14 @@ test('prompting with images', async ({
   expect(positiveCheck).toBe(true);
 
   const negativeCheck = await aiBoolean({
-    prompt: 'Please determine whether there is no logo1 on the page.',
+    prompt: 'Please determine whether there is logo1 on the page.',
     images: [
       {
         name: 'logo1',
-        url: path.resolve(__dirname, '__fixtures__/github-logo.png'),
+        url: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png',
       },
     ],
+    convertHttpImage2Base64: true,
   });
 
   expect(negativeCheck).toBe(false);
