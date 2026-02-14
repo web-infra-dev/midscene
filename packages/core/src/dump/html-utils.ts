@@ -298,6 +298,26 @@ export function generateImageScriptTag(id: string, data: string): string {
   );
 }
 
+/**
+ * Inline script that fixes relative URL resolution for directory-mode reports.
+ *
+ * Problem: when a static server (e.g. `npx serve`) serves `name/index.html`
+ * at URL `/name` (without trailing slash), relative paths like
+ * `./screenshots/xxx.png` resolve to `/screenshots/xxx.png` instead of
+ * `/name/screenshots/xxx.png`.
+ *
+ * Fix: dynamically insert a <base> tag so relative URLs resolve correctly.
+ */
+// Do not use template string here, will cause bundle error with <script
+export const BASE_URL_FIX_SCRIPT =
+  '\n<script>(function(){' +
+  'var p=window.location.pathname;' +
+  'if(p.endsWith("/")||/\\.\\w+$/.test(p))return;' +
+  'var b=document.createElement("base");' +
+  'b.href=p+"/";' +
+  'document.head.insertBefore(b,document.head.firstChild)' +
+  '})()</script>\n';
+
 export function generateDumpScriptTag(
   json: string,
   attributes?: Record<string, string>,
