@@ -969,8 +969,6 @@ export interface WebElementInfo extends BaseElement {
   };
 }
 
-export type WebUIContext = UIContext;
-
 /**
  * Agent
  */
