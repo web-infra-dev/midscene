@@ -416,6 +416,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   async screenshotBase64(): Promise<string> {
+    if (this.destroyed) {
+      throw new Error('ComputerDevice has been destroyed');
+    }
     debugDevice('Taking screenshot', { displayId: this.displayId });
 
     try {
