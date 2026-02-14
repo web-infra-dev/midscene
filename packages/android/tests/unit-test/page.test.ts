@@ -138,6 +138,92 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('scalingRatio independent of size()', () => {
+    it('adjustCoordinates should use correct scalingRatio even if size() is never called', async () => {
+      // Simulate DPR initialization (as connect/getDevicePhysicalInfo would do)
+      (device as any).devicePixelRatio = 2;
+      (device as any).devicePixelRatioInitialized = true;
+
+      // Do NOT call size() — directly test adjustCoordinates
+      const adjusted = (device as any).adjustCoordinates(200, 400);
+      // scale = 1/2 = 0.5, so coordinates should be doubled: 200/0.5=400, 400/0.5=800
+      expect(adjusted).toEqual({ x: 400, y: 800 });
+    });
+
+    it('adjustCoordinates should work correctly when size() is overridden', async () => {
+      // Simulate DPR initialization
+      (device as any).devicePixelRatio = 2;
+      (device as any).devicePixelRatioInitialized = true;
+
+      // Override size() to return a custom value (simulating user subclass override)
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 999,
+        height: 999,
+        dpr: 1,
+      });
+
+      // Call the overridden size() — this should NOT affect scalingRatio
+      await device.size();
+
+      // adjustCoordinates should still use the correct scaling ratio based on DPR
+      const adjusted = (device as any).adjustCoordinates(200, 400);
+      expect(adjusted).toEqual({ x: 400, y: 800 });
+    });
+
+    it('mouseClick should use correct physical coordinates when size() is overridden', async () => {
+      // Simulate DPR initialization
+      (device as any).devicePixelRatio = 2;
+      (device as any).devicePixelRatioInitialized = true;
+
+      // Override size()
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 999,
+        height: 999,
+        dpr: 1,
+      });
+      await device.size();
+
+      // mouseClick at logical (100, 200) should translate to physical (200, 400)
+      await device.mouseClick(100, 200);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'input swipe 200 400 200 400 150',
+      );
+    });
+
+    it('scalingRatio should recalculate after devicePixelRatio changes', async () => {
+      // Initial DPR
+      (device as any).devicePixelRatio = 2;
+      (device as any).devicePixelRatioInitialized = true;
+
+      const adjusted1 = (device as any).adjustCoordinates(100, 100);
+      // scale = 0.5, so 100/0.5 = 200
+      expect(adjusted1).toEqual({ x: 200, y: 200 });
+
+      // Simulate DPR change (as initializeDevicePixelRatio would do)
+      (device as any).devicePixelRatio = 3;
+      (device as any).scalingRatioInitialized = false; // Reset flag
+
+      const adjusted2 = (device as any).adjustCoordinates(100, 100);
+      // scale = 1/3, so 100/(1/3) = 300
+      expect(adjusted2).toEqual({ x: 300, y: 300 });
+    });
+
+    it('scalingRatio should respect screenshotResizeScale option', () => {
+      const deviceWithScale = new AndroidDevice('test-device-2', {
+        screenshotResizeScale: 0.25,
+        scrcpyConfig: { enabled: false },
+      });
+      vi.spyOn(deviceWithScale, 'getAdb').mockResolvedValue(mockAdb);
+      (deviceWithScale as any).devicePixelRatio = 2;
+      (deviceWithScale as any).devicePixelRatioInitialized = true;
+
+      // screenshotResizeScale takes precedence over 1/DPR
+      const adjusted = (deviceWithScale as any).adjustCoordinates(100, 100);
+      // scale = 0.25, so 100/0.25 = 400
+      expect(adjusted).toEqual({ x: 400, y: 400 });
+    });
+  });
+
   describe('getScreenSize', () => {
     it('should use fallback to get orientation when primary method fails', async () => {
       mockAdb.shell.mockImplementation(async (command: string | string[]) => {
