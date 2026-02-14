@@ -138,6 +138,80 @@ describe('AndroidDevice', () => {
     });
   });
 
+  describe('adjustCoordinates derives scale from size()', () => {
+    it('should derive scale from size() and physical width', async () => {
+      // Physical width = 1080, size() returns logical width = 540
+      // scale = 540/1080 = 0.5, so coordinates: 200/0.5=400, 400/0.5=800
+      vi.spyOn(device as any, 'getPhysicalWidth').mockResolvedValue(1080);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 540,
+        height: 960,
+        dpr: 2,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(200, 400);
+      expect(adjusted).toEqual({ x: 400, y: 800 });
+    });
+
+    it('should work correctly when size() is overridden with custom dimensions', async () => {
+      // Physical width = 1080, user overrides size() to return width = 360
+      // scale = 360/1080 = 1/3, so coordinates: 100/(1/3)=300, 200/(1/3)=600
+      vi.spyOn(device as any, 'getPhysicalWidth').mockResolvedValue(1080);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 360,
+        height: 640,
+        dpr: 3,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(100, 200);
+      expect(adjusted).toEqual({ x: 300, y: 600 });
+    });
+
+    it('mouseClick should use correct physical coordinates when size() is overridden', async () => {
+      // Physical width = 1080, user overrides size() to return width = 540
+      // scale = 0.5, so click at (100, 200) → physical (200, 400)
+      vi.spyOn(device as any, 'getPhysicalWidth').mockResolvedValue(1080);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 540,
+        height: 960,
+        dpr: 2,
+      });
+
+      await device.mouseClick(100, 200);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'input swipe 200 400 200 400 150',
+      );
+    });
+
+    it('should handle 1:1 scale (no scaling)', async () => {
+      // Physical width = 1080, size() returns width = 1080
+      // scale = 1, coordinates unchanged
+      vi.spyOn(device as any, 'getPhysicalWidth').mockResolvedValue(1080);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 1080,
+        height: 1920,
+        dpr: 1,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(100, 200);
+      expect(adjusted).toEqual({ x: 100, y: 200 });
+    });
+
+    it('should handle screenshotResizeScale option', async () => {
+      // Physical width = 1080, screenshotResizeScale = 0.25 → logical width = 270
+      // scale = 270/1080 = 0.25, so 100/0.25 = 400
+      vi.spyOn(device as any, 'getPhysicalWidth').mockResolvedValue(1080);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 270,
+        height: 480,
+        dpr: 2,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(100, 100);
+      expect(adjusted).toEqual({ x: 400, y: 400 });
+    });
+  });
+
   describe('getScreenSize', () => {
     it('should use fallback to get orientation when primary method fails', async () => {
       mockAdb.shell.mockImplementation(async (command: string | string[]) => {
@@ -244,7 +318,7 @@ describe('AndroidDevice', () => {
 
   describe('mouse', () => {
     it('click should call shell with adjusted coordinates', async () => {
-      vi.spyOn(device as any, 'adjustCoordinates').mockReturnValue({
+      vi.spyOn(device as any, 'adjustCoordinates').mockResolvedValue({
         x: 200,
         y: 300,
       });
@@ -258,8 +332,8 @@ describe('AndroidDevice', () => {
       const from = { x: 10, y: 20 };
       const to = { x: 30, y: 40 };
       vi.spyOn(device as any, 'adjustCoordinates')
-        .mockReturnValueOnce({ x: 20, y: 40 })
-        .mockReturnValueOnce({ x: 60, y: 80 });
+        .mockResolvedValueOnce({ x: 20, y: 40 })
+        .mockResolvedValueOnce({ x: 60, y: 80 });
       await device.mouseDrag(from, to);
       expect(mockAdb.shell).toHaveBeenCalledWith(
         'input swipe 20 40 60 80 1000',
@@ -1203,8 +1277,8 @@ describe('AndroidDevice', () => {
 
       it('should allow scrolling with non-zero deltaX and zero deltaY', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
-          .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 170, y: 480 });
+          .mockResolvedValueOnce({ x: 270, y: 480 })
+          .mockResolvedValueOnce({ x: 170, y: 480 });
 
         await expect((device as any).scroll(100, 0)).resolves.not.toThrow();
 
@@ -1215,8 +1289,8 @@ describe('AndroidDevice', () => {
 
       it('should allow scrolling with zero deltaX and non-zero deltaY', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
-          .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 270, y: 240 });
+          .mockResolvedValueOnce({ x: 270, y: 480 })
+          .mockResolvedValueOnce({ x: 270, y: 240 });
 
         await expect((device as any).scroll(0, 100)).resolves.not.toThrow();
 
@@ -1228,7 +1302,7 @@ describe('AndroidDevice', () => {
       it('should allow symmetric horizontal range from the same start position', async () => {
         const adjustCoordinatesSpy = vi
           .spyOn(device as any, 'adjustCoordinates')
-          .mockImplementation((x: number, y: number) => ({ x, y }));
+          .mockImplementation(async (x: number, y: number) => ({ x, y }));
 
         await (device as any).scroll(9999999, 0);
         const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
@@ -1247,8 +1321,8 @@ describe('AndroidDevice', () => {
       });
       it('should allow scrolling with both deltaX and deltaY non-zero', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
-          .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 220, y: 405 });
+          .mockResolvedValueOnce({ x: 270, y: 480 })
+          .mockResolvedValueOnce({ x: 220, y: 405 });
 
         await expect((device as any).scroll(50, 75)).resolves.not.toThrow();
 
@@ -2065,8 +2139,11 @@ describe('AndroidDevice', () => {
       (deviceWithDisplay as any).connectingAdb =
         Promise.resolve(mockAdbInstance);
 
-      // Set device pixel ratio for coordinate adjustment
-      (deviceWithDisplay as any).devicePixelRatio = 1;
+      // Mock adjustCoordinates to pass through (this test focuses on displayId arg)
+      vi.spyOn(
+        deviceWithDisplay as any,
+        'adjustCoordinates',
+      ).mockImplementation(async (x: number, y: number) => ({ x, y }));
 
       await deviceWithDisplay.longPress(100, 200, 1500);
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
