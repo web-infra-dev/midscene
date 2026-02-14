@@ -64,9 +64,6 @@ const SCROLL_REPEAT_COUNT = 10;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
 
-// Input strategy constants
-const INPUT_STRATEGY_ALWAYS_CLIPBOARD = 'always-clipboard';
-const INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII = 'clipboard-for-non-ascii';
 
 // macOS AppleScript key code mapping
 // Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
@@ -119,18 +116,6 @@ const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
   option: 'option down',
   meta: 'command down',
 };
-
-/**
- * Type a string using AppleScript (macOS only)
- * More reliable than libnut.typeString for system overlays (e.g. Spotlight/Raycast)
- */
-function typeStringViaAppleScript(text: string): void {
-  // Escape backslashes and double quotes for AppleScript string
-  const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-  const script = `tell application "System Events" to keystroke "${escaped}"`;
-  debugDevice('typeStringViaAppleScript', { text });
-  execSync(`osascript -e '${script}'`);
-}
 
 /**
  * Send a key press using AppleScript (macOS only)
@@ -286,7 +271,6 @@ export interface ComputerDeviceOpt {
   displayId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customActions?: DeviceAction<any>[];
-  inputStrategy?: 'always-clipboard' | 'clipboard-for-non-ascii';
   /**
    * Keyboard driver for sending key events (macOS only)
    * - 'applescript': Use AppleScript via osascript (default on macOS, more reliable)
@@ -460,16 +444,6 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   /**
-   * Check if text contains non-ASCII characters
-   * Matches: Chinese, Japanese, Korean, Latin extended characters (café, niño), emoji, etc.
-   */
-  private shouldUseClipboardForText(text: string): boolean {
-    // Check for any character with code point >= 128 (non-ASCII)
-    const hasNonAscii = /[\x80-\uFFFF]/.test(text);
-    return hasNonAscii;
-  }
-
-  /**
    * Type text via clipboard (paste)
    * This method:
    * 1. Saves the old clipboard content
@@ -513,37 +487,13 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   /**
-   * Smart type string with platform-specific strategy
-   * - macOS: Always use clipboard to avoid IME interference (Chinese input method
-   *   can swallow characters or convert English to Chinese when using keystroke)
-   * - Windows/Linux: Use clipboard for non-ASCII characters
+   * Always use clipboard paste to input text, avoiding IME interference.
+   * Keystroke-based input (AppleScript/libnut) goes through the active input method,
+   * which can swallow characters or convert them when a non-English IME is active.
    */
   private async smartTypeString(text: string): Promise<void> {
     assert(libnut, 'libnut not initialized');
-
-    if (process.platform === 'darwin') {
-      // Always use clipboard on macOS to bypass IME issues
-      await this.typeViaClipboard(text);
-      return;
-    }
-
-    // Windows/Linux: use smart strategy
-    const inputStrategy =
-      this.options?.inputStrategy ?? INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII;
-
-    if (inputStrategy === INPUT_STRATEGY_ALWAYS_CLIPBOARD) {
-      await this.typeViaClipboard(text);
-      return;
-    }
-
-    // clipboard-for-non-ascii strategy: intelligent detection
-    const shouldUseClipboard = this.shouldUseClipboardForText(text);
-
-    if (shouldUseClipboard) {
-      await this.typeViaClipboard(text);
-    } else {
-      libnut.typeString(text);
-    }
+    await this.typeViaClipboard(text);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
