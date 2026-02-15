@@ -12,7 +12,6 @@ import type {
   Point,
   Rect,
   Size,
-  UIContext,
 } from '@midscene/core';
 import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -28,7 +27,6 @@ import {
   judgeOrderSensitive,
   sanitizeXpaths,
 } from '../common/cache-helper';
-import { WebPageContextParser } from '../web-element';
 import {
   type KeyInput,
   type MouseButton,
@@ -318,7 +316,6 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         size: {
           width: document.documentElement.clientWidth,
           height: document.documentElement.clientHeight,
-          dpr: window.devicePixelRatio,
         },
       };
     };
@@ -446,7 +443,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       try {
         const elementInfo = await this.getElementInfoByXpath(xpath);
         if (elementInfo?.rect) {
-          return buildRectFromElementInfo(elementInfo, this.viewportSize?.dpr);
+          return buildRectFromElementInfo(elementInfo);
         }
       } catch (error) {
         debug('rectMatchesCacheFeature failed for xpath %s: %O', xpath, error);
@@ -468,16 +465,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return content?.tree || { node: null, children: [] };
   }
 
-  async getContext(): Promise<UIContext> {
-    return await WebPageContextParser(this, {});
-  }
-
   async size() {
     if (this.viewportSize) return this.viewportSize;
 
     const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression:
-        '({width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio})',
+      expression: '({width: window.innerWidth, height: window.innerHeight})',
       returnByValue: true,
     });
 

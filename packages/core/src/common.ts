@@ -454,7 +454,6 @@ export const PointSchema = z.object({
 export const SizeSchema = z.object({
   width: z.number(),
   height: z.number(),
-  dpr: z.number().optional(),
 });
 
 export const RectSchema = PointSchema.and(SizeSchema).and(

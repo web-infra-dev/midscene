@@ -70,7 +70,6 @@ export interface SampleDeviceConfig {
   deviceName?: string;
   width?: number;
   height?: number;
-  dpr?: number;
 }
 
 /**
@@ -85,7 +84,6 @@ export class SampleDevice implements AbstractInterface {
       deviceName: config.deviceName || 'Sample Device',
       width: config.width || 1920,
       height: config.height || 1080,
-      dpr: config.dpr || 1,
     };
   }
 
@@ -100,12 +98,12 @@ export class SampleDevice implements AbstractInterface {
 
   /**
    * 必需：获取界面尺寸
+   * 这里的宽高是指界面的逻辑尺寸（logical size），不需要考虑设备像素比（dpr）。defineActionTap 等动作得到的坐标也是基于这个逻辑尺寸的坐标系。你可以在动作实现中根据需要将逻辑坐标转换为物理坐标。
    */
   async size(): Promise<Size> {
     return {
       width: this.config.width,
       height: this.config.height,
-      dpr: this.config.dpr,
     };
   }
 
@@ -260,7 +258,7 @@ import { AbstractInterface } from '@midscene/core';
 
 - `interfaceType: string`：为界面定义一个名称，这不会提供给 AI 模型
 - `screenshotBase64(): Promise<string>`：截取界面的屏幕截图并返回带有 `'data:image/` 前缀的 base64 字符串
-- `size(): Promise<Size>`：界面的大小和 dpr，它是一个具有 `width`、`height` 和 `dpr` 属性的对象
+- `size(): Promise<Size>`：界面的大小，它是一个具有 `width` 和 `height` 属性的对象
 - `actionSpace(): DeviceAction[] | Promise<DeviceAction[]>`：界面的动作空间，它是一个 `DeviceAction` 对象数组。在这里你可以使用预定义动作，或是自定义交互操作。
 
 类型签名：

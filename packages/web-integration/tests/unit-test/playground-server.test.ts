@@ -1,3 +1,4 @@
+import { ScreenshotItem } from '@midscene/core';
 import { PlaygroundServer } from '@midscene/playground';
 import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -7,9 +8,8 @@ describe('Playground Server', () => {
   let serverBase: string;
   beforeAll(async () => {
     const page = new StaticPage({
-      tree: { node: null, children: [] },
-      size: { width: 800, height: 600 },
-      screenshotBase64: '',
+      shotSize: { width: 800, height: 600 },
+      screenshot: ScreenshotItem.create(''),
     });
     const agent = new StaticPageAgent(page);
     server = new PlaygroundServer(agent);

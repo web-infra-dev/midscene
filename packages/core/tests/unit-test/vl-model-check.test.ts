@@ -37,7 +37,7 @@ const createMockInterface = (
   ({
     interfaceType,
     destroy: vi.fn(),
-    size: vi.fn().mockResolvedValue({ dpr: 1 }),
+    size: vi.fn().mockResolvedValue({}),
     actionSpace: vi.fn(() => []),
   }) as unknown as AbstractInterface;
 

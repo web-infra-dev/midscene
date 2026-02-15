@@ -1069,7 +1069,7 @@
       }
     ]
   },
-  "size": {
+  "shotSize": {
     "width": 1440,
     "height": 900,
     "dpr": 2

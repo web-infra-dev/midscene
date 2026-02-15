@@ -412,7 +412,6 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     return {
       width: screenSize.width,
       height: screenSize.height,
-      dpr: screenSize.scale,
     };
   }
 
