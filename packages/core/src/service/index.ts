@@ -318,7 +318,7 @@ export default class Service {
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
     const context = await this.contextRetrieverFn();
-    const { size } = context;
+    const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
@@ -338,7 +338,7 @@ export default class Service {
 
     let imagePayload = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
-      size,
+      size: shotSize,
       elementsPositionInfo: [
         {
           rect: targetRect,
@@ -348,12 +348,12 @@ export default class Service {
     });
 
     if (opt?.deepThink) {
-      const searchArea = expandSearchArea(targetRect, size);
+      const searchArea = expandSearchArea(targetRect, shotSize);
       // Only crop when the search area covers at least 50% of the screen
       // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
       // too much context and cause model hallucinations.
-      const widthRatio = searchArea.width / size.width;
-      const heightRatio = searchArea.height / size.height;
+      const widthRatio = searchArea.width / shotSize.width;
+      const heightRatio = searchArea.height / shotSize.height;
       if (widthRatio >= 0.5 && heightRatio >= 0.5) {
         debug('describe: cropping to searchArea', searchArea);
         const croppedResult = await cropByRect(
@@ -367,8 +367,8 @@ export default class Service {
           'describe: skip cropping, search area too small (%dx%d on %dx%d)',
           searchArea.width,
           searchArea.height,
-          size.width,
-          size.height,
+          shotSize.width,
+          shotSize.height,
         );
       }
     }

@@ -177,7 +177,8 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     const locatePrompt = 'Find the submit button';
     const mockPageContext = {
       tree: { node: null, children: [] },
-      size: { width: 800, height: 600 },
+      shotSize: { width: 800, height: 600 },
+      shrunkShotToLogicalRatio: 1,
       screenshotBase64: 'mock-base64-string',
     };
     const options = {
@@ -208,7 +209,8 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       deepThink: true,
       uiContext: {
         tree: { node: null, children: [] },
-        size: { width: 1024, height: 768 },
+        shotSize: { width: 1024, height: 768 },
+        shrunkShotToLogicalRatio: 1,
         screenshotBase64: 'mock-base64-string',
       },
       customParam1: 'value1',
@@ -226,7 +228,8 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     expect(result.restParams).toEqual({
       uiContext: {
         tree: { node: null, children: [] },
-        size: { width: 1024, height: 768 },
+        shotSize: { width: 1024, height: 768 },
+        shrunkShotToLogicalRatio: 1,
         screenshotBase64: 'mock-base64-string',
       },
       customParam1: 'value1',

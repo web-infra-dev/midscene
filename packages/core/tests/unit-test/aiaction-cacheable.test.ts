@@ -41,7 +41,7 @@ describe('aiAction cacheable option propagation', () => {
     mockInterface = {
       interfaceType: 'web',
       screenshotBase64: vi.fn().mockResolvedValue(validBase64Image),
-      size: vi.fn().mockResolvedValue({ width: 1920, height: 1080, dpr: 1 }),
+      size: vi.fn().mockResolvedValue({ width: 1920, height: 1080 }),
       actionSpace: vi.fn().mockReturnValue([
         {
           name: 'Click',
@@ -61,7 +61,8 @@ describe('aiAction cacheable option propagation', () => {
     mockService = {
       contextRetrieverFn: vi.fn().mockImplementation(async () => ({
         screenshot: ScreenshotItem.create(validBase64Image),
-        size: { width: 1920, height: 1080, dpr: 1 },
+        shotSize: { width: 1920, height: 1080 },
+        shrunkShotToLogicalRatio: 1,
         tree: {
           id: 'root',
           attributes: {},

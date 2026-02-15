@@ -23,7 +23,8 @@ vi.mock('@midscene/shared/node', () => ({
 vi.mock('@/web-element', () => ({
   WebPageContextParser: vi.fn().mockResolvedValue({
     tree: { node: null, children: [] },
-    size: { width: 1024, height: 768 },
+    shotSize: { width: 1024, height: 768 },
+    shrunkShotToLogicalRatio: 1,
     screenshotBase64: 'mock-base64',
   }),
 }));

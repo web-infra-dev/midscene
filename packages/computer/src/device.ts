@@ -437,7 +437,6 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       return {
         width: screenSize.width,
         height: screenSize.height,
-        dpr: 1, // Desktop typically uses logical pixels
       };
     } catch (error) {
       debugDevice(`Failed to get screen size: ${error}`);

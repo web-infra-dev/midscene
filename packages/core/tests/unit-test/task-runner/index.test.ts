@@ -65,7 +65,8 @@ const fakeUIContextBuilder = async () => {
   return {
     screenshot,
     tree: { node: null, children: [] },
-    size: { width: 0, height: 0 },
+    shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };
 
@@ -257,7 +258,8 @@ describe(
         return {
           screenshot,
           tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
+          shotSize: { width: 0, height: 0 },
+          shrunkShotToLogicalRatio: 1,
         } as unknown as UIContext;
       };
 
@@ -304,7 +306,8 @@ describe(
         .mockResolvedValue({
           screenshot: ScreenshotItem.create(''),
           tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
+          shotSize: { width: 0, height: 0 },
+          shrunkShotToLogicalRatio: 1,
         } as unknown as UIContext);
 
       const runner = new TaskRunner('sub-task-error', uiContextBuilder, {

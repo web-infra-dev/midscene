@@ -55,20 +55,14 @@ export async function judgeOrderSensitive(
 }
 
 // Shared logic to build Rect from elementInfo
-export function buildRectFromElementInfo(
-  elementInfo: {
-    rect: { left: number; top: number; width: number; height: number };
-  },
-  dpr?: number,
-): Rect {
+export function buildRectFromElementInfo(elementInfo: {
+  rect: { left: number; top: number; width: number; height: number };
+}): Rect {
   const matchedRect: Rect = {
     left: elementInfo.rect.left,
     top: elementInfo.rect.top,
     width: elementInfo.rect.width,
     height: elementInfo.rect.height,
   };
-  if (dpr) {
-    matchedRect.dpr = dpr;
-  }
   return matchedRect;
 }

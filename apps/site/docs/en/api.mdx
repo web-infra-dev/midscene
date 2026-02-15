@@ -27,6 +27,9 @@ All agents share these base options:
   - Using Node.js: `npx serve`
   - Using Python: `python -m http.server` or `python3 -m http.server`
   Then access the report via `http://localhost:3000` (or the port shown in the terminal).
+- `screenshotShrinkFactor: number`: Controls the scaling ratio of screenshots to reduce the image size sent to the AI model, thereby reducing token consumption. The default value is 1 (no scaling). If set to 2, the width and height of the screenshot will be halved, and the area will be reduced to a quarter of the original. You can adjust this value based on your actual situation to find the best balance between image clarity and token consumption.
+  - For mobile devices, setting `screenshotShrinkFactor` to 2 can reduce token consumption while maintaining clarity, but it is not recommended to set it higher than 3, as this may cause the image to be too blurry and affect the AI model's understanding.
+  - For web pages, if the content is complex or contains a lot of details, it is not recommended to set `screenshotShrinkFactor` to avoid overly blurry screenshots. Additionally, if you want higher clarity for web page screenshots, you can configure Puppeteer or Playwright's `deviceScaleFactor` to 2, which will allow Puppeteer or Playwright to render the page as if it were a high-definition screen.
 
 ### Custom model configuration
 
@@ -777,7 +780,7 @@ function aiLocate(
     height: number;
   };
   center: [number, number];
-  scale: number; // device pixel ratio
+  dpr: number; // device pixel ratio
 }>;
 ```
 

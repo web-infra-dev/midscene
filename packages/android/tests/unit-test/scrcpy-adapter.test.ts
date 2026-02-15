@@ -45,7 +45,6 @@ vi.mock('@midscene/shared/img', () => ({
 const defaultDeviceInfo: DevicePhysicalInfo = {
   physicalWidth: 1080,
   physicalHeight: 1920,
-  dpr: 2.625,
   orientation: 0,
 };
 
@@ -159,7 +158,6 @@ describe('ScrcpyDeviceAdapter', () => {
       const highRes: DevicePhysicalInfo = {
         physicalWidth: 1440,
         physicalHeight: 3120,
-        dpr: 3.2,
         orientation: 0,
       };
       const config = adapter.resolveConfig(highRes);
@@ -175,7 +173,6 @@ describe('ScrcpyDeviceAdapter', () => {
       const highRes: DevicePhysicalInfo = {
         physicalWidth: 1440,
         physicalHeight: 3120,
-        dpr: 3.2,
         orientation: 0,
       };
       const config = adapter.resolveConfig(highRes);
@@ -187,7 +184,6 @@ describe('ScrcpyDeviceAdapter', () => {
       const landscape: DevicePhysicalInfo = {
         physicalWidth: 1920,
         physicalHeight: 1080,
-        dpr: 2,
         orientation: 1,
       };
       const config = adapter.resolveConfig(landscape);
@@ -237,7 +233,6 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(size).toEqual({
         width: 576,
         height: 1024,
-        dpr: 2.625,
       });
     });
   });
