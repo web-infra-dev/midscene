@@ -37,7 +37,6 @@ export type { AIArgs } from '../common';
 
 export {
   getMidsceneLocationSchema,
-  type MidsceneLocationResultType,
   PointSchema,
   SizeSchema,
   RectSchema,

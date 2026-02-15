@@ -7,7 +7,6 @@ export {
   plan,
   AiLocateElement,
   getMidsceneLocationSchema,
-  type MidsceneLocationResultType,
   PointSchema,
   SizeSchema,
   RectSchema,
