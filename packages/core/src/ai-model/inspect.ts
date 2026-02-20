@@ -40,6 +40,11 @@ import {
   systemPromptToLocateElement,
 } from './prompt/llm-locator';
 import {
+  type BatchLocateTarget,
+  findElementsPrompt,
+  systemPromptToLocateElements,
+} from './prompt/llm-locator-batch';
+import {
   sectionLocatorInstruction,
   systemPromptToLocateSection,
 } from './prompt/llm-section-locator';
@@ -356,6 +361,249 @@ export async function AiLocateElement(options: {
       elements: matchedElements as LocateResultElement[],
       errors: errors as string[],
     },
+    rawResponse,
+    usage: res.usage,
+    reasoning_content: res.reasoning_content,
+  };
+}
+
+export interface AiBatchLocateElementResult {
+  id: string;
+  element: LocateResultElement | null;
+  rect?: Rect;
+  error?: string;
+}
+
+export interface AIBatchElementResponse {
+  elements: Array<{
+    id: string;
+    bbox: [number, number, number, number] | [];
+    error?: string;
+  }>;
+}
+
+export async function AiLocateElements(options: {
+  context: UIContext;
+  targetDescriptions: Array<{ id: string; description: TUserPrompt }>;
+  callAIFn: typeof callAIWithObjectResponse<AIBatchElementResponse>;
+  modelConfig: IModelConfig;
+}): Promise<{
+  results: AiBatchLocateElementResult[];
+  rawResponse: string;
+  usage?: AIUsageInfo;
+  reasoning_content?: string;
+}> {
+  const { context, targetDescriptions, callAIFn, modelConfig } = options;
+  const { modelFamily } = modelConfig;
+  const screenshotBase64 = context.screenshot.base64;
+
+  assert(
+    targetDescriptions.length > 0,
+    'targetDescriptions must have at least one element',
+  );
+
+  // For AutoGLM, fall back to sequential single-element calls
+  if (isAutoGLM(modelFamily)) {
+    const results: AiBatchLocateElementResult[] = [];
+    let totalUsage: AIUsageInfo | undefined;
+    const rawResponses: string[] = [];
+
+    for (const target of targetDescriptions) {
+      const singleResult = await AiLocateElement({
+        context,
+        targetElementDescription: target.description,
+        callAIFn: callAIWithObjectResponse as typeof callAIWithObjectResponse<
+          AIElementResponse | [number, number]
+        >,
+        modelConfig,
+      });
+
+      rawResponses.push(singleResult.rawResponse);
+
+      if (singleResult.usage) {
+        if (!totalUsage) {
+          totalUsage = { ...singleResult.usage };
+        } else {
+          totalUsage.prompt_tokens =
+            (totalUsage.prompt_tokens || 0) +
+            (singleResult.usage.prompt_tokens || 0);
+          totalUsage.completion_tokens =
+            (totalUsage.completion_tokens || 0) +
+            (singleResult.usage.completion_tokens || 0);
+          totalUsage.total_tokens =
+            (totalUsage.total_tokens || 0) +
+            (singleResult.usage.total_tokens || 0);
+        }
+      }
+
+      const element = singleResult.parseResult.elements[0] || null;
+      const error = singleResult.parseResult.errors?.[0];
+
+      results.push({
+        id: target.id,
+        element,
+        rect: singleResult.rect,
+        error,
+      });
+    }
+
+    return {
+      results,
+      rawResponse: JSON.stringify(rawResponses),
+      usage: totalUsage,
+    };
+  }
+
+  const targets: BatchLocateTarget[] = targetDescriptions.map((t) => ({
+    id: t.id,
+    description: extraTextFromUserPrompt(t.description),
+  }));
+
+  let imagePayload = screenshotBase64;
+  let imageWidth = context.size.width;
+  let imageHeight = context.size.height;
+
+  if (modelFamily === 'qwen2.5-vl') {
+    const paddedResult = await paddingToMatchBlockByBase64(imagePayload);
+    imageWidth = paddedResult.width;
+    imageHeight = paddedResult.height;
+    imagePayload = paddedResult.imageBase64;
+  }
+
+  const systemPrompt = systemPromptToLocateElements(modelFamily);
+  const userPrompt = findElementsPrompt(targets);
+
+  const msgs: AIArgs = [
+    { role: 'system', content: systemPrompt },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image_url',
+          image_url: {
+            url: imagePayload,
+            detail: 'high',
+          },
+        },
+        {
+          type: 'text',
+          text: userPrompt,
+        },
+      ],
+    },
+  ];
+
+  let res: Awaited<ReturnType<typeof callAIFn>>;
+  try {
+    res = await callAIFn(msgs, modelConfig);
+  } catch (callError) {
+    const errorMessage =
+      callError instanceof Error ? callError.message : String(callError);
+    const rawResponse =
+      callError instanceof AIResponseParseError
+        ? callError.rawResponse
+        : errorMessage;
+    const usage =
+      callError instanceof AIResponseParseError ? callError.usage : undefined;
+
+    // Return error for all targets
+    const results: AiBatchLocateElementResult[] = targetDescriptions.map(
+      (t) => ({
+        id: t.id,
+        element: null,
+        error: `AI call error: ${errorMessage}`,
+      }),
+    );
+
+    return {
+      results,
+      rawResponse,
+      usage,
+    };
+  }
+
+  const rawResponse = JSON.stringify(res.content);
+  const responseElements = res.content.elements || [];
+
+  // Create a map for quick lookup
+  const responseMap = new Map<
+    string,
+    { bbox: [number, number, number, number] | []; error?: string }
+  >();
+  for (const elem of responseElements) {
+    responseMap.set(elem.id, { bbox: elem.bbox, error: elem.error });
+  }
+
+  // Build results in the same order as input
+  const results: AiBatchLocateElementResult[] = targetDescriptions.map(
+    (target) => {
+      const response = responseMap.get(target.id);
+
+      if (!response) {
+        return {
+          id: target.id,
+          element: null,
+          error: `No response for element ${target.id}`,
+        };
+      }
+
+      if (
+        response.error ||
+        !response.bbox ||
+        !Array.isArray(response.bbox) ||
+        response.bbox.length < 4
+      ) {
+        return {
+          id: target.id,
+          element: null,
+          error: response.error || 'Element not found',
+        };
+      }
+
+      try {
+        const resRect = adaptBboxToRect(
+          response.bbox,
+          imageWidth,
+          imageHeight,
+          undefined,
+          undefined,
+          context.size.width,
+          context.size.height,
+          modelFamily,
+        );
+
+        const rectCenter = {
+          x: resRect.left + resRect.width / 2,
+          y: resRect.top + resRect.height / 2,
+        };
+
+        const descriptionText = extraTextFromUserPrompt(target.description);
+        const element: LocateResultElement = generateElementByPosition(
+          rectCenter,
+          descriptionText,
+        );
+
+        return {
+          id: target.id,
+          element,
+          rect: resRect,
+        };
+      } catch (e) {
+        const msg =
+          e instanceof Error
+            ? `Failed to parse bbox: ${e.message}`
+            : 'unknown error in batch locate';
+        return {
+          id: target.id,
+          element: null,
+          error: msg,
+        };
+      }
+    },
+  );
+
+  return {
+    results,
     rawResponse,
     usage: res.usage,
     reasoning_content: res.reasoning_content,
