@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { ComputerDevice, type DisplayInfo } from './device';
+import { checkXvfbInstalled } from './xvfb';
 
 export interface EnvironmentCheck {
   available: boolean;
@@ -83,6 +84,18 @@ export function checkAccessibilityPermission(
  * Check if the computer environment is available
  */
 export async function checkComputerEnvironment(): Promise<EnvironmentCheck> {
+  // On Linux without DISPLAY, provide actionable diagnostics
+  if (process.platform === 'linux' && !process.env.DISPLAY) {
+    return {
+      available: false,
+      error: checkXvfbInstalled()
+        ? 'No DISPLAY set. Use headless: true to auto-start Xvfb.'
+        : 'No DISPLAY set and Xvfb not installed. Install: sudo apt-get install xvfb',
+      platform: process.platform,
+      displays: 0,
+    };
+  }
+
   try {
     const libnutModule = await import(
       '@computer-use/libnut/dist/import_libnut.js'

@@ -27,6 +27,8 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import type { XvfbInstance } from './xvfb';
+import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
 // Type definitions
 interface LibNut {
@@ -276,6 +278,17 @@ export interface ComputerDeviceOpt {
    * - 'libnut': Use libnut's keyTap (faster but may not work with some TUI apps)
    */
   keyboardDriver?: 'applescript' | 'libnut';
+  /**
+   * Headless mode via Xvfb (Linux only)
+   * - true: force start Xvfb virtual display
+   * - false: do not start Xvfb
+   * - undefined: auto-detect (start Xvfb if no DISPLAY is set on Linux)
+   */
+  headless?: boolean;
+  /**
+   * Resolution for Xvfb virtual display (default '1920x1080x24')
+   */
+  xvfbResolution?: string;
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -284,6 +297,7 @@ export class ComputerDevice implements AbstractInterface {
   private displayId?: string;
   private description?: string;
   private destroyed = false;
+  private xvfbInstance?: XvfbInstance;
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
@@ -323,21 +337,55 @@ export class ComputerDevice implements AbstractInterface {
     debugDevice('Connecting to computer device');
 
     try {
+      // Start Xvfb if needed (must happen before libnut loads)
+      if (needsXvfb(this.options?.headless)) {
+        if (!checkXvfbInstalled()) {
+          throw new Error(
+            'Xvfb is required for headless mode but not installed. Install: sudo apt-get install xvfb',
+          );
+        }
+        this.xvfbInstance = await startXvfb({
+          resolution: this.options?.xvfbResolution,
+        });
+        process.env.DISPLAY = this.xvfbInstance.display;
+        debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
+
+        // Clean up Xvfb on process exit
+        const cleanup = () => {
+          if (this.xvfbInstance) {
+            this.xvfbInstance.stop();
+            this.xvfbInstance = undefined;
+          }
+        };
+        process.on('exit', cleanup);
+        process.on('SIGINT', cleanup);
+        process.on('SIGTERM', cleanup);
+      }
+
       // Load libnut on first connect
       libnut = await getLibnut();
 
       const size = await this.size();
       const displays = await ComputerDevice.listDisplays();
 
+      const headlessInfo = this.xvfbInstance
+        ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
+        : '';
+
       this.description = `
 Type: Computer
 Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}
-Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}
+Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
 `;
       debugDevice('Computer device connected', this.description);
     } catch (error) {
+      // Clean up Xvfb on connection failure
+      if (this.xvfbInstance) {
+        this.xvfbInstance.stop();
+        this.xvfbInstance = undefined;
+      }
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
     }
@@ -765,6 +813,11 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   async destroy(): Promise<void> {
     if (this.destroyed) {
       return;
+    }
+
+    if (this.xvfbInstance) {
+      this.xvfbInstance.stop();
+      this.xvfbInstance = undefined;
     }
 
     this.destroyed = true;
