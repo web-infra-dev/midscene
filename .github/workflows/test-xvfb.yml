@@ -7,6 +7,13 @@ on:
     paths:
       - 'packages/computer/**'
       - '.github/workflows/test-xvfb.yml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
 
 permissions:
   contents: read
@@ -14,12 +21,10 @@ permissions:
 jobs:
   xvfb-unit-test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.13.0]
-
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
@@ -44,14 +49,22 @@ jobs:
     - name: Run all computer unit tests
       run: npx nx test @midscene/computer
 
-  xvfb-integration:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [24.13.0]
+  xvfb-ai-todo-test:
+    runs-on: ubuntu-22.04
+    env:
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+      MIDSCENE_REPORT_QUIET: "true"
+      CI: "1"
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
 
     - name: Setup pnpm
       uses: pnpm/action-setup@v2
@@ -64,8 +77,10 @@ jobs:
         node-version: '24.13.0'
         cache: 'pnpm'
 
-    - name: Install Xvfb
-      run: sudo apt-get update && sudo apt-get install -y xvfb
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb chromium-browser
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
@@ -73,43 +88,30 @@ jobs:
     - name: Build project
       run: pnpm run build
 
-    - name: Verify Xvfb detection
+    - name: Verify Xvfb and Chrome setup
       run: |
-        node -e "
-          const { checkXvfbInstalled, needsXvfb } = require('./packages/computer/dist/lib/index.js');
-          console.log('Xvfb installed:', checkXvfbInstalled());
-          console.log('Needs Xvfb (auto):', needsXvfb());
-          console.log('Needs Xvfb (explicit true):', needsXvfb(true));
-          console.log('Needs Xvfb (explicit false):', needsXvfb(false));
-          console.log('Platform:', process.platform);
-          console.log('DISPLAY:', process.env.DISPLAY || '(not set)');
-          if (!checkXvfbInstalled()) { process.exit(1); }
-          if (!needsXvfb()) { console.log('DISPLAY is set, needsXvfb returns false as expected'); }
-        "
+        echo "--- Xvfb ---"
+        which Xvfb && echo "Xvfb found"
+        echo "--- Chrome ---"
+        which chromium-browser || which google-chrome-stable || which chromium || echo "No browser found"
+        echo "--- DISPLAY ---"
+        echo "DISPLAY=${DISPLAY:-(not set)}"
 
-    - name: Test Xvfb startup and cleanup
+    - name: Run AI todo test with Xvfb auto-detection
       run: |
-        node -e "
-          const { startXvfb, findAvailableDisplay, checkXvfbInstalled } = require('./packages/computer/dist/lib/index.js').checkXvfbInstalled ? require('./packages/computer/dist/lib/index.js') : (() => { throw new Error('exports not found'); })();
-        " || true
-        echo 'Basic export verification done'
+        unset DISPLAY
+        AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+      id: test-ai
+      continue-on-error: true
 
-    - name: Test headless device creation (expect libnut failure on CI)
-      run: |
-        node -e "
-          const { checkComputerEnvironment } = require('./packages/computer/dist/lib/index.js');
-          checkComputerEnvironment().then(result => {
-            console.log('Environment check:', JSON.stringify(result, null, 2));
-            // On CI without DISPLAY, should report unavailable with helpful message
-            if (!result.available) {
-              console.log('Expected: environment not available on headless CI');
-              if (result.error && result.error.includes('Xvfb')) {
-                console.log('PASS: Error message mentions Xvfb');
-              } else if (result.error && result.error.includes('DISPLAY')) {
-                console.log('PASS: Error message mentions DISPLAY');
-              } else {
-                console.log('Note: Error is about libnut (expected on CI without native deps)');
-              }
-            }
-          });
-        "
+    - name: Upload test report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: xvfb-ai-test-report
+        path: packages/computer/midscene_run/report
+        if-no-files-found: ignore
+
+    - name: Check test result
+      if: steps.test-ai.outcome == 'failure'
+      run: exit 1
