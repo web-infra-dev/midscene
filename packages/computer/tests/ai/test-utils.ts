@@ -44,10 +44,10 @@ export async function openBrowserAndNavigate(
     // In headless Linux CI, launch browser directly via command line
     const browser = findLinuxBrowser();
     execSync(
-      `${browser} --no-sandbox --disable-gpu --window-size=1920,1080 "${url}" &`,
+      `${browser} --no-sandbox --disable-gpu --no-first-run --no-default-browser-check --window-size=1920,1080 --start-maximized "${url}" &`,
       { stdio: 'ignore', shell: '/bin/bash' },
     );
-    await sleep(5000);
+    await sleep(8000);
     return;
   }
 
