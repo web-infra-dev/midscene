@@ -80,7 +80,16 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y xvfb chromium-browser
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          imagemagick \
+          libxtst6 \
+          libxinerama1 \
+          libx11-6 \
+          libxkbcommon-x11-0 \
+          libpng16-16 \
+          chromium-browser
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
@@ -88,11 +97,15 @@ jobs:
     - name: Build project
       run: pnpm run build
 
-    - name: Verify Xvfb and Chrome setup
+    - name: Verify system setup
       run: |
         echo "--- Xvfb ---"
-        which Xvfb && echo "Xvfb found"
-        echo "--- Chrome ---"
+        which Xvfb && echo "Xvfb: OK"
+        echo "--- xrandr ---"
+        which xrandr && echo "xrandr: OK"
+        echo "--- import (imagemagick) ---"
+        which import && echo "import: OK"
+        echo "--- Browser ---"
         which chromium-browser || which google-chrome-stable || which chromium || echo "No browser found"
         echo "--- DISPLAY ---"
         echo "DISPLAY=${DISPLAY:-(not set)}"
@@ -101,6 +114,7 @@ jobs:
       run: |
         unset DISPLAY
         AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+      timeout-minutes: 10
       id: test-ai
       continue-on-error: true
 
