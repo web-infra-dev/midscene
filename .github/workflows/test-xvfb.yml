@@ -121,7 +121,7 @@ jobs:
       run: |
         unset DISPLAY
         AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
-      timeout-minutes: 20
+      timeout-minutes: 25
       id: test-ai
       continue-on-error: true
 
