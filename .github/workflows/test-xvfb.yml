@@ -89,7 +89,14 @@ jobs:
           libx11-6 \
           libxkbcommon-x11-0 \
           libpng16-16 \
-          chromium-browser
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libgbm1 \
+          libasound2
+        # Install Google Chrome (not snap chromium which can't access Xvfb)
+        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
 
     - name: Install dependencies
       run: pnpm install --frozen-lockfile
@@ -106,7 +113,7 @@ jobs:
         echo "--- import (imagemagick) ---"
         which import && echo "import: OK"
         echo "--- Browser ---"
-        which chromium-browser || which google-chrome-stable || which chromium || echo "No browser found"
+        google-chrome-stable --version || echo "Chrome not found"
         echo "--- DISPLAY ---"
         echo "DISPLAY=${DISPLAY:-(not set)}"
 

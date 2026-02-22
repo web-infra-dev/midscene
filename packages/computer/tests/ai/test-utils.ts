@@ -43,10 +43,20 @@ export async function openBrowserAndNavigate(
   if (isHeadlessLinux()) {
     // In headless Linux CI, launch browser directly via command line
     const browser = findLinuxBrowser();
-    execSync(
-      `${browser} --no-sandbox --disable-gpu --no-first-run --no-default-browser-check --window-size=1920,1080 --start-maximized "${url}" &`,
-      { stdio: 'ignore', shell: '/bin/bash' },
-    );
+    const flags = [
+      '--no-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-extensions',
+      '--window-size=1920,1080',
+      '--start-maximized',
+    ].join(' ');
+    execSync(`${browser} ${flags} "${url}" &`, {
+      stdio: 'ignore',
+      shell: '/bin/bash',
+    });
     await sleep(8000);
     return;
   }
