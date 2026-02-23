@@ -114,6 +114,16 @@ async function launchChromeWithExtension(
   execSync(`rm -rf ${userDataDir}`, { stdio: 'ignore' });
 
   const browser = findLinuxBrowser();
+  // Pre-create Preferences with extensions enabled to help --load-extension work
+  const defaultDir = path.join(userDataDir, 'Default');
+  fs.mkdirSync(defaultDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(defaultDir, 'Preferences'),
+    JSON.stringify({
+      extensions: { ui: { developer_mode: true } },
+    }),
+  );
+
   const args = [
     '--no-sandbox',
     '--disable-gpu',
