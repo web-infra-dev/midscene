@@ -281,6 +281,36 @@ async function injectViaWebSocket(
   });
 }
 
+async function reloadViaWebSocket(wsUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      ws.send(
+        JSON.stringify({
+          id: 1,
+          method: 'Page.reload',
+          params: {},
+        }),
+      );
+    };
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(
+        typeof event.data === 'string' ? event.data : String(event.data),
+      );
+      if (msg.id === 1) {
+        console.log('Side panel reloaded to apply config');
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      resolve(); // Don't fail if reload times out
+    }, 5000);
+  });
+}
+
 async function launchChromeWithExtension(
   extensionPath: string,
   url: string,
@@ -342,9 +372,8 @@ describe('chrome extension basic test', () => {
     );
     const extId = await readExtensionId();
     console.log('Extension ID:', extId);
-
-    // Inject env config into extension's localStorage via CDP
-    await injectExtensionConfig(extId);
+    // Store extension ID for later injection after side panel opens
+    (globalThis as any).__extId = extId;
   });
 
   it('open side panel via extension icon', async () => {
@@ -359,6 +388,16 @@ describe('chrome extension basic test', () => {
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
     );
+
+    // Now inject env config — the side panel target should exist as a 'page' type
+    const extId = (globalThis as any).__extId;
+    await injectExtensionConfig(extId);
+    // Reload the side panel to pick up the new config
+    const target = await findExtensionPageTarget(extId);
+    if (target) {
+      await reloadViaWebSocket(target.webSocketDebuggerUrl);
+      await sleep(3000);
+    }
   });
 
   it('playground shows action tabs', async () => {
@@ -368,19 +407,16 @@ describe('chrome extension basic test', () => {
   });
 
   it('run a task in playground', async () => {
-    // Click the textarea in the side panel (placeholder: "What do you want to do?")
     await agent.aiAct(
       'Click the text area with placeholder "What do you want to do?" in the right side panel',
     );
     await sleep(500);
 
-    // Type the instruction for the extension's AI to execute on the TodoMVC page
     await agent.aiAct(
       'Type the following text into the focused text area: Enter "Learn JS today" in the task box, then press Enter to create',
     );
     await sleep(500);
 
-    // Click the Run button (blue button with send icon at bottom-right of the input area)
     await agent.aiAct(
       'Click the blue "Run" button with the send icon in the right side panel',
     );
