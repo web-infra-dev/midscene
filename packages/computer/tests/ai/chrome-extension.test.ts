@@ -385,13 +385,25 @@ describe('chrome extension basic test', () => {
   });
 
   it('run a task in playground', async () => {
+    // Click the textarea in the side panel (placeholder: "What do you want to do?")
     await agent.aiAct(
-      'Click the input box in the Midscene side panel and type: Enter "Learn JS today" in the task box, then press Enter to create',
+      'Click the text area with placeholder "What do you want to do?" in the right side panel',
     );
     await sleep(500);
 
-    await agent.aiAct('Click the "Run" button in the Midscene side panel');
-    await sleep(15000);
+    // Type the instruction for the extension's AI to execute on the TodoMVC page
+    await agent.aiAct(
+      'Type the following text into the focused text area: Enter "Learn JS today" in the task box, then press Enter to create',
+    );
+    await sleep(500);
+
+    // Click the Run button (blue button with send icon at bottom-right of the input area)
+    await agent.aiAct(
+      'Click the blue "Run" button with the send icon in the right side panel',
+    );
+
+    // Wait for the extension's AI to execute the action on the page
+    await sleep(30000);
 
     await agent.aiAssert(
       'The TodoMVC page on the left shows a todo item containing "Learn JS today"',
