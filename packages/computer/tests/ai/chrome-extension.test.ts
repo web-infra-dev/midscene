@@ -9,6 +9,7 @@ import { isHeadlessLinux } from './test-utils';
 vi.setConfig({ testTimeout: 240 * 1000 });
 
 const userDataDir = '/tmp/midscene-chrome-ext-test';
+const CDP_PORT = 9222;
 
 /**
  * Find a Chrome/Chromium binary that supports --load-extension.
@@ -16,7 +17,6 @@ const userDataDir = '/tmp/midscene-chrome-ext-test';
  * so we prefer Chrome for Testing (installed by Puppeteer) or Chromium.
  */
 function findExtensionCapableBrowser(): string {
-  // Puppeteer's Chrome for Testing
   const puppeteerBase = path.join(
     process.env.HOME || '~',
     '.cache/puppeteer/chrome',
@@ -33,17 +33,14 @@ function findExtensionCapableBrowser(): string {
         'chrome',
       );
       if (fs.existsSync(chromeBin)) {
-        console.log(`Using Chrome for Testing: ${chromeBin}`);
         return chromeBin;
       }
     }
   }
 
-  // Chromium (supports --load-extension)
   for (const bin of ['chromium-browser', 'chromium']) {
     try {
       execSync(`which ${bin}`, { stdio: 'ignore' });
-      console.log(`Using Chromium: ${bin}`);
       return bin;
     } catch {
       // try next
@@ -93,6 +90,121 @@ async function readExtensionId(maxAttempts = 15): Promise<string> {
   );
 }
 
+/**
+ * Build the env config string from process.env.
+ * Only includes MIDSCENE_* and OPENAI_* vars that are set.
+ */
+function buildExtensionEnvConfig(): string {
+  const envKeys = [
+    'MIDSCENE_OPENAI_INIT_CONFIG_JSON',
+    'MIDSCENE_MODEL_INIT_CONFIG_JSON',
+    'MIDSCENE_MODEL_NAME',
+    'MIDSCENE_MODEL_API_KEY',
+    'MIDSCENE_MODEL_BASE_URL',
+    'MIDSCENE_MODEL_FAMILY',
+    'MIDSCENE_USE_QWEN3_VL',
+    'OPENAI_API_KEY',
+    'OPENAI_BASE_URL',
+  ];
+
+  const lines: string[] = [];
+  for (const key of envKeys) {
+    const value = process.env[key];
+    if (value) {
+      lines.push(`${key}=${value}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Inject env config into Chrome extension's localStorage via CDP.
+ * The extension stores config at key 'midscene-env-config' in localStorage.
+ */
+async function injectExtensionConfig(extensionId: string): Promise<void> {
+  const configString = buildExtensionEnvConfig();
+  if (!configString) {
+    console.log('No env config to inject, skipping');
+    return;
+  }
+  console.log(
+    'Injecting env config keys:',
+    configString
+      .split('\n')
+      .map((l) => l.split('=')[0])
+      .join(', '),
+  );
+
+  // Find the extension's service worker target via CDP
+  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+  const targets = await res.json();
+  const extTarget = targets.find(
+    (t: any) =>
+      t.url?.startsWith(`chrome-extension://${extensionId}`) &&
+      t.type === 'page',
+  );
+
+  if (!extTarget) {
+    // Open the extension page to create a target we can inject into
+    console.log('No extension page target found, opening one...');
+    const extUrl = `chrome-extension://${extensionId}/index.html`;
+    await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?${extUrl}`);
+    await sleep(3000);
+
+    // Re-fetch targets
+    const res2 = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+    const targets2 = await res2.json();
+    const extTarget2 = targets2.find(
+      (t: any) =>
+        t.url?.startsWith(`chrome-extension://${extensionId}`) &&
+        t.type === 'page',
+    );
+    if (!extTarget2) {
+      throw new Error('Cannot find extension page target for config injection');
+    }
+    await injectViaWebSocket(extTarget2.webSocketDebuggerUrl, configString);
+    // Close the tab we opened - navigate back to the original page
+    await fetch(`http://127.0.0.1:${CDP_PORT}/json/activate/${targets[0]?.id}`);
+  } else {
+    await injectViaWebSocket(extTarget.webSocketDebuggerUrl, configString);
+  }
+}
+
+async function injectViaWebSocket(
+  wsUrl: string,
+  configString: string,
+): Promise<void> {
+  const { WebSocket } = await import('ws');
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.on('open', () => {
+      const escaped = JSON.stringify(configString);
+      ws.send(
+        JSON.stringify({
+          id: 1,
+          method: 'Runtime.evaluate',
+          params: {
+            expression: `localStorage.setItem('midscene-env-config', ${escaped})`,
+          },
+        }),
+      );
+    });
+    ws.on('message', (data: Buffer) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.id === 1) {
+        console.log('Config injected successfully via CDP');
+        ws.close();
+        resolve();
+      }
+    });
+    ws.on('error', reject);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('CDP injection timed out'));
+    }, 10000);
+  });
+}
+
 async function launchChromeWithExtension(
   extensionPath: string,
   url: string,
@@ -112,13 +224,14 @@ async function launchChromeWithExtension(
     `--load-extension=${extensionPath}`,
     `--disable-extensions-except=${extensionPath}`,
     `--user-data-dir=${userDataDir}`,
+    `--remote-debugging-port=${CDP_PORT}`,
     '--window-size=1920,1080',
     '--start-maximized',
     url,
   ];
 
   console.log(`DISPLAY=${process.env.DISPLAY}`);
-  console.log(`Launching: ${browser} ${args.slice(0, 3).join(' ')} ...`);
+  console.log('Launching browser...');
 
   const child = spawn(browser, args, {
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -151,24 +264,22 @@ describe('chrome extension basic test', () => {
       extensionPath,
       'https://todomvc.com/examples/react/dist/',
     );
-    // Wait for extension to register in preferences (confirms it loaded)
     const extId = await readExtensionId();
     console.log('Extension ID:', extId);
+
+    // Inject env config into extension's localStorage via CDP
+    await injectExtensionConfig(extId);
   });
 
   it('open side panel via extension icon', async () => {
-    // Click the puzzle piece icon (Extensions menu) in Chrome toolbar
     await agent.aiAct(
       'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
     );
     await sleep(1000);
 
-    // Click Midscene.js in the dropdown to trigger openPanelOnActionClick
     await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
     await sleep(3000);
 
-    // Verify: side panel should appear on the right with Playground UI,
-    // while the TodoMVC page remains visible on the left
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
     );
