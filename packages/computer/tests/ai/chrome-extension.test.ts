@@ -46,14 +46,17 @@ async function readExtensionId(
     await sleep(intervalMs);
   }
 
-  // Debug: list what exists in the profile dir
+  // Debug: dump Preferences content and profile dir listing
+  const prefsContent = fs.existsSync(prefsPath)
+    ? fs.readFileSync(prefsPath, 'utf-8').substring(0, 3000)
+    : '(Preferences file does not exist)';
   const profileContents = fs.existsSync(userDataDir)
     ? execSync(`find ${userDataDir} -maxdepth 3 -type f | head -50`)
         .toString()
         .trim()
     : '(dir does not exist)';
   throw new Error(
-    `Failed to read extension ID after ${maxAttempts} attempts. Profile contents:\n${profileContents}`,
+    `Failed to read extension ID after ${maxAttempts} attempts.\nPreferences content:\n${prefsContent}\n\nProfile files:\n${profileContents}`,
   );
 }
 
