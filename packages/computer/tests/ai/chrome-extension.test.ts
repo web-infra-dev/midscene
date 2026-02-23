@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
@@ -16,7 +16,7 @@ const userDataDir = '/tmp/midscene-chrome-ext-test';
  * Retries up to maxAttempts times waiting for Chrome to write the file.
  */
 async function readExtensionId(
-  maxAttempts = 10,
+  maxAttempts = 15,
   intervalMs = 2000,
 ): Promise<string> {
   const prefsPath = path.join(userDataDir, 'Default', 'Preferences');
@@ -48,7 +48,7 @@ async function readExtensionId(
 
   // Debug: list what exists in the profile dir
   const profileContents = fs.existsSync(userDataDir)
-    ? execSync(`find ${userDataDir} -maxdepth 3 -type f | head -30`)
+    ? execSync(`find ${userDataDir} -maxdepth 3 -type f | head -50`)
         .toString()
         .trim()
     : '(dir does not exist)';
@@ -59,6 +59,7 @@ async function readExtensionId(
 
 /**
  * Launch Chrome with extension and a known user-data-dir.
+ * Uses spawn to keep Chrome running and capture stderr for debugging.
  */
 async function launchChromeWithExtension(
   extensionPath: string,
@@ -71,7 +72,7 @@ async function launchChromeWithExtension(
   execSync(`rm -rf ${userDataDir}`, { stdio: 'ignore' });
 
   const browser = findLinuxBrowser();
-  const flags = [
+  const args = [
     '--no-sandbox',
     '--disable-gpu',
     '--disable-dev-shm-usage',
@@ -82,12 +83,38 @@ async function launchChromeWithExtension(
     `--user-data-dir=${userDataDir}`,
     '--window-size=1920,1080',
     '--start-maximized',
-  ].join(' ');
-  execSync(`${browser} ${flags} "${url}" &`, {
-    stdio: 'ignore',
-    shell: '/bin/bash',
+    url,
+  ];
+
+  console.log(`DISPLAY=${process.env.DISPLAY}`);
+  console.log(`Launching: ${browser} ${args.join(' ')}`);
+
+  const child = spawn(browser, args, {
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true,
+    env: process.env,
   });
-  await sleep(8000);
+
+  // Log stderr for debugging
+  child.stderr?.on('data', (data: Buffer) => {
+    const msg = data.toString().trim();
+    if (msg) console.log(`[Chrome stderr] ${msg}`);
+  });
+
+  child.on('exit', (code) => {
+    console.log(`[Chrome] exited with code ${code}`);
+  });
+
+  child.unref();
+  await sleep(10000);
+
+  // Verify Chrome is still running
+  try {
+    process.kill(child.pid!, 0);
+    console.log(`[Chrome] process ${child.pid} is running`);
+  } catch {
+    console.log('[Chrome] process is NOT running - it may have crashed');
+  }
 }
 
 describe('chrome extension basic test', () => {
