@@ -2,13 +2,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
 import {
+  CompressOutlined,
   DownloadOutlined,
+  ExpandOutlined,
   ExportOutlined,
   ThunderboltOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
 import { Player as RemotionPlayer } from '@remotion/player';
-import type { PlayerRef, RenderCustomControls } from '@remotion/player';
+import type {
+  PlayerRef,
+  RenderCustomControls,
+  RenderFullscreenButton,
+} from '@remotion/player';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
@@ -130,6 +136,15 @@ export function Player(props?: {
   }, [frameMap, effectsEnabled, isExporting]);
 
   const [mouseOverSettingsIcon, setMouseOverSettingsIcon] = useState(false);
+
+  const renderFullscreenButton: RenderFullscreenButton = useCallback(
+    ({ isFullscreen }) => (
+      <div className="status-icon">
+        {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+      </div>
+    ),
+    [],
+  );
 
   const renderCustomControls: RenderCustomControls = useCallback(() => {
     return (
@@ -330,6 +345,7 @@ export function Player(props?: {
           controls
           showVolumeControls={false}
           renderCustomControls={renderCustomControls}
+          renderFullscreenButton={renderFullscreenButton}
           autoPlay
           loop={false}
           style={{
