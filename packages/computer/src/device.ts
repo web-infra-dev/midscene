@@ -396,9 +396,19 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   private async healthCheck(): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
 
-    // Step 1: Take a screenshot
+    // Step 1: Take a screenshot (with timeout to handle screenshot-desktop
+    // hanging when xrandr is missing on Linux — its promise never settles)
     console.log('[HealthCheck] Taking screenshot...');
-    const base64 = await this.screenshotBase64();
+    const screenshotTimeout = 15_000;
+    const base64 = await Promise.race([
+      this.screenshotBase64(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error('Screenshot timed out')),
+          screenshotTimeout,
+        ),
+      ),
+    ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
     // Step 2: Move the mouse
