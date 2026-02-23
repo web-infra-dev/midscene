@@ -29,6 +29,20 @@ export function checkXvfbInstalled(): boolean {
 }
 
 /**
+ * Check if screenshot-desktop dependencies (xrandr, imagemagick) are available.
+ * Without these, Xvfb is useless because screenshots will hang.
+ */
+function checkScreenshotDeps(): boolean {
+  try {
+    execSync('which xrandr', { stdio: 'ignore' });
+    execSync('which import', { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Find an available display number by checking /tmp/.X{n}-lock files
  */
 export function findAvailableDisplay(startFrom = 99): number {
@@ -104,7 +118,7 @@ export function startXvfb(options?: XvfbOptions): Promise<XvfbInstance> {
  * Determine whether Xvfb is needed
  * - Non-Linux: always false
  * - Explicit option: follow it
- * - Otherwise: true if no DISPLAY is set
+ * - Auto-detect: true only if no DISPLAY AND Xvfb AND screenshot deps are available
  */
 export function needsXvfb(explicitOpt?: boolean): boolean {
   if (process.platform !== 'linux') {
@@ -113,5 +127,12 @@ export function needsXvfb(explicitOpt?: boolean): boolean {
   if (explicitOpt !== undefined) {
     return explicitOpt;
   }
-  return !process.env.DISPLAY;
+  // Auto-detect: only start Xvfb if display is missing AND all deps are present
+  if (process.env.DISPLAY) {
+    return false;
+  }
+  if (!checkXvfbInstalled() || !checkScreenshotDeps()) {
+    return false;
+  }
+  return true;
 }

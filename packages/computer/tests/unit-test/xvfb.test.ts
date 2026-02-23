@@ -56,10 +56,36 @@ describe('needsXvfb', () => {
     expect(needsXvfb(false)).toBe(false);
   });
 
-  it('should return true on Linux without DISPLAY', () => {
+  it('should return true on Linux without DISPLAY when all deps available', async () => {
     Object.defineProperty(process, 'platform', { value: 'linux' });
     clearDisplay();
+    const { execSync } = await import('node:child_process');
+    // Mock all dependency checks to succeed (Xvfb, xrandr, import)
+    vi.mocked(execSync)
+      .mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'))
+      .mockReturnValueOnce(Buffer.from('/usr/bin/xrandr'))
+      .mockReturnValueOnce(Buffer.from('/usr/bin/import'));
     expect(needsXvfb()).toBe(true);
+  });
+
+  it('should return false on Linux without DISPLAY when xrandr missing', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    clearDisplay();
+    const { execSync } = await import('node:child_process');
+    // Xvfb exists but xrandr doesn't
+    vi.mocked(execSync)
+      .mockReturnValueOnce(Buffer.from('/usr/bin/Xvfb'))
+      .mockImplementationOnce(() => {
+        throw new Error('not found');
+      });
+    expect(needsXvfb()).toBe(false);
+  });
+
+  it('should return false on Linux without DISPLAY when Xvfb not installed', () => {
+    Object.defineProperty(process, 'platform', { value: 'linux' });
+    clearDisplay();
+    // execSync throws by default (Xvfb not found)
+    expect(needsXvfb()).toBe(false);
   });
 
   it('should return false on Linux with DISPLAY', () => {
