@@ -13,21 +13,47 @@ const userDataDir = '/tmp/midscene-chrome-ext-test';
 
 /**
  * Read the extension ID from Chrome's Preferences file after launch.
+ * Retries up to maxAttempts times waiting for Chrome to write the file.
  */
-function readExtensionId(): string {
+async function readExtensionId(
+  maxAttempts = 10,
+  intervalMs = 2000,
+): Promise<string> {
   const prefsPath = path.join(userDataDir, 'Default', 'Preferences');
-  const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf-8'));
-  const extensions = prefs?.extensions?.settings;
-  if (!extensions) {
-    throw new Error('No extensions found in Chrome Preferences');
-  }
-  for (const [id, ext] of Object.entries(extensions) as [string, any][]) {
-    if (ext.manifest?.name === 'Midscene.js') {
-      return id;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    if (fs.existsSync(prefsPath)) {
+      try {
+        const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf-8'));
+        const extensions = prefs?.extensions?.settings;
+        if (extensions) {
+          for (const [id, ext] of Object.entries(extensions) as [
+            string,
+            any,
+          ][]) {
+            if (ext.manifest?.name === 'Midscene.js') {
+              return id;
+            }
+          }
+        }
+      } catch {
+        // JSON might be partially written, retry
+      }
     }
+    console.log(
+      `Waiting for Chrome Preferences (attempt ${i + 1}/${maxAttempts})...`,
+    );
+    await sleep(intervalMs);
   }
+
+  // Debug: list what exists in the profile dir
+  const profileContents = fs.existsSync(userDataDir)
+    ? execSync(`find ${userDataDir} -maxdepth 3 -type f | head -30`)
+        .toString()
+        .trim()
+    : '(dir does not exist)';
   throw new Error(
-    `Midscene.js extension not found. Available: ${Object.keys(extensions).join(', ')}`,
+    `Failed to read extension ID after ${maxAttempts} attempts. Profile contents:\n${profileContents}`,
   );
 }
 
@@ -81,8 +107,8 @@ describe('chrome extension basic test', () => {
       'https://todomvc.com/examples/react/dist/',
     );
 
-    // Read extension ID from Chrome profile
-    extensionId = readExtensionId();
+    // Read extension ID from Chrome profile (with retries)
+    extensionId = await readExtensionId();
     console.log('Extension ID:', extensionId);
   });
 
