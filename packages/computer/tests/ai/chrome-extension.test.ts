@@ -20,43 +20,82 @@ async function readExtensionId(
   intervalMs = 2000,
 ): Promise<string> {
   const prefsPath = path.join(userDataDir, 'Default', 'Preferences');
+  const securePrefsPath = path.join(
+    userDataDir,
+    'Default',
+    'Secure Preferences',
+  );
 
   for (let i = 0; i < maxAttempts; i++) {
-    if (fs.existsSync(prefsPath)) {
-      try {
-        const prefs = JSON.parse(fs.readFileSync(prefsPath, 'utf-8'));
-        const extensions = prefs?.extensions?.settings;
-        if (extensions) {
-          for (const [id, ext] of Object.entries(extensions) as [
-            string,
-            any,
-          ][]) {
-            if (ext.manifest?.name === 'Midscene.js') {
-              return id;
+    // Try both Preferences and Secure Preferences
+    for (const filePath of [prefsPath, securePrefsPath]) {
+      if (fs.existsSync(filePath)) {
+        try {
+          const prefs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+          const extensions = prefs?.extensions?.settings;
+          if (extensions) {
+            // Log all found extensions for debugging
+            if (i === 0) {
+              for (const [id, ext] of Object.entries(extensions) as [
+                string,
+                any,
+              ][]) {
+                const name =
+                  (ext as any).manifest?.name || (ext as any).path || 'unknown';
+                console.log(
+                  `[${path.basename(filePath)}] Extension: ${id} -> ${name}`,
+                );
+              }
+            }
+            for (const [id, ext] of Object.entries(extensions) as [
+              string,
+              any,
+            ][]) {
+              const name = (ext as any).manifest?.name;
+              const extPath = (ext as any).path;
+              if (
+                name === 'Midscene.js' ||
+                extPath?.includes('chrome-extension/dist')
+              ) {
+                return id;
+              }
             }
           }
+        } catch {
+          // JSON might be partially written, retry
         }
-      } catch {
-        // JSON might be partially written, retry
       }
     }
     console.log(
-      `Waiting for Chrome Preferences (attempt ${i + 1}/${maxAttempts})...`,
+      `Waiting for extension in Preferences (attempt ${i + 1}/${maxAttempts})...`,
     );
     await sleep(intervalMs);
   }
 
-  // Debug: dump Preferences content and profile dir listing
-  const prefsContent = fs.existsSync(prefsPath)
-    ? fs.readFileSync(prefsPath, 'utf-8').substring(0, 3000)
-    : '(Preferences file does not exist)';
-  const profileContents = fs.existsSync(userDataDir)
-    ? execSync(`find ${userDataDir} -maxdepth 3 -type f | head -50`)
-        .toString()
-        .trim()
-    : '(dir does not exist)';
+  // Debug: dump both prefs files
+  for (const filePath of [prefsPath, securePrefsPath]) {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      try {
+        const prefs = JSON.parse(content);
+        const extensions = prefs?.extensions?.settings || {};
+        console.log(
+          `[${path.basename(filePath)}] All extension IDs: ${Object.keys(extensions).join(', ')}`,
+        );
+        for (const [id, ext] of Object.entries(extensions) as [string, any][]) {
+          console.log(
+            `  ${id}: name=${(ext as any).manifest?.name}, path=${(ext as any).path}`,
+          );
+        }
+      } catch {
+        console.log(
+          `[${path.basename(filePath)}] Parse error, first 2000 chars: ${content.substring(0, 2000)}`,
+        );
+      }
+    }
+  }
   throw new Error(
-    `Failed to read extension ID after ${maxAttempts} attempts.\nPreferences content:\n${prefsContent}\n\nProfile files:\n${profileContents}`,
+    `Midscene.js extension not found after ${maxAttempts} attempts`,
   );
 }
 
