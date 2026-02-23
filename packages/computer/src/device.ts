@@ -380,6 +380,8 @@ Screen Size: ${size.width}x${size.height}
 Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
 `;
       debugDevice('Computer device connected', this.description);
+      // Health check: verify screenshot and mouse control are working
+      await this.healthCheck();
     } catch (error) {
       // Clean up Xvfb on connection failure
       if (this.xvfbInstance) {
@@ -389,9 +391,6 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
     }
-
-    // Health check: verify screenshot and mouse control are working
-    await this.healthCheck();
   }
 
   private async healthCheck(): Promise<void> {
@@ -399,49 +398,37 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
     // Step 1: Take a screenshot
     console.log('[HealthCheck] Taking screenshot...');
-    try {
-      const base64 = await this.screenshotBase64();
-      console.log(
-        `[HealthCheck] Screenshot succeeded (length=${base64.length})`,
-      );
-    } catch (error) {
-      console.error(`[HealthCheck] Screenshot failed: ${error}`);
-      process.exit(1);
-    }
+    const base64 = await this.screenshotBase64();
+    console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
     // Step 2: Move the mouse
     console.log('[HealthCheck] Moving mouse...');
-    try {
-      assert(libnut, 'libnut not initialized');
-      const startPos = libnut.getMousePos();
-      console.log(
-        `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
-      );
+    assert(libnut, 'libnut not initialized');
+    const startPos = libnut.getMousePos();
+    console.log(
+      `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
+    );
 
-      // Move the mouse by a small random offset, then move it back
-      const offsetX = Math.floor(Math.random() * 40) + 10;
-      const offsetY = Math.floor(Math.random() * 40) + 10;
-      const targetX = startPos.x + offsetX;
-      const targetY = startPos.y + offsetY;
+    // Move the mouse by a small random offset, then move it back
+    const offsetX = Math.floor(Math.random() * 40) + 10;
+    const offsetY = Math.floor(Math.random() * 40) + 10;
+    const targetX = startPos.x + offsetX;
+    const targetY = startPos.y + offsetY;
 
-      console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
-      libnut.moveMouse(targetX, targetY);
-      await sleep(50);
+    console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
+    libnut.moveMouse(targetX, targetY);
+    await sleep(50);
 
-      const movedPos = libnut.getMousePos();
-      console.log(
-        `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
-      );
+    const movedPos = libnut.getMousePos();
+    console.log(
+      `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
+    );
 
-      // Restore original position
-      libnut.moveMouse(startPos.x, startPos.y);
-      console.log(
-        `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
-      );
-    } catch (error) {
-      console.error(`[HealthCheck] Mouse move failed: ${error}`);
-      process.exit(1);
-    }
+    // Restore original position
+    libnut.moveMouse(startPos.x, startPos.y);
+    console.log(
+      `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
+    );
 
     console.log('[HealthCheck] Health check passed');
   }
