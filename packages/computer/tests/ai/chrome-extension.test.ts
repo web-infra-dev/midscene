@@ -189,7 +189,6 @@ async function injectExtensionConfig(extensionId: string): Promise<void> {
     }
     // Navigate to extension page, inject, then navigate back
     const originalUrl = anyPage.url;
-    const { WebSocket } = await import('ws');
     await navigateAndInject(
       anyPage.webSocketDebuggerUrl,
       `chrome-extension://${extensionId}/index.html`,
@@ -208,12 +207,10 @@ async function navigateAndInject(
   configString: string,
   originalUrl: string,
 ): Promise<void> {
-  const { WebSocket } = await import('ws');
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
     let step = 0;
-    ws.on('open', () => {
-      // Step 1: navigate to extension page
+    ws.onopen = () => {
       ws.send(
         JSON.stringify({
           id: 1,
@@ -221,12 +218,13 @@ async function navigateAndInject(
           params: { url: extUrl },
         }),
       );
-    });
-    ws.on('message', (data: Buffer) => {
-      const msg = JSON.parse(data.toString());
+    };
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(
+        typeof event.data === 'string' ? event.data : String(event.data),
+      );
       if (msg.id === 1 && step === 0) {
         step = 1;
-        // Wait for page to load, then inject
         setTimeout(() => {
           const escaped = JSON.stringify(configString);
           ws.send(
@@ -243,7 +241,6 @@ async function navigateAndInject(
       if (msg.id === 2 && step === 1) {
         step = 2;
         console.log('Config injected via navigate fallback');
-        // Navigate back to original URL
         ws.send(
           JSON.stringify({
             id: 3,
@@ -256,8 +253,8 @@ async function navigateAndInject(
         ws.close();
         resolve();
       }
-    });
-    ws.on('error', reject);
+    };
+    ws.onerror = (e) => reject(e);
     setTimeout(() => {
       ws.close();
       reject(new Error('Navigate-and-inject timed out'));
@@ -269,10 +266,9 @@ async function injectViaWebSocket(
   wsUrl: string,
   configString: string,
 ): Promise<void> {
-  const { WebSocket } = await import('ws');
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
-    ws.on('open', () => {
+    ws.onopen = () => {
       const escaped = JSON.stringify(configString);
       ws.send(
         JSON.stringify({
@@ -283,16 +279,18 @@ async function injectViaWebSocket(
           },
         }),
       );
-    });
-    ws.on('message', (data: Buffer) => {
-      const msg = JSON.parse(data.toString());
+    };
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(
+        typeof event.data === 'string' ? event.data : String(event.data),
+      );
       if (msg.id === 1) {
         console.log('Config injected successfully via CDP');
         ws.close();
         resolve();
       }
-    });
-    ws.on('error', reject);
+    };
+    ws.onerror = (e) => reject(e);
     setTimeout(() => {
       ws.close();
       reject(new Error('CDP injection timed out'));
