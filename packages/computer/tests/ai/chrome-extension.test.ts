@@ -118,6 +118,30 @@ function buildExtensionEnvConfig(): string {
 }
 
 /**
+ * Find a CDP target matching the extension ID.
+ * Accepts 'page' or any target type with the extension URL that has a webSocketDebuggerUrl.
+ */
+async function findExtensionTarget(extensionId: string): Promise<any | null> {
+  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+  const targets = await res.json();
+  console.log(
+    'CDP targets:',
+    targets.map((t: any) => `${t.type}: ${t.url?.substring(0, 80)}`),
+  );
+  // Prefer 'page' type, but accept any target with extension URL
+  const extPrefix = `chrome-extension://${extensionId}`;
+  return (
+    targets.find(
+      (t: any) => t.url?.startsWith(extPrefix) && t.type === 'page',
+    ) ||
+    targets.find(
+      (t: any) => t.url?.startsWith(extPrefix) && t.webSocketDebuggerUrl,
+    ) ||
+    null
+  );
+}
+
+/**
  * Inject env config into Chrome extension's localStorage via CDP.
  * The extension stores config at key 'midscene-env-config' in localStorage.
  */
@@ -135,39 +159,110 @@ async function injectExtensionConfig(extensionId: string): Promise<void> {
       .join(', '),
   );
 
-  // Find the extension's service worker target via CDP
-  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-  const targets = await res.json();
-  const extTarget = targets.find(
-    (t: any) =>
-      t.url?.startsWith(`chrome-extension://${extensionId}`) &&
-      t.type === 'page',
-  );
+  let target = await findExtensionTarget(extensionId);
 
-  if (!extTarget) {
+  if (!target) {
     // Open the extension page to create a target we can inject into
-    console.log('No extension page target found, opening one...');
+    console.log('No extension target found, opening extension page...');
     const extUrl = `chrome-extension://${extensionId}/index.html`;
     await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?${extUrl}`);
-    await sleep(3000);
 
-    // Re-fetch targets
-    const res2 = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-    const targets2 = await res2.json();
-    const extTarget2 = targets2.find(
-      (t: any) =>
-        t.url?.startsWith(`chrome-extension://${extensionId}`) &&
-        t.type === 'page',
-    );
-    if (!extTarget2) {
-      throw new Error('Cannot find extension page target for config injection');
+    // Retry a few times waiting for the target to appear
+    for (let i = 0; i < 5; i++) {
+      await sleep(2000);
+      target = await findExtensionTarget(extensionId);
+      if (target) break;
+      console.log(`Waiting for extension target (${i + 1}/5)...`);
     }
-    await injectViaWebSocket(extTarget2.webSocketDebuggerUrl, configString);
-    // Close the tab we opened - navigate back to the original page
-    await fetch(`http://127.0.0.1:${CDP_PORT}/json/activate/${targets[0]?.id}`);
-  } else {
-    await injectViaWebSocket(extTarget.webSocketDebuggerUrl, configString);
   }
+
+  if (!target) {
+    // Last resort: use any existing page target to navigate to extension URL
+    console.log('Falling back: navigating existing tab to extension URL...');
+    const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+    const allTargets = await res.json();
+    const anyPage = allTargets.find(
+      (t: any) => t.type === 'page' && t.webSocketDebuggerUrl,
+    );
+    if (!anyPage) {
+      throw new Error('No CDP page targets available for config injection');
+    }
+    // Navigate to extension page, inject, then navigate back
+    const originalUrl = anyPage.url;
+    const { WebSocket } = await import('ws');
+    await navigateAndInject(
+      anyPage.webSocketDebuggerUrl,
+      `chrome-extension://${extensionId}/index.html`,
+      configString,
+      originalUrl,
+    );
+    return;
+  }
+
+  await injectViaWebSocket(target.webSocketDebuggerUrl, configString);
+}
+
+async function navigateAndInject(
+  wsUrl: string,
+  extUrl: string,
+  configString: string,
+  originalUrl: string,
+): Promise<void> {
+  const { WebSocket } = await import('ws');
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    let step = 0;
+    ws.on('open', () => {
+      // Step 1: navigate to extension page
+      ws.send(
+        JSON.stringify({
+          id: 1,
+          method: 'Page.navigate',
+          params: { url: extUrl },
+        }),
+      );
+    });
+    ws.on('message', (data: Buffer) => {
+      const msg = JSON.parse(data.toString());
+      if (msg.id === 1 && step === 0) {
+        step = 1;
+        // Wait for page to load, then inject
+        setTimeout(() => {
+          const escaped = JSON.stringify(configString);
+          ws.send(
+            JSON.stringify({
+              id: 2,
+              method: 'Runtime.evaluate',
+              params: {
+                expression: `localStorage.setItem('midscene-env-config', ${escaped})`,
+              },
+            }),
+          );
+        }, 2000);
+      }
+      if (msg.id === 2 && step === 1) {
+        step = 2;
+        console.log('Config injected via navigate fallback');
+        // Navigate back to original URL
+        ws.send(
+          JSON.stringify({
+            id: 3,
+            method: 'Page.navigate',
+            params: { url: originalUrl },
+          }),
+        );
+      }
+      if (msg.id === 3 && step === 2) {
+        ws.close();
+        resolve();
+      }
+    });
+    ws.on('error', reject);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('Navigate-and-inject timed out'));
+    }, 15000);
+  });
 }
 
 async function injectViaWebSocket(
