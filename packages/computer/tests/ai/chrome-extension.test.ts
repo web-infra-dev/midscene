@@ -118,26 +118,23 @@ function buildExtensionEnvConfig(): string {
 }
 
 /**
- * Find a CDP target matching the extension ID.
- * Accepts 'page' or any target type with the extension URL that has a webSocketDebuggerUrl.
+ * Find a CDP page target matching the extension ID.
+ * Only 'page' type targets have localStorage — service_worker does not.
  */
-async function findExtensionTarget(extensionId: string): Promise<any | null> {
+async function findExtensionPageTarget(
+  extensionId: string,
+): Promise<any | null> {
   const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
   const targets = await res.json();
   console.log(
     'CDP targets:',
     targets.map((t: any) => `${t.type}: ${t.url?.substring(0, 80)}`),
   );
-  // Prefer 'page' type, but accept any target with extension URL
   const extPrefix = `chrome-extension://${extensionId}`;
   return (
     targets.find(
       (t: any) => t.url?.startsWith(extPrefix) && t.type === 'page',
-    ) ||
-    targets.find(
-      (t: any) => t.url?.startsWith(extPrefix) && t.webSocketDebuggerUrl,
-    ) ||
-    null
+    ) || null
   );
 }
 
@@ -159,42 +156,53 @@ async function injectExtensionConfig(extensionId: string): Promise<void> {
       .join(', '),
   );
 
-  let target = await findExtensionTarget(extensionId);
+  let target = await findExtensionPageTarget(extensionId);
 
   if (!target) {
-    // Open the extension page to create a target we can inject into
-    console.log('No extension target found, opening extension page...');
+    // No extension page exists yet — open one so we can inject localStorage
+    console.log('No extension page target found, opening extension page...');
     const extUrl = `chrome-extension://${extensionId}/index.html`;
-    await fetch(`http://127.0.0.1:${CDP_PORT}/json/new?${extUrl}`);
+    const newTabRes = await fetch(
+      `http://127.0.0.1:${CDP_PORT}/json/new?${extUrl}`,
+    );
+    const newTab = await newTabRes.json();
 
-    // Retry a few times waiting for the target to appear
+    // Wait for the target to appear
     for (let i = 0; i < 5; i++) {
       await sleep(2000);
-      target = await findExtensionTarget(extensionId);
+      target = await findExtensionPageTarget(extensionId);
       if (target) break;
-      console.log(`Waiting for extension target (${i + 1}/5)...`);
+      console.log(`Waiting for extension page target (${i + 1}/5)...`);
     }
-  }
 
-  if (!target) {
-    // Last resort: use any existing page target to navigate to extension URL
-    console.log('Falling back: navigating existing tab to extension URL...');
-    const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-    const allTargets = await res.json();
-    const anyPage = allTargets.find(
-      (t: any) => t.type === 'page' && t.webSocketDebuggerUrl,
-    );
-    if (!anyPage) {
-      throw new Error('No CDP page targets available for config injection');
+    if (!target) {
+      // Last resort: navigate existing tab to extension URL, inject, then navigate back
+      console.log('Falling back: navigating existing tab to extension URL...');
+      const res2 = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+      const allTargets = await res2.json();
+      const anyPage = allTargets.find(
+        (t: any) => t.type === 'page' && t.webSocketDebuggerUrl,
+      );
+      if (!anyPage) {
+        throw new Error('No CDP page targets available for config injection');
+      }
+      const originalUrl = anyPage.url;
+      await navigateAndInject(
+        anyPage.webSocketDebuggerUrl,
+        extUrl,
+        configString,
+        originalUrl,
+      );
+      return;
     }
-    // Navigate to extension page, inject, then navigate back
-    const originalUrl = anyPage.url;
-    await navigateAndInject(
-      anyPage.webSocketDebuggerUrl,
-      `chrome-extension://${extensionId}/index.html`,
-      configString,
-      originalUrl,
-    );
+
+    await injectViaWebSocket(target.webSocketDebuggerUrl, configString);
+
+    // Close the extension tab we opened and switch back to the original page
+    if (newTab?.id) {
+      await fetch(`http://127.0.0.1:${CDP_PORT}/json/close/${newTab.id}`);
+      await sleep(1000);
+    }
     return;
   }
 
