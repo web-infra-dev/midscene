@@ -164,9 +164,10 @@ describe('chrome extension basic test', () => {
     await agent.aiAssert('The page shows the Midscene.js extension UI');
   });
 
-  it('extension page shows mode tabs', async () => {
+  it('playground UI is functional', async () => {
+    // The extension opens in Playground mode by default with action tabs
     await agent.aiAssert(
-      'The page contains tabs or buttons for Playground, Bridge, and Recorder modes',
+      'The page shows action tabs or buttons such as Act, Tap, Query, or Assert',
     );
   });
 });
