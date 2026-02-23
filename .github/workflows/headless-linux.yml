@@ -1,4 +1,4 @@
-name: Test Xvfb headless support
+name: Headless Linux
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'packages/computer/**'
-      - '.github/workflows/test-xvfb.yml'
+      - '.github/workflows/headless-linux.yml'
   workflow_dispatch:
     inputs:
       branch:
@@ -19,37 +19,7 @@ permissions:
   contents: read
 
 jobs:
-  xvfb-unit-test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.inputs.branch || github.ref }}
-
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 9.3.0
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '24.13.0'
-        cache: 'pnpm'
-
-    - name: Install dependencies
-      run: pnpm install --frozen-lockfile --ignore-scripts
-
-    - name: Build project
-      run: pnpm run build:skip-cache
-
-    - name: Run Xvfb unit tests
-      run: npx nx test @midscene/computer -- tests/unit-test/xvfb.test.ts
-
-    - name: Run all computer unit tests
-      run: npx nx test @midscene/computer
-
-  xvfb-ai-todo-test:
+  headless-ai-todo-test:
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -129,7 +99,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: xvfb-ai-test-report
+        name: headless-linux-ai-test-report
         path: packages/computer/midscene_run/report
         if-no-files-found: ignore
 
