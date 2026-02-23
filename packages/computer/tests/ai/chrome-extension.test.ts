@@ -290,4 +290,18 @@ describe('chrome extension basic test', () => {
       'The side panel shows action tabs or buttons such as Act, Tap, Query, or Assert',
     );
   });
+
+  it('run a task in playground', async () => {
+    await agent.aiAct(
+      'Click the input box in the Midscene side panel and type: Enter "Learn JS today" in the task box, then press Enter to create',
+    );
+    await sleep(500);
+
+    await agent.aiAct('Click the "Run" button in the Midscene side panel');
+    await sleep(15000);
+
+    await agent.aiAssert(
+      'The TodoMVC page on the left shows a todo item containing "Learn JS today"',
+    );
+  });
 });
