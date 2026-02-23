@@ -8,14 +8,14 @@ const IS_LINUX = process.platform === 'linux';
 /**
  * Check if running in a headless Linux environment (Xvfb, no desktop)
  */
-function isHeadlessLinux(): boolean {
+export function isHeadlessLinux(): boolean {
   return IS_LINUX && !!process.env.CI;
 }
 
 /**
  * Find an available browser binary on Linux
  */
-function findLinuxBrowser(): string {
+export function findLinuxBrowser(): string {
   const candidates = [
     'google-chrome-stable',
     'google-chrome',
@@ -79,4 +79,35 @@ export async function openBrowserAndNavigate(
   await agent.aiAct(`type "${url}"`);
   await agent.aiAct('press Enter');
   await sleep(3000);
+}
+
+/**
+ * Opens a browser with a Chrome extension loaded and navigates to the specified URL.
+ * Only works in headless Linux CI (Xvfb).
+ */
+export async function openBrowserWithExtension(
+  agent: ComputerAgent,
+  extensionPath: string,
+  url: string,
+): Promise<void> {
+  if (!isHeadlessLinux()) {
+    throw new Error('openBrowserWithExtension only supports headless Linux CI');
+  }
+  const browser = findLinuxBrowser();
+  const flags = [
+    '--no-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--no-first-run',
+    '--no-default-browser-check',
+    `--load-extension=${extensionPath}`,
+    `--disable-extensions-except=${extensionPath}`,
+    '--window-size=1920,1080',
+    '--start-maximized',
+  ].join(' ');
+  execSync(`${browser} ${flags} "${url}" &`, {
+    stdio: 'ignore',
+    shell: '/bin/bash',
+  });
+  await sleep(8000);
 }
