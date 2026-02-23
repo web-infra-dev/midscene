@@ -137,7 +137,6 @@ async function launchChromeWithExtension(
 
 describe('chrome extension basic test', () => {
   let agent: ComputerAgent;
-  let extensionId: string;
   const extensionPath = path.resolve(
     __dirname,
     '../../../../apps/chrome-extension/dist',
@@ -145,29 +144,39 @@ describe('chrome extension basic test', () => {
 
   beforeAll(async () => {
     agent = await agentFromComputer({
-      aiActionContext: 'Chrome browser with Midscene.js extension loaded.',
+      aiActionContext:
+        'Chrome browser with Midscene.js extension loaded. The target page is a TodoMVC app. The extension icon may be in the Extensions (puzzle piece) menu in the toolbar.',
     });
     await launchChromeWithExtension(
       extensionPath,
       'https://todomvc.com/examples/react/dist/',
     );
-    extensionId = await readExtensionId();
-    console.log('Extension ID:', extensionId);
+    // Wait for extension to register in preferences (confirms it loaded)
+    const extId = await readExtensionId();
+    console.log('Extension ID:', extId);
   });
 
-  it('extension loads and UI is accessible', async () => {
-    const extensionUrl = `chrome-extension://${extensionId}/index.html`;
+  it('open side panel via extension icon', async () => {
+    // Click the puzzle piece icon (Extensions menu) in Chrome toolbar
     await agent.aiAct(
-      `Click the browser address bar, type "${extensionUrl}" and press Enter`,
+      'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
     );
-    await sleep(5000);
-    await agent.aiAssert('The page shows the Midscene.js extension UI');
+    await sleep(1000);
+
+    // Click Midscene.js in the dropdown to trigger openPanelOnActionClick
+    await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
+    await sleep(3000);
+
+    // Verify: side panel should appear on the right with Playground UI,
+    // while the TodoMVC page remains visible on the left
+    await agent.aiAssert(
+      'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
+    );
   });
 
-  it('playground UI is functional', async () => {
-    // The extension opens in Playground mode by default with action tabs
+  it('playground shows action tabs', async () => {
     await agent.aiAssert(
-      'The page shows action tabs or buttons such as Act, Tap, Query, or Assert',
+      'The side panel shows action tabs or buttons such as Act, Tap, Query, or Assert',
     );
   });
 });
