@@ -304,7 +304,13 @@ export function SignalBarsIcon({
 }: { barWidth?: number; gap?: number } = {}): React.ReactElement {
   const w = barWidth * 4 + gap * 3;
   return (
-    <svg width={w} height="12" viewBox={`0 0 ${w} 12`}>
+    <svg
+      width={w}
+      height="12"
+      viewBox={`0 0 ${w} 12`}
+      role="img"
+      aria-label="Signal bars"
+    >
       <rect x="0" y="8" width={barWidth} height="4" rx="0.5" fill="#fff" />
       <rect
         x={barWidth + gap}
@@ -336,7 +342,13 @@ export function SignalBarsIcon({
 
 export function WifiIcon(): React.ReactElement {
   return (
-    <svg width="14" height="12" viewBox="0 0 14 12">
+    <svg
+      width="14"
+      height="12"
+      viewBox="0 0 14 12"
+      role="img"
+      aria-label="WiFi"
+    >
       <path
         d="M7 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM3.5 8.5C4.5 7.2 5.7 6.5 7 6.5s2.5.7 3.5 2"
         stroke="#fff"
@@ -404,7 +416,13 @@ export function BatteryIcon({
 export function AndroidNavBar(): React.ReactElement {
   return (
     <>
-      <svg width="16" height="16" viewBox="0 0 16 16">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        role="img"
+        aria-label="Back"
+      >
         <polygon
           points="11,2 5,8 11,14"
           fill="none"
@@ -412,7 +430,13 @@ export function AndroidNavBar(): React.ReactElement {
           strokeWidth="1.5"
         />
       </svg>
-      <svg width="16" height="16" viewBox="0 0 16 16">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        role="img"
+        aria-label="Home"
+      >
         <circle
           cx="8"
           cy="8"
@@ -422,7 +446,13 @@ export function AndroidNavBar(): React.ReactElement {
           strokeWidth="1.5"
         />
       </svg>
-      <svg width="16" height="16" viewBox="0 0 16 16">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 16 16"
+        role="img"
+        aria-label="Recent"
+      >
         <rect
           x="3"
           y="3"

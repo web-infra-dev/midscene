@@ -226,9 +226,9 @@ function drawChromeTitleBar(
 ) {
   const h = CHROME_TITLE_BAR_H;
   drawTitleBarBase(ctx, x, y, w, h);
-  const abx = x + 70,
-    aby = y + h / 2 - 11,
-    abw = w - 84;
+  const abx = x + 70;
+  const aby = y + h / 2 - 11;
+  const abw = w - 84;
   ctx.fillStyle = 'rgba(0,0,0,0.4)';
   roundRect(ctx, abx, aby, abw, 22, 6);
   ctx.fill();
