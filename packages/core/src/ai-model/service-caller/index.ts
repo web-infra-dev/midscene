@@ -709,7 +709,11 @@ export function safeParseJson(
     lastError = error;
   }
 
-  if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed' || isUITars(modelFamily)) {
+  if (
+    modelFamily === 'doubao-vision' ||
+    modelFamily === 'doubao-seed' ||
+    isUITars(modelFamily)
+  ) {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     try {
       parsed = JSON.parse(jsonrepair(jsonString));

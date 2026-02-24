@@ -205,7 +205,11 @@ export function adaptBbox(
   const normalizedBbox = normalizeBboxInput(bbox);
 
   let result: [number, number, number, number] = [0, 0, 0, 0];
-  if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed' || isUITars(modelFamily)) {
+  if (
+    modelFamily === 'doubao-vision' ||
+    modelFamily === 'doubao-seed' ||
+    isUITars(modelFamily)
+  ) {
     result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (modelFamily === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
