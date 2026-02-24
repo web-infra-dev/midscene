@@ -87,7 +87,7 @@ export async function launchChromeWithExtension(
   if (!isHeadlessLinux()) {
     throw new Error('Only supports headless Linux CI');
   }
-  execSync(`rm -rf '${USER_DATA_DIR}'`, { stdio: 'ignore' });
+  fs.rmSync(USER_DATA_DIR, { recursive: true, force: true });
 
   const browser = findExtensionCapableBrowser();
   const args = [
@@ -105,7 +105,7 @@ export async function launchChromeWithExtension(
     url,
   ];
 
-  console.log(`DISPLAY=${process.env.DISPLAY}`);
+  console.log('DISPLAY is set:', !!process.env.DISPLAY);
   console.log('Launching browser...');
 
   const child = spawn(browser, args, {

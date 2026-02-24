@@ -401,14 +401,16 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     // hanging when xrandr is missing on Linux — its promise never settles)
     console.log('[HealthCheck] Taking screenshot...');
     const screenshotTimeout = 15_000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Screenshot timed out')),
+        screenshotTimeout,
+      );
+    });
     const base64 = await Promise.race([
-      this.screenshotBase64(),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error('Screenshot timed out')),
-          screenshotTimeout,
-        ),
-      ),
+      this.screenshotBase64().finally(() => clearTimeout(timeoutId)),
+      timeoutPromise,
     ]);
     console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
