@@ -256,6 +256,7 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 export type TVlModeValues =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
+  | 'qwen3.5'
   | 'doubao-vision'
   | 'gemini'
   | 'vlm-ui-tars'
@@ -270,6 +271,7 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'gemini',
   'qwen2.5-vl',
   'qwen3-vl',
+  'qwen3.5',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
@@ -285,6 +287,7 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
  * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
  * - 'qwen2.5-vl' is Qwen 2.5
  * - 'qwen3-vl' is Qwen 3
+ * - 'qwen3.5' is Qwen 3.5 (behaves the same as qwen3-vl)
  */
 export type TModelFamily = TVlModeValues | 'gpt-5';
 
@@ -338,6 +341,7 @@ export interface IModelConfigForPlanning {
  * Required: MIDSCENE_MODEL_FAMILY must be set to one of:
  *   - 'qwen2.5-vl'
  *   - 'qwen3-vl'
+ *   - 'qwen3.5'
  *   - 'gemini'
  *   - 'doubao-vision'
  *   - 'vlm-ui-tars'
