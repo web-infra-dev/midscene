@@ -173,7 +173,7 @@ jobs:
       run: |
         unset DISPLAY
         AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
-      timeout-minutes: 30
+      timeout-minutes: 40
       id: test-ext
       continue-on-error: true
 

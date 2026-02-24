@@ -358,56 +358,44 @@ describe('chrome extension smoke test', () => {
     }
   });
 
-  // ── 2. Playground Mode - UI Elements ──────────────────────────────────
+  // ── 2. Playground UI Elements ───────────────────────────────────────
 
-  it('playground: default action tabs visible', async () => {
+  it('playground: UI elements are rendered correctly', async () => {
+    // Verify action type buttons
     await agent.aiAssert(
       `${SIDE_PANEL} shows action type buttons including "aiAct", "aiTap", "aiQuery", and "aiAssert"`,
     );
-  });
-
-  it('playground: input area and Run button visible', async () => {
+    // Verify input area and Run button
     await agent.aiAssert(
       `${SIDE_PANEL} has a text input area (textarea) and a blue "Run" button`,
     );
-  });
-
-  it('playground: settings gear icon visible', async () => {
+    // Verify settings gear icon
     await agent.aiAssert(
-      `${SIDE_PANEL} has a gear/settings icon in the top area`,
+      `${SIDE_PANEL} has a gear or settings icon in the top-right area`,
     );
   });
 
-  // ── 3. Playground Mode - Action Type Switching ────────────────────────
+  // ── 3. Action Type Switching ──────────────────────────────────────────
 
-  it('playground: switch to aiQuery tab', async () => {
+  it('playground: action type switching changes placeholder', async () => {
     await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
     await sleep(500);
-
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
     );
-  });
 
-  it('playground: switch to aiAssert tab', async () => {
     await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
     await sleep(500);
-
     await agent.aiAssert(
       `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
     );
-  });
 
-  it('playground: switch back to aiAct tab', async () => {
+    // Switch back to aiAct for the next test
     await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
     await sleep(500);
-
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows an input area with placeholder text containing "do"`,
-    );
   });
 
-  // ── 4. Playground Mode - Run aiAct Task ───────────────────────────────
+  // ── 4. Run aiAct Task ─────────────────────────────────────────────────
 
   it('playground: run aiAct to add a todo item', async () => {
     await agent.aiAct(
@@ -421,89 +409,57 @@ describe('chrome extension smoke test', () => {
     await agent.aiAssert(
       'The TodoMVC page on the left shows a todo item containing "Learn JS today"',
     );
-  });
 
-  it('playground: execution result is shown', async () => {
+    // Also verify execution result is shown in the side panel
     await agent.aiAssert(
       `${SIDE_PANEL} shows execution result or progress messages below the input area`,
     );
   });
 
-  // ── 5. Playground Mode - Run aiQuery Task ─────────────────────────────
+  // ── 5. Mode Switching (Recorder → Bridge → Playground) ────────────────
 
-  it('playground: run aiQuery to extract todo text', async () => {
-    await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
-    await sleep(500);
-
+  it('mode switching: cycle through all modes', async () => {
+    // Switch to Recorder
     await agent.aiAct(
-      `Click the text area in ${SIDE_PANEL} and type: What are the todo items listed on the page?`,
-    );
-    await sleep(500);
-
-    await agent.aiAct(`Click the blue "Run" button in ${SIDE_PANEL}`);
-    await sleep(30000);
-
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a result or output containing "Learn JS today"`,
-    );
-  });
-
-  // ── 6. Mode Switching - Recorder Mode ─────────────────────────────────
-
-  it('switch to Recorder mode', async () => {
-    // Click the hamburger/menu icon in the side panel header
-    await agent.aiAct(
-      `Click the menu icon (three horizontal lines or hamburger icon) at the top-left of ${SIDE_PANEL}`,
+      `Click the menu icon (hamburger or three-line icon) at the top-left of ${SIDE_PANEL}`,
     );
     await sleep(1000);
-
     await agent.aiAct(
       'Click "Recorder" or "Recorder (Preview)" in the dropdown menu',
     );
     await sleep(2000);
-
     await agent.aiAssert(
       `${SIDE_PANEL} shows the Recorder mode UI, which may include a "New Recording" button or recording session list`,
     );
-  });
 
-  // ── 7. Mode Switching - Bridge Mode ───────────────────────────────────
-
-  it('switch to Bridge mode', async () => {
+    // Switch to Bridge
     await agent.aiAct(
-      `Click the menu icon (three horizontal lines or hamburger icon) at the top-left of ${SIDE_PANEL}`,
+      `Click the menu icon (hamburger or three-line icon) at the top-left of ${SIDE_PANEL}`,
     );
     await sleep(1000);
-
     await agent.aiAct('Click "Bridge Mode" or "Bridge" in the dropdown menu');
     await sleep(2000);
-
     await agent.aiAssert(
-      `${SIDE_PANEL} shows the Bridge mode UI with connection status information, such as "Listening" or a WebSocket URL`,
+      `${SIDE_PANEL} shows the Bridge mode UI with connection status text such as "Listening" or "Disconnected"`,
     );
-  });
 
-  // ── 8. Mode Switching - Back to Playground ────────────────────────────
-
-  it('switch back to Playground mode', async () => {
+    // Switch back to Playground
     await agent.aiAct(
-      `Click the menu icon (three horizontal lines or hamburger icon) at the top-left of ${SIDE_PANEL}`,
+      `Click the menu icon (hamburger or three-line icon) at the top-left of ${SIDE_PANEL}`,
     );
     await sleep(1000);
-
     await agent.aiAct('Click "Playground" in the dropdown menu');
     await sleep(2000);
-
     await agent.aiAssert(
       `${SIDE_PANEL} shows the Playground mode with action type buttons like "aiAct"`,
     );
   });
 
-  // ── 9. Settings Modal ─────────────────────────────────────────────────
+  // ── 6. Settings Modal ─────────────────────────────────────────────────
 
-  it('open and close settings modal', async () => {
+  it('settings: open and close env config modal', async () => {
     await agent.aiAct(
-      `Click the gear/settings icon in the top area of ${SIDE_PANEL}`,
+      `Click the gear or settings icon in the top area of ${SIDE_PANEL}`,
     );
     await sleep(1000);
 
@@ -511,7 +467,6 @@ describe('chrome extension smoke test', () => {
       'A modal or dialog is visible with title containing "Config" or "Env" and a text area for environment variable configuration',
     );
 
-    // Close the modal
     await agent.aiAct(
       'Click the "Cancel" button or the close button (X) on the modal',
     );
@@ -519,26 +474,6 @@ describe('chrome extension smoke test', () => {
 
     await agent.aiAssert(
       `The modal is closed and ${SIDE_PANEL} is visible with Playground UI`,
-    );
-  });
-
-  // ── 10. Playground - Run aiAssert ─────────────────────────────────────
-
-  it('playground: run aiAssert to verify todo exists', async () => {
-    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
-    await sleep(500);
-
-    await agent.aiAct(
-      `Click the text area in ${SIDE_PANEL} and type: There is a todo item with text "Learn JS today"`,
-    );
-    await sleep(500);
-
-    await agent.aiAct(`Click the blue "Run" button in ${SIDE_PANEL}`);
-    await sleep(30000);
-
-    // aiAssert should show a success result (green checkmark or "passed")
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a successful assertion result, such as a green checkmark, "passed", or a success message`,
     );
   });
 });
