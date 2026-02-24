@@ -298,6 +298,7 @@ export class ComputerDevice implements AbstractInterface {
   private description?: string;
   private destroyed = false;
   private xvfbInstance?: XvfbInstance;
+  private xvfbCleanup?: () => void;
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
@@ -350,16 +351,16 @@ export class ComputerDevice implements AbstractInterface {
         process.env.DISPLAY = this.xvfbInstance.display;
         debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
 
-        // Clean up Xvfb on process exit
-        const cleanup = () => {
+        // Clean up Xvfb on process exit (stored for removal in destroy())
+        this.xvfbCleanup = () => {
           if (this.xvfbInstance) {
             this.xvfbInstance.stop();
             this.xvfbInstance = undefined;
           }
         };
-        process.on('exit', cleanup);
-        process.on('SIGINT', cleanup);
-        process.on('SIGTERM', cleanup);
+        process.on('exit', this.xvfbCleanup);
+        process.on('SIGINT', this.xvfbCleanup);
+        process.on('SIGTERM', this.xvfbCleanup);
       }
 
       // Load libnut on first connect
@@ -815,6 +816,12 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     if (this.xvfbInstance) {
       this.xvfbInstance.stop();
       this.xvfbInstance = undefined;
+    }
+    if (this.xvfbCleanup) {
+      process.removeListener('exit', this.xvfbCleanup);
+      process.removeListener('SIGINT', this.xvfbCleanup);
+      process.removeListener('SIGTERM', this.xvfbCleanup);
+      this.xvfbCleanup = undefined;
     }
 
     this.destroyed = true;
