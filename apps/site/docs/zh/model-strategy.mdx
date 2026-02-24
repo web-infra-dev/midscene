@@ -51,7 +51,7 @@ DOM 定位方案的稳定性不足预期，它常在 Canvas 元素、CSS backgro
 
 |模型系列|部署|Midscene 评价|
 |---|---|---|
-|豆包 Seed 模型<br />[快速配置](./model-common-config#doubao-seed-model)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
+|豆包 Seed 模型<br />[快速配置](./model-common-config#doubao-seed-model)|火山引擎版本：<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br />[Doubao-Seed-2.0-Lite](https://www.volcengine.com/docs/82379/1799865)|⭐⭐⭐⭐<br/>UI 操作规划、定位能力较强<br />速度略慢|
 |千问 Qwen3.5<br />[快速配置](./model-common-config#qwen35)|[阿里云](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)|⭐⭐⭐⭐<br/>综合效果优于 Qwen3-VL 和 Qwen2.5-VL |
 |智谱 GLM-4.6V<br />[快速配置](./model-common-config#glm-v)|[Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v)|全新接入，欢迎体验<br />模型权重开源[HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
 |Gemini-3-Pro / Gemini-3-Flash<br />[快速配置](./model-common-config#gemini-3-pro)|[Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini)|⭐⭐⭐<br />支持 Gemini-3-Flash<br />价格高于豆包和千问|
@@ -132,7 +132,7 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 
 ### 关于 `aiAct` 方法的 `deepThink` 参数
 
-`deepThink` 参数用于控制模型在规划时是否启用深度思考。目前支持 `qwen3-vl`、`qwen3.5`、`doubao-seed-1.6`、`glm-v` 等系列模型。
+`deepThink` 参数用于控制模型在规划时是否启用深度思考。目前支持 `qwen3-vl`、`qwen3.5`、`doubao-seed-1.6`、`doubao-seed-2.0`、`glm-v` 等系列模型。
 
 启用后，你可以在报告中看到 `Reasoning` 栏目。开启后，规划耗时会增加，但结果会更准确。
 
@@ -140,6 +140,7 @@ Midscene 提供了基于页面理解的数据处理接口，如 AI 断言（`aiA
 - `qwen3.5` 在阿里云：默认开启（更慢，但更准确）
 - `qwen3-vl` 在阿里云：默认关闭（更快，但准确性差）
 - `doubao-seed-1.6` 在火山引擎：默认开启（更慢，但更准确）
+- `doubao-seed-2.0` 在火山引擎：默认开启（更慢，但更准确）
 - `glm-v` 在 Z.AI：默认开启（更慢，但更准确）
 
 你可以通过显式设置 `deepThink: true` 或 `deepThink: false` 来覆盖服务商的默认配置。

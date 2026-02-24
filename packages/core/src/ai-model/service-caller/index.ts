@@ -430,7 +430,7 @@ export async function callAI(
           if (
             !content &&
             accumulatedReasoning &&
-            modelFamily === 'doubao-vision'
+            (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed')
           ) {
             warnCall('empty content from AI model, using reasoning content');
             content = accumulatedReasoning;
@@ -593,12 +593,12 @@ export function resolveDeepThinkConfig({
     };
   }
 
-  if (modelFamily === 'doubao-vision') {
+  if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
     return {
       config: {
         thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
       },
-      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for doubao-vision`,
+      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for ${modelFamily}`,
     };
   }
 
@@ -709,7 +709,7 @@ export function safeParseJson(
     lastError = error;
   }
 
-  if (modelFamily === 'doubao-vision' || isUITars(modelFamily)) {
+  if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed' || isUITars(modelFamily)) {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     try {
       parsed = JSON.parse(jsonrepair(jsonString));
