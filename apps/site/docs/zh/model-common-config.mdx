@@ -65,7 +65,7 @@ import 'dotenv/config';
 
 ### 豆包 Seed 模型 {#doubao-seed-model}
 
-推荐使用 Doubao-Seed-1.6-Vision。
+推荐使用 Doubao-Seed-2.0-Lite，同时也支持 Doubao-Seed-1.6-Vision 和 Doubao-Seed-1.8 模型。
 
 从 [火山引擎](https://volcengine.com) 获取 API 密钥，然后补充以下环境变量：
 
@@ -73,7 +73,7 @@ import 'dotenv/config';
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_MODEL_FAMILY="doubao-vision"
+MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
 ```
 
 ### 千问 Qwen3.5 {#qwen35}

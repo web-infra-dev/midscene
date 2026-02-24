@@ -258,6 +258,7 @@ export type TVlModeValues =
   | 'qwen3-vl'
   | 'qwen3.5'
   | 'doubao-vision'
+  | 'doubao-seed'
   | 'gemini'
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
@@ -268,6 +269,7 @@ export type TVlModeValues =
 
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
+  'doubao-seed',
   'gemini',
   'qwen2.5-vl',
   'qwen3-vl',
@@ -344,6 +346,7 @@ export interface IModelConfigForPlanning {
  *   - 'qwen3.5'
  *   - 'gemini'
  *   - 'doubao-vision'
+ *   - 'doubao-seed'
  *   - 'vlm-ui-tars'
  *   - 'vlm-ui-tars-doubao'
  *   - 'vlm-ui-tars-doubao-1.5'
@@ -465,7 +468,7 @@ export interface IModelConfig {
   retryInterval?: number;
   /**
    * Model family - unified model configuration
-   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', etc.
+   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.
    */
   modelFamily?: TModelFamily;
   uiTarsModelVersion?: UITarsModelVersion;
