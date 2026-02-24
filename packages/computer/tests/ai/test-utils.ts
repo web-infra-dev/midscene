@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { sleep } from '@midscene/core/utils';
 import type { ComputerAgent } from '../../src';
 
@@ -43,20 +43,22 @@ export async function openBrowserAndNavigate(
   if (isHeadlessLinux()) {
     // In headless Linux CI, launch browser directly via command line
     const browser = findLinuxBrowser();
-    const flags = [
-      '--no-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-extensions',
-      '--window-size=1920,1080',
-      '--start-maximized',
-    ].join(' ');
-    execSync(`${browser} ${flags} "${url}" &`, {
-      stdio: 'ignore',
-      shell: '/bin/bash',
-    });
+    const child = spawn(
+      browser,
+      [
+        '--no-sandbox',
+        '--disable-gpu',
+        '--disable-dev-shm-usage',
+        '--no-first-run',
+        '--no-default-browser-check',
+        '--disable-extensions',
+        '--window-size=1920,1080',
+        '--start-maximized',
+        url,
+      ],
+      { stdio: 'ignore', detached: true },
+    );
+    child.unref();
     await sleep(8000);
     return;
   }
