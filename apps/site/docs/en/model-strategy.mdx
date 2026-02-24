@@ -6,8 +6,7 @@ import TroubleshootingLLMConnectivity from './common/troubleshooting-llm-connect
 
 If you want to try Midscene right away, pick a model and follow its configuration guide:
 * [Doubao Seed Model](./model-common-config#doubao-seed-model)
-* [Qwen3-VL](./model-common-config#qwen3-vl)
-* [Qwen2.5-VL](./model-common-config#qwen25-vl)
+* Qwen Models: [Qwen3.5](./model-common-config#qwen35), [Qwen3-VL](./model-common-config#qwen3-vl), [Qwen2.5-VL](./model-common-config#qwen25-vl)
 * [Zhipu GLM-V](./model-common-config#glm-v)
 * [Zhipu AutoGLM](./model-common-config#auto-glm)
 * [Gemini-3-Pro / Gemini-3-Flash](./model-common-config#gemini-3-pro)
@@ -52,9 +51,8 @@ If you are unsure where to start, pick whichever model is easiest to access toda
 
 | Model family | Deployment | Midscene notes |
 | --- | --- | --- |
-| Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
-| Qwen3-VL<br />[Quick setup](./model-common-config#qwen3-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen)<br/>[Ollama (open-source)](https://ollama.com/library/qwen3-vl) | ⭐⭐⭐⭐<br />Assertion in very complex scenes can fluctuate<br />Excellent performance and accuracy<br />Open-source builds available ([HuggingFace](https://huggingface.co/Qwen) / [GitHub](https://github.com/QwenLM/)) |
-| Qwen2.5-VL<br />[Quick setup](./model-common-config#qwen25-vl) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐<br />Overall quality is behind Qwen3-VL |
+| Doubao Seed Model<br />[Quick setup](./model-common-config#doubao-seed-model) | Volcano Engine:<br />[Doubao-Seed-1.6-Vision](https://www.volcengine.com/docs/82379/1799865)<br />[Doubao-Seed-2.0-Lite](https://www.volcengine.com/docs/82379/1799865) | ⭐⭐⭐⭐<br />Strong at UI planning and targeting<br />Slightly slower |
+| Qwen3.5<br />[Quick setup](./model-common-config#qwen35) | [Alibaba Cloud](https://help.aliyun.com/zh/model-studio/vision)<br/>[OpenRouter](https://openrouter.ai/qwen) | ⭐⭐⭐⭐<br />Stronger than Qwen3-VL and Qwen2.5-VL |
 | Zhipu GLM-4.6V<br />[Quick setup](./model-common-config#glm-v) | [Z.AI (Global)](https://docs.z.ai/guides/vlm/glm-4.6v)<br/>[BigModel (CN)](https://docs.bigmodel.cn/cn/guide/models/vlm/glm-4.6v) | Newly integrated, welcome to try it out<br />Weights open-sourced on [HuggingFace](https://huggingface.co/zai-org/GLM-4.6V) |
 | Gemini-3-Pro / Gemini-3-Flash<br />[Quick setup](./model-common-config#gemini-3-pro) | [Google Cloud](https://ai.google.dev/gemini-api/docs/models/gemini) | ⭐⭐⭐<br />Gemini-3-Flash is supported<br />Price is higher than Doubao and Qwen |
 | UI-TARS<br />[Quick setup](./model-common-config#ui-tars) | [Volcano Engine](https://www.volcengine.com/docs/82379/1536429) | ⭐⭐<br />Strong exploratory ability but results vary by scenario<br />Open-source versions available ([HuggingFace](https://huggingface.co/bytedance-research/UI-TARS-72B-SFT) / [GitHub](https://github.com/bytedance/ui-tars)) |
@@ -135,13 +133,15 @@ See [Model configuration](./model-config).
 
 ### About the `deepThink` option in `aiAct`
 
-The `deepThink` option controls whether models use deep reasoning during planning. Currently supported for `qwen3-vl`, `doubao-seed-1.6` and `glm-v` model families.
+The `deepThink` option controls whether models use deep reasoning during planning. Currently supported for `qwen3-vl`, `qwen3.5`, `doubao-seed-1.6`, `doubao-seed-2.0` and `glm-v` model families.
 
 When enabled, you'll see a `Reasoning` section in the report. Planning takes longer but produces more accurate results.
 
 **Default behavior varies by provider:**
+- `qwen3.5` on Alibaba Cloud: enabled by default (slower, more accurate)
 - `qwen3-vl` on Alibaba Cloud: disabled by default (faster, less accurate)
 - `doubao-seed-1.6` on Volcano Engine: enabled by default (slower, more accurate)
+- `doubao-seed-2.0` on Volcano Engine: enabled by default (slower, more accurate)
 - `glm-v` on Z.AI: enabled by default (slower, more accurate)
 
 You can explicitly set `deepThink: true` or `deepThink: false` to override the provider's default.

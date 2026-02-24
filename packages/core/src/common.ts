@@ -205,7 +205,11 @@ export function adaptBbox(
   const normalizedBbox = normalizeBboxInput(bbox);
 
   let result: [number, number, number, number] = [0, 0, 0, 0];
-  if (modelFamily === 'doubao-vision' || isUITars(modelFamily)) {
+  if (
+    modelFamily === 'doubao-vision' ||
+    modelFamily === 'doubao-seed' ||
+    isUITars(modelFamily)
+  ) {
     result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (modelFamily === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
@@ -213,7 +217,7 @@ export function adaptBbox(
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
   } else {
     // Default: normalized 0-1000 coordinate system
-    // Includes: qwen3-vl, glm-v, auto-glm, auto-glm-multilingual, and future models
+    // Includes: qwen3-vl, qwen3.5, glm-v, auto-glm, auto-glm-multilingual, and future models
     result = normalized01000(normalizedBbox as number[], width, height);
   }
 
