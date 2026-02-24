@@ -11,11 +11,8 @@ vi.setConfig({ testTimeout: 240 * 1000 });
 const userDataDir = '/tmp/midscene-chrome-ext-test';
 const CDP_PORT = 9222;
 
-/**
- * Find a Chrome/Chromium binary that supports --load-extension.
- * Chrome 137+ branded builds removed --load-extension support,
- * so we prefer Chrome for Testing (installed by Puppeteer) or Chromium.
- */
+// ─── Browser & Extension Helpers ────────────────────────────────────────────
+
 function findExtensionCapableBrowser(): string {
   const puppeteerBase = path.join(
     process.env.HOME || '~',
@@ -52,9 +49,6 @@ function findExtensionCapableBrowser(): string {
   );
 }
 
-/**
- * Read the extension ID from Chrome's Preferences file.
- */
 async function readExtensionId(maxAttempts = 15): Promise<string> {
   const prefsPath = path.join(userDataDir, 'Default', 'Preferences');
 
@@ -88,227 +82,6 @@ async function readExtensionId(maxAttempts = 15): Promise<string> {
   throw new Error(
     `Midscene.js extension not found after ${maxAttempts} attempts`,
   );
-}
-
-/**
- * Build the env config string from process.env.
- * Only includes MIDSCENE_* and OPENAI_* vars that are set.
- */
-function buildExtensionEnvConfig(): string {
-  const envKeys = [
-    'MIDSCENE_OPENAI_INIT_CONFIG_JSON',
-    'MIDSCENE_MODEL_INIT_CONFIG_JSON',
-    'MIDSCENE_MODEL_NAME',
-    'MIDSCENE_MODEL_API_KEY',
-    'MIDSCENE_MODEL_BASE_URL',
-    'MIDSCENE_MODEL_FAMILY',
-    'MIDSCENE_USE_QWEN3_VL',
-    'OPENAI_API_KEY',
-    'OPENAI_BASE_URL',
-  ];
-
-  const lines: string[] = [];
-  for (const key of envKeys) {
-    const value = process.env[key];
-    if (value) {
-      lines.push(`${key}=${value}`);
-    }
-  }
-  return lines.join('\n');
-}
-
-/**
- * Find a CDP page target matching the extension ID.
- * Only 'page' type targets have localStorage — service_worker does not.
- */
-async function findExtensionPageTarget(
-  extensionId: string,
-): Promise<any | null> {
-  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-  const targets = await res.json();
-  console.log(
-    'CDP targets:',
-    targets.map((t: any) => `${t.type}: ${t.url?.substring(0, 80)}`),
-  );
-  const extPrefix = `chrome-extension://${extensionId}`;
-  return (
-    targets.find(
-      (t: any) => t.url?.startsWith(extPrefix) && t.type === 'page',
-    ) || null
-  );
-}
-
-/**
- * Inject env config into Chrome extension's localStorage via CDP.
- * The extension stores config at key 'midscene-env-config' in localStorage.
- */
-async function injectExtensionConfig(extensionId: string): Promise<void> {
-  const configString = buildExtensionEnvConfig();
-  if (!configString) {
-    console.log('No env config to inject, skipping');
-    return;
-  }
-  console.log(
-    'Injecting env config keys:',
-    configString
-      .split('\n')
-      .map((l) => l.split('=')[0])
-      .join(', '),
-  );
-
-  const target = await findExtensionPageTarget(extensionId);
-
-  if (!target) {
-    // No extension page target — navigate existing tab to extension URL to inject
-    console.log(
-      'No extension page target, navigating existing tab to inject...',
-    );
-    const res2 = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
-    const allTargets = await res2.json();
-    const anyPage = allTargets.find(
-      (t: any) => t.type === 'page' && t.webSocketDebuggerUrl,
-    );
-    if (!anyPage) {
-      throw new Error('No CDP page targets available for config injection');
-    }
-    const originalUrl = anyPage.url;
-    await navigateAndInject(
-      anyPage.webSocketDebuggerUrl,
-      `chrome-extension://${extensionId}/index.html`,
-      configString,
-      originalUrl,
-    );
-    return;
-  }
-
-  await injectViaWebSocket(target.webSocketDebuggerUrl, configString);
-}
-
-async function navigateAndInject(
-  wsUrl: string,
-  extUrl: string,
-  configString: string,
-  originalUrl: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
-    let step = 0;
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          id: 1,
-          method: 'Page.navigate',
-          params: { url: extUrl },
-        }),
-      );
-    };
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(
-        typeof event.data === 'string' ? event.data : String(event.data),
-      );
-      if (msg.id === 1 && step === 0) {
-        step = 1;
-        setTimeout(() => {
-          const escaped = JSON.stringify(configString);
-          ws.send(
-            JSON.stringify({
-              id: 2,
-              method: 'Runtime.evaluate',
-              params: {
-                expression: `localStorage.setItem('midscene-env-config', ${escaped})`,
-              },
-            }),
-          );
-        }, 2000);
-      }
-      if (msg.id === 2 && step === 1) {
-        step = 2;
-        console.log('Config injected via navigate fallback');
-        ws.send(
-          JSON.stringify({
-            id: 3,
-            method: 'Page.navigate',
-            params: { url: originalUrl },
-          }),
-        );
-      }
-      if (msg.id === 3 && step === 2) {
-        ws.close();
-        resolve();
-      }
-    };
-    ws.onerror = (e) => reject(e);
-    setTimeout(() => {
-      ws.close();
-      reject(new Error('Navigate-and-inject timed out'));
-    }, 15000);
-  });
-}
-
-async function injectViaWebSocket(
-  wsUrl: string,
-  configString: string,
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
-    ws.onopen = () => {
-      const escaped = JSON.stringify(configString);
-      ws.send(
-        JSON.stringify({
-          id: 1,
-          method: 'Runtime.evaluate',
-          params: {
-            expression: `localStorage.setItem('midscene-env-config', ${escaped})`,
-          },
-        }),
-      );
-    };
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(
-        typeof event.data === 'string' ? event.data : String(event.data),
-      );
-      if (msg.id === 1) {
-        console.log('Config injected successfully via CDP');
-        ws.close();
-        resolve();
-      }
-    };
-    ws.onerror = (e) => reject(e);
-    setTimeout(() => {
-      ws.close();
-      reject(new Error('CDP injection timed out'));
-    }, 10000);
-  });
-}
-
-async function reloadViaWebSocket(wsUrl: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsUrl);
-    ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          id: 1,
-          method: 'Page.reload',
-          params: {},
-        }),
-      );
-    };
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(
-        typeof event.data === 'string' ? event.data : String(event.data),
-      );
-      if (msg.id === 1) {
-        console.log('Side panel reloaded to apply config');
-        ws.close();
-        resolve();
-      }
-    };
-    ws.onerror = (e) => reject(e);
-    setTimeout(() => {
-      ws.close();
-      resolve(); // Don't fail if reload times out
-    }, 5000);
-  });
 }
 
 async function launchChromeWithExtension(
@@ -354,7 +127,192 @@ async function launchChromeWithExtension(
   await sleep(10000);
 }
 
-describe('chrome extension basic test', () => {
+// ─── CDP Helpers ────────────────────────────────────────────────────────────
+
+function buildExtensionEnvConfig(): string {
+  const envKeys = [
+    'MIDSCENE_OPENAI_INIT_CONFIG_JSON',
+    'MIDSCENE_MODEL_INIT_CONFIG_JSON',
+    'MIDSCENE_MODEL_NAME',
+    'MIDSCENE_MODEL_API_KEY',
+    'MIDSCENE_MODEL_BASE_URL',
+    'MIDSCENE_MODEL_FAMILY',
+    'MIDSCENE_USE_QWEN3_VL',
+    'OPENAI_API_KEY',
+    'OPENAI_BASE_URL',
+  ];
+
+  const lines: string[] = [];
+  for (const key of envKeys) {
+    const value = process.env[key];
+    if (value) {
+      lines.push(`${key}=${value}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+async function findExtensionPageTarget(
+  extensionId: string,
+): Promise<any | null> {
+  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+  const targets = await res.json();
+  console.log(
+    'CDP targets:',
+    targets.map((t: any) => `${t.type}: ${t.url?.substring(0, 80)}`),
+  );
+  const extPrefix = `chrome-extension://${extensionId}`;
+  return (
+    targets.find(
+      (t: any) => t.url?.startsWith(extPrefix) && t.type === 'page',
+    ) || null
+  );
+}
+
+async function injectExtensionConfig(extensionId: string): Promise<void> {
+  const configString = buildExtensionEnvConfig();
+  if (!configString) {
+    console.log('No env config to inject, skipping');
+    return;
+  }
+  console.log(
+    'Injecting env config keys:',
+    configString
+      .split('\n')
+      .map((l) => l.split('=')[0])
+      .join(', '),
+  );
+
+  const target = await findExtensionPageTarget(extensionId);
+
+  if (!target) {
+    console.log(
+      'No extension page target, navigating existing tab to inject...',
+    );
+    const res2 = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+    const allTargets = await res2.json();
+    const anyPage = allTargets.find(
+      (t: any) => t.type === 'page' && t.webSocketDebuggerUrl,
+    );
+    if (!anyPage) {
+      throw new Error('No CDP page targets available for config injection');
+    }
+    const originalUrl = anyPage.url;
+    await navigateAndInject(
+      anyPage.webSocketDebuggerUrl,
+      `chrome-extension://${extensionId}/index.html`,
+      configString,
+      originalUrl,
+    );
+    return;
+  }
+
+  await injectViaWebSocket(target.webSocketDebuggerUrl, configString);
+}
+
+function cdpSend(ws: WebSocket, id: number, method: string, params = {}) {
+  ws.send(JSON.stringify({ id, method, params }));
+}
+
+function cdpParse(event: MessageEvent): any {
+  return JSON.parse(
+    typeof event.data === 'string' ? event.data : String(event.data),
+  );
+}
+
+async function navigateAndInject(
+  wsUrl: string,
+  extUrl: string,
+  configString: string,
+  originalUrl: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    let step = 0;
+    ws.onopen = () => cdpSend(ws, 1, 'Page.navigate', { url: extUrl });
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id === 1 && step === 0) {
+        step = 1;
+        setTimeout(() => {
+          const escaped = JSON.stringify(configString);
+          cdpSend(ws, 2, 'Runtime.evaluate', {
+            expression: `localStorage.setItem('midscene-env-config', ${escaped})`,
+          });
+        }, 2000);
+      }
+      if (msg.id === 2 && step === 1) {
+        step = 2;
+        console.log('Config injected via navigate fallback');
+        cdpSend(ws, 3, 'Page.navigate', { url: originalUrl });
+      }
+      if (msg.id === 3 && step === 2) {
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('Navigate-and-inject timed out'));
+    }, 15000);
+  });
+}
+
+async function injectViaWebSocket(
+  wsUrl: string,
+  configString: string,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => {
+      const escaped = JSON.stringify(configString);
+      cdpSend(ws, 1, 'Runtime.evaluate', {
+        expression: `localStorage.setItem('midscene-env-config', ${escaped})`,
+      });
+    };
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id === 1) {
+        console.log('Config injected successfully via CDP');
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('CDP injection timed out'));
+    }, 10000);
+  });
+}
+
+async function reloadViaWebSocket(wsUrl: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(wsUrl);
+    ws.onopen = () => cdpSend(ws, 1, 'Page.reload');
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id === 1) {
+        console.log('Side panel reloaded to apply config');
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      resolve();
+    }, 5000);
+  });
+}
+
+// ─── Test Suite ─────────────────────────────────────────────────────────────
+
+const SIDE_PANEL =
+  'the Midscene side panel on the right side of the browser window';
+
+describe('chrome extension smoke test', () => {
   let agent: ComputerAgent;
   const extensionPath = path.resolve(
     __dirname,
@@ -364,7 +322,7 @@ describe('chrome extension basic test', () => {
   beforeAll(async () => {
     agent = await agentFromComputer({
       aiActionContext:
-        'Chrome browser with Midscene.js extension loaded. The target page is a TodoMVC app. The extension icon may be in the Extensions (puzzle piece) menu in the toolbar.',
+        'Chrome browser with Midscene.js extension loaded. The target page is a TodoMVC app. The extension side panel is on the right side. The main page content is on the left.',
     });
     await launchChromeWithExtension(
       extensionPath,
@@ -372,9 +330,10 @@ describe('chrome extension basic test', () => {
     );
     const extId = await readExtensionId();
     console.log('Extension ID:', extId);
-    // Store extension ID for later injection after side panel opens
     (globalThis as any).__extId = extId;
   });
+
+  // ── 1. Side Panel Launch ──────────────────────────────────────────────
 
   it('open side panel via extension icon', async () => {
     await agent.aiAct(
@@ -389,10 +348,9 @@ describe('chrome extension basic test', () => {
       'The browser shows a side panel on the right side containing Midscene or Playground UI, and the TodoMVC page is still visible on the left',
     );
 
-    // Now inject env config — the side panel target should exist as a 'page' type
+    // Inject env config into the side panel's localStorage via CDP
     const extId = (globalThis as any).__extId;
     await injectExtensionConfig(extId);
-    // Reload the side panel to pick up the new config
     const target = await findExtensionPageTarget(extId);
     if (target) {
       await reloadViaWebSocket(target.webSocketDebuggerUrl);
@@ -400,32 +358,187 @@ describe('chrome extension basic test', () => {
     }
   });
 
-  it('playground shows action tabs', async () => {
+  // ── 2. Playground Mode - UI Elements ──────────────────────────────────
+
+  it('playground: default action tabs visible', async () => {
     await agent.aiAssert(
-      'The side panel shows action tabs or buttons such as Act, Tap, Query, or Assert',
+      `${SIDE_PANEL} shows action type buttons including "aiAct", "aiTap", "aiQuery", and "aiAssert"`,
     );
   });
 
-  it('run a task in playground', async () => {
+  it('playground: input area and Run button visible', async () => {
+    await agent.aiAssert(
+      `${SIDE_PANEL} has a text input area (textarea) and a blue "Run" button`,
+    );
+  });
+
+  it('playground: settings gear icon visible', async () => {
+    await agent.aiAssert(
+      `${SIDE_PANEL} has a gear/settings icon in the top area`,
+    );
+  });
+
+  // ── 3. Playground Mode - Action Type Switching ────────────────────────
+
+  it('playground: switch to aiQuery tab', async () => {
+    await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
+    await sleep(500);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "query"`,
+    );
+  });
+
+  it('playground: switch to aiAssert tab', async () => {
+    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
+    await sleep(500);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "assert"`,
+    );
+  });
+
+  it('playground: switch back to aiAct tab', async () => {
+    await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
+    await sleep(500);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows an input area with placeholder text containing "do"`,
+    );
+  });
+
+  // ── 4. Playground Mode - Run aiAct Task ───────────────────────────────
+
+  it('playground: run aiAct to add a todo item', async () => {
     await agent.aiAct(
-      'Click the text area with placeholder "What do you want to do?" in the right side panel',
+      `Click the text area in ${SIDE_PANEL} and type: Enter "Learn JS today" in the task box, then press Enter to create`,
     );
     await sleep(500);
 
-    await agent.aiAct(
-      'Type the following text into the focused text area: Enter "Learn JS today" in the task box, then press Enter to create',
-    );
-    await sleep(500);
-
-    await agent.aiAct(
-      'Click the blue "Run" button with the send icon in the right side panel',
-    );
-
-    // Wait for the extension's AI to execute the action on the page
+    await agent.aiAct(`Click the blue "Run" button in ${SIDE_PANEL}`);
     await sleep(30000);
 
     await agent.aiAssert(
       'The TodoMVC page on the left shows a todo item containing "Learn JS today"',
+    );
+  });
+
+  it('playground: execution result is shown', async () => {
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows execution result or progress messages below the input area`,
+    );
+  });
+
+  // ── 5. Playground Mode - Run aiQuery Task ─────────────────────────────
+
+  it('playground: run aiQuery to extract todo text', async () => {
+    await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
+    await sleep(500);
+
+    await agent.aiAct(
+      `Click the text area in ${SIDE_PANEL} and type: What are the todo items listed on the page?`,
+    );
+    await sleep(500);
+
+    await agent.aiAct(`Click the blue "Run" button in ${SIDE_PANEL}`);
+    await sleep(30000);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows a result or output containing "Learn JS today"`,
+    );
+  });
+
+  // ── 6. Mode Switching - Recorder Mode ─────────────────────────────────
+
+  it('switch to Recorder mode', async () => {
+    // Click the hamburger/menu icon in the side panel header
+    await agent.aiAct(
+      `Click the menu icon (three horizontal lines or hamburger icon) at the top-left of ${SIDE_PANEL}`,
+    );
+    await sleep(1000);
+
+    await agent.aiAct(
+      'Click "Recorder" or "Recorder (Preview)" in the dropdown menu',
+    );
+    await sleep(2000);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows the Recorder mode UI, which may include a "New Recording" button or recording session list`,
+    );
+  });
+
+  // ── 7. Mode Switching - Bridge Mode ───────────────────────────────────
+
+  it('switch to Bridge mode', async () => {
+    await agent.aiAct(
+      `Click the menu icon (three horizontal lines or hamburger icon) at the top-left of ${SIDE_PANEL}`,
+    );
+    await sleep(1000);
+
+    await agent.aiAct('Click "Bridge Mode" or "Bridge" in the dropdown menu');
+    await sleep(2000);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows the Bridge mode UI with connection status information, such as "Listening" or a WebSocket URL`,
+    );
+  });
+
+  // ── 8. Mode Switching - Back to Playground ────────────────────────────
+
+  it('switch back to Playground mode', async () => {
+    await agent.aiAct(
+      `Click the menu icon (three horizontal lines or hamburger icon) at the top-left of ${SIDE_PANEL}`,
+    );
+    await sleep(1000);
+
+    await agent.aiAct('Click "Playground" in the dropdown menu');
+    await sleep(2000);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows the Playground mode with action type buttons like "aiAct"`,
+    );
+  });
+
+  // ── 9. Settings Modal ─────────────────────────────────────────────────
+
+  it('open and close settings modal', async () => {
+    await agent.aiAct(
+      `Click the gear/settings icon in the top area of ${SIDE_PANEL}`,
+    );
+    await sleep(1000);
+
+    await agent.aiAssert(
+      'A modal or dialog is visible with title containing "Config" or "Env" and a text area for environment variable configuration',
+    );
+
+    // Close the modal
+    await agent.aiAct(
+      'Click the "Cancel" button or the close button (X) on the modal',
+    );
+    await sleep(1000);
+
+    await agent.aiAssert(
+      `The modal is closed and ${SIDE_PANEL} is visible with Playground UI`,
+    );
+  });
+
+  // ── 10. Playground - Run aiAssert ─────────────────────────────────────
+
+  it('playground: run aiAssert to verify todo exists', async () => {
+    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
+    await sleep(500);
+
+    await agent.aiAct(
+      `Click the text area in ${SIDE_PANEL} and type: There is a todo item with text "Learn JS today"`,
+    );
+    await sleep(500);
+
+    await agent.aiAct(`Click the blue "Run" button in ${SIDE_PANEL}`);
+    await sleep(30000);
+
+    // aiAssert should show a success result (green checkmark or "passed")
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows a successful assertion result, such as a green checkmark, "passed", or a success message`,
     );
   });
 });

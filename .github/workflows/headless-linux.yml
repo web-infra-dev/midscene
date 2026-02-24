@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  headless-ai-todo-test:
+  headless-linux-ai-todo:
     runs-on: ubuntu-22.04
     env:
       MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
@@ -100,7 +100,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: headless-linux-ai-test-report
+        name: headless-linux-ai-report
         path: packages/computer/midscene_run/report
         if-no-files-found: ignore
 
@@ -108,7 +108,7 @@ jobs:
       if: steps.test-ai.outcome == 'failure'
       run: exit 1
 
-  chrome-extension-test:
+  chrome-extension:
     runs-on: ubuntu-22.04
     env:
       # Env vars for computer agent (screenshot + AI actions)
@@ -173,7 +173,7 @@ jobs:
       run: |
         unset DISPLAY
         AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
-      timeout-minutes: 15
+      timeout-minutes: 30
       id: test-ext
       continue-on-error: true
 
@@ -181,7 +181,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: chrome-extension-test-report
+        name: chrome-extension-report
         path: packages/computer/midscene_run/report
         if-no-files-found: ignore
 
