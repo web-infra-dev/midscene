@@ -1,5 +1,5 @@
 import {
-  resolveReasoningEffortConfig,
+  resolveReasoningConfig,
   safeParseJson,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -316,41 +316,35 @@ describe('service-caller', () => {
     });
   });
 
-  describe('resolveReasoningEffortConfig', () => {
-    it('returns empty config when reasoningEffort is not set', () => {
-      const result = resolveReasoningEffortConfig({
+  describe('resolveReasoningConfig', () => {
+    it('returns empty config when no reasoning params are set', () => {
+      const result = resolveReasoningConfig({
         modelFamily: 'doubao-seed',
       });
       expect(result.config).toEqual({});
     });
 
-    it('maps reasoning_effort for doubao-vision', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'medium',
-        modelFamily: 'doubao-vision',
+    // qwen3-vl / qwen3.5: enableReasoning → enable_thinking, reasoningBudget → thinking_budget
+    it('maps enableReasoning to enable_thinking for qwen3-vl', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
+        modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({ reasoning_effort: 'medium' });
+      expect(result.config).toEqual({ enable_thinking: true });
     });
 
-    it('maps reasoning_effort for doubao-seed', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'high',
-        modelFamily: 'doubao-seed',
+    it('maps enableReasoning=false to enable_thinking=false for qwen3.5', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: false,
+        modelFamily: 'qwen3.5',
       });
-      expect(result.config).toEqual({ reasoning_effort: 'high' });
+      expect(result.config).toEqual({ enable_thinking: false });
     });
 
-    it('maps reasoning.effort for gpt-5', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'low',
-        modelFamily: 'gpt-5',
-      });
-      expect(result.config).toEqual({ reasoning: { effort: 'low' } });
-    });
-
-    it('maps to enable_thinking and thinking_budget for qwen3-vl', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'medium',
+    it('maps reasoningBudget to thinking_budget for qwen3-vl', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
+        reasoningBudget: 16384,
         modelFamily: 'qwen3-vl',
       });
       expect(result.config).toEqual({
@@ -359,41 +353,98 @@ describe('service-caller', () => {
       });
     });
 
-    it('maps off to enable_thinking false for qwen3.5', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'off',
-        modelFamily: 'qwen3.5',
+    it('ignores reasoningEffort for qwen3-vl', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({ enable_thinking: false });
+      expect(result.config).toEqual({});
     });
 
-    it('maps to thinking.type for glm-v', () => {
-      const result = resolveReasoningEffortConfig({
+    // doubao-vision / doubao-seed: enableReasoning → thinking.type, reasoningEffort → reasoning_effort
+    it('maps enableReasoning to thinking.type for doubao-vision', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
+        modelFamily: 'doubao-vision',
+      });
+      expect(result.config).toEqual({ thinking: { type: 'enabled' } });
+    });
+
+    it('maps enableReasoning=false to thinking.type=disabled for doubao-seed', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: false,
+        modelFamily: 'doubao-seed',
+      });
+      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
+    });
+
+    it('maps reasoningEffort to reasoning_effort for doubao-vision', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'medium',
+        modelFamily: 'doubao-vision',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'medium' });
+    });
+
+    it('maps both enableReasoning and reasoningEffort for doubao-seed', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
         reasoningEffort: 'high',
+        modelFamily: 'doubao-seed',
+      });
+      expect(result.config).toEqual({
+        thinking: { type: 'enabled' },
+        reasoning_effort: 'high',
+      });
+    });
+
+    // glm-v: enableReasoning → thinking.type
+    it('maps enableReasoning to thinking.type for glm-v', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
         modelFamily: 'glm-v',
       });
       expect(result.config).toEqual({ thinking: { type: 'enabled' } });
     });
 
-    it('maps off to thinking.type disabled for glm-v', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'off',
+    it('maps enableReasoning=false to thinking.type=disabled for glm-v', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: false,
         modelFamily: 'glm-v',
       });
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
+    // gpt-5: reasoningEffort → reasoning.effort
+    it('maps reasoningEffort to reasoning.effort for gpt-5', () => {
+      const result = resolveReasoningConfig({
+        reasoningEffort: 'low',
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({ reasoning: { effort: 'low' } });
+    });
+
+    it('ignores enableReasoning for gpt-5', () => {
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({});
+    });
+
+    // no model family
     it('warns when no model family is configured', () => {
-      const result = resolveReasoningEffortConfig({
-        reasoningEffort: 'high',
+      const result = resolveReasoningConfig({
+        enableReasoning: true,
         modelFamily: undefined,
       });
       expect(result.config).toEqual({});
       expect(result.warningMessage).toBeDefined();
     });
 
+    // unknown model family
     it('passes reasoning_effort directly for unrecognized model family', () => {
-      const result = resolveReasoningEffortConfig({
+      const result = resolveReasoningConfig({
         reasoningEffort: 'high',
         modelFamily: 'gemini' as any,
       });

@@ -294,22 +294,24 @@ export async function callAI(
     (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
   }
 
-  // Merge deepThink (per-request boolean) with reasoningEffort (model-level config)
-  // deepThink takes priority as a per-request override
-  const mergedReasoningEffort = (() => {
+  // Merge deepThink (per-request boolean) with reasoning config (model-level)
+  // deepThink takes priority as a per-request override for enableReasoning
+  const mergedEnableReasoning = (() => {
     const normalizedDeepThink =
       options?.deepThink === 'unset' ? undefined : options?.deepThink;
-    if (normalizedDeepThink === true) return 'high';
-    if (normalizedDeepThink === false) return 'off';
-    return modelConfig.reasoningEffort;
+    if (normalizedDeepThink === true) return true;
+    if (normalizedDeepThink === false) return false;
+    return modelConfig.enableReasoning;
   })();
 
   const {
     config: reasoningEffortConfig,
     debugMessage: reasoningEffortDebugMessage,
     warningMessage,
-  } = resolveReasoningEffortConfig({
-    reasoningEffort: mergedReasoningEffort,
+  } = resolveReasoningConfig({
+    enableReasoning: mergedEnableReasoning,
+    reasoningEffort: modelConfig.reasoningEffort,
+    reasoningBudget: modelConfig.reasoningBudget,
     modelFamily,
   });
   if (reasoningEffortDebugMessage) {
@@ -579,78 +581,102 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
-export function resolveReasoningEffortConfig({
+export function resolveReasoningConfig({
+  enableReasoning,
   reasoningEffort,
+  reasoningBudget,
   modelFamily,
 }: {
+  enableReasoning?: boolean;
   reasoningEffort?: string;
+  reasoningBudget?: number;
   modelFamily?: TModelFamily;
 }): {
   config: Record<string, unknown>;
   debugMessage?: string;
   warningMessage?: string;
 } {
-  if (!reasoningEffort) {
+  // No reasoning params set at all
+  if (
+    enableReasoning === undefined &&
+    !reasoningEffort &&
+    reasoningBudget === undefined
+  ) {
     return { config: {} };
   }
 
+  const debugMessages: string[] = [];
+  const config: Record<string, unknown> = {};
+
   if (modelFamily === 'qwen3-vl' || modelFamily === 'qwen3.5') {
-    const effortMap: Record<
-      string,
-      { enable_thinking: boolean; thinking_budget?: number }
-    > = {
-      off: { enable_thinking: false },
-      low: { enable_thinking: true, thinking_budget: 4096 },
-      medium: { enable_thinking: true, thinking_budget: 16384 },
-      high: { enable_thinking: true, thinking_budget: 32768 },
-    };
-    const mapped = effortMap[reasoningEffort];
-    if (mapped) {
-      return {
-        config: mapped,
-        debugMessage: `reasoningEffort mapped to enable_thinking=${mapped.enable_thinking}, thinking_budget=${mapped.thinking_budget ?? 'N/A'} for ${modelFamily}`,
+    // enableReasoning → enable_thinking
+    if (enableReasoning !== undefined) {
+      config.enable_thinking = enableReasoning;
+      debugMessages.push(`enable_thinking=${enableReasoning}`);
+    }
+    // reasoningBudget → thinking_budget
+    if (reasoningBudget !== undefined) {
+      config.thinking_budget = reasoningBudget;
+      debugMessages.push(`thinking_budget=${reasoningBudget}`);
+    }
+    // reasoningEffort is ignored for qwen
+  } else if (
+    modelFamily === 'doubao-vision' ||
+    modelFamily === 'doubao-seed'
+  ) {
+    // enableReasoning → thinking.type
+    if (enableReasoning !== undefined) {
+      config.thinking = {
+        type: enableReasoning ? 'enabled' : 'disabled',
       };
+      debugMessages.push(
+        `thinking.type=${enableReasoning ? 'enabled' : 'disabled'}`,
+      );
+    }
+    // reasoningEffort → reasoning_effort
+    if (reasoningEffort) {
+      config.reasoning_effort = reasoningEffort;
+      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
+    }
+    // reasoningBudget is ignored for doubao
+  } else if (modelFamily === 'glm-v') {
+    // enableReasoning → thinking.type
+    if (enableReasoning !== undefined) {
+      config.thinking = {
+        type: enableReasoning ? 'enabled' : 'disabled',
+      };
+      debugMessages.push(
+        `thinking.type=${enableReasoning ? 'enabled' : 'disabled'}`,
+      );
+    }
+    // reasoningEffort and reasoningBudget are ignored for glm-v
+  } else if (modelFamily === 'gpt-5') {
+    // reasoningEffort → reasoning.effort
+    if (reasoningEffort) {
+      config.reasoning = { effort: reasoningEffort };
+      debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
+    }
+    // enableReasoning and reasoningBudget are ignored for gpt-5
+  } else if (!modelFamily) {
+    return {
+      config: {},
+      debugMessage: 'reasoning config ignored: no model_family configured',
+      warningMessage:
+        'Reasoning config is set but no model_family is configured. Set MIDSCENE_MODEL_FAMILY to enable reasoning config pass-through.',
+    };
+  } else {
+    // For unknown model families, pass reasoning_effort directly as a best-effort default
+    if (reasoningEffort) {
+      config.reasoning_effort = reasoningEffort;
+      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
     }
   }
 
-  if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
-    return {
-      config: { reasoning_effort: reasoningEffort },
-      debugMessage: `reasoningEffort mapped to reasoning_effort="${reasoningEffort}" for ${modelFamily}`,
-    };
-  }
-
-  if (modelFamily === 'glm-v') {
-    const enableThinking =
-      reasoningEffort !== 'off' && reasoningEffort !== 'minimal';
-    return {
-      config: {
-        thinking: { type: enableThinking ? 'enabled' : 'disabled' },
-      },
-      debugMessage: `reasoningEffort mapped to thinking.type=${enableThinking ? 'enabled' : 'disabled'} for glm-v`,
-    };
-  }
-
-  if (modelFamily === 'gpt-5') {
-    return {
-      config: { reasoning: { effort: reasoningEffort } },
-      debugMessage: `reasoningEffort mapped to reasoning.effort="${reasoningEffort}" for gpt-5`,
-    };
-  }
-
-  if (!modelFamily) {
-    return {
-      config: {},
-      debugMessage: `reasoningEffort ignored: no model_family configured`,
-      warningMessage:
-        'reasoningEffort is set but no model_family is configured. Set MIDSCENE_MODEL_FAMILY to enable reasoning effort mapping.',
-    };
-  }
-
-  // For unknown model families, pass reasoning_effort directly as a best-effort default
   return {
-    config: { reasoning_effort: reasoningEffort },
-    debugMessage: `reasoningEffort passed as reasoning_effort="${reasoningEffort}" for model_family "${modelFamily}"`,
+    config,
+    debugMessage: debugMessages.length
+      ? `reasoning config for ${modelFamily}: ${debugMessages.join(', ')}`
+      : undefined,
   };
 }
 

@@ -228,6 +228,18 @@ export const parseOpenaiSdkConfig = ({
       return val;
     })(),
     reasoningEffort: provider[keys.reasoningEffort]?.trim() || undefined,
+    enableReasoning: (() => {
+      const val = provider[keys.enableReasoning]?.trim();
+      if (val === 'true') return true;
+      if (val === 'false') return false;
+      return undefined;
+    })(),
+    reasoningBudget: (() => {
+      const val = provider[keys.reasoningBudget]?.trim();
+      if (!val) return undefined;
+      const num = Number(val);
+      return Number.isFinite(num) ? num : undefined;
+    })(),
   };
 };
 

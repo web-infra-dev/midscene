@@ -8,9 +8,11 @@ import {
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_ENABLE_REASONING,
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_MODEL_REASONING_EFFORT,
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_API_KEY,
@@ -138,6 +140,52 @@ describe('ModelConfigManager', () => {
     expect(config.reasoningEffort).toBeUndefined();
   });
 
+  it('parses enableReasoning from config', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_ENABLE_REASONING]: 'true',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.enableReasoning).toBe(true);
+  });
+
+  it('parses enableReasoning=false from config', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_ENABLE_REASONING]: 'false',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.enableReasoning).toBe(false);
+  });
+
+  it('enableReasoning is undefined when not set', () => {
+    const manager = new ModelConfigManager(baseMap);
+
+    const config = manager.getModelConfig('default');
+    expect(config.enableReasoning).toBeUndefined();
+  });
+
+  it('parses reasoningBudget from config', () => {
+    const configWithBudget = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_BUDGET]: '16384',
+    };
+    const manager = new ModelConfigManager(configWithBudget);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningBudget).toBe(16384);
+  });
+
+  it('reasoningBudget is undefined when not set', () => {
+    const manager = new ModelConfigManager(baseMap);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningBudget).toBeUndefined();
+  });
 
   describe('per-intent timeout configuration', () => {
     it('uses per-intent timeout configs from modelConfig', () => {

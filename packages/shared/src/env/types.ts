@@ -31,6 +31,10 @@ export const MIDSCENE_MODEL_RETRY_COUNT = 'MIDSCENE_MODEL_RETRY_COUNT';
 export const MIDSCENE_MODEL_RETRY_INTERVAL = 'MIDSCENE_MODEL_RETRY_INTERVAL';
 export const MIDSCENE_MODEL_REASONING_EFFORT =
   'MIDSCENE_MODEL_REASONING_EFFORT';
+export const MIDSCENE_MODEL_ENABLE_REASONING =
+  'MIDSCENE_MODEL_ENABLE_REASONING';
+export const MIDSCENE_MODEL_REASONING_BUDGET =
+  'MIDSCENE_MODEL_REASONING_BUDGET';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -207,6 +211,8 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_RETRY_COUNT,
   MIDSCENE_MODEL_RETRY_INTERVAL,
   MIDSCENE_MODEL_REASONING_EFFORT,
+  MIDSCENE_MODEL_ENABLE_REASONING,
+  MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -371,6 +377,10 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
   // reasoning effort
   [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
+  // enable reasoning (boolean as string)
+  [MIDSCENE_MODEL_ENABLE_REASONING]?: string;
+  // reasoning budget (number as string)
+  [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -473,9 +483,19 @@ export interface IModelConfig {
   retryInterval?: number;
   /**
    * Reasoning effort level for the model.
-   * Mapped to model-family-specific parameters (e.g., reasoning_effort for doubao, reasoning.effort for gpt-5).
+   * Passed through to model-family-specific parameters (e.g., reasoning_effort for doubao, reasoning.effort for gpt-5).
    */
   reasoningEffort?: string;
+  /**
+   * Enable/disable reasoning for the model.
+   * Passed through to model-family-specific parameters (e.g., enable_thinking for qwen, thinking.type for doubao/glm-v).
+   */
+  enableReasoning?: boolean;
+  /**
+   * Reasoning token budget for the model.
+   * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).
+   */
+  reasoningBudget?: number;
   /**
    * Model family - unified model configuration
    * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.
