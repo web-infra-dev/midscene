@@ -652,8 +652,14 @@ export function resolveReasoningConfig({
     if (reasoningEffort) {
       config.reasoning = { effort: reasoningEffort };
       debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
+    } else if (reasoningEnabled === true) {
+      config.reasoning = { effort: 'high' };
+      debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
+    } else if (reasoningEnabled === false) {
+      config.reasoning = { effort: 'low' };
+      debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
     }
-    // reasoningEnabled and reasoningBudget are ignored for gpt-5
+    // reasoningBudget is ignored for gpt-5
   } else if (!modelFamily) {
     return {
       config: {},

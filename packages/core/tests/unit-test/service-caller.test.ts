@@ -439,12 +439,29 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ reasoning: { effort: 'low' } });
     });
 
-    it('ignores reasoningEnabled for gpt-5', () => {
+    it('maps reasoningEnabled=true to reasoning.effort="high" for gpt-5', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: true,
         modelFamily: 'gpt-5',
       });
-      expect(result.config).toEqual({});
+      expect(result.config).toEqual({ reasoning: { effort: 'high' } });
+    });
+
+    it('maps reasoningEnabled=false to reasoning.effort="low" for gpt-5', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: false,
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({ reasoning: { effort: 'low' } });
+    });
+
+    it('reasoningEffort takes priority over reasoningEnabled for gpt-5', () => {
+      const result = resolveReasoningConfig({
+        reasoningEnabled: true,
+        reasoningEffort: 'medium',
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({ reasoning: { effort: 'medium' } });
     });
 
     // no model family
