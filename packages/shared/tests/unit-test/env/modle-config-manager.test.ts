@@ -320,7 +320,9 @@ describe('ModelConfigManager', () => {
       expect(manager.getModelConfig('default').reasoningEffort).toBe('low');
       expect(manager.getModelConfig('insight').reasoningEffort).toBe('high');
       // planning has no reasoning effort configured, and its own config has no value
-      expect(manager.getModelConfig('planning').reasoningEffort).toBeUndefined();
+      expect(
+        manager.getModelConfig('planning').reasoningEffort,
+      ).toBeUndefined();
     });
   });
 });
