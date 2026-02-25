@@ -13,6 +13,7 @@ import {
 } from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
+  BASE_URL_FIX_SCRIPT,
   generateDumpScriptTag,
   generateImageScriptTag,
 } from './dump/html-utils';
@@ -223,7 +224,7 @@ export class ReportGenerator implements IReportGenerator {
     const serialized = dump.serialize();
     writeFileSync(
       this.reportPath,
-      `${getReportTpl()}\n${generateDumpScriptTag(serialized)}`,
+      `${getReportTpl()}${BASE_URL_FIX_SCRIPT}${generateDumpScriptTag(serialized)}`,
     );
   }
 }
