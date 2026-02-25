@@ -56,28 +56,11 @@
       max-height: 100%;
       border: none;
     }
-  }
 
-  // Shared icon style for custom controls & fullscreen button in Remotion control bar
-  .status-icon {
-    transition: 0.2s;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    color: #fff;
-    cursor: pointer;
-
-    svg {
-      color: #fff;
-      font-size: 14px;
-    }
-
-    &:hover {
-      background: rgba(255, 255, 255, 0.15);
+    // Remove border/outline from Remotion control bar buttons
+    button {
+      border: none;
+      outline: none;
     }
   }
 
@@ -86,10 +69,33 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 2px;
+    gap: 8px;
+    margin-right: 8px;
 
     .ant-spin {
       color: #fff;
+    }
+
+    .status-icon {
+      transition: 0.2s;
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: #fff;
+      cursor: pointer;
+
+      svg {
+        color: #fff;
+        font-size: 14px;
+      }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+      }
     }
   }
 }

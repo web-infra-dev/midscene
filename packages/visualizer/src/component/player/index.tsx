@@ -2,10 +2,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
 import {
+  CaretRightOutlined,
   CompressOutlined,
   DownloadOutlined,
   ExpandOutlined,
   ExportOutlined,
+  LoadingOutlined,
+  PauseOutlined,
   ThunderboltOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
@@ -14,6 +17,7 @@ import type {
   PlayerRef,
   RenderCustomControls,
   RenderFullscreenButton,
+  RenderPlayPauseButton,
 } from '@remotion/player';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
@@ -138,12 +142,26 @@ export function Player(props?: {
 
   const [mouseOverSettingsIcon, setMouseOverSettingsIcon] = useState(false);
 
+  const renderPlayPauseButton: RenderPlayPauseButton = useCallback(
+    ({ playing, isBuffering }) => {
+      if (isBuffering)
+        return <LoadingOutlined spin style={{ color: '#fff' }} />;
+      return playing ? (
+        <PauseOutlined style={{ color: '#fff' }} />
+      ) : (
+        <CaretRightOutlined style={{ color: '#fff' }} />
+      );
+    },
+    [],
+  );
+
   const renderFullscreenButton: RenderFullscreenButton = useCallback(
-    ({ isFullscreen }) => (
-      <div className="status-icon">
-        {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
-      </div>
-    ),
+    ({ isFullscreen }) =>
+      isFullscreen ? (
+        <CompressOutlined style={{ color: '#fff' }} />
+      ) : (
+        <ExpandOutlined style={{ color: '#fff' }} />
+      ),
     [],
   );
 
@@ -161,29 +179,41 @@ export function Player(props?: {
           </Tooltip>
         ) : null}
 
-        <Tooltip title={isExporting ? 'Generating...' : 'Export Video'}>
-          <div
-            className="status-icon"
-            onClick={isExporting ? undefined : handleExportVideo}
-            style={{
-              opacity: isExporting ? 0.5 : 1,
-              cursor: isExporting ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {isExporting ? (
-              <Spin size="small" percent={exportProgress} />
-            ) : (
-              <ExportOutlined />
-            )}
-          </div>
-        </Tooltip>
-
         <Dropdown
           trigger={['hover', 'click']}
           placement="topRight"
           overlayStyle={{ minWidth: '148px' }}
           dropdownRender={() => (
             <div className="player-settings-dropdown">
+              {/* Export video */}
+              <div
+                className="player-settings-item"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  height: '32px',
+                  padding: '0 8px',
+                  borderRadius: '4px',
+                  cursor: isExporting ? 'not-allowed' : 'pointer',
+                  opacity: isExporting ? 0.5 : 1,
+                }}
+                onClick={isExporting ? undefined : handleExportVideo}
+              >
+                {isExporting ? (
+                  <Spin size="small" percent={exportProgress} />
+                ) : (
+                  <ExportOutlined style={{ width: '16px', height: '16px' }} />
+                )}
+                <span style={{ fontSize: '12px' }}>
+                  {isExporting
+                    ? `Exporting ${exportProgress}%`
+                    : 'Export video'}
+                </span>
+              </div>
+
+              <div className="player-settings-divider" />
+
               {/* Focus on cursor toggle */}
               <div
                 className="player-settings-item"
@@ -345,8 +375,9 @@ export function Player(props?: {
           playbackRate={playbackSpeed}
           controls
           showVolumeControls={false}
-          renderCustomControls={renderCustomControls}
+          renderPlayPauseButton={renderPlayPauseButton}
           renderFullscreenButton={renderFullscreenButton}
+          renderCustomControls={renderCustomControls}
           autoPlay
           loop={false}
           style={{
