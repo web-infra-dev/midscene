@@ -227,6 +227,19 @@ export const parseOpenaiSdkConfig = ({
         );
       return val;
     })(),
+    reasoningEffort: provider[keys.reasoningEffort]?.trim() || undefined,
+    reasoningEnabled: (() => {
+      const val = provider[keys.reasoningEnabled]?.trim()?.toLowerCase();
+      if (val === 'true' || val === '1') return true;
+      if (val === 'false' || val === '0') return false;
+      return undefined;
+    })(),
+    reasoningBudget: (() => {
+      const val = provider[keys.reasoningBudget]?.trim();
+      if (!val) return undefined;
+      const num = Number(val);
+      return Number.isFinite(num) ? num : undefined;
+    })(),
   };
 };
 

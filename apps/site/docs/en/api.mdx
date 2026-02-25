@@ -147,7 +147,7 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. When explicitly set to `true` or `false`, it overrides the `MIDSCENE_MODEL_REASONING_ENABLED` environment variable. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
