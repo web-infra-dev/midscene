@@ -620,10 +620,7 @@ export function resolveReasoningConfig({
       debugMessages.push(`thinking_budget=${reasoningBudget}`);
     }
     // reasoningEffort is ignored for qwen
-  } else if (
-    modelFamily === 'doubao-vision' ||
-    modelFamily === 'doubao-seed'
-  ) {
+  } else if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
     // reasoningEnabled → thinking.type
     if (reasoningEnabled !== undefined) {
       config.thinking = {

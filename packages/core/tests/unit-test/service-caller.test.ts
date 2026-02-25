@@ -330,7 +330,10 @@ describe('service-caller', () => {
         reasoningEnabled: true,
         modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({ enable_thinking: true, thinking_budget: 500 });
+      expect(result.config).toEqual({
+        enable_thinking: true,
+        thinking_budget: 500,
+      });
     });
 
     it('maps reasoningEnabled=false to enable_thinking=false for qwen3.5', () => {
