@@ -218,6 +218,55 @@ export default function Bridge() {
     });
   };
 
+  const handleStartBridge = () => {
+    const serverEndpoint =
+      serverUrl && serverUrl !== DEFAULT_SERVER_URL ? serverUrl : undefined;
+    connectionStatusMessageId.current = null;
+
+    chrome.runtime.sendMessage(
+      {
+        type: workerMessageTypes.BRIDGE_START,
+        payload: { serverEndpoint },
+      },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          appendBridgeMessage(
+            `Failed to start bridge: ${chrome.runtime.lastError.message}`,
+          );
+          return;
+        }
+        if (!response?.success) {
+          appendBridgeMessage(
+            `Failed to start bridge: ${response?.error || 'Unknown error'}`,
+          );
+          return;
+        }
+        setBridgeStatus(response.status || 'closed');
+      },
+    );
+  };
+
+  const handleStopBridge = () => {
+    chrome.runtime.sendMessage(
+      { type: workerMessageTypes.BRIDGE_STOP },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          appendBridgeMessage(
+            `Failed to stop bridge: ${chrome.runtime.lastError.message}`,
+          );
+          return;
+        }
+        if (!response?.success) {
+          appendBridgeMessage(
+            `Failed to stop bridge: ${response?.error || 'Unknown error'}`,
+          );
+          return;
+        }
+        setBridgeStatus(response.status || 'closed');
+      },
+    );
+  };
+
   // check if scrolled to bottom
   const checkIfScrolledToBottom = () => {
     if (messageListRef.current) {
@@ -271,11 +320,20 @@ export default function Bridge() {
 
   let statusIcon;
   let statusTip: string;
-  if (
-    bridgeStatus === 'listening' ||
-    bridgeStatus === 'disconnected' ||
-    bridgeStatus === 'closed'
-  ) {
+  let statusActionButton: JSX.Element | null = null;
+  if (bridgeStatus === 'closed') {
+    statusIcon = iconForStatus('closed');
+    statusTip = 'Closed';
+    statusActionButton = (
+      <Button
+        className="status-action-button"
+        type="text"
+        onClick={handleStartBridge}
+      >
+        Start
+      </Button>
+    );
+  } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
     statusIcon = (
       <Spin
         className="status-loading-icon"
@@ -284,9 +342,27 @@ export default function Bridge() {
       />
     );
     statusTip = 'Listening for connection';
+    statusActionButton = (
+      <Button
+        className="status-action-button stop-button"
+        type="text"
+        onClick={handleStopBridge}
+      >
+        Stop
+      </Button>
+    );
   } else if (bridgeStatus === 'connected') {
     statusIcon = iconForStatus('connected');
     statusTip = 'Connected';
+    statusActionButton = (
+      <Button
+        className="status-action-button stop-button"
+        type="text"
+        onClick={handleStopBridge}
+      >
+        Stop
+      </Button>
+    );
   } else {
     statusIcon = iconForStatus('failed');
     statusTip = `Unknown Status - ${bridgeStatus}`;
@@ -422,6 +498,12 @@ export default function Bridge() {
             <span className="bottom-status-icon">{statusIcon}</span>
             <span className="bottom-status-tip">{statusTip}</span>
           </div>
+          {statusActionButton && (
+            <>
+              <div className="bottom-status-divider" />
+              <div className="bottom-status-btn">{statusActionButton}</div>
+            </>
+          )}
         </div>
       </div>
     </div>

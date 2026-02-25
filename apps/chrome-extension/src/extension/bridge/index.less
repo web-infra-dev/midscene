@@ -281,6 +281,46 @@
       margin-left: 16px;
     }
 
+    .bottom-status-btn {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      margin-left: 12px;
+
+      .status-action-button {
+        border: none;
+        box-shadow: none;
+        background: transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 8px;
+        height: auto;
+
+        &:hover,
+        &:focus,
+        &:active {
+          background: none;
+          border: none;
+          box-shadow: none;
+        }
+      }
+
+      .stop-button {
+        gap: 8px;
+
+        &::before {
+          content: '';
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          background-color: #000;
+          border-radius: 2px;
+        }
+      }
+    }
+
     .status-loading-icon {
       display: flex;
       align-items: center;
