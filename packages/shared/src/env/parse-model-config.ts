@@ -228,8 +228,8 @@ export const parseOpenaiSdkConfig = ({
       return val;
     })(),
     reasoningEffort: provider[keys.reasoningEffort]?.trim() || undefined,
-    enableReasoning: (() => {
-      const val = provider[keys.enableReasoning]?.trim();
+    reasoningEnabled: (() => {
+      const val = provider[keys.reasoningEnabled]?.trim();
       if (val === 'true') return true;
       if (val === 'false') return false;
       return undefined;

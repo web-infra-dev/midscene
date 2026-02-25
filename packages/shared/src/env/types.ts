@@ -31,8 +31,8 @@ export const MIDSCENE_MODEL_RETRY_COUNT = 'MIDSCENE_MODEL_RETRY_COUNT';
 export const MIDSCENE_MODEL_RETRY_INTERVAL = 'MIDSCENE_MODEL_RETRY_INTERVAL';
 export const MIDSCENE_MODEL_REASONING_EFFORT =
   'MIDSCENE_MODEL_REASONING_EFFORT';
-export const MIDSCENE_MODEL_ENABLE_REASONING =
-  'MIDSCENE_MODEL_ENABLE_REASONING';
+export const MIDSCENE_MODEL_REASONING_ENABLED =
+  'MIDSCENE_MODEL_REASONING_ENABLED';
 export const MIDSCENE_MODEL_REASONING_BUDGET =
   'MIDSCENE_MODEL_REASONING_BUDGET';
 
@@ -211,7 +211,7 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_RETRY_COUNT,
   MIDSCENE_MODEL_RETRY_INTERVAL,
   MIDSCENE_MODEL_REASONING_EFFORT,
-  MIDSCENE_MODEL_ENABLE_REASONING,
+  MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
@@ -378,7 +378,7 @@ export interface IModelConfigForDefault {
   // reasoning effort
   [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
   // enable reasoning (boolean as string)
-  [MIDSCENE_MODEL_ENABLE_REASONING]?: string;
+  [MIDSCENE_MODEL_REASONING_ENABLED]?: string;
   // reasoning budget (number as string)
   [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
 }
@@ -490,7 +490,7 @@ export interface IModelConfig {
    * Enable/disable reasoning for the model.
    * Passed through to model-family-specific parameters (e.g., enable_thinking for qwen, thinking.type for doubao/glm-v).
    */
-  enableReasoning?: boolean;
+  reasoningEnabled?: boolean;
   /**
    * Reasoning token budget for the model.
    * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).

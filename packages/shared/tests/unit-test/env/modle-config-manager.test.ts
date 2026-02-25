@@ -8,7 +8,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
-  MIDSCENE_MODEL_ENABLE_REASONING,
+  MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
@@ -140,33 +140,33 @@ describe('ModelConfigManager', () => {
     expect(config.reasoningEffort).toBeUndefined();
   });
 
-  it('parses enableReasoning from config', () => {
+  it('parses reasoningEnabled from config', () => {
     const configWithEnableReasoning = {
       ...baseMap,
-      [MIDSCENE_MODEL_ENABLE_REASONING]: 'true',
+      [MIDSCENE_MODEL_REASONING_ENABLED]: 'true',
     };
     const manager = new ModelConfigManager(configWithEnableReasoning);
 
     const config = manager.getModelConfig('default');
-    expect(config.enableReasoning).toBe(true);
+    expect(config.reasoningEnabled).toBe(true);
   });
 
-  it('parses enableReasoning=false from config', () => {
+  it('parses reasoningEnabled=false from config', () => {
     const configWithEnableReasoning = {
       ...baseMap,
-      [MIDSCENE_MODEL_ENABLE_REASONING]: 'false',
+      [MIDSCENE_MODEL_REASONING_ENABLED]: 'false',
     };
     const manager = new ModelConfigManager(configWithEnableReasoning);
 
     const config = manager.getModelConfig('default');
-    expect(config.enableReasoning).toBe(false);
+    expect(config.reasoningEnabled).toBe(false);
   });
 
-  it('enableReasoning is undefined when not set', () => {
+  it('reasoningEnabled is undefined when not set', () => {
     const manager = new ModelConfigManager(baseMap);
 
     const config = manager.getModelConfig('default');
-    expect(config.enableReasoning).toBeUndefined();
+    expect(config.reasoningEnabled).toBeUndefined();
   });
 
   it('parses reasoningBudget from config', () => {

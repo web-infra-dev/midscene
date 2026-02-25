@@ -12,7 +12,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
-  MIDSCENE_MODEL_ENABLE_REASONING,
+  MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_HTTP_PROXY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
@@ -73,7 +73,7 @@ interface IModelConfigKeys {
   retryCount: string;
   retryInterval: string;
   reasoningEffort: string;
-  enableReasoning: string;
+  reasoningEnabled: string;
   reasoningBudget: string;
 }
 
@@ -108,7 +108,7 @@ export const INSIGHT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
   retryCount: MIDSCENE_INSIGHT_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL,
   reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
-  enableReasoning: MIDSCENE_MODEL_ENABLE_REASONING,
+  reasoningEnabled: MIDSCENE_MODEL_REASONING_ENABLED,
   reasoningBudget: MIDSCENE_MODEL_REASONING_BUDGET,
 } as const;
 
@@ -143,7 +143,7 @@ export const PLANNING_MODEL_CONFIG_KEYS: IModelConfigKeys = {
   retryCount: MIDSCENE_PLANNING_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL,
   reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
-  enableReasoning: MIDSCENE_MODEL_ENABLE_REASONING,
+  reasoningEnabled: MIDSCENE_MODEL_REASONING_ENABLED,
   reasoningBudget: MIDSCENE_MODEL_REASONING_BUDGET,
 } as const;
 
@@ -179,7 +179,7 @@ export const DEFAULT_MODEL_CONFIG_KEYS: IModelConfigKeys = {
   retryCount: MIDSCENE_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_MODEL_RETRY_INTERVAL,
   reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
-  enableReasoning: MIDSCENE_MODEL_ENABLE_REASONING,
+  reasoningEnabled: MIDSCENE_MODEL_REASONING_ENABLED,
   reasoningBudget: MIDSCENE_MODEL_REASONING_BUDGET,
 } as const;
 
@@ -215,6 +215,6 @@ export const DEFAULT_MODEL_CONFIG_KEYS_LEGACY: IModelConfigKeys = {
   retryCount: MIDSCENE_MODEL_RETRY_COUNT,
   retryInterval: MIDSCENE_MODEL_RETRY_INTERVAL,
   reasoningEffort: MIDSCENE_MODEL_REASONING_EFFORT,
-  enableReasoning: MIDSCENE_MODEL_ENABLE_REASONING,
+  reasoningEnabled: MIDSCENE_MODEL_REASONING_ENABLED,
   reasoningBudget: MIDSCENE_MODEL_REASONING_BUDGET,
 } as const;

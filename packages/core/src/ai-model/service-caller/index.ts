@@ -295,13 +295,13 @@ export async function callAI(
   }
 
   // Merge deepThink (per-request boolean) with reasoning config (model-level)
-  // deepThink takes priority as a per-request override for enableReasoning
+  // deepThink takes priority as a per-request override for reasoningEnabled
   const mergedEnableReasoning = (() => {
     const normalizedDeepThink =
       options?.deepThink === 'unset' ? undefined : options?.deepThink;
     if (normalizedDeepThink === true) return true;
     if (normalizedDeepThink === false) return false;
-    return modelConfig.enableReasoning;
+    return modelConfig.reasoningEnabled;
   })();
 
   const {
@@ -309,7 +309,7 @@ export async function callAI(
     debugMessage: reasoningEffortDebugMessage,
     warningMessage,
   } = resolveReasoningConfig({
-    enableReasoning: mergedEnableReasoning,
+    reasoningEnabled: mergedEnableReasoning,
     reasoningEffort: modelConfig.reasoningEffort,
     reasoningBudget: modelConfig.reasoningBudget,
     modelFamily,
@@ -582,12 +582,12 @@ export function preprocessDoubaoBboxJson(input: string) {
 }
 
 export function resolveReasoningConfig({
-  enableReasoning,
+  reasoningEnabled,
   reasoningEffort,
   reasoningBudget,
   modelFamily,
 }: {
-  enableReasoning?: boolean;
+  reasoningEnabled?: boolean;
   reasoningEffort?: string;
   reasoningBudget?: number;
   modelFamily?: TModelFamily;
@@ -596,12 +596,8 @@ export function resolveReasoningConfig({
   debugMessage?: string;
   warningMessage?: string;
 } {
-  // No reasoning params set at all
-  if (
-    enableReasoning === undefined &&
-    !reasoningEffort &&
-    reasoningBudget === undefined
-  ) {
+  // The enabled switch is the gate — if not configured, return empty config
+  if (reasoningEnabled === undefined) {
     return { config: {} };
   }
 
@@ -609,10 +605,10 @@ export function resolveReasoningConfig({
   const config: Record<string, unknown> = {};
 
   if (modelFamily === 'qwen3-vl' || modelFamily === 'qwen3.5') {
-    // enableReasoning → enable_thinking
-    if (enableReasoning !== undefined) {
-      config.enable_thinking = enableReasoning;
-      debugMessages.push(`enable_thinking=${enableReasoning}`);
+    // reasoningEnabled → enable_thinking
+    if (reasoningEnabled !== undefined) {
+      config.enable_thinking = reasoningEnabled;
+      debugMessages.push(`enable_thinking=${reasoningEnabled}`);
     }
     // reasoningBudget → thinking_budget
     if (reasoningBudget !== undefined) {
@@ -624,13 +620,13 @@ export function resolveReasoningConfig({
     modelFamily === 'doubao-vision' ||
     modelFamily === 'doubao-seed'
   ) {
-    // enableReasoning → thinking.type
-    if (enableReasoning !== undefined) {
+    // reasoningEnabled → thinking.type
+    if (reasoningEnabled !== undefined) {
       config.thinking = {
-        type: enableReasoning ? 'enabled' : 'disabled',
+        type: reasoningEnabled ? 'enabled' : 'disabled',
       };
       debugMessages.push(
-        `thinking.type=${enableReasoning ? 'enabled' : 'disabled'}`,
+        `thinking.type=${reasoningEnabled ? 'enabled' : 'disabled'}`,
       );
     }
     // reasoningEffort → reasoning_effort
@@ -640,13 +636,13 @@ export function resolveReasoningConfig({
     }
     // reasoningBudget is ignored for doubao
   } else if (modelFamily === 'glm-v') {
-    // enableReasoning → thinking.type
-    if (enableReasoning !== undefined) {
+    // reasoningEnabled → thinking.type
+    if (reasoningEnabled !== undefined) {
       config.thinking = {
-        type: enableReasoning ? 'enabled' : 'disabled',
+        type: reasoningEnabled ? 'enabled' : 'disabled',
       };
       debugMessages.push(
-        `thinking.type=${enableReasoning ? 'enabled' : 'disabled'}`,
+        `thinking.type=${reasoningEnabled ? 'enabled' : 'disabled'}`,
       );
     }
     // reasoningEffort and reasoningBudget are ignored for glm-v
@@ -656,7 +652,7 @@ export function resolveReasoningConfig({
       config.reasoning = { effort: reasoningEffort };
       debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
     }
-    // enableReasoning and reasoningBudget are ignored for gpt-5
+    // reasoningEnabled and reasoningBudget are ignored for gpt-5
   } else if (!modelFamily) {
     return {
       config: {},

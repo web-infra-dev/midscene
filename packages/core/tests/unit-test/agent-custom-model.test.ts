@@ -62,6 +62,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
+          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -70,6 +71,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
@@ -86,6 +88,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
+          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -94,6 +97,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
@@ -110,6 +114,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(insightConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
+          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -118,6 +123,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
@@ -146,6 +152,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
+          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -154,6 +161,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-key",
           "openaiBaseURL": "https://api.sample.com/v1",
           "openaiExtraConfig": undefined,
+          "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
@@ -170,6 +178,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
+          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "planning",
           "modelDescription": "",
@@ -178,6 +187,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-planning-key",
           "openaiBaseURL": "https://api.smaple-planning.com/v1",
           "openaiExtraConfig": undefined,
+          "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
@@ -194,6 +204,7 @@ describe('Agent with custom OpenAI client', () => {
       expect(insightConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
+          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "insight",
           "modelDescription": "",
@@ -202,6 +213,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiApiKey": "test-insight-key",
           "openaiBaseURL": "https://api.sample-insight.com/v1",
           "openaiExtraConfig": undefined,
+          "reasoningBudget": undefined,
           "reasoningEffort": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
