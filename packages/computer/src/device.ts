@@ -27,6 +27,8 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import type { XvfbInstance } from './xvfb';
+import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
 // Type definitions
 interface LibNut {
@@ -276,6 +278,17 @@ export interface ComputerDeviceOpt {
    * - 'libnut': Use libnut's keyTap (faster but may not work with some TUI apps)
    */
   keyboardDriver?: 'applescript' | 'libnut';
+  /**
+   * Headless mode via Xvfb (Linux only).
+   * - true: start Xvfb virtual display
+   * - false/undefined: do not start Xvfb
+   * Can also be set via MIDSCENE_COMPUTER_HEADLESS_LINUX=true environment variable.
+   */
+  headless?: boolean;
+  /**
+   * Resolution for Xvfb virtual display (default '1920x1080x24')
+   */
+  xvfbResolution?: string;
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -284,6 +297,8 @@ export class ComputerDevice implements AbstractInterface {
   private displayId?: string;
   private description?: string;
   private destroyed = false;
+  private xvfbInstance?: XvfbInstance;
+  private xvfbCleanup?: () => void;
   /**
    * On macOS, use AppleScript for keyboard operations by default
    * to avoid focus issues with system overlays (e.g. Spotlight).
@@ -323,77 +338,113 @@ export class ComputerDevice implements AbstractInterface {
     debugDevice('Connecting to computer device');
 
     try {
+      // Start Xvfb if explicitly requested (option or env var)
+      const headless =
+        this.options?.headless ??
+        process.env.MIDSCENE_COMPUTER_HEADLESS_LINUX === 'true';
+      if (needsXvfb(headless)) {
+        if (!checkXvfbInstalled()) {
+          throw new Error(
+            'Xvfb is required for headless mode but not installed. Install: sudo apt-get install xvfb',
+          );
+        }
+        this.xvfbInstance = await startXvfb({
+          resolution: this.options?.xvfbResolution,
+        });
+        process.env.DISPLAY = this.xvfbInstance.display;
+        debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
+
+        // Clean up Xvfb on process exit (stored for removal in destroy())
+        this.xvfbCleanup = () => {
+          if (this.xvfbInstance) {
+            this.xvfbInstance.stop();
+            this.xvfbInstance = undefined;
+          }
+        };
+        process.on('exit', this.xvfbCleanup);
+        process.on('SIGINT', this.xvfbCleanup);
+        process.on('SIGTERM', this.xvfbCleanup);
+      }
+
       // Load libnut on first connect
       libnut = await getLibnut();
 
       const size = await this.size();
       const displays = await ComputerDevice.listDisplays();
 
+      const headlessInfo = this.xvfbInstance
+        ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
+        : '';
+
       this.description = `
 Type: Computer
 Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}
-Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}
+Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
 `;
       debugDevice('Computer device connected', this.description);
+      // Health check: verify screenshot and mouse control are working
+      await this.healthCheck();
     } catch (error) {
+      // Clean up Xvfb on connection failure
+      if (this.xvfbInstance) {
+        this.xvfbInstance.stop();
+        this.xvfbInstance = undefined;
+      }
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
     }
-
-    // Health check: verify screenshot and mouse control are working
-    await this.healthCheck();
   }
 
   private async healthCheck(): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
 
-    // Step 1: Take a screenshot
+    // Step 1: Take a screenshot (with timeout to handle screenshot-desktop
+    // hanging when xrandr is missing on Linux — its promise never settles)
     console.log('[HealthCheck] Taking screenshot...');
-    try {
-      const base64 = await this.screenshotBase64();
-      console.log(
-        `[HealthCheck] Screenshot succeeded (length=${base64.length})`,
+    const screenshotTimeout = 15_000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Screenshot timed out')),
+        screenshotTimeout,
       );
-    } catch (error) {
-      console.error(`[HealthCheck] Screenshot failed: ${error}`);
-      process.exit(1);
-    }
+    });
+    const base64 = await Promise.race([
+      this.screenshotBase64().finally(() => clearTimeout(timeoutId)),
+      timeoutPromise,
+    ]);
+    console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
 
     // Step 2: Move the mouse
     console.log('[HealthCheck] Moving mouse...');
-    try {
-      assert(libnut, 'libnut not initialized');
-      const startPos = libnut.getMousePos();
-      console.log(
-        `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
-      );
+    assert(libnut, 'libnut not initialized');
+    const startPos = libnut.getMousePos();
+    console.log(
+      `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
+    );
 
-      // Move the mouse by a small random offset, then move it back
-      const offsetX = Math.floor(Math.random() * 40) + 10;
-      const offsetY = Math.floor(Math.random() * 40) + 10;
-      const targetX = startPos.x + offsetX;
-      const targetY = startPos.y + offsetY;
+    // Move the mouse by a small random offset, then move it back
+    const offsetX = Math.floor(Math.random() * 40) + 10;
+    const offsetY = Math.floor(Math.random() * 40) + 10;
+    const targetX = startPos.x + offsetX;
+    const targetY = startPos.y + offsetY;
 
-      console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
-      libnut.moveMouse(targetX, targetY);
-      await sleep(50);
+    console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
+    libnut.moveMouse(targetX, targetY);
+    await sleep(50);
 
-      const movedPos = libnut.getMousePos();
-      console.log(
-        `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
-      );
+    const movedPos = libnut.getMousePos();
+    console.log(
+      `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
+    );
 
-      // Restore original position
-      libnut.moveMouse(startPos.x, startPos.y);
-      console.log(
-        `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
-      );
-    } catch (error) {
-      console.error(`[HealthCheck] Mouse move failed: ${error}`);
-      process.exit(1);
-    }
+    // Restore original position
+    libnut.moveMouse(startPos.x, startPos.y);
+    console.log(
+      `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
+    );
 
     console.log('[HealthCheck] Health check passed');
   }
@@ -765,6 +816,17 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   async destroy(): Promise<void> {
     if (this.destroyed) {
       return;
+    }
+
+    if (this.xvfbInstance) {
+      this.xvfbInstance.stop();
+      this.xvfbInstance = undefined;
+    }
+    if (this.xvfbCleanup) {
+      process.removeListener('exit', this.xvfbCleanup);
+      process.removeListener('SIGINT', this.xvfbCleanup);
+      process.removeListener('SIGTERM', this.xvfbCleanup);
+      this.xvfbCleanup = undefined;
     }
 
     this.destroyed = true;

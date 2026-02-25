@@ -1,6 +1,5 @@
 import { createRequire } from 'node:module';
 import { ComputerDevice, type DisplayInfo } from './device';
-
 export interface EnvironmentCheck {
   available: boolean;
   error?: string;
