@@ -596,8 +596,12 @@ export function resolveReasoningConfig({
   debugMessage?: string;
   warningMessage?: string;
 } {
-  // The enabled switch is the gate — if not configured, return empty config
-  if (reasoningEnabled === undefined) {
+  // No reasoning params set at all
+  if (
+    reasoningEnabled === undefined &&
+    !reasoningEffort &&
+    reasoningBudget === undefined
+  ) {
     return { config: {} };
   }
 

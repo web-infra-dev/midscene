@@ -62,7 +62,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -73,6 +72,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiExtraConfig": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
+          "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
           "socksProxy": undefined,
@@ -88,7 +88,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -99,6 +98,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiExtraConfig": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
+          "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
           "socksProxy": undefined,
@@ -114,7 +114,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(insightConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -125,6 +124,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiExtraConfig": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
+          "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
           "socksProxy": undefined,
@@ -152,7 +152,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(defaultConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "default",
           "modelDescription": "qwen2.5-vl mode",
@@ -163,6 +162,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiExtraConfig": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
+          "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
           "socksProxy": undefined,
@@ -178,7 +178,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(planningConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "planning",
           "modelDescription": "",
@@ -189,6 +188,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiExtraConfig": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
+          "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
           "socksProxy": undefined,
@@ -204,7 +204,6 @@ describe('Agent with custom OpenAI client', () => {
       expect(insightConfig).toMatchInlineSnapshot(`
         {
           "createOpenAIClient": undefined,
-          "enableReasoning": undefined,
           "httpProxy": undefined,
           "intent": "insight",
           "modelDescription": "",
@@ -215,6 +214,7 @@ describe('Agent with custom OpenAI client', () => {
           "openaiExtraConfig": undefined,
           "reasoningBudget": undefined,
           "reasoningEffort": undefined,
+          "reasoningEnabled": undefined,
           "retryCount": 1,
           "retryInterval": 2000,
           "socksProxy": undefined,

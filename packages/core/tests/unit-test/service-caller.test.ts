@@ -353,13 +353,21 @@ describe('service-caller', () => {
       });
     });
 
-    it('returns empty config when reasoningEnabled is not set even with other params', () => {
+    it('ignores reasoningEffort for qwen (not a supported param)', () => {
       const result = resolveReasoningConfig({
         reasoningEffort: 'high',
+        modelFamily: 'qwen3-vl',
+      });
+      // reasoningEffort is ignored for qwen, but it was set so config is entered
+      expect(result.config).toEqual({});
+    });
+
+    it('maps reasoningBudget alone without reasoningEnabled for qwen3-vl', () => {
+      const result = resolveReasoningConfig({
         reasoningBudget: 16384,
         modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({});
+      expect(result.config).toEqual({ thinking_budget: 16384 });
     });
 
     // doubao-vision / doubao-seed: reasoningEnabled → thinking.type, reasoningEffort → reasoning_effort
@@ -420,19 +428,18 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    // gpt-5: reasoningEffort → reasoning.effort (reasoningEnabled still required as gate)
-    it('maps reasoningEffort to reasoning.effort for gpt-5 when enabled', () => {
+    // gpt-5: reasoningEffort → reasoning.effort
+    it('maps reasoningEffort to reasoning.effort for gpt-5', () => {
       const result = resolveReasoningConfig({
-        reasoningEnabled: true,
         reasoningEffort: 'low',
         modelFamily: 'gpt-5',
       });
       expect(result.config).toEqual({ reasoning: { effort: 'low' } });
     });
 
-    it('returns empty config for gpt-5 when reasoningEnabled is not set', () => {
+    it('ignores reasoningEnabled for gpt-5', () => {
       const result = resolveReasoningConfig({
-        reasoningEffort: 'low',
+        reasoningEnabled: true,
         modelFamily: 'gpt-5',
       });
       expect(result.config).toEqual({});
@@ -449,9 +456,8 @@ describe('service-caller', () => {
     });
 
     // unknown model family
-    it('passes reasoning_effort directly for unrecognized model family when enabled', () => {
+    it('passes reasoning_effort directly for unrecognized model family', () => {
       const result = resolveReasoningConfig({
-        reasoningEnabled: true,
         reasoningEffort: 'high',
         modelFamily: 'gemini' as any,
       });
