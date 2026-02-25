@@ -51,7 +51,6 @@ export interface ScriptFrame {
 
 export interface FrameMapOptions {
   effects: boolean; // include opening/ending
-  playbackSpeed: number; // affects duration-to-frames conversion
 }
 
 export interface FrameMap {

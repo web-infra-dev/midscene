@@ -1097,7 +1097,7 @@ export async function exportBrandedVideo(
         }
 
         if (effects) drawProgressBar(ctx, f, total);
-        onProgress?.(f / total);
+        onProgress?.((f + 1) / total);
       }
 
       if (targetFrame < total - 1) {

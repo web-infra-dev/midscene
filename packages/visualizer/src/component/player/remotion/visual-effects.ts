@@ -390,9 +390,13 @@ export function resolveShellType(deviceType?: string): DeviceShellType {
     case 'android':
       return 'android';
     case 'ios':
+    case 'iphone':
       return 'iphone';
     case 'computer':
+    case 'desktop-app':
       return 'desktop-app';
+    case 'desktop-browser':
+      return 'desktop-browser';
     default:
       return 'desktop-browser';
   }

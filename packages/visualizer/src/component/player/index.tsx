@@ -81,24 +81,22 @@ export function Player(props?: {
   }, [props?.autoZoom, setAutoZoom]);
 
   const scripts = props?.replayScripts;
-  const imageWidth = props?.imageWidth || 1920;
-  const imageHeight = props?.imageHeight || 1080;
-
   const deviceType = props?.deviceType;
   const frameMap = useMemo<FrameMap | null>(() => {
     if (!scripts || scripts.length === 0) return null;
     return calculateFrameMap(scripts, {
       effects: effectsEnabled,
-      playbackSpeed: 1, // Speed handled by Remotion's playbackRate
       deviceType,
     });
   }, [scripts, effectsEnabled, deviceType]);
 
   const playerRef = useRef<PlayerRef>(null);
+  const lastTaskIdRef = useRef<string | null>(null);
 
   // Track frame for taskId callback
   useEffect(() => {
     if (!frameMap || !props?.onTaskChange) return;
+    lastTaskIdRef.current = null;
     const interval = setInterval(() => {
       const player = playerRef.current;
       if (!player) return;
@@ -108,7 +106,10 @@ export function Player(props?: {
         stepsFrame >= 0
           ? deriveTaskId(frameMap.scriptFrames, stepsFrame)
           : null;
-      props.onTaskChange!(taskId);
+      if (taskId !== lastTaskIdRef.current) {
+        lastTaskIdRef.current = taskId;
+        props.onTaskChange!(taskId);
+      }
     }, 200);
     return () => clearInterval(interval);
   }, [frameMap, props?.onTaskChange]);
@@ -327,7 +328,7 @@ export function Player(props?: {
   const compositionHeight = frameMap.imageHeight;
 
   return (
-    <div className="player-container">
+    <div className="player-container" data-fit-mode={props?.fitMode}>
       <div className="canvas-container">
         <RemotionPlayer
           ref={playerRef}

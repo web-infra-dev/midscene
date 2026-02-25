@@ -9,7 +9,7 @@ export const ProgressBar: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  const progress = interpolate(frame, [0, durationInFrames], [0, 100], {
+  const progress = interpolate(frame, [0, durationInFrames - 1], [0, 100], {
     extrapolateRight: 'clamp',
   });
 
