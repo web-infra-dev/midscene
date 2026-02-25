@@ -1,5 +1,6 @@
 import Service from '@midscene/core';
 import type { Rect, UIContext } from '@midscene/core';
+import { ScreenshotItem } from '@midscene/core';
 import type { RecordedEvent } from '@midscene/recorder';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { compositeElementInfoImg } from '@midscene/shared/img';
@@ -135,8 +136,11 @@ export const generateAIDescription = async (
   const descriptionPromise = (async () => {
     try {
       const mockContext: UIContext = {
-        screenshotBase64: event.screenshotBefore as string,
-        size: { width: event.pageInfo.width, height: event.pageInfo.height },
+        screenshot: ScreenshotItem.create(event.screenshotBefore as string),
+        size: {
+          width: event.pageInfo.width,
+          height: event.pageInfo.height,
+        },
       };
 
       const service = new Service(mockContext);

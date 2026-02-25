@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
+import { commonContextParser } from '@midscene/core/agent';
 import {
   descriptionOfTree,
   traverseTree,
@@ -199,9 +199,9 @@ describe(
     it('profiling', async () => {
       const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.time('total - WebPageContextParser');
-      await WebPageContextParser(page, {});
-      console.timeEnd('total - WebPageContextParser');
+      console.time('total - commonContextParser');
+      await commonContextParser(page, {});
+      console.timeEnd('total - commonContextParser');
       await reset();
     });
 

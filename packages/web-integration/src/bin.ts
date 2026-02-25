@@ -2,13 +2,14 @@ import { PlaygroundServer } from '@midscene/playground';
 import cors from 'cors';
 import { StaticPage, StaticPageAgent } from './static';
 import 'dotenv/config';
+import { ScreenshotItem } from '@midscene/core';
 
 async function startServer() {
   // Create page and agent instances with minimal valid data
   // Use screenshotBase64 field for empty screenshot
   const page = new StaticPage({
     size: { width: 800, height: 600 },
-    screenshotBase64: '',
+    screenshot: ScreenshotItem.create(''),
   });
   const agent = new StaticPageAgent(page);
 

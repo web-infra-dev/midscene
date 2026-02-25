@@ -1,12 +1,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { PlanningAIResponse, Rect } from '@midscene/core';
+import { commonContextParser } from '@midscene/core/agent';
 import {
   annotateRects,
   imageInfoOfBase64,
   localImg2Base64,
 } from '@midscene/shared/img';
-import { WebPageContextParser } from '@midscene/web';
 
 export { annotateRects };
 
@@ -218,6 +218,6 @@ export async function buildContext(pageName: string) {
     },
   };
 
-  const context = await WebPageContextParser(fakePage as any, {});
+  const context = await commonContextParser(fakePage as any, {});
   return context;
 }
