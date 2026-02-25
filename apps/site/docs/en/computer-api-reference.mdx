@@ -6,7 +6,7 @@ For common APIs that work across all platforms, see [Common API Reference](./api
 
 ## Agent Creation
 
-### `agentFromComputer(opts?): Promise<ComputerAgent>`
+`agentFromComputer(opts?): Promise<ComputerAgent>`
 
 Create an agent for desktop automation.
 
@@ -51,7 +51,7 @@ const agent2 = await agentFromComputer({
 
 ## Device Management
 
-### `ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+`ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
 
 List all available displays.
 
@@ -78,7 +78,7 @@ console.log('Available displays:', displays);
 // ]
 ```
 
-### `checkComputerEnvironment(): Promise<EnvironmentCheck>`
+`checkComputerEnvironment(): Promise<EnvironmentCheck>`
 
 Check if the computer environment is properly configured.
 

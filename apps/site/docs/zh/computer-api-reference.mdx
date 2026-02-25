@@ -6,7 +6,7 @@
 
 ## Agent 创建
 
-### `agentFromComputer(opts?): Promise<ComputerAgent>`
+`agentFromComputer(opts?): Promise<ComputerAgent>`
 
 创建用于桌面自动化的 agent。
 
@@ -51,7 +51,7 @@ const agent2 = await agentFromComputer({
 
 ## 设备管理
 
-### `ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+`ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
 
 列出所有可用显示器。
 
@@ -78,7 +78,7 @@ console.log('可用显示器:', displays);
 // ]
 ```
 
-### `checkComputerEnvironment(): Promise<EnvironmentCheck>`
+`checkComputerEnvironment(): Promise<EnvironmentCheck>`
 
 检查计算机环境是否正确配置。
 
