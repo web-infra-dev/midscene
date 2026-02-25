@@ -1,5 +1,4 @@
 import {
-  resolveDeepThinkConfig,
   resolveReasoningEffortConfig,
   safeParseJson,
 } from '@/ai-model/service-caller';
@@ -317,82 +316,6 @@ describe('service-caller', () => {
     });
   });
 
-  describe('resolveDeepThinkConfig', () => {
-    it('maps deepThink false for qwen3-vl', () => {
-      expect(
-        resolveDeepThinkConfig({ deepThink: false, modelFamily: 'qwen3-vl' }),
-      ).toMatchObject({
-        config: { enable_thinking: false },
-      });
-    });
-
-    it('maps deepThink for qwen3-vl', () => {
-      const result = resolveDeepThinkConfig({
-        deepThink: true,
-        modelFamily: 'qwen3-vl',
-      });
-
-      expect(result.config).toEqual({ enable_thinking: true });
-      expect(result.debugMessage).toContain('enable_thinking');
-      expect(result.warningMessage).toBeUndefined();
-    });
-
-    it('maps deepThink for doubao-vision', () => {
-      const result = resolveDeepThinkConfig({
-        deepThink: true,
-        modelFamily: 'doubao-vision',
-      });
-
-      expect(result.config).toEqual({ thinking: { type: 'enabled' } });
-      expect(result.debugMessage).toContain('thinking.type=enabled');
-      expect(result.warningMessage).toBeUndefined();
-    });
-
-    it('maps deepThink false for doubao-vision', () => {
-      const result = resolveDeepThinkConfig({
-        deepThink: false,
-        modelFamily: 'doubao-vision',
-      });
-
-      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
-      expect(result.debugMessage).toContain('thinking.type=disabled');
-      expect(result.warningMessage).toBeUndefined();
-    });
-
-    it('maps deepThink for glm-v', () => {
-      const result = resolveDeepThinkConfig({
-        deepThink: true,
-        modelFamily: 'glm-v',
-      });
-
-      expect(result.config).toEqual({ thinking: { type: 'enabled' } });
-      expect(result.debugMessage).toContain('thinking.type=enabled');
-      expect(result.warningMessage).toBeUndefined();
-    });
-
-    it('maps deepThink false for glm-v', () => {
-      const result = resolveDeepThinkConfig({
-        deepThink: false,
-        modelFamily: 'glm-v',
-      });
-
-      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
-      expect(result.debugMessage).toContain('thinking.type=disabled');
-      expect(result.warningMessage).toBeUndefined();
-    });
-
-    it('warns when deepThink is unsupported', () => {
-      const result = resolveDeepThinkConfig({
-        deepThink: true,
-        modelFamily: 'vlm-ui-tars',
-      });
-
-      expect(result.config).toEqual({});
-      expect(result.debugMessage).toContain('deepThink ignored');
-      expect(result.warningMessage).toContain('not supported');
-    });
-  });
-
   describe('resolveReasoningEffortConfig', () => {
     it('returns empty config when reasoningEffort is not set', () => {
       const result = resolveReasoningEffortConfig({
@@ -460,10 +383,19 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    it('passes reasoning_effort directly for unknown model family', () => {
+    it('warns when no model family is configured', () => {
       const result = resolveReasoningEffortConfig({
         reasoningEffort: 'high',
         modelFamily: undefined,
+      });
+      expect(result.config).toEqual({});
+      expect(result.warningMessage).toBeDefined();
+    });
+
+    it('passes reasoning_effort directly for unrecognized model family', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'gemini' as any,
       });
       expect(result.config).toEqual({ reasoning_effort: 'high' });
     });
