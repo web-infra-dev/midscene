@@ -30,6 +30,7 @@ jobs:
       MIDSCENE_MODEL_RETRY_COUNT: "2"
       MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
       MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_HEADLESS: "true"
       CI: "1"
 
     steps:
@@ -88,10 +89,8 @@ jobs:
         echo "--- DISPLAY ---"
         echo "DISPLAY=${DISPLAY:-(not set)}"
 
-    - name: Run AI todo test with Xvfb auto-detection
-      run: |
-        unset DISPLAY
-        AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+    - name: Run AI todo test with Xvfb
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
       timeout-minutes: 25
       id: test-ai
       continue-on-error: true
@@ -119,6 +118,7 @@ jobs:
       MIDSCENE_MODEL_RETRY_COUNT: "2"
       MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
       MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_HEADLESS: "true"
       CI: "1"
       # Env vars to inject into Chrome extension's config UI via CDP
       MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
@@ -170,9 +170,7 @@ jobs:
       run: pnpm run build:skip-cache
 
     - name: Run Chrome extension test
-      run: |
-        unset DISPLAY
-        AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
       timeout-minutes: 40
       id: test-ext
       continue-on-error: true

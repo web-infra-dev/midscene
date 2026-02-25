@@ -279,10 +279,10 @@ export interface ComputerDeviceOpt {
    */
   keyboardDriver?: 'applescript' | 'libnut';
   /**
-   * Headless mode via Xvfb (Linux only)
-   * - true: force start Xvfb virtual display
-   * - false: do not start Xvfb
-   * - undefined: auto-detect (start Xvfb if no DISPLAY is set on Linux)
+   * Headless mode via Xvfb (Linux only).
+   * - true: start Xvfb virtual display
+   * - false/undefined: do not start Xvfb
+   * Can also be set via MIDSCENE_HEADLESS=true environment variable.
    */
   headless?: boolean;
   /**
@@ -338,8 +338,10 @@ export class ComputerDevice implements AbstractInterface {
     debugDevice('Connecting to computer device');
 
     try {
-      // Start Xvfb if needed (must happen before libnut loads)
-      if (needsXvfb(this.options?.headless)) {
+      // Start Xvfb if explicitly requested (option or env var)
+      const headless =
+        this.options?.headless ?? process.env.MIDSCENE_HEADLESS === 'true';
+      if (needsXvfb(headless)) {
         if (!checkXvfbInstalled()) {
           throw new Error(
             'Xvfb is required for headless mode but not installed. Install: sudo apt-get install xvfb',
