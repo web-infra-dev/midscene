@@ -41,7 +41,7 @@ sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 const agent = await agentFromComputer({ headless: true });
 
 // 方式 2：设置环境变量
-// MIDSCENE_HEADLESS=true npx tsx example.ts
+// MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
 Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./computer-api-reference)。

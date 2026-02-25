@@ -282,7 +282,7 @@ export interface ComputerDeviceOpt {
    * Headless mode via Xvfb (Linux only).
    * - true: start Xvfb virtual display
    * - false/undefined: do not start Xvfb
-   * Can also be set via MIDSCENE_HEADLESS=true environment variable.
+   * Can also be set via MIDSCENE_COMPUTER_HEADLESS_LINUX=true environment variable.
    */
   headless?: boolean;
   /**
@@ -340,7 +340,8 @@ export class ComputerDevice implements AbstractInterface {
     try {
       // Start Xvfb if explicitly requested (option or env var)
       const headless =
-        this.options?.headless ?? process.env.MIDSCENE_HEADLESS === 'true';
+        this.options?.headless ??
+        process.env.MIDSCENE_COMPUTER_HEADLESS_LINUX === 'true';
       if (needsXvfb(headless)) {
         if (!checkXvfbInstalled()) {
           throw new Error(

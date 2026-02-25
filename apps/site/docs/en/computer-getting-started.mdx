@@ -41,7 +41,7 @@ sudo apt-get install -y xvfb x11-xserver-utils imagemagick
 const agent = await agentFromComputer({ headless: true });
 
 // Option 2: Set environment variable
-// MIDSCENE_HEADLESS=true npx tsx example.ts
+// MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
 ```
 
 Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
