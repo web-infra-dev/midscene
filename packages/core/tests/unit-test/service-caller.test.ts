@@ -325,12 +325,12 @@ describe('service-caller', () => {
     });
 
     // qwen3-vl / qwen3.5: reasoningEnabled → enable_thinking, reasoningBudget → thinking_budget
-    it('maps reasoningEnabled to enable_thinking for qwen3-vl', () => {
+    it('maps reasoningEnabled to enable_thinking for qwen3-vl with default budget', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: true,
         modelFamily: 'qwen3-vl',
       });
-      expect(result.config).toEqual({ enable_thinking: true });
+      expect(result.config).toEqual({ enable_thinking: true, thinking_budget: 500 });
     });
 
     it('maps reasoningEnabled=false to enable_thinking=false for qwen3.5', () => {

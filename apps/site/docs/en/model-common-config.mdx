@@ -76,14 +76,17 @@ MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
 ```
 ### Qwen3.5 {#qwen35}
 
-Using Alibaba Cloud's `qwen3.5-plus` as an example:
+Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed, the environment variable configuration is as follows:
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 MIDSCENE_MODEL_API_KEY="......"
 MIDSCENE_MODEL_NAME="qwen3.5-plus"
 MIDSCENE_MODEL_FAMILY="qwen3.5"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
 ```
+
+To enable thinking mode, remove the `MIDSCENE_MODEL_REASONING_ENABLED="false"` line and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
 
 You can also use Qwen3.5 from [OpenRouter](https://openrouter.ai/qwen).
 
