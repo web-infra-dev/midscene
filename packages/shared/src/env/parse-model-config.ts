@@ -229,9 +229,9 @@ export const parseOpenaiSdkConfig = ({
     })(),
     reasoningEffort: provider[keys.reasoningEffort]?.trim() || undefined,
     reasoningEnabled: (() => {
-      const val = provider[keys.reasoningEnabled]?.trim();
-      if (val === 'true') return true;
-      if (val === 'false') return false;
+      const val = provider[keys.reasoningEnabled]?.trim()?.toLowerCase();
+      if (val === 'true' || val === '1') return true;
+      if (val === 'false' || val === '0') return false;
       return undefined;
     })(),
     reasoningBudget: (() => {

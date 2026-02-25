@@ -162,6 +162,28 @@ describe('ModelConfigManager', () => {
     expect(config.reasoningEnabled).toBe(false);
   });
 
+  it('parses reasoningEnabled=1 as true', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: '1',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe(true);
+  });
+
+  it('parses reasoningEnabled=0 as false', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: '0',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe(false);
+  });
+
   it('reasoningEnabled is undefined when not set', () => {
     const manager = new ModelConfigManager(baseMap);
 
