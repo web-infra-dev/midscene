@@ -9,10 +9,9 @@ export interface Point {
 export interface Size {
   width: number; // The image sent to AI model will be resized to this width, also the coordinates in the action space will be scaled to the range [0, width]. Usually you should set it to the logical pixel size
   height: number; // The image sent to AI model will be resized to this height, also the coordinates in the action space will be scaled to the range [0, height]. Usually you should set it to the logical pixel size
-  dpr?: number; // this is deprecated, do NOT use it
 }
 
-export type Rect = Point & Size & { zoom?: number };
+export type Rect = Point & Size;
 
 export abstract class BaseElement {
   abstract id: string;

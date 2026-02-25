@@ -46,8 +46,8 @@ describe('Page.size() with scrollbars', () => {
 
     // context.size should equal the viewport logical dimensions,
     // regardless of scrollbar presence
-    expect(context.size.width).toBe(viewportWidth);
-    expect(context.size.height).toBe(viewportHeight);
+    expect(context.shotSize.width).toBe(viewportWidth);
+    expect(context.shotSize.height).toBe(viewportHeight);
 
     // The screenshot (after agent processing) should be resized to match the logical viewport
     const imgInfo = await imageInfoOfBase64(context.screenshot.base64);
@@ -74,8 +74,8 @@ describe('Page.size() with scrollbars', () => {
     const context = await agent.getUIContext();
 
     // context.size should be logical pixels, not physical
-    expect(context.size.width).toBe(viewportWidth);
-    expect(context.size.height).toBe(viewportHeight);
+    expect(context.shotSize.width).toBe(viewportWidth);
+    expect(context.shotSize.height).toBe(viewportHeight);
 
     // The screenshot should be resized from physical (800x600) to logical (400x300)
     const imgInfo = await imageInfoOfBase64(context.screenshot.base64);

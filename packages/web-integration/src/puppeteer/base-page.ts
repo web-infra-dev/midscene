@@ -223,7 +223,7 @@ export class Page<
             'rectMatchesCacheFeature: found element, rect: %o',
             elementInfo.rect,
           );
-          return buildRectFromElementInfo(elementInfo, this.viewportSize?.dpr);
+          return buildRectFromElementInfo(elementInfo);
         }
         debugPage(
           'rectMatchesCacheFeature: element found but no rect (elementInfo: %o)',
@@ -263,7 +263,6 @@ export class Page<
       return {
         width: window.innerWidth,
         height: window.innerHeight,
-        dpr: window.devicePixelRatio,
       };
     });
     this.viewportSize = sizeInfo;

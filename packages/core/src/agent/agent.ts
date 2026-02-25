@@ -62,7 +62,6 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
@@ -1069,19 +1068,11 @@ export class Agent<
 
     const { element } = output;
 
-    const dprValue = await (this.interface.size() as any).dpr;
-    const dprEntry = dprValue
-      ? {
-          dpr: dprValue,
-        }
-      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      ...dprEntry,
-    } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr?: number; // this field is deprecated
-    };
+      dpr: element?.dpr,
+    } as Pick<LocateResultElement, 'rect' | 'center'>;
   }
 
   async aiAssert(

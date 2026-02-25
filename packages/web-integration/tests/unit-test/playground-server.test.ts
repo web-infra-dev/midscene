@@ -8,7 +8,7 @@ describe('Playground Server', () => {
   let serverBase: string;
   beforeAll(async () => {
     const page = new StaticPage({
-      size: { width: 800, height: 600 },
+      shotSize: { width: 800, height: 600 },
       screenshot: ScreenshotItem.create(''),
     });
     const agent = new StaticPageAgent(page);
