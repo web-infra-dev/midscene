@@ -318,6 +318,17 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
+  const {
+    config: reasoningEffortConfig,
+    debugMessage: reasoningEffortDebugMessage,
+  } = resolveReasoningEffortConfig({
+    reasoningEffort: modelConfig.reasoningEffort,
+    modelFamily,
+  });
+  if (reasoningEffortDebugMessage) {
+    debugCall(reasoningEffortDebugMessage);
+  }
+
   try {
     debugCall(
       `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
@@ -330,6 +341,7 @@ export async function callAI(
           messages,
           ...commonConfig,
           ...deepThinkConfig,
+          ...reasoningEffortConfig,
         },
         {
           stream: true,
@@ -412,6 +424,7 @@ export async function callAI(
             messages,
             ...commonConfig,
             ...deepThinkConfig,
+            ...reasoningEffortConfig,
           } as any);
 
           timeCost = Date.now() - startTime;
@@ -639,6 +652,76 @@ export function resolveDeepThinkConfig({
     config: {},
     debugMessage: `deepThink ignored: unsupported model_family "${modelFamily ?? 'default'}"`,
     warningMessage: `The "deepThink" option is not supported for model_family "${modelFamily ?? 'default'}".`,
+  };
+}
+
+export function resolveReasoningEffortConfig({
+  reasoningEffort,
+  modelFamily,
+}: {
+  reasoningEffort?: string;
+  modelFamily?: TModelFamily;
+}): {
+  config: Record<string, unknown>;
+  debugMessage?: string;
+} {
+  if (!reasoningEffort) {
+    return { config: {} };
+  }
+
+  if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
+    // Doubao uses reasoning_effort directly: minimal / low / medium / high
+    return {
+      config: { reasoning_effort: reasoningEffort },
+      debugMessage: `reasoningEffort mapped to reasoning_effort="${reasoningEffort}" for ${modelFamily}`,
+    };
+  }
+
+  if (modelFamily === 'gpt-5') {
+    // GPT-5 uses reasoning.effort: low / medium / high
+    return {
+      config: { reasoning: { effort: reasoningEffort } },
+      debugMessage: `reasoningEffort mapped to reasoning.effort="${reasoningEffort}" for gpt-5`,
+    };
+  }
+
+  if (modelFamily === 'qwen3-vl' || modelFamily === 'qwen3.5') {
+    // Qwen uses enable_thinking + thinking_budget
+    // Map effort levels to thinking_budget values
+    const effortMap: Record<
+      string,
+      { enable_thinking: boolean; thinking_budget?: number }
+    > = {
+      off: { enable_thinking: false },
+      low: { enable_thinking: true, thinking_budget: 4096 },
+      medium: { enable_thinking: true, thinking_budget: 16384 },
+      high: { enable_thinking: true, thinking_budget: 32768 },
+    };
+    const mapped = effortMap[reasoningEffort];
+    if (mapped) {
+      return {
+        config: mapped,
+        debugMessage: `reasoningEffort mapped to enable_thinking=${mapped.enable_thinking}, thinking_budget=${mapped.thinking_budget ?? 'N/A'} for ${modelFamily}`,
+      };
+    }
+  }
+
+  if (modelFamily === 'glm-v') {
+    // GLM uses thinking.type
+    const enableThinking =
+      reasoningEffort !== 'off' && reasoningEffort !== 'minimal';
+    return {
+      config: {
+        thinking: { type: enableThinking ? 'enabled' : 'disabled' },
+      },
+      debugMessage: `reasoningEffort mapped to thinking.type=${enableThinking ? 'enabled' : 'disabled'} for glm-v`,
+    };
+  }
+
+  // For unknown model families, pass reasoning_effort directly as a best-effort default
+  return {
+    config: { reasoning_effort: reasoningEffort },
+    debugMessage: `reasoningEffort passed as reasoning_effort="${reasoningEffort}" for model_family "${modelFamily ?? 'default'}"`,
   };
 }
 

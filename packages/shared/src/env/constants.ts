@@ -70,9 +70,6 @@ interface IModelConfigKeys {
    */
   retryCount: string;
   retryInterval: string;
-  /**
-   * Reasoning effort for doubao-vision (minimal, low, medium, high; minimal = no thinking)
-   */
   reasoningEffort: string;
 }
 

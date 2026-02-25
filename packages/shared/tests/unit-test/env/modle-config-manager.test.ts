@@ -120,10 +120,9 @@ describe('ModelConfigManager', () => {
     expect(config.createOpenAIClient).toBe(createClient);
   });
 
-  it('parses reasoningEffort for doubao-vision', () => {
+  it('parses reasoningEffort from config', () => {
     const configWithReasoning = {
       ...baseMap,
-      [MIDSCENE_MODEL_FAMILY]: 'doubao-vision',
       [MIDSCENE_MODEL_REASONING_EFFORT]: 'medium',
     };
     const manager = new ModelConfigManager(configWithReasoning);
@@ -131,6 +130,14 @@ describe('ModelConfigManager', () => {
     const config = manager.getModelConfig('default');
     expect(config.reasoningEffort).toBe('medium');
   });
+
+  it('reasoningEffort is undefined when not set', () => {
+    const manager = new ModelConfigManager(baseMap);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEffort).toBeUndefined();
+  });
+
 
   describe('per-intent timeout configuration', () => {
     it('uses per-intent timeout configs from modelConfig', () => {

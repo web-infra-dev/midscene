@@ -29,7 +29,8 @@ export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
 export const MIDSCENE_MODEL_TEMPERATURE = 'MIDSCENE_MODEL_TEMPERATURE';
 export const MIDSCENE_MODEL_RETRY_COUNT = 'MIDSCENE_MODEL_RETRY_COUNT';
 export const MIDSCENE_MODEL_RETRY_INTERVAL = 'MIDSCENE_MODEL_RETRY_INTERVAL';
-export const MIDSCENE_MODEL_REASONING_EFFORT = 'MIDSCENE_MODEL_REASONING_EFFORT';
+export const MIDSCENE_MODEL_REASONING_EFFORT =
+  'MIDSCENE_MODEL_REASONING_EFFORT';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -368,7 +369,7 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
-  // reasoning effort for doubao-vision (minimal/low/medium/high; minimal = no thinking)
+  // reasoning effort
   [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
 }
 
@@ -471,8 +472,8 @@ export interface IModelConfig {
    */
   retryInterval?: number;
   /**
-   * Reasoning effort for doubao-vision: minimal (no thinking), low, medium, high.
-   * When set, passes reasoning_effort to the model API.
+   * Reasoning effort level for the model.
+   * Mapped to model-family-specific parameters (e.g., reasoning_effort for doubao, reasoning.effort for gpt-5).
    */
   reasoningEffort?: string;
   /**

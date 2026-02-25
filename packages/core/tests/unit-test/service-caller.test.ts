@@ -1,5 +1,6 @@
 import {
   resolveDeepThinkConfig,
+  resolveReasoningEffortConfig,
   safeParseJson,
 } from '@/ai-model/service-caller';
 import type { IModelConfig } from '@midscene/shared/env';
@@ -389,6 +390,82 @@ describe('service-caller', () => {
       expect(result.config).toEqual({});
       expect(result.debugMessage).toContain('deepThink ignored');
       expect(result.warningMessage).toContain('not supported');
+    });
+  });
+
+  describe('resolveReasoningEffortConfig', () => {
+    it('returns empty config when reasoningEffort is not set', () => {
+      const result = resolveReasoningEffortConfig({
+        modelFamily: 'doubao-seed',
+      });
+      expect(result.config).toEqual({});
+    });
+
+    it('maps reasoning_effort for doubao-vision', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'medium',
+        modelFamily: 'doubao-vision',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'medium' });
+    });
+
+    it('maps reasoning_effort for doubao-seed', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'doubao-seed',
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'high' });
+    });
+
+    it('maps reasoning.effort for gpt-5', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'low',
+        modelFamily: 'gpt-5',
+      });
+      expect(result.config).toEqual({ reasoning: { effort: 'low' } });
+    });
+
+    it('maps to enable_thinking and thinking_budget for qwen3-vl', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'medium',
+        modelFamily: 'qwen3-vl',
+      });
+      expect(result.config).toEqual({
+        enable_thinking: true,
+        thinking_budget: 16384,
+      });
+    });
+
+    it('maps off to enable_thinking false for qwen3.5', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'off',
+        modelFamily: 'qwen3.5',
+      });
+      expect(result.config).toEqual({ enable_thinking: false });
+    });
+
+    it('maps to thinking.type for glm-v', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'high',
+        modelFamily: 'glm-v',
+      });
+      expect(result.config).toEqual({ thinking: { type: 'enabled' } });
+    });
+
+    it('maps off to thinking.type disabled for glm-v', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'off',
+        modelFamily: 'glm-v',
+      });
+      expect(result.config).toEqual({ thinking: { type: 'disabled' } });
+    });
+
+    it('passes reasoning_effort directly for unknown model family', () => {
+      const result = resolveReasoningEffortConfig({
+        reasoningEffort: 'high',
+        modelFamily: undefined,
+      });
+      expect(result.config).toEqual({ reasoning_effort: 'high' });
     });
   });
 });
