@@ -332,7 +332,6 @@ describe('service-caller', () => {
       });
       expect(result.config).toEqual({
         enable_thinking: true,
-        thinking_budget: 500,
       });
     });
 
