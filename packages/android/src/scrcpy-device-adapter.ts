@@ -23,6 +23,7 @@ interface ResolvedScrcpyConfig {
 export interface DevicePhysicalInfo {
   physicalWidth: number;
   physicalHeight: number;
+  dpr: number;
   orientation: number;
   isCurrentOrientation?: boolean;
 }
@@ -39,7 +40,6 @@ export class ScrcpyDeviceAdapter {
   constructor(
     private deviceId: string,
     private scrcpyConfig: ScrcpyConfig | undefined,
-    private screenshotResizeScale: number | undefined,
   ) {}
 
   isEnabled(): boolean {
