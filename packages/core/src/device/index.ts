@@ -556,4 +556,6 @@ export type {
   AndroidDeviceInputOpt,
   IOSDeviceOpt,
   IOSDeviceInputOpt,
+  HarmonyDeviceOpt,
+  HarmonyDeviceInputOpt,
 } from './device-options';
