@@ -690,35 +690,35 @@ export const parseActionParam = (
   // Validate with dummy locate values
   const validated = zodSchema.parse(paramsForValidation);
 
-  // Restore the actual locate field values (unvalidated, as per business requirement)
-  for (const fieldName in locateFieldValues) {
-    validated[fieldName] = locateFieldValues[fieldName];
-  }
-
-  // Transform coordinates from screenshot space to logical space if needed
+  // Restore the actual locate field values (unvalidated, as per business requirement),
+  // and transform coordinates from screenshot space to logical space if needed
   const ratio = options?.shrunkShotToLogicalRatio;
-  if (ratio !== undefined && ratio !== 1) {
-    for (const fieldName of locateFields) {
-      if (validated[fieldName] && typeof validated[fieldName] === 'object') {
-        const element = validated[fieldName];
-        if (element.center && element.rect) {
-          validated[fieldName] = {
-            ...element,
-            center: [
-              Math.round(element.center[0] / ratio),
-              Math.round(element.center[1] / ratio),
-            ],
-            rect: {
-              ...element.rect,
-              left: Math.round(element.rect.left / ratio),
-              top: Math.round(element.rect.top / ratio),
-              width: Math.round(element.rect.width / ratio),
-              height: Math.round(element.rect.height / ratio),
-            },
-          };
-        }
-      }
+  for (const fieldName in locateFieldValues) {
+    let value = locateFieldValues[fieldName];
+    if (
+      ratio !== undefined &&
+      ratio !== 1 &&
+      value &&
+      typeof value === 'object' &&
+      value.center &&
+      value.rect
+    ) {
+      value = {
+        ...value,
+        center: [
+          Math.round(value.center[0] / ratio),
+          Math.round(value.center[1] / ratio),
+        ],
+        rect: {
+          ...value.rect,
+          left: Math.round(value.rect.left / ratio),
+          top: Math.round(value.rect.top / ratio),
+          width: Math.round(value.rect.width / ratio),
+          height: Math.round(value.rect.height / ratio),
+        },
+      };
     }
+    validated[fieldName] = value;
   }
 
   return validated;
