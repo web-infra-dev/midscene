@@ -54,12 +54,9 @@ interface ScreenshotDisplay {
 }
 
 // Constants
-const SMOOTH_MOVE_STEPS_TAP = 8;
 const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
-const SMOOTH_MOVE_DELAY_TAP = 8;
 const SMOOTH_MOVE_DELAY_MOUSE_MOVE = 10;
 const MOUSE_MOVE_EFFECT_WAIT = 300;
-const CLICK_HOLD_DURATION = 50;
 const INPUT_FOCUS_DELAY = 300;
 const INPUT_CLEAR_DELAY = 150;
 const SCROLL_REPEAT_COUNT = 10;
@@ -560,16 +557,8 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const targetX = Math.round(x);
         const targetY = Math.round(y);
 
-        await smoothMoveMouse(
-          targetX,
-          targetY,
-          SMOOTH_MOVE_STEPS_TAP,
-          SMOOTH_MOVE_DELAY_TAP,
-        );
-        // Use mouseToggle for more realistic click behavior
-        libnut.mouseToggle('down', 'left');
-        await sleep(CLICK_HOLD_DURATION);
-        libnut.mouseToggle('up', 'left');
+        libnut.moveMouse(targetX, targetY);
+        libnut.mouseClick('left');
       }),
 
       // DoubleClick
