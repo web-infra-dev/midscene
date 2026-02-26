@@ -27,6 +27,8 @@ import {
   ifPlanLocateParamIsBbox,
   matchElementFromCache,
   matchElementFromPlan,
+  transformLogicalElementToScreenshot,
+  transformLogicalRectToScreenshotRect,
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
@@ -269,9 +271,18 @@ export class TaskBuilder {
           );
         }
 
+        const { shrunkShotToLogicalRatio } = uiContext;
+        if (shrunkShotToLogicalRatio === undefined) {
+          throw new Error(
+            'shrunkShotToLogicalRatio is not defined in Action task',
+          );
+        }
+
         if (action.paramSchema) {
           try {
-            param = parseActionParam(param, action.paramSchema);
+            param = parseActionParam(param, action.paramSchema, {
+              shrunkShotToLogicalRatio,
+            });
           } catch (error: any) {
             throw new Error(
               `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,
@@ -368,6 +379,14 @@ export class TaskBuilder {
 
         assert(uiContext, 'uiContext is required for Service task');
 
+        const { shrunkShotToLogicalRatio } = uiContext;
+
+        if (shrunkShotToLogicalRatio === undefined) {
+          throw new Error(
+            'shrunkShotToLogicalRatio is not defined in locate task',
+          );
+        }
+
         let locateDump: ServiceDump | undefined;
         let locateResult: LocateResultWithDump | undefined;
 
@@ -410,21 +429,27 @@ export class TaskBuilder {
             // xpath locate failed, allow fallback to cache or AI locate
           }
         }
+
         const elementFromXpath = rectFromXpath
           ? generateElementByRect(
-              rectFromXpath,
+              // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
+              transformLogicalRectToScreenshotRect(
+                rectFromXpath,
+                shrunkShotToLogicalRatio,
+              ),
               typeof param.prompt === 'string'
                 ? param.prompt
                 : param.prompt?.prompt || '',
             )
           : undefined;
+
         const isXpathHit = !!elementFromXpath;
 
         const cachePrompt = param.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
-        const elementFromCache =
+        const elementFromCacheResult =
           isPlanHit || isXpathHit
             ? null
             : await matchElementFromCache(
@@ -436,6 +461,15 @@ export class TaskBuilder {
                 cachePrompt,
                 param.cacheable,
               );
+
+        // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
+        const elementFromCache = elementFromCacheResult
+          ? transformLogicalElementToScreenshot(
+              elementFromCacheResult,
+              shrunkShotToLogicalRatio,
+            )
+          : undefined;
+
         const isCacheHit = !!elementFromCache;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
@@ -485,8 +519,23 @@ export class TaskBuilder {
         ) {
           if (this.interface.cacheFeatureForPoint) {
             try {
+              // Transform coordinates to logical space for cacheFeatureForPoint
+              // cacheFeatureForPoint needs logical coordinates to locate elements in DOM
+              let pointForCache: [number, number] = element.center;
+              if (shrunkShotToLogicalRatio !== 1) {
+                pointForCache = [
+                  Math.round(element.center[0] / shrunkShotToLogicalRatio),
+                  Math.round(element.center[1] / shrunkShotToLogicalRatio),
+                ];
+                debug(
+                  'Transformed coordinates for cacheFeatureForPoint: %o -> %o',
+                  element.center,
+                  pointForCache,
+                );
+              }
+
               const feature = await this.interface.cacheFeatureForPoint(
-                element.center,
+                pointForCache,
                 {
                   targetDescription:
                     typeof param.prompt === 'string'

@@ -39,6 +39,7 @@ function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
     uiContext: {
       screenshot: s,
       shotSize: { width: 1920, height: 1080 },
+      shrunkShotToLogicalRatio: 1,
     },
     executor: async () => undefined,
     recorder: [],
@@ -561,6 +562,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
           uiContext: {
             screenshot: sc,
             shotSize: { width: 1920, height: 1080 },
+            shrunkShotToLogicalRatio: 1,
           },
           executor: async () => undefined,
           recorder: [],

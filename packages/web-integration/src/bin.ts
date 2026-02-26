@@ -10,6 +10,7 @@ async function startServer() {
   const page = new StaticPage({
     shotSize: { width: 800, height: 600 },
     screenshot: ScreenshotItem.create(''),
+    shrunkShotToLogicalRatio: 1,
   });
   const agent = new StaticPageAgent(page);
 
