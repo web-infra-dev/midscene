@@ -666,7 +666,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   /**
    * Move the cursor using Win32 mouse_event with MOUSEEVENTF_ABSOLUTE.
    * Coordinates are in logical screen space (same as getScreenSize).
-   * Uses PowerShell to call the Win32 API.
+   * Uses PowerShell -EncodedCommand to avoid quote-escaping issues on Windows.
    */
   private win32MouseEventMove(
     x: number,
@@ -677,12 +677,27 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     const nx = Math.round((x * 65535) / Math.max(screenSize.width - 1, 1));
     const ny = Math.round((y * 65535) / Math.max(screenSize.height - 1, 1));
     // MOUSEEVENTF_MOVE(0x0001) | MOUSEEVENTF_ABSOLUTE(0x8000) = 0x8001
-    const psCmd = `Add-Type 'using System;using System.Runtime.InteropServices;public class M{[DllImport(""user32.dll"")]public static extern void mouse_event(uint f,int x,int y,int d,IntPtr e);}';[M]::mouse_event(0x8001,${nx},${ny},0,[IntPtr]::Zero)`;
-    execSync(`powershell -NoProfile -NonInteractive -Command "${psCmd}"`, {
-      timeout: 5000,
-      windowsHide: true,
-      stdio: 'pipe',
-    });
+    const psScript = [
+      'Add-Type -TypeDefinition @"',
+      'using System;',
+      'using System.Runtime.InteropServices;',
+      'public class MouseHelper {',
+      '  [DllImport("user32.dll")]',
+      '  public static extern void mouse_event(uint dwFlags, int dx, int dy, int dwData, IntPtr dwExtraInfo);',
+      '}',
+      '"@',
+      `[MouseHelper]::mouse_event(0x8001, ${nx}, ${ny}, 0, [IntPtr]::Zero)`,
+    ].join('\r\n');
+    // Encode as UTF-16LE Base64 for -EncodedCommand (avoids all quoting issues)
+    const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
+    execSync(
+      `powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`,
+      {
+        timeout: 10000,
+        windowsHide: true,
+        stdio: 'pipe',
+      },
+    );
   }
 
   /**
