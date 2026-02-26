@@ -312,6 +312,11 @@ export class ComputerDevice implements AbstractInterface {
   private mouseScaleY = 1;
   private mouseOffsetX = 0;
   private mouseOffsetY = 0;
+  /**
+   * When libnut.moveMouse is completely broken (returns same position for
+   * different inputs), fall back to Win32 mouse_event via PowerShell.
+   */
+  private useWin32MouseFallback = false;
   uri?: string;
 
   constructor(options?: ComputerDeviceOpt) {
@@ -482,19 +487,72 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   /**
    * Calibrate mouse coordinates by measuring the actual transformation.
-   * Uses 2-point calibration to determine an affine mapping:
-   *   actual = scale * input + offset
-   * Then inverts it for all future moveMouse calls.
+   * Strategy:
+   * 1. Try 2-point calibration with logical coordinates
+   * 2. If moveMouse doesn't work (scale=0), retry with DPI-multiplied coordinates
+   * 3. If still broken, fall back to Win32 mouse_event via PowerShell (Windows only)
    */
   private async calibrateMouse(): Promise<void> {
     assert(libnut, 'libnut not initialized');
 
     const savedPos = libnut.getMousePos();
 
-    // Use small coordinates to avoid off-screen clamping
-    // even with extreme DPI transformations
-    const p1 = { x: 100, y: 100 };
-    const p2 = { x: 300, y: 300 };
+    // Pass 1: try with logical coordinates
+    const result = await this.tryCalibrationPass(
+      { x: 100, y: 100 },
+      { x: 300, y: 300 },
+      'logical',
+    );
+    if (result) {
+      this.applyCalibration(result, savedPos);
+      return;
+    }
+
+    // Pass 2: try with DPI-multiplied coordinates (physical space)
+    // On some high-DPI Windows setups, moveMouse expects physical coordinates
+    const dpi = this.dpiScale;
+    const result2 = await this.tryCalibrationPass(
+      { x: Math.round(100 * dpi), y: Math.round(100 * dpi) },
+      { x: Math.round(300 * dpi), y: Math.round(300 * dpi) },
+      'DPI-multiplied',
+    );
+    if (result2) {
+      this.applyCalibration(result2, savedPos);
+      return;
+    }
+
+    // Pass 3: on Windows, try mouse_event with MOUSEEVENTF_ABSOLUTE as fallback
+    if (process.platform === 'win32') {
+      const win32Works = await this.testWin32MouseFallback();
+      if (win32Works) {
+        this.useWin32MouseFallback = true;
+        debugDevice(
+          'Using Win32 mouse_event (MOUSEEVENTF_ABSOLUTE) fallback for cursor positioning',
+        );
+        return;
+      }
+    }
+
+    debugDevice(
+      'All mouse calibration methods failed. Mouse positioning may be inaccurate on this machine.',
+    );
+  }
+
+  private async tryCalibrationPass(
+    p1: { x: number; y: number },
+    p2: { x: number; y: number },
+    label: string,
+  ): Promise<{
+    scaleX: number;
+    scaleY: number;
+    offsetX: number;
+    offsetY: number;
+    p1: { x: number; y: number };
+    p2: { x: number; y: number };
+    a1: { x: number; y: number };
+    a2: { x: number; y: number };
+  } | null> {
+    assert(libnut, 'libnut not initialized');
 
     libnut.moveMouse(p1.x, p1.y);
     await sleep(80);
@@ -504,64 +562,127 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     await sleep(80);
     const a2 = libnut.getMousePos();
 
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
     const dax = a2.x - a1.x;
     const day = a2.y - a1.y;
-
-    // Calculate affine: actual = scale * input + offset
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
     const scaleX = dax / dx;
     const scaleY = day / dy;
-    const offsetX = a1.x - scaleX * p1.x;
-    const offsetY = a1.y - scaleY * p1.y;
 
-    // Validate: scale must be non-zero and finite
+    debugDevice(
+      `Calibration pass (${label}): moveMouse(${p1.x},${p1.y})->actual(${a1.x},${a1.y}), moveMouse(${p2.x},${p2.y})->actual(${a2.x},${a2.y}), scale=(${scaleX.toFixed(3)},${scaleY.toFixed(3)})`,
+    );
+
     if (
       scaleX === 0 ||
       scaleY === 0 ||
       !Number.isFinite(scaleX) ||
       !Number.isFinite(scaleY)
     ) {
-      debugDevice(
-        `Mouse calibration failed: invalid scale (${scaleX}, ${scaleY})`,
-      );
-      return;
+      return null;
     }
 
-    // Check if calibration is needed (tolerance of 3px)
-    const needsCalibration =
-      Math.abs(scaleX - 1) > 0.01 ||
-      Math.abs(scaleY - 1) > 0.01 ||
-      Math.abs(offsetX) > 3 ||
-      Math.abs(offsetY) > 3;
+    const offsetX = a1.x - scaleX * p1.x;
+    const offsetY = a1.y - scaleY * p1.y;
 
-    if (!needsCalibration) {
-      debugDevice(
-        'Mouse calibration: coordinates are accurate, no correction needed',
-      );
-      // Restore position
-      libnut.moveMouse(savedPos.x, savedPos.y);
-      return;
+    // Check if correction is actually needed
+    if (
+      Math.abs(scaleX - 1) <= 0.01 &&
+      Math.abs(scaleY - 1) <= 0.01 &&
+      Math.abs(offsetX) <= 3 &&
+      Math.abs(offsetY) <= 3
+    ) {
+      debugDevice('Mouse coordinates are accurate, no correction needed');
     }
 
-    this.mouseScaleX = scaleX;
-    this.mouseScaleY = scaleY;
-    this.mouseOffsetX = offsetX;
-    this.mouseOffsetY = offsetY;
+    return { scaleX, scaleY, offsetX, offsetY, p1, p2, a1, a2 };
+  }
+
+  private applyCalibration(
+    cal: {
+      scaleX: number;
+      scaleY: number;
+      offsetX: number;
+      offsetY: number;
+    },
+    savedPos: { x: number; y: number },
+  ): void {
+    this.mouseScaleX = cal.scaleX;
+    this.mouseScaleY = cal.scaleY;
+    this.mouseOffsetX = cal.offsetX;
+    this.mouseOffsetY = cal.offsetY;
     this.mouseCalibrated = true;
 
     debugDevice(
-      `Mouse calibration complete:\n  Point1: moveMouse(${p1.x}, ${p1.y}) -> actual(${a1.x}, ${a1.y})\n  Point2: moveMouse(${p2.x}, ${p2.y}) -> actual(${a2.x}, ${a2.y})\n  Transform: actualX = ${scaleX.toFixed(4)} * inputX + ${offsetX.toFixed(1)}\n  Transform: actualY = ${scaleY.toFixed(4)} * inputY + ${offsetY.toFixed(1)}\n  To move cursor to target, use: inputX = (targetX - ${offsetX.toFixed(1)}) / ${scaleX.toFixed(4)}`,
+      `Mouse calibration applied: actualX = ${cal.scaleX.toFixed(4)} * inputX + ${cal.offsetX.toFixed(1)}, actualY = ${cal.scaleY.toFixed(4)} * inputY + ${cal.offsetY.toFixed(1)}`,
     );
 
     // Restore position using corrected coordinates
-    const restoreX = Math.round(
-      (savedPos.x - this.mouseOffsetX) / this.mouseScaleX,
-    );
-    const restoreY = Math.round(
-      (savedPos.y - this.mouseOffsetY) / this.mouseScaleY,
-    );
-    libnut.moveMouse(restoreX, restoreY);
+    if (libnut) {
+      const restoreX = Math.round(
+        (savedPos.x - this.mouseOffsetX) / this.mouseScaleX,
+      );
+      const restoreY = Math.round(
+        (savedPos.y - this.mouseOffsetY) / this.mouseScaleY,
+      );
+      libnut.moveMouse(restoreX, restoreY);
+    }
+  }
+
+  /**
+   * Test if Win32 mouse_event with MOUSEEVENTF_ABSOLUTE works as a fallback.
+   * This bypasses SetCursorPos (which libnut uses) and may work on high-DPI
+   * machines where SetCursorPos is broken.
+   */
+  private async testWin32MouseFallback(): Promise<boolean> {
+    assert(libnut, 'libnut not initialized');
+
+    try {
+      const screenSize = libnut.getScreenSize();
+
+      // Move to two different positions using mouse_event and verify
+      const t1 = { x: 200, y: 200 };
+      const t2 = { x: 400, y: 400 };
+
+      this.win32MouseEventMove(t1.x, t1.y, screenSize);
+      await sleep(80);
+      const a1 = libnut.getMousePos();
+
+      this.win32MouseEventMove(t2.x, t2.y, screenSize);
+      await sleep(80);
+      const a2 = libnut.getMousePos();
+
+      const moved = a1.x !== a2.x || a1.y !== a2.y;
+      debugDevice(
+        `Win32 mouse_event fallback test: move(${t1.x},${t1.y})->actual(${a1.x},${a1.y}), move(${t2.x},${t2.y})->actual(${a2.x},${a2.y}), worked=${moved}`,
+      );
+      return moved;
+    } catch (e) {
+      debugDevice(`Win32 mouse_event fallback test failed: ${e}`);
+      return false;
+    }
+  }
+
+  /**
+   * Move the cursor using Win32 mouse_event with MOUSEEVENTF_ABSOLUTE.
+   * Coordinates are in logical screen space (same as getScreenSize).
+   * Uses PowerShell to call the Win32 API.
+   */
+  private win32MouseEventMove(
+    x: number,
+    y: number,
+    screenSize: { width: number; height: number },
+  ): void {
+    // Normalize to 0-65535 range for MOUSEEVENTF_ABSOLUTE
+    const nx = Math.round((x * 65535) / Math.max(screenSize.width - 1, 1));
+    const ny = Math.round((y * 65535) / Math.max(screenSize.height - 1, 1));
+    // MOUSEEVENTF_MOVE(0x0001) | MOUSEEVENTF_ABSOLUTE(0x8000) = 0x8001
+    const psCmd = `Add-Type 'using System;using System.Runtime.InteropServices;public class M{[DllImport(""user32.dll"")]public static extern void mouse_event(uint f,int x,int y,int d,IntPtr e);}';[M]::mouse_event(0x8001,${nx},${ny},0,[IntPtr]::Zero)`;
+    execSync(`powershell -NoProfile -NonInteractive -Command "${psCmd}"`, {
+      timeout: 5000,
+      windowsHide: true,
+      stdio: 'pipe',
+    });
   }
 
   /**
@@ -570,6 +691,16 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
    */
   private moveMouseCorrected(targetX: number, targetY: number): void {
     assert(libnut, 'libnut not initialized');
+
+    if (this.useWin32MouseFallback) {
+      const screenSize = libnut.getScreenSize();
+      debugDevice(
+        `moveMouseCorrected(Win32 fallback): target(${targetX}, ${targetY})`,
+      );
+      this.win32MouseEventMove(targetX, targetY, screenSize);
+      return;
+    }
+
     if (!this.mouseCalibrated) {
       libnut.moveMouse(targetX, targetY);
       return;
