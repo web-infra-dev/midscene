@@ -24,13 +24,20 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import { createImgBase64ByFormat, imageInfoOfBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
 // Type definitions
+interface WindowRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 interface LibNut {
   getScreenSize(): { width: number; height: number };
   getMousePos(): { x: number; y: number };
@@ -40,6 +47,12 @@ interface LibNut {
   scrollMouse(x: number, y: number): void;
   keyTap(key: string, modifiers?: string[]): void;
   typeString(text: string): void;
+  // Window management
+  getWindows(): number[];
+  getActiveWindow(): number;
+  getWindowRect(handle: number): WindowRect;
+  getWindowTitle(handle: number): string;
+  focusWindow(handle: number): void;
 }
 
 interface ScreenshotOptions {
@@ -373,11 +386,28 @@ export class ComputerDevice implements AbstractInterface {
         ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
         : '';
 
+      // Check for DPI scaling mismatch between screen size and screenshot
+      let dpiInfo = '';
+      try {
+        const screenshotB64 = await this.screenshotBase64();
+        const imgInfo = await imageInfoOfBase64(screenshotB64);
+        const scaleX = imgInfo.width / size.width;
+        const scaleY = imgInfo.height / size.height;
+        dpiInfo = `\nScreenshot Size: ${imgInfo.width}x${imgInfo.height} (scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)})`;
+        if (scaleX !== 1 || scaleY !== 1) {
+          console.warn(
+            `[ComputerDevice] DPI scaling detected! Screen: ${size.width}x${size.height}, Screenshot: ${imgInfo.width}x${imgInfo.height}, Scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`,
+          );
+        }
+      } catch (e) {
+        dpiInfo = '\nScreenshot Size: unknown (check failed)';
+      }
+
       this.description = `
 Type: Computer
 Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
-Screen Size: ${size.width}x${size.height}
+Screen Size: ${size.width}x${size.height}${dpiInfo}
 Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
 `;
       debugDevice('Computer device connected', this.description);
@@ -557,7 +587,20 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const targetX = Math.round(x);
         const targetY = Math.round(y);
 
+        // Log active window info before click for diagnostics
+        try {
+          const activeHandle = libnut.getActiveWindow();
+          const title = libnut.getWindowTitle(activeHandle);
+          const rect = libnut.getWindowRect(activeHandle);
+          debugDevice(
+            `Tap(${targetX}, ${targetY}) activeWindow: handle=${activeHandle}, title="${title}", rect=(${rect.x},${rect.y},${rect.width},${rect.height})`,
+          );
+        } catch (e) {
+          debugDevice(`Tap(${targetX}, ${targetY}) failed to get window info: ${e}`);
+        }
+
         libnut.moveMouse(targetX, targetY);
+        await sleep(100);
         libnut.mouseClick('left');
       }),
 
