@@ -440,6 +440,24 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
     );
 
+    // Detect if moveMouse actually worked
+    const deltaX = Math.abs(movedPos.x - targetX);
+    const deltaY = Math.abs(movedPos.y - targetY);
+    if (deltaX > 5 || deltaY > 5) {
+      const msg = `[HealthCheck] WARNING: Mouse control may not be working. Expected (${targetX}, ${targetY}), got (${movedPos.x}, ${movedPos.y}), delta=(${deltaX}, ${deltaY})`;
+      console.warn(msg);
+      debugDevice(msg);
+
+      if (process.platform === 'win32' && !this.isRunningAsAdmin()) {
+        const hint =
+          'Midscene is NOT running as Administrator. ' +
+          'Windows blocks mouse/keyboard input to elevated (admin) applications from non-admin processes (UIPI). ' +
+          'Please run your terminal or Node.js as Administrator and try again.';
+        console.error(`\n[HealthCheck] ${hint}\n`);
+        debugDevice(hint);
+      }
+    }
+
     // Restore original position
     libnut.moveMouse(startPos.x, startPos.y);
     console.log(
@@ -447,6 +465,20 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     );
 
     console.log('[HealthCheck] Health check passed');
+  }
+
+  /**
+   * Check if the current process is running with Administrator privileges.
+   * Uses "net session" which succeeds only when elevated.
+   */
+  private isRunningAsAdmin(): boolean {
+    if (process.platform !== 'win32') return false;
+    try {
+      execSync('net session', { stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async screenshotBase64(): Promise<string> {
