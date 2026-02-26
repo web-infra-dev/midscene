@@ -630,74 +630,144 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   /**
-   * Test if Win32 mouse_event with MOUSEEVENTF_ABSOLUTE works as a fallback.
-   * This bypasses SetCursorPos (which libnut uses) and may work on high-DPI
-   * machines where SetCursorPos is broken.
+   * Test multiple Win32 cursor APIs to find one that works.
+   * Tries: SendInput, DPI-aware SetCursorPos, mouse_event.
    */
   private async testWin32MouseFallback(): Promise<boolean> {
     assert(libnut, 'libnut not initialized');
+    const screenSize = libnut.getScreenSize();
 
-    try {
-      const screenSize = libnut.getScreenSize();
+    // Try each method and see if any can actually move the cursor
+    const methods = ['SendInput', 'DpiAwareSetCursorPos', 'mouse_event'];
+    for (const method of methods) {
+      try {
+        const t1 = { x: 200, y: 200 };
+        const t2 = { x: 500, y: 500 };
 
-      // Move to two different positions using mouse_event and verify
-      const t1 = { x: 200, y: 200 };
-      const t2 = { x: 400, y: 400 };
+        this.win32MouseMove(t1.x, t1.y, screenSize, method);
+        await sleep(150);
+        const a1 = libnut.getMousePos();
 
-      this.win32MouseEventMove(t1.x, t1.y, screenSize);
-      await sleep(80);
-      const a1 = libnut.getMousePos();
+        this.win32MouseMove(t2.x, t2.y, screenSize, method);
+        await sleep(150);
+        const a2 = libnut.getMousePos();
 
-      this.win32MouseEventMove(t2.x, t2.y, screenSize);
-      await sleep(80);
-      const a2 = libnut.getMousePos();
+        const moved = a1.x !== a2.x || a1.y !== a2.y;
+        debugDevice(
+          `Win32 fallback [${method}]: move(${t1.x},${t1.y})->actual(${a1.x},${a1.y}), move(${t2.x},${t2.y})->actual(${a2.x},${a2.y}), worked=${moved}`,
+        );
 
-      const moved = a1.x !== a2.x || a1.y !== a2.y;
-      debugDevice(
-        `Win32 mouse_event fallback test: move(${t1.x},${t1.y})->actual(${a1.x},${a1.y}), move(${t2.x},${t2.y})->actual(${a2.x},${a2.y}), worked=${moved}`,
-      );
-      return moved;
-    } catch (e) {
-      debugDevice(`Win32 mouse_event fallback test failed: ${e}`);
-      return false;
+        if (moved) {
+          this.win32MouseMethod = method;
+          return true;
+        }
+      } catch (e) {
+        debugDevice(`Win32 fallback [${method}] failed: ${e}`);
+      }
     }
+    return false;
   }
 
   /**
-   * Move the cursor using Win32 mouse_event with MOUSEEVENTF_ABSOLUTE.
-   * Coordinates are in logical screen space (same as getScreenSize).
-   * Uses PowerShell -EncodedCommand to avoid quote-escaping issues on Windows.
+   * The Win32 API method that was found to work during testing.
    */
-  private win32MouseEventMove(
+  private win32MouseMethod = 'SendInput';
+
+  /**
+   * Build and execute a PowerShell script via -EncodedCommand.
+   */
+  private runPowerShell(script: string): void {
+    const encoded = Buffer.from(script, 'utf16le').toString('base64');
+    execSync(
+      `powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`,
+      { timeout: 10000, windowsHide: true, stdio: 'pipe' },
+    );
+  }
+
+  /**
+   * Move cursor via Win32 API using the specified method.
+   * Uses PowerShell -EncodedCommand to avoid escaping issues.
+   */
+  private win32MouseMove(
     x: number,
     y: number,
     screenSize: { width: number; height: number },
+    method: string,
   ): void {
-    // Normalize to 0-65535 range for MOUSEEVENTF_ABSOLUTE
     const nx = Math.round((x * 65535) / Math.max(screenSize.width - 1, 1));
     const ny = Math.round((y * 65535) / Math.max(screenSize.height - 1, 1));
-    // MOUSEEVENTF_MOVE(0x0001) | MOUSEEVENTF_ABSOLUTE(0x8000) = 0x8001
-    const psScript = [
-      'Add-Type -TypeDefinition @"',
-      'using System;',
-      'using System.Runtime.InteropServices;',
-      'public class MouseHelper {',
-      '  [DllImport("user32.dll")]',
-      '  public static extern void mouse_event(uint dwFlags, int dx, int dy, int dwData, IntPtr dwExtraInfo);',
-      '}',
-      '"@',
-      `[MouseHelper]::mouse_event(0x8001, ${nx}, ${ny}, 0, [IntPtr]::Zero)`,
-    ].join('\r\n');
-    // Encode as UTF-16LE Base64 for -EncodedCommand (avoids all quoting issues)
-    const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
-    execSync(
-      `powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`,
-      {
-        timeout: 10000,
-        windowsHide: true,
-        stdio: 'pipe',
-      },
-    );
+
+    if (method === 'SendInput') {
+      // SendInput with MOUSEINPUT - the most modern and reliable approach
+      const psScript = [
+        'Add-Type -TypeDefinition @"',
+        'using System;',
+        'using System.Runtime.InteropServices;',
+        '[StructLayout(LayoutKind.Sequential)]',
+        'public struct MOUSEINPUT {',
+        '  public int dx;',
+        '  public int dy;',
+        '  public uint mouseData;',
+        '  public uint dwFlags;',
+        '  public uint time;',
+        '  public IntPtr dwExtraInfo;',
+        '}',
+        '[StructLayout(LayoutKind.Sequential)]',
+        'public struct INPUT {',
+        '  public uint type;',
+        '  public MOUSEINPUT mi;',
+        '}',
+        'public class Win32Input {',
+        '  [DllImport("user32.dll", SetLastError = true)]',
+        '  public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);',
+        '}',
+        '"@',
+        '$inp = New-Object INPUT',
+        '$inp.type = 0',
+        `$inp.mi.dx = ${nx}`,
+        `$inp.mi.dy = ${ny}`,
+        '$inp.mi.dwFlags = 0x8001',
+        '$inp.mi.mouseData = 0',
+        '$inp.mi.time = 0',
+        '$inp.mi.dwExtraInfo = [IntPtr]::Zero',
+        '$r = [Win32Input]::SendInput(1, @($inp), [System.Runtime.InteropServices.Marshal]::SizeOf([type][INPUT]))',
+        'if ($r -eq 0) { Write-Error ("SendInput failed: " + [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()) }',
+      ].join('\r\n');
+      this.runPowerShell(psScript);
+    } else if (method === 'DpiAwareSetCursorPos') {
+      // Set DPI awareness then use SetCursorPos with physical coordinates
+      const physX = Math.round(x * this.dpiScale);
+      const physY = Math.round(y * this.dpiScale);
+      const psScript = [
+        'Add-Type -TypeDefinition @"',
+        'using System;',
+        'using System.Runtime.InteropServices;',
+        'public class Win32Cursor {',
+        '  [DllImport("user32.dll")]',
+        '  public static extern bool SetCursorPos(int X, int Y);',
+        '  [DllImport("shcore.dll")]',
+        '  public static extern int SetProcessDpiAwareness(int value);',
+        '}',
+        '"@',
+        'try { [Win32Cursor]::SetProcessDpiAwareness(2) } catch {}',
+        `[Win32Cursor]::SetCursorPos(${physX}, ${physY})`,
+      ].join('\r\n');
+      this.runPowerShell(psScript);
+    } else {
+      // mouse_event with MOUSEEVENTF_ABSOLUTE
+      const psScript = [
+        'Add-Type -TypeDefinition @"',
+        'using System;',
+        'using System.Runtime.InteropServices;',
+        'public class Win32Mouse {',
+        '  [DllImport("user32.dll")]',
+        '  public static extern void mouse_event(uint dwFlags, int dx, int dy, int dwData, IntPtr dwExtraInfo);',
+        '}',
+        '"@',
+        `[Win32Mouse]::mouse_event(0x8001, ${nx}, ${ny}, 0, [IntPtr]::Zero)`,
+      ].join('\r\n');
+      this.runPowerShell(psScript);
+    }
   }
 
   /**
@@ -710,9 +780,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     if (this.useWin32MouseFallback) {
       const screenSize = libnut.getScreenSize();
       debugDevice(
-        `moveMouseCorrected(Win32 fallback): target(${targetX}, ${targetY})`,
+        `moveMouseCorrected(Win32 ${this.win32MouseMethod}): target(${targetX}, ${targetY})`,
       );
-      this.win32MouseEventMove(targetX, targetY, screenSize);
+      this.win32MouseMove(targetX, targetY, screenSize, this.win32MouseMethod);
       return;
     }
 
