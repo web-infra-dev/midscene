@@ -36,6 +36,8 @@ export type { HarmonyDeviceOpt } from '@midscene/core/device';
 const defaultScrollUntilTimes = 10;
 const defaultSwipeSpeed = 600;
 const defaultFastSwipeSpeed = 2000;
+const maxScrollDistance = 9999999;
+const scrollQuadrantDivisions = 4;
 
 const debugDevice = getDebug('harmony:device');
 
@@ -128,7 +130,7 @@ export class HarmonyDevice implements AbstractInterface {
           await this.scrollUntilLeft(startingPoint);
         } else if (scrollToEventName === 'singleAction' || !scrollToEventName) {
           if (param?.direction === 'down' || !param || !param.direction) {
-            await this.scrollDown(param?.distance || undefined, startingPoint);
+            await this.scrollDown(param?.distance ?? undefined, startingPoint);
           } else if (param.direction === 'up') {
             await this.scrollUp(param.distance || undefined, startingPoint);
           } else if (param.direction === 'left') {
@@ -257,7 +259,6 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     this.connecting = (async () => {
-      let error: Error | null = null;
       debugDevice(`Initializing HDC with device ID: ${this.deviceId}`);
       try {
         this.hdc = new HdcClient({
@@ -273,16 +274,10 @@ export class HarmonyDevice implements AbstractInterface {
         return this.hdc;
       } catch (e) {
         debugDevice(`Failed to initialize HDC: ${e}`);
-        error = new Error(`Unable to connect to device ${this.deviceId}: ${e}`);
+        throw new Error(`Unable to connect to device ${this.deviceId}: ${e}`);
       } finally {
         this.connecting = null;
       }
-
-      if (error) {
-        throw error;
-      }
-
-      throw new Error('HDC initialization failed unexpectedly');
     })();
 
     return this.connecting;
@@ -320,8 +315,9 @@ export class HarmonyDevice implements AbstractInterface {
         const bundleName = this.resolvePackageName(uri) ?? uri;
         try {
           await hdc.startAbility(bundleName, 'EntryAbility');
-        } catch {
-          // EntryAbility failed, auto-discover the main ability
+        } catch (e: any) {
+          if (!e.message?.includes('resolve ability')) throw e;
+          // EntryAbility not found, auto-discover the main ability
           const mainAbility = await hdc.queryMainAbility(bundleName);
           if (!mainAbility) {
             throw new Error(
@@ -480,7 +476,7 @@ export class HarmonyDevice implements AbstractInterface {
   async keyboardPress(key: string): Promise<void> {
     // HarmonyOS uitest only accepts Back/Home/Power as string names.
     // All other keys must use numeric keycodes.
-    const keyMap: Record<string, string> = {
+    const harmonyKeyCodeMap: Record<string, string> = {
       Enter: '2054',
       Backspace: '2055',
       Tab: '2049',
@@ -495,14 +491,14 @@ export class HarmonyDevice implements AbstractInterface {
     };
 
     const normalizedKey = this.normalizeKeyName(key);
-    const harmonyKey = keyMap[normalizedKey] || key;
+    const harmonyKey = harmonyKeyCodeMap[normalizedKey] ?? key;
 
     const hdc = await this.getHdc();
     await hdc.keyEvent(harmonyKey);
   }
 
   private normalizeKeyName(key: string): string {
-    const keyMap: Record<string, string> = {
+    const keyNameAliasMap: Record<string, string> = {
       enter: 'Enter',
       backspace: 'Backspace',
       tab: 'Tab',
@@ -522,7 +518,7 @@ export class HarmonyDevice implements AbstractInterface {
     };
 
     const lowerKey = key.toLowerCase();
-    return keyMap[lowerKey] || key;
+    return keyNameAliasMap[lowerKey] ?? key;
   }
 
   async scroll(deltaX: number, deltaY: number, speed?: number): Promise<void> {
@@ -531,7 +527,7 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     const { width, height } = await this.size();
-    const n = 4;
+    const n = scrollQuadrantDivisions;
 
     const startX = Math.round(deltaX < 0 ? (n - 1) * (width / n) : width / n);
     const startY = Math.round(deltaY < 0 ? (n - 1) * (height / n) : height / n);
@@ -553,7 +549,7 @@ export class HarmonyDevice implements AbstractInterface {
 
   async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = Math.round(distance || height);
+    const scrollDistance = Math.round(distance ?? height);
 
     if (startPoint) {
       const hdc = await this.getHdc();
@@ -569,7 +565,7 @@ export class HarmonyDevice implements AbstractInterface {
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
     const { height } = await this.size();
-    const scrollDistance = Math.round(distance || height);
+    const scrollDistance = Math.round(distance ?? height);
 
     if (startPoint) {
       const hdc = await this.getHdc();
@@ -585,7 +581,7 @@ export class HarmonyDevice implements AbstractInterface {
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = Math.round(distance || width);
+    const scrollDistance = Math.round(distance ?? width);
 
     if (startPoint) {
       const hdc = await this.getHdc();
@@ -601,7 +597,7 @@ export class HarmonyDevice implements AbstractInterface {
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
     const { width } = await this.size();
-    const scrollDistance = Math.round(distance || width);
+    const scrollDistance = Math.round(distance ?? width);
 
     if (startPoint) {
       const hdc = await this.getHdc();
@@ -636,7 +632,7 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(0, -9999999, defaultFastSwipeSpeed),
+      this.scroll(0, -maxScrollDistance, defaultFastSwipeSpeed),
     );
     await sleep(1000);
   }
@@ -655,7 +651,7 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(0, 9999999, defaultFastSwipeSpeed),
+      this.scroll(0, maxScrollDistance, defaultFastSwipeSpeed),
     );
     await sleep(1000);
   }
@@ -681,7 +677,7 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(-9999999, 0, defaultFastSwipeSpeed),
+      this.scroll(-maxScrollDistance, 0, defaultFastSwipeSpeed),
     );
     await sleep(1000);
   }
@@ -700,7 +696,7 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(9999999, 0, defaultFastSwipeSpeed),
+      this.scroll(maxScrollDistance, 0, defaultFastSwipeSpeed),
     );
     await sleep(1000);
   }

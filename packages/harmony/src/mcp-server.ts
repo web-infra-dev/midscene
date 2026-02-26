@@ -4,7 +4,7 @@ import {
   type Tool,
   createMCPServerLauncher,
 } from '@midscene/shared/mcp';
-import { HarmonyAgent } from './agent';
+import type { HarmonyAgent } from './agent';
 import { HarmonyMidsceneTools } from './mcp-tools.js';
 
 declare const __VERSION__: string;
@@ -42,9 +42,7 @@ export async function mcpKitForAgent(agent: Agent | HarmonyAgent): Promise<{
 }> {
   const toolsManager = new HarmonyMidsceneTools();
 
-  const harmonyAgent =
-    agent instanceof HarmonyAgent ? agent : (agent as HarmonyAgent);
-  toolsManager.setAgent(harmonyAgent);
+  toolsManager.setAgent(agent as HarmonyAgent);
   await toolsManager.initTools();
 
   return {

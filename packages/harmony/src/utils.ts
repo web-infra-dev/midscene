@@ -3,13 +3,13 @@ import { HdcClient } from './hdc';
 
 const debugUtils = getDebug('harmony:utils');
 
-export interface HarmonyDevice {
+export interface HarmonyDeviceInfo {
   deviceId: string;
 }
 
 export async function getConnectedDevices(
   hdcPath?: string,
-): Promise<HarmonyDevice[]> {
+): Promise<HarmonyDeviceInfo[]> {
   try {
     const hdc = new HdcClient({ hdcPath });
     const targets = await hdc.listTargets();

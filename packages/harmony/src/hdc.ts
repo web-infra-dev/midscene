@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { accessSync, constants as fsConstants } from 'node:fs';
 import { promisify } from 'node:util';
 import { getDebug } from '@midscene/shared/logger';
 
@@ -27,7 +28,7 @@ function resolveHdcPath(hdcPath?: string): string {
   ];
   for (const p of commonPaths) {
     try {
-      require('node:fs').accessSync(p, require('node:fs').constants.X_OK);
+      accessSync(p, fsConstants.X_OK);
       debugHdc(`Found HDC at: ${p}`);
       return p;
     } catch {}
@@ -43,8 +44,8 @@ export class HdcClient {
 
   constructor(options: HdcOptions) {
     this.hdcPath = resolveHdcPath(options.hdcPath);
-    this.deviceId = options.deviceId || '';
-    this.timeout = options.timeout || 60000;
+    this.deviceId = options.deviceId ?? '';
+    this.timeout = options.timeout ?? 60000;
   }
 
   private buildArgs(args: string[]): string[] {
@@ -191,33 +192,29 @@ export class HdcClient {
   }
 
   async queryMainAbility(bundleName: string): Promise<string | undefined> {
-    try {
-      const output = await this.shell(`bm dump -n ${bundleName}`);
-      const names: string[] = [];
-      for (const match of output.matchAll(/"name"\s*:\s*"([^"]+)"/g)) {
-        names.push(match[1]);
-      }
-      // Prefer: EntryAbility > MainAbility > {bundleName}.MainAbility > first *Ability
-      for (const candidate of [
-        'EntryAbility',
-        'MainAbility',
-        `${bundleName}.MainAbility`,
-      ]) {
-        if (names.includes(candidate)) return candidate;
-      }
-      // Fallback: find first ability-like name that isn't the bundle itself
-      return names.find(
-        (n) =>
-          n !== bundleName &&
-          n.endsWith('Ability') &&
-          !n.includes('Extension') &&
-          !n.includes('Service') &&
-          !n.includes('Form') &&
-          !n.includes('Dialog'),
-      );
-    } catch {
-      return undefined;
+    const output = await this.shell(`bm dump -n ${bundleName}`);
+    const names: string[] = [];
+    for (const match of output.matchAll(/"name"\s*:\s*"([^"]+)"/g)) {
+      names.push(match[1]);
     }
+    // Prefer: EntryAbility > MainAbility > {bundleName}.MainAbility > first *Ability
+    for (const candidate of [
+      'EntryAbility',
+      'MainAbility',
+      `${bundleName}.MainAbility`,
+    ]) {
+      if (names.includes(candidate)) return candidate;
+    }
+    // Fallback: find first ability-like name that isn't the bundle itself
+    return names.find(
+      (n) =>
+        n !== bundleName &&
+        n.endsWith('Ability') &&
+        !n.includes('Extension') &&
+        !n.includes('Service') &&
+        !n.includes('Form') &&
+        !n.includes('Dialog'),
+    );
   }
 
   async forceStop(bundleName: string): Promise<void> {

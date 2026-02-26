@@ -104,6 +104,22 @@ describe('HarmonyAgent', () => {
   });
 
   describe('agentFromHdcDevice', () => {
+    let mockConnect: ReturnType<typeof vi.fn>;
+
+    function setupMockDevice() {
+      mockConnect = vi.fn().mockResolvedValue({});
+      (HarmonyDevice as Mock).mockImplementation(() => ({
+        connect: mockConnect,
+        interfaceType: 'harmony',
+        actionSpace: vi.fn().mockReturnValue([]),
+        screenshotBase64: vi.fn(),
+        size: vi.fn().mockResolvedValue({ width: 0, height: 0 }),
+        url: vi.fn(),
+        launch: vi.fn(),
+        setAppNameMapping: vi.fn(),
+      }));
+    }
+
     beforeEach(() => {
       vi.stubEnv(MIDSCENE_USE_DOUBAO_VISION, 'true');
       vi.stubEnv(MIDSCENE_MODEL_NAME, 'mock');
@@ -118,19 +134,7 @@ describe('HarmonyAgent', () => {
     it('should use the first device if no deviceId is provided', async () => {
       const mockDevices = [{ deviceId: 'device-1' }, { deviceId: 'device-2' }];
       vi.spyOn(Utils, 'getConnectedDevices').mockResolvedValue(mockDevices);
-      const mockConnect = vi.fn().mockResolvedValue({});
-      (HarmonyDevice as Mock).mockImplementation((deviceId, options) => {
-        return {
-          connect: mockConnect,
-          interfaceType: 'harmony',
-          actionSpace: vi.fn().mockReturnValue([]),
-          screenshotBase64: vi.fn(),
-          size: vi.fn().mockResolvedValue({ width: 0, height: 0, dpr: 1 }),
-          url: vi.fn(),
-          launch: vi.fn(),
-          setAppNameMapping: vi.fn(),
-        };
-      });
+      setupMockDevice();
 
       const agent = await agentFromHdcDevice();
 
@@ -144,19 +148,7 @@ describe('HarmonyAgent', () => {
     });
 
     it('should use the specified deviceId', async () => {
-      const mockConnect = vi.fn().mockResolvedValue({});
-      (HarmonyDevice as Mock).mockImplementation((deviceId, options) => {
-        return {
-          connect: mockConnect,
-          interfaceType: 'harmony',
-          actionSpace: vi.fn().mockReturnValue([]),
-          screenshotBase64: vi.fn(),
-          size: vi.fn().mockResolvedValue({ width: 0, height: 0, dpr: 1 }),
-          url: vi.fn(),
-          launch: vi.fn(),
-          setAppNameMapping: vi.fn(),
-        };
-      });
+      setupMockDevice();
 
       const agent = await agentFromHdcDevice('test-device-id');
 
@@ -169,19 +161,7 @@ describe('HarmonyAgent', () => {
     });
 
     it('should pass options to HarmonyDevice', async () => {
-      const mockConnect = vi.fn().mockResolvedValue({});
-      (HarmonyDevice as Mock).mockImplementation((deviceId, options) => {
-        return {
-          connect: mockConnect,
-          interfaceType: 'harmony',
-          actionSpace: vi.fn().mockReturnValue([]),
-          screenshotBase64: vi.fn(),
-          size: vi.fn().mockResolvedValue({ width: 0, height: 0, dpr: 1 }),
-          url: vi.fn(),
-          launch: vi.fn(),
-          setAppNameMapping: vi.fn(),
-        };
-      });
+      setupMockDevice();
 
       const options = {
         autoDismissKeyboard: false,
