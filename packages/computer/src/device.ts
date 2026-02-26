@@ -189,29 +189,6 @@ async function getLibnut(): Promise<LibNut> {
 
 const debugDevice = getDebug('computer:device');
 
-/**
- * Smooth mouse movement to trigger mousemove events
- */
-async function smoothMoveMouse(
-  targetX: number,
-  targetY: number,
-  steps: number,
-  stepDelay: number,
-): Promise<void> {
-  assert(libnut, 'libnut not initialized');
-  const currentPos = libnut.getMousePos();
-  for (let i = 1; i <= steps; i++) {
-    const stepX = Math.round(
-      currentPos.x + ((targetX - currentPos.x) * i) / steps,
-    );
-    const stepY = Math.round(
-      currentPos.y + ((targetY - currentPos.y) * i) / steps,
-    );
-    libnut.moveMouse(stepX, stepY);
-    await sleep(stepDelay);
-  }
-}
-
 // Key name mapping for cross-platform compatibility
 // Note: Modifier keys have different names when used as primary key vs modifier
 const KEY_NAME_MAP: Record<string, string> = {
@@ -317,6 +294,24 @@ export class ComputerDevice implements AbstractInterface {
    * to avoid focus issues with system overlays (e.g. Spotlight).
    */
   private useAppleScript: boolean;
+  /**
+   * DPI scale factor: screenshot physical pixels / logical screen size.
+   * On Windows with 250% scaling: dpiScale = 2.5
+   * Used to convert AI coordinates (physical) to logical coordinates for moveMouse.
+   */
+  private dpiScale = 1;
+  /**
+   * Mouse coordinate calibration data.
+   * On high DPI Windows, moveMouse(x,y) may not move the cursor to (x,y).
+   * We measure the actual transformation via 2-point calibration and invert it.
+   * Transform: actual = scale * input + offset
+   * Inverse: input = (target - offset) / scale
+   */
+  private mouseCalibrated = false;
+  private mouseScaleX = 1;
+  private mouseScaleY = 1;
+  private mouseOffsetX = 0;
+  private mouseOffsetY = 0;
   uri?: string;
 
   constructor(options?: ComputerDeviceOpt) {
@@ -389,17 +384,18 @@ export class ComputerDevice implements AbstractInterface {
         ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
         : '';
 
-      // Check for DPI scaling mismatch between screen size and screenshot
+      // Detect DPI scaling: compare screenshot physical size with logical screen size
       let dpiInfo = '';
       try {
         const screenshotB64 = await this.screenshotBase64();
         const imgInfo = await imageInfoOfBase64(screenshotB64);
         const scaleX = imgInfo.width / size.width;
         const scaleY = imgInfo.height / size.height;
-        dpiInfo = `\nScreenshot Size: ${imgInfo.width}x${imgInfo.height} (scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)})`;
-        if (scaleX !== 1 || scaleY !== 1) {
-          console.warn(
-            `[ComputerDevice] DPI scaling detected! Screen: ${size.width}x${size.height}, Screenshot: ${imgInfo.width}x${imgInfo.height}, Scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`,
+        this.dpiScale = Math.max(scaleX, scaleY);
+        dpiInfo = `\nScreenshot Size: ${imgInfo.width}x${imgInfo.height} (dpiScale: ${this.dpiScale.toFixed(2)})`;
+        if (this.dpiScale !== 1) {
+          debugDevice(
+            `DPI scaling detected: ${this.dpiScale.toFixed(2)}x. Mouse coordinates will be auto-corrected (physical / ${this.dpiScale.toFixed(2)} = logical).`,
           );
         }
       } catch (e) {
@@ -416,6 +412,11 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       debugDevice('Computer device connected', this.description);
       // Health check: verify screenshot and mouse control are working
       await this.healthCheck();
+
+      // Calibrate mouse coordinates on high-DPI machines
+      if (this.dpiScale > 1) {
+        await this.calibrateMouse();
+      }
     } catch (error) {
       // Clean up Xvfb on connection failure
       if (this.xvfbInstance) {
@@ -477,6 +478,109 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     );
 
     console.log('[HealthCheck] Health check passed');
+  }
+
+  /**
+   * Calibrate mouse coordinates by measuring the actual transformation.
+   * Uses 2-point calibration to determine an affine mapping:
+   *   actual = scale * input + offset
+   * Then inverts it for all future moveMouse calls.
+   */
+  private async calibrateMouse(): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+
+    const savedPos = libnut.getMousePos();
+
+    // Use small coordinates to avoid off-screen clamping
+    // even with extreme DPI transformations
+    const p1 = { x: 100, y: 100 };
+    const p2 = { x: 300, y: 300 };
+
+    libnut.moveMouse(p1.x, p1.y);
+    await sleep(80);
+    const a1 = libnut.getMousePos();
+
+    libnut.moveMouse(p2.x, p2.y);
+    await sleep(80);
+    const a2 = libnut.getMousePos();
+
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const dax = a2.x - a1.x;
+    const day = a2.y - a1.y;
+
+    // Calculate affine: actual = scale * input + offset
+    const scaleX = dax / dx;
+    const scaleY = day / dy;
+    const offsetX = a1.x - scaleX * p1.x;
+    const offsetY = a1.y - scaleY * p1.y;
+
+    // Validate: scale must be non-zero and finite
+    if (
+      scaleX === 0 ||
+      scaleY === 0 ||
+      !Number.isFinite(scaleX) ||
+      !Number.isFinite(scaleY)
+    ) {
+      debugDevice(
+        `Mouse calibration failed: invalid scale (${scaleX}, ${scaleY})`,
+      );
+      return;
+    }
+
+    // Check if calibration is needed (tolerance of 3px)
+    const needsCalibration =
+      Math.abs(scaleX - 1) > 0.01 ||
+      Math.abs(scaleY - 1) > 0.01 ||
+      Math.abs(offsetX) > 3 ||
+      Math.abs(offsetY) > 3;
+
+    if (!needsCalibration) {
+      debugDevice(
+        'Mouse calibration: coordinates are accurate, no correction needed',
+      );
+      // Restore position
+      libnut.moveMouse(savedPos.x, savedPos.y);
+      return;
+    }
+
+    this.mouseScaleX = scaleX;
+    this.mouseScaleY = scaleY;
+    this.mouseOffsetX = offsetX;
+    this.mouseOffsetY = offsetY;
+    this.mouseCalibrated = true;
+
+    debugDevice(
+      `Mouse calibration complete:\n  Point1: moveMouse(${p1.x}, ${p1.y}) -> actual(${a1.x}, ${a1.y})\n  Point2: moveMouse(${p2.x}, ${p2.y}) -> actual(${a2.x}, ${a2.y})\n  Transform: actualX = ${scaleX.toFixed(4)} * inputX + ${offsetX.toFixed(1)}\n  Transform: actualY = ${scaleY.toFixed(4)} * inputY + ${offsetY.toFixed(1)}\n  To move cursor to target, use: inputX = (targetX - ${offsetX.toFixed(1)}) / ${scaleX.toFixed(4)}`,
+    );
+
+    // Restore position using corrected coordinates
+    const restoreX = Math.round(
+      (savedPos.x - this.mouseOffsetX) / this.mouseScaleX,
+    );
+    const restoreY = Math.round(
+      (savedPos.y - this.mouseOffsetY) / this.mouseScaleY,
+    );
+    libnut.moveMouse(restoreX, restoreY);
+  }
+
+  /**
+   * Move the mouse to the target position, applying DPI calibration if needed.
+   * Target coordinates are in the same space as getMousePos() / AI coordinates.
+   */
+  private moveMouseCorrected(targetX: number, targetY: number): void {
+    assert(libnut, 'libnut not initialized');
+    if (!this.mouseCalibrated) {
+      libnut.moveMouse(targetX, targetY);
+      return;
+    }
+    // Invert the affine transform: input = (target - offset) / scale
+    const inputX = Math.round((targetX - this.mouseOffsetX) / this.mouseScaleX);
+    const inputY = Math.round((targetY - this.mouseOffsetY) / this.mouseScaleY);
+    debugDevice(
+      `moveMouseCorrected: target(${targetX}, ${targetY}) -> input(${inputX}, ${inputY})`,
+    );
+    libnut.moveMouse(inputX, inputY);
   }
 
   async screenshotBase64(): Promise<string> {
@@ -604,16 +708,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           );
         }
 
-        libnut.moveMouse(targetX, targetY);
+        this.moveMouseCorrected(targetX, targetY);
         // Verify the mouse actually moved to the target position
         const actualPos = libnut.getMousePos();
         debugDevice(
           `Tap moveMouse(${targetX}, ${targetY}) -> actual(${actualPos.x}, ${actualPos.y}), delta=(${actualPos.x - targetX}, ${actualPos.y - targetY})`,
         );
         await sleep(100);
-        libnut.mouseToggle('down', 'left');
-        await sleep(80);
-        libnut.mouseToggle('up', 'left');
+        libnut.mouseClick('left');
         debugDevice(`Tap(${targetX}, ${targetY}) click completed`);
       }),
 
@@ -623,7 +725,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot double click');
         const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
+        this.moveMouseCorrected(Math.round(x), Math.round(y));
         libnut.mouseClick('left', true);
       }),
 
@@ -633,7 +735,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const element = param.locate as LocateResultElement;
         assert(element, 'Element not found, cannot right click');
         const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
+        this.moveMouseCorrected(Math.round(x), Math.round(y));
         libnut.mouseClick('right');
       }),
 
@@ -651,12 +753,20 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           const targetX = Math.round(x);
           const targetY = Math.round(y);
 
-          await smoothMoveMouse(
-            targetX,
-            targetY,
-            SMOOTH_MOVE_STEPS_MOUSE_MOVE,
-            SMOOTH_MOVE_DELAY_MOUSE_MOVE,
-          );
+          // Smooth move with DPI correction
+          const currentPos = libnut.getMousePos();
+          for (let i = 1; i <= SMOOTH_MOVE_STEPS_MOUSE_MOVE; i++) {
+            const stepX = Math.round(
+              currentPos.x +
+                ((targetX - currentPos.x) * i) / SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            );
+            const stepY = Math.round(
+              currentPos.y +
+                ((targetY - currentPos.y) * i) / SMOOTH_MOVE_STEPS_MOUSE_MOVE,
+            );
+            this.moveMouseCorrected(stepX, stepY);
+            await sleep(SMOOTH_MOVE_DELAY_MOUSE_MOVE);
+          }
           await sleep(MOUSE_MOVE_EFFECT_WAIT);
         },
       }),
@@ -684,7 +794,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           if (element) {
             // Always click to ensure focus
             const [x, y] = element.center;
-            libnut.moveMouse(Math.round(x), Math.round(y));
+            this.moveMouseCorrected(Math.round(x), Math.round(y));
             libnut.mouseClick('left');
             await sleep(INPUT_FOCUS_DELAY);
 
@@ -724,7 +834,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         if (param.locate) {
           const element = param.locate as LocateResultElement;
           const [x, y] = element.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
+          this.moveMouseCorrected(Math.round(x), Math.round(y));
         }
 
         const scrollType = param?.scrollType;
@@ -777,7 +887,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
         if (param.locate) {
           const [x, y] = param.locate.center;
-          libnut.moveMouse(Math.round(x), Math.round(y));
+          this.moveMouseCorrected(Math.round(x), Math.round(y));
           libnut.mouseClick('left');
           await sleep(50);
         }
@@ -818,10 +928,10 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         const [fromX, fromY] = from.center;
         const [toX, toY] = to.center;
 
-        libnut.moveMouse(Math.round(fromX), Math.round(fromY));
+        this.moveMouseCorrected(Math.round(fromX), Math.round(fromY));
         libnut.mouseToggle('down', 'left');
         await sleep(100);
-        libnut.moveMouse(Math.round(toX), Math.round(toY));
+        this.moveMouseCorrected(Math.round(toX), Math.round(toY));
         await sleep(100);
         libnut.mouseToggle('up', 'left');
       }),
@@ -833,7 +943,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         assert(element, 'Element not found, cannot clear input');
 
         const [x, y] = element.center;
-        libnut.moveMouse(Math.round(x), Math.round(y));
+        this.moveMouseCorrected(Math.round(x), Math.round(y));
         libnut.mouseClick('left');
         await sleep(100);
 
