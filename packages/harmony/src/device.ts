@@ -352,7 +352,6 @@ export class HarmonyDevice implements AbstractInterface {
     return {
       width: logicalWidth,
       height: logicalHeight,
-      dpr: 1,
     };
   }
 
