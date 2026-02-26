@@ -334,39 +334,6 @@ export const parsePrompt = (
   };
 };
 
-/**
- * Transform coordinates from screenshot coordinate system to logical coordinate system.
- * When shrunkShotToLogicalRatio > 1, the screenshot is larger than logical size,
- * so we need to divide coordinates by shrunkShotToLogicalRatio.
- *
- * @param element - The locate result element with coordinates in screenshot space
- * @param shrunkShotToLogicalRatio - The ratio of screenshot size to logical size
- * @returns A new element with coordinates transformed to logical space
- */
-export const transformScreenshotElementToLogical = (
-  element: LocateResultElement,
-  shrunkShotToLogicalRatio: number,
-): LocateResultElement => {
-  if (shrunkShotToLogicalRatio === 1) {
-    return element;
-  }
-
-  return {
-    ...element,
-    center: [
-      Math.round(element.center[0] / shrunkShotToLogicalRatio),
-      Math.round(element.center[1] / shrunkShotToLogicalRatio),
-    ],
-    rect: {
-      ...element.rect,
-      left: Math.round(element.rect.left / shrunkShotToLogicalRatio),
-      top: Math.round(element.rect.top / shrunkShotToLogicalRatio),
-      width: Math.round(element.rect.width / shrunkShotToLogicalRatio),
-      height: Math.round(element.rect.height / shrunkShotToLogicalRatio),
-    },
-  };
-};
-
 export const transformLogicalElementToScreenshot = (
   element: LocateResultElement,
   shrunkShotToLogicalRatio: number,

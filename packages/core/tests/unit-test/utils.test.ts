@@ -19,7 +19,6 @@ import {
   ifPlanLocateParamIsBbox,
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
-  transformScreenshotElementToLogical,
 } from '../../src/agent/utils';
 import {
   getTmpDir,
@@ -812,7 +811,6 @@ describe('shrunkShotToLogicalRatio', () => {
             top: 200,
             width: 300,
             height: 400,
-            dpr: 0,
           },
         },
         1,
@@ -825,7 +823,6 @@ describe('shrunkShotToLogicalRatio', () => {
         top: 200,
         width: 300,
         height: 400,
-        dpr: 0,
       },
     });
   });
@@ -841,7 +838,6 @@ describe('shrunkShotToLogicalRatio', () => {
             top: 200,
             width: 300,
             height: 400,
-            dpr: 0,
           },
         },
         2,
@@ -854,7 +850,6 @@ describe('shrunkShotToLogicalRatio', () => {
         top: 400,
         width: 600,
         height: 800,
-        dpr: 0,
       },
     });
   });
@@ -867,7 +862,6 @@ describe('shrunkShotToLogicalRatio', () => {
           top: 200,
           width: 300,
           height: 400,
-          dpr: 0,
         },
         1,
       ),
@@ -876,7 +870,6 @@ describe('shrunkShotToLogicalRatio', () => {
       top: 200,
       width: 300,
       height: 400,
-      dpr: 0,
     });
   });
 
@@ -888,7 +881,6 @@ describe('shrunkShotToLogicalRatio', () => {
           top: 200,
           width: 300,
           height: 400,
-          dpr: 0,
         },
         2,
       ),
@@ -897,65 +889,6 @@ describe('shrunkShotToLogicalRatio', () => {
       top: 400,
       width: 600,
       height: 800,
-      dpr: 0,
-    });
-  });
-
-  it('transformScreenshotElementToLogical with shrunkShotToLogicalRatio=1', () => {
-    expect(
-      transformScreenshotElementToLogical(
-        {
-          description: 'test element',
-          center: [150, 250],
-          rect: {
-            left: 100,
-            top: 200,
-            width: 300,
-            height: 400,
-            dpr: 0,
-          },
-        },
-        1,
-      ),
-    ).toStrictEqual({
-      description: 'test element',
-      center: [150, 250],
-      rect: {
-        left: 100,
-        top: 200,
-        width: 300,
-        height: 400,
-        dpr: 0,
-      },
-    });
-  });
-
-  it('transformScreenshotElementToLogical with shrunkShotToLogicalRatio=2', () => {
-    expect(
-      transformScreenshotElementToLogical(
-        {
-          description: 'test element',
-          center: [150, 250],
-          rect: {
-            left: 100,
-            top: 200,
-            width: 300,
-            height: 400,
-            dpr: 0,
-          },
-        },
-        2,
-      ),
-    ).toStrictEqual({
-      description: 'test element',
-      center: [75, 125],
-      rect: {
-        left: 50,
-        top: 100,
-        width: 150,
-        height: 200,
-        dpr: 0,
-      },
     });
   });
 });
