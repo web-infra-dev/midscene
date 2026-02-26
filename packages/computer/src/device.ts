@@ -24,7 +24,10 @@ import {
   defineActionTap,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
-import { createImgBase64ByFormat, imageInfoOfBase64 } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
 import type { XvfbInstance } from './xvfb';
@@ -596,12 +599,22 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             `Tap(${targetX}, ${targetY}) activeWindow: handle=${activeHandle}, title="${title}", rect=(${rect.x},${rect.y},${rect.width},${rect.height})`,
           );
         } catch (e) {
-          debugDevice(`Tap(${targetX}, ${targetY}) failed to get window info: ${e}`);
+          debugDevice(
+            `Tap(${targetX}, ${targetY}) failed to get window info: ${e}`,
+          );
         }
 
         libnut.moveMouse(targetX, targetY);
+        // Verify the mouse actually moved to the target position
+        const actualPos = libnut.getMousePos();
+        debugDevice(
+          `Tap moveMouse(${targetX}, ${targetY}) -> actual(${actualPos.x}, ${actualPos.y}), delta=(${actualPos.x - targetX}, ${actualPos.y - targetY})`,
+        );
         await sleep(100);
-        libnut.mouseClick('left');
+        libnut.mouseToggle('down', 'left');
+        await sleep(80);
+        libnut.mouseToggle('up', 'left');
+        debugDevice(`Tap(${targetX}, ${targetY}) click completed`);
       }),
 
       // DoubleClick
