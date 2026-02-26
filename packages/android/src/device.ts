@@ -82,7 +82,6 @@ export class AndroidDevice implements AbstractInterface {
   private yadbPushed = false;
   private devicePixelRatio = 1;
   private devicePixelRatioInitialized = false;
-  private scalingRatio = 1; // Record scaling ratio for coordinate adjustment
   private adb: ADB | null = null;
   private connectingAdb: Promise<ADB> | null = null;
   private destroyed = false;
@@ -98,6 +97,7 @@ export class AndroidDevice implements AbstractInterface {
   private cachedPhysicalDisplayId: string | null | undefined = undefined;
   private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
   private appNameMapping: Record<string, string> = {};
+  private cachedAdjustScale: { x: number; y: number } | null = null;
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -485,7 +485,6 @@ ${Object.keys(size)
       this.scrcpyAdapter = new ScrcpyDeviceAdapter(
         this.deviceId,
         this.options?.scrcpyConfig,
-        this.options?.screenshotResizeScale,
       );
     }
     return this.scrcpyAdapter;
@@ -505,6 +504,7 @@ ${Object.keys(size)
     return {
       physicalWidth: Number.parseInt(match[1], 10),
       physicalHeight: Number.parseInt(match[2], 10),
+      dpr: this.devicePixelRatio,
       orientation: screenSize.orientation,
       isCurrentOrientation: screenSize.isCurrentOrientation,
     };
@@ -862,41 +862,70 @@ ${Object.keys(size)
     return orientation;
   }
 
-  async size(): Promise<Size> {
-    const deviceInfo = await this.getDevicePhysicalInfo();
-
-    // Always use standard path: calculate logical size from physical size and DPR/screenshotResizeScale
-    // Both ADB and scrcpy screenshots go through Agent-layer Sharp resize for consistent quality
-    const isLandscape =
-      deviceInfo.orientation === 1 || deviceInfo.orientation === 3;
-    const shouldSwap = deviceInfo.isCurrentOrientation !== true && isLandscape;
-    const width = shouldSwap
-      ? deviceInfo.physicalHeight
-      : deviceInfo.physicalWidth;
-    const height = shouldSwap
-      ? deviceInfo.physicalWidth
-      : deviceInfo.physicalHeight;
-
-    // Determine scaling: use screenshotResizeScale if provided, otherwise use 1/devicePixelRatio
-    const scale =
-      this.options?.screenshotResizeScale ?? 1 / this.devicePixelRatio;
-    this.scalingRatio = scale;
-
-    // Apply scale to get logical dimensions for AI processing
-    const logicalWidth = Math.round(width * scale);
-    const logicalHeight = Math.round(height * scale);
-
+  /**
+   * Get physical screen dimensions adjusted for current orientation.
+   * Swaps width/height when the device is in landscape and the reported
+   * dimensions do not already reflect the current orientation.
+   */
+  private async getOrientedPhysicalSize(): Promise<{
+    width: number;
+    height: number;
+  }> {
+    const info = await this.getDevicePhysicalInfo();
+    const isLandscape = info.orientation === 1 || info.orientation === 3;
+    const shouldSwap = info.isCurrentOrientation !== true && isLandscape;
     return {
-      width: logicalWidth,
-      height: logicalHeight,
+      width: shouldSwap ? info.physicalHeight : info.physicalWidth,
+      height: shouldSwap ? info.physicalWidth : info.physicalHeight,
     };
   }
 
-  private adjustCoordinates(x: number, y: number): { x: number; y: number } {
-    const scale = this.scalingRatio;
+  async size(): Promise<Size> {
+    const physical = await this.getOrientedPhysicalSize();
+    const scale = 1 / this.devicePixelRatio;
+
     return {
-      x: Math.round(x / scale),
-      y: Math.round(y / scale),
+      width: Math.round(physical.width * scale),
+      height: Math.round(physical.height * scale),
+    };
+  }
+
+  /**
+   * Compute and cache the coordinate adjustment scale by comparing
+   * physical dimensions with logical dimensions from size().
+   * Cached after first call; invalidated on destroy().
+   */
+  private async getAdjustScale(): Promise<{ x: number; y: number }> {
+    const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
+    if (shouldCache && this.cachedAdjustScale) {
+      return this.cachedAdjustScale;
+    }
+
+    const physical = await this.getOrientedPhysicalSize();
+    const { width: logicalW, height: logicalH } = await this.size();
+    const scale = {
+      x: logicalW / physical.width,
+      y: logicalH / physical.height,
+    };
+
+    if (shouldCache) {
+      this.cachedAdjustScale = scale;
+    }
+    return scale;
+  }
+
+  /**
+   * Convert logical coordinates (from AI) back to physical coordinates (for ADB).
+   * The ratio is derived from size(), so overriding size() alone is sufficient.
+   */
+  private async adjustCoordinates(
+    x: number,
+    y: number,
+  ): Promise<{ x: number; y: number }> {
+    const scale = await this.getAdjustScale();
+    return {
+      x: Math.round(x / scale.x),
+      y: Math.round(y / scale.y),
     };
   }
 
@@ -1503,7 +1532,7 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
     );
@@ -1511,7 +1540,7 @@ ${Object.keys(size)
 
   async mouseDoubleClick(x: number, y: number): Promise<void> {
     const adb = await this.getAdb();
-    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
 
     // Use input tap for double-click as it generates proper touch events
     // that Android can recognize as a double-click gesture
@@ -1536,8 +1565,8 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
-    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+    const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
 
     // Ensure duration has a default value
     const swipeDuration = duration ?? defaultNormalScrollDuration;
@@ -1590,11 +1619,9 @@ ${Object.keys(size)
     const endY = Math.round(startY - deltaY);
 
     // Adjust coordinates to fit device ratio
-    const { x: adjustedStartX, y: adjustedStartY } = this.adjustCoordinates(
-      startX,
-      startY,
-    );
-    const { x: adjustedEndX, y: adjustedEndY } = this.adjustCoordinates(
+    const { x: adjustedStartX, y: adjustedStartY } =
+      await this.adjustCoordinates(startX, startY);
+    const { x: adjustedEndX, y: adjustedEndY } = await this.adjustCoordinates(
       endX,
       endY,
     );
@@ -1619,6 +1646,7 @@ ${Object.keys(size)
     this.cachedPhysicalDisplayId = undefined;
     this.cachedScreenSize = null;
     this.cachedOrientation = null;
+    this.cachedAdjustScale = null;
 
     // Disconnect scrcpy if active
     if (this.scrcpyAdapter) {
@@ -1682,7 +1710,7 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: adjustedX, y: adjustedY } = this.adjustCoordinates(x, y);
+    const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} ${duration}`,
     );
@@ -1717,8 +1745,8 @@ ${Object.keys(size)
     const adb = await this.getAdb();
 
     // Use adjusted coordinates
-    const { x: fromX, y: fromY } = this.adjustCoordinates(from.x, from.y);
-    const { x: toX, y: toY } = this.adjustCoordinates(to.x, to.y);
+    const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
+    const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
 
     // Use the specified duration for better pull gesture recognition
     await adb.shell(

@@ -30,7 +30,10 @@ export type AndroidDeviceOpt = {
   usePhysicalDisplayIdForDisplayLookup?: boolean;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
-  /** Screenshot resize scale factor */
+  /**
+   * @deprecated Use `screenshotShrinkFactor` in AgentOpt instead.
+   * This option no longer affects screenshot size sent to AI model.
+   */
   screenshotResizeScale?: number;
   /** Always fetch screen info on each call; if false, cache the first result */
   alwaysRefreshScreenInfo?: boolean;
@@ -77,16 +80,9 @@ export type AndroidDeviceOpt = {
      * Video stream will be scaled down if device resolution exceeds this value.
      * Lower values reduce bandwidth but may affect image quality.
      *
-     * If not specified and `screenshotResizeScale` is set, maxSize will be
-     * automatically calculated to match the target resolution.
-     *
      * @default 0 (no scaling, use original resolution)
      * @example
-     * // Manual control
      * { maxSize: 1024 } // Always scale to 1024
-     *
-     * // Auto-calculated from screenshotResizeScale
-     * { screenshotResizeScale: 0.5 } // Device 1080p → scrcpy maxSize will be 1200
      */
     maxSize?: number;
     /**
