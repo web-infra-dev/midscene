@@ -29,7 +29,6 @@ import {
   matchElementFromPlan,
   transformLogicalElementToScreenshot,
   transformLogicalRectToScreenshotRect,
-  transformScreenshotElementToLogical,
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
@@ -272,43 +271,23 @@ export class TaskBuilder {
           );
         }
 
-        if (action.paramSchema) {
-          try {
-            param = parseActionParam(param, action.paramSchema);
-          } catch (error: any) {
-            throw new Error(
-              `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,
-              { cause: error },
-            );
-          }
-        }
-
-        // Transform coordinates from screenshot space to logical space if needed
-        // This is necessary when shrunkShotToLogicalRatio !== 1
         const { shrunkShotToLogicalRatio } = uiContext;
         if (shrunkShotToLogicalRatio === undefined) {
           throw new Error(
             'shrunkShotToLogicalRatio is not defined in Action task',
           );
         }
-        if (shrunkShotToLogicalRatio !== 1) {
-          debug(
-            `Transforming coordinates for action ${action.name} with shrunkShotToLogicalRatio=${shrunkShotToLogicalRatio}`,
-          );
 
-          for (const field of locateFields) {
-            if (param[field] && typeof param[field] === 'object') {
-              const element = param[field] as LocateResultElement;
-              if (element.center && element.rect) {
-                param[field] = transformScreenshotElementToLogical(
-                  element,
-                  shrunkShotToLogicalRatio,
-                );
-                debug(
-                  `Transformed ${field}: center ${element.center} -> ${param[field].center}`,
-                );
-              }
-            }
+        if (action.paramSchema) {
+          try {
+            param = parseActionParam(param, action.paramSchema, {
+              shrunkShotToLogicalRatio,
+            });
+          } catch (error: any) {
+            throw new Error(
+              `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,
+              { cause: error },
+            );
           }
         }
 
