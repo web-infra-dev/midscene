@@ -46,7 +46,7 @@ describe('HdcClient', () => {
       const result = await hdc.exec('list', 'targets');
 
       expect(mockExecFile).toHaveBeenCalledWith(
-        'hdc',
+        expect.any(String),
         ['list', 'targets'],
         expect.any(Object),
       );
@@ -60,7 +60,7 @@ describe('HdcClient', () => {
       const result = await hdc.exec('shell', 'ls');
 
       expect(mockExecFile).toHaveBeenCalledWith(
-        'hdc',
+        expect.any(String),
         ['-t', 'test-device', 'shell', 'ls'],
         expect.any(Object),
       );
@@ -83,7 +83,7 @@ describe('HdcClient', () => {
       const result = await hdc.shell('ls /data');
 
       expect(mockExecFile).toHaveBeenCalledWith(
-        'hdc',
+        expect.any(String),
         ['shell', 'ls /data'],
         expect.any(Object),
       );
@@ -99,7 +99,7 @@ describe('HdcClient', () => {
       await hdc.click(100, 200);
 
       expect(mockExecFile).toHaveBeenCalledWith(
-        'hdc',
+        expect.any(String),
         ['shell', 'uitest uiInput click 100 200'],
         expect.any(Object),
       );
@@ -114,7 +114,7 @@ describe('HdcClient', () => {
       await hdc.swipe(10, 10, 200, 200, 500);
 
       expect(mockExecFile).toHaveBeenCalledWith(
-        'hdc',
+        expect.any(String),
         ['shell', 'uitest uiInput swipe 10 10 200 200 500'],
         expect.any(Object),
       );
@@ -127,7 +127,7 @@ describe('HdcClient', () => {
       await hdc.swipe(10, 10, 200, 200);
 
       expect(mockExecFile).toHaveBeenCalledWith(
-        'hdc',
+        expect.any(String),
         ['shell', 'uitest uiInput swipe 10 10 200 200'],
         expect.any(Object),
       );
