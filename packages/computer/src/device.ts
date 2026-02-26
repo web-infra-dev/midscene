@@ -536,6 +536,104 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
     debugDevice(
       'All mouse calibration methods failed. Mouse positioning may be inaccurate on this machine.',
     );
+
+    // Diagnose: check for privilege mismatch (UIPI)
+    if (process.platform === 'win32') {
+      await this.diagnoseWin32Privilege();
+    }
+  }
+
+  /**
+   * Diagnose why mouse positioning fails on Windows.
+   * Checks if the current process lacks admin rights while the target
+   * window's process is elevated — a classic UIPI block.
+   */
+  private async diagnoseWin32Privilege(): Promise<void> {
+    assert(libnut, 'libnut not initialized');
+    try {
+      let windowHandle = 0;
+      try {
+        windowHandle = libnut.getActiveWindow();
+      } catch {
+        // ignore
+      }
+
+      const psScript = [
+        'Add-Type -TypeDefinition @"',
+        'using System;',
+        'using System.Runtime.InteropServices;',
+        'public class Diag {',
+        '  [DllImport("user32.dll")]',
+        '  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);',
+        '  [DllImport("kernel32.dll")]',
+        '  public static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);',
+        '  [DllImport("advapi32.dll")]',
+        '  public static extern bool OpenProcessToken(IntPtr proc, uint access, out IntPtr token);',
+        '  [DllImport("advapi32.dll")]',
+        '  public static extern bool GetTokenInformation(IntPtr token, int cls, out int info, int len, out int rLen);',
+        '  [DllImport("kernel32.dll")]',
+        '  public static extern bool CloseHandle(IntPtr h);',
+        '}',
+        '"@',
+        '',
+        '# Check if current process is admin',
+        '$curAdmin = ([Security.Principal.WindowsPrincipal]([Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
+        '',
+        '# Check target window process elevation',
+        '$targetElevated = "unknown"',
+        `$hWnd = [IntPtr]::new(${windowHandle})`,
+        'if ($hWnd -ne [IntPtr]::Zero) {',
+        '  $pid = [uint32]0',
+        '  [Diag]::GetWindowThreadProcessId($hWnd, [ref]$pid) | Out-Null',
+        '  if ($pid -ne 0) {',
+        '    $hProc = [Diag]::OpenProcess(0x1000, $false, $pid)',
+        '    if ($hProc -ne [IntPtr]::Zero) {',
+        '      $hToken = [IntPtr]::Zero',
+        '      if ([Diag]::OpenProcessToken($hProc, 0x0008, [ref]$hToken)) {',
+        '        $elev = 0; $sz = 0',
+        '        [Diag]::GetTokenInformation($hToken, 20, [ref]$elev, 4, [ref]$sz) | Out-Null',
+        '        $targetElevated = if ($elev -ne 0) { "true" } else { "false" }',
+        '        [Diag]::CloseHandle($hToken) | Out-Null',
+        '      } else { $targetElevated = "access_denied" }',
+        '      [Diag]::CloseHandle($hProc) | Out-Null',
+        '    } else { $targetElevated = "open_failed" }',
+        '    $procName = (Get-Process -Id $pid -ErrorAction SilentlyContinue).ProcessName',
+        '    Write-Output "target_pid=$pid target_name=$procName target_elevated=$targetElevated current_admin=$curAdmin"',
+        '  } else { Write-Output "target_pid=0 current_admin=$curAdmin" }',
+        '} else { Write-Output "no_window current_admin=$curAdmin" }',
+      ].join('\r\n');
+
+      const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
+      const output = execSync(
+        `powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`,
+        { timeout: 10000, windowsHide: true, encoding: 'utf-8' },
+      ).trim();
+
+      debugDevice(`Privilege diagnosis: ${output}`);
+
+      // Parse and emit a clear warning
+      const isCurrentAdmin = output.includes('current_admin=True');
+      const isTargetElevated =
+        output.includes('target_elevated=true') ||
+        output.includes('target_elevated=access_denied');
+
+      if (!isCurrentAdmin && isTargetElevated) {
+        const msg =
+          '[PRIVILEGE MISMATCH] The target application is running with administrator privileges, ' +
+          'but Midscene is running as a normal user. Windows UIPI blocks mouse/keyboard input ' +
+          'to elevated processes. Please run Midscene (Node.js) as Administrator to fix this.';
+        debugDevice(msg);
+        console.error(`\n⚠️  ${msg}\n`);
+      } else if (!isCurrentAdmin) {
+        const msg =
+          '[PERMISSION] Midscene is not running as Administrator. ' +
+          'If mouse clicks are not working, try running as Administrator.';
+        debugDevice(msg);
+        console.warn(`\n⚠️  ${msg}\n`);
+      }
+    } catch (e) {
+      debugDevice(`Privilege diagnosis failed: ${e}`);
+    }
   }
 
   private async tryCalibrationPass(
