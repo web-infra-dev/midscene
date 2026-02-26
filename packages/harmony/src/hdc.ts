@@ -180,7 +180,44 @@ export class HdcClient {
   }
 
   async startAbility(bundleName: string, abilityName: string): Promise<void> {
-    await this.shell(`aa start -a ${abilityName} -b ${bundleName}`);
+    const output = await this.shell(
+      `aa start -a ${abilityName} -b ${bundleName}`,
+    );
+    if (output.includes('error:')) {
+      throw new Error(
+        `Failed to start ${bundleName}/${abilityName}: ${output.trim()}`,
+      );
+    }
+  }
+
+  async queryMainAbility(bundleName: string): Promise<string | undefined> {
+    try {
+      const output = await this.shell(`bm dump -n ${bundleName}`);
+      const names: string[] = [];
+      for (const match of output.matchAll(/"name"\s*:\s*"([^"]+)"/g)) {
+        names.push(match[1]);
+      }
+      // Prefer: EntryAbility > MainAbility > {bundleName}.MainAbility > first *Ability
+      for (const candidate of [
+        'EntryAbility',
+        'MainAbility',
+        `${bundleName}.MainAbility`,
+      ]) {
+        if (names.includes(candidate)) return candidate;
+      }
+      // Fallback: find first ability-like name that isn't the bundle itself
+      return names.find(
+        (n) =>
+          n !== bundleName &&
+          n.endsWith('Ability') &&
+          !n.includes('Extension') &&
+          !n.includes('Service') &&
+          !n.includes('Form') &&
+          !n.includes('Dialog'),
+      );
+    } catch {
+      return undefined;
+    }
   }
 
   async forceStop(bundleName: string): Promise<void> {

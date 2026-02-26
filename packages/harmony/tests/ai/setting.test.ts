@@ -14,7 +14,7 @@ describe(
           'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
       });
 
-      await agent.launch('设置');
+      await agent.launch('com.huawei.hmos.settings');
       await agent.aiAct('scroll list to bottom');
       await agent.aiAct('scroll list to top');
       await agent.aiAct('scroll down one screen');

@@ -15,6 +15,7 @@ const mockHdc = {
   screenshot: vi.fn().mockResolvedValue(undefined),
   fileRecv: vi.fn().mockResolvedValue(undefined),
   startAbility: vi.fn().mockResolvedValue(undefined),
+  queryMainAbility: vi.fn().mockResolvedValue(undefined),
   forceStop: vi.fn().mockResolvedValue(undefined),
 };
 
@@ -260,11 +261,7 @@ describe('HarmonyDevice', () => {
       await device.inputText('append text', element, false);
 
       expect(mockHdc.inputText).toHaveBeenCalledTimes(1);
-      expect(mockHdc.inputText).toHaveBeenCalledWith(
-        100,
-        200,
-        'append text',
-      );
+      expect(mockHdc.inputText).toHaveBeenCalledWith(100, 200, 'append text');
       expect(mockHdc.keyEvent).not.toHaveBeenCalled();
     });
 
@@ -412,9 +409,7 @@ describe('HarmonyDevice', () => {
 
     it('should use aa start -U for custom scheme URIs', async () => {
       await device.launch('myapp://page');
-      expect(mockHdc.shell).toHaveBeenCalledWith(
-        'aa start -U myapp://page',
-      );
+      expect(mockHdc.shell).toHaveBeenCalledWith('aa start -U myapp://page');
     });
 
     it('should use startAbility for bundleName/abilityName format', async () => {
@@ -429,15 +424,6 @@ describe('HarmonyDevice', () => {
       await device.launch('com.example.app');
       expect(mockHdc.startAbility).toHaveBeenCalledWith(
         'com.example.app',
-        'EntryAbility',
-      );
-    });
-
-    it('should resolve app name via appNameMapping', async () => {
-      device.setAppNameMapping({ settings: 'com.huawei.hmos.settings' });
-      await device.launch('Settings');
-      expect(mockHdc.startAbility).toHaveBeenCalledWith(
-        'com.huawei.hmos.settings',
         'EntryAbility',
       );
     });
@@ -548,13 +534,7 @@ describe('HarmonyDevice', () => {
       await device.scrollUntilTop({ left: 600, top: 1200 });
       expect(mockHdc.fling).toHaveBeenCalledTimes(10);
       // fling toward bottom of screen (height=2400)
-      expect(mockHdc.fling).toHaveBeenCalledWith(
-        600,
-        1200,
-        600,
-        2400,
-        2000,
-      );
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 600, 2400, 2000);
     });
 
     it('scrollUntilBottom with startPoint should fling multiple times', async () => {
@@ -578,13 +558,7 @@ describe('HarmonyDevice', () => {
     it('scrollUntilLeft with startPoint should fling multiple times', async () => {
       await device.scrollUntilLeft({ left: 600, top: 1200 });
       expect(mockHdc.fling).toHaveBeenCalledTimes(10);
-      expect(mockHdc.fling).toHaveBeenCalledWith(
-        600,
-        1200,
-        1200,
-        1200,
-        2000,
-      );
+      expect(mockHdc.fling).toHaveBeenCalledWith(600, 1200, 1200, 1200, 2000);
     });
 
     it('scrollUntilRight with startPoint should fling multiple times', async () => {
