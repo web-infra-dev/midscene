@@ -643,10 +643,14 @@ export const dumpActionParam = (
  *
  * Locator fields are special business logic fields with complex validation requirements,
  * so they are intentionally excluded from Zod parsing and use existing validation logic.
+ *
+ * When shrunkShotToLogicalRatio is provided and !== 1, coordinates in locate fields
+ * are transformed from screenshot space to logical space.
  */
 export const parseActionParam = (
   rawParam: Record<string, any> | undefined,
   zodSchema?: z.ZodType<any>,
+  options?: { shrunkShotToLogicalRatio?: number },
 ): Record<string, any> | undefined => {
   // If no schema is provided, return undefined (action takes no parameters)
   if (!zodSchema) {
@@ -689,6 +693,32 @@ export const parseActionParam = (
   // Restore the actual locate field values (unvalidated, as per business requirement)
   for (const fieldName in locateFieldValues) {
     validated[fieldName] = locateFieldValues[fieldName];
+  }
+
+  // Transform coordinates from screenshot space to logical space if needed
+  const ratio = options?.shrunkShotToLogicalRatio;
+  if (ratio !== undefined && ratio !== 1) {
+    for (const fieldName of locateFields) {
+      if (validated[fieldName] && typeof validated[fieldName] === 'object') {
+        const element = validated[fieldName];
+        if (element.center && element.rect) {
+          validated[fieldName] = {
+            ...element,
+            center: [
+              Math.round(element.center[0] / ratio),
+              Math.round(element.center[1] / ratio),
+            ],
+            rect: {
+              ...element.rect,
+              left: Math.round(element.rect.left / ratio),
+              top: Math.round(element.rect.top / ratio),
+              width: Math.round(element.rect.width / ratio),
+              height: Math.round(element.rect.height / ratio),
+            },
+          };
+        }
+      }
+    }
   }
 
   return validated;
