@@ -1,11 +1,11 @@
 /**
- * 验证 ReportMergingTool 合并后是否丢失测试用例
+ * Verify that ReportMergingTool does not lose test cases after merging.
  *
- * 测试策略：
- * 1. 用 ReportGenerator 生成 N 个独立报告（模拟真实 agent 用法）
- * 2. 用 ReportMergingTool 合并
- * 3. 检查合并文件中真实的 dump script 数量是否 === N
- * 4. 检查每条 dump 的内容能否正确解析
+ * Strategy:
+ * 1. Use ReportGenerator to produce N independent reports (mimicking real agent usage)
+ * 2. Merge them with ReportMergingTool
+ * 3. Assert the number of real dump scripts in the merged file === N
+ * 4. Assert every dump can be parsed correctly
  */
 import { readFileSync } from 'node:fs';
 import { extractLastDumpScriptSync } from '@/dump/html-utils';
@@ -59,8 +59,9 @@ function createDump(groupName: string, taskCount: number): GroupedActionDump {
 }
 
 /**
- * 统计合并文件中 **带 playwright_test_id 属性的** dump script 数量
- * 只有 mergeReports 写入的才有这个属性，模板 JS 中的误匹配不会有
+ * Count dump scripts that have a `playwright_test_id` attribute.
+ * Only dumps written by mergeReports carry this attribute;
+ * false positives from template JS code do not.
  */
 function countRealDumpScripts(html: string): number {
   const re =
@@ -68,7 +69,7 @@ function countRealDumpScripts(html: string): number {
   return (html.match(re) || []).length;
 }
 
-/** 提取所有带 playwright 属性的 dump script 的完整信息 */
+/** Extract all dump scripts that carry playwright attributes. */
 function extractAllDumps(html: string) {
   const results: {
     testId: string;
@@ -91,7 +92,7 @@ function extractAllDumps(html: string) {
 
     const openTag = html.substring(openIdx, tagEndIdx + 1);
 
-    // 只处理合并写入的 dump（有 playwright_test_id 属性）
+    // Only process dumps written by the merge tool (have playwright_test_id)
     const idMatch = openTag.match(/playwright_test_id="([^"]*)"/);
     if (!idMatch) {
       pos = closeIdx + closeTag.length;
@@ -125,12 +126,13 @@ function extractAllDumps(html: string) {
 
 // ---------- tests ----------
 
-describe('ReportMergingTool 合并后测试用例计数验证', () => {
+describe('ReportMergingTool merged dump count verification', () => {
   /**
-   * 核心测试：用 ReportGenerator（inline 模式）生成 N 个报告，合并后检查数量
+   * Core test: generate N reports with ReportGenerator (inline mode),
+   * merge them, and verify the dump count matches.
    */
   it.each([2, 3, 5, 10])(
-    '合并 %i 个 inline 报告后 dump 数量应该完全一致',
+    'merging %i inline reports preserves all dumps',
     async (n) => {
       const tool = new ReportMergingTool();
 
@@ -166,15 +168,13 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
       const dumps = extractAllDumps(html);
 
       console.log(
-        `[inline n=${n}] 文件大小=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
-          `真实dump数=${realCount}, 解析出=${dumps.length}`,
+        `[inline n=${n}] size=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
+          `realDumps=${realCount}, parsed=${dumps.length}`,
       );
 
-      // 核心断言：数量必须一致
       expect(realCount).toBe(n);
       expect(dumps.length).toBe(n);
 
-      // 每条数据都能正确解析
       for (let i = 0; i < n; i++) {
         expect(dumps[i].testId).toBe(`inline-${n}-${i}`);
         expect(dumps[i].groupName).toBe(`group-${i}`);
@@ -184,9 +184,9 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
   );
 
   /**
-   * 用 ReportGenerator（directory 模式）生成报告，合并后检查数量
+   * Generate reports in directory mode and verify merged dump count.
    */
-  it('合并 3 个 directory 模式报告后 dump 数量应该完全一致', async () => {
+  it('merging 3 directory-mode reports preserves all dumps', async () => {
     const n = 3;
     const tool = new ReportMergingTool();
 
@@ -222,8 +222,8 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
     const dumps = extractAllDumps(html);
 
     console.log(
-      `[directory n=${n}] 文件大小=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
-        `真实dump数=${realCount}, 解析出=${dumps.length}`,
+      `[directory n=${n}] size=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
+        `realDumps=${realCount}, parsed=${dumps.length}`,
     );
 
     expect(realCount).toBe(n);
@@ -236,12 +236,12 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
   });
 
   /**
-   * 混合模式：inline + directory 混合合并
+   * Mixed mode: merge inline + directory reports together.
    */
-  it('混合 inline 和 directory 报告合并后 dump 数量一致', async () => {
+  it('merging mixed inline and directory reports preserves all dumps', async () => {
     const tool = new ReportMergingTool();
 
-    // 2 个 inline
+    // 2 inline reports
     for (let i = 0; i < 2; i++) {
       const gen = ReportGenerator.create(`merge-count-mix-inline-${i}`, {
         generateReport: true,
@@ -261,7 +261,7 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
       });
     }
 
-    // 2 个 directory
+    // 2 directory reports
     for (let i = 0; i < 2; i++) {
       const gen = ReportGenerator.create(`merge-count-mix-dir-${i}`, {
         generateReport: true,
@@ -291,14 +291,13 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
     const dumps = extractAllDumps(html);
 
     console.log(
-      `[mixed n=4] 文件大小=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
-        `真实dump数=${realCount}, 解析出=${dumps.length}`,
+      `[mixed n=4] size=${(html.length / 1024 / 1024).toFixed(1)}MB, ` +
+        `realDumps=${realCount}, parsed=${dumps.length}`,
     );
 
     expect(realCount).toBe(4);
     expect(dumps.length).toBe(4);
 
-    // 验证顺序和内容
     expect(dumps[0].testId).toBe('mix-inline-0');
     expect(dumps[1].testId).toBe('mix-inline-1');
     expect(dumps[2].testId).toBe('mix-dir-0');
@@ -306,9 +305,9 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
   });
 
   /**
-   * 模拟部分测试失败的场景
+   * Simulate mixed pass/fail statuses.
    */
-  it('包含 failed/passed 混合状态的报告合并后数量一致', async () => {
+  it('merging reports with mixed statuses preserves all dumps', async () => {
     const tool = new ReportMergingTool();
     const statuses: TestStatus[] = [
       'passed',
@@ -345,8 +344,8 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
     const dumps = extractAllDumps(html);
 
     console.log(
-      `[status n=${statuses.length}] 真实dump数=${dumps.length}, ` +
-        `状态=${dumps.map((d) => d.testStatus).join(',')}`,
+      `[status n=${statuses.length}] realDumps=${dumps.length}, ` +
+        `statuses=${dumps.map((d) => d.testStatus).join(',')}`,
     );
 
     expect(dumps.length).toBe(statuses.length);
@@ -356,9 +355,9 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
   });
 
   /**
-   * extractLastDumpScriptSync 在合并后的文件上应该返回最后一条
+   * extractLastDumpScriptSync should return the last dump from a merged file.
    */
-  it('extractLastDumpScriptSync 在合并文件上返回最后一条 dump', async () => {
+  it('extractLastDumpScriptSync returns the last dump from merged file', async () => {
     const tool = new ReportMergingTool();
     const n = 4;
 
@@ -388,7 +387,7 @@ describe('ReportMergingTool 合并后测试用例计数验证', () => {
     const lastDump = extractLastDumpScriptSync(mergedPath!);
     const parsed = JSON.parse(antiEscapeScriptTag(lastDump));
 
-    console.log(`[extractLast] 最后一条 groupName=${parsed.groupName}`);
+    console.log(`[extractLast] last groupName=${parsed.groupName}`);
 
     expect(parsed.groupName).toBe(`last-group-${n - 1}`);
   });
