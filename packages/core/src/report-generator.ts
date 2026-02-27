@@ -13,9 +13,9 @@ import {
 } from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
-  getBaseUrlFixScript,
   generateDumpScriptTag,
   generateImageScriptTag,
+  getBaseUrlFixScript,
 } from './dump/html-utils';
 import type { GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';

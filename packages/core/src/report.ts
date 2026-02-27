@@ -12,8 +12,8 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
-  getBaseUrlFixScript,
   extractLastDumpScriptSync,
+  getBaseUrlFixScript,
   streamImageScriptsToFile,
 } from './dump/html-utils';
 import type { ReportFileWithAttributes } from './types';

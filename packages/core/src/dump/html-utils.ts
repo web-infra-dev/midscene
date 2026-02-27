@@ -322,11 +322,11 @@ export function generateImageScriptTag(id: string, data: string): string {
 let _baseUrlFixScript: string;
 export function getBaseUrlFixScript(): string {
   if (!_baseUrlFixScript) {
-    // biome-ignore lint/style/useTemplate: closing </script> MUST be split so
-    // that no bundler (rslib / webpack / terser) can ever produce a literal
-    // '</script>' in bundle output.  A literal '</script>' inside a <script>
-    // block causes the HTML parser to prematurely close the block, which breaks
-    // the report viewer when this module is bundled into the report template.
+    // Closing </script> MUST be split so that no bundler (rslib / webpack /
+    // terser) can ever produce a literal '</script>' in bundle output.
+    // A literal '</script>' inside a <script> block causes the HTML parser
+    // to prematurely close the block, which breaks the report viewer when
+    // this module is bundled into the report template.
     const close = '</' + 'script>';
     _baseUrlFixScript =
       // biome-ignore lint/style/useTemplate: see above
