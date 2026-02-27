@@ -281,9 +281,7 @@ export class HdcClient {
     }
 
     // Non-foldable: use the first render size like "1260x2720"
-    const renderSizeMatch = stdout.match(
-      /render size:\s*(\d{3,5})x(\d{3,5})/,
-    );
+    const renderSizeMatch = stdout.match(/render size:\s*(\d{3,5})x(\d{3,5})/);
     if (renderSizeMatch) {
       return {
         width: Number.parseInt(renderSizeMatch[1], 10),

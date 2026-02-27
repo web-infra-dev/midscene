@@ -420,15 +420,14 @@ export class HarmonyDevice implements AbstractInterface {
       // Update cached screen size from actual screenshot dimensions.
       // Foldable screens may report different sizes in hidumper vs the actual
       // active display, so snapshot_display output is the source of truth.
-      const dimMatch = snapshotOutput.match(
-        /width\s+(\d+),\s*height\s+(\d+)/,
-      );
+      const dimMatch = snapshotOutput.match(/width\s+(\d+),\s*height\s+(\d+)/);
       if (dimMatch) {
         const w = Number.parseInt(dimMatch[1], 10);
         const h = Number.parseInt(dimMatch[2], 10);
         if (
           this.cachedScreenSize &&
-          (this.cachedScreenSize.width !== w || this.cachedScreenSize.height !== h)
+          (this.cachedScreenSize.width !== w ||
+            this.cachedScreenSize.height !== h)
         ) {
           debugDevice(
             `Screen size changed: ${this.cachedScreenSize.width}x${this.cachedScreenSize.height} -> ${w}x${h}`,

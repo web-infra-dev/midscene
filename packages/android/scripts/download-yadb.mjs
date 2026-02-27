@@ -36,7 +36,9 @@ async function main() {
       break;
     } catch (err) {
       if (attempt === maxRetries) throw err;
-      console.log(`[yadb] Download attempt ${attempt} failed: ${err.message}, retrying in ${attempt * 2}s...`);
+      console.log(
+        `[yadb] Download attempt ${attempt} failed: ${err.message}, retrying in ${attempt * 2}s...`,
+      );
       await new Promise((r) => setTimeout(r, attempt * 2000));
     }
   }
