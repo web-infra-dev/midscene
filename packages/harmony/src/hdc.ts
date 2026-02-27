@@ -72,6 +72,15 @@ export class HdcClient {
       debugHdc(`hdc ${fullArgs.join(' ')} end`);
       return stdout;
     } catch (error: any) {
+      // On Windows, hdc shell may hang after command completion, causing
+      // Node to kill it via SIGTERM. If stdout contains valid output, treat
+      // it as success instead of throwing.
+      if (error.killed && error.stdout?.trim()) {
+        debugHdc(
+          'hdc process was killed but stdout is available, treating as success',
+        );
+        return error.stdout;
+      }
       debugHdc(`hdc error: ${error.message}`);
       throw new Error(
         `HDC command failed: hdc ${fullArgs.join(' ')}: ${error.message}`,
