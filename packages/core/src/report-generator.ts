@@ -13,9 +13,9 @@ import {
 } from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
-  BASE_URL_FIX_SCRIPT,
   generateDumpScriptTag,
   generateImageScriptTag,
+  getBaseUrlFixScript,
 } from './dump/html-utils';
 import type { GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
@@ -224,7 +224,7 @@ export class ReportGenerator implements IReportGenerator {
     const serialized = dump.serialize();
     writeFileSync(
       this.reportPath,
-      `${getReportTpl()}${BASE_URL_FIX_SCRIPT}${generateDumpScriptTag(serialized)}`,
+      `${getReportTpl()}${getBaseUrlFixScript()}${generateDumpScriptTag(serialized)}`,
     );
   }
 }
