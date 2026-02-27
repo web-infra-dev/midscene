@@ -309,16 +309,20 @@ export function generateImageScriptTag(id: string, data: string): string {
  * Fix: dynamically insert a <base> tag so relative URLs resolve correctly.
  */
 // Do not use template string here, will cause bundle error with <script
-// IMPORTANT: The closing tag MUST be split across two string literals so the
-// bundler never sees a complete '</script>' in the source.  A literal
-// '</script>' inside a JS string will be kept verbatim in the bundle output
-// and will prematurely close the <script> block when this module is inlined
-// into the report HTML template.  Do NOT use '\x3c/script>' either — the
-// bundler evaluates the hex escape and still produces '</script>'.
-// Also do NOT use '<\\/script>' — the double-backslash produces a literal
-// backslash in the runtime value, and HTML does not recognise <\/script> as
-// a closing tag (which caused the "lost one dump" bug in merged reports).
-const SCRIPT_CLOSE = '</' + 'script>';
+//
+// The closing </script> tag is built at runtime via scriptClose() so that no
+// bundler (rslib, webpack, rsbuild) can ever see or inline a literal
+// '</script>' into JS source.  A literal '</script>' inside a <script> block
+// causes the HTML parser to prematurely close the block — which breaks the
+// report viewer when this module is bundled into the report HTML template.
+//
+// Do NOT replace this with a string constant, hex escape (\x3c), or simple
+// concatenation — bundlers will optimise / inline them and re-introduce the
+// literal '</script>'.
+function scriptClose(): string {
+  // biome-ignore lint/style/useTemplate: intentional split to defeat bundler inlining
+  return '</' + 'script>';
+}
 export const BASE_URL_FIX_SCRIPT =
   // biome-ignore lint/style/useTemplate: must avoid literal </script> in source
   '\n<script>(function(){' +
@@ -328,7 +332,7 @@ export const BASE_URL_FIX_SCRIPT =
   'b.href=p+"/";' +
   'document.head.insertBefore(b,document.head.firstChild)' +
   '})()' +
-  SCRIPT_CLOSE +
+  scriptClose() +
   '\n';
 
 export function generateDumpScriptTag(
