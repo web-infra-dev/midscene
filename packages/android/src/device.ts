@@ -59,9 +59,6 @@ export type {
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
-// Hold duration before drag when scrolling on a located element (e.g. progress bar)
-// This simulates a brief long press to "capture" the element before dragging
-const defaultScrollHoldDuration = 500;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
@@ -222,8 +219,6 @@ export class AndroidDevice implements AbstractInterface {
             x: to.center[0],
             y: to.center[1],
           },
-          undefined,
-          defaultScrollHoldDuration,
         );
       }),
       defineActionSwipe(async (param) => {
@@ -1304,7 +1299,7 @@ ${Object.keys(size)
         0,
         height,
       );
-      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
+      await this.mouseDrag(start, end);
       return;
     }
 
@@ -1327,7 +1322,7 @@ ${Object.keys(size)
         0,
         height,
       );
-      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
+      await this.mouseDrag(start, end);
       return;
     }
 
@@ -1350,7 +1345,7 @@ ${Object.keys(size)
         width,
         0,
       );
-      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
+      await this.mouseDrag(start, end);
       return;
     }
 
@@ -1373,7 +1368,7 @@ ${Object.keys(size)
         width,
         0,
       );
-      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
+      await this.mouseDrag(start, end);
       return;
     }
 
@@ -1566,10 +1561,7 @@ ${Object.keys(size)
     from: { x: number; y: number },
     to: { x: number; y: number },
     duration?: number,
-    holdDuration?: number,
   ): Promise<void> {
-    const adb = await this.getAdb();
-
     // Use adjusted coordinates
     const { x: fromX, y: fromY } = await this.adjustCoordinates(from.x, from.y);
     const { x: toX, y: toY } = await this.adjustCoordinates(to.x, to.y);
@@ -1577,14 +1569,38 @@ ${Object.keys(size)
     // Ensure duration has a default value
     const swipeDuration = duration ?? defaultNormalScrollDuration;
 
-    if (holdDuration && holdDuration > 0) {
-      // Hold at the start point first (simulates long press to "capture" the element,
-      // e.g. a video progress bar thumb that requires a hold before dragging)
-      await adb.shell(
-        `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${fromX} ${fromY} ${holdDuration}`,
-      );
+    // Try scrcpy control channel first.
+    // scrcpy server maintains lastTouchDown across events, ensuring DOWN/MOVE/UP
+    // form a single continuous gesture — unlike `input motionevent` where each call
+    // creates an independent gesture with a new downTime.
+    const adapter = this.getScrcpyAdapter();
+    if (adapter.isEnabled()) {
+      try {
+        const physical = await this.getOrientedPhysicalSize();
+        const used = await adapter.drag(
+          { x: fromX, y: fromY },
+          { x: toX, y: toY },
+          physical.width,
+          physical.height,
+          swipeDuration,
+        );
+        if (used) {
+          debugDevice(
+            `mouseDrag via scrcpy control: (${fromX},${fromY}) → (${toX},${toY})`,
+          );
+          return;
+        }
+        debugDevice('Scrcpy control not ready, falling back to ADB');
+      } catch (error) {
+        debugDevice(`Scrcpy drag failed, falling back to ADB: ${error}`);
+      }
     }
 
+    // Fall back to ADB input swipe
+    const adb = await this.getAdb();
+    debugDevice(
+      `mouseDrag via input swipe: (${fromX},${fromY}) → (${toX},${toY})`,
+    );
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
     );

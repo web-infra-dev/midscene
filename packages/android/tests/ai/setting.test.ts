@@ -18,21 +18,10 @@ describe(
         },
       });
 
-      await agent.launch('com.android.settings/.Settings');
-      await agent.aiAct('pull down to refresh');
-      await agent.aiAct('long press chat list first chat');
-      await agent.aiAct('click recent apps button');
-      await agent.aiAct('click android home button');
-      await agent.aiAct('scroll list to bottom');
-      await agent.aiAct('open "More settings"');
-      await agent.aiAct('scroll left until left edge');
-      await agent.aiAct('scroll right until right edge');
-      await agent.aiAct('scroll list to top');
-      await agent.aiAct('scroll list to bottom');
-      await agent.aiAct('scroll down one screen');
-      await agent.aiAct('scroll up one screen');
-      await agent.aiAct('scroll right one screen');
-      await agent.aiAct('scroll left one screen');
+      await agent.aiScroll('视频播放进度条上的小圆点', {
+        direction: 'left',
+        distance: 100,
+      });
     });
   },
   360 * 1000,

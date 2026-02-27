@@ -180,7 +180,7 @@ export class ScrcpyScreenshotManager {
 
       const scrcpyOptions = new ScrcpyOptions3_1({
         audio: false,
-        control: false,
+        control: true,
         maxSize: this.options.maxSize,
         videoBitRate: this.options.videoBitRate,
         maxFps: 10,
@@ -593,5 +593,13 @@ export class ScrcpyScreenshotManager {
    */
   isConnected(): boolean {
     return this.isInitialized && this.scrcpyClient !== null;
+  }
+
+  /**
+   * Get the scrcpy control message writer for touch injection.
+   * Returns null if control is not available.
+   */
+  getController(): any {
+    return this.scrcpyClient?.controller ?? null;
   }
 }

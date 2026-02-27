@@ -346,7 +346,7 @@ describe('AndroidDevice', () => {
       );
     });
 
-    it('drag should call shell with adjusted coordinates', async () => {
+    it('drag should fall back to input swipe when scrcpy is not available', async () => {
       const from = { x: 10, y: 20 };
       const to = { x: 30, y: 40 };
       vi.spyOn(device as any, 'adjustCoordinates')
@@ -1688,8 +1688,6 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 100, y: 200 },
           mockEndPoint,
-          undefined,
-          500,
         );
       });
 
@@ -1707,8 +1705,6 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 150, y: 400 },
           mockEndPoint,
-          undefined,
-          500,
         );
       });
 
@@ -1726,8 +1722,6 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 500, y: 300 },
           mockEndPoint,
-          undefined,
-          500,
         );
       });
 
@@ -1745,8 +1739,6 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 200, y: 250 },
           mockEndPoint,
-          undefined,
-          500,
         );
       });
 

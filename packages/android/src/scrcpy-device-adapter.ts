@@ -6,6 +6,10 @@ import { DEFAULT_SCRCPY_CONFIG } from './scrcpy-manager';
 
 const debugAdapter = getDebug('android:scrcpy-adapter');
 
+// Touch injection timing constants
+const TOUCH_HOLD_BEFORE_MOVE_MS = 80;
+const TOUCH_MOVE_INTERVAL_MS = 16; // ~60fps
+
 interface ScrcpyConfig {
   enabled?: boolean;
   maxSize?: number;
@@ -183,6 +187,136 @@ export class ScrcpyDeviceAdapter {
     const resolution = this.getResolution();
     if (!resolution) return null;
     return resolution.width / physicalWidth;
+  }
+
+  /**
+   * Perform a drag gesture via scrcpy control channel.
+   * Sends touch DOWN → brief hold → MOVE events → UP.
+   * Returns true if scrcpy control was used, false if not available.
+   */
+  async drag(
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+    screenWidth: number,
+    screenHeight: number,
+    duration?: number,
+  ): Promise<boolean> {
+    if (!this.manager || !this.manager.isConnected()) {
+      debugAdapter('Scrcpy drag: manager not connected');
+      return false;
+    }
+
+    const controller = this.manager.getController();
+    if (!controller) {
+      debugAdapter('Scrcpy drag: controller not available');
+      return false;
+    }
+
+    try {
+      const { AndroidMotionEventAction } = await import('@yume-chan/scrcpy');
+
+      // Use scrcpy video resolution for screenWidth/screenHeight to ensure correct coordinate mapping.
+      // The scrcpy server scales: physicalX = pointerX * videoWidth / screenWidth
+      // So we must use the video resolution, and scale input coordinates accordingly.
+      const videoRes = this.manager.getResolution();
+      const actualScreenWidth = videoRes?.width ?? screenWidth;
+      const actualScreenHeight = videoRes?.height ?? screenHeight;
+
+      // Scale coordinates from physical space to scrcpy video space
+      const scaleX =
+        screenWidth !== actualScreenWidth ? actualScreenWidth / screenWidth : 1;
+      const scaleY =
+        screenHeight !== actualScreenHeight
+          ? actualScreenHeight / screenHeight
+          : 1;
+
+      const scaledFrom = {
+        x: Math.round(from.x * scaleX),
+        y: Math.round(from.y * scaleY),
+      };
+      const scaledTo = {
+        x: Math.round(to.x * scaleX),
+        y: Math.round(to.y * scaleY),
+      };
+
+      if (scaleX !== 1 || scaleY !== 1) {
+        console.log(
+          `[midscene] Scrcpy coord scale: physical=${screenWidth}x${screenHeight}, video=${actualScreenWidth}x${actualScreenHeight}, scale=${scaleX.toFixed(3)}x${scaleY.toFixed(3)}`,
+        );
+      }
+
+      const swipeDuration = duration ?? 1000;
+      const pointerId = BigInt(0);
+      const commonFields = {
+        pointerId,
+        screenWidth: actualScreenWidth,
+        screenHeight: actualScreenHeight,
+        actionButton: 0,
+        buttons: 0,
+      };
+
+      // 1. Touch DOWN at start position
+      await controller.injectTouch({
+        ...commonFields,
+        action: AndroidMotionEventAction.Down,
+        pointerX: scaledFrom.x,
+        pointerY: scaledFrom.y,
+        pressure: 1.0,
+      });
+
+      // 2. Brief hold to let the target view capture the touch
+      await new Promise((resolve) =>
+        setTimeout(resolve, TOUCH_HOLD_BEFORE_MOVE_MS),
+      );
+
+      // 3. Send MOVE events interpolated between start and end
+      const moveDuration = swipeDuration - TOUCH_HOLD_BEFORE_MOVE_MS;
+      const steps = Math.max(
+        1,
+        Math.floor(moveDuration / TOUCH_MOVE_INTERVAL_MS),
+      );
+
+      for (let i = 1; i <= steps; i++) {
+        const progress = i / steps;
+        const currentX = Math.round(
+          scaledFrom.x + (scaledTo.x - scaledFrom.x) * progress,
+        );
+        const currentY = Math.round(
+          scaledFrom.y + (scaledTo.y - scaledFrom.y) * progress,
+        );
+
+        await controller.injectTouch({
+          ...commonFields,
+          action: AndroidMotionEventAction.Move,
+          pointerX: currentX,
+          pointerY: currentY,
+          pressure: 1.0,
+        });
+
+        if (i < steps) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, TOUCH_MOVE_INTERVAL_MS),
+          );
+        }
+      }
+
+      // 4. Touch UP at end position
+      await controller.injectTouch({
+        ...commonFields,
+        action: AndroidMotionEventAction.Up,
+        pointerX: scaledTo.x,
+        pointerY: scaledTo.y,
+        pressure: 0,
+      });
+
+      console.log(
+        `[midscene] Scrcpy drag: (${scaledFrom.x},${scaledFrom.y}) → (${scaledTo.x},${scaledTo.y}), screen=${actualScreenWidth}x${actualScreenHeight}, duration=${swipeDuration}ms, steps=${steps}`,
+      );
+      return true;
+    } catch (error) {
+      console.warn(`[midscene] Scrcpy touch injection failed: ${error}`);
+      return false;
+    }
   }
 
   async disconnect(): Promise<void> {
