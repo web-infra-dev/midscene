@@ -1688,6 +1688,8 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 100, y: 200 },
           mockEndPoint,
+          undefined,
+          500,
         );
       });
 
@@ -1705,6 +1707,8 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 150, y: 400 },
           mockEndPoint,
+          undefined,
+          500,
         );
       });
 
@@ -1722,6 +1726,8 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 500, y: 300 },
           mockEndPoint,
+          undefined,
+          500,
         );
       });
 
@@ -1739,6 +1745,8 @@ describe('AndroidDevice', () => {
         expect((device as any).mouseDrag).toHaveBeenCalledWith(
           { x: 200, y: 250 },
           mockEndPoint,
+          undefined,
+          500,
         );
       });
 

@@ -59,6 +59,9 @@ export type {
 const defaultScrollUntilTimes = 10;
 const defaultFastScrollDuration = 100;
 const defaultNormalScrollDuration = 1000;
+// Hold duration before drag when scrolling on a located element (e.g. progress bar)
+// This simulates a brief long press to "capture" the element before dragging
+const defaultScrollHoldDuration = 500;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
@@ -219,6 +222,8 @@ export class AndroidDevice implements AbstractInterface {
             x: to.center[0],
             y: to.center[1],
           },
+          undefined,
+          defaultScrollHoldDuration,
         );
       }),
       defineActionSwipe(async (param) => {
@@ -1299,7 +1304,7 @@ ${Object.keys(size)
         0,
         height,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
       return;
     }
 
@@ -1322,7 +1327,7 @@ ${Object.keys(size)
         0,
         height,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
       return;
     }
 
@@ -1345,7 +1350,7 @@ ${Object.keys(size)
         width,
         0,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
       return;
     }
 
@@ -1368,7 +1373,7 @@ ${Object.keys(size)
         width,
         0,
       );
-      await this.mouseDrag(start, end);
+      await this.mouseDrag(start, end, undefined, defaultScrollHoldDuration);
       return;
     }
 
@@ -1561,6 +1566,7 @@ ${Object.keys(size)
     from: { x: number; y: number },
     to: { x: number; y: number },
     duration?: number,
+    holdDuration?: number,
   ): Promise<void> {
     const adb = await this.getAdb();
 
@@ -1570,6 +1576,14 @@ ${Object.keys(size)
 
     // Ensure duration has a default value
     const swipeDuration = duration ?? defaultNormalScrollDuration;
+
+    if (holdDuration && holdDuration > 0) {
+      // Hold at the start point first (simulates long press to "capture" the element,
+      // e.g. a video progress bar thumb that requires a hold before dragging)
+      await adb.shell(
+        `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${fromX} ${fromY} ${holdDuration}`,
+      );
+    }
 
     await adb.shell(
       `input${this.getDisplayArg()} swipe ${fromX} ${fromY} ${toX} ${toY} ${swipeDuration}`,
