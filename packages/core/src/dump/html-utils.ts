@@ -320,6 +320,7 @@ export function generateImageScriptTag(id: string, data: string): string {
 // a closing tag (which caused the "lost one dump" bug in merged reports).
 const SCRIPT_CLOSE = '</' + 'script>';
 export const BASE_URL_FIX_SCRIPT =
+  // biome-ignore lint/style/useTemplate: must avoid literal </script> in source
   '\n<script>(function(){' +
   'var p=window.location.pathname;' +
   'if(p.endsWith("/")||/\\.\\w+$/.test(p))return;' +
