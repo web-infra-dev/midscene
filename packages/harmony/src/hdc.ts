@@ -180,6 +180,19 @@ export class HdcClient {
     await this.shell(`uitest uiInput keyEvent ${keys.join(' ')}`);
   }
 
+  /**
+   * Clear text field by batch-sending Backspace(2055) and Delete(2071) key
+   * events. Deletes both before and after the cursor to ensure all content is
+   * removed regardless of cursor position, matching Android's clearTextField.
+   */
+  async clearTextField(length = 100): Promise<void> {
+    const keys: string[] = [];
+    for (let i = 0; i < length; i++) {
+      keys.push('2055', '2071'); // Backspace + Delete
+    }
+    await this.keyEvent(...keys);
+  }
+
   async startAbility(bundleName: string, abilityName: string): Promise<void> {
     const output = await this.shell(
       `aa start -a ${abilityName} -b ${bundleName}`,

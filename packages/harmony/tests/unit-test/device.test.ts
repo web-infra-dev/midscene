@@ -17,6 +17,7 @@ const mockHdc = {
   startAbility: vi.fn().mockResolvedValue(undefined),
   queryMainAbility: vi.fn().mockResolvedValue(undefined),
   forceStop: vi.fn().mockResolvedValue(undefined),
+  clearTextField: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('../../src/hdc', () => ({
@@ -239,21 +240,16 @@ describe('HarmonyDevice', () => {
       expect(mockHdc.inputText).toHaveBeenCalledWith(608, 1344, 'test');
     });
 
-    it('should use sentinel+Ctrl+A pattern when shouldReplace is true', async () => {
+    it('should click+clearTextField before inputText when shouldReplace is true', async () => {
       const element = { center: [100, 200] as [number, number] } as any;
       await device.inputText('new text', element, true);
 
-      // 1. sentinel inputText
-      expect(mockHdc.inputText).toHaveBeenNthCalledWith(1, 100, 200, '.');
-      // 2. Ctrl+A keyEvent
-      expect(mockHdc.keyEvent).toHaveBeenCalledWith('2072', '2017');
+      // 1. click to focus
+      expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
+      // 2. clearTextField to batch-delete existing content
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
       // 3. actual inputText
-      expect(mockHdc.inputText).toHaveBeenNthCalledWith(
-        2,
-        100,
-        200,
-        'new text',
-      );
+      expect(mockHdc.inputText).toHaveBeenCalledWith(100, 200, 'new text');
     });
 
     it('should NOT use sentinel pattern when shouldReplace is false', async () => {
@@ -292,12 +288,18 @@ describe('HarmonyDevice', () => {
   });
 
   describe('clearInput', () => {
-    it('should be a no-op', async () => {
+    it('should call clearTextField to batch-delete text', async () => {
       await device.connect();
       await device.clearInput();
-      expect(mockHdc.click).not.toHaveBeenCalled();
-      expect(mockHdc.keyEvent).not.toHaveBeenCalled();
-      expect(mockHdc.inputText).not.toHaveBeenCalled();
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
+    });
+
+    it('should click element before clearing when element is provided', async () => {
+      await device.connect();
+      const element = { center: [100, 200] as [number, number] } as any;
+      await device.clearInput(element);
+      expect(mockHdc.click).toHaveBeenCalledWith(100, 200);
+      expect(mockHdc.clearTextField).toHaveBeenCalledWith(100);
     });
   });
 

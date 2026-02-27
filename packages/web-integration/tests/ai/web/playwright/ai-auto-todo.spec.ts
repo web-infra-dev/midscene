@@ -42,9 +42,7 @@ test.describe('ai todo describe', () => {
     await ai(
       'Click the delete button (×) to the right of "Learn Rust tomorrow"',
     );
-    await ai(
-      'Click the checkbox next to "Learning AI the day after tomorrow"',
-    );
+    await ai('Click the checkbox next to "Learning AI the day after tomorrow"');
     await ai('Click the "Completed" status filter button below the task list');
 
     const taskList = await aiQuery<string[]>(

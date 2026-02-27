@@ -483,12 +483,14 @@ export class HarmonyDevice implements AbstractInterface {
     }
 
     if (shouldReplace) {
-      // Type a sentinel char to put the input into "typing mode", then Ctrl+A
-      // to select all text (including any existing content). The subsequent
-      // inputText will replace the entire selection with the new text.
-      // This pattern was verified to work on HarmonyOS uitest.
-      await hdc.inputText(x, y, '.');
-      await hdc.keyEvent('2072', '2017'); // Ctrl+A: select all in focused input
+      // Click to focus, then batch-send Backspace + Delete key events to clear
+      // existing text. Like Android's clearTextField, we delete both before and
+      // after the cursor to ensure all content is removed regardless of cursor
+      // position. All keys are sent in a single shell command for performance.
+      await hdc.click(x, y);
+      await sleep(100);
+      await hdc.clearTextField(100);
+      await sleep(100);
     }
 
     await hdc.inputText(x, y, text);
@@ -498,11 +500,15 @@ export class HarmonyDevice implements AbstractInterface {
     }
   }
 
-  async clearInput(_element?: ElementInfo): Promise<void> {
-    // No-op: do NOT tap or send keyboard shortcuts here.
-    // Tapping causes keyboard popup + page shift, making inputText miss its target.
-    // Ctrl+A without focus selects page text and shows context menu, blocking input.
-    // The subsequent inputText (uitest uiInput inputText) handles click+type atomically.
+  async clearInput(element?: ElementInfo): Promise<void> {
+    const hdc = await this.getHdc();
+
+    if (element) {
+      await hdc.click(element.center[0], element.center[1]);
+      await sleep(100);
+    }
+
+    await hdc.clearTextField(100);
   }
 
   async keyboardPress(key: string): Promise<void> {
