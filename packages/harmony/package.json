@@ -13,9 +13,10 @@
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
   "bin": {
-    "midscene-harmony": "./bin/midscene-harmony"
+    "midscene-harmony": "./bin/midscene-harmony",
+    "midscene-harmony-playground": "./bin/midscene-harmony-playground"
   },
-  "files": ["bin", "dist", "README.md"],
+  "files": ["bin", "dist", "static", "README.md"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -26,6 +27,11 @@
       "types": "./dist/types/mcp-server.d.ts",
       "import": "./dist/es/mcp-server.mjs",
       "require": "./dist/lib/mcp-server.js"
+    },
+    "./bin": {
+      "types": "./dist/types/bin.d.ts",
+      "import": "./dist/es/bin.mjs",
+      "require": "./dist/lib/bin.js"
     },
     "./package.json": "./package.json"
   },
@@ -40,7 +46,10 @@
   },
   "dependencies": {
     "@midscene/core": "workspace:*",
-    "@midscene/shared": "workspace:*"
+    "@midscene/playground": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "@inquirer/prompts": "^7.8.6",
+    "open": "10.1.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",

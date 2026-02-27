@@ -9,10 +9,13 @@
   "include": ["src"],
   "references": [
     {
-      "path": "../core"
+      "path": "../harmony"
     },
     {
       "path": "../shared"
+    },
+    {
+      "path": "../core"
     },
     {
       "path": "../playground"

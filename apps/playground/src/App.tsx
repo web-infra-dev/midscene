@@ -23,9 +23,9 @@ export default function App() {
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
-  const [deviceType, setDeviceType] = useState<'web' | 'android' | 'ios'>(
-    'web',
-  );
+  const [deviceType, setDeviceType] = useState<
+    'web' | 'android' | 'ios' | 'harmony'
+  >('web');
 
   // Create PlaygroundSDK and storage provider
   const playgroundSDK = useMemo(() => {
@@ -60,8 +60,13 @@ export default function App() {
             const interfaceInfo = await playgroundSDK.getInterfaceInfo();
             if (interfaceInfo?.type) {
               const type = interfaceInfo.type.toLowerCase();
-              if (type === 'android' || type === 'ios' || type === 'web') {
-                setDeviceType(type as 'web' | 'android' | 'ios');
+              if (
+                type === 'android' ||
+                type === 'ios' ||
+                type === 'web' ||
+                type === 'harmony'
+              ) {
+                setDeviceType(type as 'web' | 'android' | 'ios' | 'harmony');
               }
             }
           } catch (error) {
@@ -188,7 +193,9 @@ export default function App() {
                   serverOnline={serverOnline}
                   isUserOperating={isUserOperating}
                   mjpegUrl={
-                    deviceType === 'ios' ? `${__SERVER_URL__}/mjpeg` : undefined
+                    deviceType === 'ios' || deviceType === 'harmony'
+                      ? `${__SERVER_URL__}/mjpeg`
+                      : undefined
                   }
                 />
               </div>

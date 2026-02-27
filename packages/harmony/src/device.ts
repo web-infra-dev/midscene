@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import fs, { unlink } from 'node:fs';
+import fs from 'node:fs';
 import {
   type DeviceAction,
   type InterfaceType,
@@ -40,6 +40,41 @@ const maxScrollDistance = 9999999;
 const scrollQuadrantDivisions = 4;
 
 const debugDevice = getDebug('harmony:device');
+
+// HarmonyOS uitest only accepts Back/Home/Power as string names.
+// All other keys must use numeric keycodes.
+const harmonyKeyCodeMap = {
+  Enter: '2054',
+  Backspace: '2055',
+  Tab: '2049',
+  Escape: '2070',
+  Home: 'Home',
+  ArrowUp: '2012',
+  ArrowDown: '2013',
+  ArrowLeft: '2014',
+  ArrowRight: '2015',
+  Space: '2050',
+  Delete: '2071',
+} as const;
+
+const keyNameAliasMap: Record<string, string> = {
+  enter: 'Enter',
+  backspace: 'Backspace',
+  tab: 'Tab',
+  escape: 'Escape',
+  esc: 'Escape',
+  home: 'Home',
+  space: 'Space',
+  delete: 'Delete',
+  arrowup: 'ArrowUp',
+  arrowdown: 'ArrowDown',
+  arrowleft: 'ArrowLeft',
+  arrowright: 'ArrowRight',
+  up: 'ArrowUp',
+  down: 'ArrowDown',
+  left: 'ArrowLeft',
+  right: 'ArrowRight',
+} as const;
 
 export class HarmonyDevice implements AbstractInterface {
   private deviceId: string;
@@ -132,11 +167,11 @@ export class HarmonyDevice implements AbstractInterface {
           if (param?.direction === 'down' || !param || !param.direction) {
             await this.scrollDown(param?.distance ?? undefined, startingPoint);
           } else if (param.direction === 'up') {
-            await this.scrollUp(param.distance || undefined, startingPoint);
+            await this.scrollUp(param.distance ?? undefined, startingPoint);
           } else if (param.direction === 'left') {
-            await this.scrollLeft(param.distance || undefined, startingPoint);
+            await this.scrollLeft(param.distance ?? undefined, startingPoint);
           } else if (param.direction === 'right') {
-            await this.scrollRight(param.distance || undefined, startingPoint);
+            await this.scrollRight(param.distance ?? undefined, startingPoint);
           } else {
             throw new Error(`Unknown scroll direction: ${param.direction}`);
           }
@@ -222,7 +257,7 @@ export class HarmonyDevice implements AbstractInterface {
 
     const platformSpecificActions = Object.values(createPlatformActions(this));
 
-    const customActions = this.customActions || [];
+    const customActions = this.customActions ?? [];
     return [...defaultActions, ...platformSpecificActions, ...customActions];
   }
 
@@ -365,51 +400,47 @@ export class HarmonyDevice implements AbstractInterface {
     };
   }
 
+  private remoteScreenshotPath = '/data/local/tmp/ms_screen.jpeg';
+  private localScreenshotPath: string | null = null;
+
   async screenshotBase64(): Promise<string> {
     debugDevice('screenshotBase64 begin');
     const hdc = await this.getHdc();
 
-    const screenshotId = Date.now().toString(36);
-    const remoteScreenshotPath = `/data/local/tmp/ms_${screenshotId}.jpeg`;
-    const localScreenshotPath = getTmpFile('jpeg')!;
+    if (!this.localScreenshotPath) {
+      this.localScreenshotPath = getTmpFile('jpeg')!;
+    }
 
-    try {
-      // Take screenshot on device
-      await hdc.screenshot(remoteScreenshotPath);
+    const maxAttempts = 2;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      // Take screenshot on device (reuse fixed path, no per-frame cleanup needed)
+      await hdc.screenshot(this.remoteScreenshotPath);
 
-      // Pull to local
-      await hdc.fileRecv(remoteScreenshotPath, localScreenshotPath);
+      // Pull to local (overwrites the same local file each time)
+      await hdc.fileRecv(this.remoteScreenshotPath, this.localScreenshotPath);
 
       // Read file
-      const screenshotBuffer = await fs.promises.readFile(localScreenshotPath);
+      const screenshotBuffer = await fs.promises.readFile(
+        this.localScreenshotPath,
+      );
 
-      if (!screenshotBuffer || screenshotBuffer.length === 0) {
-        throw new Error('Screenshot buffer is empty');
+      if (screenshotBuffer && screenshotBuffer.length > 0) {
+        debugDevice(`Screenshot captured: ${screenshotBuffer.length} bytes`);
+        return createImgBase64ByFormat(
+          'jpeg',
+          screenshotBuffer.toString('base64'),
+        );
       }
 
-      debugDevice(`Screenshot captured: ${screenshotBuffer.length} bytes`);
-
-      const result = createImgBase64ByFormat(
-        'jpeg',
-        screenshotBuffer.toString('base64'),
+      debugDevice(
+        `Screenshot buffer empty (attempt ${attempt}/${maxAttempts})`,
       );
-      debugDevice('screenshotBase64 end');
-      return result;
-    } finally {
-      // Cleanup remote file asynchronously
-      Promise.resolve()
-        .then(() => hdc.shell(`rm ${remoteScreenshotPath}`))
-        .catch((error) => {
-          debugDevice(`Failed to delete remote screenshot: ${error}`);
-        });
-
-      // Cleanup local file
-      unlink(localScreenshotPath, (unlinkError) => {
-        if (unlinkError) {
-          debugDevice(`Failed to delete local screenshot: ${unlinkError}`);
-        }
-      });
+      if (attempt < maxAttempts) {
+        await sleep(200);
+      }
     }
+
+    throw new Error('Screenshot buffer is empty after retries');
   }
 
   async tap(x: number, y: number): Promise<void> {
@@ -474,51 +505,12 @@ export class HarmonyDevice implements AbstractInterface {
   }
 
   async keyboardPress(key: string): Promise<void> {
-    // HarmonyOS uitest only accepts Back/Home/Power as string names.
-    // All other keys must use numeric keycodes.
-    const harmonyKeyCodeMap: Record<string, string> = {
-      Enter: '2054',
-      Backspace: '2055',
-      Tab: '2049',
-      Escape: '2070',
-      Home: 'Home',
-      ArrowUp: '2012',
-      ArrowDown: '2013',
-      ArrowLeft: '2014',
-      ArrowRight: '2015',
-      Space: '2050',
-      Delete: '2071',
-    };
-
-    const normalizedKey = this.normalizeKeyName(key);
-    const harmonyKey = harmonyKeyCodeMap[normalizedKey] ?? key;
+    const normalizedKey = keyNameAliasMap[key.toLowerCase()] ?? key;
+    const harmonyKey =
+      harmonyKeyCodeMap[normalizedKey as keyof typeof harmonyKeyCodeMap] ?? key;
 
     const hdc = await this.getHdc();
     await hdc.keyEvent(harmonyKey);
-  }
-
-  private normalizeKeyName(key: string): string {
-    const keyNameAliasMap: Record<string, string> = {
-      enter: 'Enter',
-      backspace: 'Backspace',
-      tab: 'Tab',
-      escape: 'Escape',
-      esc: 'Escape',
-      home: 'Home',
-      space: 'Space',
-      delete: 'Delete',
-      arrowup: 'ArrowUp',
-      arrowdown: 'ArrowDown',
-      arrowleft: 'ArrowLeft',
-      arrowright: 'ArrowRight',
-      up: 'ArrowUp',
-      down: 'ArrowDown',
-      left: 'ArrowLeft',
-      right: 'ArrowRight',
-    };
-
-    const lowerKey = key.toLowerCase();
-    return keyNameAliasMap[lowerKey] ?? key;
   }
 
   async scroll(deltaX: number, deltaY: number, speed?: number): Promise<void> {
@@ -547,158 +539,114 @@ export class HarmonyDevice implements AbstractInterface {
     await hdc.swipe(startX, startY, endX, endY, speed ?? defaultSwipeSpeed);
   }
 
-  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
-    const { height } = await this.size();
-    const scrollDistance = Math.round(distance ?? height);
+  private async scrollInDirection(
+    direction: 'up' | 'down' | 'left' | 'right',
+    distance?: number,
+    startPoint?: Point,
+  ): Promise<void> {
+    const { width, height } = await this.size();
+    const isVertical = direction === 'up' || direction === 'down';
+    const scrollDistance = Math.round(
+      distance ?? (isVertical ? height : width),
+    );
 
     if (startPoint) {
       const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-      const endY = Math.max(0, startY - scrollDistance);
-      await hdc.swipe(startX, startY, startX, endY);
+      const sx = Math.round(startPoint.left);
+      const sy = Math.round(startPoint.top);
+
+      const endPoints = {
+        down: { x: sx, y: Math.max(0, sy - scrollDistance) },
+        up: { x: sx, y: Math.min(height, sy + scrollDistance) },
+        left: { x: Math.min(width, sx + scrollDistance), y: sy },
+        right: { x: Math.max(0, sx - scrollDistance), y: sy },
+      } as const;
+
+      const end = endPoints[direction];
+      await hdc.swipe(sx, sy, end.x, end.y);
       return;
     }
 
-    await this.scroll(0, scrollDistance);
+    const deltas = {
+      down: [0, scrollDistance],
+      up: [0, -scrollDistance],
+      left: [-scrollDistance, 0],
+      right: [scrollDistance, 0],
+    } as const;
+
+    const [dx, dy] = deltas[direction];
+    await this.scroll(dx, dy);
+  }
+
+  async scrollDown(distance?: number, startPoint?: Point): Promise<void> {
+    await this.scrollInDirection('down', distance, startPoint);
   }
 
   async scrollUp(distance?: number, startPoint?: Point): Promise<void> {
-    const { height } = await this.size();
-    const scrollDistance = Math.round(distance ?? height);
-
-    if (startPoint) {
-      const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-      const endY = Math.min(height, startY + scrollDistance);
-      await hdc.swipe(startX, startY, startX, endY);
-      return;
-    }
-
-    await this.scroll(0, -scrollDistance);
+    await this.scrollInDirection('up', distance, startPoint);
   }
 
   async scrollLeft(distance?: number, startPoint?: Point): Promise<void> {
-    const { width } = await this.size();
-    const scrollDistance = Math.round(distance ?? width);
-
-    if (startPoint) {
-      const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-      const endX = Math.min(width, startX + scrollDistance);
-      await hdc.swipe(startX, startY, endX, startY);
-      return;
-    }
-
-    await this.scroll(-scrollDistance, 0);
+    await this.scrollInDirection('left', distance, startPoint);
   }
 
   async scrollRight(distance?: number, startPoint?: Point): Promise<void> {
-    const { width } = await this.size();
-    const scrollDistance = Math.round(distance ?? width);
+    await this.scrollInDirection('right', distance, startPoint);
+  }
 
+  private async scrollUntilEdge(
+    direction: 'up' | 'down' | 'left' | 'right',
+    startPoint?: Point,
+  ): Promise<void> {
     if (startPoint) {
+      const { width, height } = await this.size();
       const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-      const endX = Math.max(0, startX - scrollDistance);
-      await hdc.swipe(startX, startY, endX, startY);
+      const sx = Math.round(startPoint.left);
+      const sy = Math.round(startPoint.top);
+
+      const flingTargets = {
+        up: { x: sx, y: Math.round(height) },
+        down: { x: sx, y: 0 },
+        left: { x: Math.round(width), y: sy },
+        right: { x: 0, y: sy },
+      } as const;
+
+      const target = flingTargets[direction];
+      await repeat(defaultScrollUntilTimes, () =>
+        hdc.fling(sx, sy, target.x, target.y, defaultFastSwipeSpeed),
+      );
+      await sleep(1000);
       return;
     }
 
-    await this.scroll(scrollDistance, 0);
+    const deltas = {
+      up: [0, -maxScrollDistance],
+      down: [0, maxScrollDistance],
+      left: [-maxScrollDistance, 0],
+      right: [maxScrollDistance, 0],
+    } as const;
+
+    const [dx, dy] = deltas[direction];
+    await repeat(defaultScrollUntilTimes, () =>
+      this.scroll(dx, dy, defaultFastSwipeSpeed),
+    );
+    await sleep(1000);
   }
 
   async scrollUntilTop(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const { height } = await this.size();
-      const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-
-      await repeat(defaultScrollUntilTimes, () =>
-        hdc.fling(
-          startX,
-          startY,
-          startX,
-          Math.round(height),
-          defaultFastSwipeSpeed,
-        ),
-      );
-      await sleep(1000);
-      return;
-    }
-
-    await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(0, -maxScrollDistance, defaultFastSwipeSpeed),
-    );
-    await sleep(1000);
+    await this.scrollUntilEdge('up', startPoint);
   }
 
   async scrollUntilBottom(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-
-      await repeat(defaultScrollUntilTimes, () =>
-        hdc.fling(startX, startY, startX, 0, defaultFastSwipeSpeed),
-      );
-      await sleep(1000);
-      return;
-    }
-
-    await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(0, maxScrollDistance, defaultFastSwipeSpeed),
-    );
-    await sleep(1000);
+    await this.scrollUntilEdge('down', startPoint);
   }
 
   async scrollUntilLeft(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const { width } = await this.size();
-      const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-
-      await repeat(defaultScrollUntilTimes, () =>
-        hdc.fling(
-          startX,
-          startY,
-          Math.round(width),
-          startY,
-          defaultFastSwipeSpeed,
-        ),
-      );
-      await sleep(1000);
-      return;
-    }
-
-    await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(-maxScrollDistance, 0, defaultFastSwipeSpeed),
-    );
-    await sleep(1000);
+    await this.scrollUntilEdge('left', startPoint);
   }
 
   async scrollUntilRight(startPoint?: Point): Promise<void> {
-    if (startPoint) {
-      const hdc = await this.getHdc();
-      const startX = Math.round(startPoint.left);
-      const startY = Math.round(startPoint.top);
-
-      await repeat(defaultScrollUntilTimes, () =>
-        hdc.fling(startX, startY, 0, startY, defaultFastSwipeSpeed),
-      );
-      await sleep(1000);
-      return;
-    }
-
-    await repeat(defaultScrollUntilTimes, () =>
-      this.scroll(maxScrollDistance, 0, defaultFastSwipeSpeed),
-    );
-    await sleep(1000);
+    await this.scrollUntilEdge('right', startPoint);
   }
 
   async back(): Promise<void> {

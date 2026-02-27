@@ -1124,12 +1124,21 @@ importers:
 
   packages/harmony:
     dependencies:
+      '@inquirer/prompts':
+        specifier: ^7.8.6
+        version: 7.8.6(@types/node@18.19.118)
       '@midscene/core':
         specifier: workspace:*
         version: link:../core
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
       '@midscene/shared':
         specifier: workspace:*
         version: link:../shared
+      open:
+        specifier: 10.1.0
+        version: 10.1.0
     devDependencies:
       '@rslib/core':
         specifier: ^0.18.3
@@ -1149,6 +1158,55 @@ importers:
       zod:
         specifier: 3.24.3
         version: 3.24.3
+
+  packages/harmony-mcp:
+    devDependencies:
+      '@midscene/core':
+        specifier: workspace:*
+        version: link:../core
+      '@midscene/harmony':
+        specifier: workspace:*
+        version: link:../harmony
+      '@midscene/report':
+        specifier: workspace:*
+        version: link:../../apps/report
+      '@midscene/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@modelcontextprotocol/inspector':
+        specifier: ^0.16.3
+        version: 0.16.3(@types/node@18.19.118)(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(bufferutil@4.0.9)(typescript@5.8.3)(utf-8-validate@6.0.5)
+      '@modelcontextprotocol/sdk':
+        specifier: 1.10.2
+        version: 1.10.2
+      '@rslib/core':
+        specifier: ^0.18.3
+        version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@rspack/core':
+        specifier: 1.6.6
+        version: 1.6.6(@swc/helpers@0.5.18)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.118
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
+  packages/harmony-playground:
+    dependencies:
+      '@midscene/harmony':
+        specifier: workspace:*
+        version: link:../harmony
+    devDependencies:
+      '@rslib/core':
+        specifier: ^0.18.3
+        version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.118
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   packages/ios:
     dependencies:

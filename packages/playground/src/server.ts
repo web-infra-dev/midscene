@@ -60,6 +60,9 @@ class PlaygroundServer {
   // Track current running task
   private currentTaskId: string | null = null;
 
+  // Flag to pause MJPEG polling during agent recreation
+  private _agentReady = true;
+
   constructor(
     agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
     staticPath = STATIC_PATH,
@@ -183,6 +186,7 @@ class PlaygroundServer {
       );
     }
 
+    this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
     // Destroy old agent instance
@@ -197,8 +201,10 @@ class PlaygroundServer {
     // Create new agent instance
     try {
       this.agent = await this.agentFactory();
+      this._agentReady = true;
       console.log('Agent recreated successfully');
     } catch (error) {
+      this._agentReady = true;
       console.error('Failed to recreate agent:', error);
       throw error;
     }
@@ -355,6 +361,7 @@ class PlaygroundServer {
 
       // Always recreate agent before execution to ensure latest config is applied
       if (this.agentFactory) {
+        this._agentReady = false;
         console.log('Destroying old agent before execution...');
         try {
           if (this.agent && typeof this.agent.destroy === 'function') {
@@ -367,8 +374,10 @@ class PlaygroundServer {
         console.log('Creating new agent with latest config...');
         try {
           this.agent = await this.agentFactory();
+          this._agentReady = true;
           console.log('Agent created successfully');
         } catch (error) {
+          this._agentReady = true;
           console.error('Failed to create agent:', error);
           return res.status(500).json({
             error: `Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -742,8 +751,9 @@ class PlaygroundServer {
     const maxErrorBackoffMs = 3000;
     const errorLogThreshold = 3;
 
+    const parsedFps = Number(req.query.fps);
     const fps = Math.min(
-      Math.max(Number(req.query.fps) ?? defaultMjpegFps, 1),
+      Math.max(Number.isNaN(parsedFps) ? defaultMjpegFps : parsedFps, 1),
       maxMjpegFps,
     );
     const interval = Math.round(1000 / fps);
@@ -764,6 +774,12 @@ class PlaygroundServer {
     });
 
     while (!stopped) {
+      // Skip frame while agent is being recreated
+      if (!this._agentReady) {
+        await new Promise((r) => setTimeout(r, 200));
+        continue;
+      }
+
       const frameStart = Date.now();
       try {
         const base64 = await this.agent.interface.screenshotBase64();

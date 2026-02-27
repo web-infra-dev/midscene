@@ -35,6 +35,12 @@ export default defineConfig({
       'copy-ios-playground-static',
       path.join(__dirname, 'src', 'favicon.ico'),
     ),
+    createPlaygroundCopyPlugin(
+      path.join(__dirname, 'dist'),
+      path.join(__dirname, '../../packages/harmony/static'),
+      'copy-harmony-playground-static',
+      path.join(__dirname, 'src', 'favicon.ico'),
+    ),
     pluginTypeCheck(),
     pluginWorkspaceDev({
       projects: {
