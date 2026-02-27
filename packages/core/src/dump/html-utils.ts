@@ -309,7 +309,10 @@ export function generateImageScriptTag(id: string, data: string): string {
  * Fix: dynamically insert a <base> tag so relative URLs resolve correctly.
  */
 // Do not use template string here, will cause bundle error with <script
-// Use <\/script> to avoid breaking HTML when this string is embedded inside a <script> tag
+// Use \x3c (hex for '<') to avoid a literal </script> in source, which would
+// break the HTML parser when this file is bundled inside a <script> tag.
+// Do NOT use '<\\/script>' — the double-backslash produces a literal backslash
+// in the string value, and HTML does not recognise <\/script> as a closing tag.
 export const BASE_URL_FIX_SCRIPT =
   '\n<script>(function(){' +
   'var p=window.location.pathname;' +
@@ -317,7 +320,7 @@ export const BASE_URL_FIX_SCRIPT =
   'var b=document.createElement("base");' +
   'b.href=p+"/";' +
   'document.head.insertBefore(b,document.head.firstChild)' +
-  '})()<\\/script>\n';
+  '})()\x3c/script>\n';
 
 export function generateDumpScriptTag(
   json: string,
