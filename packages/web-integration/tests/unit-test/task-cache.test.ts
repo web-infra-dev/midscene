@@ -219,6 +219,33 @@ describe('TaskCache', { timeout: 20000 }, () => {
     ).toMatchSnapshot();
   });
 
+  it('should correctly save and retrieve long XPath strings (without folded block scalar corruption)', () => {
+    // Long XPath that would trigger >- folded block scalar format with default lineWidth
+    // Chinese characters are multi-byte, causing the string to exceed the effective lineWidth
+    const longXpath =
+      '/html/body/div[1]/div[1]/div[10]/section[1]/div[normalize-space()="立即投保"]';
+    const prompt = '立即投保';
+
+    const cacheFilePath = prepareCache([
+      {
+        type: 'locate',
+        prompt,
+        cache: { xpaths: [longXpath] },
+      },
+    ]);
+
+    // Verify the cache file does NOT contain folded block scalar format (>-)
+    const rawContent = readFileSync(cacheFilePath!, 'utf-8');
+    expect(rawContent).not.toContain('>-');
+    expect(rawContent).toContain(longXpath);
+
+    // Verify the cache can be matched correctly
+    const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
+    const located = newTaskCache.matchLocateCache(prompt);
+    expect(located).toBeDefined();
+    expect(located?.cacheContent.cache?.xpaths).toEqual([longXpath]);
+  });
+
   it('migrates legacy locate cache xpaths to cache entry when matching', () => {
     const legacyXpaths = ['legacy-xpath-1'];
     const cacheFilePath = prepareCache([
