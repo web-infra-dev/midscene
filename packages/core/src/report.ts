@@ -12,7 +12,7 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
-  BASE_URL_FIX_SCRIPT,
+  getBaseUrlFixScript,
   extractLastDumpScriptSync,
   streamImageScriptsToFile,
 } from './dump/html-utils';
@@ -98,7 +98,7 @@ export class ReportMergingTool {
 
       // For directory-mode output, inject base URL fix script
       if (hasDirectoryModeReport) {
-        appendFileSync(outputFilePath, BASE_URL_FIX_SCRIPT);
+        appendFileSync(outputFilePath, getBaseUrlFixScript());
       }
 
       // Process all reports one by one

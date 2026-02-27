@@ -319,21 +319,29 @@ export function generateImageScriptTag(id: string, data: string): string {
 // Do NOT replace this with a string constant, hex escape (\x3c), or simple
 // concatenation — bundlers will optimise / inline them and re-introduce the
 // literal '</script>'.
-function scriptClose(): string {
-  // biome-ignore lint/style/useTemplate: intentional split to defeat bundler inlining
-  return '</' + 'script>';
+let _baseUrlFixScript: string;
+export function getBaseUrlFixScript(): string {
+  if (!_baseUrlFixScript) {
+    // biome-ignore lint/style/useTemplate: closing </script> MUST be split so
+    // that no bundler (rslib / webpack / terser) can ever produce a literal
+    // '</script>' in bundle output.  A literal '</script>' inside a <script>
+    // block causes the HTML parser to prematurely close the block, which breaks
+    // the report viewer when this module is bundled into the report template.
+    const close = '</' + 'script>';
+    _baseUrlFixScript =
+      // biome-ignore lint/style/useTemplate: see above
+      '\n<script>(function(){' +
+      'var p=window.location.pathname;' +
+      'if(p.endsWith("/")||/\\.\\w+$/.test(p))return;' +
+      'var b=document.createElement("base");' +
+      'b.href=p+"/";' +
+      'document.head.insertBefore(b,document.head.firstChild)' +
+      '})()' +
+      close +
+      '\n';
+  }
+  return _baseUrlFixScript;
 }
-export const BASE_URL_FIX_SCRIPT =
-  // biome-ignore lint/style/useTemplate: must avoid literal </script> in source
-  '\n<script>(function(){' +
-  'var p=window.location.pathname;' +
-  'if(p.endsWith("/")||/\\.\\w+$/.test(p))return;' +
-  'var b=document.createElement("base");' +
-  'b.href=p+"/";' +
-  'document.head.insertBefore(b,document.head.firstChild)' +
-  '})()' +
-  scriptClose() +
-  '\n';
 
 export function generateDumpScriptTag(
   json: string,
