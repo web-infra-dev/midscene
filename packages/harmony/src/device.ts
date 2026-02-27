@@ -119,7 +119,7 @@ export class HarmonyDevice implements AbstractInterface {
               .default('replace')
               .optional()
               .describe(
-                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - attempt to clear the field (limited support on HarmonyOS).',
               ),
           ),
           locate: getMidsceneLocationSchema()
@@ -340,7 +340,8 @@ export class HarmonyDevice implements AbstractInterface {
         uri.includes('://')
       ) {
         // URI with scheme - use aa start -U
-        await hdc.shell(`aa start -U ${uri}`);
+        const sanitizedUri = uri.replace(/[`$\\;"'|&<>(){}]/g, '');
+        await hdc.shell(`aa start -U ${sanitizedUri}`);
       } else if (uri.includes('/')) {
         // Format: bundleName/abilityName
         const [bundleName, abilityName] = uri.split('/');

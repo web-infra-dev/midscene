@@ -16,7 +16,7 @@
     "midscene-harmony": "./bin/midscene-harmony",
     "midscene-harmony-playground": "./bin/midscene-harmony-playground"
   },
-  "files": ["bin", "dist", "static", "README.md"],
+  "files": ["bin", "dist", "static"],
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
