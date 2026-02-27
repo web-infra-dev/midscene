@@ -309,10 +309,16 @@ export function generateImageScriptTag(id: string, data: string): string {
  * Fix: dynamically insert a <base> tag so relative URLs resolve correctly.
  */
 // Do not use template string here, will cause bundle error with <script
-// Use \x3c (hex for '<') to avoid a literal </script> in source, which would
-// break the HTML parser when this file is bundled inside a <script> tag.
-// Do NOT use '<\\/script>' — the double-backslash produces a literal backslash
-// in the string value, and HTML does not recognise <\/script> as a closing tag.
+// IMPORTANT: The closing tag MUST be split across two string literals so the
+// bundler never sees a complete '</script>' in the source.  A literal
+// '</script>' inside a JS string will be kept verbatim in the bundle output
+// and will prematurely close the <script> block when this module is inlined
+// into the report HTML template.  Do NOT use '\x3c/script>' either — the
+// bundler evaluates the hex escape and still produces '</script>'.
+// Also do NOT use '<\\/script>' — the double-backslash produces a literal
+// backslash in the runtime value, and HTML does not recognise <\/script> as
+// a closing tag (which caused the "lost one dump" bug in merged reports).
+const SCRIPT_CLOSE = '</' + 'script>';
 export const BASE_URL_FIX_SCRIPT =
   '\n<script>(function(){' +
   'var p=window.location.pathname;' +
@@ -320,7 +326,9 @@ export const BASE_URL_FIX_SCRIPT =
   'var b=document.createElement("base");' +
   'b.href=p+"/";' +
   'document.head.insertBefore(b,document.head.firstChild)' +
-  '})()\x3c/script>\n';
+  '})()' +
+  SCRIPT_CLOSE +
+  '\n';
 
 export function generateDumpScriptTag(
   json: string,
