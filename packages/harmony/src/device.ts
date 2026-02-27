@@ -403,8 +403,26 @@ export class HarmonyDevice implements AbstractInterface {
 
   private remoteScreenshotPath = '/data/local/tmp/ms_screen.jpeg';
   private localScreenshotPath: string | null = null;
+  private screenshotMutex: Promise<void> = Promise.resolve();
 
   async screenshotBase64(): Promise<string> {
+    // Serialize screenshot calls to prevent concurrent hdc commands from
+    // competing for the device connection (causes timeouts on Windows).
+    let release: () => void;
+    const prev = this.screenshotMutex;
+    this.screenshotMutex = new Promise<void>((r) => {
+      release = r;
+    });
+    await prev;
+
+    try {
+      return await this._screenshotBase64Impl();
+    } finally {
+      release!();
+    }
+  }
+
+  private async _screenshotBase64Impl(): Promise<string> {
     debugDevice('screenshotBase64 begin');
     const hdc = await this.getHdc();
 
