@@ -734,12 +734,6 @@ export function forceClosePopup(
   page: PuppeteerPage | PlaywrightPage,
   debugProfile: DebugFunction,
 ) {
-  if (!page) {
-    console.warn(
-      '[midscene:warning] forceClosePopup: page is undefined, skipping popup handler setup',
-    );
-    return;
-  }
   page.on('popup', async (popup) => {
     if (!popup) {
       console.warn('got a popup event, but the popup is not ready yet, skip');
