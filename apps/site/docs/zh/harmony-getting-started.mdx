@@ -7,6 +7,14 @@ import { PackageManagerTabs } from '@theme';
 
 本指南将带你完成使用 Midscene 自动化 HarmonyOS 设备所需的一切：通过 HDC 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
 
+:::info 示例项目
+
+使用 JavaScript 控制鸿蒙设备：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+
+集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+
+:::
+
 <SetupEnv />
 
 ## 准备工作
@@ -174,3 +182,100 @@ await agent.aiAct('click the red button five times');
 
 - 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
 - HarmonyOS 专属参数与接口：[HarmonyOS Agent API](./harmony-api-reference)
+- 示例项目
+  - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+
+### 完整示例（Vitest + HarmonyAgent）
+
+```typescript
+import type { TestStatus } from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core/report';
+import { sleep } from '@midscene/core/utils';
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+} from 'vitest';
+
+describe('HarmonyOS Settings Test', () => {
+  let device: HarmonyDevice;
+  let agent: HarmonyAgent;
+  let itTestStatus: TestStatus = 'passed';
+  const reportMergingTool = new ReportMergingTool();
+
+  beforeAll(async () => {
+    const devices = await getConnectedDevices();
+    device = new HarmonyDevice(devices[0].deviceId);
+    await device.connect();
+  });
+
+  beforeEach((ctx) => {
+    agent = new HarmonyAgent(device, {
+      groupName: ctx.task.name,
+    });
+  });
+
+  afterEach((ctx) => {
+    if (ctx.task.result?.state === 'pass') {
+      itTestStatus = 'passed';
+    } else if (ctx.task.result?.state === 'skip') {
+      itTestStatus = 'skipped';
+    } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
+      itTestStatus = 'timedOut';
+    } else {
+      itTestStatus = 'failed';
+    }
+    reportMergingTool.append({
+      reportFilePath: agent.reportFile as string,
+      reportAttributes: {
+        testId: `${ctx.task.name}`,
+        testTitle: `${ctx.task.name}`,
+        testDescription: 'description',
+        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testStatus: itTestStatus,
+      },
+    });
+  });
+
+  afterAll(() => {
+    reportMergingTool.mergeReports('my-harmony-setting-test-report');
+  });
+
+  it('toggle WLAN', async () => {
+    await device.home();
+    await sleep(1000);
+    await device.launch('com.huawei.hmos.settings');
+    await sleep(1000);
+    await agent.aiAct('找到并进入 WLAN 设置');
+    await agent.aiAct(
+      '切换 WLAN 状态一次，如果 WLAN 关闭则打开，否则关闭。',
+    );
+  });
+
+  it('toggle Bluetooth', async () => {
+    await device.home();
+    await sleep(1000);
+    await device.launch('com.huawei.hmos.settings');
+    await sleep(1000);
+    await agent.aiAct('找到并进入蓝牙设置');
+    await agent.aiAct(
+      '切换蓝牙状态一次，如果蓝牙关闭则打开，否则关闭。',
+    );
+  });
+});
+```
+
+:::tip
+
+合并报告默认存放在 `midscene_run/report` 目录。在 CI 中运行时可通过 `MIDSCENE_RUN_DIR` 覆盖。
+
+:::
