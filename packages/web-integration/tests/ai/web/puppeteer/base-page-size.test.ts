@@ -134,6 +134,11 @@ describe('Page.size() with scrollbars', () => {
           height: viewportHeight,
           deviceScaleFactor,
         },
+        preference: {
+          // playwright and puppeteer hides scrollbars by default in headless mode, which will cause there is never a scrollbar visible in headless mode.
+          // see: https://stackoverflow.com/questions/54937671/chrome-headless-puppeteer-make-screenshot-render-scrollbar
+          ignoreDefaultArgs: ['--hide-scrollbars'],
+        },
       });
       await originPage.setContent(scrollablePageContent);
 
@@ -163,21 +168,20 @@ describe('Page.size() with scrollbars', () => {
         `screenshot height should match shotSize.height (${physicalHeight}px)`,
       ).toBe(physicalHeight);
 
-      await agent.recordToReport('页面截图');
+      await agent.recordToReport('screenshot with scrollbars');
 
-      // TODO:  Puppeteer headless mode will not render scrollbars, so we cannot verify the clientWidth/clientHeight difference caused by scrollbars in headless mode.
       // Verify that clientWidth and clientHeight are smaller than viewport by scrollbar width (15px)
-      // const clientDimensions = await agent.evaluateJavaScript(
-      //   '(() => ({ width: document.documentElement.clientWidth, height: document.documentElement.clientHeight }))()',
-      // );
-      // expect(
-      //   clientDimensions.width,
-      //   `clientWidth should be ${viewportWidth - 15} (viewport ${viewportWidth} - scrollbar 15px)`,
-      // ).toBe(viewportWidth - 15);
-      // expect(
-      //   clientDimensions.height,
-      //   `clientHeight should be ${viewportHeight - 15} (viewport ${viewportHeight} - scrollbar 15px)`,
-      // ).toBe(viewportHeight - 15);
+      const clientDimensions = await agent.evaluateJavaScript(
+        '(() => ({ width: document.documentElement.clientWidth, height: document.documentElement.clientHeight }))()',
+      );
+      expect(
+        clientDimensions.width,
+        `clientWidth should be ${viewportWidth - 15} (viewport ${viewportWidth} - scrollbar 15px)`,
+      ).toBe(viewportWidth - 15);
+      expect(
+        clientDimensions.height,
+        `clientHeight should be ${viewportHeight - 15} (viewport ${viewportHeight} - scrollbar 15px)`,
+      ).toBe(viewportHeight - 15);
 
       await reset();
     },

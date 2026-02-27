@@ -168,6 +168,7 @@ export async function launchPuppeteerPage(
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
+    ignoreDefaultArgs?: boolean | string[];
   },
   browser?: Browser,
   existingPage?: Page,
@@ -270,6 +271,7 @@ export async function launchPuppeteerPage(
         defaultViewport: defaultViewportConfig,
         args,
         acceptInsecureCerts: target.acceptInsecureCerts,
+        ignoreDefaultArgs: preference?.ignoreDefaultArgs,
       });
       freeFn.push({
         name: 'puppeteer_browser',
