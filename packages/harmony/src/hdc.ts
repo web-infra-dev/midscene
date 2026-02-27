@@ -41,6 +41,7 @@ export class HdcClient {
   private hdcPath: string;
   private deviceId: string;
   private timeout: number;
+  private execMutex: Promise<void> = Promise.resolve();
 
   constructor(options: HdcOptions) {
     this.hdcPath = resolveHdcPath(options.hdcPath);
@@ -56,6 +57,15 @@ export class HdcClient {
   }
 
   async exec(...args: string[]): Promise<string> {
+    // Serialize all hdc commands to prevent concurrent processes from
+    // competing for the device connection (causes timeouts on Windows).
+    let release: () => void;
+    const prev = this.execMutex;
+    this.execMutex = new Promise<void>((r) => {
+      release = r;
+    });
+    await prev;
+
     const fullArgs = this.buildArgs(args);
     debugHdc(`hdc ${fullArgs.join(' ')}`);
 
@@ -86,6 +96,8 @@ export class HdcClient {
         `HDC command failed: hdc ${fullArgs.join(' ')}: ${error.message}`,
         { cause: error },
       );
+    } finally {
+      release!();
     }
   }
 
