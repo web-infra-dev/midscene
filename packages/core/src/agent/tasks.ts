@@ -160,7 +160,6 @@ export class TaskExecutor {
     modelConfigForDefaultIntent: IModelConfig,
     options?: {
       cacheable?: boolean;
-      subTask?: boolean;
       deepLocate?: boolean;
     },
   ) {
@@ -452,7 +451,6 @@ export class TaskExecutor {
           modelConfigForDefaultIntent,
           {
             cacheable,
-            subTask: true,
             deepLocate,
           },
         );
