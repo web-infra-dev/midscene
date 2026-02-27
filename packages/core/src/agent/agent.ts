@@ -1262,8 +1262,8 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = ScreenshotItem.create(base64);
     const now = Date.now();
+    const screenshot = ScreenshotItem.create(base64, now);
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
       {

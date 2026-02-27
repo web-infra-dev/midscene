@@ -61,7 +61,7 @@ const insightFindTask = (shouldThrow?: boolean) => {
 };
 
 const fakeUIContextBuilder = async () => {
-  const screenshot = ScreenshotItem.create('');
+  const screenshot = ScreenshotItem.create('', Date.now());
   return {
     screenshot,
     tree: { node: null, children: [] },
