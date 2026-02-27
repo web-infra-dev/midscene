@@ -113,8 +113,8 @@ export class HdcClient {
     await this.exec('file', 'recv', remotePath, localPath);
   }
 
-  async screenshot(remotePath: string): Promise<void> {
-    await this.shell(`snapshot_display -f ${remotePath}`);
+  async screenshot(remotePath: string): Promise<string> {
+    return await this.shell(`snapshot_display -f ${remotePath}`);
   }
 
   async click(x: number, y: number): Promise<void> {
@@ -258,8 +258,32 @@ export class HdcClient {
   async getScreenInfo(): Promise<{ width: number; height: number }> {
     const stdout = await this.shell('hidumper -s RenderService -a screen');
 
-    // Try to parse render size like "1260x2720"
-    const renderSizeMatch = stdout.match(/(\d{3,5})\s*x\s*(\d{3,5})/);
+    // For foldable screens, find which screen is currently powered on
+    // via the foldScreenId section, then match its render size.
+    const activeFoldMatch = stdout.match(
+      /foldScreenId:(\d+),\s*isConnected:\d+,\s*isPowerOn:1/,
+    );
+    if (activeFoldMatch) {
+      const activeId = activeFoldMatch[1];
+      const screenRegex = new RegExp(
+        `screen\\[\\d+\\]:\\s*id=${activeId},.*?render size:\\s*(\\d{3,5})x(\\d{3,5})`,
+      );
+      const screenMatch = stdout.match(screenRegex);
+      if (screenMatch) {
+        debugHdc(
+          `Foldable screen detected, active screen id=${activeId}: ${screenMatch[1]}x${screenMatch[2]}`,
+        );
+        return {
+          width: Number.parseInt(screenMatch[1], 10),
+          height: Number.parseInt(screenMatch[2], 10),
+        };
+      }
+    }
+
+    // Non-foldable: use the first render size like "1260x2720"
+    const renderSizeMatch = stdout.match(
+      /render size:\s*(\d{3,5})x(\d{3,5})/,
+    );
     if (renderSizeMatch) {
       return {
         width: Number.parseInt(renderSizeMatch[1], 10),

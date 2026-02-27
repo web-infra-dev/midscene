@@ -415,7 +415,27 @@ export class HarmonyDevice implements AbstractInterface {
     const maxAttempts = 2;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       // Take screenshot on device (reuse fixed path, no per-frame cleanup needed)
-      await hdc.screenshot(this.remoteScreenshotPath);
+      const snapshotOutput = await hdc.screenshot(this.remoteScreenshotPath);
+
+      // Update cached screen size from actual screenshot dimensions.
+      // Foldable screens may report different sizes in hidumper vs the actual
+      // active display, so snapshot_display output is the source of truth.
+      const dimMatch = snapshotOutput.match(
+        /width\s+(\d+),\s*height\s+(\d+)/,
+      );
+      if (dimMatch) {
+        const w = Number.parseInt(dimMatch[1], 10);
+        const h = Number.parseInt(dimMatch[2], 10);
+        if (
+          this.cachedScreenSize &&
+          (this.cachedScreenSize.width !== w || this.cachedScreenSize.height !== h)
+        ) {
+          debugDevice(
+            `Screen size changed: ${this.cachedScreenSize.width}x${this.cachedScreenSize.height} -> ${w}x${h}`,
+          );
+          this.cachedScreenSize = { width: w, height: h };
+        }
+      }
 
       // Pull to local (overwrites the same local file each time)
       await hdc.fileRecv(this.remoteScreenshotPath, this.localScreenshotPath);

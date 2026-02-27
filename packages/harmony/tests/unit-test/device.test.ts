@@ -12,7 +12,7 @@ const mockHdc = {
   swipe: vi.fn().mockResolvedValue(undefined),
   fling: vi.fn().mockResolvedValue(undefined),
   drag: vi.fn().mockResolvedValue(undefined),
-  screenshot: vi.fn().mockResolvedValue(undefined),
+  screenshot: vi.fn().mockResolvedValue('success: snapshot display 0 , write to /data/local/tmp/ms_screen.jpeg as jpeg, width 1216, height 2688'),
   fileRecv: vi.fn().mockResolvedValue(undefined),
   startAbility: vi.fn().mockResolvedValue(undefined),
   queryMainAbility: vi.fn().mockResolvedValue(undefined),
