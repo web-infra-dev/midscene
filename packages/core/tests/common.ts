@@ -6,7 +6,6 @@ export const mockActionSpace: DeviceAction<any>[] = [
     name: 'Tap',
     description: 'Tap the element',
     paramSchema: z.object({
-      value: z.string().describe('The value to be tapped'),
       locate: getMidsceneLocationSchema().describe('The element to be tapped'),
     }),
     call: async () => {},

@@ -313,7 +313,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - value: string // The value to be tapped
     - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
@@ -560,7 +559,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - value: string // The value to be tapped
     - locate: { prompt: string /* description of the target element */ } // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
@@ -804,7 +802,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - value: string // The value to be tapped
     - locate: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
@@ -1107,7 +1104,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - value: string // The value to be tapped
     - locate: { prompt: string /* description of the target element */ } // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
@@ -1409,7 +1405,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - value: string // The value to be tapped
     - locate: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
@@ -1656,7 +1651,6 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Tap, Tap the element
   - type: "Tap"
   - param:
-    - value: string // The value to be tapped
     - locate: { prompt: string /* description of the target element */ } // The element to be tapped
 - Sleep, Sleep for a period of time
   - type: "Sleep"
