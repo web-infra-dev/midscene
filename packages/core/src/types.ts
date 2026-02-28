@@ -369,7 +369,6 @@ export interface ExecutionTaskApply<
 > {
   type: Type;
   subType?: string;
-  subTask?: boolean;
   param?: TaskParam;
   thought?: string;
   uiContext?: UIContext;

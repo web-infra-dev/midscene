@@ -85,52 +85,5 @@ describe('TaskBuilder', () => {
       ['Planning', 'Locate'],
       ['Action Space', 'Tap'],
     ]);
-    expect(tasks.every((task) => task.subTask === undefined)).toBe(true);
-  });
-
-  it('marks tasks as subTask when build receives subTask option', async () => {
-    const actionSchema = z.object({
-      locate: getMidsceneLocationSchema().describe('element to locate'),
-    });
-
-    const mockAction: DeviceAction = {
-      name: 'Tap',
-      description: 'mock tap action',
-      paramSchema: actionSchema,
-      call: vi.fn(),
-    };
-
-    const mockInterface = new MockInterface([mockAction]);
-
-    const insightService = {
-      contextRetrieverFn: vi.fn(),
-      locate: vi.fn(),
-    } as unknown as Service;
-
-    const taskBuilder = new TaskBuilder({
-      interfaceInstance: mockInterface,
-      service: insightService,
-      actionSpace: mockInterface.actionSpace(),
-    });
-
-    const plans: PlanningAction[] = [
-      {
-        type: 'Locate',
-        thought: 'find element',
-        param: { prompt: 'first' },
-        locate: { prompt: 'first' },
-      },
-      {
-        type: 'Tap',
-        thought: 'tap element',
-        param: { locate: { prompt: 'button' } },
-      },
-    ];
-
-    const { tasks } = await taskBuilder.build(plans, {} as any, {} as any, {
-      subTask: true,
-    });
-
-    expect(tasks.every((task) => task.subTask === true)).toBe(true);
   });
 });

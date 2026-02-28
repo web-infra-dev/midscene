@@ -9,7 +9,7 @@ async function startServer() {
   // Use screenshotBase64 field for empty screenshot
   const page = new StaticPage({
     shotSize: { width: 800, height: 600 },
-    screenshot: ScreenshotItem.create(''),
+    screenshot: ScreenshotItem.create('', Date.now()),
     shrunkShotToLogicalRatio: 1,
   });
   const agent = new StaticPageAgent(page);

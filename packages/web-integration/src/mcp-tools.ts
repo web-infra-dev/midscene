@@ -12,7 +12,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     // StaticPage.actionSpace() returns DeviceAction[] which is compatible at runtime
     // Use screenshotBase64 field to avoid async ScreenshotItem.create()
     return new StaticPage({
-      screenshot: ScreenshotItem.create(''),
+      screenshot: ScreenshotItem.create('', Date.now()),
       shotSize: { width: 1920, height: 1080 },
       shrunkShotToLogicalRatio: 1,
     });

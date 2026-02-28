@@ -67,6 +67,7 @@ export async function commonContextParser(
   debug(`size: ${logicalWidth}x${logicalHeight}`);
 
   const screenshotBase64 = await interfaceInstance.screenshotBase64();
+  const screenshotCapturedAt = Date.now();
   assert(screenshotBase64!, 'screenshotBase64 is required');
 
   // Get physical screenshot dimensions
@@ -121,7 +122,7 @@ export async function commonContextParser(
         height: targetHeight,
       },
       deprecatedDpr: dpr,
-      screenshot: ScreenshotItem.create(resizedBase64),
+      screenshot: ScreenshotItem.create(resizedBase64, screenshotCapturedAt),
       shrunkShotToLogicalRatio,
     };
   }
@@ -132,7 +133,7 @@ export async function commonContextParser(
       height: imgHeight,
     },
     deprecatedDpr: dpr,
-    screenshot: ScreenshotItem.create(screenshotBase64),
+    screenshot: ScreenshotItem.create(screenshotBase64, screenshotCapturedAt),
     shrunkShotToLogicalRatio,
   };
 }

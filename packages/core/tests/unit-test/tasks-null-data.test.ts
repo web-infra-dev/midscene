@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Helper function to create mock UIContext with ScreenshotItem
 const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
-  const screenshot = ScreenshotItem.create(screenshotData);
+  const screenshot = ScreenshotItem.create(screenshotData, Date.now());
   return {
     screenshot,
     shotSize: { width: 1920, height: 1080 },
@@ -15,7 +15,7 @@ const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
 };
 
 const createEmptyUIContext = async () => {
-  const screenshot = ScreenshotItem.create('');
+  const screenshot = ScreenshotItem.create('', Date.now());
   return {
     screenshot,
     shotSize: { width: 0, height: 0 },

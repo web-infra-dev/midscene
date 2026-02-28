@@ -24,7 +24,10 @@ import { describe, expect, it } from 'vitest';
 // ---------- helpers ----------
 
 function fakeScreenshot(size = 200): ScreenshotItem {
-  return ScreenshotItem.create(`data:image/png;base64,${'A'.repeat(size)}`);
+  return ScreenshotItem.create(
+    `data:image/png;base64,${'A'.repeat(size)}`,
+    Date.now(),
+  );
 }
 
 function createDump(groupName: string, taskCount: number): GroupedActionDump {
