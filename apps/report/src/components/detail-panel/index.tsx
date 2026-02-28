@@ -71,9 +71,9 @@ const extractElementsFromParam = (param: any): any[] => {
 
 const capturedAtText = (capturedAt?: number): string => {
   if (typeof capturedAt === 'number') {
-    return `(captured at ${fullTimeStrWithMilliseconds(capturedAt)})`;
+    return `captured at ${fullTimeStrWithMilliseconds(capturedAt)}`;
   }
-  return '(captured at unknown)';
+  return 'captured at unknown';
 };
 
 const DetailPanel = (): JSX.Element => {
@@ -170,7 +170,7 @@ const DetailPanel = (): JSX.Element => {
     contextLocatorView =
       highlightElements.length > 0 && activeTask.uiContext?.shotSize ? (
         <ScreenshotDisplay
-          title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} ${contextScreenshotAt}`}
+          title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
         >
           <Blackboard
             key={`${_contextLoadId}`}
@@ -210,11 +210,9 @@ const DetailPanel = (): JSX.Element => {
         <div className="screenshot-item-wrapper scrollable">
           {contextLocatorView && <div>{contextLocatorView}</div>}
           {screenshotItems.map((item) => {
-            const timeText = item.timing
-              ? `${fullTimeStrWithMilliseconds(item.timestamp)} / ${item.timing}`
-              : fullTimeStrWithMilliseconds(item.timestamp);
+            const timeText = item.timing || 'unknown-timing';
             const screenshotAt = capturedAtText(item.screenshotTimestamp);
-            const title = `${timeText} ${screenshotAt}`;
+            const title = `${timeText} / ${screenshotAt}`;
             return (
               <ScreenshotDisplay
                 key={item.timestamp}
