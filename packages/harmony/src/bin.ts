@@ -8,20 +8,20 @@ import { HarmonyDevice } from './device';
 import { getConnectedDevices } from './utils';
 
 async function selectDevice(): Promise<string> {
-  console.log('Scanning for HarmonyOS devices...');
+  console.log('🔍 Scanning for HarmonyOS devices...');
   const devices = await getConnectedDevices();
 
   if (devices.length === 0) {
-    console.error('No HarmonyOS devices found!');
-    console.log('Please ensure:');
-    console.log('  - Your device is connected via USB');
-    console.log('  - HDC is properly configured');
-    console.log('  - Run `hdc list targets` to verify');
+    console.error('❌ No HarmonyOS devices found!');
+    console.log('📱 Please ensure:');
+    console.log('  • Your device is connected via USB');
+    console.log('  • HDC is properly configured');
+    console.log('  • Run `hdc list targets` to verify');
     process.exit(1);
   }
 
   if (devices.length === 1) {
-    console.log(`Found device: ${devices[0].deviceId}`);
+    console.log(`📱 Found device: ${devices[0].deviceId}`);
     return devices[0].deviceId;
   }
 
@@ -31,7 +31,7 @@ async function selectDevice(): Promise<string> {
   }));
 
   return select({
-    message: 'Multiple devices found. Please select one:',
+    message: '📱 Multiple devices found. Please select one:',
     choices,
   });
 }
@@ -43,7 +43,7 @@ const main = async () => {
 
   try {
     const selectedDeviceId = await selectDevice();
-    console.log(`Selected device: ${selectedDeviceId}`);
+    console.log(`✅ Selected device: ${selectedDeviceId}`);
 
     const playgroundServer = new PlaygroundServer(async () => {
       const device = new HarmonyDevice(selectedDeviceId);
@@ -51,21 +51,23 @@ const main = async () => {
       return new HarmonyAgent(device);
     }, staticDir);
 
+    console.log('🚀 Starting server...');
+
     const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
 
     if (availablePort !== PLAYGROUND_SERVER_PORT) {
       console.log(
-        `Port ${PLAYGROUND_SERVER_PORT} is busy, using port ${availablePort} instead`,
+        `⚠️  Port ${PLAYGROUND_SERVER_PORT} is busy, using port ${availablePort} instead`,
       );
     }
 
     await playgroundServer.launch(availablePort);
 
     console.log('');
-    console.log('Midscene HarmonyOS Playground is ready!');
-    console.log(`Playground: http://localhost:${playgroundServer.port}`);
-    console.log(`Device: ${selectedDeviceId}`);
-    console.log(`Server ID: ${playgroundServer.id}`);
+    console.log('✨ Midscene HarmonyOS Playground is ready!');
+    console.log(`🎮 Playground: http://localhost:${playgroundServer.port}`);
+    console.log(`📱 Device: ${selectedDeviceId}`);
+    console.log(`🔑 Generated Server ID: ${playgroundServer.id}`);
     console.log('');
 
     open(`http://localhost:${playgroundServer.port}`);

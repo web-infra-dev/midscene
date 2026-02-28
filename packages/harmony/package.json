@@ -13,8 +13,7 @@
   "module": "./dist/es/index.mjs",
   "types": "./dist/types/index.d.ts",
   "bin": {
-    "midscene-harmony": "./bin/midscene-harmony",
-    "midscene-harmony-playground": "./bin/midscene-harmony-playground"
+    "midscene-harmony": "./bin/midscene-harmony"
   },
   "files": ["bin", "dist", "static"],
   "exports": {
