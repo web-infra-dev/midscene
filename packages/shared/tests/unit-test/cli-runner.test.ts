@@ -210,6 +210,7 @@ describe('runToolsCLI', () => {
   ) {
     return {
       initTools: vi.fn().mockResolvedValue(undefined),
+      closeBrowser: vi.fn().mockResolvedValue(undefined),
       getToolDefinitions: vi.fn().mockReturnValue(
         definitions.map((d) => ({
           name: d.name,
@@ -240,6 +241,7 @@ describe('runToolsCLI', () => {
   function createDetailedMockTools() {
     return {
       initTools: vi.fn().mockResolvedValue(undefined),
+      closeBrowser: vi.fn().mockResolvedValue(undefined),
       getToolDefinitions: vi.fn().mockReturnValue([
         {
           name: 'connect',
