@@ -1,31 +1,5 @@
 **Prompt** ：打开设置，滚动查找「关于手机」，查看设备信息。
 
-```typescript
-const agent = await agentFromHdcDevice(undefined, {
-  aiActionContext: '这是一台鸿蒙设备，系统语言为中文。',
-});
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" height="300" controls />
 
-await agent.launch('com.huawei.hmos.settings');
-await agent.aiAct('scroll list to bottom');
-await agent.aiAct('click "关于手机"');
-
-const deviceInfo = await agent.aiQuery(
-  '{deviceName: string, systemVersion: string}, 提取设备名称和系统版本',
-);
-console.log('设备信息:', deviceInfo);
-```
-
-**Prompt** ：打开浏览器，在 eBay 搜索耳机，提取商品列表和价格。
-
-```typescript
-const agent = await agentFromHdcDevice();
-await agent.launch('https://www.ebay.com');
-
-await agent.aiAct('在搜索框输入 "Headphones"，点击搜索按钮');
-await agent.aiWaitFor('页面上至少有一个耳机商品');
-
-const items = await agent.aiQuery(
-  '{itemTitle: string, price: Number}[], 查找列表中的商品及对应价格',
-);
-console.log('耳机商品列表', items);
-```
+查看此次任务的完整报告：[report.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)

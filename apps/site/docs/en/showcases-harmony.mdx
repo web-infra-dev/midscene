@@ -1,31 +1,5 @@
 **Prompt** : Open Settings, scroll to find "About phone", view device information.
 
-```typescript
-const agent = await agentFromHdcDevice(undefined, {
-  aiActionContext: 'This is a HarmonyOS device. The system language is Chinese.',
-});
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" height="300" controls />
 
-await agent.launch('com.huawei.hmos.settings');
-await agent.aiAct('scroll list to bottom');
-await agent.aiAct('click "About phone"');
-
-const deviceInfo = await agent.aiQuery(
-  '{deviceName: string, systemVersion: string}, extract device name and system version',
-);
-console.log('Device info:', deviceInfo);
-```
-
-**Prompt** : Open the browser, search for headphones on eBay, extract product list and prices.
-
-```typescript
-const agent = await agentFromHdcDevice();
-await agent.launch('https://www.ebay.com');
-
-await agent.aiAct('type "Headphones" in search box, click search button');
-await agent.aiWaitFor('there is at least one headphone item on page');
-
-const items = await agent.aiQuery(
-  '{itemTitle: string, price: Number}[], find item in list and corresponding price',
-);
-console.log('headphones in stock', items);
-```
+View the full report of this task: [report.html](https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.html)
