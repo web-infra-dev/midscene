@@ -111,7 +111,14 @@ export class Page<
     return this.evaluate(script);
   }
 
-  async waitForNavigation() {
+  async waitForNavigation(
+    moment:
+      | 'screenshot'
+      | 'getElementsInfo'
+      | 'getElementsNodeTree'
+      | 'afterInvokeAction',
+    actionName?: string,
+  ) {
     if (this.waitForNavigationTimeout === 0) {
       debugPage('waitForNavigation timeout is 0, skip waiting');
       return;
@@ -122,8 +129,9 @@ export class Page<
       this.interfaceType === 'puppeteer' ||
       this.interfaceType === 'playwright'
     ) {
-      debugPage('waitForNavigation begin');
-      debugPage(`waitForNavigation timeout: ${this.waitForNavigationTimeout}`);
+      debugPage(
+        `waitForNavigation begin at moment ${moment} with timeout: ${this.waitForNavigationTimeout} and actionName: ${actionName}`,
+      );
       try {
         await (this.underlyingPage as PuppeteerPage).waitForSelector('html', {
           timeout: this.waitForNavigationTimeout,
@@ -138,13 +146,19 @@ export class Page<
     }
   }
 
-  async waitForNetworkIdle(): Promise<void> {
+  async waitForNetworkIdle(
+    moment: 'afterInvokeAction',
+    actionName?: string,
+  ): Promise<void> {
     if (this.interfaceType === 'puppeteer') {
       if (this.waitForNetworkIdleTimeout === 0) {
         debugPage('waitForNetworkIdle timeout is 0, skip waiting');
         return;
       }
 
+      debugPage(
+        `waitForNetworkIdle begin at moment ${moment} with timeout: ${this.waitForNetworkIdleTimeout} and concurrency: ${DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY} and actionName: ${actionName}`,
+      );
       try {
         await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
           idleTime: 200,
@@ -157,6 +171,7 @@ export class Page<
           '[midscene:warning] Waiting for the "network idle" has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
         );
       }
+      debugPage('waitForNetworkIdle end');
     } else {
       // TODO: implement playwright waitForNetworkIdle
     }
@@ -167,7 +182,7 @@ export class Page<
     // const scripts = await getExtraReturnLogic();
     // const captureElementSnapshot = await this.evaluate(scripts);
     // return captureElementSnapshot as ElementInfo[];
-    await this.waitForNavigation();
+    await this.waitForNavigation('getElementsInfo');
     debugPage('getElementsInfo begin');
     const tree = await this.getElementsNodeTree();
     debugPage('getElementsInfo end');
@@ -247,7 +262,7 @@ export class Page<
     // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
     // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
     // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
-    await this.waitForNavigation();
+    await this.waitForNavigation('getElementsNodeTree');
     const scripts = await getExtraReturnLogic(true);
     assert(scripts, 'scripts should be set before writing report in browser');
     const startTime = Date.now();
@@ -272,7 +287,7 @@ export class Page<
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg';
     const quality = 90;
-    await this.waitForNavigation();
+    await this.waitForNavigation('screenshot');
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
@@ -549,8 +564,8 @@ export class Page<
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {
-    await this.waitForNavigation();
-    await this.waitForNetworkIdle();
+    await this.waitForNavigation('afterInvokeAction', name);
+    await this.waitForNetworkIdle('afterInvokeAction', name);
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
