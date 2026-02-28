@@ -55,10 +55,7 @@ describe('computer todo app automation', () => {
 
       // Interact with tasks - hover to show delete button, then click it
       await agent.aiAct(
-        'Move your mouse over the task named "Learn Rust tomorrow"',
-      );
-      await agent.aiAct(
-        'Click the delete button (×) next to "Learn Rust tomorrow"',
+        'Hover over the "Learn Rust tomorrow" task and click the × delete button that appears on the right side of it',
       );
       await agent.aiAct(
         'Click the checkbox next to "Learning AI the day after tomorrow"',
