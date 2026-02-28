@@ -364,7 +364,21 @@ describe('runToolsCLI', () => {
     vi.restoreAllMocks();
   });
 
-  it('throws CLIError when command handler returns error', async () => {
+  it('calls closeBrowser after successful command', async () => {
+    const handler = vi.fn().mockResolvedValue({
+      content: [{ type: 'text', text: 'done' }],
+      isError: false,
+    });
+    const tools = createMockTools([{ name: 'connect', handler }]);
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', { argv: ['connect'] });
+
+    expect(tools.closeBrowser).toHaveBeenCalledOnce();
+    vi.restoreAllMocks();
+  });
+
+  it('calls closeBrowser before throwing on command error', async () => {
     const handler = vi.fn().mockResolvedValue({
       content: [{ type: 'text', text: 'Something went wrong' }],
       isError: true,
@@ -379,6 +393,7 @@ describe('runToolsCLI', () => {
       }),
     ).rejects.toThrow(CLIError);
 
+    expect(tools.closeBrowser).toHaveBeenCalledOnce();
     vi.restoreAllMocks();
   });
 
