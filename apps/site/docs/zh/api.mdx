@@ -332,8 +332,8 @@ await agent.aiInput('Hello World', '搜索框');
 ```typescript
 // 推荐用法：定位提示在前，其他选项在 opt 中
 function aiKeyboardPress(
-  locate: string | Object,
-  opt: {
+  locate?: string | Object,
+  opt?: {
     keyName: string;
     deepThink?: boolean;
     xpath?: string;
@@ -352,8 +352,8 @@ function aiKeyboardPress(
 - 参数：
 
   **推荐用法**：
-  - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
-  - `opt: Object` - 配置对象，包含：
+  - `locate?: string | Object` - 可选，用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。如果未提供，将直接按下按键而不定位到特定元素。
+  - `opt?: Object` - 可选的配置对象，包含：
     - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
     - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空

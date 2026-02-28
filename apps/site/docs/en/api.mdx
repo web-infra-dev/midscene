@@ -338,8 +338,8 @@ Press a keyboard key.
 ```typescript
 // Recommended: locate first, then options with keyName
 function aiKeyboardPress(
-  locate: string | Object,
-  opt: {
+  locate?: string | Object,
+  opt?: {
     keyName: string;
     deepThink?: boolean;
     xpath?: string;
@@ -358,8 +358,8 @@ function aiKeyboardPress(
 - Parameters:
 
   **Recommended usage:**
-  - `locate: string | Object` - A natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
-  - `opt: Object` - Configuration object containing:
+  - `locate?: string | Object` - Optional, a natural language description of the element to press the key on, or [prompting with images](#prompting-with-images). If not provided, the key will be pressed directly without focusing on any specific element.
+  - `opt?: Object` - Optional configuration object containing:
     - `keyName: string` - **Required**. The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. Refer to the [complete list of supported key names in our source code](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for available values.
     - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
