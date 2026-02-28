@@ -47,7 +47,10 @@ export class ScreenshotItem {
   }
 
   /** Create a new ScreenshotItem from base64 data */
-  static create(base64: string, capturedAt: number): ScreenshotItem {
+  static create(
+    base64: string,
+    capturedAt: number = Date.now(),
+  ): ScreenshotItem {
     return new ScreenshotItem(uuid(), base64, capturedAt);
   }
 
