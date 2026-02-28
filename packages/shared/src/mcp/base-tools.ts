@@ -120,7 +120,7 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
   /**
    * Cleanup method - destroy agent and release resources
    */
-  public async closeBrowser(): Promise<void> {
+  public async destroy(): Promise<void> {
     await this.agent?.destroy?.();
   }
 

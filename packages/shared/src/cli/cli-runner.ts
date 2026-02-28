@@ -175,7 +175,7 @@ export async function runToolsCLI(
 
   const result = await match.def.handler(parsedArgs);
   outputResult(result);
-  await tools.closeBrowser();
+  await tools.destroy();
   if (result.isError) {
     throw new CLIError('Command failed', 1);
   }
