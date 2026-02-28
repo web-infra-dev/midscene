@@ -133,7 +133,7 @@ export abstract class BaseMCPServer {
   private performCleanup(): void {
     console.error(`${this.config.name} closing...`);
     this.mcpServer.close();
-    this.toolsManager?.closeBrowser?.().catch(console.error);
+    this.toolsManager?.destroy?.().catch(console.error);
   }
 
   /**
