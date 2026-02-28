@@ -225,6 +225,16 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
+  it('planning - includeSubGoals true', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: true,
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
   it('planning - includeSubGoals false (default) should not contain sub-goal tags', async () => {
     const prompt = await systemPromptToTaskPlanning({
       actionSpace: mockActionSpace,
