@@ -46,6 +46,10 @@ const agent = await agentFromComputer({ headless: true });
 
 Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./computer-api-reference)。
 
+:::tip 示例：在无头 Linux CI 中测试 Electron 应用
+使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
+
 ## 试用 Playground（零代码）
 
 Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/computer` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
