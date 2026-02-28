@@ -20,7 +20,9 @@ describe(
       ctx.agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: false,
       });
-      await ctx.agent.aiAct('Click on the "Open in New Tab" link');
+      await ctx.agent.aiTap('the "Open in New Tab" link', {
+        deepThink: true,
+      });
       await sleep(3000);
 
       // When forceSameTabNavigation is false, the agent should NOT follow the new tab
@@ -37,7 +39,9 @@ describe(
       ctx.agent = new PuppeteerAgent(originPage, {
         forceSameTabNavigation: true,
       });
-      await ctx.agent.aiAct('Click on the "Open in New Tab" link');
+      await ctx.agent.aiTap('the "Open in New Tab" link', {
+        deepThink: true,
+      });
 
       // When forceSameTabNavigation is true, the agent should follow the new tab
       await ctx.agent.aiWaitFor('There is a weather forecast in the page');
