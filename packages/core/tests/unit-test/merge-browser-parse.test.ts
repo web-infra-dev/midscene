@@ -76,7 +76,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
       autoPrint: false,
     });
 
-    const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
+    const screenshot = ScreenshotItem.create(fakeBase64(500));
     const dump = createDump([screenshot]);
     await generator.finalize(dump);
 
@@ -107,9 +107,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
         autoPrint: false,
       });
 
-      const screenshots = [
-        ScreenshotItem.create(fakeBase64(400 + r * 50), Date.now()),
-      ];
+      const screenshots = [ScreenshotItem.create(fakeBase64(400 + r * 50))];
       const dump = createDump(screenshots);
       await generator.finalize(dump);
 
@@ -184,7 +182,7 @@ describe('browser parse simulation for merged directory-mode reports', () => {
       autoPrint: false,
     });
 
-    const screenshot = ScreenshotItem.create(fakeBase64(300), Date.now());
+    const screenshot = ScreenshotItem.create(fakeBase64(300));
     const dump = createDump([screenshot]);
     await generator.finalize(dump);
 

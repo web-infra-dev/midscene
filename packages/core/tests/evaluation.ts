@@ -14,7 +14,7 @@ export async function buildContext(targetDir: string): Promise<UIContext> {
   const size = await imageInfoOfBase64(originalScreenshotBase64);
 
   return {
-    screenshot: ScreenshotItem.create(originalScreenshotBase64, Date.now()),
+    screenshot: ScreenshotItem.create(originalScreenshotBase64),
     shotSize: size,
     shrunkShotToLogicalRatio: 1,
   };

@@ -29,7 +29,7 @@ export function sleep(ms: number) {
 export function createFakeContext(content?: string): UIContext {
   const screenshotPath = getFixture('baidu.png');
   const screenshotBase64 = localImg2Base64(screenshotPath);
-  const screenshot = ScreenshotItem.create(screenshotBase64, Date.now());
+  const screenshot = ScreenshotItem.create(screenshotBase64);
 
   return {
     screenshot,

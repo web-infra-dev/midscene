@@ -156,7 +156,7 @@ const browserManager = {
 export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
   protected createTemporaryDevice() {
     return new StaticPage({
-      screenshot: ScreenshotItem.create('', Date.now()),
+      screenshot: ScreenshotItem.create(''),
       shotSize: { width: 1920, height: 1080 },
       shrunkShotToLogicalRatio: 1,
     });

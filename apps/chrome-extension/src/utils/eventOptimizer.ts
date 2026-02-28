@@ -136,10 +136,7 @@ export const generateAIDescription = async (
   const descriptionPromise = (async () => {
     try {
       const mockContext: UIContext = {
-        screenshot: ScreenshotItem.create(
-          event.screenshotBefore as string,
-          Date.now(),
-        ),
+        screenshot: ScreenshotItem.create(event.screenshotBefore as string),
         shotSize: {
           width: event.pageInfo.width,
           height: event.pageInfo.height,

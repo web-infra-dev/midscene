@@ -60,7 +60,7 @@ describe('aiAction cacheable option propagation', () => {
     // Create mock insight
     mockService = {
       contextRetrieverFn: vi.fn().mockImplementation(async () => ({
-        screenshot: ScreenshotItem.create(validBase64Image, Date.now()),
+        screenshot: ScreenshotItem.create(validBase64Image),
         shotSize: { width: 1920, height: 1080 },
         shrunkShotToLogicalRatio: 1,
         tree: {

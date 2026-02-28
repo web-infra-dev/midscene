@@ -46,7 +46,7 @@ const createMockUIContext = async (
   screenshotData: string,
   shotSize = { width: 1920, height: 1080 },
 ) => {
-  const screenshot = ScreenshotItem.create(screenshotData, Date.now());
+  const screenshot = ScreenshotItem.create(screenshotData);
   return { screenshot, shotSize, shrunkShotToLogicalRatio: 1 };
 };
 
@@ -101,7 +101,7 @@ describe('bbox locate cache fix', () => {
     // Create mock service with typed methods
     mockService = {
       contextRetrieverFn: vi.fn().mockImplementation(async () => {
-        const screenshot = ScreenshotItem.create(validBase64Image, Date.now());
+        const screenshot = ScreenshotItem.create(validBase64Image);
         return {
           screenshot,
           shotSize: { width: 1920, height: 1080 },
