@@ -349,6 +349,37 @@ export function Player(props?: {
     mouseOverSettingsIcon,
   ]);
 
+  // Compute chapter markers from step boundaries (each img/insight = new chapter)
+  const chapterMarkers = useMemo(() => {
+    if (!frameMap) return [];
+    const { scriptFrames, totalDurationInFrames, openingDurationInFrames } =
+      frameMap;
+    if (totalDurationInFrames === 0) return [];
+
+    const markers: { percent: number; title: string; frame: number }[] = [];
+    for (const sf of scriptFrames) {
+      if (
+        (sf.type !== 'img' && sf.type !== 'insight') ||
+        sf.durationInFrames === 0
+      )
+        continue;
+      const globalFrame = openingDurationInFrames + sf.startFrame;
+      const percent = (globalFrame / totalDurationInFrames) * 100;
+      if (percent > 1 && percent < 99) {
+        const parts = [sf.title, sf.subTitle].filter(Boolean);
+        markers.push({
+          percent,
+          title:
+            parts.length > 0
+              ? parts.join(': ')
+              : `Chapter ${markers.length + 1}`,
+          frame: globalFrame,
+        });
+      }
+    }
+    return markers;
+  }, [frameMap]);
+
   // If no scripts, show empty
   if (!scripts || scripts.length === 0 || !frameMap) {
     return <div className="player-container" />;
@@ -360,31 +391,51 @@ export function Player(props?: {
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
       <div className="canvas-container">
-        <RemotionPlayer
-          ref={playerRef}
-          component={Composition}
-          inputProps={{
-            frameMap,
-            effects: effectsEnabled,
-            autoZoom,
-          }}
-          durationInFrames={Math.max(frameMap.totalDurationInFrames, 1)}
-          compositionWidth={compositionWidth}
-          compositionHeight={compositionHeight}
-          fps={frameMap.fps}
-          playbackRate={playbackSpeed}
-          controls
-          showVolumeControls={false}
-          renderPlayPauseButton={renderPlayPauseButton}
-          renderFullscreenButton={renderFullscreenButton}
-          renderCustomControls={renderCustomControls}
-          autoPlay
-          loop={false}
-          style={{
-            width: '100%',
-            aspectRatio: `${compositionWidth}/${compositionHeight}`,
-          }}
-        />
+        <div className="player-wrapper">
+          <RemotionPlayer
+            ref={playerRef}
+            component={Composition}
+            inputProps={{
+              frameMap,
+              effects: effectsEnabled,
+              autoZoom,
+            }}
+            durationInFrames={Math.max(frameMap.totalDurationInFrames, 1)}
+            compositionWidth={compositionWidth}
+            compositionHeight={compositionHeight}
+            fps={frameMap.fps}
+            playbackRate={playbackSpeed}
+            controls
+            showVolumeControls={false}
+            renderPlayPauseButton={renderPlayPauseButton}
+            renderFullscreenButton={renderFullscreenButton}
+            renderCustomControls={renderCustomControls}
+            autoPlay
+            loop={false}
+            style={{
+              width: '100%',
+              aspectRatio: `${compositionWidth}/${compositionHeight}`,
+              zIndex: 0,
+            }}
+          />
+
+          {/* Chapter markers overlay on Remotion's seek bar */}
+          {chapterMarkers.length > 0 && (
+            <div className="chapter-markers">
+              {chapterMarkers.map((marker) => (
+                <Tooltip key={marker.percent} title={marker.title}>
+                  <div
+                    className="chapter-marker"
+                    style={{ left: `${marker.percent}%` }}
+                    onClick={() => {
+                      playerRef.current?.seekTo(marker.frame);
+                    }}
+                  />
+                </Tooltip>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

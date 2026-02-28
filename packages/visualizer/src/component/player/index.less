@@ -49,18 +49,67 @@
     border-top-right-radius: 4px;
     border-top-left-radius: 4px;
 
-    // Remotion Player renders as a div, not a canvas
-    > div {
+    // Player wrapper positions chapter markers relative to the player
+    .player-wrapper {
+      position: relative;
       width: 100%;
       max-width: 100%;
       max-height: 100%;
-      border: none;
+
+      > div:not(.chapter-markers) {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100%;
+        border: none;
+      }
     }
 
     // Remove border/outline from Remotion control bar buttons
     button {
       border: none;
       outline: none;
+    }
+
+    // Chapter markers overlaid on Remotion's seek bar
+    // Remotion seek bar layout (from player bottom):
+    //   paddingBottom=10 + VERTICAL_PADDING=4 → bar bottom at 14px
+    //   BAR_HEIGHT=5 → bar top at 19px, center at 16.5px
+    //   X_PADDING=12 on each side
+    .chapter-markers {
+      position: absolute;
+      bottom: 14px;
+      left: 12px;
+      right: 12px;
+      height: 5px;
+      pointer-events: none;
+      z-index: 1;
+
+      .chapter-marker {
+        position: absolute;
+        top: 50%;
+        width: 3px;
+        height: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        transform: translate(-50%, -50%);
+        border-radius: 1.5px;
+        pointer-events: auto;
+        cursor: pointer;
+
+        // Larger hit area for easier hovering/clicking
+        &::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          left: -6px;
+          right: -6px;
+          bottom: -6px;
+        }
+
+        &:hover {
+          background: #fff;
+          height: 16px;
+        }
+      }
     }
   }
 
