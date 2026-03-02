@@ -14,35 +14,47 @@ vi.setConfig({
 const modelConfig = globalModelConfigManager.getModelConfig('default');
 
 // Regression test for https://github.com/web-infra-dev/midscene/issues/2049
-describe('planning - quoted text in instruction (#2049)', () => {
-  // Unit test: deterministically reproduce the parse failure
-  describe('reproduce: unescaped quotes break JSON parsing', () => {
-    it('should fail when LLM uses unescaped quotes in JSON string values', () => {
-      // This is the exact broken pattern from #2049:
-      // LLM wraps element names with double quotes inside a JSON string value
-      const brokenResponse = `
-<thought>I need to tap the "1" button on the number pad</thought>
-<log>点击数字键盘上的 "1" 按钮</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": {
-    "prompt": "数字键盘上的 "1" 按钮",
-    "bbox": [100, 200, 150, 230]
-  }
-}
-</action-param-json>`;
+//
+// Real-world rawResponse from qwen3.5-flash on Android number pad:
+//   "prompt": "数字键盘上的 "1" 按钮"
+// The unescaped inner double quotes break JSON parsing.
+// Fix: prompt examples use backticks so the LLM outputs `1` instead of "1".
 
+// The exact rawResponse from issue #2049
+const issueRawResponse = [
+  '<thought>用户要求输入 "10" 并点击确认。当前页面显示数字键盘，',
+  '我需要先点击数字 "1"，然后点击 "0"，最后点击 "OK" 按钮。',
+  '首先点击数字 "1"。</thought>',
+  '<log>点击数字键盘上的 "1"</log>',
+  '<action-type>Tap</action-type>',
+  '<action-param-json>',
+  '{',
+  '  "locate": {',
+  '    "prompt": "数字键盘上的 "1" 按钮",',
+  '    "bbox": [100, 765, 200, 805]',
+  '  }',
+  '}',
+  '</action-param-json>',
+].join('\n');
+
+// The fixed version: backticks instead of double quotes
+const fixedRawResponse = issueRawResponse
+  .replace(/"1"/g, '`1`')
+  .replace(/"10"/g, '`10`')
+  .replace(/"0"/g, '`0`')
+  .replace(/"OK"/g, '`OK`');
+
+describe('planning - quoted text in instruction (#2049)', () => {
+  describe('reproduce: exact rawResponse from issue #2049', () => {
+    it('parseXMLPlanningResponse should fail on the issue rawResponse', () => {
       expect(() => {
-        parseXMLPlanningResponse(brokenResponse, undefined);
-      }).toThrow();
+        parseXMLPlanningResponse(issueRawResponse, undefined);
+      }).toThrow('Failed to parse action-param-json');
     });
 
-    it('safeParseJson also fails on unescaped quotes that jsonrepair cannot fix', () => {
-      // jsonrepair cannot fix this pattern: short quoted text like "1"
-      // surrounded by other JSON keys
+    it('safeParseJson should fail on the broken JSON', () => {
       const brokenJson =
-        '{"locate": {"prompt": "数字键盘上的 "1" 按钮", "bbox": [100, 200, 150, 230]}}';
+        '{"locate": {"prompt": "数字键盘上的 "1" 按钮", "bbox": [100, 765, 200, 805]}}';
 
       expect(() => {
         safeParseJson(brokenJson, undefined);
@@ -50,66 +62,42 @@ describe('planning - quoted text in instruction (#2049)', () => {
     });
   });
 
-  // Unit test: verify backtick pattern works correctly
-  describe('fix: backtick-wrapped text parses correctly', () => {
-    it('should parse successfully when LLM uses backticks instead of quotes', () => {
-      // After the prompt fix, LLM should use backticks for element names
-      const goodResponse = `
-<thought>I need to tap the \`1\` button on the number pad</thought>
-<log>点击数字键盘上的 \`1\` 按钮</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": {
-    "prompt": "数字键盘上的 \`1\` 按钮",
-    "bbox": [100, 200, 150, 230]
-  }
-}
-</action-param-json>`;
+  describe('fix: backtick version of the same response parses correctly', () => {
+    it('parseXMLPlanningResponse should succeed with backticks', () => {
+      const result = parseXMLPlanningResponse(fixedRawResponse, undefined);
 
-      const result = parseXMLPlanningResponse(goodResponse, undefined);
       expect(result.action).toBeTruthy();
       expect(result.action.type).toBe('Tap');
       expect(result.action.param.locate.prompt).toContain('`1`');
+      expect(result.action.param.locate.bbox).toEqual([100, 765, 200, 805]);
     });
   });
 
-  // AI test: verify the LLM actually uses backticks in its response
   describe('e2e: LLM uses backticks for element names', () => {
     it('should use backticks in locate prompt when instruction contains quoted text', async () => {
       const { context } = await getContextFromFixture('todo');
 
-      const result = await plan(
-        '点击 "Active" 按钮',
-        {
-          context,
-          actionSpace: mockActionSpace,
-          interfaceType: 'puppeteer',
-          modelConfig,
-          conversationHistory: new ConversationHistory(),
-          includeBbox: true,
-        },
-      );
+      const result = await plan('点击 "Active" 按钮', {
+        context,
+        actionSpace: mockActionSpace,
+        interfaceType: 'puppeteer',
+        modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
+      });
 
       expect(result).toBeTruthy();
       expect(result.rawResponse).toBeTruthy();
 
-      // Verify the LLM used backticks in its JSON response
-      // Extract action-param-json from rawResponse
       const paramMatch = result.rawResponse!.match(
         /<action-param-json>([\s\S]*?)<\/action-param-json>/,
       );
       if (paramMatch) {
         const paramJson = paramMatch[1];
-        // The JSON should NOT contain unescaped double quotes wrapping element names
-        // It should use backticks like: "the `Active` button"
         console.log('action-param-json from LLM:', paramJson);
-
-        // Verify it parses as valid JSON (no unescaped quote issue)
         expect(() => JSON.parse(paramJson)).not.toThrow();
       }
 
-      // Verify locate prompt uses backticks for the element name
       const action = result.actions?.[0];
       if (action?.param?.locate?.prompt) {
         const prompt = action.param.locate.prompt;
