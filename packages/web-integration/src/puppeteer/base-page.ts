@@ -287,7 +287,6 @@ export class Page<
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg';
     const quality = 90;
-    await this.waitForNavigation('screenshot');
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
@@ -564,8 +563,11 @@ export class Page<
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {
-    await this.waitForNavigation('afterInvokeAction', name);
-    await this.waitForNetworkIdle('afterInvokeAction', name);
+    await Promise.all([
+      this.waitForNavigation('afterInvokeAction', name),
+      this.waitForNetworkIdle('afterInvokeAction', name),
+    ]);
+
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
