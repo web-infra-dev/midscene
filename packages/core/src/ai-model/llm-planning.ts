@@ -304,7 +304,7 @@ export async function plan(
     // Update sub-goals in conversation history based on response (only when deepThink is enabled)
     if (includeSubGoals) {
       if (planFromAI.updateSubGoals?.length) {
-        conversationHistory.setSubGoals(planFromAI.updateSubGoals);
+        conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
       }
       if (planFromAI.markFinishedIndexes?.length) {
         for (const index of planFromAI.markFinishedIndexes) {

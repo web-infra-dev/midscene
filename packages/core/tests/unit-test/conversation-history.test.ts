@@ -196,6 +196,50 @@ describe('ConversationHistory', () => {
     `);
   });
 
+  it('preserves descriptions when mergeSubGoals receives empty descriptions', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Log in to the system' },
+      { index: 2, status: 'pending', description: 'Open reimbursement page' },
+      {
+        index: 3,
+        status: 'pending',
+        description: 'Fill and submit reimbursement form',
+      },
+    ]);
+
+    history.mergeSubGoals([
+      { index: 1, status: 'finished', description: '' },
+      { index: 2, status: 'pending', description: '' },
+      { index: 3, status: 'pending', description: '' },
+    ]);
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Log in to the system (finished)
+      2. Open reimbursement page (running)
+      3. Fill and submit reimbursement form (pending)
+      Current sub-goal is: Open reimbursement page"
+    `);
+  });
+
+  it('ignores newly introduced goals with empty descriptions in mergeSubGoals', () => {
+    const history = new ConversationHistory();
+    history.setSubGoals([
+      { index: 1, status: 'pending', description: 'Existing goal' },
+    ]);
+
+    history.mergeSubGoals([
+      { index: 1, status: 'finished', description: '' },
+      { index: 2, status: 'pending', description: '' },
+    ]);
+
+    expect(history.subGoalsToText()).toMatchInlineSnapshot(`
+      "Sub-goals:
+      1. Existing goal (finished)"
+    `);
+  });
+
   it('updates a single sub-goal by index', () => {
     const history = new ConversationHistory();
     history.setSubGoals([
