@@ -300,6 +300,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 For example:
 <action-type>Tap</action-type>
 <action-param-json>

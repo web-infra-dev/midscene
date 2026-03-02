@@ -31,6 +31,8 @@ Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
+IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
+
 For example, when an element is found:
 \`\`\`json
 {
