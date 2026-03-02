@@ -130,7 +130,7 @@ export class ConversationHistory {
       const existingGoal = existingByIndex.get(goal.index);
       const hasNonEmptyDescription = goal.description.trim().length > 0;
 
-       if (!existingGoal && !hasNonEmptyDescription) {
+      if (!existingGoal && !hasNonEmptyDescription) {
         return null;
       }
 
