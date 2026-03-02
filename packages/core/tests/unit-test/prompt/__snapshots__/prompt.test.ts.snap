@@ -42,6 +42,8 @@ Return in the following XML format:
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
+IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
+
 # Example 1
 For example, if the DATA_DEMAND is:
 
@@ -136,6 +138,8 @@ Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
+IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
+
 For example, when an element is found:
 \`\`\`json
 {
@@ -180,6 +184,8 @@ Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
+IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
+
 For example, when an element is found:
 \`\`\`json
 {
@@ -223,6 +229,8 @@ You are an AI assistant that helps identify UI elements.
 Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
+
+IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 
 For example, when an element is found:
 \`\`\`json
@@ -353,6 +361,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -599,6 +608,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -842,6 +852,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1088,6 +1099,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1334,6 +1346,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
 For example:
 <action-type>Tap</action-type>
 <action-param-json>

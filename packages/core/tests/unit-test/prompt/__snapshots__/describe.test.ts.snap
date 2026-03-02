@@ -36,6 +36,8 @@ EXAMPLES:
 - "Submit button in contact form"
 - "Menu icon with aria-label 'Open menu'"
 
+IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
+
 Return JSON:
 {
   "description": "unique element identifier",
