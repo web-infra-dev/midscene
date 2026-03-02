@@ -1,5 +1,5 @@
-import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
 import { ConversationHistory, plan } from '@/ai-model';
+import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
 import { safeParseJson } from '@/ai-model/service-caller';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { mockActionSpace } from 'tests/common';
@@ -74,22 +74,48 @@ describe('planning - quoted text in instruction (#2049)', () => {
     });
   });
 
-  // AI test: verify real LLM handles quoted instructions without parse errors
-  describe('e2e: real LLM call with quoted text', () => {
-    it('should not throw parse error when instruction contains double-quoted text', async () => {
+  // AI test: verify the LLM actually uses backticks in its response
+  describe('e2e: LLM uses backticks for element names', () => {
+    it('should use backticks in locate prompt when instruction contains quoted text', async () => {
       const { context } = await getContextFromFixture('todo');
 
-      const result = await plan('在输入框中输入 "hello world"，然后按回车', {
-        context,
-        actionSpace: mockActionSpace,
-        interfaceType: 'puppeteer',
-        modelConfig,
-        conversationHistory: new ConversationHistory(),
-        includeBbox: true,
-      });
+      const result = await plan(
+        '点击 "Active" 按钮',
+        {
+          context,
+          actionSpace: mockActionSpace,
+          interfaceType: 'puppeteer',
+          modelConfig,
+          conversationHistory: new ConversationHistory(),
+          includeBbox: true,
+        },
+      );
 
       expect(result).toBeTruthy();
       expect(result.rawResponse).toBeTruthy();
+
+      // Verify the LLM used backticks in its JSON response
+      // Extract action-param-json from rawResponse
+      const paramMatch = result.rawResponse!.match(
+        /<action-param-json>([\s\S]*?)<\/action-param-json>/,
+      );
+      if (paramMatch) {
+        const paramJson = paramMatch[1];
+        // The JSON should NOT contain unescaped double quotes wrapping element names
+        // It should use backticks like: "the `Active` button"
+        console.log('action-param-json from LLM:', paramJson);
+
+        // Verify it parses as valid JSON (no unescaped quote issue)
+        expect(() => JSON.parse(paramJson)).not.toThrow();
+      }
+
+      // Verify locate prompt uses backticks for the element name
+      const action = result.actions?.[0];
+      if (action?.param?.locate?.prompt) {
+        const prompt = action.param.locate.prompt;
+        console.log('locate prompt from LLM:', prompt);
+        expect(prompt).toContain('`');
+      }
     });
   });
 });
