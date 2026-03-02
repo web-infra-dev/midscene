@@ -96,6 +96,93 @@ export function Player(props?: {
 
   const playerRef = useRef<PlayerRef>(null);
   const lastTaskIdRef = useRef<string | null>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const markerHoverIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
+
+  // Override Remotion Player seek bar styles via DOM
+  useEffect(() => {
+    const node = (playerRef.current as any)?.getContainerNode?.();
+    if (!node) return;
+
+    const applySeekBarStyles = () => {
+      // Find seek bar container (has cursor: pointer and touch-action: none)
+      const seekBarContainer = node.querySelector(
+        '[style*="touch-action"]',
+      ) as HTMLElement | null;
+      if (!seekBarContainer) return;
+
+      // Bar background: first child of seek bar container
+      const barBg = seekBarContainer.firstElementChild as HTMLElement | null;
+      if (barBg) {
+        barBg.style.setProperty(
+          'background-color',
+          'rgba(255, 255, 255, 0.3)',
+          'important',
+        );
+      }
+
+      // Fill bar: last child of bar background
+      const fillBar = barBg?.lastElementChild as HTMLElement | null;
+      if (fillBar) {
+        fillBar.style.setProperty(
+          'background-color',
+          'rgba(43, 131, 255, 1)',
+          'important',
+        );
+      }
+
+      // Knob: last child of seek bar container
+      const knob = seekBarContainer.lastElementChild as HTMLElement | null;
+      if (knob && knob !== barBg) {
+        knob.style.setProperty('opacity', '1', 'important');
+        knob.style.setProperty('background-color', '#fff', 'important');
+        knob.style.setProperty('box-shadow', 'none', 'important');
+        knob.style.setProperty('width', '8px', 'important');
+        knob.style.setProperty('height', '16px', 'important');
+        knob.style.setProperty('border-radius', '10px', 'important');
+        // Vertically center: bar center at 6.5px from container top, knob height 16
+        knob.style.setProperty('top', '-1.5px', 'important');
+      }
+
+      // Sync chapter markers visibility with control bar
+      const controlBar = node.querySelector(
+        '[style*="transition"]',
+      ) as HTMLElement | null;
+      const markersEl = wrapperRef.current?.querySelector(
+        '.chapter-markers',
+      ) as HTMLElement | null;
+      if (controlBar && markersEl) {
+        markersEl.style.opacity = window.getComputedStyle(controlBar).opacity;
+      }
+    };
+
+    // Apply initially and observe for re-renders
+    const timer = setInterval(applySeekBarStyles, 300);
+    applySeekBarStyles();
+    return () => clearInterval(timer);
+  }, [frameMap]);
+
+  // Continuously dispatch mousemove on Remotion Player root to keep controls visible
+  // Remotion uses mouseenter/mouseleave/mousemove to track hover state,
+  // and hides controls after a timeout with no mouse activity
+  const onMarkerMouseEnter = useCallback(() => {
+    const node = (playerRef.current as any)?.getContainerNode?.();
+    if (!node) return;
+    const dispatchMove = () => {
+      node.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
+      node.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+    };
+    dispatchMove();
+    markerHoverIntervalRef.current = setInterval(dispatchMove, 200);
+  }, []);
+  const onMarkerMouseLeave = useCallback(() => {
+    if (markerHoverIntervalRef.current) {
+      clearInterval(markerHoverIntervalRef.current);
+      markerHoverIntervalRef.current = null;
+    }
+  }, []);
 
   // Track frame for taskId callback
   useEffect(() => {
@@ -391,7 +478,7 @@ export function Player(props?: {
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
       <div className="canvas-container">
-        <div className="player-wrapper">
+        <div className="player-wrapper" ref={wrapperRef}>
           <RemotionPlayer
             ref={playerRef}
             component={Composition}
@@ -423,10 +510,16 @@ export function Player(props?: {
           {chapterMarkers.length > 0 && (
             <div className="chapter-markers">
               {chapterMarkers.map((marker) => (
-                <Tooltip key={marker.percent} title={marker.title}>
+                <Tooltip
+                  key={marker.percent}
+                  title={marker.title}
+                  overlayClassName="chapter-tooltip"
+                >
                   <div
                     className="chapter-marker"
                     style={{ left: `${marker.percent}%` }}
+                    onMouseEnter={onMarkerMouseEnter}
+                    onMouseLeave={onMarkerMouseLeave}
                     onClick={() => {
                       playerRef.current?.seekTo(marker.frame);
                     }}

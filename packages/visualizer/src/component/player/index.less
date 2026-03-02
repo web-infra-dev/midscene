@@ -32,7 +32,7 @@
     background: #fff;
 
     .canvas-container {
-      background-color: #f2f4f7;
+      background-color: #000;
     }
   }
 
@@ -45,7 +45,7 @@
     align-items: center;
     overflow: hidden;
     position: relative;
-    background-color: #fff;
+    background-color: #000;
     border-top-right-radius: 4px;
     border-top-left-radius: 4px;
 
@@ -62,6 +62,7 @@
         max-height: 100%;
         border: none;
       }
+
     }
 
     // Remove border/outline from Remotion control bar buttons
@@ -83,15 +84,15 @@
       height: 5px;
       pointer-events: none;
       z-index: 1;
+      transition: opacity 0.3s;
 
       .chapter-marker {
         position: absolute;
-        top: 50%;
-        width: 3px;
-        height: 12px;
-        background: rgba(255, 255, 255, 0.9);
-        transform: translate(-50%, -50%);
-        border-radius: 1.5px;
+        top: 0;
+        width: 2px;
+        height: 100%;
+        background: #fff;
+        transform: translateX(-50%);
         pointer-events: auto;
         cursor: pointer;
 
@@ -99,18 +100,15 @@
         &::before {
           content: '';
           position: absolute;
-          top: -6px;
-          left: -6px;
-          right: -6px;
-          bottom: -6px;
-        }
-
-        &:hover {
-          background: #fff;
-          height: 16px;
+          top: -8px;
+          left: -8px;
+          right: -8px;
+          bottom: -8px;
         }
       }
     }
+
+    // Remotion seek bar styles are overridden via JS in useEffect (see index.tsx)
   }
 
   // Custom controls rendered inside Remotion Player's control bar
@@ -149,6 +147,22 @@
   }
 }
 
+// Chapter marker tooltip
+.chapter-tooltip {
+  .ant-tooltip-inner {
+    background: rgba(80, 80, 80, 0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 12px;
+    max-width: 360px;
+  }
+
+  .ant-tooltip-arrow::before {
+    background: rgba(80, 80, 80, 0.85);
+  }
+}
+
 // Dark mode styles
 [data-theme='dark'] {
   .player-container {
@@ -160,12 +174,12 @@
       border-color: #292929;
 
       .canvas-container {
-        background-color: #141414;
+        background-color: #000;
       }
     }
 
     .canvas-container {
-      background-color: #1f1f1f;
+      background-color: #000;
     }
 
   }

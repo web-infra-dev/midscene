@@ -825,66 +825,51 @@ export const StepsTimeline: React.FC<{
           <div
             style={{
               position: 'absolute',
-              bottom: DEVICE_MARGIN + 8,
-              left: DEVICE_MARGIN,
-              right: DEVICE_MARGIN,
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: 6,
-              padding: '6px 10px',
-              background: 'rgba(0, 10, 20, 0.75)',
+              bottom: 70,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              height: 32,
+              padding: '0 14px',
+              background: 'rgba(80, 80, 80, 0.75)',
               backdropFilter: 'blur(8px)',
-              borderRadius: 6,
-              border: '1px solid rgba(0, 255, 255, 0.15)',
+              borderRadius: 8,
               zIndex: 10,
+              maxWidth: `calc(100% - ${(DEVICE_MARGIN + 8) * 2}px)`,
             }}
           >
             <span
               style={{
-                fontSize: 9,
+                fontSize: 11,
                 fontWeight: 700,
                 color: '#fff',
-                background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-                padding: '2px 5px',
-                borderRadius: 3,
+                background: 'rgba(163, 77, 255, 1)',
+                width: 28,
+                height: 20,
+                borderRadius: 4,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 letterSpacing: 0.5,
-                lineHeight: '14px',
                 flexShrink: 0,
-                marginTop: 2,
               }}
             >
               AI
             </span>
-            <div style={{ minWidth: 0, overflow: 'hidden' }}>
-              {title && (
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#fff',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    textShadow: '0 0 6px rgba(0,255,255,0.4)',
-                  }}
-                >
-                  {title}
-                </div>
-              )}
-              {subTitle && (
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: 'rgba(255,255,255,0.6)',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    marginTop: 1,
-                  }}
-                >
-                  {subTitle}
-                </div>
-              )}
+            <div
+              style={{
+                minWidth: 0,
+                overflow: 'hidden',
+                fontSize: 12,
+                fontWeight: 500,
+                color: '#fff',
+                whiteSpace: 'nowrap',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {[title, subTitle].filter(Boolean).join('–')}
             </div>
           </div>
         )}
@@ -912,66 +897,51 @@ export const StepsTimeline: React.FC<{
         <div
           style={{
             position: 'absolute',
-            bottom: 8,
-            left: 8,
-            right: 8,
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: 6,
-            padding: '6px 10px',
-            background: 'rgba(255, 255, 255, 0.85)',
+            bottom: 70,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            height: 32,
+            padding: '0 14px',
+            background: 'rgba(80, 80, 80, 0.75)',
             backdropFilter: 'blur(8px)',
-            borderRadius: 6,
-            border: '1px solid rgba(0, 0, 0, 0.08)',
-            boxShadow: '0 1px 4px rgba(0, 0, 0, 0.08)',
+            borderRadius: 8,
             zIndex: 10,
+            maxWidth: 'calc(100% - 16px)',
           }}
         >
           <span
             style={{
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: 700,
               color: '#fff',
-              background: 'linear-gradient(135deg, #8b5cf6, #6366f1)',
-              padding: '2px 5px',
-              borderRadius: 3,
+              background: 'rgba(163, 77, 255, 1)',
+              width: 28,
+              height: 20,
+              borderRadius: 4,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               letterSpacing: 0.5,
-              lineHeight: '14px',
               flexShrink: 0,
-              marginTop: 2,
             }}
           >
             AI
           </span>
-          <div style={{ minWidth: 0, overflow: 'hidden' }}>
-            {title && (
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#1a1a1a',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {title}
-              </div>
-            )}
-            {subTitle && (
-              <div
-                style={{
-                  fontSize: 11,
-                  color: '#666',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  marginTop: 1,
-                }}
-              >
-                {subTitle}
-              </div>
-            )}
+          <div
+            style={{
+              minWidth: 0,
+              overflow: 'hidden',
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#fff',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {[title, subTitle].filter(Boolean).join('–')}
           </div>
         </div>
       )}
