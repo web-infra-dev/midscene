@@ -27,7 +27,7 @@ interface PlaywrightCaseSelectorProps {
 export function PlaywrightCaseSelector({
   dumps,
 }: PlaywrightCaseSelectorProps): JSX.Element | null {
-  if (!dumps || dumps.length <= 1) return null;
+  if (!dumps || dumps.length === 0) return null;
 
   const selected = useExecutionDump((store: DumpStoreType) => store.dump);
   const playwrightAttributes = useExecutionDump(
@@ -94,7 +94,10 @@ export function PlaywrightCaseSelector({
       <span key={key}>
         {status}
         {'  '}
-        {`${dump.attributes.playwright_test_title || 'unnamed'} - ${dump.attributes.playwright_test_description || ''}`}
+        {dump.attributes.playwright_test_title || 'unnamed'}
+        {dump.attributes.playwright_test_description
+          ? ` - ${dump.attributes.playwright_test_description}`
+          : ''}
         {cost}
       </span>
     );
@@ -148,13 +151,19 @@ export function PlaywrightCaseSelector({
     setIsExpanded(!isExpanded);
   };
 
+  const isNonViewable = (dump: PlaywrightTasks) => {
+    const status = dump.attributes?.playwright_test_status;
+    return status === 'skipped';
+  };
+
   const handlePlaywrightTaskSelect = async (dump: PlaywrightTasks) => {
+    if (isNonViewable(dump)) return;
     await setGroupedDump(dump.get(), dump.attributes);
     setIsExpanded(false);
   };
 
   const displayText = selected
-    ? `${selected.groupName} - (${(playwrightAttributes?.playwright_test_duration || 0) / 1000}s)`
+    ? `${selected.groupName}${playwrightAttributes?.playwright_test_title ? ` - ${playwrightAttributes.playwright_test_title}` : ''} (${(playwrightAttributes?.playwright_test_duration || 0) / 1000}s)`
     : 'Select a case';
 
   return (
@@ -216,7 +225,7 @@ export function PlaywrightCaseSelector({
             {filteredDumps.map((dump, index) => (
               <div
                 key={index}
-                className={`option-item ${playwrightAttributes?.playwright_test_id === dump.attributes.playwright_test_id ? 'selected' : ''}`}
+                className={`option-item ${playwrightAttributes?.playwright_test_id === dump.attributes.playwright_test_id ? 'selected' : ''} ${isNonViewable(dump) ? 'disabled' : ''}`}
                 onClick={() => handlePlaywrightTaskSelect(dump)}
               >
                 <div className="option-content">

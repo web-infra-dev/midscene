@@ -1,0 +1,6 @@
+.env
+midscene_run/
+.agents
+.claude
+.trae
+.workflow

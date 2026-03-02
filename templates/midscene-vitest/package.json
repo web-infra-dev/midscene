@@ -1,0 +1,28 @@
+{
+  "name": "midscene-vitest-template",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:web": "vitest run e2e/web/",
+    "test:android": "vitest run e2e/android/",
+    "test:ios": "vitest run e2e/ios/",
+    "test:ui": "vitest --ui",
+    "skill:install": "bash skills/install.sh",
+    "skill:install:claude": "bash skills/install.sh claude",
+    "skill:install:trae": "bash skills/install.sh trae",
+    "skill:install:codex": "bash skills/install.sh codex"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@midscene/android": "workspace:*",
+    "@midscene/ios": "workspace:*",
+    "playwright": "^1.56.1"
+  },
+  "devDependencies": {
+    "vitest": "3.0.5",
+    "typescript": "^5.7.0",
+    "dotenv": "^16.3.1"
+  }
+}
