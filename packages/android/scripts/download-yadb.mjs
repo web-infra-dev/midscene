@@ -23,13 +23,25 @@ async function main() {
 
   await fs.mkdir(binDir, { recursive: true });
 
-  await fetchVersion({
-    repository: 'ysbing/YADB',
-    version: YADB_VERSION,
-    package: 'yadb',
-    destination: binDir,
-    extract: false,
-  });
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await fetchVersion({
+        repository: 'ysbing/YADB',
+        version: YADB_VERSION,
+        package: 'yadb',
+        destination: binDir,
+        extract: false,
+      });
+      break;
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      console.log(
+        `[yadb] Download attempt ${attempt} failed: ${err.message}, retrying in ${attempt * 2}s...`,
+      );
+      await new Promise((r) => setTimeout(r, attempt * 2000));
+    }
+  }
 
   console.log('[yadb] Downloaded successfully');
 }

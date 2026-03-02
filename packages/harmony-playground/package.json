@@ -1,0 +1,28 @@
+{
+  "name": "@midscene/harmony-playground",
+  "version": "1.4.6",
+  "description": "HarmonyOS playground for Midscene",
+  "main": "./dist/lib/index.js",
+  "types": "./dist/types/index.d.ts",
+  "module": "./dist/es/index.mjs",
+  "files": ["dist", "bin", "README.md"],
+  "bin": {
+    "midscene-harmony-playground": "./bin/harmony-playground",
+    "@midscene/harmony-playground": "./bin/harmony-playground"
+  },
+  "scripts": {
+    "dev": "npm run build:watch",
+    "dev:server": "npm run build && ./bin/harmony-playground",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean"
+  },
+  "dependencies": {
+    "@midscene/harmony": "workspace:*"
+  },
+  "devDependencies": {
+    "@rslib/core": "^0.18.3",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.8.3"
+  },
+  "license": "MIT"
+}

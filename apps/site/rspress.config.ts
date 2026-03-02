@@ -140,6 +140,21 @@ export default defineConfig({
           link: '/ios-api-reference',
         },
         {
+          sectionHeaderText: 'HarmonyOS',
+        },
+        {
+          text: 'Introduction',
+          link: '/harmony-introduction',
+        },
+        {
+          text: 'Getting started',
+          link: '/harmony-getting-started',
+        },
+        {
+          text: 'API reference (HarmonyOS)',
+          link: '/harmony-api-reference',
+        },
+        {
           sectionHeaderText: 'PC Desktop',
         },
         {
@@ -299,6 +314,21 @@ export default defineConfig({
         {
           text: 'API 参考（iOS）',
           link: '/zh/ios-api-reference',
+        },
+        {
+          sectionHeaderText: 'HarmonyOS',
+        },
+        {
+          text: '介绍',
+          link: '/zh/harmony-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/harmony-getting-started',
+        },
+        {
+          text: 'API 参考（HarmonyOS）',
+          link: '/zh/harmony-api-reference',
         },
         {
           sectionHeaderText: 'PC 桌面',

@@ -126,3 +126,23 @@ export type IOSDeviceOpt = {
   /** WDA MJPEG server port for real-time screen streaming (default: 9100) */
   wdaMjpegPort?: number;
 } & IOSDeviceInputOpt;
+
+/**
+ * HarmonyOS device input options
+ */
+export type HarmonyDeviceInputOpt = {
+  /** Automatically dismiss the keyboard after input is completed */
+  autoDismissKeyboard?: boolean;
+};
+
+/**
+ * HarmonyOS device options
+ */
+export type HarmonyDeviceOpt = {
+  /** Path to the HDC executable */
+  hdcPath?: string;
+  /** Custom device actions to register */
+  customActions?: DeviceAction<any>[];
+  /** Screenshot resize scale factor */
+  screenshotResizeScale?: number;
+} & HarmonyDeviceInputOpt;
