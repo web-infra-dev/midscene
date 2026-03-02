@@ -141,6 +141,7 @@ function aiAct(
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
+    deepLocate?: boolean;
     fileChooserAccept?: string | string[];
   },
 ): Promise<void>;
@@ -153,6 +154,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
   - `options?: Object` - 可选，一个配置对象，包含：
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `deepThink?: 'unset' | true | false` - 当模型支持时（取决于 MIDSCENE_MODEL_FAMILY），是否开启规划阶段的深度思考能力。默认值为 `'unset'`（等同于省略该参数），跟随模型服务商的默认策略。当显式设置为 `true` 或 `false` 时，会覆盖环境变量 `MIDSCENE_MODEL_REASONING_ENABLED` 的配置。[详情参阅 deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
       - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
@@ -201,7 +203,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 - 参数：
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
@@ -216,8 +218,8 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 ```typescript
 await agent.aiTap('页面顶部的登录按钮');
 
-// 使用 deepThink 功能精确定位元素
-await agent.aiTap('页面顶部的登录按钮', { deepThink: true });
+// 使用 deepLocate 功能精确定位元素
+await agent.aiTap('页面顶部的登录按钮', { deepLocate: true });
 
 // 文件上传：点击上传按钮并选择文件
 await agent.aiTap('选择文件按钮', { fileChooserAccept: ['./document.pdf'] });
@@ -239,7 +241,7 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
 - 参数：
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 - 返回值：
@@ -264,7 +266,7 @@ function aiInput(
   locate: string | Object,
   opt: {
     value: string | number;
-    deepThink?: boolean;
+    deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
@@ -289,7 +291,7 @@ function aiInput(
       - 当 `mode` 为 `'replace'` 时：文本将替换输入框中的所有现有内容。
       - 当 `mode` 为 `'typeOnly'` 时：直接输入文本，不会先清空输入框。
       - 当 `mode` 为 `'clear'` 时：会忽略文本内容，仅清空输入框。
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
     - `autoDismissKeyboard?: boolean` - 如果为 true，则键盘会在输入文本后自动关闭，仅在 Android/iOS 中有效。默认值为 true。
@@ -335,7 +337,7 @@ function aiKeyboardPress(
   locate: string | Object,
   opt: {
     keyName: string;
-    deepThink?: boolean;
+    deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -355,7 +357,7 @@ function aiKeyboardPress(
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `opt: Object` - 配置对象，包含：
     - `keyName: string` - **必填**，要按下的键，如 `Enter`、`Tab`、`Escape` 等。不支持组合键。可在[我们的源码中查看完整的按键名称列表](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts)。
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -398,7 +400,7 @@ function aiScroll(
     scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft';
     direction?: 'down' | 'up' | 'left' | 'right';
     distance?: number | null;
-    deepThink?: boolean;
+    deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -420,7 +422,7 @@ function aiScroll(
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - 滚动类型，默认值为 `singleAction`。
     - `direction?: 'down' | 'up' | 'left' | 'right'` - 滚动方向，默认值为 `down`。仅在 `scrollType` 为 `singleAction` 时生效。不论是 Android 还是 Web，这里的滚动方向都是指页面哪个方向的内容会进入屏幕。比如当滚动方向是 `down` 时，页面下方被隐藏的内容会从屏幕底部开始逐渐向上露出。
     - `distance?: number | null` - 滚动距离，单位为像素。设置为 `null` 表示由 Midscene 自动决定。
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -470,7 +472,7 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
 
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -483,8 +485,8 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
 ```typescript
 await agent.aiDoubleClick('页面顶部的文件名称');
 
-// 使用 deepThink 功能精确定位元素
-await agent.aiDoubleClick('页面顶部的文件名称', { deepThink: true });
+// 使用 deepLocate 功能精确定位元素
+await agent.aiDoubleClick('页面顶部的文件名称', { deepLocate: true });
 ```
 
 ### `agent.aiRightClick()`
@@ -503,7 +505,7 @@ function aiRightClick(locate: string | Object, options?: Object): Promise<void>;
 
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -516,17 +518,9 @@ function aiRightClick(locate: string | Object, options?: Object): Promise<void>;
 ```typescript
 await agent.aiRightClick('页面顶部的文件名称');
 
-// 使用 deepThink 功能精确定位元素
-await agent.aiRightClick('页面顶部的文件名称', { deepThink: true });
+// 使用 deepLocate 功能精确定位元素
+await agent.aiRightClick('页面顶部的文件名称', { deepLocate: true });
 ```
-
-:::tip 关于 `deepThink` （深度思考）特性
-
-`deepThink` 会让 Midscene 发起两次定位请求以提升准确性。这在目标元素面积较小、难以和周围元素区分时非常有用。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显，建议按需开启。
-
-注意：`aiAct()` 中的 `deepThink` 与元素定位方法中的 `deepThink` 不同。在 `aiAct()` 中，它控制的是规划阶段的思考策略。[详情参阅说明](./model-strategy#关于-aiact-方法的-deepthink-参数)。
-
-:::
 
 ## 数据提取
 
@@ -784,7 +778,7 @@ function aiLocate(
 
   - `locate: string | Object` - 用自然语言描述的元素定位，或[使用图片作为提示词](#使用图片作为提示词)。
   - `options?: Object` - 可选，一个配置对象，包含：
-    - `deepThink?: boolean` - 是否开启深度思考。如果为 true，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。默认值为 false。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），带来的收益不明显。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。该参数原来叫 `deepThink`，现已更名为 `deepLocate`。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径，用于执行当前操作。如果提供了这个 xpath，Midscene 会优先使用该 xpath 来找到元素，然后依次使用缓存和 AI 模型。默认值为空
     - `cacheable?: boolean` - 当启用 [缓存功能](./caching.mdx) 时，是否允许缓存当前 API 调用结果。默认值为 true
 
@@ -1072,6 +1066,31 @@ overrideAIConfig({
   // OPENAI_API_KEY: '...',
 });
 ```
+
+## 深度定位（deepLocate）
+
+`deepLocate` 是一个可选参数，适用于所有需要元素定位的 API（`aiTap`、`aiHover`、`aiInput`、`aiKeyboardPress`、`aiScroll`、`aiDoubleClick`、`aiRightClick`、`aiLocate` 等）。
+
+开启后，Midscene 会调用 AI 模型两次以精确定位元素，从而提升准确性。这在目标元素面积较小、难以和周围元素区分时非常有用。对于新一代模型（如 Qwen3 / Doubao 1.6 / Gemini 3），大多数场景下带来的收益不明显，建议按需开启。
+
+- **默认值**：`false`
+- **参数更名**：该参数原来叫 `deepThink`，自 v1.5.1 起更名为 `deepLocate`，旧的 `deepThink` 参数仍然兼容。
+
+```typescript
+// 开启 deepLocate 精确定位较难识别的元素
+await agent.aiTap('右上角购物车图标', { deepLocate: true });
+```
+
+:::note
+
+`aiAct()` 中的 `deepThink` 参数与此处的 `deepLocate` 是完全不同的功能：
+
+- `deepLocate`：控制元素**定位**时的二次确认策略，用于提升定位精度。
+- `aiAct()` 中的 `deepThink`：控制**规划阶段**的思考策略（AI 推理能力的开关）。
+
+[参阅 aiAct deepThink 说明](./model-strategy#关于-aiact-方法的-deepthink-参数)
+
+:::
 
 ## 使用图片作为提示词
 

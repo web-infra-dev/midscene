@@ -347,6 +347,7 @@ class PlaygroundServer {
         prompt,
         params,
         requestId,
+        deepLocate,
         deepThink,
         screenshotIncluded,
         domIncluded,
@@ -454,6 +455,7 @@ class PlaygroundServer {
           actionSpace,
           value,
           {
+            deepLocate,
             deepThink,
             screenshotIncluded,
             domIncluded,

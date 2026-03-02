@@ -362,10 +362,10 @@ export class TaskBuilder {
       };
     }
 
-    if (deepLocate && !locateParam.deepThink) {
+    if (deepLocate && !locateParam.deepLocate) {
       locateParam = {
         ...locateParam,
-        deepThink: true,
+        deepLocate: true,
       };
     }
 

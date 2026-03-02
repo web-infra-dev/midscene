@@ -165,7 +165,7 @@ export function UniversalPlayground({
 
   // Override SDK config when environment config changes
   useEffect(() => {
-    // Only pass global config, not execution options like deepThink, screenshotIncluded, domIncluded
+    // Only pass global config, not execution options like deepLocate, screenshotIncluded, domIncluded
     // These execution options will be passed through ExecutionOptions during execution
     if (playgroundSDK?.overrideConfig && config) {
       playgroundSDK.overrideConfig(config).catch((error) => {

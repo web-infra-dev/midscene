@@ -97,7 +97,8 @@ export function usePlaygroundExecution(
   interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
 ) {
   // Get execution options from environment config
-  const { deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
+  const { deepLocate, deepThink, screenshotIncluded, domIncluded } =
+    useEnvConfig();
 
   // Handle form submission and execution
   const handleRun = useCallback(
@@ -195,13 +196,29 @@ export function usePlaygroundExecution(
           );
         }
 
-        // Execute the action using the SDK
-        result.result = await playgroundSDK.executeAction(actionType, value, {
+        // During deepThink -> deepLocate migration:
+        // keep deepThink only for aiAct, and avoid passing it to non-aiAct actions.
+        if (actionType !== 'aiAct' && deepThink) {
+          console.warn(
+            '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct.',
+            {
+              actionType,
+              requestId: thisRunningId.toString(),
+            },
+          );
+        }
+        const executionOptions = {
           requestId: thisRunningId.toString(),
-          deepThink,
+          deepLocate,
+          ...(actionType === 'aiAct' ? { deepThink } : {}),
           screenshotIncluded,
           domIncluded,
-        });
+        };
+        result.result = await playgroundSDK.executeAction(
+          actionType,
+          value,
+          executionOptions,
+        );
 
         // For some adapters, result might already include dump and reportHTML
         if (typeof result.result === 'object' && result.result !== null) {
@@ -312,6 +329,7 @@ export function usePlaygroundExecution(
       verticalMode,
       currentRunningIdRef,
       interruptedFlagRef,
+      deepLocate,
       deepThink,
       screenshotIncluded,
       domIncluded,
