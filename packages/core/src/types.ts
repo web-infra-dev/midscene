@@ -415,6 +415,16 @@ export type ExecutionTask<
     errorStack?: string;
     timing?: {
       start: number;
+      getUiContextStart?: number;
+      getUiContextEnd?: number;
+      beforeInvokeActionHookStart?: number;
+      beforeInvokeActionHookEnd?: number;
+      callActionStart?: number;
+      callActionEnd?: number;
+      afterInvokeActionHookStart?: number;
+      afterInvokeActionHookEnd?: number;
+      captureAfterCallingSnapshotStart?: number;
+      captureAfterCallingSnapshotEnd?: number;
       end?: number;
       cost?: number;
     };

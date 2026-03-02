@@ -1,6 +1,7 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
+import { setTimingFieldOnce } from '@/task-timing';
 import type {
   DetailedLocateParam,
   DeviceAction,
@@ -229,6 +230,8 @@ export class TaskBuilder {
       thought: plan.thought,
       param: plan.param,
       executor: async (param, taskContext) => {
+        const timing = taskContext.task.timing;
+
         debug(
           'executing action',
           planType,
@@ -250,9 +253,15 @@ export class TaskBuilder {
           await Promise.all([
             (async () => {
               if (this.interface.beforeInvokeAction) {
-                debug('will call "beforeInvokeAction" for interface');
+                setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
+                debug(
+                  `will call "beforeInvokeAction" for interface with action name ${action.name}`,
+                );
                 await this.interface.beforeInvokeAction(action.name, param);
-                debug('called "beforeInvokeAction" for interface');
+                debug(
+                  `called "beforeInvokeAction" for interface with action name ${action.name}`,
+                );
+                setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
               }
             })(),
             sleep(200),
@@ -286,9 +295,12 @@ export class TaskBuilder {
           }
         }
 
+        setTimingFieldOnce(timing, 'callActionStart');
+
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
         const actionResult = await actionFn(param, taskContext);
+        setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 
         const delayAfterRunner =
@@ -299,9 +311,15 @@ export class TaskBuilder {
 
         try {
           if (this.interface.afterInvokeAction) {
-            debug('will call "afterInvokeAction" for interface');
+            setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+            debug(
+              `will call "afterInvokeAction" for interface with action name ${action.name}`,
+            );
             await this.interface.afterInvokeAction(action.name, param);
-            debug('called "afterInvokeAction" for interface');
+            debug(
+              `called "afterInvokeAction" for interface with action name ${action.name}`,
+            );
+            setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
           }
         } catch (originalError: any) {
           const originalMessage =
