@@ -64,8 +64,6 @@ Return in the following XML format:
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 # Example 1
 For example, if the DATA_DEMAND is:
 

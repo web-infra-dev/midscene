@@ -42,8 +42,6 @@ Return in the following XML format:
 <data-json>the extracted data as JSON. Make sure both the value and scheme meet the DATA_DEMAND. If you want to write some description in this field, use the same language as the DATA_DEMAND.</data-json>
 <errors>optional error messages as JSON array, e.g., ["error1", "error2"]</errors>
 
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 # Example 1
 For example, if the DATA_DEMAND is:
 
@@ -138,8 +136,6 @@ Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example, when an element is found:
 \`\`\`json
 {
@@ -152,7 +148,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
+  "errors": ["I can see ..., but the \`some element\` is not found. Use English."]
 }
 \`\`\`
 "
@@ -184,8 +180,6 @@ Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example, when an element is found:
 \`\`\`json
 {
@@ -198,7 +192,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
+  "errors": ["I can see ..., but the \`some element\` is not found. Use English."]
 }
 \`\`\`
 "
@@ -230,8 +224,6 @@ Fields:
 * \`bbox\` is the bounding box of the element that matches the user's description
 * \`errors\` is an optional array of error messages (if any)
 
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example, when an element is found:
 \`\`\`json
 {
@@ -244,7 +236,7 @@ When no element is found:
 \`\`\`json
 {
   "bbox": [],
-  "errors": ["I can see ..., but {some element} is not found. Use English."]
+  "errors": ["I can see ..., but the \`some element\` is not found. Use English."]
 }
 \`\`\`
 "
@@ -361,15 +353,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Add to cart button for Sauce Labs Backpack",
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`",
     "bbox": [345, 442, 458, 483]
   }
 }
@@ -426,7 +415,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form",
+    "prompt": "\`Name\` input field in the registration form",
     "bbox": [120, 180, 380, 210]
   }
 }
@@ -463,7 +452,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form",
+    "prompt": "\`Email\` input field in the registration form",
     "bbox": [120, 240, 380, 270]
   }
 }
@@ -610,15 +599,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Add to cart button for Sauce Labs Backpack"
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`"
   }
 }
 </action-param-json>
@@ -674,7 +660,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form"
+    "prompt": "\`Name\` input field in the registration form"
   }
 }
 </action-param-json>
@@ -710,7 +696,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form"
+    "prompt": "\`Email\` input field in the registration form"
   }
 }
 </action-param-json>
@@ -856,15 +842,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Add to cart button for Sauce Labs Backpack",
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`",
     "bbox": [345, 442, 458, 483]
   }
 }
@@ -921,7 +904,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form",
+    "prompt": "\`Name\` input field in the registration form",
     "bbox": [120, 180, 380, 210]
   }
 }
@@ -958,7 +941,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form",
+    "prompt": "\`Email\` input field in the registration form",
     "bbox": [120, 240, 380, 270]
   }
 }
@@ -1105,15 +1088,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Add to cart button for Sauce Labs Backpack",
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`",
     "bbox": [345, 442, 458, 483]
   }
 }
@@ -1170,7 +1150,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form",
+    "prompt": "\`Name\` input field in the registration form",
     "bbox": [120, 180, 380, 210]
   }
 }
@@ -1207,7 +1187,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form",
+    "prompt": "\`Email\` input field in the registration form",
     "bbox": [120, 240, 380, 270]
   }
 }
@@ -1354,15 +1334,12 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": {
-    "prompt": "Add to cart button for Sauce Labs Backpack"
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`"
   }
 }
 </action-param-json>
@@ -1418,7 +1395,7 @@ Below is an example of a multi-turn conversation for "fill out the registration 
 <action-param-json>
 {
   "locate": {
-    "prompt": "Name input field in the registration form"
+    "prompt": "\`Name\` input field in the registration form"
   }
 }
 </action-param-json>
@@ -1454,7 +1431,7 @@ The previous action has been executed, here is the latest screenshot. Please con
 <action-param-json>
 {
   "locate": {
-    "prompt": "Email input field in the registration form"
+    "prompt": "\`Email\` input field in the registration form"
   }
 }
 </action-param-json>

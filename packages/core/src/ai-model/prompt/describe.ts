@@ -30,13 +30,11 @@ GUIDELINES:
 - Focus on stable, reusable characteristics
 
 EXAMPLES:
-- "Login button with text 'Sign In'"
-- "Search input with placeholder 'Enter keywords'"
-- "Navigation link with text 'Home' in header"
-- "Submit button in contact form"
-- "Menu icon with aria-label 'Open menu'"
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
+- "Login button with text \`Sign In\`"
+- "Search input with placeholder \`Enter keywords\`"
+- "Navigation link with text \`Home\` in header"
+- "\`Submit\` button in contact form"
+- "Menu icon with aria-label \`Open menu\`"
 
 Return JSON:
 {

@@ -180,30 +180,30 @@ export async function systemPromptToTaskPlanning({
   // Generate locate object examples based on includeBbox
   const locateExample1 = includeBbox
     ? `{
-    "prompt": "Add to cart button for Sauce Labs Backpack",
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`",
     "bbox": [345, 442, 458, 483]
   }`
     : `{
-    "prompt": "Add to cart button for Sauce Labs Backpack"
+    "prompt": "the \`Add to cart\` button for \`Sauce Labs Backpack\`"
   }`;
 
   // Locate examples for multi-turn conversation
   const locateNameField = includeBbox
     ? `{
-    "prompt": "Name input field in the registration form",
+    "prompt": "\`Name\` input field in the registration form",
     "bbox": [120, 180, 380, 210]
   }`
     : `{
-    "prompt": "Name input field in the registration form"
+    "prompt": "\`Name\` input field in the registration form"
   }`;
 
   const locateEmailField = includeBbox
     ? `{
-    "prompt": "Email input field in the registration form",
+    "prompt": "\`Email\` input field in the registration form",
     "bbox": [120, 240, 380, 270]
   }`
     : `{
-    "prompt": "Email input field in the registration form"
+    "prompt": "\`Email\` input field in the registration form"
   }`;
 
   const thoughtTag = (content: string) =>
@@ -300,9 +300,6 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-
-IMPORTANT: In JSON string values, use backticks (\`) to wrap element names, labels, or special text. For example: "the \`1\` button on number pad"
-
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
