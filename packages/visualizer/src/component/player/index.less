@@ -49,20 +49,26 @@
     border-top-right-radius: 4px;
     border-top-left-radius: 4px;
 
-    // Player wrapper positions chapter markers relative to the player
+    // Player wrapper positions chapter markers relative to the player.
+    // Uses aspect-ratio (set via style) + width/height constraints
+    // to achieve object-fit:contain-like behavior for the player.
     .player-wrapper {
       position: relative;
-      width: 100%;
       max-width: 100%;
       max-height: 100%;
 
-      > div:not(.chapter-markers) {
-        width: 100%;
-        max-width: 100%;
-        max-height: 100%;
-        border: none;
+      // Landscape (default): constrain by width
+      width: 100%;
+
+      // Portrait: constrain by height so the full device is visible
+      &[data-portrait] {
+        width: auto;
+        height: 100%;
       }
 
+      > div:not(.chapter-markers) {
+        border: none;
+      }
     }
 
     // Remove border/outline from Remotion control bar buttons

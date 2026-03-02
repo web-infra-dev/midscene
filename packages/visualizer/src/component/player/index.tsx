@@ -474,11 +474,19 @@ export function Player(props?: {
 
   const compositionWidth = frameMap.imageWidth;
   const compositionHeight = frameMap.imageHeight;
+  const isPortrait = compositionHeight > compositionWidth;
 
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
       <div className="canvas-container">
-        <div className="player-wrapper" ref={wrapperRef}>
+        <div
+          className="player-wrapper"
+          ref={wrapperRef}
+          data-portrait={isPortrait ? '' : undefined}
+          style={{
+            aspectRatio: `${compositionWidth}/${compositionHeight}`,
+          }}
+        >
           <RemotionPlayer
             ref={playerRef}
             component={Composition}
@@ -501,7 +509,7 @@ export function Player(props?: {
             loop={false}
             style={{
               width: '100%',
-              aspectRatio: `${compositionWidth}/${compositionHeight}`,
+              height: '100%',
               zIndex: 0,
             }}
           />
