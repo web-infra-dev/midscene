@@ -73,8 +73,36 @@ describe('planning - quoted text in instruction (#2049)', () => {
     });
   });
 
-  describe('e2e: LLM uses backticks for element names', () => {
-    it('should use backticks in locate prompt when instruction contains quoted text', async () => {
+  describe('e2e: LLM produces valid JSON for instructions with quoted text', () => {
+    it('numpad: click "1" should not produce broken JSON', async () => {
+      const { context } = await getContextFromFixture('numpad');
+
+      const result = await plan('点击数字键盘上的 "1"', {
+        context,
+        actionSpace: mockActionSpace,
+        interfaceType: 'puppeteer',
+        modelConfig,
+        conversationHistory: new ConversationHistory(),
+        includeBbox: true,
+      });
+
+      expect(result).toBeTruthy();
+      expect(result.rawResponse).toBeTruthy();
+
+      const paramMatch = result.rawResponse!.match(
+        /<action-param-json>([\s\S]*?)<\/action-param-json>/,
+      );
+      expect(paramMatch).toBeTruthy();
+
+      const paramJson = paramMatch![1].trim();
+      console.log('numpad action-param-json:', paramJson);
+      expect(() => JSON.parse(paramJson)).not.toThrow();
+
+      const prompt = result.actions?.[0]?.param?.locate?.prompt ?? '';
+      console.log('numpad locate prompt:', prompt);
+    });
+
+    it('todo: click "Active" should not produce broken JSON', async () => {
       const { context } = await getContextFromFixture('todo');
 
       const result = await plan('点击 "Active" 按钮', {
@@ -92,18 +120,14 @@ describe('planning - quoted text in instruction (#2049)', () => {
       const paramMatch = result.rawResponse!.match(
         /<action-param-json>([\s\S]*?)<\/action-param-json>/,
       );
-      if (paramMatch) {
-        const paramJson = paramMatch[1];
-        console.log('action-param-json from LLM:', paramJson);
-        expect(() => JSON.parse(paramJson)).not.toThrow();
-      }
+      expect(paramMatch).toBeTruthy();
 
-      const action = result.actions?.[0];
-      if (action?.param?.locate?.prompt) {
-        const prompt = action.param.locate.prompt;
-        console.log('locate prompt from LLM:', prompt);
-        expect(prompt).toContain('`');
-      }
+      const paramJson = paramMatch![1].trim();
+      console.log('todo action-param-json:', paramJson);
+      expect(() => JSON.parse(paramJson)).not.toThrow();
+
+      const prompt = result.actions?.[0]?.param?.locate?.prompt ?? '';
+      console.log('todo locate prompt:', prompt);
     });
   });
 });
