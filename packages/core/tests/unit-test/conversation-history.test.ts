@@ -54,6 +54,8 @@ describe('ConversationHistory', () => {
     history.appendHistoricalLog('Step 1');
     history.appendHistoricalLog('Step 2');
 
+    history.pendingFeedbackMessage = 'Current time: 2026-03-02T16:04:00';
+
     history.reset();
 
     expect(history.length).toBe(0);
@@ -62,6 +64,7 @@ describe('ConversationHistory', () => {
     expect(history.memoriesToText()).toBe('');
     expect(history.subGoalsToText()).toBe('');
     expect(history.historicalLogsToText()).toBe('');
+    expect(history.pendingFeedbackMessage).toBe('');
   });
 
   it('clears pending feedback message only when set', () => {
