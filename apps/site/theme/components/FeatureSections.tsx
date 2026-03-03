@@ -129,9 +129,9 @@ export function FeatureSections() {
                       }}
                     >
                       <img
-                        src="/images/platforms/web-light.png"
+                        src="/icon/desktop.svg"
                         alt="PC"
-                        className="w-[240px] h-[150px]"
+                        className="w-16 h-16 md:w-24 md:h-24"
                       />
                     </div>
                     <div
@@ -144,9 +144,9 @@ export function FeatureSections() {
                       }}
                     >
                       <img
-                        src="/images/platforms/web-dark.png"
+                        src="/icon/desktop.svg"
                         alt="PC"
-                        className="w-[240px] h-[150px]"
+                        className="w-16 h-16 md:w-24 md:h-24"
                       />
                     </div>
                   </div>

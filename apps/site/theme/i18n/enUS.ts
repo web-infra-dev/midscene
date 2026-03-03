@@ -35,7 +35,7 @@ and more`,
   platformPCDesc:
     'Control desktop applications on macOS, Windows, and Linux with natural language.',
   platformMobileDesc:
-    'Control Android and iOS devices with natural language automation.',
+    'Control Android, iOS, and HarmonyOS devices with natural language automation.',
   platformAnyInterfaceDesc:
     'Automation on any interface, beyond DOM / Accessibility limitations.',
 

@@ -33,7 +33,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   platformWebDesc:
     '与 Puppeteer 或 Playwright 集成，或使用桥接模式控制桌面浏览器。',
   platformPCDesc: '通过自然语言控制 macOS、Windows、Linux 上的桌面应用。',
-  platformMobileDesc: '通过自然语言自动化控制 Android 和 iOS 设备。',
+  platformMobileDesc: '通过自然语言自动化控制 Android、iOS 和 HarmonyOS 设备。',
   platformAnyInterfaceDesc: '视觉建模支持任意界面的自动化，突破 DOM 限制。',
 
   // Feature Sections - MODELS
