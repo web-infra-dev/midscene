@@ -54,6 +54,14 @@ export function FeatureSections() {
                   {t('clientsDesc2')}
                 </div>
               </div>
+              <div className="flex flex-row gap-3">
+                <div className="w-3 pt-1.5">
+                  <GradientIcon />
+                </div>
+                <div className="flex-1 font-sans text-sm md:text-base font-normal leading-[22px] md:leading-[26px] text-black/70 dark:text-white/70">
+                  {t('clientsDesc3')}
+                </div>
+              </div>
             </div>
           </div>
 
@@ -106,9 +114,9 @@ export function FeatureSections() {
                 </div>
               </TiltCard>
 
-              {/* iOS Card */}
+              {/* PC Card */}
               <TiltCard
-                href={tUrl(t('platformIOSLink'))}
+                href={tUrl(t('platformPCLink'))}
                 className="w-full md:w-[381px] md:h-[368px] flex flex-col group cursor-pointer"
               >
                 <div className="flex flex-col gap-[17px] h-full">
@@ -121,9 +129,9 @@ export function FeatureSections() {
                       }}
                     >
                       <img
-                        src="/images/platforms/ios-light.png"
-                        alt="iOS"
-                        className="w-[90px] h-[186px]"
+                        src="/images/platforms/pc-light.svg"
+                        alt="PC"
+                        className="w-[240px] h-[150px]"
                       />
                     </div>
                     <div
@@ -136,17 +144,17 @@ export function FeatureSections() {
                       }}
                     >
                       <img
-                        src="/images/platforms/ios-dark.png"
-                        alt="iOS"
-                        className="w-[90px] h-[186px]"
+                        src="/images/platforms/pc-dark.svg"
+                        alt="PC"
+                        className="w-[240px] h-[150px]"
                       />
                     </div>
                   </div>
                   <p className="font-sans text-xl md:text-2xl font-medium leading-6 text-black dark:text-white">
-                    {t('platformIOS')}
+                    {t('platformPC')}
                   </p>
                   <div className="text-sm md:text-base font-normal font-sans leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                    {t('platformIOSDesc')}
+                    {t('platformPCDesc')}
                   </div>
                 </div>
               </TiltCard>
@@ -154,15 +162,15 @@ export function FeatureSections() {
 
             {/* Bottom row */}
             <div className="flex flex-col md:flex-row gap-6">
-              {/* Android Card */}
+              {/* Mobile Card */}
               <TiltCard
-                href={tUrl(t('platformAndroidLink'))}
+                href={tUrl(t('platformMobileLink'))}
                 className="w-full md:w-[381px] md:h-[368px] flex flex-col group cursor-pointer"
               >
                 <div className="flex flex-col gap-y-[17px] h-full">
                   <div className="rounded-2xl w-full h-[120px] md:h-[264px] flex justify-center items-center group-hover:bg-gray-200 dark:group-hover:bg-[#252525] transition-all duration-200 border-2 border-transparent group-hover:border-[#0555FF] overflow-hidden">
                     <div
-                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl"
+                      className="dark:hidden w-full h-full flex items-center justify-center bg-cover bg-center rounded-2xl gap-4"
                       style={{
                         backgroundImage:
                           'url(/images/backgrounds/gradient-light.svg)',
@@ -173,9 +181,14 @@ export function FeatureSections() {
                         alt="Android"
                         className="w-[90px] h-[186px]"
                       />
+                      <img
+                        src="/images/platforms/ios-light.png"
+                        alt="iOS"
+                        className="w-[90px] h-[186px]"
+                      />
                     </div>
                     <div
-                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl"
+                      className="hidden dark:flex w-full h-full items-center justify-center rounded-2xl gap-4"
                       style={{
                         backgroundImage:
                           'url(/images/backgrounds/gradient-dark.svg)',
@@ -188,13 +201,18 @@ export function FeatureSections() {
                         alt="Android"
                         className="w-[90px] h-[186px]"
                       />
+                      <img
+                        src="/images/platforms/ios-dark.png"
+                        alt="iOS"
+                        className="w-[90px] h-[186px]"
+                      />
                     </div>
                   </div>
                   <p className="font-sans font-medium text-xl md:text-2xl leading-6 text-black dark:text-white">
-                    {t('platformAndroid')}
+                    {t('platformMobile')}
                   </p>
                   <div className="font-sans text-sm md:text-base font-normal leading-5 md:leading-6 text-black/70 dark:text-white/70">
-                    {t('platformAndroidDesc')}
+                    {t('platformMobileDesc')}
                   </div>
                 </div>
               </TiltCard>
