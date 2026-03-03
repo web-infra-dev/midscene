@@ -21,7 +21,7 @@ describe.skipIf(!modelConfig.modelFamily)(
       const { element } = await service.locate(
         {
           prompt: '购物车 icon',
-          deepThink: true,
+          deepLocate: true,
         },
         {},
         modelConfig,
@@ -38,7 +38,7 @@ describe.skipIf(!modelConfig.modelFamily)(
       const { element, rect } = await service.locate(
         {
           prompt: '顶部购物车 icon',
-          deepThink: true,
+          deepLocate: true,
         },
         {},
         modelConfig,
@@ -69,7 +69,7 @@ test.skip('service locate with search area', async () => {
   const { element, rect } = await service.locate(
     {
       prompt: '-',
-      deepThink: true,
+      deepLocate: true,
     },
     {},
     modelConfig,

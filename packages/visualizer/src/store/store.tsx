@@ -119,6 +119,7 @@ export const useGlobalPreference = create<{
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
+const DEEP_LOCATE_KEY = 'midscene-deep-locate';
 const DEEP_THINK_KEY = 'midscene-deep-think';
 const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
 const DOM_INCLUDED_KEY = 'midscene-dom-included';
@@ -183,6 +184,8 @@ export const useEnvConfig = create<{
   syncFromStorage: () => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
+  deepLocate: boolean;
+  setDeepLocate: (deepLocate: boolean) => void;
   deepThink: boolean;
   setDeepThink: (deepThink: boolean) => void;
   screenshotIncluded: boolean;
@@ -211,6 +214,7 @@ export const useEnvConfig = create<{
   ) as ServiceModeType | null;
   const savedForceSameTabNavigation =
     localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
+  const savedDeepLocate = localStorage.getItem(DEEP_LOCATE_KEY) === 'true';
   const savedDeepThink = localStorage.getItem(DEEP_THINK_KEY) === 'true';
   const savedScreenshotIncluded =
     localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
@@ -258,6 +262,11 @@ export const useEnvConfig = create<{
         TRACKING_ACTIVE_TAB_KEY,
         forceSameTabNavigation.toString(),
       );
+    },
+    deepLocate: savedDeepLocate,
+    setDeepLocate: (deepLocate: boolean) => {
+      set({ deepLocate });
+      localStorage.setItem(DEEP_LOCATE_KEY, deepLocate.toString());
     },
     deepThink: savedDeepThink,
     setDeepThink: (deepThink: boolean) => {

@@ -101,7 +101,7 @@ export interface LocateValidatorResult {
 
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
-  deepThink: boolean;
+  deepLocate: boolean;
   verifyResult?: LocateValidatorResult;
 }
 
@@ -186,7 +186,7 @@ export interface ServiceDump extends DumpMeta {
   };
   matchedElement: LocateResultElement[];
   matchedRect?: Rect;
-  deepThink?: boolean;
+  deepLocate?: boolean;
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;

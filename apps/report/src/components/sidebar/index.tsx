@@ -176,8 +176,30 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
+  const getDeepLocateTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return (task as ExecutionTaskPlanningLocate)?.param?.deepLocate ? (
+      <Tag
+        className="deeplocate-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        DeepLocate
+      </Tag>
+    ) : null;
+  };
+
   const getDeepThinkTag = (task: ExecutionTaskWithSearchAreaUsage) => {
-    return (task as ExecutionTaskPlanningLocate)?.param?.deepThink ? (
+    // deepThink is an aiAct planning-phase option, not a per-locate-task param.
+    // It is not stored in ExecutionTaskPlanningLocate.param; using a generic cast
+    // here to avoid incorrectly coupling it to the locate task type.
+    const param = (task as ExecutionTask & { param?: { deepThink?: boolean } })
+      ?.param;
+    return param?.deepThink ? (
       <Tag
         className="deepthink-tag"
         bordered={false}
@@ -485,6 +507,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getDeepLocateTag(task)}
             {getDeepThinkTag(task)}
           </div>
         );

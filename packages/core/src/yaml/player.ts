@@ -457,7 +457,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           // User YAML: aiTap: 'search input box'
           locatePrompt = aiTap;
         } else if (typeof locate === 'object' && locate?.prompt) {
-          // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepThink, cacheable } }
+          // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepLocate, cacheable } }
           const { prompt: lp, ...locateOpts } = locate;
           locatePrompt = lp;
           opts = { ...locateOpts, ...tapOptions };
@@ -475,13 +475,13 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         - aiRightClick: 'search input box'
         - aiRightClick: 'search input box'
-          deepThink: true
+          deepLocate: true
           cacheable: false
         - aiRightClick:
           prompt: 'search input box'
         - aiRightClick:
           prompt: 'search input box'
-          deepThink: true
+          deepLocate: true
           cacheable: false
         */
 

@@ -6,6 +6,7 @@ import type { DeviceType } from '../../types';
 import {
   alwaysRefreshScreenInfoTip,
   autoDismissKeyboardTip,
+  deepLocateTip,
   deepThinkTip,
   domIncludedTip,
   imeStrategyTip,
@@ -15,6 +16,7 @@ import {
 } from '../../utils/constants';
 
 interface ConfigSelectorProps {
+  showDeepLocateOption: boolean;
   showDeepThinkOption: boolean;
   enableTracking: boolean;
   showDataExtractionOptions: boolean;
@@ -23,6 +25,7 @@ interface ConfigSelectorProps {
 }
 
 export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
+  showDeepLocateOption = false,
   showDeepThinkOption = false,
   enableTracking = false,
   showDataExtractionOptions = false,
@@ -35,6 +38,8 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
   const setForceSameTabNavigation = useEnvConfig(
     (state) => state.setForceSameTabNavigation,
   );
+  const deepLocate = useEnvConfig((state) => state.deepLocate);
+  const setDeepLocate = useEnvConfig((state) => state.setDeepLocate);
   const deepThink = useEnvConfig((state) => state.deepThink);
   const setDeepThink = useEnvConfig((state) => state.setDeepThink);
   const screenshotIncluded = useEnvConfig((state) => state.screenshotIncluded);
@@ -70,6 +75,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
 
   if (
     !enableTracking &&
+    !showDeepLocateOption &&
     !showDeepThinkOption &&
     !showDataExtractionOptions &&
     !hasDeviceOptions
@@ -101,6 +107,22 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
           </Checkbox>
         ),
         key: 'track-config',
+      });
+    }
+
+    if (showDeepLocateOption) {
+      items.push({
+        label: (
+          <Checkbox
+            onChange={(e) => {
+              setDeepLocate(e.target.checked);
+            }}
+            checked={deepLocate}
+          >
+            {deepLocateTip}
+          </Checkbox>
+        ),
+        key: 'deep-locate-config',
       });
     }
 

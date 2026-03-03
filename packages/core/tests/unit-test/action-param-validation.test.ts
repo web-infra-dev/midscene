@@ -60,7 +60,7 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         locate: {
           prompt: 'button',
-          deepThink: true,
+          deepLocate: true,
         },
         value: 'test',
       };
@@ -70,7 +70,7 @@ describe('Action Parameter Validation', () => {
       // Locator field should not be parsed/validated
       expect(parsed.locate).toEqual({
         prompt: 'button',
-        deepThink: true,
+        deepLocate: true,
       });
       expect(parsed.value).toBe('test');
     });
@@ -483,7 +483,7 @@ describe('Action Parameter Validation', () => {
         keyName: 'Control+V',
         locate: {
           prompt: 'text input field',
-          deepThink: false,
+          deepLocate: false,
         },
       };
 
@@ -492,7 +492,7 @@ describe('Action Parameter Validation', () => {
       expect(parsed.keyName).toEqual('Control+V');
       expect(parsed.locate).toEqual({
         prompt: 'text input field',
-        deepThink: false,
+        deepLocate: false,
       });
     });
 
