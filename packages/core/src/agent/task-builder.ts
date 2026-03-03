@@ -420,10 +420,16 @@ export class TaskBuilder {
           }
         };
 
-        // from bbox (plan hit)
-        const elementFromBbox = ifPlanLocateParamIsBbox(param)
+        const planLocatedElement = ifPlanLocateParamIsBbox(param)
           ? matchElementFromPlan(param)
           : undefined;
+
+        // from bbox (plan hit)
+        // when deepLocate is enabled, bbox should be used as search area hint,
+        // not as a final direct hit
+        const elementFromBbox = param.deepLocate
+          ? undefined
+          : planLocatedElement;
         const isPlanHit = !!elementFromBbox;
 
         // from xpath
@@ -491,6 +497,7 @@ export class TaskBuilder {
               param,
               {
                 context: uiContext,
+                planLocatedElement,
               },
               modelConfigForDefaultIntent,
             );

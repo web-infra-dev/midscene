@@ -248,6 +248,54 @@ describe('bbox locate cache fix', () => {
       expect(mockService.locate).not.toHaveBeenCalled();
     });
 
+    it('should call AI locate when deepLocate is enabled even if bbox is available', async () => {
+      const plansWithBboxAndDeepLocate = [
+        {
+          type: 'Tap',
+          param: {
+            locate: {
+              prompt: 'submit button',
+              bbox: [100, 200, 200, 250] as [number, number, number, number],
+              deepLocate: true,
+            },
+          },
+          thought: 'tap submit with deep locate',
+        },
+      ];
+
+      const { tasks } = await taskBuilder.build(
+        plansWithBboxAndDeepLocate,
+        mockModelConfig,
+        mockModelConfig,
+      );
+
+      const locateTask = tasks.find((task) => task.subType === 'Locate');
+
+      const result = await locateTask!.executor(locateTask!.param, {
+        task: {
+          type: 'Planning',
+          subType: 'Locate',
+          param: locateTask!.param,
+          status: 'running',
+          timing: { start: Date.now(), end: 0, cost: 0 },
+          executor: locateTask!.executor,
+        },
+        uiContext: await createMockUIContext(validBase64Image),
+      });
+
+      expect(mockService.locate).toHaveBeenCalled();
+      expect(mockService.locate).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          planLocatedElement: expect.objectContaining({
+            rect: expect.any(Object),
+          }),
+        }),
+        expect.any(Object),
+      );
+      expect(result?.hitBy?.from).not.toBe('Plan');
+    });
+
     it('should skip cache write if cache already exists (pre-populated)', async () => {
       // Create a new TaskCache with pre-populated cache
       // The cache must exist BEFORE TaskCache initialization for matchLocateCache to find it
