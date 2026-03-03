@@ -417,8 +417,8 @@ export function AndroidNavBar(): React.ReactElement {
   return (
     <>
       <svg
-        width="16"
-        height="16"
+        width="32"
+        height="32"
         viewBox="0 0 16 16"
         role="img"
         aria-label="Back"
@@ -431,8 +431,8 @@ export function AndroidNavBar(): React.ReactElement {
         />
       </svg>
       <svg
-        width="16"
-        height="16"
+        width="32"
+        height="32"
         viewBox="0 0 16 16"
         role="img"
         aria-label="Home"
@@ -447,8 +447,8 @@ export function AndroidNavBar(): React.ReactElement {
         />
       </svg>
       <svg
-        width="16"
-        height="16"
+        width="32"
+        height="32"
         viewBox="0 0 16 16"
         role="img"
         aria-label="Recent"

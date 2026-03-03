@@ -111,17 +111,62 @@ export const StepsTimeline: React.FC<{
   // ── Layout calculations ──
   const shellType = resolveShellType(frameMap.deviceType);
   const deviceLayout = getDeviceLayout(shellType);
+  const isMobileShell = shellType === 'iphone' || shellType === 'android';
   const DEVICE_MARGIN = effects ? deviceLayout.margin : 0;
-  const browserW = effects ? compWidth - DEVICE_MARGIN * 2 : compWidth;
-  const contentH = effects
-    ? compHeight -
+  const isPortraitImage = imgH > imgW;
+  // Bezel width for device shell (visible frame around screen)
+  const BEZEL = effects ? (isMobileShell ? 28 : 16) : 0;
+
+  let browserW: number;
+  let contentH: number;
+  let browserH: number;
+  let shellLeft: number;
+  let shellTop: number;
+
+  if (effects && isPortraitImage) {
+    // Portrait device in landscape canvas — phone centered with bezel
+    shellTop = DEVICE_MARGIN;
+    browserH = compHeight - DEVICE_MARGIN * 2 - BEZEL * 2;
+    contentH = browserH - deviceLayout.topInset - deviceLayout.bottomInset;
+    browserW = Math.round(contentH * (imgW / imgH));
+    shellLeft = Math.round((compWidth - browserW) / 2) - BEZEL;
+  } else if (effects) {
+    // Landscape device — fills canvas
+    shellLeft = DEVICE_MARGIN;
+    shellTop = DEVICE_MARGIN;
+    browserW = compWidth - DEVICE_MARGIN * 2 - BEZEL * 2;
+    contentH =
+      compHeight -
       DEVICE_MARGIN * 2 -
+      BEZEL * 2 -
       deviceLayout.topInset -
-      deviceLayout.bottomInset
-    : compHeight;
-  const browserH = effects
-    ? contentH + deviceLayout.topInset + deviceLayout.bottomInset
-    : compHeight;
+      deviceLayout.bottomInset;
+    browserH = contentH + deviceLayout.topInset + deviceLayout.bottomInset;
+  } else if (isPortraitImage) {
+    // Clean mode, portrait image in landscape canvas — content centered
+    shellTop = 0;
+    contentH = compHeight;
+    browserW = Math.round(compHeight * (imgW / imgH));
+    browserH = compHeight;
+    shellLeft = Math.round((compWidth - browserW) / 2);
+  } else {
+    browserW = compWidth;
+    contentH = compHeight;
+    browserH = compHeight;
+    shellLeft = 0;
+    shellTop = 0;
+  }
+
+  const subScale = compWidth / 1920;
+  const subFontSize = Math.round(Math.max(20 * subScale, 12));
+  const subBadgeFontSize = Math.round(Math.max(18 * subScale, 11));
+  const subHeight = Math.round(Math.max(48 * subScale, 28));
+  const subBadgeW = Math.round(Math.max(44 * subScale, 24));
+  const subBadgeH = Math.round(Math.max(32 * subScale, 18));
+  const subPadH = Math.round(Math.max(20 * subScale, 10));
+  const subGap = Math.round(Math.max(12 * subScale, 6));
+  const subRadius = Math.round(Math.max(12 * subScale, 6));
+  const subBottom = Math.round(Math.max(100 * subScale, 50));
 
   const zoom = imgW / cameraWidth;
   const tx = -cameraLeft * (browserW / imgW);
@@ -235,7 +280,7 @@ export const StepsTimeline: React.FC<{
     ? ((Math.sin(spinningElapsedMs / 500 - Math.PI / 2) + 1) / 2) * Math.PI * 2
     : 0;
 
-  const bgColor = effects ? '#0a0a12' : '#f4f4f4';
+  const bgColor = effects ? '#0a0a12' : '#000';
 
   // ── Insight overlay rendering ──
   const renderInsightOverlays = () => {
@@ -663,7 +708,7 @@ export const StepsTimeline: React.FC<{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0 16px',
+        padding: '0 32px',
         position: 'relative',
         flexShrink: 0,
       }}
@@ -671,7 +716,7 @@ export const StepsTimeline: React.FC<{
       <span
         style={{
           color: '#fff',
-          fontSize: 12,
+          fontSize: 26,
           fontFamily: 'Roboto, sans-serif',
         }}
       >
@@ -683,21 +728,21 @@ export const StepsTimeline: React.FC<{
           left: '50%',
           top: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 12,
-          height: 12,
+          width: 24,
+          height: 24,
           borderRadius: '50%',
           backgroundColor: '#1a1a1a',
-          border: '1px solid rgba(255,255,255,0.1)',
+          border: '2px solid rgba(255,255,255,0.1)',
         }}
       />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <SignalBarsIcon barWidth={2.5} gap={1} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <SignalBarsIcon barWidth={5} gap={2} />
         <BatteryIcon
-          width={20}
-          height={10}
+          width={40}
+          height={20}
           fillPercent={75}
           fillColor="#fff"
-          borderRadius={2}
+          borderRadius={3}
         />
       </div>
     </div>
@@ -712,7 +757,7 @@ export const StepsTimeline: React.FC<{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 48,
+        gap: 80,
         flexShrink: 0,
       }}
     >
@@ -757,10 +802,12 @@ export const StepsTimeline: React.FC<{
         <div
           style={{
             position: 'absolute',
-            left: DEVICE_MARGIN,
-            top: DEVICE_MARGIN,
-            width: browserW,
-            height: browserH,
+            left: shellLeft,
+            top: shellTop,
+            width: browserW + BEZEL * 2,
+            height: browserH + BEZEL * 2,
+            padding: BEZEL,
+            boxSizing: 'border-box',
             transformStyle: 'preserve-3d',
             transform: [
               `scale(${transform3d.scale})`,
@@ -770,23 +817,27 @@ export const StepsTimeline: React.FC<{
             ].join(' '),
             borderRadius: deviceLayout.borderRadius,
             overflow: 'hidden',
+            background: isMobileShell
+              ? 'linear-gradient(145deg, #555 0%, #333 40%, #444 100%)'
+              : 'linear-gradient(145deg, #444 0%, #2a2a2a 40%, #333 100%)',
+            border: '1px solid rgba(255,255,255,0.15)',
             boxShadow: [
               '0 20px 60px rgba(0,0,0,0.6)',
-              '0 0 1px rgba(0,255,255,0.3)',
+              'inset 0 1px 0 rgba(255,255,255,0.12)',
               '0 0 30px rgba(0,255,255,0.08)',
             ].join(', '),
           }}
         >
-          {renderDeviceTop(shellType)}
+          {deviceLayout.topInset > 0 && renderDeviceTop(shellType)}
           {renderContentArea(browserW, contentH)}
-          {renderDeviceBottom(shellType)}
+          {deviceLayout.bottomInset > 0 && renderDeviceBottom(shellType)}
 
           <div
             style={{
               position: 'absolute',
-              inset: 0,
-              borderRadius: deviceLayout.borderRadius,
-              boxShadow: 'inset 0 0 1px rgba(0,255,255,0.2)',
+              inset: BEZEL,
+              borderRadius: Math.max(deviceLayout.borderRadius - BEZEL, 0),
+              boxShadow: 'inset 0 0 2px rgba(255,255,255,0.12)',
               pointerEvents: 'none',
             }}
           />
@@ -825,29 +876,29 @@ export const StepsTimeline: React.FC<{
           <div
             style={{
               position: 'absolute',
-              bottom: 70,
+              bottom: subBottom,
               left: '50%',
               transform: 'translateX(-50%)',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 8,
-              height: 32,
-              padding: '0 14px',
+              gap: subGap,
+              height: subHeight,
+              padding: `0 ${subPadH}px`,
               background: 'rgba(80, 80, 80, 0.75)',
               backdropFilter: 'blur(8px)',
-              borderRadius: 8,
+              borderRadius: subRadius,
               zIndex: 10,
               maxWidth: `calc(100% - ${(DEVICE_MARGIN + 8) * 2}px)`,
             }}
           >
             <span
               style={{
-                fontSize: 11,
+                fontSize: subBadgeFontSize,
                 fontWeight: 700,
                 color: '#fff',
                 background: 'rgba(163, 77, 255, 1)',
-                width: 28,
-                height: 20,
+                width: subBadgeW,
+                height: subBadgeH,
                 borderRadius: 4,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -862,7 +913,7 @@ export const StepsTimeline: React.FC<{
               style={{
                 minWidth: 0,
                 overflow: 'hidden',
-                fontSize: 12,
+                fontSize: subFontSize,
                 fontWeight: 500,
                 color: '#fff',
                 whiteSpace: 'nowrap',
@@ -890,36 +941,52 @@ export const StepsTimeline: React.FC<{
         opacity: initialFade,
       }}
     >
-      {renderContentArea(compWidth, compHeight)}
+      {isPortraitImage ? (
+        <div
+          style={{
+            position: 'absolute',
+            left: shellLeft,
+            top: shellTop,
+            width: browserW,
+            height: browserH,
+            borderRadius: deviceLayout.borderRadius,
+            overflow: 'hidden',
+          }}
+        >
+          {renderContentArea(browserW, contentH)}
+        </div>
+      ) : (
+        renderContentArea(compWidth, compHeight)
+      )}
 
       {/* AI prompt indicator (clean mode) */}
       {(title || subTitle) && (
         <div
           style={{
             position: 'absolute',
-            bottom: 70,
+            bottom: subBottom,
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            height: 32,
-            padding: '0 14px',
+            gap: subGap,
+            height: subHeight,
+            padding: `0 ${subPadH}px`,
             background: 'rgba(80, 80, 80, 0.75)',
             backdropFilter: 'blur(8px)',
-            borderRadius: 8,
+            borderRadius: subRadius,
             zIndex: 10,
             maxWidth: 'calc(100% - 16px)',
           }}
         >
           <span
             style={{
-              fontSize: 11,
+              fontSize: subBadgeFontSize,
               fontWeight: 700,
               color: '#fff',
               background: 'rgba(163, 77, 255, 1)',
-              width: 28,
-              height: 20,
+              width: subBadgeW,
+              height: subBadgeH,
               borderRadius: 4,
               display: 'inline-flex',
               alignItems: 'center',
@@ -934,7 +1001,7 @@ export const StepsTimeline: React.FC<{
             style={{
               minWidth: 0,
               overflow: 'hidden',
-              fontSize: 12,
+              fontSize: subFontSize,
               fontWeight: 500,
               color: '#fff',
               whiteSpace: 'nowrap',

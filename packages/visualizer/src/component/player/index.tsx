@@ -472,9 +472,15 @@ export function Player(props?: {
     return <div className="player-container" />;
   }
 
-  const compositionWidth = frameMap.imageWidth;
-  const compositionHeight = frameMap.imageHeight;
-  const isPortrait = compositionHeight > compositionWidth;
+  const imgW = frameMap.imageWidth;
+  const imgH = frameMap.imageHeight;
+  const isPortraitImage = imgH > imgW;
+
+  // For portrait devices, always use a landscape canvas
+  // so the phone / content is shown centered with readable subtitles
+  const compositionWidth = isPortraitImage ? Math.round((imgH * 4) / 3) : imgW;
+  const compositionHeight = imgH;
+  const isPortraitCanvas = compositionHeight > compositionWidth;
 
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
@@ -482,7 +488,7 @@ export function Player(props?: {
         <div
           className="player-wrapper"
           ref={wrapperRef}
-          data-portrait={isPortrait ? '' : undefined}
+          data-portrait={isPortraitCanvas ? '' : undefined}
           style={{
             aspectRatio: `${compositionWidth}/${compositionHeight}`,
           }}

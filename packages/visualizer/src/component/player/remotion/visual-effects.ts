@@ -418,9 +418,9 @@ export const IPHONE_STATUS_BAR_H = 44;
 export const IPHONE_HOME_INDICATOR_H = 34;
 export const IPHONE_BORDER_RADIUS = 40;
 
-export const ANDROID_STATUS_BAR_H = 28;
-export const ANDROID_NAV_BAR_H = 32;
-export const ANDROID_BORDER_RADIUS = 24;
+export const ANDROID_STATUS_BAR_H = 66;
+export const ANDROID_NAV_BAR_H = 60;
+export const ANDROID_BORDER_RADIUS = 44;
 
 export const DESKTOP_APP_TITLE_BAR_H = 36;
 
@@ -429,28 +429,28 @@ export function getDeviceLayout(shellType: DeviceShellType): DeviceLayout {
     case 'iphone':
       return {
         margin: 20,
-        topInset: IPHONE_STATUS_BAR_H,
-        bottomInset: IPHONE_HOME_INDICATOR_H,
+        topInset: 0,
+        bottomInset: 0,
         borderRadius: IPHONE_BORDER_RADIUS,
       };
     case 'android':
       return {
-        margin: 20,
-        topInset: ANDROID_STATUS_BAR_H,
-        bottomInset: ANDROID_NAV_BAR_H,
+        margin: 32,
+        topInset: 0,
+        bottomInset: 0,
         borderRadius: ANDROID_BORDER_RADIUS,
       };
     case 'desktop-app':
       return {
         margin: 24,
-        topInset: DESKTOP_APP_TITLE_BAR_H,
+        topInset: 0,
         bottomInset: 0,
         borderRadius: 10,
       };
     default:
       return {
         margin: 24,
-        topInset: CHROME_TITLE_BAR_H,
+        topInset: 0,
         bottomInset: 0,
         borderRadius: CHROME_BORDER_RADIUS,
       };
