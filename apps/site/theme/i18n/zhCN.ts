@@ -19,20 +19,21 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
 
   // Feature Sections - CLIENTS
   clientsTitle: '平台',
-  clientsHeading: `Web、iOS、Android
+  clientsHeading: `Web、PC、Mobile
 等多端支持`,
   clientsDesc1: '用自然语言跨平台控制浏览器和移动应用',
   clientsDesc2: '统一的 API 设计，轻松实现跨平台自动化',
+  clientsDesc3: '支持 Android、iOS、HarmonyOS、Linux、macOS 和 Windows',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
-  platformIOS: 'iOS',
-  platformAndroid: 'Android',
+  platformPC: 'PC',
+  platformMobile: 'Mobile',
   platformAnyInterface: '任意界面',
   platformWebDesc:
     '与 Puppeteer 或 Playwright 集成，或使用桥接模式控制桌面浏览器。',
-  platformIOSDesc: '通过自然语言与 WebDriver 控制 iOS 设备',
-  platformAndroidDesc: '通过自然语言与 adb 控制安卓设备',
+  platformPCDesc: '通过自然语言控制 macOS、Windows、Linux 上的桌面应用。',
+  platformMobileDesc: '通过自然语言自动化控制 Android 和 iOS 设备。',
   platformAnyInterfaceDesc: '视觉建模支持任意界面的自动化，突破 DOM 限制。',
 
   // Feature Sections - MODELS
@@ -88,7 +89,7 @@ export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // Links
   multiModelStrategyLink: '/model-strategy#高阶特性多模型配合',
   platformWebLink: '/quick-experience.html',
-  platformIOSLink: '/ios-introduction.html',
-  platformAndroidLink: '/android-introduction.html',
+  platformPCLink: '/quick-experience.html',
+  platformMobileLink: '/android-introduction.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 };
