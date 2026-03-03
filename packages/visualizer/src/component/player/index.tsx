@@ -7,10 +7,10 @@ import {
   DownloadOutlined,
   ExpandOutlined,
   ExportOutlined,
+  FontSizeOutlined,
   LoadingOutlined,
   PauseOutlined,
   ThunderboltOutlined,
-  VideoCameraOutlined,
 } from '@ant-design/icons';
 import { Player as RemotionPlayer } from '@remotion/player';
 import type {
@@ -74,8 +74,8 @@ export function Player(props?: {
     setAutoZoom,
     playbackSpeed,
     setPlaybackSpeed,
-    effectsEnabled,
-    setEffectsEnabled,
+    subtitleEnabled,
+    setSubtitleEnabled,
   } = useGlobalPreference();
 
   useEffect(() => {
@@ -88,11 +88,8 @@ export function Player(props?: {
   const deviceType = props?.deviceType;
   const frameMap = useMemo<FrameMap | null>(() => {
     if (!scripts || scripts.length === 0) return null;
-    return calculateFrameMap(scripts, {
-      effects: effectsEnabled,
-      deviceType,
-    });
-  }, [scripts, effectsEnabled, deviceType]);
+    return calculateFrameMap(scripts, { deviceType });
+  }, [scripts, deviceType]);
 
   const playerRef = useRef<PlayerRef>(null);
   const lastTaskIdRef = useRef<string | null>(null);
@@ -192,11 +189,7 @@ export function Player(props?: {
       const player = playerRef.current;
       if (!player) return;
       const frame = player.getCurrentFrame() ?? 0;
-      const stepsFrame = frame - frameMap.openingDurationInFrames;
-      const taskId =
-        stepsFrame >= 0
-          ? deriveTaskId(frameMap.scriptFrames, stepsFrame)
-          : null;
+      const taskId = deriveTaskId(frameMap.scriptFrames, frame);
       if (taskId !== lastTaskIdRef.current) {
         lastTaskIdRef.current = taskId;
         props.onTaskChange!(taskId);
@@ -214,7 +207,7 @@ export function Player(props?: {
     setIsExporting(true);
     setExportProgress(0);
     try {
-      await exportBrandedVideo(frameMap, effectsEnabled, (pct) =>
+      await exportBrandedVideo(frameMap, (pct) =>
         setExportProgress(Math.round(pct * 100)),
       );
       message.success('Video exported');
@@ -225,30 +218,29 @@ export function Player(props?: {
       setIsExporting(false);
       setExportProgress(0);
     }
-  }, [frameMap, effectsEnabled, isExporting]);
-
-  const [mouseOverSettingsIcon, setMouseOverSettingsIcon] = useState(false);
+  }, [frameMap, isExporting]);
 
   const renderPlayPauseButton: RenderPlayPauseButton = useCallback(
-    ({ playing, isBuffering }) => {
-      if (isBuffering)
-        return <LoadingOutlined spin style={{ color: '#fff' }} />;
-      return playing ? (
-        <PauseOutlined style={{ color: '#fff' }} />
-      ) : (
-        <CaretRightOutlined style={{ color: '#fff' }} />
-      );
-    },
+    ({ playing, isBuffering }) => (
+      <div className="status-icon">
+        {isBuffering ? (
+          <LoadingOutlined spin />
+        ) : playing ? (
+          <PauseOutlined />
+        ) : (
+          <CaretRightOutlined />
+        )}
+      </div>
+    ),
     [],
   );
 
   const renderFullscreenButton: RenderFullscreenButton = useCallback(
-    ({ isFullscreen }) =>
-      isFullscreen ? (
-        <CompressOutlined style={{ color: '#fff' }} />
-      ) : (
-        <ExpandOutlined style={{ color: '#fff' }} />
-      ),
+    ({ isFullscreen }) => (
+      <div className="status-icon">
+        {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+      </div>
+    ),
     [],
   );
 
@@ -334,6 +326,37 @@ export function Player(props?: {
                 />
               </div>
 
+              {/* Subtitle toggle */}
+              <div
+                className="player-settings-item"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  height: '32px',
+                  padding: '0 8px',
+                  borderRadius: '4px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <FontSizeOutlined style={{ width: '16px', height: '16px' }} />
+                  <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                    Subtitle
+                  </span>
+                </div>
+                <Switch
+                  size="small"
+                  checked={subtitleEnabled}
+                  onChange={(checked) => setSubtitleEnabled(checked)}
+                />
+              </div>
+
               <div className="player-settings-divider" />
 
               {/* Playback speed */}
@@ -368,54 +391,11 @@ export function Player(props?: {
                   {speed}x
                 </div>
               ))}
-
-              <div className="player-settings-divider" />
-
-              {/* Effects toggle */}
-              <div
-                className="player-settings-item"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  height: '32px',
-                  padding: '0 8px',
-                  borderRadius: '4px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <VideoCameraOutlined
-                    style={{ width: '16px', height: '16px' }}
-                  />
-                  <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                    Effects
-                  </span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={effectsEnabled}
-                  onChange={(checked) => setEffectsEnabled(checked)}
-                />
-              </div>
             </div>
           )}
           menu={{ items: [] }}
         >
-          <div
-            className="status-icon"
-            onMouseEnter={() => setMouseOverSettingsIcon(true)}
-            onMouseLeave={() => setMouseOverSettingsIcon(false)}
-            style={{
-              opacity: mouseOverSettingsIcon ? 1 : 0.7,
-              transition: 'opacity 0.2s',
-            }}
-          >
+          <div className="status-icon">
             <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
           </div>
         </Dropdown>
@@ -431,16 +411,14 @@ export function Player(props?: {
     setAutoZoom,
     playbackSpeed,
     setPlaybackSpeed,
-    effectsEnabled,
-    setEffectsEnabled,
-    mouseOverSettingsIcon,
+    subtitleEnabled,
+    setSubtitleEnabled,
   ]);
 
   // Compute chapter markers from step boundaries (each img/insight = new chapter)
   const chapterMarkers = useMemo(() => {
     if (!frameMap) return [];
-    const { scriptFrames, totalDurationInFrames, openingDurationInFrames } =
-      frameMap;
+    const { scriptFrames, totalDurationInFrames } = frameMap;
     if (totalDurationInFrames === 0) return [];
 
     const markers: { percent: number; title: string; frame: number }[] = [];
@@ -450,7 +428,7 @@ export function Player(props?: {
         sf.durationInFrames === 0
       )
         continue;
-      const globalFrame = openingDurationInFrames + sf.startFrame;
+      const globalFrame = sf.startFrame;
       const percent = (globalFrame / totalDurationInFrames) * 100;
       if (percent > 1 && percent < 99) {
         const parts = [sf.title, sf.subTitle].filter(Boolean);
@@ -498,8 +476,8 @@ export function Player(props?: {
             component={Composition}
             inputProps={{
               frameMap,
-              effects: effectsEnabled,
               autoZoom,
+              subtitleEnabled,
             }}
             durationInFrames={Math.max(frameMap.totalDurationInFrames, 1)}
             compositionWidth={compositionWidth}

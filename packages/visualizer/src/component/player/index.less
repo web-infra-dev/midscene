@@ -15,7 +15,6 @@
   max-width: 100%;
   max-height: 100%;
   padding: 12px;
-  background: #f2f4f7;
   box-sizing: border-box;
   border: 1px solid #f2f4f7;
   border-radius: @radius;
@@ -46,8 +45,7 @@
     overflow: hidden;
     position: relative;
     background-color: #000;
-    border-top-right-radius: 4px;
-    border-top-left-radius: 4px;
+    border-radius: 4px;
 
     // Player wrapper positions chapter markers relative to the player.
     // Uses aspect-ratio (set via style) + width/height constraints
@@ -71,10 +69,12 @@
       }
     }
 
-    // Remove border/outline from Remotion control bar buttons
+    // Reset Remotion control bar buttons so inner .status-icon handles hover
     button {
       border: none;
       outline: none;
+      background: none;
+      padding: 0;
     }
 
     // Chapter markers overlaid on Remotion's seek bar
@@ -117,6 +117,32 @@
     // Remotion seek bar styles are overridden via JS in useEffect (see index.tsx)
   }
 
+  // Shared icon style for all Remotion control bar buttons
+  // (play/pause, fullscreen, download, settings)
+  .status-icon {
+    transition: 0.2s;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.7;
+
+    svg {
+      color: #fff;
+      font-size: 14px;
+    }
+
+    &:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+
   // Custom controls rendered inside Remotion Player's control bar
   .player-custom-controls {
     display: flex;
@@ -127,28 +153,6 @@
 
     .ant-spin {
       color: #fff;
-    }
-
-    .status-icon {
-      transition: 0.2s;
-      width: 24px;
-      height: 24px;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      color: #fff;
-      cursor: pointer;
-
-      svg {
-        color: #fff;
-        font-size: 14px;
-      }
-
-      &:hover {
-        background: rgba(255, 255, 255, 0.15);
-      }
     }
   }
 }
@@ -172,7 +176,6 @@
 // Dark mode styles
 [data-theme='dark'] {
   .player-container {
-    background: #141414;
     border-color: #292929;
 
     &[data-fit-mode='height'] {
@@ -187,7 +190,6 @@
     .canvas-container {
       background-color: #000;
     }
-
   }
 }
 

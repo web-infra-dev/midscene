@@ -8,7 +8,7 @@ const ELEMENTS_VISIBLE_KEY = 'midscene-elements-visible';
 const MODEL_CALL_DETAILS_KEY = 'midscene-model-call-details';
 const DARK_MODE_KEY = 'midscene-dark-mode';
 const PLAYBACK_SPEED_KEY = 'midscene-playback-speed';
-const EFFECTS_ENABLED_KEY = 'midscene-effects-enabled';
+const SUBTITLE_ENABLED_KEY = 'midscene-subtitle-enabled';
 
 const parseBooleanParam = (value: string | null): boolean | undefined => {
   if (value === null) {
@@ -46,14 +46,14 @@ export const useGlobalPreference = create<{
   modelCallDetailsEnabled: boolean;
   darkModeEnabled: boolean;
   playbackSpeed: PlaybackSpeedType;
-  effectsEnabled: boolean;
+  subtitleEnabled: boolean;
   setBackgroundVisible: (visible: boolean) => void;
   setElementsVisible: (visible: boolean) => void;
   setAutoZoom: (enabled: boolean) => void;
   setModelCallDetailsEnabled: (enabled: boolean) => void;
   setDarkModeEnabled: (enabled: boolean) => void;
   setPlaybackSpeed: (speed: PlaybackSpeedType) => void;
-  setEffectsEnabled: (enabled: boolean) => void;
+  setSubtitleEnabled: (enabled: boolean) => void;
 }>((set) => {
   const savedAutoZoom = localStorage.getItem(AUTO_ZOOM_KEY) !== 'false';
   const savedBackgroundVisible =
@@ -70,8 +70,8 @@ export const useGlobalPreference = create<{
   const savedPlaybackSpeed = (
     Number.isNaN(parsedPlaybackSpeed) ? 1 : parsedPlaybackSpeed
   ) as PlaybackSpeedType;
-  const savedEffectsEnabled =
-    localStorage.getItem(EFFECTS_ENABLED_KEY) === 'true';
+  const savedSubtitleEnabled =
+    localStorage.getItem(SUBTITLE_ENABLED_KEY) !== 'false';
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
   const darkModeFromQuery = getQueryPreference('darkMode');
@@ -118,10 +118,10 @@ export const useGlobalPreference = create<{
       set({ playbackSpeed: speed });
       localStorage.setItem(PLAYBACK_SPEED_KEY, speed.toString());
     },
-    effectsEnabled: savedEffectsEnabled,
-    setEffectsEnabled: (enabled: boolean) => {
-      set({ effectsEnabled: enabled });
-      localStorage.setItem(EFFECTS_ENABLED_KEY, enabled.toString());
+    subtitleEnabled: savedSubtitleEnabled,
+    setSubtitleEnabled: (enabled: boolean) => {
+      set({ subtitleEnabled: enabled });
+      localStorage.setItem(SUBTITLE_ENABLED_KEY, enabled.toString());
     },
   };
 });

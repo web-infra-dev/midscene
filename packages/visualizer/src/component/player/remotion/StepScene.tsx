@@ -1,41 +1,9 @@
 import { useMemo } from 'react';
-import {
-  AbsoluteFill,
-  Img,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-} from 'remotion';
+import { AbsoluteFill, Img, useCurrentFrame, useVideoConfig } from 'remotion';
 import { mouseLoading } from '../../../utils';
-import {
-  AndroidNavBar,
-  BatteryIcon,
-  HudCornerBracket,
-  SignalBarsIcon,
-  WifiIcon,
-} from './CyberOverlays';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
-import {
-  ANDROID_NAV_BAR_H,
-  ANDROID_STATUS_BAR_H,
-  CHROME_DOTS,
-  CHROME_TITLE_BAR_H,
-  DESKTOP_APP_TITLE_BAR_H,
-  type DeviceShellType,
-  IPHONE_HOME_INDICATOR_H,
-  IPHONE_STATUS_BAR_H,
-  getBrowser3DTransform,
-  getCursorTrail,
-  getDeviceLayout,
-  getGlitchSlices,
-  getHudCorners,
-  getImageBlur,
-  getRippleState,
-  getScanlineOffset,
-  resolveShellType,
-} from './visual-effects';
+import { getDeviceLayout, resolveShellType } from './visual-effects';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -44,9 +12,9 @@ const CROSSFADE_FRAMES = 10;
 
 export const StepsTimeline: React.FC<{
   frameMap: FrameMap;
-  effects: boolean;
   autoZoom: boolean;
-}> = ({ frameMap, effects, autoZoom }) => {
+  subtitleEnabled: boolean;
+}> = ({ frameMap, autoZoom, subtitleEnabled }) => {
   const frame = useCurrentFrame();
   const { fps, width: compWidth, height: compHeight } = useVideoConfig();
 
@@ -77,7 +45,6 @@ export const StepsTimeline: React.FC<{
     title,
     subTitle,
     frameInScript,
-    scriptIndex,
     imageChanged,
     pointerMoved,
     rawProgress,
@@ -111,11 +78,7 @@ export const StepsTimeline: React.FC<{
   // ── Layout calculations ──
   const shellType = resolveShellType(frameMap.deviceType);
   const deviceLayout = getDeviceLayout(shellType);
-  const isMobileShell = shellType === 'iphone' || shellType === 'android';
-  const DEVICE_MARGIN = effects ? deviceLayout.margin : 0;
   const isPortraitImage = imgH > imgW;
-  // Bezel width for device shell (visible frame around screen)
-  const BEZEL = effects ? (isMobileShell ? 28 : 16) : 0;
 
   let browserW: number;
   let contentH: number;
@@ -123,27 +86,7 @@ export const StepsTimeline: React.FC<{
   let shellLeft: number;
   let shellTop: number;
 
-  if (effects && isPortraitImage) {
-    // Portrait device in landscape canvas — phone centered with bezel
-    shellTop = DEVICE_MARGIN;
-    browserH = compHeight - DEVICE_MARGIN * 2 - BEZEL * 2;
-    contentH = browserH - deviceLayout.topInset - deviceLayout.bottomInset;
-    browserW = Math.round(contentH * (imgW / imgH));
-    shellLeft = Math.round((compWidth - browserW) / 2) - BEZEL;
-  } else if (effects) {
-    // Landscape device — fills canvas
-    shellLeft = DEVICE_MARGIN;
-    shellTop = DEVICE_MARGIN;
-    browserW = compWidth - DEVICE_MARGIN * 2 - BEZEL * 2;
-    contentH =
-      compHeight -
-      DEVICE_MARGIN * 2 -
-      BEZEL * 2 -
-      deviceLayout.topInset -
-      deviceLayout.bottomInset;
-    browserH = contentH + deviceLayout.topInset + deviceLayout.bottomInset;
-  } else if (isPortraitImage) {
-    // Clean mode, portrait image in landscape canvas — content centered
+  if (isPortraitImage) {
     shellTop = 0;
     contentH = compHeight;
     browserW = Math.round(compHeight * (imgW / imgH));
@@ -186,101 +129,66 @@ export const StepsTimeline: React.FC<{
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
     : 1;
 
-  const blurPx = effects ? getImageBlur(frameInScript, imageChanged) : 0;
-
-  const initialFade = effects
-    ? interpolate(frame, [0, 8], [0, 1], { extrapolateRight: 'clamp' })
-    : 1;
-
-  const badgeScale = spring({
-    frame: frameInScript,
-    fps,
-    config: { damping: 12, stiffness: 100 },
-    delay: 5,
-  });
-
-  // ── Effects-only visual calculations ──
-  const scanOffset = effects ? getScanlineOffset(frame) : 0;
-  const hudCorners = effects ? getHudCorners(compWidth, compHeight, 8) : [];
-
-  const isFirstStep = scriptIndex === 0;
-  const transform3d =
-    effects && isFirstStep
-      ? getBrowser3DTransform(frameInScript, frame)
-      : { rotateX: 0, rotateY: 0, translateZ: 0, scale: 1 };
-
-  const pointerArrivalFrame = Math.floor(frameInScript * POINTER_PHASE);
-  const framesAfterArrival = frameInScript - pointerArrivalFrame;
-  const ripple =
-    effects && pointerMoved
-      ? getRippleState(framesAfterArrival)
-      : { active: false, radius: 0, opacity: 0 };
-  const ripple2 =
-    effects && pointerMoved
-      ? getRippleState(framesAfterArrival - 3)
-      : { active: false, radius: 0, opacity: 0 };
-
-  const glitchSlices =
-    effects && imageChanged
-      ? getGlitchSlices(frame, frame - frameInScript)
-      : [];
-
-  const trailPositions = useMemo(() => {
-    if (!showCursor || !effects || !pointerMoved) return [];
-    const positions: { x: number; y: number }[] = [];
-    const sf = scriptFrames[scriptIndex];
-    if (!sf || sf.durationInFrames === 0) return [];
-    for (let i = 0; i < 6; i++) {
-      const pastLocalFrame = frameInScript - i;
-      if (pastLocalFrame < 0) break;
-      const pastRaw = Math.min(pastLocalFrame / sf.durationInFrames, 1);
-      const pastPT = Math.min(pastRaw / POINTER_PHASE, 1);
-      const pastPtrLeft =
-        prevCamera.pointerLeft +
-        (camera.pointerLeft - prevCamera.pointerLeft) * pastPT;
-      const pastPtrTop =
-        prevCamera.pointerTop +
-        (camera.pointerTop - prevCamera.pointerTop) * pastPT;
-      const pastCT =
-        pastRaw <= POINTER_PHASE
-          ? 0
-          : Math.min((pastRaw - POINTER_PHASE) / (1 - POINTER_PHASE), 1);
-      const pastCamLeft =
-        prevCamera.left + (camera.left - prevCamera.left) * pastCT;
-      const pastCamTop =
-        prevCamera.top + (camera.top - prevCamera.top) * pastCT;
-      const pastCamW =
-        prevCamera.width + (camera.width - prevCamera.width) * pastCT;
-      const pastCamH = pastCamW * (imgH / imgW);
-      const x = ((pastPtrLeft - pastCamLeft) / pastCamW) * browserW;
-      const y = ((pastPtrTop - pastCamTop) / pastCamH) * contentH;
-      positions.push({ x, y });
-    }
-    return positions;
-  }, [
-    frame,
-    showCursor,
-    effects,
-    pointerMoved,
-    scriptFrames,
-    scriptIndex,
-    frameInScript,
-    prevCamera,
-    camera,
-    imgW,
-    imgH,
-    browserW,
-    contentH,
-  ]);
-
-  const trail =
-    showCursor && pointerMoved && effects ? getCursorTrail(trailPositions) : [];
-
   const spinRotation = spinningPointer
     ? ((Math.sin(spinningElapsedMs / 500 - Math.PI / 2) + 1) / 2) * Math.PI * 2
     : 0;
 
-  const bgColor = effects ? '#0a0a12' : '#000';
+  // ── AI subtitle indicator ──
+  const renderSubtitleIndicator = (maxWidth: string) => {
+    if (!subtitleEnabled || (!title && !subTitle)) return null;
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          bottom: subBottom,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: subGap,
+          height: subHeight,
+          padding: `0 ${subPadH}px`,
+          background: 'rgba(80, 80, 80, 0.75)',
+          backdropFilter: 'blur(8px)',
+          borderRadius: subRadius,
+          zIndex: 10,
+          maxWidth,
+        }}
+      >
+        <span
+          style={{
+            fontSize: subBadgeFontSize,
+            fontWeight: 700,
+            color: '#fff',
+            background: 'rgba(163, 77, 255, 1)',
+            width: subBadgeW,
+            height: subBadgeH,
+            borderRadius: 4,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            letterSpacing: 0.5,
+            flexShrink: 0,
+          }}
+        >
+          AI
+        </span>
+        <div
+          style={{
+            minWidth: 0,
+            overflow: 'hidden',
+            fontSize: subFontSize,
+            fontWeight: 500,
+            color: '#fff',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {[title, subTitle].filter(Boolean).join('–')}
+        </div>
+      </div>
+    );
+  };
 
   // ── Insight overlay rendering ──
   const renderInsightOverlays = () => {
@@ -289,8 +197,7 @@ export const StepsTimeline: React.FC<{
       const overlays: React.ReactNode[] = [];
 
       if (insight.highlightElement) {
-        const el = insight.highlightElement;
-        const rect = el.rect;
+        const rect = insight.highlightElement.rect;
         overlays.push(
           <div
             key={`highlight-${idx}`}
@@ -335,11 +242,7 @@ export const StepsTimeline: React.FC<{
     });
   };
 
-  // ── Shared content area rendering ──
-  const cursorFilter = effects
-    ? 'drop-shadow(0 0 4px rgba(0,255,255,0.6)) drop-shadow(0 1px 2px rgba(0,0,0,0.5))'
-    : 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))';
-
+  // ── Content area rendering ──
   const renderContentArea = (w: number, h: number) => (
     <div
       style={{
@@ -347,7 +250,6 @@ export const StepsTimeline: React.FC<{
         height: h,
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: effects ? '#000' : undefined,
       }}
     >
       {imageChanged && prevImg && crossfadeAlpha < 1 && (
@@ -388,7 +290,6 @@ export const StepsTimeline: React.FC<{
             height: h,
             transformOrigin: '0 0',
             transform: transformStyle,
-            filter: blurPx > 0 ? `blur(${blurPx}px)` : undefined,
           }}
         />
         <div
@@ -407,60 +308,6 @@ export const StepsTimeline: React.FC<{
         </div>
       </div>
 
-      {effects &&
-        glitchSlices.map((slice, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: slice.offsetX,
-              top: `${slice.y * 100}%`,
-              width: w,
-              height: `${slice.height * 100}%`,
-              overflow: 'hidden',
-              opacity: 0.7,
-              mixBlendMode: 'screen',
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: 'rgba(0,255,255,0.15)',
-                transform: `translateX(${slice.rgbSplit}px)`,
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backgroundColor: 'rgba(255,0,255,0.15)',
-                transform: `translateX(${-slice.rgbSplit}px)`,
-              }}
-            />
-          </div>
-        ))}
-
-      {effects &&
-        trail.map((pt, i) => (
-          <div
-            key={i}
-            style={{
-              position: 'absolute',
-              left: pt.x - pt.size / 2,
-              top: pt.y - pt.size / 2,
-              width: pt.size,
-              height: pt.size,
-              borderRadius: '50%',
-              backgroundColor: `rgba(0, 255, 255, ${pt.alpha})`,
-              boxShadow: `0 0 ${pt.size}px rgba(0, 255, 255, ${pt.alpha * 0.8})`,
-              filter: `blur(${pt.size * 0.3}px)`,
-              pointerEvents: 'none',
-            }}
-          />
-        ))}
-
       {spinningPointer && (
         <Img
           src={mouseLoading}
@@ -472,7 +319,7 @@ export const StepsTimeline: React.FC<{
             height: 28,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
-            filter: cursorFilter,
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />
       )}
@@ -486,461 +333,15 @@ export const StepsTimeline: React.FC<{
             top: ptrY - 2,
             width: 22,
             height: 28,
-            filter: cursorFilter,
-          }}
-        />
-      )}
-
-      {effects && ripple.active && (
-        <div
-          style={{
-            position: 'absolute',
-            left: ptrX - ripple.radius,
-            top: ptrY - ripple.radius,
-            width: ripple.radius * 2,
-            height: ripple.radius * 2,
-            borderRadius: '50%',
-            border: `2px solid rgba(0, 255, 255, ${ripple.opacity})`,
-            boxShadow: `0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.6}), inset 0 0 8px rgba(0, 255, 255, ${ripple.opacity * 0.3})`,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-      {effects && ripple2.active && (
-        <div
-          style={{
-            position: 'absolute',
-            left: ptrX - ripple2.radius,
-            top: ptrY - ripple2.radius,
-            width: ripple2.radius * 2,
-            height: ripple2.radius * 2,
-            borderRadius: '50%',
-            border: `1.5px solid rgba(255, 0, 255, ${ripple2.opacity * 0.7})`,
-            boxShadow: `0 0 6px rgba(255, 0, 255, ${ripple2.opacity * 0.4})`,
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-
-      {effects && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage:
-              'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0, 0, 0, 0.05) 3px, rgba(0, 0, 0, 0.05) 4px)',
-            backgroundPositionY: scanOffset,
-            pointerEvents: 'none',
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />
       )}
     </div>
   );
 
-  // ── Device shell renderers ──
-
-  const trafficLights = CHROME_DOTS.map((dot) => (
-    <div
-      key={dot.color}
-      style={{
-        position: 'absolute',
-        left: dot.x,
-        top: '50%',
-        marginTop: -5,
-        width: 10,
-        height: 10,
-        borderRadius: '50%',
-        backgroundColor: dot.color,
-        boxShadow: `0 0 4px ${dot.color}40`,
-      }}
-    />
-  ));
-
-  const titleBarBaseStyle: React.CSSProperties = {
-    width: browserW,
-    background: 'linear-gradient(180deg, #2a2a35 0%, #1e1e28 100%)',
-    display: 'flex',
-    alignItems: 'center',
-    borderBottom: '1px solid rgba(0,255,255,0.15)',
-    position: 'relative',
-    flexShrink: 0,
-  };
-
-  const renderDesktopBrowserTop = () => (
-    <div style={{ ...titleBarBaseStyle, height: CHROME_TITLE_BAR_H }}>
-      {trafficLights}
-      <div
-        style={{
-          position: 'absolute',
-          left: 70,
-          right: 14,
-          top: '50%',
-          marginTop: -11,
-          height: 22,
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          borderRadius: 6,
-          border: '1px solid rgba(255,255,255,0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          paddingLeft: 10,
-          paddingRight: 10,
-        }}
-      >
-        <span
-          style={{
-            color: 'rgba(0,255,255,0.4)',
-            fontSize: 10,
-            fontFamily: 'monospace',
-            letterSpacing: 0.5,
-          }}
-        >
-          https://
-        </span>
-        <span
-          style={{
-            color: 'rgba(255,255,255,0.5)',
-            fontSize: 10,
-            fontFamily: 'monospace',
-            letterSpacing: 0.5,
-          }}
-        >
-          app.example.com
-        </span>
-      </div>
-    </div>
-  );
-
-  const renderDesktopAppTop = () => (
-    <div style={{ ...titleBarBaseStyle, height: DESKTOP_APP_TITLE_BAR_H }}>
-      {trafficLights}
-      <span
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          textAlign: 'center',
-          color: 'rgba(255,255,255,0.5)',
-          fontSize: 11,
-          fontFamily: 'monospace',
-          letterSpacing: 0.5,
-        }}
-      >
-        Desktop Application
-      </span>
-    </div>
-  );
-
-  const renderIPhoneTop = () => (
-    <div
-      style={{
-        width: browserW,
-        height: IPHONE_STATUS_BAR_H,
-        background: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 20px',
-        position: 'relative',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 600,
-          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-        }}
-      >
-        9:41
-      </span>
-      <div
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 120,
-          height: 34,
-          borderRadius: 17,
-          backgroundColor: '#000',
-          border: '1px solid rgba(255,255,255,0.08)',
-        }}
-      />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <SignalBarsIcon barWidth={3} gap={1} />
-        <WifiIcon />
-        <BatteryIcon />
-      </div>
-    </div>
-  );
-
-  const renderIPhoneBottom = () => (
-    <div
-      style={{
-        width: browserW,
-        height: IPHONE_HOME_INDICATOR_H,
-        background: '#000',
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        paddingBottom: 8,
-        flexShrink: 0,
-      }}
-    >
-      <div
-        style={{
-          width: 134,
-          height: 5,
-          borderRadius: 3,
-          backgroundColor: 'rgba(255,255,255,0.5)',
-        }}
-      />
-    </div>
-  );
-
-  const renderAndroidTop = () => (
-    <div
-      style={{
-        width: browserW,
-        height: ANDROID_STATUS_BAR_H,
-        background: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 32px',
-        position: 'relative',
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          color: '#fff',
-          fontSize: 26,
-          fontFamily: 'Roboto, sans-serif',
-        }}
-      >
-        12:00
-      </span>
-      <div
-        style={{
-          position: 'absolute',
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 24,
-          height: 24,
-          borderRadius: '50%',
-          backgroundColor: '#1a1a1a',
-          border: '2px solid rgba(255,255,255,0.1)',
-        }}
-      />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <SignalBarsIcon barWidth={5} gap={2} />
-        <BatteryIcon
-          width={40}
-          height={20}
-          fillPercent={75}
-          fillColor="#fff"
-          borderRadius={3}
-        />
-      </div>
-    </div>
-  );
-
-  const renderAndroidBottom = () => (
-    <div
-      style={{
-        width: browserW,
-        height: ANDROID_NAV_BAR_H,
-        background: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 80,
-        flexShrink: 0,
-      }}
-    >
-      <AndroidNavBar />
-    </div>
-  );
-
-  const renderDeviceTop = (st: DeviceShellType) => {
-    switch (st) {
-      case 'iphone':
-        return renderIPhoneTop();
-      case 'android':
-        return renderAndroidTop();
-      case 'desktop-app':
-        return renderDesktopAppTop();
-      default:
-        return renderDesktopBrowserTop();
-    }
-  };
-
-  const renderDeviceBottom = (st: DeviceShellType) => {
-    switch (st) {
-      case 'iphone':
-        return renderIPhoneBottom();
-      case 'android':
-        return renderAndroidBottom();
-      default:
-        return null;
-    }
-  };
-
-  if (effects) {
-    return (
-      <AbsoluteFill
-        style={{
-          backgroundColor: bgColor,
-          opacity: initialFade,
-          perspective: 1200,
-        }}
-      >
-        {/* 3D Device Shell */}
-        <div
-          style={{
-            position: 'absolute',
-            left: shellLeft,
-            top: shellTop,
-            width: browserW + BEZEL * 2,
-            height: browserH + BEZEL * 2,
-            padding: BEZEL,
-            boxSizing: 'border-box',
-            transformStyle: 'preserve-3d',
-            transform: [
-              `scale(${transform3d.scale})`,
-              `rotateX(${transform3d.rotateX}deg)`,
-              `rotateY(${transform3d.rotateY}deg)`,
-              `translateZ(${transform3d.translateZ}px)`,
-            ].join(' '),
-            borderRadius: deviceLayout.borderRadius,
-            overflow: 'hidden',
-            background: isMobileShell
-              ? 'linear-gradient(145deg, #555 0%, #333 40%, #444 100%)'
-              : 'linear-gradient(145deg, #444 0%, #2a2a2a 40%, #333 100%)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: [
-              '0 20px 60px rgba(0,0,0,0.6)',
-              'inset 0 1px 0 rgba(255,255,255,0.12)',
-              '0 0 30px rgba(0,255,255,0.08)',
-            ].join(', '),
-          }}
-        >
-          {deviceLayout.topInset > 0 && renderDeviceTop(shellType)}
-          {renderContentArea(browserW, contentH)}
-          {deviceLayout.bottomInset > 0 && renderDeviceBottom(shellType)}
-
-          <div
-            style={{
-              position: 'absolute',
-              inset: BEZEL,
-              borderRadius: Math.max(deviceLayout.borderRadius - BEZEL, 0),
-              boxShadow: 'inset 0 0 2px rgba(255,255,255,0.12)',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
-
-        {/* Step number badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 8,
-            left: 8,
-            transform: `scale(${badgeScale})`,
-            backgroundColor: 'rgba(0, 20, 40, 0.9)',
-            color: '#0ff',
-            width: 36,
-            height: 36,
-            borderRadius: 4,
-            border: '1px solid rgba(0, 255, 255, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16,
-            fontWeight: 700,
-            fontFamily: 'monospace',
-            boxShadow:
-              '0 0 8px rgba(0,255,255,0.3), inset 0 0 8px rgba(0,255,255,0.1)',
-            textShadow: '0 0 6px rgba(0,255,255,0.8)',
-            zIndex: 10,
-          }}
-        >
-          {scriptIndex + 1}
-        </div>
-
-        {/* AI prompt indicator */}
-        {(title || subTitle) && (
-          <div
-            style={{
-              position: 'absolute',
-              bottom: subBottom,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: subGap,
-              height: subHeight,
-              padding: `0 ${subPadH}px`,
-              background: 'rgba(80, 80, 80, 0.75)',
-              backdropFilter: 'blur(8px)',
-              borderRadius: subRadius,
-              zIndex: 10,
-              maxWidth: `calc(100% - ${(DEVICE_MARGIN + 8) * 2}px)`,
-            }}
-          >
-            <span
-              style={{
-                fontSize: subBadgeFontSize,
-                fontWeight: 700,
-                color: '#fff',
-                background: 'rgba(163, 77, 255, 1)',
-                width: subBadgeW,
-                height: subBadgeH,
-                borderRadius: 4,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                letterSpacing: 0.5,
-                flexShrink: 0,
-              }}
-            >
-              AI
-            </span>
-            <div
-              style={{
-                minWidth: 0,
-                overflow: 'hidden',
-                fontSize: subFontSize,
-                fontWeight: 500,
-                color: '#fff',
-                whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {[title, subTitle].filter(Boolean).join('–')}
-            </div>
-          </div>
-        )}
-
-        {/* HUD corners */}
-        {hudCorners.map((c, i) => (
-          <HudCornerBracket key={i} {...c} opacity={0.3} size={16} />
-        ))}
-      </AbsoluteFill>
-    );
-  }
-
-  // ── Clean mode (no effects) ──
   return (
-    <AbsoluteFill
-      style={{
-        backgroundColor: bgColor,
-        opacity: initialFade,
-      }}
-    >
+    <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {isPortraitImage ? (
         <div
           style={{
@@ -959,59 +360,7 @@ export const StepsTimeline: React.FC<{
         renderContentArea(compWidth, compHeight)
       )}
 
-      {/* AI prompt indicator (clean mode) */}
-      {(title || subTitle) && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: subBottom,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: subGap,
-            height: subHeight,
-            padding: `0 ${subPadH}px`,
-            background: 'rgba(80, 80, 80, 0.75)',
-            backdropFilter: 'blur(8px)',
-            borderRadius: subRadius,
-            zIndex: 10,
-            maxWidth: 'calc(100% - 16px)',
-          }}
-        >
-          <span
-            style={{
-              fontSize: subBadgeFontSize,
-              fontWeight: 700,
-              color: '#fff',
-              background: 'rgba(163, 77, 255, 1)',
-              width: subBadgeW,
-              height: subBadgeH,
-              borderRadius: 4,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              letterSpacing: 0.5,
-              flexShrink: 0,
-            }}
-          >
-            AI
-          </span>
-          <div
-            style={{
-              minWidth: 0,
-              overflow: 'hidden',
-              fontSize: subFontSize,
-              fontWeight: 500,
-              color: '#fff',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {[title, subTitle].filter(Boolean).join('–')}
-          </div>
-        </div>
-      )}
+      {renderSubtitleIndicator('calc(100% - 16px)')}
     </AbsoluteFill>
   );
 };

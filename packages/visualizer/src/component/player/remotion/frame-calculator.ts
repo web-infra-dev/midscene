@@ -2,8 +2,6 @@ import type { LocateResultElement, Rect } from '@midscene/core';
 import type { AnimationScript } from '../../../utils/replay-scripts';
 
 export const FPS = 30;
-export const OPENING_FRAMES = 90; // 3 seconds
-export const ENDING_FRAMES = 90; // 3 seconds
 
 // ── New ScriptFrame-based data structures ──
 
@@ -49,16 +47,10 @@ export interface ScriptFrame {
   taskId?: string;
 }
 
-export interface FrameMapOptions {
-  effects: boolean; // include opening/ending
-}
-
 export interface FrameMap {
   scriptFrames: ScriptFrame[];
   totalDurationInFrames: number;
   fps: number; // 30
-  openingDurationInFrames: number;
-  endingDurationInFrames: number;
   stepsDurationInFrames: number;
   imageWidth: number;
   imageHeight: number;
@@ -69,12 +61,8 @@ export interface FrameMap {
 
 export function calculateFrameMap(
   scripts: AnimationScript[],
-  options?: Partial<FrameMapOptions> & { deviceType?: string },
+  options?: { deviceType?: string },
 ): FrameMap {
-  const effects = options?.effects ?? true;
-  const openingFrames = effects ? OPENING_FRAMES : 0;
-  const endingFrames = effects ? ENDING_FRAMES : 0;
-
   // Determine base image dimensions from first img/insight script
   let baseImageWidth = 1920;
   let baseImageHeight = 1080;
@@ -232,10 +220,8 @@ export function calculateFrameMap(
 
   return {
     scriptFrames,
-    totalDurationInFrames: openingFrames + stepsDurationInFrames + endingFrames,
+    totalDurationInFrames: stepsDurationInFrames,
     fps: FPS,
-    openingDurationInFrames: openingFrames,
-    endingDurationInFrames: endingFrames,
     stepsDurationInFrames,
     imageWidth: baseImageWidth,
     imageHeight: baseImageHeight,
