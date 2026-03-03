@@ -1,5 +1,15 @@
 import { createRequire } from 'node:module';
 import { ComputerDevice, type DisplayInfo } from './device';
+
+const computerPkg = createRequire(import.meta.url)('../package.json') as {
+  version: string;
+};
+
+export function version(): string {
+  const currentVersion = computerPkg.version;
+  console.log(`@midscene/computer v${currentVersion}`);
+  return currentVersion;
+}
 export interface EnvironmentCheck {
   available: boolean;
   error?: string;

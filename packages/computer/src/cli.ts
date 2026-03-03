@@ -1,10 +1,15 @@
+import { createRequire } from 'node:module';
 import { CLIError, runToolsCLI } from '@midscene/shared/cli';
 import { ComputerMidsceneTools } from './mcp-tools';
+const pkg = createRequire(import.meta.url)('../package.json') as {
+  version: string;
+};
 
 const tools = new ComputerMidsceneTools();
-runToolsCLI(tools, 'midscene-computer', { stripPrefix: 'computer_' }).catch(
-  (e) => {
-    if (!(e instanceof CLIError)) console.error(e);
-    process.exit(e instanceof CLIError ? e.exitCode : 1);
-  },
-);
+runToolsCLI(tools, 'midscene-computer', {
+  stripPrefix: 'computer_',
+  version: pkg.version,
+}).catch((e) => {
+  if (!(e instanceof CLIError)) console.error(e);
+  process.exit(e instanceof CLIError ? e.exitCode : 1);
+});

@@ -174,6 +174,10 @@ async function getLibnut(): Promise<LibNut> {
   }
 }
 
+const computerPkg = createRequire(import.meta.url)('../package.json') as {
+  version: string;
+};
+
 const debugDevice = getDebug('computer:device');
 
 /**
@@ -399,6 +403,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   private async healthCheck(): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
+    console.log(`[HealthCheck] @midscene/computer v${computerPkg.version}`);
 
     // Step 1: Take a screenshot (with timeout to handle screenshot-desktop
     // hanging when xrandr is missing on Linux — its promise never settles)
