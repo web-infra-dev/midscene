@@ -163,7 +163,10 @@ export class EventRecorder {
     // Add event listeners
     document.addEventListener('click', this.handleClick, true);
     document.addEventListener('input', this.handleInput);
-    document.addEventListener('scroll', this.handleScroll, { capture: true, passive: true });
+    document.addEventListener('scroll', this.handleScroll, {
+      capture: true,
+      passive: true,
+    });
   }
 
   // Stop recording
