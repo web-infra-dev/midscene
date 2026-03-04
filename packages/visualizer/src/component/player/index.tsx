@@ -17,6 +17,7 @@ import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import type { AnimationScript } from '../../utils/replay-scripts';
 import { StepsTimeline } from './remotion/StepScene';
+import { deriveFrameState } from './remotion/derive-frame-state';
 import { exportBrandedVideo } from './remotion/export-branded-video';
 import { calculateFrameMap } from './remotion/frame-calculator';
 import type { FrameMap, ScriptFrame } from './remotion/frame-calculator';
@@ -92,7 +93,7 @@ export function Player(props?: {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const renderLayerRef = useRef<HTMLDivElement>(null);
   const lastTaskIdRef = useRef<string | null>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
   // Observe render layer size to compute scale factor
   useEffect(() => {
@@ -100,7 +101,12 @@ export function Player(props?: {
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+        const { width, height } = entry.contentRect;
+        setContainerSize((prev) =>
+          prev.width === width && prev.height === height
+            ? prev
+            : { width, height },
+        );
       }
     });
     ro.observe(el);
@@ -124,6 +130,20 @@ export function Player(props?: {
       props.onTaskChange(taskId);
     }
   }, [frameMap, props?.onTaskChange, player.currentFrame]);
+
+  // Derive subtitle from current frame
+  const subtitle = useMemo(() => {
+    if (!frameMap) return null;
+    const state = deriveFrameState(
+      frameMap.scriptFrames,
+      player.currentFrame,
+      frameMap.imageWidth,
+      frameMap.imageHeight,
+      frameMap.fps,
+    );
+    if (!state.title && !state.subTitle) return null;
+    return { title: state.title, subTitle: state.subTitle };
+  }, [frameMap, player.currentFrame]);
 
   // Controls auto-hide
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -254,9 +274,9 @@ export function Player(props?: {
   const imgH = frameMap.imageHeight;
   const isPortraitImage = imgH > imgW;
 
-  const compositionWidth = isPortraitImage ? Math.round((imgH * 4) / 3) : imgW;
+  const compositionWidth = imgW;
   const compositionHeight = imgH;
-  const isPortraitCanvas = compositionHeight > compositionWidth;
+  const isPortraitCanvas = imgH > imgW;
 
   const totalFrames = frameMap.totalDurationInFrames;
   const seekPercent =
@@ -276,39 +296,72 @@ export function Player(props?: {
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
-          {/* Render layer — renders at native resolution, scaled to fit */}
+          {/* Render layer — renders at native resolution, scaled to fit & centered */}
           <div
             ref={renderLayerRef}
             style={{
-              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
               width: '100%',
               height: '100%',
               overflow: 'hidden',
             }}
             onClick={player.toggle}
           >
-            <div
-              style={{
-                width: compositionWidth,
-                height: compositionHeight,
-                transformOrigin: '0 0',
-                transform:
-                  containerWidth > 0
-                    ? `scale(${containerWidth / compositionWidth})`
-                    : undefined,
-              }}
-            >
-              <StepsTimeline
-                frameMap={frameMap}
-                autoZoom={autoZoom}
-                subtitleEnabled={subtitleEnabled}
-                frame={player.currentFrame}
-                width={compositionWidth}
-                height={compositionHeight}
-                fps={frameMap.fps}
-              />
-            </div>
+            {(() => {
+              const scale =
+                containerSize.width > 0 && containerSize.height > 0
+                  ? Math.min(
+                      containerSize.width / compositionWidth,
+                      containerSize.height / compositionHeight,
+                    )
+                  : 1;
+              return (
+                <div
+                  style={{
+                    width: compositionWidth * scale,
+                    height: compositionHeight * scale,
+                    flexShrink: 0,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: compositionWidth,
+                      height: compositionHeight,
+                      transformOrigin: '0 0',
+                      transform: `scale(${scale})`,
+                    }}
+                  >
+                    <StepsTimeline
+                      frameMap={frameMap}
+                      autoZoom={autoZoom}
+                      frame={player.currentFrame}
+                      width={compositionWidth}
+                      height={compositionHeight}
+                      fps={frameMap.fps}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
+
+          {/* Subtitle — rendered in display coordinates, outside scaled content */}
+          {subtitleEnabled && subtitle && (
+            <div className="player-subtitle">
+              {subtitle.title && (
+                <span className="player-subtitle-badge">{subtitle.title}</span>
+              )}
+              {subtitle.subTitle && (
+                <span className="player-subtitle-text">
+                  {subtitle.subTitle}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Control bar */}
           <div
@@ -516,10 +569,10 @@ export function Player(props?: {
                   />
                 </div>
               </Dropdown>
-            </div>
 
-            <div className="status-icon" onClick={toggleFullscreen}>
-              {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+              <div className="status-icon" onClick={toggleFullscreen}>
+                {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+              </div>
             </div>
           </div>
         </div>

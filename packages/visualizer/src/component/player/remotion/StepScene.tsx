@@ -11,7 +11,6 @@ const CROSSFADE_FRAMES = 10;
 export const StepsTimeline: React.FC<{
   frameMap: FrameMap;
   autoZoom: boolean;
-  subtitleEnabled: boolean;
   frame: number;
   width: number;
   height: number;
@@ -19,7 +18,6 @@ export const StepsTimeline: React.FC<{
 }> = ({
   frameMap,
   autoZoom,
-  subtitleEnabled,
   frame,
   width: compWidth,
   height: compHeight,
@@ -89,17 +87,6 @@ export const StepsTimeline: React.FC<{
     : compWidth;
   const portraitLeft = Math.round((compWidth - browserW) / 2);
 
-  const subScale = compWidth / 1920;
-  const subFontSize = Math.round(Math.max(20 * subScale, 12));
-  const subBadgeFontSize = Math.round(Math.max(18 * subScale, 11));
-  const subHeight = Math.round(Math.max(48 * subScale, 28));
-  const subBadgeW = Math.round(Math.max(44 * subScale, 24));
-  const subBadgeH = Math.round(Math.max(32 * subScale, 18));
-  const subPadH = Math.round(Math.max(20 * subScale, 10));
-  const subGap = Math.round(Math.max(12 * subScale, 6));
-  const subRadius = Math.round(Math.max(12 * subScale, 6));
-  const subBottom = Math.round(Math.max(100 * subScale, 50));
-
   const zoom = imgW / cameraWidth;
   const tx = -cameraLeft * (browserW / imgW);
   const ty = -cameraTop * (compHeight / imgH);
@@ -121,66 +108,6 @@ export const StepsTimeline: React.FC<{
   const spinRotation = spinningPointer
     ? ((Math.sin(spinningElapsedMs / 500 - Math.PI / 2) + 1) / 2) * Math.PI * 2
     : 0;
-
-  // ── Subtitle indicator ──
-  const renderSubtitleIndicator = (maxWidth: string) => {
-    if (!subtitleEnabled || (!title && !subTitle)) return null;
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          bottom: subBottom,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: subGap,
-          height: subHeight,
-          padding: `0 ${subPadH}px`,
-          background: 'rgba(80, 80, 80, 0.75)',
-          backdropFilter: 'blur(8px)',
-          borderRadius: subRadius,
-          zIndex: 10,
-          maxWidth,
-        }}
-      >
-        {title && (
-          <span
-            style={{
-              fontSize: subBadgeFontSize,
-              fontWeight: 700,
-              color: '#fff',
-              background: 'rgba(163, 77, 255, 1)',
-              height: subBadgeH,
-              borderRadius: 4,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: `0 ${Math.round(subBadgeW * 0.2)}px`,
-              flexShrink: 0,
-            }}
-          >
-            {title}
-          </span>
-        )}
-        {subTitle && (
-          <div
-            style={{
-              minWidth: 0,
-              overflow: 'hidden',
-              fontSize: subFontSize,
-              fontWeight: 500,
-              color: '#fff',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {subTitle}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // ── Insight overlay rendering ──
   const renderInsightOverlays = () => {
@@ -363,8 +290,6 @@ export const StepsTimeline: React.FC<{
       ) : (
         renderContentArea(compWidth, compHeight)
       )}
-
-      {renderSubtitleIndicator('calc(100% - 16px)')}
     </div>
   );
 };

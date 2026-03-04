@@ -60,6 +60,48 @@
     }
   }
 
+  .player-subtitle {
+    position: absolute;
+    bottom: 52px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 14px;
+    background: rgba(80, 80, 80, 0.75);
+    backdrop-filter: blur(8px);
+    border-radius: 8px;
+    z-index: 3;
+    max-width: calc(100% - 24px);
+    pointer-events: none;
+
+    .player-subtitle-badge {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      background: rgba(163, 77, 255, 1);
+      height: 22px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+
+    .player-subtitle-text {
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+  }
+
   .control-bar {
     position: absolute;
     bottom: 0;
