@@ -47,78 +47,98 @@
     background-color: #000;
     border-radius: 4px;
 
-    // Player wrapper positions chapter markers relative to the player.
-    // Uses aspect-ratio (set via style) + width/height constraints
-    // to achieve object-fit:contain-like behavior for the player.
     .player-wrapper {
       position: relative;
       max-width: 100%;
       max-height: 100%;
-
-      // Landscape (default): constrain by width
       width: 100%;
 
-      // Portrait: constrain by height so the full device is visible
       &[data-portrait] {
         width: auto;
         height: 100%;
       }
-
-      > div:not(.chapter-markers) {
-        border: none;
-      }
     }
-
-    // Reset Remotion control bar buttons so inner .status-icon handles hover
-    button {
-      border: none;
-      outline: none;
-      background: none;
-      padding: 0;
-    }
-
-    // Chapter markers overlaid on Remotion's seek bar
-    // Remotion seek bar layout (from player bottom):
-    //   paddingBottom=10 + VERTICAL_PADDING=4 → bar bottom at 14px
-    //   BAR_HEIGHT=5 → bar top at 19px, center at 16.5px
-    //   X_PADDING=12 on each side
-    .chapter-markers {
-      position: absolute;
-      bottom: 14px;
-      left: 12px;
-      right: 12px;
-      height: 5px;
-      pointer-events: none;
-      z-index: 1;
-      transition: opacity 0.3s;
-
-      .chapter-marker {
-        position: absolute;
-        top: 0;
-        width: 2px;
-        height: 100%;
-        background: #fff;
-        transform: translateX(-50%);
-        pointer-events: auto;
-        cursor: pointer;
-
-        // Larger hit area for easier hovering/clicking
-        &::before {
-          content: '';
-          position: absolute;
-          top: -8px;
-          left: -8px;
-          right: -8px;
-          bottom: -8px;
-        }
-      }
-    }
-
-    // Remotion seek bar styles are overridden via JS in useEffect (see index.tsx)
   }
 
-  // Shared icon style for all Remotion control bar buttons
-  // (play/pause, fullscreen, download, settings)
+  .control-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+    transition: opacity 0.3s;
+    z-index: 2;
+
+    &.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+  }
+
+  .time-display {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .seek-bar-track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2.5px;
+    position: relative;
+    cursor: pointer;
+    touch-action: none;
+
+    .seek-bar-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      background: rgba(43, 131, 255, 1);
+      border-radius: 2.5px;
+      pointer-events: none;
+    }
+
+    .seek-bar-knob {
+      position: absolute;
+      top: 50%;
+      width: 8px;
+      height: 16px;
+      background: #fff;
+      border-radius: 10px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .chapter-marker {
+      position: absolute;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: #fff;
+      transform: translateX(-50%);
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 1;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+      }
+    }
+  }
+
   .status-icon {
     transition: 0.2s;
     width: 24px;
@@ -143,7 +163,6 @@
     }
   }
 
-  // Custom controls rendered inside Remotion Player's control bar
   .player-custom-controls {
     display: flex;
     flex-direction: row;

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { AbsoluteFill, Img, useCurrentFrame, useVideoConfig } from 'remotion';
 import { mouseLoading } from '../../../utils';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
@@ -13,10 +12,19 @@ export const StepsTimeline: React.FC<{
   frameMap: FrameMap;
   autoZoom: boolean;
   subtitleEnabled: boolean;
-}> = ({ frameMap, autoZoom, subtitleEnabled }) => {
-  const frame = useCurrentFrame();
-  const { fps, width: compWidth, height: compHeight } = useVideoConfig();
-
+  frame: number;
+  width: number;
+  height: number;
+  fps: number;
+}> = ({
+  frameMap,
+  autoZoom,
+  subtitleEnabled,
+  frame,
+  width: compWidth,
+  height: compHeight,
+  fps,
+}) => {
   const {
     scriptFrames,
     imageWidth: baseImgW,
@@ -246,7 +254,7 @@ export const StepsTimeline: React.FC<{
             opacity: 1 - crossfadeAlpha,
           }}
         >
-          <Img
+          <img
             src={prevImg}
             style={{
               width: w,
@@ -267,7 +275,7 @@ export const StepsTimeline: React.FC<{
           opacity: imageChanged ? crossfadeAlpha : 1,
         }}
       >
-        <Img
+        <img
           src={img}
           style={{
             width: w,
@@ -293,7 +301,7 @@ export const StepsTimeline: React.FC<{
       </div>
 
       {spinningPointer && (
-        <Img
+        <img
           src={mouseLoading}
           style={{
             position: 'absolute',
@@ -309,7 +317,7 @@ export const StepsTimeline: React.FC<{
       )}
 
       {showCursor && !spinningPointer && (
-        <Img
+        <img
           src={currentPointerImg}
           style={{
             position: 'absolute',
@@ -325,7 +333,16 @@ export const StepsTimeline: React.FC<{
   );
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000' }}>
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: '#000',
+      }}
+    >
       {isPortraitImage ? (
         <div
           style={{
@@ -344,6 +361,6 @@ export const StepsTimeline: React.FC<{
       )}
 
       {renderSubtitleIndicator('calc(100% - 16px)')}
-    </AbsoluteFill>
+    </div>
   );
 };

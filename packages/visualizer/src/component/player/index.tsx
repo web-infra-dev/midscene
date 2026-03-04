@@ -8,26 +8,19 @@ import {
   ExpandOutlined,
   ExportOutlined,
   FontSizeOutlined,
-  LoadingOutlined,
   PauseOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import { Player as RemotionPlayer } from '@remotion/player';
-import type {
-  PlayerRef,
-  RenderCustomControls,
-  RenderFullscreenButton,
-  RenderPlayPauseButton,
-} from '@remotion/player';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import type { AnimationScript } from '../../utils/replay-scripts';
-import { Composition } from './remotion/BrandedComposition';
+import { StepsTimeline } from './remotion/StepScene';
 import { exportBrandedVideo } from './remotion/export-branded-video';
 import { calculateFrameMap } from './remotion/frame-calculator';
 import type { FrameMap, ScriptFrame } from './remotion/frame-calculator';
+import { useFramePlayer } from './use-frame-player';
 
 const downloadReport = (content: string): void => {
   const blob = new Blob([content], { type: 'text/html' });
@@ -55,6 +48,13 @@ function deriveTaskId(
     taskId = sf.taskId ?? taskId;
   }
   return taskId;
+}
+
+function formatTime(frame: number, fps: number): string {
+  const totalSeconds = Math.floor(frame / fps);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export function Player(props?: {
@@ -89,112 +89,109 @@ export function Player(props?: {
     return calculateFrameMap(scripts);
   }, [scripts]);
 
-  const playerRef = useRef<PlayerRef>(null);
-  const lastTaskIdRef = useRef<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const markerHoverIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
-    null,
-  );
+  const renderLayerRef = useRef<HTMLDivElement>(null);
+  const lastTaskIdRef = useRef<string | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  // Override Remotion Player seek bar styles via DOM
+  // Observe render layer size to compute scale factor
   useEffect(() => {
-    const node = (playerRef.current as any)?.getContainerNode?.();
-    if (!node) return;
-
-    const applySeekBarStyles = () => {
-      // Find seek bar container (has cursor: pointer and touch-action: none)
-      const seekBarContainer = node.querySelector(
-        '[style*="touch-action"]',
-      ) as HTMLElement | null;
-      if (!seekBarContainer) return;
-
-      // Bar background: first child of seek bar container
-      const barBg = seekBarContainer.firstElementChild as HTMLElement | null;
-      if (barBg) {
-        barBg.style.setProperty(
-          'background-color',
-          'rgba(255, 255, 255, 0.3)',
-          'important',
-        );
+    const el = renderLayerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
       }
-
-      // Fill bar: last child of bar background
-      const fillBar = barBg?.lastElementChild as HTMLElement | null;
-      if (fillBar) {
-        fillBar.style.setProperty(
-          'background-color',
-          'rgba(43, 131, 255, 1)',
-          'important',
-        );
-      }
-
-      // Knob: last child of seek bar container
-      const knob = seekBarContainer.lastElementChild as HTMLElement | null;
-      if (knob && knob !== barBg) {
-        knob.style.setProperty('opacity', '1', 'important');
-        knob.style.setProperty('background-color', '#fff', 'important');
-        knob.style.setProperty('box-shadow', 'none', 'important');
-        knob.style.setProperty('width', '8px', 'important');
-        knob.style.setProperty('height', '16px', 'important');
-        knob.style.setProperty('border-radius', '10px', 'important');
-        // Vertically center: bar center at 6.5px from container top, knob height 16
-        knob.style.setProperty('top', '-1.5px', 'important');
-      }
-
-      // Sync chapter markers visibility with control bar
-      const controlBar = node.querySelector(
-        '[style*="transition"]',
-      ) as HTMLElement | null;
-      const markersEl = wrapperRef.current?.querySelector(
-        '.chapter-markers',
-      ) as HTMLElement | null;
-      if (controlBar && markersEl) {
-        markersEl.style.opacity = window.getComputedStyle(controlBar).opacity;
-      }
-    };
-
-    // Apply initially and observe for re-renders
-    const timer = setInterval(applySeekBarStyles, 300);
-    applySeekBarStyles();
-    return () => clearInterval(timer);
-  }, [frameMap]);
-
-  // Continuously dispatch mousemove on Remotion Player root to keep controls visible
-  // Remotion uses mouseenter/mouseleave/mousemove to track hover state,
-  // and hides controls after a timeout with no mouse activity
-  const onMarkerMouseEnter = useCallback(() => {
-    const node = (playerRef.current as any)?.getContainerNode?.();
-    if (!node) return;
-    const dispatchMove = () => {
-      node.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false }));
-      node.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
-    };
-    dispatchMove();
-    markerHoverIntervalRef.current = setInterval(dispatchMove, 200);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }, []);
-  const onMarkerMouseLeave = useCallback(() => {
-    if (markerHoverIntervalRef.current) {
-      clearInterval(markerHoverIntervalRef.current);
-      markerHoverIntervalRef.current = null;
-    }
-  }, []);
+
+  const player = useFramePlayer({
+    durationInFrames: Math.max(frameMap?.totalDurationInFrames ?? 1, 1),
+    fps: frameMap?.fps ?? 30,
+    autoPlay: true,
+    loop: false,
+    playbackRate: playbackSpeed,
+  });
 
   // Track frame for taskId callback
   useEffect(() => {
     if (!frameMap || !props?.onTaskChange) return;
-    lastTaskIdRef.current = null;
-    const interval = setInterval(() => {
-      const player = playerRef.current;
-      if (!player) return;
-      const frame = player.getCurrentFrame() ?? 0;
-      const taskId = deriveTaskId(frameMap.scriptFrames, frame);
-      if (taskId !== lastTaskIdRef.current) {
-        lastTaskIdRef.current = taskId;
-        props.onTaskChange!(taskId);
-      }
-    }, 200);
-    return () => clearInterval(interval);
-  }, [frameMap, props?.onTaskChange]);
+    const taskId = deriveTaskId(frameMap.scriptFrames, player.currentFrame);
+    if (taskId !== lastTaskIdRef.current) {
+      lastTaskIdRef.current = taskId;
+      props.onTaskChange(taskId);
+    }
+  }, [frameMap, props?.onTaskChange, player.currentFrame]);
+
+  // Controls auto-hide
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+  }, []);
+
+  const onMouseEnter = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
+  }, []);
+
+  // Seek bar drag
+  const seekBarRef = useRef<HTMLDivElement>(null);
+  const handleSeekPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!frameMap || !seekBarRef.current) return;
+      const bar = seekBarRef.current;
+      bar.setPointerCapture(e.pointerId);
+
+      const seek = (clientX: number) => {
+        const rect = bar.getBoundingClientRect();
+        const ratio = Math.max(
+          0,
+          Math.min(1, (clientX - rect.left) / rect.width),
+        );
+        player.seekTo(Math.round(ratio * (frameMap.totalDurationInFrames - 1)));
+      };
+
+      seek(e.clientX);
+
+      const onMove = (ev: PointerEvent) => seek(ev.clientX);
+      const onUp = () => {
+        bar.removeEventListener('pointermove', onMove);
+        bar.removeEventListener('pointerup', onUp);
+      };
+      bar.addEventListener('pointermove', onMove);
+      bar.addEventListener('pointerup', onUp);
+    },
+    [frameMap, player],
+  );
+
+  // Fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const toggleFullscreen = useCallback(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => setIsFullscreen(true));
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false));
+    }
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
 
   // Export video
   const [isExporting, setIsExporting] = useState(false);
@@ -218,202 +215,7 @@ export function Player(props?: {
     }
   }, [frameMap, isExporting]);
 
-  const renderPlayPauseButton: RenderPlayPauseButton = useCallback(
-    ({ playing, isBuffering }) => (
-      <div className="status-icon">
-        {isBuffering ? (
-          <LoadingOutlined spin />
-        ) : playing ? (
-          <PauseOutlined />
-        ) : (
-          <CaretRightOutlined />
-        )}
-      </div>
-    ),
-    [],
-  );
-
-  const renderFullscreenButton: RenderFullscreenButton = useCallback(
-    ({ isFullscreen }) => (
-      <div className="status-icon">
-        {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
-      </div>
-    ),
-    [],
-  );
-
-  const renderCustomControls: RenderCustomControls = useCallback(() => {
-    return (
-      <div className="player-custom-controls">
-        {props?.reportFileContent && props?.canDownloadReport !== false ? (
-          <Tooltip title="Download Report">
-            <div
-              className="status-icon"
-              onClick={() => downloadReport(props.reportFileContent!)}
-            >
-              <DownloadOutlined />
-            </div>
-          </Tooltip>
-        ) : null}
-
-        <Dropdown
-          trigger={['hover', 'click']}
-          placement="topRight"
-          overlayStyle={{ minWidth: '148px' }}
-          dropdownRender={() => (
-            <div className="player-settings-dropdown">
-              {/* Export video */}
-              <div
-                className="player-settings-item"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  height: '32px',
-                  padding: '0 8px',
-                  borderRadius: '4px',
-                  cursor: isExporting ? 'not-allowed' : 'pointer',
-                  opacity: isExporting ? 0.5 : 1,
-                }}
-                onClick={isExporting ? undefined : handleExportVideo}
-              >
-                {isExporting ? (
-                  <Spin size="small" percent={exportProgress} />
-                ) : (
-                  <ExportOutlined style={{ width: '16px', height: '16px' }} />
-                )}
-                <span style={{ fontSize: '12px' }}>
-                  {isExporting
-                    ? `Exporting ${exportProgress}%`
-                    : 'Export video'}
-                </span>
-              </div>
-
-              <div className="player-settings-divider" />
-
-              {/* Focus on cursor toggle */}
-              <div
-                className="player-settings-item"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  height: '32px',
-                  padding: '0 8px',
-                  borderRadius: '4px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <GlobalPerspectiveIcon
-                    style={{ width: '16px', height: '16px' }}
-                  />
-                  <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                    Focus on cursor
-                  </span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={autoZoom}
-                  onChange={(checked) => setAutoZoom(checked)}
-                />
-              </div>
-
-              {/* Subtitle toggle */}
-              <div
-                className="player-settings-item"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  height: '32px',
-                  padding: '0 8px',
-                  borderRadius: '4px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <FontSizeOutlined style={{ width: '16px', height: '16px' }} />
-                  <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                    Subtitle
-                  </span>
-                </div>
-                <Switch
-                  size="small"
-                  checked={subtitleEnabled}
-                  onChange={(checked) => setSubtitleEnabled(checked)}
-                />
-              </div>
-
-              <div className="player-settings-divider" />
-
-              {/* Playback speed */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  height: '32px',
-                  padding: '0 8px',
-                }}
-              >
-                <ThunderboltOutlined
-                  style={{ width: '16px', height: '16px' }}
-                />
-                <span style={{ fontSize: '12px' }}>Playback speed</span>
-              </div>
-              {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
-                <div
-                  key={speed}
-                  onClick={() => setPlaybackSpeed(speed)}
-                  style={{
-                    height: '32px',
-                    lineHeight: '32px',
-                    padding: '0 8px 0 24px',
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                  }}
-                  className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
-                >
-                  {speed}x
-                </div>
-              ))}
-            </div>
-          )}
-          menu={{ items: [] }}
-        >
-          <div className="status-icon">
-            <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
-          </div>
-        </Dropdown>
-      </div>
-    );
-  }, [
-    props?.reportFileContent,
-    props?.canDownloadReport,
-    isExporting,
-    exportProgress,
-    handleExportVideo,
-    autoZoom,
-    setAutoZoom,
-    playbackSpeed,
-    setPlaybackSpeed,
-    subtitleEnabled,
-    setSubtitleEnabled,
-  ]);
-
-  // Compute chapter markers from step boundaries (each img/insight = new chapter)
+  // Compute chapter markers
   const chapterMarkers = useMemo(() => {
     if (!frameMap) return [];
     const { scriptFrames, totalDurationInFrames } = frameMap;
@@ -452,11 +254,13 @@ export function Player(props?: {
   const imgH = frameMap.imageHeight;
   const isPortraitImage = imgH > imgW;
 
-  // For portrait devices, always use a landscape canvas
-  // so the phone / content is shown centered with readable subtitles
   const compositionWidth = isPortraitImage ? Math.round((imgH * 4) / 3) : imgW;
   const compositionHeight = imgH;
   const isPortraitCanvas = compositionHeight > compositionWidth;
+
+  const totalFrames = frameMap.totalDurationInFrames;
+  const seekPercent =
+    totalFrames > 1 ? (player.currentFrame / (totalFrames - 1)) * 100 : 0;
 
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
@@ -468,38 +272,71 @@ export function Player(props?: {
           style={{
             aspectRatio: `${compositionWidth}/${compositionHeight}`,
           }}
+          onMouseMove={showControls}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
         >
-          <RemotionPlayer
-            ref={playerRef}
-            component={Composition}
-            inputProps={{
-              frameMap,
-              autoZoom,
-              subtitleEnabled,
-            }}
-            durationInFrames={Math.max(frameMap.totalDurationInFrames, 1)}
-            compositionWidth={compositionWidth}
-            compositionHeight={compositionHeight}
-            fps={frameMap.fps}
-            playbackRate={playbackSpeed}
-            controls
-            showVolumeControls={false}
-            renderPlayPauseButton={renderPlayPauseButton}
-            renderFullscreenButton={renderFullscreenButton}
-            renderCustomControls={renderCustomControls}
-            autoPlay
-            loop={false}
-            acknowledgeRemotionLicense
+          {/* Render layer — renders at native resolution, scaled to fit */}
+          <div
+            ref={renderLayerRef}
             style={{
+              position: 'relative',
               width: '100%',
               height: '100%',
-              zIndex: 0,
+              overflow: 'hidden',
             }}
-          />
+            onClick={player.toggle}
+          >
+            <div
+              style={{
+                width: compositionWidth,
+                height: compositionHeight,
+                transformOrigin: '0 0',
+                transform:
+                  containerWidth > 0
+                    ? `scale(${containerWidth / compositionWidth})`
+                    : undefined,
+              }}
+            >
+              <StepsTimeline
+                frameMap={frameMap}
+                autoZoom={autoZoom}
+                subtitleEnabled={subtitleEnabled}
+                frame={player.currentFrame}
+                width={compositionWidth}
+                height={compositionHeight}
+                fps={frameMap.fps}
+              />
+            </div>
+          </div>
 
-          {/* Chapter markers overlay on Remotion's seek bar */}
-          {chapterMarkers.length > 0 && (
-            <div className="chapter-markers">
+          {/* Control bar */}
+          <div
+            className={`control-bar ${controlsVisible ? '' : 'hidden'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="status-icon" onClick={player.toggle}>
+              {player.playing ? <PauseOutlined /> : <CaretRightOutlined />}
+            </div>
+
+            <span className="time-display">
+              {formatTime(player.currentFrame, frameMap.fps)} /{' '}
+              {formatTime(totalFrames, frameMap.fps)}
+            </span>
+
+            <div
+              className="seek-bar-track"
+              ref={seekBarRef}
+              onPointerDown={handleSeekPointerDown}
+            >
+              <div
+                className="seek-bar-fill"
+                style={{ width: `${seekPercent}%` }}
+              />
+              <div
+                className="seek-bar-knob"
+                style={{ left: `${seekPercent}%` }}
+              />
               {chapterMarkers.map((marker) => (
                 <Tooltip
                   key={marker.percent}
@@ -509,16 +346,182 @@ export function Player(props?: {
                   <div
                     className="chapter-marker"
                     style={{ left: `${marker.percent}%` }}
-                    onMouseEnter={onMarkerMouseEnter}
-                    onMouseLeave={onMarkerMouseLeave}
-                    onClick={() => {
-                      playerRef.current?.seekTo(marker.frame);
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      player.seekTo(marker.frame);
                     }}
                   />
                 </Tooltip>
               ))}
             </div>
-          )}
+
+            {/* Custom controls */}
+            <div className="player-custom-controls">
+              {props?.reportFileContent &&
+              props?.canDownloadReport !== false ? (
+                <Tooltip title="Download Report">
+                  <div
+                    className="status-icon"
+                    onClick={() => downloadReport(props.reportFileContent!)}
+                  >
+                    <DownloadOutlined />
+                  </div>
+                </Tooltip>
+              ) : null}
+
+              <Dropdown
+                trigger={['hover', 'click']}
+                placement="topRight"
+                overlayStyle={{ minWidth: '148px' }}
+                dropdownRender={() => (
+                  <div className="player-settings-dropdown">
+                    {/* Export video */}
+                    <div
+                      className="player-settings-item"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        height: '32px',
+                        padding: '0 8px',
+                        borderRadius: '4px',
+                        cursor: isExporting ? 'not-allowed' : 'pointer',
+                        opacity: isExporting ? 0.5 : 1,
+                      }}
+                      onClick={isExporting ? undefined : handleExportVideo}
+                    >
+                      {isExporting ? (
+                        <Spin size="small" percent={exportProgress} />
+                      ) : (
+                        <ExportOutlined
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                      )}
+                      <span style={{ fontSize: '12px' }}>
+                        {isExporting
+                          ? `Exporting ${exportProgress}%`
+                          : 'Export video'}
+                      </span>
+                    </div>
+
+                    <div className="player-settings-divider" />
+
+                    {/* Focus on cursor toggle */}
+                    <div
+                      className="player-settings-item"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        height: '32px',
+                        padding: '0 8px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <GlobalPerspectiveIcon
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                        <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                          Focus on cursor
+                        </span>
+                      </div>
+                      <Switch
+                        size="small"
+                        checked={autoZoom}
+                        onChange={(checked) => setAutoZoom(checked)}
+                      />
+                    </div>
+
+                    {/* Subtitle toggle */}
+                    <div
+                      className="player-settings-item"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        height: '32px',
+                        padding: '0 8px',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
+                        <FontSizeOutlined
+                          style={{ width: '16px', height: '16px' }}
+                        />
+                        <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                          Subtitle
+                        </span>
+                      </div>
+                      <Switch
+                        size="small"
+                        checked={subtitleEnabled}
+                        onChange={(checked) => setSubtitleEnabled(checked)}
+                      />
+                    </div>
+
+                    <div className="player-settings-divider" />
+
+                    {/* Playback speed */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        height: '32px',
+                        padding: '0 8px',
+                      }}
+                    >
+                      <ThunderboltOutlined
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ fontSize: '12px' }}>Playback speed</span>
+                    </div>
+                    {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
+                      <div
+                        key={speed}
+                        onClick={() => setPlaybackSpeed(speed)}
+                        style={{
+                          height: '32px',
+                          lineHeight: '32px',
+                          padding: '0 8px 0 24px',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                        }}
+                        className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
+                      >
+                        {speed}x
+                      </div>
+                    ))}
+                  </div>
+                )}
+                menu={{ items: [] }}
+              >
+                <div className="status-icon">
+                  <PlayerSettingIcon
+                    style={{ width: '16px', height: '16px' }}
+                  />
+                </div>
+              </Dropdown>
+            </div>
+
+            <div className="status-icon" onClick={toggleFullscreen}>
+              {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+            </div>
+          </div>
         </div>
       </div>
     </div>
