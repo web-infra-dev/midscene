@@ -202,6 +202,11 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     return this.agent;
   }
 
+  public async destroy(): Promise<void> {
+    await super.destroy();
+    browserManager.disconnect();
+  }
+
   protected preparePlatformTools(): ToolDefinition[] {
     return [
       {
