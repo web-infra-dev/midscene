@@ -827,6 +827,33 @@ describe('parseXMLPlanningResponse', () => {
     expect(result.action?.type).toBe('Tap');
   });
 
+  it('should parse half-open action-type tag without closing tag', () => {
+    const modelFamily = 'doubao-vision';
+    const xml = `
+<thought>The Priority input field is active now.</thought>
+<log>Type "1000" into the Priority input field</log>
+<action-type>Input
+<action-param-json>
+{
+  "value": "1000"
+}
+</action-param-json>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result).toEqual({
+      thought: 'The Priority input field is active now.',
+      log: 'Type "1000" into the Priority input field',
+      action: {
+        type: 'Input',
+        param: {
+          value: '1000',
+        },
+      },
+    });
+  });
+
   it('should parse XML with special characters in content', () => {
     const modelFamily = 'doubao-vision';
     const xml = `

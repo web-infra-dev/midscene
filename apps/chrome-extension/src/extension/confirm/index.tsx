@@ -9,7 +9,7 @@ import './index.less';
 const CONFIRM_TIMEOUT = 30000; // 30 seconds
 
 function ConfirmDialog() {
-  const [alwaysAllow, setAlwaysAllow] = useState(false);
+  const [rememberChoice, setRememberChoice] = useState(false);
   const [countdown, setCountdown] = useState(
     Math.floor(CONFIRM_TIMEOUT / 1000),
   );
@@ -38,19 +38,33 @@ function ConfirmDialog() {
   }, []);
 
   const handleAllow = () => {
-    chrome.runtime.sendMessage({
-      type: workerMessageTypes.BRIDGE_CONFIRM_RESPONSE,
-      payload: { allowed: true, alwaysAllow },
-    });
-    window.close();
+    chrome.runtime.sendMessage(
+      {
+        type: workerMessageTypes.BRIDGE_CONFIRM_RESPONSE,
+        payload: {
+          allowed: true,
+          alwaysAllow: rememberChoice,
+        },
+      },
+      () => {
+        window.close();
+      },
+    );
   };
 
   const handleDeny = () => {
-    chrome.runtime.sendMessage({
-      type: workerMessageTypes.BRIDGE_CONFIRM_RESPONSE,
-      payload: { allowed: false },
-    });
-    window.close();
+    chrome.runtime.sendMessage(
+      {
+        type: workerMessageTypes.BRIDGE_CONFIRM_RESPONSE,
+        payload: {
+          allowed: false,
+          alwaysDecline: rememberChoice,
+        },
+      },
+      () => {
+        window.close();
+      },
+    );
   };
 
   return (
@@ -73,10 +87,10 @@ function ConfirmDialog() {
 
         <div className="confirm-options">
           <Checkbox
-            checked={alwaysAllow}
-            onChange={(e) => setAlwaysAllow(e.target.checked)}
+            checked={rememberChoice}
+            onChange={(e) => setRememberChoice(e.target.checked)}
           >
-            Always allow connections
+            Remember this choice
           </Checkbox>
         </div>
 

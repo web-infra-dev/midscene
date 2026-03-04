@@ -170,18 +170,14 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     return dataExtractionMethods.includes(selectedType);
   }, [selectedType]);
 
-  // Check if current method supports deep think option (dynamic based on actionSpace)
-  const showDeepThinkOption = useMemo(() => {
-    if (selectedType === 'aiAct') {
-      return true;
-    }
-
-    if (selectedType === 'aiLocate') {
+  // Check if current method supports deep locate option (dynamic based on actionSpace)
+  const showDeepLocateOption = useMemo(() => {
+    if (selectedType === 'aiAct' || selectedType === 'aiLocate') {
       return true;
     }
 
     if (actionSpace) {
-      // Use actionSpace to determine if method supports deep think
+      // Use actionSpace to determine if method supports deep locate
       const action = actionSpace.find(
         (a) => a.interfaceAlias === selectedType || a.name === selectedType,
       );
@@ -203,16 +199,29 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     return false;
   }, [selectedType, actionSpace]);
 
+  // Check if current method supports deep think option (for aiAct planning)
+  const showDeepThinkOption = useMemo(() => {
+    return selectedType === 'aiAct';
+  }, [selectedType]);
+
   // Check if ConfigSelector will actually have options to show
   const hasConfigOptions = useMemo(() => {
     const hasTracking = serviceMode === 'In-Browser-Extension';
+    const hasDeepLocate = showDeepLocateOption;
     const hasDeepThink = showDeepThinkOption;
     const hasDataExtraction =
       showDataExtractionOptions && !hideDomAndScreenshotOptions;
     const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
-    return hasTracking || hasDeepThink || hasDataExtraction || hasDeviceOptions;
+    return (
+      hasTracking ||
+      hasDeepLocate ||
+      hasDeepThink ||
+      hasDataExtraction ||
+      hasDeviceOptions
+    );
   }, [
     serviceMode,
+    showDeepLocateOption,
     showDeepThinkOption,
     showDataExtractionOptions,
     hideDomAndScreenshotOptions,
@@ -1033,6 +1042,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             >
               <ConfigSelector
                 enableTracking={serviceMode === 'In-Browser-Extension'}
+                showDeepLocateOption={showDeepLocateOption}
                 showDeepThinkOption={showDeepThinkOption}
                 showDataExtractionOptions={showDataExtractionOptions}
                 hideDomAndScreenshotOptions={hideDomAndScreenshotOptions}

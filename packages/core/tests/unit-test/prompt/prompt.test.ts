@@ -164,18 +164,6 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  // it('planning - includeThought false removes thought field', async () => {
-  //   const prompt = await systemPromptToTaskPlanning({
-  //     actionSpace: mockActionSpace,
-  //     modelFamily: undefined,
-  //     includeBbox: false,
-  //     includeThought: false,
-  //   });
-
-  //   expect(prompt).not.toContain('<thought>');
-  //   expect(prompt).toContain('<log>');
-  // });
-
   it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
     await expect(
       systemPromptToTaskPlanning({
@@ -221,6 +209,16 @@ describe('system prompts', () => {
       actionSpace: mockActionSpace,
       modelFamily: 'qwen2.5-vl',
       includeBbox: true,
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - includeSubGoals true', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: true,
     });
     expect(prompt).toMatchSnapshot();
   });

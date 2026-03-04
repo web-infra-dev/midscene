@@ -1,0 +1,283 @@
+import StartExperience from './common/start-experience.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# HarmonyOS 开始使用
+
+本指南将带你完成使用 Midscene 自动化 HarmonyOS 设备所需的一切：通过 HDC 连接真机、配置模型 API Key、体验零代码 Playground，并运行你的首个 JavaScript 脚本。
+
+:::info 示例项目
+
+使用 JavaScript 控制鸿蒙设备：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+
+集成 Vitest 进行测试：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+
+:::
+
+<SetupEnv />
+
+## 准备工作
+
+在编写脚本前，先确认 HDC 能够连接设备且设备信任当前电脑。
+
+### 安装 HDC
+
+HDC（HarmonyOS Device Connector）是 HarmonyOS 提供的命令行工具，用于与 HarmonyOS 设备通信。安装方式：
+
+- 通过 [DevEco Studio](https://developer.huawei.com/consumer/cn/deveco-studio/) 安装（推荐）
+- 通过 [HarmonyOS 命令行工具](https://developer.huawei.com/consumer/cn/download/) 单独安装
+
+验证 HDC 是否安装成功：
+
+```bash
+hdc version
+```
+
+出现版本号表示安装成功。
+
+:::tip 配置 HDC 路径
+
+如果 `hdc` 不在系统 PATH 中，你可以设置 `HDC_HOME` 环境变量指向 HDC 所在目录：
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+:::
+
+### 启用开发者模式并验证设备
+
+在 HarmonyOS 设备的设置中进入 **开发者选项**，开启 **USB 调试**，然后用数据线连接设备。
+
+验证连接：
+
+```bash
+hdc list targets
+```
+
+出现设备 ID 代表连接成功：
+
+```log
+0123456789ABCDEF
+```
+
+## 试用 Playground（零代码）
+
+Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/harmony` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" controls/>
+
+1. 启动 Playground CLI：
+
+```bash
+npx --yes @midscene/harmony-playground
+```
+
+2. 点击 Playground 窗口中的齿轮按钮，粘贴你的 API Key 配置。如果还没有 API Key，请回到 [模型配置](./model-config) 获取。
+
+## 开始体验
+
+<StartExperience />
+
+## 集成 Midscene Agent
+
+当 Playground 运行正常后，就可以切换到可复用的 JavaScript 脚本。
+
+### 第 1 步：安装依赖
+
+<PackageManagerTabs command="install @midscene/harmony --save-dev" />
+
+### 第 2 步：编写脚本
+
+下面的示例会在设备上打开设置应用，并执行滚动操作。
+
+```typescript title="./demo.ts"
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const device = new HarmonyDevice(devices[0].deviceId, {});
+
+    const agent = new HarmonyAgent(device, {
+      aiActionContext:
+        '这是一台鸿蒙设备，系统语言为中文。如果出现弹窗，点击同意或关闭。',
+    });
+    await device.connect();
+
+    // 打开设置应用
+    await agent.launch('com.huawei.hmos.settings');
+    await sleep(2000);
+
+    // 向下滚动列表
+    await agent.aiAct('scroll down one screen');
+
+    // 查询页面内容
+    const items = await agent.aiQuery(
+      'string[], 列表中可见的所有设置项名称',
+    );
+    console.log('设置项列表', items);
+
+    // 断言
+    await agent.aiAssert('页面中有设置项列表');
+  })(),
+);
+```
+
+### 第 3 步：运行示例
+
+```bash
+npx tsx demo.ts
+```
+
+### 第 4 步：查看报告
+
+脚本成功后会输出 `Midscene - report file updated: /path/to/report/some_id.html`。在浏览器中打开该 HTML 文件即可回放每一步交互、查询与断言。
+
+## 进阶
+
+当你需要自定义设备行为、把 Midscene 接入独立框架，或排查 HDC 问题时，可参考本节内容。更多构造函数参数可前往 [API 参考（HarmonyOS）](./harmony-api-reference)。
+
+### 扩展 HarmonyOS 上的 Midscene
+
+使用 `defineAction()` 定义自定义手势，并通过 `customActions` 传入。Midscene 会把自定义动作追加到规划器中，让 AI 可以调用你领域特定的动作名。
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const devices = await getConnectedDevices();
+const device = new HarmonyDevice(devices[0].deviceId, {});
+await device.connect();
+
+const agent = new HarmonyAgent(device, {
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
+```
+
+关于自定义动作和动作 Schema 的更多解释，请参阅 [与任意界面集成](./integrate-with-any-interface#define-a-custom-action)。
+
+## 更多
+
+- 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)
+- HarmonyOS 专属参数与接口：[HarmonyOS Agent API](./harmony-api-reference)
+- 示例项目
+  - HarmonyOS JavaScript SDK 示例：[https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest 示例：[https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+
+### 完整示例（Vitest + HarmonyAgent）
+
+```typescript
+import type { TestStatus } from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core/report';
+import { sleep } from '@midscene/core/utils';
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+} from 'vitest';
+
+describe('HarmonyOS Settings Test', () => {
+  let device: HarmonyDevice;
+  let agent: HarmonyAgent;
+  let itTestStatus: TestStatus = 'passed';
+  const reportMergingTool = new ReportMergingTool();
+
+  beforeAll(async () => {
+    const devices = await getConnectedDevices();
+    device = new HarmonyDevice(devices[0].deviceId);
+    await device.connect();
+  });
+
+  beforeEach((ctx) => {
+    agent = new HarmonyAgent(device, {
+      groupName: ctx.task.name,
+    });
+  });
+
+  afterEach((ctx) => {
+    if (ctx.task.result?.state === 'pass') {
+      itTestStatus = 'passed';
+    } else if (ctx.task.result?.state === 'skip') {
+      itTestStatus = 'skipped';
+    } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
+      itTestStatus = 'timedOut';
+    } else {
+      itTestStatus = 'failed';
+    }
+    reportMergingTool.append({
+      reportFilePath: agent.reportFile as string,
+      reportAttributes: {
+        testId: `${ctx.task.name}`,
+        testTitle: `${ctx.task.name}`,
+        testDescription: 'description',
+        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testStatus: itTestStatus,
+      },
+    });
+  });
+
+  afterAll(() => {
+    reportMergingTool.mergeReports('my-harmony-setting-test-report');
+  });
+
+  it('toggle WLAN', async () => {
+    await device.home();
+    await sleep(1000);
+    await device.launch('com.huawei.hmos.settings');
+    await sleep(1000);
+    await agent.aiAct('找到并进入 WLAN 设置');
+    await agent.aiAct(
+      '切换 WLAN 状态一次，如果 WLAN 关闭则打开，否则关闭。',
+    );
+  });
+
+  it('toggle Bluetooth', async () => {
+    await device.home();
+    await sleep(1000);
+    await device.launch('com.huawei.hmos.settings');
+    await sleep(1000);
+    await agent.aiAct('找到并进入蓝牙设置');
+    await agent.aiAct(
+      '切换蓝牙状态一次，如果蓝牙关闭则打开，否则关闭。',
+    );
+  });
+});
+```
+
+:::tip
+
+合并报告默认存放在 `midscene_run/report` 目录。在 CI 中运行时可通过 `MIDSCENE_RUN_DIR` 覆盖。
+
+:::

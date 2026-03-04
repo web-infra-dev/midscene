@@ -15,6 +15,7 @@ export async function launchPage(
     preference?: {
       headed?: boolean;
       keepWindow?: boolean;
+      ignoreDefaultArgs?: boolean | string[];
     };
     /**
      * Extra fields to override the launch target, e.g. userAgent, waitForNetworkIdle, etc.
@@ -27,7 +28,7 @@ export async function launchPage(
       url,
       viewportWidth: opt?.viewport?.width,
       viewportHeight: opt?.viewport?.height,
-      viewportScale: opt?.viewport?.deviceScaleFactor,
+      deviceScaleFactor: opt?.viewport?.deviceScaleFactor,
       ...(opt?.targetOverrides || {}),
     },
     {
@@ -38,6 +39,7 @@ export async function launchPage(
             ? !opt.headless
             : false,
       keepWindow: opt?.preference?.keepWindow,
+      ignoreDefaultArgs: opt?.preference?.ignoreDefaultArgs,
     },
   );
 

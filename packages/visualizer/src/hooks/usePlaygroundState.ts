@@ -35,6 +35,8 @@ export function usePlaygroundState(
   // Scroll management
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const lastScrollTopRef = useRef<number>(0);
   const [verticalMode, setVerticalMode] = useState(false);
 
   // Progress tracking
@@ -210,6 +212,15 @@ export function usePlaygroundState(
       const { scrollTop, scrollHeight, clientHeight } = infoListRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
       setShowScrollToBottomButton(!isAtBottom);
+
+      const scrollingUp = scrollTop < lastScrollTopRef.current;
+      lastScrollTopRef.current = scrollTop;
+
+      if (isAtBottom) {
+        setAutoScrollEnabled(true);
+      } else if (scrollingUp) {
+        setAutoScrollEnabled(false);
+      }
     }
   }, []);
 
@@ -220,15 +231,16 @@ export function usePlaygroundState(
         behavior: 'smooth',
       });
       setShowScrollToBottomButton(false);
+      setAutoScrollEnabled(true);
     }
   }, []);
 
-  // Auto scroll when info list updates
+  // Auto scroll when info list updates (only if auto scroll is enabled)
   useEffect(() => {
-    if (infoList.length > 0) {
+    if (infoList.length > 0 && autoScrollEnabled) {
       scrollToBottom();
     }
-  }, [infoList, scrollToBottom]);
+  }, [infoList, scrollToBottom, autoScrollEnabled]);
 
   // Scroll event listener
   useEffect(() => {

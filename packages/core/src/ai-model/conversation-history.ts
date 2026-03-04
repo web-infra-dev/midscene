@@ -42,6 +42,7 @@ export class ConversationHistory {
     this.memories.length = 0;
     this.subGoals.length = 0;
     this.historicalLogs.length = 0;
+    this.pendingFeedbackMessage = '';
   }
 
   /**
@@ -107,6 +108,48 @@ export class ConversationHistory {
   setSubGoals(subGoals: SubGoal[]): void {
     this.subGoals = subGoals.map((goal) => ({ ...goal }));
     this.markFirstPendingAsRunning();
+  }
+
+  /**
+   * Merge sub-goals from update-plan-content.
+   * Preserves existing descriptions when incoming description is empty.
+   *
+   * This handles compact XML updates like:
+   * <sub-goal index="1" status="finished" />
+   */
+  mergeSubGoals(subGoals: SubGoal[]): void {
+    if (this.subGoals.length === 0) {
+      this.setSubGoals(subGoals);
+      return;
+    }
+
+    const existingByIndex = new Map(
+      this.subGoals.map((goal) => [goal.index, goal] as const),
+    );
+
+    const mergedSubGoals = subGoals.map((goal) => {
+      const existingGoal = existingByIndex.get(goal.index);
+      const hasNonEmptyDescription = goal.description.trim().length > 0;
+
+      if (!existingGoal && !hasNonEmptyDescription) {
+        return null;
+      }
+
+      return {
+        ...goal,
+        description:
+          hasNonEmptyDescription || !existingGoal
+            ? goal.description
+            : existingGoal.description,
+      };
+    });
+
+    const validSubGoals = mergedSubGoals.filter((goal) => goal !== null);
+    if (validSubGoals.length === 0) {
+      return;
+    }
+
+    this.setSubGoals(validSubGoals);
   }
 
   /**

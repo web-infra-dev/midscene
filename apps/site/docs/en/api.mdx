@@ -27,6 +27,9 @@ All agents share these base options:
   - Using Node.js: `npx serve`
   - Using Python: `python -m http.server` or `python3 -m http.server`
   Then access the report via `http://localhost:3000` (or the port shown in the terminal).
+- `screenshotShrinkFactor: number`: Controls the scaling ratio of screenshots to reduce the image size sent to the AI model, thereby reducing token consumption. The default value is 1 (no scaling). If set to 2, the width and height of the screenshot will be halved, and the area will be reduced to a quarter of the original. You can adjust this value based on your actual situation to find the best balance between image clarity and token consumption.
+  - For mobile devices, setting `screenshotShrinkFactor` to 2 can reduce token consumption while maintaining clarity, but it is not recommended to set it higher than 3, as this may cause the image to be too blurry and affect the AI model's understanding.
+  - For web pages, if the content is complex or contains a lot of details, it is not recommended to set `screenshotShrinkFactor` to avoid overly blurry screenshots. Additionally, if you want higher clarity for web page screenshots, you can configure Puppeteer or Playwright's `deviceScaleFactor` to 2, which will allow Puppeteer or Playwright to render the page as if it were a high-definition screen.
 
 ### Custom model configuration
 
@@ -136,6 +139,7 @@ function aiAct(
   options?: {
     cacheable?: boolean;
     deepThink?: 'unset' | true | false;
+    deepLocate?: boolean;
     fileChooserAccept?: string | string[];
   },
 ): Promise<void>;
@@ -147,7 +151,8 @@ function ai(prompt: string): Promise<void>; // shorthand form
   - `prompt: string` - A natural language description of the UI steps.
   - `options?: Object` - Optional, a configuration object containing:
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
-    - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepThink?: 'unset' | true | false` - Whether to enable deep thinking during planning when the model supports it (depends on MIDSCENE_MODEL_FAMILY). Default is `'unset'` (same as omitting) and follows the model provider's default strategy. When explicitly set to `true` or `false`, it overrides the `MIDSCENE_MODEL_REASONING_ENABLED` environment variable. [Learn more about deepThink](./model-strategy#about-the-deepthink-option-in-aiact).
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
       - **Note**: If the file input does not support multiple files (no `multiple` attribute) but multiple files are provided, an error will be thrown.
       - **Note**: If a file chooser is triggered but no `fileChooserAccept` parameter is provided, the file chooser will be ignored and the page can continue to operate normally.
@@ -199,7 +204,7 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 
   - `locate: string | Object` - A natural language description of the element to tap, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `fileChooserAccept?: string | string[]` - When a file chooser pops up, specify the file path(s) to accept. Can be a single file path or an array of paths. Only available in web pages (Playwright, Puppeteer).
@@ -215,9 +220,9 @@ function aiTap(locate: string | Object, options?: Object): Promise<void>;
 ```typescript
 await agent.aiTap('The login button at the top of the page');
 
-// Use deepThink feature to precisely locate the element
+// Use deepLocate feature to precisely locate the element
 await agent.aiTap('The login button at the top of the page', {
-  deepThink: true,
+  deepLocate: true,
 });
 
 // File upload: tap the upload button and select files
@@ -241,7 +246,7 @@ function aiHover(locate: string | Object, options?: Object): Promise<void>;
 
   - `locate: string | Object` - A natural language description of the element to hover over, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -267,7 +272,7 @@ function aiInput(
   locate: string | Object,
   opt: {
     value: string | number;
-    deepThink?: boolean;
+    deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
     autoDismissKeyboard?: boolean;
@@ -292,7 +297,7 @@ function aiInput(
       - When `mode` is `'replace'`: The text will replace all existing content in the input field.
       - When `mode` is `'typeOnly'`: The text will be typed directly without clearing the field first.
       - When `mode` is `'clear'`: The text is ignored and the input field will be cleared.
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
     - `autoDismissKeyboard?: boolean` - If true, the keyboard will be dismissed after input text, only available in Android/iOS. (Default: true)
@@ -338,7 +343,7 @@ function aiKeyboardPress(
   locate: string | Object,
   opt: {
     keyName: string;
-    deepThink?: boolean;
+    deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -358,7 +363,7 @@ function aiKeyboardPress(
   - `locate: string | Object` - A natural language description of the element to press the key on, or [prompting with images](#prompting-with-images).
   - `opt: Object` - Configuration object containing:
     - `keyName: string` - **Required**. The web key to press, e.g. 'Enter', 'Tab', 'Escape', etc. Key Combination is not supported. Refer to the [complete list of supported key names in our source code](https://github.com/web-infra-dev/midscene/blob/main/packages/shared/src/us-keyboard-layout.ts) for available values.
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -401,7 +406,7 @@ function aiScroll(
     scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft';
     direction?: 'down' | 'up' | 'left' | 'right';
     distance?: number | null;
-    deepThink?: boolean;
+    deepLocate?: boolean;
     xpath?: string;
     cacheable?: boolean;
   },
@@ -423,7 +428,7 @@ function aiScroll(
     - `scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft'` - The scroll behavior. Defaults to `singleAction`.
     - `direction?: 'down' | 'up' | 'right' | 'left'` - The direction to scroll. Defaults to `down`. Only effective when `scrollType` is `singleAction`. Whether it is Android or Web, the scrolling direction here all refers to which direction of the page's content will appear on the screen. For example, when the scrolling direction is `down`, the hidden content at the bottom of the page will gradually reveal itself from the bottom of the screen upwards.
     - `distance?: number | null` - Optional, the distance to scroll in px. Use `null` to allow Midscene to decide automatically.
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -473,7 +478,7 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
 
   - `locate: string | Object` - A natural language description of the element to double-click on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -486,9 +491,9 @@ function aiDoubleClick(locate: string | Object, options?: Object): Promise<void>
 ```typescript
 await agent.aiDoubleClick('The file name at the top of the page');
 
-// Use deepThink feature to precisely locate the element
+// Use deepLocate feature to precisely locate the element
 await agent.aiDoubleClick('The file name at the top of the page', {
-  deepThink: true,
+  deepLocate: true,
 });
 ```
 
@@ -508,7 +513,7 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
 
   - `locate: string | Object` - A natural language description of the element to right-click on, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -521,19 +526,11 @@ function aiRightClick(locate: string, options?: Object): Promise<void>;
 ```typescript
 await agent.aiRightClick('The file name at the top of the page');
 
-// Use deepThink feature to precisely locate the element
+// Use deepLocate feature to precisely locate the element
 await agent.aiRightClick('The file name at the top of the page', {
-  deepThink: true,
+  deepLocate: true,
 });
 ```
-
-:::tip About the `deepThink` feature
-
-The `deepThink` feature makes Midscene issue two locating requests to improve accuracy. It is useful when the model finds it hard to distinguish the element from its surroundings. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious, so enable it only when needed.
-
-Note: `deepThink` in `aiAct()` is different from `deepThink` in element locating methods. For `aiAct()`, it controls the reasoning strategy during planning. [Learn more](./model-strategy#about-the-deepthink-option-in-aiact).
-
-:::
 
 ## Data extraction
 
@@ -777,7 +774,7 @@ function aiLocate(
     height: number;
   };
   center: [number, number];
-  scale: number; // device pixel ratio
+  dpr: number; // device pixel ratio
 }>;
 ```
 
@@ -785,7 +782,7 @@ function aiLocate(
 
   - `locate: string | Object` - A natural language description of the element to locate, or [prompting with images](#prompting-with-images).
   - `options?: Object` - Optional, a configuration object containing:
-    - `deepThink?: boolean` - If true, Midscene will call AI model twice to precisely locate the element, which can improve accuracy. False by default. With newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less obvious.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). Previously named `deepThink`, now renamed to `deepLocate`. False by default.
     - `xpath?: string` - The xpath of the element to operate. If provided, Midscene will first use this xpath to locate the element before using the cache and the AI model. Empty by default.
     - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
 
@@ -1052,6 +1049,31 @@ const logContent = agent._unstableLogContent();
 console.log(logContent);
 ```
 
+
+## Deep Locate (deepLocate)
+
+`deepLocate` is an optional parameter available on all APIs that require element location (`aiTap`, `aiHover`, `aiInput`, `aiKeyboardPress`, `aiScroll`, `aiDoubleClick`, `aiRightClick`, `aiLocate`, etc.).
+
+When enabled, Midscene will call the AI model twice to precisely locate the element, which can improve accuracy. This is especially useful when the target element is small or hard to distinguish from its surroundings. For newer models (e.g. Qwen3 / Doubao 1.6 / Gemini 3), the gain is less noticeable in most cases, so enable it only when needed.
+
+- **Default**: `false`
+- **Parameter renamed**: Previously named `deepThink`, renamed to `deepLocate` since v1.5.1. The old `deepThink` parameter remains compatible.
+
+```typescript
+// Enable deepLocate to precisely locate hard-to-identify elements
+await agent.aiTap('Shopping cart icon in the top right', { deepLocate: true });
+```
+
+:::note
+
+`deepThink` in `aiAct()` and `deepLocate` here are completely different features:
+
+- `deepLocate`: Controls the **precision of element location** by making Midscene run two locate passes to improve accuracy.
+- `deepThink` in `aiAct()`: Controls the **reasoning strategy during planning** (toggles AI reasoning capability).
+
+[See aiAct deepThink documentation](./model-strategy#about-the-deepthink-option-in-aiact)
+
+:::
 
 ## Prompting with images
 

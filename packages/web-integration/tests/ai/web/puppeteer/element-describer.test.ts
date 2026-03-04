@@ -19,7 +19,10 @@ describe(
       ctx.agent = new PuppeteerAgent(originPage);
 
       const { center } = await ctx.agent.aiLocate('the input field for search');
-      const describeResult = await ctx.agent.describeElementAtPoint(center);
+      const describeResult = await ctx.agent.describeElementAtPoint(center, {
+        centerDistanceThreshold: 100,
+        retryLimit: 5,
+      });
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();
       expect(describeResult.verifyResult?.center).toBeTruthy();
@@ -33,8 +36,9 @@ describe(
 
       const { center } = await ctx.agent.aiLocate('the input field for search');
       const describeResult = await ctx.agent.describeElementAtPoint(center, {
-        deepThink: true,
-        centerDistanceThreshold: 100,
+        deepLocate: true,
+        centerDistanceThreshold: 150,
+        retryLimit: 5,
       });
       expect(describeResult.verifyResult?.pass).toBe(true);
       expect(describeResult.verifyResult?.rect).toBeTruthy();

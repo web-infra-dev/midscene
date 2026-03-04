@@ -188,13 +188,19 @@ async function showConnectionConfirmDialog(
 ): Promise<boolean> {
   const CONFIRM_TIMEOUT = 30000; // 30 seconds
 
-  // Check if already allowed
+  // Check if already allowed or declined
   try {
     const result = await chrome.storage.local.get(BRIDGE_PERMISSION_KEY);
     const permission = result[BRIDGE_PERMISSION_KEY];
     if (permission?.alwaysAllow) {
       console.log('[BackgroundBridge] Connection auto-allowed by user setting');
       return true;
+    }
+    if (permission?.alwaysDecline) {
+      console.log(
+        '[BackgroundBridge] Connection auto-declined by user setting',
+      );
+      return false;
     }
   } catch (error) {
     console.error('[BackgroundBridge] Failed to check permission:', error);
@@ -508,7 +514,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
     case workerMessageTypes.BRIDGE_GET_PERMISSION: {
       if (!chrome?.storage?.local) {
-        sendResponse({ alwaysAllow: false, status: currentBridgeStatus });
+        sendResponse({
+          alwaysAllow: false,
+          alwaysDecline: false,
+          status: currentBridgeStatus,
+        });
         return true;
       }
       chrome.storage.local
@@ -516,6 +526,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         .then((result) => {
           const permission = result[BRIDGE_PERMISSION_KEY] || {
             alwaysAllow: false,
+            alwaysDecline: false,
           };
           sendResponse({ ...permission, status: currentBridgeStatus });
         })
@@ -538,18 +549,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       return true;
     }
     case workerMessageTypes.BRIDGE_CONFIRM_RESPONSE: {
-      const { allowed, alwaysAllow } = request.payload || {};
+      const { allowed, alwaysAllow, alwaysDecline } = request.payload || {};
       console.log(
         '[BackgroundBridge] Received confirm response:',
         allowed,
         alwaysAllow,
+        alwaysDecline,
       );
 
-      // Save "always allow" preference if user checked it
-      if (allowed && alwaysAllow && chrome?.storage?.local) {
-        chrome.storage.local.set({
-          [BRIDGE_PERMISSION_KEY]: { alwaysAllow: true },
-        });
+      // Save permission preference if user checked "remember this choice"
+      if (chrome?.storage?.local) {
+        if (allowed && alwaysAllow) {
+          chrome.storage.local.set({
+            [BRIDGE_PERMISSION_KEY]: { alwaysAllow: true },
+          });
+        } else if (!allowed && alwaysDecline) {
+          chrome.storage.local.set({
+            [BRIDGE_PERMISSION_KEY]: { alwaysDecline: true },
+          });
+        }
       }
 
       // Resolve pending confirmation

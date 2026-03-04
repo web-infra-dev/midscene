@@ -176,7 +176,7 @@ describe('zod-schema-utils', () => {
     it('should return true for object with prompt field', () => {
       const schema = z.object({
         prompt: z.string(),
-        deepThink: z.boolean().optional(),
+        deepLocate: z.boolean().optional(),
       });
       expect(isMidsceneLocatorField(schema)).toBe(true);
     });

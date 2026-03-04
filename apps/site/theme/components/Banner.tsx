@@ -22,7 +22,7 @@ export function Banner() {
                 <span className="mx-1 text-black/40 dark:text-white/40">|</span>
                 <Link
                   className="text-black/60 hover:underline dark:text-white/60"
-                  href="./changelog"
+                  href="https://github.com/web-infra-dev/midscene-skills"
                 >
                   {t('changelogLink')}
                 </Link>

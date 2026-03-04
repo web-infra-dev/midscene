@@ -108,5 +108,5 @@ export interface BaseDevice {
 export interface IMidsceneTools {
   attachToServer(server: McpServer): void;
   initTools(): Promise<void>;
-  closeBrowser?(): Promise<void>;
+  destroy?(): Promise<void>;
 }

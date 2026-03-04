@@ -1,4 +1,9 @@
-export { imageInfoOfBase64, isValidPNGImageBuffer } from './info';
+export {
+  imageInfoOfBase64,
+  isValidPNGImageBuffer,
+  isValidJPEGImageBuffer,
+  isValidImageBuffer,
+} from './info';
 export {
   resizeAndConvertImgBuffer,
   resizeImgBase64,

@@ -205,7 +205,11 @@ export function adaptBbox(
   const normalizedBbox = normalizeBboxInput(bbox);
 
   let result: [number, number, number, number] = [0, 0, 0, 0];
-  if (modelFamily === 'doubao-vision' || isUITars(modelFamily)) {
+  if (
+    modelFamily === 'doubao-vision' ||
+    modelFamily === 'doubao-seed' ||
+    isUITars(modelFamily)
+  ) {
     result = adaptDoubaoBbox(normalizedBbox, width, height);
   } else if (modelFamily === 'gemini') {
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
@@ -213,7 +217,7 @@ export function adaptBbox(
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
   } else {
     // Default: normalized 0-1000 coordinate system
-    // Includes: qwen3-vl, glm-v, auto-glm, auto-glm-multilingual, and future models
+    // Includes: qwen3-vl, qwen3.5, glm-v, auto-glm, auto-glm-multilingual, and future models
     result = normalized01000(normalizedBbox as number[], width, height);
   }
 
@@ -454,7 +458,6 @@ export const PointSchema = z.object({
 export const SizeSchema = z.object({
   width: z.number(),
   height: z.number(),
-  dpr: z.number().optional(),
 });
 
 export const RectSchema = PointSchema.and(SizeSchema).and(
@@ -496,34 +499,15 @@ const locateFieldFlagName = 'midscene_location_field_flag';
 const MidsceneLocationInput = z
   .object({
     prompt: TUserPromptSchema,
-    deepThink: z.boolean().optional(),
+    deepLocate: z.boolean().optional(),
+    deepThink: z
+      .boolean()
+      .optional()
+      .describe('@deprecated Use `deepLocate` instead.'),
     cacheable: z.boolean().optional(),
     xpath: z.union([z.string(), z.boolean()]).optional(),
   })
   .passthrough();
-
-// Schema for locator field result (when AI returns locate results)
-const MidsceneLocationResult = z
-  .object({
-    [locateFieldFlagName]: z.literal(true),
-    prompt: TUserPromptSchema,
-
-    // optional fields
-    deepThink: z.boolean().optional(), // only available in vl model
-    cacheable: z.boolean().optional(),
-    xpath: z.boolean().optional(), // preset result for xpath
-
-    // these two fields will only appear in the result
-    center: z.tuple([z.number(), z.number()]),
-    rect: RectSchema,
-  })
-  .passthrough();
-
-// Export the result type - this is used for runtime results that include center and rect
-export type MidsceneLocationResultType = z.infer<typeof MidsceneLocationResult>;
-
-// Export the input type - this is the inferred type from getMidsceneLocationSchema()
-export type MidsceneLocationInputType = z.infer<typeof MidsceneLocationInput>;
 
 /**
  * Returns the schema for locator fields.
@@ -663,10 +647,14 @@ export const dumpActionParam = (
  *
  * Locator fields are special business logic fields with complex validation requirements,
  * so they are intentionally excluded from Zod parsing and use existing validation logic.
+ *
+ * When shrunkShotToLogicalRatio is provided and !== 1, coordinates in locate fields
+ * are transformed from screenshot space to logical space.
  */
 export const parseActionParam = (
   rawParam: Record<string, any> | undefined,
   zodSchema?: z.ZodType<any>,
+  options?: { shrunkShotToLogicalRatio?: number },
 ): Record<string, any> | undefined => {
   // If no schema is provided, return undefined (action takes no parameters)
   if (!zodSchema) {
@@ -706,9 +694,35 @@ export const parseActionParam = (
   // Validate with dummy locate values
   const validated = zodSchema.parse(paramsForValidation);
 
-  // Restore the actual locate field values (unvalidated, as per business requirement)
+  // Restore the actual locate field values (unvalidated, as per business requirement),
+  // and transform coordinates from screenshot space to logical space if needed
+  const ratio = options?.shrunkShotToLogicalRatio;
   for (const fieldName in locateFieldValues) {
-    validated[fieldName] = locateFieldValues[fieldName];
+    let value = locateFieldValues[fieldName];
+    if (
+      ratio !== undefined &&
+      ratio !== 1 &&
+      value &&
+      typeof value === 'object' &&
+      value.center &&
+      value.rect
+    ) {
+      value = {
+        ...value,
+        center: [
+          Math.round(value.center[0] / ratio),
+          Math.round(value.center[1] / ratio),
+        ],
+        rect: {
+          ...value.rect,
+          left: Math.round(value.rect.left / ratio),
+          top: Math.round(value.rect.top / ratio),
+          width: Math.round(value.rect.width / ratio),
+          height: Math.round(value.rect.height / ratio),
+        },
+      };
+    }
+    validated[fieldName] = value;
   }
 
   return validated;

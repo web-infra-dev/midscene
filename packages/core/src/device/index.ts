@@ -53,15 +53,15 @@ export abstract class AbstractInterface {
   // @deprecated do NOT extend this method
   abstract evaluateJavaScript?<T = any>(script: string): Promise<T>;
 
-  // @deprecated do NOT extend this method
-  abstract getContext?(): Promise<UIContext>;
-
   /**
    * Get the current time from the device.
    * Returns the device's current timestamp in milliseconds.
    * This is useful when the system time and device time are not synchronized.
    */
   getTimestamp?(): Promise<number>;
+
+  /** URL of native MJPEG stream for real-time screen preview (e.g. WDA MJPEG server) */
+  mjpegStreamUrl?: string;
 }
 
 // Generic function to define actions with proper type inference
@@ -191,15 +191,12 @@ export const actionInputParamSchema = z.object({
   locate: getMidsceneLocationSchema()
     .describe(inputLocateDescription)
     .optional(),
-  mode: z.preprocess(
-    (val) => (val === 'append' ? 'typeOnly' : val),
-    z
-      .enum(['replace', 'clear', 'typeOnly'])
-      .default('replace')
-      .describe(
-        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-      ),
-  ),
+  mode: z
+    .enum(['replace', 'clear', 'typeOnly'])
+    .default('replace')
+    .describe(
+      'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+    ),
 });
 export type ActionInputParam = {
   value: string;
@@ -215,7 +212,13 @@ export const defineActionInput = (
     description: 'Input the value into the element',
     interfaceAlias: 'aiInput',
     paramSchema: actionInputParamSchema,
-    call,
+    call: (param) => {
+      // backward compat: convert deprecated 'append' to 'typeOnly'
+      if ((param.mode as string) === 'append') {
+        param.mode = 'typeOnly';
+      }
+      return call(param);
+    },
   });
 };
 
@@ -553,4 +556,6 @@ export type {
   AndroidDeviceInputOpt,
   IOSDeviceOpt,
   IOSDeviceInputOpt,
+  HarmonyDeviceOpt,
+  HarmonyDeviceInputOpt,
 } from './device-options';

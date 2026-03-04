@@ -1,4 +1,4 @@
-import type { DeviceAction, WebUIContext } from '@midscene/core';
+import type { DeviceAction } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 
 export interface PlaygroundAgent extends Agent {
@@ -31,6 +31,7 @@ export interface DeviceOptions {
 }
 
 export interface ExecutionOptions {
+  deepLocate?: boolean;
   deepThink?: boolean;
   screenshotIncluded?: boolean;
   domIncluded?: boolean | 'visible-only';
@@ -39,13 +40,6 @@ export interface ExecutionOptions {
   requestId?: string;
   deviceOptions?: DeviceOptions;
 }
-
-// Extended web types for playground
-
-export type PlaygroundWebUIContext = WebUIContext & {
-  screenshotBase64?: string;
-  size: { width: number; height: number; dpr?: number };
-};
 
 // SDK types - execution model based
 export type ExecutionType = 'local-execution' | 'remote-execution';

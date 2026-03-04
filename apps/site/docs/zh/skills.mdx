@@ -1,0 +1,58 @@
+# 使用 Skills 控制任意平台
+
+[Agent Skills](https://github.com/anthropics/agent-skills) 是一种扩展 AI 编程助手能力的格式。Midscene 提供了 Agent Skills，让 AI 编程工具（如 Claude Code、Cline 等）可以通过 CLI 命令驱动 UI 自动化 —— 无需配置 MCP 服务。
+
+与 [MCP 集成](./mcp) 不同，Skills 通过在终端中直接运行 CLI 命令来工作。AI 编程助手充当"大脑"：截图、分析 UI、决定下一步操作。
+
+## 支持的平台
+
+| Skill | 包名 | CLI 命令 | 说明 |
+|-------|------|----------|------|
+| Browser Automation | `@midscene/web` | `npx @midscene/web` | 通过 Puppeteer 的无头 Chrome，打开新浏览器标签页 |
+| Chrome Bridge Automation | `@midscene/web` | `npx @midscene/web --bridge` | 使用用户自己的 Chrome 浏览器，保留 Cookie 和会话 |
+| Desktop Computer Automation | `@midscene/computer` | `npx @midscene/computer` | macOS、Windows、Linux 桌面控制 |
+| Android Device Automation | `@midscene/android` | `npx @midscene/android` | 通过 ADB 控制 Android 设备 |
+| iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | 通过 WebDriverAgent 控制 iOS 设备 |
+
+## 安装
+
+确保已安装 [Node.js](https://nodejs.org)，然后运行：
+
+```bash
+# 通用安装
+npx skills add web-infra-dev/midscene-skills
+
+# Claude Code
+npx skills add web-infra-dev/midscene-skills -a claude-code
+
+# OpenClaw
+npx skills add web-infra-dev/midscene-skills -a openclaw
+```
+
+Skills 仓库：[github.com/web-infra-dev/midscene-skills](https://github.com/web-infra-dev/midscene-skills)
+
+## 模型配置
+
+Midscene Skills 需要具备强视觉定位能力的视觉模型。配置以下环境变量 —— 可以设为系统环境变量，也可以写在当前工作目录的 `.env` 文件中（Midscene 会自动加载 `.env`）：
+
+```bash
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="model-name"
+MIDSCENE_MODEL_BASE_URL="https://..."
+MIDSCENE_MODEL_FAMILY="family-identifier"
+```
+
+支持的模型和配置详情请参考 [模型策略](./model-strategy) 和 [常用模型配置](./model-common-config)。
+
+## 使用 Skills
+
+在你的 AI 编程助手中，你可以使用以下方式来使用 Skills：
+
+```markdown
+Open photo app, see what is the first photo in the album.
+```
+
+## 更多
+
+请参考 [Skills 仓库](https://github.com/web-infra-dev/midscene-skills) 获取更多详情。
+

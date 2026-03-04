@@ -1,4 +1,5 @@
 import type { ScreenshotItem } from '@/screenshot-item';
+import { setTimingFieldOnce } from '@/task-timing';
 import {
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -164,21 +165,6 @@ export class TaskRunner {
     this.status = this.tasks.length > 0 ? 'pending' : 'init';
   }
 
-  private findPreviousNonSubTaskUIContext(
-    currentIndex: number,
-  ): UIContext | undefined {
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      const candidate = this.tasks[i];
-      if (!candidate || candidate.subTask) {
-        continue;
-      }
-      if (candidate.uiContext) {
-        return candidate.uiContext;
-      }
-    }
-    return undefined;
-  }
-
   async append(
     task: ExecutionTaskApply[] | ExecutionTaskApply,
     options?: TaskRunnerOperationOptions,
@@ -262,19 +248,13 @@ export class TaskRunner {
         assert(executor, `executor is required for task type: ${task.type}`);
 
         let returnValue;
-        let uiContext: UIContext | undefined;
-        if (task.subTask) {
-          uiContext = this.findPreviousNonSubTaskUIContext(taskIndex);
-          assert(
-            uiContext,
-            'subTask requires uiContext from previous non-subTask task',
-          );
-        } else {
-          // For Insight tasks (Query/Assert/WaitFor), always get fresh context
-          // to ensure we have the latest UI state after any preceding actions
-          const forceRefresh = task.type === 'Insight';
-          uiContext = await this.getUiContext({ forceRefresh });
-        }
+        // For Insight tasks (Query/Assert/WaitFor), always get fresh context
+        // to ensure we have the latest UI state after any preceding actions
+        const forceRefresh = task.type === 'Insight';
+        setTimingFieldOnce(task.timing, 'getUiContextStart');
+        const uiContext = await this.getUiContext({ forceRefresh });
+        setTimingFieldOnce(task.timing, 'getUiContextEnd');
+
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
           task,
@@ -312,8 +292,10 @@ export class TaskRunner {
         const isLastTask = taskIndex === this.tasks.length - 1;
 
         if (isLastTask) {
+          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
           const screenshot = await this.captureScreenshot();
           this.attachRecorderItem(task, screenshot, 'after-calling');
+          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
         }
 
         Object.assign(task, returnValue);

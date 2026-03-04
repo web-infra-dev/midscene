@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, unlinkSync } from 'node:fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import path, { join } from 'node:path';
 import {
   type LocateCache,
@@ -217,6 +217,33 @@ describe('TaskCache', { timeout: 20000 }, () => {
     expect(
       cacheFileContent.replace(/\d+\.\d+\.\d+[-\w\d.]*/g, '0.999.0'),
     ).toMatchSnapshot();
+  });
+
+  it('should correctly read cache files containing YAML folded block scalar (>-) format', () => {
+    const longXpath =
+      '/html/body/div[1]/div[1]/div[10]/section[1]/div[normalize-space()="立即投保"]';
+    const prompt = '立即投保';
+
+    // First create a normal cache file
+    const cacheFilePath = prepareCache([
+      {
+        type: 'locate',
+        prompt,
+        cache: { xpaths: [longXpath] },
+      },
+    ]);
+
+    // Manually rewrite the cache file using default lineWidth to produce >- format
+    const loaded = yaml.load(readFileSync(cacheFilePath!, 'utf-8')) as any;
+    const yamlWithFolded = yaml.dump(loaded, { lineWidth: 80 });
+    expect(yamlWithFolded).toContain('>-');
+    writeFileSync(cacheFilePath!, yamlWithFolded);
+
+    // Verify the cache can still be matched and xpaths round-trip correctly
+    const newTaskCache = new TaskCache(uuid(), true, cacheFilePath);
+    const located = newTaskCache.matchLocateCache(prompt);
+    expect(located).toBeDefined();
+    expect(located?.cacheContent.cache?.xpaths).toEqual([longXpath]);
   });
 
   it('migrates legacy locate cache xpaths to cache entry when matching', () => {

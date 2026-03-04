@@ -294,16 +294,28 @@ export async function callAI(
     (commonConfig as unknown as Record<string, number>).frequency_penalty = 0.2;
   }
 
+  // Merge deepThink (per-request boolean) with reasoning config (model-level)
+  // deepThink takes priority as a per-request override for reasoningEnabled
+  const mergedEnableReasoning = (() => {
+    const normalizedDeepThink =
+      options?.deepThink === 'unset' ? undefined : options?.deepThink;
+    if (normalizedDeepThink === true) return true;
+    if (normalizedDeepThink === false) return false;
+    return modelConfig.reasoningEnabled;
+  })();
+
   const {
-    config: deepThinkConfig,
-    debugMessage,
+    config: reasoningEffortConfig,
+    debugMessage: reasoningEffortDebugMessage,
     warningMessage,
-  } = resolveDeepThinkConfig({
-    deepThink: options?.deepThink,
+  } = resolveReasoningConfig({
+    reasoningEnabled: mergedEnableReasoning,
+    reasoningEffort: modelConfig.reasoningEffort,
+    reasoningBudget: modelConfig.reasoningBudget,
     modelFamily,
   });
-  if (debugMessage) {
-    debugCall(debugMessage);
+  if (reasoningEffortDebugMessage) {
+    debugCall(reasoningEffortDebugMessage);
   }
   if (warningMessage) {
     warnCall(warningMessage);
@@ -320,7 +332,7 @@ export async function callAI(
           model: modelName,
           messages,
           ...commonConfig,
-          ...deepThinkConfig,
+          ...reasoningEffortConfig,
         },
         {
           stream: true,
@@ -402,7 +414,7 @@ export async function callAI(
             model: modelName,
             messages,
             ...commonConfig,
-            ...deepThinkConfig,
+            ...reasoningEffortConfig,
           } as any);
 
           timeCost = Date.now() - startTime;
@@ -430,7 +442,7 @@ export async function callAI(
           if (
             !content &&
             accumulatedReasoning &&
-            modelFamily === 'doubao-vision'
+            (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed')
           ) {
             warnCall('empty content from AI model, using reasoning content');
             content = accumulatedReasoning;
@@ -569,67 +581,105 @@ export function preprocessDoubaoBboxJson(input: string) {
   return input;
 }
 
-export function resolveDeepThinkConfig({
-  deepThink,
+export function resolveReasoningConfig({
+  reasoningEnabled,
+  reasoningEffort,
+  reasoningBudget,
   modelFamily,
 }: {
-  deepThink?: DeepThinkOption;
+  reasoningEnabled?: boolean;
+  reasoningEffort?: string;
+  reasoningBudget?: number;
   modelFamily?: TModelFamily;
 }): {
   config: Record<string, unknown>;
   debugMessage?: string;
   warningMessage?: string;
 } {
-  const normalizedDeepThink = deepThink === 'unset' ? undefined : deepThink;
-
-  if (normalizedDeepThink === undefined) {
-    return { config: {}, debugMessage: undefined };
+  // No reasoning params set at all
+  if (
+    reasoningEnabled === undefined &&
+    !reasoningEffort &&
+    reasoningBudget === undefined
+  ) {
+    return { config: {} };
   }
 
-  if (modelFamily === 'qwen3-vl') {
-    return {
-      config: { enable_thinking: normalizedDeepThink },
-      debugMessage: `deepThink mapped to enable_thinking=${normalizedDeepThink} for qwen3-vl`,
-    };
-  }
+  const debugMessages: string[] = [];
+  const config: Record<string, unknown> = {};
 
-  if (modelFamily === 'doubao-vision') {
+  if (modelFamily === 'qwen3-vl' || modelFamily === 'qwen3.5') {
+    // reasoningEnabled → enable_thinking
+    if (reasoningEnabled !== undefined) {
+      config.enable_thinking = reasoningEnabled;
+      debugMessages.push(`enable_thinking=${reasoningEnabled}`);
+    }
+    // reasoningBudget → thinking_budget
+    if (reasoningBudget !== undefined) {
+      config.thinking_budget = reasoningBudget;
+      debugMessages.push(`thinking_budget=${reasoningBudget}`);
+    }
+    // reasoningEffort is ignored for qwen
+  } else if (modelFamily === 'doubao-vision' || modelFamily === 'doubao-seed') {
+    // reasoningEnabled → thinking.type
+    if (reasoningEnabled !== undefined) {
+      config.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+      debugMessages.push(
+        `thinking.type=${reasoningEnabled ? 'enabled' : 'disabled'}`,
+      );
+    }
+    // reasoningEffort → reasoning_effort
+    if (reasoningEffort) {
+      config.reasoning_effort = reasoningEffort;
+      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
+    }
+    // reasoningBudget is ignored for doubao
+  } else if (modelFamily === 'glm-v') {
+    // reasoningEnabled → thinking.type
+    if (reasoningEnabled !== undefined) {
+      config.thinking = {
+        type: reasoningEnabled ? 'enabled' : 'disabled',
+      };
+      debugMessages.push(
+        `thinking.type=${reasoningEnabled ? 'enabled' : 'disabled'}`,
+      );
+    }
+    // reasoningEffort and reasoningBudget are ignored for glm-v
+  } else if (modelFamily === 'gpt-5') {
+    // reasoningEffort → reasoning.effort
+    if (reasoningEffort) {
+      config.reasoning = { effort: reasoningEffort };
+      debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
+    } else if (reasoningEnabled === true) {
+      config.reasoning = { effort: 'high' };
+      debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
+    } else if (reasoningEnabled === false) {
+      config.reasoning = { effort: 'low' };
+      debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
+    }
+    // reasoningBudget is ignored for gpt-5
+  } else if (!modelFamily) {
     return {
-      config: {
-        thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
-      },
-      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for doubao-vision`,
+      config: {},
+      debugMessage: 'reasoning config ignored: no model_family configured',
+      warningMessage:
+        'Reasoning config is set but no model_family is configured. Set MIDSCENE_MODEL_FAMILY to enable reasoning config pass-through.',
     };
-  }
-
-  if (modelFamily === 'glm-v') {
-    return {
-      config: {
-        thinking: { type: normalizedDeepThink ? 'enabled' : 'disabled' },
-      },
-      debugMessage: `deepThink mapped to thinking.type=${normalizedDeepThink ? 'enabled' : 'disabled'} for glm-v`,
-    };
-  }
-
-  if (modelFamily === 'gpt-5') {
-    return {
-      config: normalizedDeepThink
-        ? {
-            reasoning: { effort: 'high' },
-          }
-        : {
-            reasoning: { effort: 'low' },
-          },
-      debugMessage: normalizedDeepThink
-        ? 'deepThink mapped to reasoning.effort=high for gpt-5'
-        : 'deepThink disabled for gpt-5',
-    };
+  } else {
+    // For unknown model families, pass reasoning_effort directly as a best-effort default
+    if (reasoningEffort) {
+      config.reasoning_effort = reasoningEffort;
+      debugMessages.push(`reasoning_effort="${reasoningEffort}"`);
+    }
   }
 
   return {
-    config: {},
-    debugMessage: `deepThink ignored: unsupported model_family "${modelFamily ?? 'default'}"`,
-    warningMessage: `The "deepThink" option is not supported for model_family "${modelFamily ?? 'default'}".`,
+    config,
+    debugMessage: debugMessages.length
+      ? `reasoning config for ${modelFamily}: ${debugMessages.join(', ')}`
+      : undefined,
   };
 }
 
@@ -709,7 +759,11 @@ export function safeParseJson(
     lastError = error;
   }
 
-  if (modelFamily === 'doubao-vision' || isUITars(modelFamily)) {
+  if (
+    modelFamily === 'doubao-vision' ||
+    modelFamily === 'doubao-seed' ||
+    isUITars(modelFamily)
+  ) {
     const jsonString = preprocessDoubaoBboxJson(cleanJsonString);
     try {
       parsed = JSON.parse(jsonrepair(jsonString));

@@ -24,7 +24,20 @@ export function extractXMLTag(
   // Find the last closing tag
   const lastCloseIndex = lowerXmlString.lastIndexOf(closeTag);
   if (lastCloseIndex === -1) {
-    return undefined;
+    // Fallback: handle half-open tags like `<action-type>Input` without
+    // matching close tag. Extract until the next XML tag boundary.
+    const lastOpenIndex = lowerXmlString.lastIndexOf(openTag);
+    if (lastOpenIndex === -1) {
+      return undefined;
+    }
+
+    const contentStart = lastOpenIndex + openTag.length;
+    const remaining = xmlString.substring(contentStart);
+    const nextTagIndex = remaining.indexOf('<');
+    const content =
+      nextTagIndex === -1 ? remaining : remaining.substring(0, nextTagIndex);
+
+    return content.trim();
   }
 
   // Search backwards from the closing tag to find the nearest opening tag

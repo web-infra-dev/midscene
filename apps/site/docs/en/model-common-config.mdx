@@ -62,7 +62,7 @@ This section lists common model configurations. For details on model differences
 
 ### Doubao Seed Model {#doubao-seed-model}
 
-Doubao-Seed-1.6-Vision is the recommended model.
+Doubao-Seed-2.0-Lite is the recommended model. Doubao-Seed-1.6-Vision and Doubao-Seed-1.8 are also supported.
 
 Obtain an API key from [Volcano Engine](https://volcengine.com) and set:
 
@@ -70,8 +70,25 @@ Obtain an API key from [Volcano Engine](https://volcengine.com) and set:
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # Inference endpoint ID or model name from Volcano Engine
-MIDSCENE_MODEL_FAMILY="doubao-vision"
+MIDSCENE_MODEL_FAMILY="doubao-seed" # "doubao-vision" is also supported
+# Optional: control reasoning effort (low, medium, high)
+# MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
+### Qwen3.5 {#qwen35}
+
+Using Alibaba Cloud's `qwen3.5-plus` as an example. It is recommended to disable the platform's default thinking mode to improve execution speed, the environment variable configuration is as follows:
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3.5-plus"
+MIDSCENE_MODEL_FAMILY="qwen3.5"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
+```
+
+To enable thinking mode, remove the `MIDSCENE_MODEL_REASONING_ENABLED="false"` line and add `MIDSCENE_MODEL_REASONING_BUDGET="500"` to control thinking cost.
+
+You can also use Qwen3.5 from [OpenRouter](https://openrouter.ai/qwen).
 
 ### Qwen3-VL {#qwen3-vl}
 

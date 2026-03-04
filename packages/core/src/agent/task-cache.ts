@@ -333,7 +333,7 @@ export class TaskCache {
         caches: sortedCaches,
       };
 
-      const yamlData = yaml.dump(cacheToWrite);
+      const yamlData = yaml.dump(cacheToWrite, { lineWidth: -1 });
       writeFileSync(this.cacheFilePath, yamlData);
       debug('cache flushed to file: %s', this.cacheFilePath);
     } catch (err) {

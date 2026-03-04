@@ -118,7 +118,7 @@ export async function plan(
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
-  const { size } = context;
+  const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
 
   const { modelFamily } = modelConfig;
@@ -135,8 +135,8 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64;
-  let imageWidth = size.width;
-  let imageHeight = size.height;
+  let imageWidth = shotSize.width;
+  let imageHeight = shotSize.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
 
@@ -228,7 +228,7 @@ export async function plan(
     ...historyLog,
   ];
 
-  const {
+  let {
     content: rawResponse,
     usage,
     reasoning_content,
@@ -236,10 +236,20 @@ export async function plan(
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
   });
 
-  // Parse XML response to JSON object, capture parsing errors
+  // Parse XML response to JSON object, retry once on parse failure
   let planFromAI: RawResponsePlanningAIResponse;
   try {
-    planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    try {
+      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    } catch {
+      const retry = await callAI(msgs, modelConfig, {
+        deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+      });
+      rawResponse = retry.content;
+      usage = retry.usage;
+      reasoning_content = retry.reasoning_content;
+      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    }
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
       warnLog(
@@ -304,7 +314,7 @@ export async function plan(
     // Update sub-goals in conversation history based on response (only when deepThink is enabled)
     if (includeSubGoals) {
       if (planFromAI.updateSubGoals?.length) {
-        conversationHistory.setSubGoals(planFromAI.updateSubGoals);
+        conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
       }
       if (planFromAI.markFinishedIndexes?.length) {
         for (const index of planFromAI.markFinishedIndexes) {

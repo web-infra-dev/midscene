@@ -17,16 +17,16 @@ test.describe('ai todo describe', () => {
       test.setTimeout(1000 * 1000);
     }
 
-    await ai('Enter "Happy Birthday" in the task box');
+    await ai('Type "Happy Birthday" in the task box, do NOT press Enter');
     await ai(
-      'Enter "Learn JS today"in the task box, then press Enter to create',
+      'Type "Learn JS today" in the task box, then press Enter to create',
     );
 
     await ai(
-      'Enter "Learn Rust tomorrow" in the task box, then press Enter to create',
+      'Type "Learn Rust tomorrow" in the task box, then press Enter to create',
     );
     await ai(
-      'Enter "Learning AI the day after tomorrow" in the task box, then press Enter to create',
+      'Type "Learning AI the day after tomorrow" in the task box, then press Enter to create',
     );
 
     const allTaskList = await aiQuery<string[]>('string[], tasks in the list');
@@ -36,10 +36,14 @@ test.describe('ai todo describe', () => {
     expect(allTaskList).toContain('Learn Rust tomorrow');
     expect(allTaskList).toContain('Learning AI the day after tomorrow');
 
-    await ai('Move your mouse over the second item in the task list');
-    await ai('Click the delete button to the right of the second task');
-    await ai('Click the checkbox next to the second task');
-    await ai('Click the "completed" Status button below the task list');
+    await ai(
+      'Move your mouse over "Learn Rust tomorrow" in the task list to reveal the delete button',
+    );
+    await ai(
+      'Click the delete button (×) to the right of "Learn Rust tomorrow"',
+    );
+    await ai('Click the checkbox next to "Learning AI the day after tomorrow"');
+    await ai('Click the "Completed" status filter button below the task list');
 
     const taskList = await aiQuery<string[]>(
       'string[], Extract all task names from the list',

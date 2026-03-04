@@ -18,7 +18,7 @@ test('ai report', async ({ page, ai, aiAssert, aiQuery }, testInfo) => {
     'In the left sidebar, click the dropdown selector that shows a status icon (✓ or ✗) with a test case name, to expand the dropdown list',
   );
   await ai(
-    'In the expanded dropdown list, click the option containing "ai todo"',
+    'In the expanded dropdown list, scroll down if needed, and click the option whose text contains "ai todo" (not "ai shop")',
   );
   const actionsList = await aiQuery(
     'Array<{title: string(task name,include action、wait), actions: Array<string(task action name,Excluding time)>}>',

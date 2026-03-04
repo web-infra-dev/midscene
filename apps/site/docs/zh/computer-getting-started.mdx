@@ -29,6 +29,27 @@ import { PackageManagerTabs } from '@theme';
 
 **Linux**：需要安装 [ImageMagick](https://imagemagick.org/script/download.php) 用于截图功能。
 
+**无头 Linux（CI 环境）**：要在无头 Linux 服务器（如 GitHub Actions）上运行桌面自动化，需安装 Xvfb 及其依赖，然后启用 headless 模式：
+
+```bash
+# 安装依赖
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+// 方式 1：传入 headless 选项
+const agent = await agentFromComputer({ headless: true });
+
+// 方式 2：设置环境变量
+// MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
+```
+
+Xvfb 会创建一个虚拟显示器，使鼠标、键盘和截图操作在没有物理显示器的情况下正常工作。详见 [API 参考](./computer-api-reference)。
+
+:::tip 示例：在无头 Linux CI 中测试 Electron 应用
+使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
+
 ## 试用 Playground（零代码）
 
 Playground 是验证连接、观察 AI Agent 的最快方式，无需编写代码。它与 `@midscene/computer` 共享相同的代码实现，因此在 Playground 上验证通过的流程，用脚本运行时也完全一致。
@@ -194,5 +215,5 @@ if (!env.available) {
 
 - [API 参考](./computer-api-reference)
 - [使用 YAML 格式自动化脚本](./automate-with-scripts-in-yaml)
-- [命令行工具](./command-line-tools)
+- [YAML 脚本运行器](./yaml-script-runner)
 - [缓存提高效率](./caching)

@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "1.3.10",
+  "version": "1.5.2",
   "description": "Android playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
@@ -13,10 +13,10 @@
   "scripts": {
     "dev": "npm run build:watch",
     "dev:server": "npm run build && ./bin/playground",
-    "prebuild": "node scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server",
+    "prebuild": "node ../android/scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
-    "prepack": "node scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server"
+    "prepack": "node ../android/scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server"
   },
   "dependencies": {
     "@midscene/android": "workspace:*",

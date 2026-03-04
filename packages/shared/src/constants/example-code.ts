@@ -6,16 +6,16 @@ IMPORTANT: Follow these exact type signatures for AI functions:
 
 // Type signatures for AI functions:
 aiAct(prompt: string, options?: { cacheable?: boolean, deepThink?: 'unset' | true | false }): Promise<void>
-aiInput(text: string, locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
-aiTap(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
-aiHover(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
-aiDoubleClick(locate: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
-aiKeyboardPress(key: string, locate?: string, options?: { deepThink?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiInput(text: string, locate: string, options?: { deepLocate?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiTap(locate: string, options?: { deepLocate?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiHover(locate: string, options?: { deepLocate?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiDoubleClick(locate: string, options?: { deepLocate?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
+aiKeyboardPress(key: string, locate?: string, options?: { deepLocate?: boolean, xpath?: string, cacheable?: boolean }): Promise<void>
 aiScroll(locate: string | undefined, options: {
   direction?: 'up' | 'down' | 'left' | 'right',
   scrollType?: 'singleAction' | 'scrollToBottom' | 'scrollToTop' | 'scrollToRight' | 'scrollToLeft',
   distance?: number | null,
-  deepThink?: boolean,
+  deepLocate?: boolean,
   xpath?: string,
   cacheable?: boolean
 }): Promise<void>
@@ -110,7 +110,7 @@ tasks:
 3. Best Practices:
 - Group related actions into logical tasks
 - Use natural language descriptions
-- Add deepThink: true for complex interactions
+- Add deepLocate: true for complex interactions
 - Keep task names concise but descriptive
 
 4. CRITICAL - YAML Indentation Rules:
@@ -148,33 +148,33 @@ tasks:
 
       # Tap an element described by a prompt.
       - aiTap: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to use deepLocate to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Double click an element described by a prompt.
       - aiDoubleClick: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to use deepLocate to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Hover over an element described by a prompt.
       - aiHover: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to use deepLocate to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Input text into an element described by a prompt.
       - aiInput: <final text content of the input>
         locate: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to use deepLocate to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
       # Press a key (e.g., Enter, Tab, Escape) on an element described by a prompt.
       - aiKeyboardPress: <key>
         locate: <prompt>
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to use deepLocate to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 
@@ -184,7 +184,7 @@ tasks:
         scrollType: 'singleAction' # or 'scrollToTop' | 'scrollToBottom' | 'scrollToLeft' | 'scrollToRight'
         distance: <number> # Optional, the scroll distance in pixels.
         locate: <prompt> # Optional, the element to scroll on.
-        deepThink: <boolean> # Optional, whether to use deepThink to precisely locate the element. Defaults to False.
+        deepLocate: <boolean> # Optional, whether to use deepLocate to precisely locate the element. Defaults to False.
         xpath: <xpath> # Optional, the xpath of the target element for the operation. If provided, Midscene will prioritize this xpath to find the element before using the cache and the AI model. Defaults to empty.
         cacheable: <boolean> # Optional, whether to cache the result of this API call when the [caching feature](./caching.mdx) is enabled. Defaults to True.
 

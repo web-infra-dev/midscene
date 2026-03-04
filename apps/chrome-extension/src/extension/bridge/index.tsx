@@ -38,7 +38,10 @@ export default function Bridge() {
   const [messageList, setMessageList] = useState<BridgeMessageItem[]>([]);
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const lastScrollTopRef = useRef<number>(0);
   const [alwaysAllow, setAlwaysAllow] = useState<boolean>(false);
+  const [alwaysDecline, setAlwaysDecline] = useState<boolean>(false);
   const [serverUrl, setServerUrl] = useState<string>(() => {
     // Only restore from localStorage if user has customized it
     return localStorage.getItem(BRIDGE_SERVER_URL_KEY) || '';
@@ -165,6 +168,7 @@ export default function Bridge() {
       (response) => {
         if (response) {
           setAlwaysAllow(response.alwaysAllow || false);
+          setAlwaysDecline(response.alwaysDecline || false);
           setBridgeStatus(response.status || 'closed');
         }
       },
@@ -191,6 +195,7 @@ export default function Bridge() {
       (response) => {
         if (response?.success) {
           setAlwaysAllow(false);
+          setAlwaysDecline(false);
         }
       },
     );
@@ -231,19 +236,28 @@ export default function Bridge() {
 
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10; // 10px tolerance
       setShowScrollToBottomButton(!isAtBottom);
+
+      const scrollingUp = scrollTop < lastScrollTopRef.current;
+      lastScrollTopRef.current = scrollTop;
+
+      if (isAtBottom) {
+        setAutoScrollEnabled(true);
+      } else if (scrollingUp) {
+        setAutoScrollEnabled(false);
+      }
     }
   };
 
-  // scroll to bottom when message list updated
+  // scroll to bottom when message list updated (only if auto scroll is enabled)
   useEffect(() => {
-    if (messageList.length > 0) {
+    if (messageList.length > 0 && autoScrollEnabled) {
       if (messageListRef.current) {
         messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
       }
       // check status after scroll
       checkIfScrolledToBottom();
     }
-  }, [messageList]);
+  }, [messageList, autoScrollEnabled]);
 
   // listen to scroll event
   useEffect(() => {
@@ -266,6 +280,7 @@ export default function Bridge() {
         behavior: 'smooth',
       });
       setShowScrollToBottomButton(false);
+      setAutoScrollEnabled(true);
     }
   };
 
@@ -404,9 +419,13 @@ export default function Bridge() {
 
       {/* bottom status bar */}
       <div className="bottom-button-container">
-        {alwaysAllow && (
+        {(alwaysAllow || alwaysDecline) && (
           <div className="permission-info-container">
-            <span className="permission-info-text">Auto-allow is enabled</span>
+            <span className="permission-info-text">
+              {alwaysAllow
+                ? 'Auto-allow is enabled'
+                : 'Auto-decline is enabled'}
+            </span>
             <Button
               type="link"
               size="small"

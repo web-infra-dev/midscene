@@ -15,6 +15,7 @@ import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
+  getBaseUrlFixScript,
 } from './dump/html-utils';
 import type { GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
@@ -202,18 +203,18 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // 1. write new screenshots as PNG files and release memory immediately
-    // Screenshots can be recovered from PNG files via lazy loading
+    // 1. write new screenshots and release memory immediately
+    // Screenshots can be recovered from disk via lazy loading
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
-        const absolutePath = join(screenshotsDir, `${screenshot.id}.png`);
+        const ext = screenshot.extension;
+        const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
         const buffer = Buffer.from(screenshot.rawBase64, 'base64');
         writeFileSync(absolutePath, buffer);
         this.writtenScreenshots.add(screenshot.id);
-        // Release memory - screenshot can be recovered from PNG file
         screenshot.markPersistedToPath(
-          `./screenshots/${screenshot.id}.png`,
+          `./screenshots/${screenshot.id}.${ext}`,
           absolutePath,
         );
       }
@@ -223,7 +224,7 @@ export class ReportGenerator implements IReportGenerator {
     const serialized = dump.serialize();
     writeFileSync(
       this.reportPath,
-      `${getReportTpl()}\n${generateDumpScriptTag(serialized)}`,
+      `${getReportTpl()}${getBaseUrlFixScript()}${generateDumpScriptTag(serialized)}`,
     );
   }
 }

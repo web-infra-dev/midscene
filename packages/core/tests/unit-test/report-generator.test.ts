@@ -22,8 +22,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
  * Create a fake base64 string of a specified size (in bytes).
  * Uses repeating 'A' characters (valid base64).
  */
-function fakeBase64(sizeBytes: number): string {
-  return `data:image/png;base64,${'A'.repeat(sizeBytes)}`;
+function fakeBase64(sizeBytes: number, format: 'png' | 'jpeg' = 'png'): string {
+  return `data:image/${format};base64,${'A'.repeat(sizeBytes)}`;
 }
 
 /**
@@ -32,13 +32,15 @@ function fakeBase64(sizeBytes: number): string {
  */
 function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
   const tasks = screenshots.map((s, i) => ({
+    taskId: `task-${i}`,
     type: 'Insight' as const,
     subType: 'Locate',
     param: { prompt: `task-${i}` },
     uiContext: {
       screenshot: s,
-      size: { width: 1920, height: 1080 },
-    } as UIContext,
+      shotSize: { width: 1920, height: 1080 },
+      shrunkShotToLogicalRatio: 1,
+    },
     executor: async () => undefined,
     recorder: [],
     status: 'running' as const,
@@ -104,7 +106,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
       const screenshotSize = 1000; // 1KB per screenshot
 
       for (let i = 0; i < rounds; i++) {
-        const newScreenshot = ScreenshotItem.create(fakeBase64(screenshotSize));
+        const newScreenshot = ScreenshotItem.create(
+          fakeBase64(screenshotSize),
+          Date.now(),
+        );
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
       }
@@ -131,7 +136,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(500));
+      const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
       const dump = createDump([screenshot]);
 
       // Write same dump 10 times
@@ -157,7 +162,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const dump = createDump([screenshot]);
 
       // Write dump 3 times
@@ -193,7 +198,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
       const sizes: number[] = [];
 
       for (let i = 0; i < rounds; i++) {
-        const newScreenshot = ScreenshotItem.create(fakeBase64(screenshotSize));
+        const newScreenshot = ScreenshotItem.create(
+          fakeBase64(screenshotSize),
+          Date.now(),
+        );
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
         await generator.flush();
@@ -223,8 +231,8 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot1 = ScreenshotItem.create(fakeBase64(100));
-      const screenshot2 = ScreenshotItem.create(fakeBase64(200));
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
 
       // Round 1: one screenshot
       const dump1 = createDump([screenshot1]);
@@ -282,7 +290,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
       const rounds = 5;
 
       for (let i = 0; i < rounds; i++) {
-        const newScreenshot = ScreenshotItem.create(fakeBase64(500));
+        const newScreenshot = ScreenshotItem.create(
+          fakeBase64(500),
+          Date.now(),
+        );
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
       }
@@ -303,6 +314,37 @@ describe('ReportGenerator — constant memory guarantees', () => {
       }
     });
 
+    it('should write JPEG screenshots with .jpeg extension', async () => {
+      const reportDir = join(tmpDir, 'dir-jpeg-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const jpegScreenshot = ScreenshotItem.create(
+        fakeBase64(500, 'jpeg'),
+        Date.now(),
+      );
+      const pngScreenshot = ScreenshotItem.create(
+        fakeBase64(500, 'png'),
+        Date.now(),
+      );
+      const dump = createDump([jpegScreenshot, pngScreenshot]);
+
+      generator.onDumpUpdate(dump);
+      await generator.flush();
+
+      const screenshotsDir = join(reportDir, 'screenshots');
+      expect(
+        existsSync(join(screenshotsDir, `${jpegScreenshot.id}.jpeg`)),
+      ).toBe(true);
+      expect(existsSync(join(screenshotsDir, `${pngScreenshot.id}.png`))).toBe(
+        true,
+      );
+    });
+
     it('should not re-write existing PNG files on subsequent updates', async () => {
       const reportDir = join(tmpDir, 'no-rewrite-test');
       const reportPath = join(reportDir, 'index.html');
@@ -312,7 +354,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(500));
+      const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
       const dump = createDump([screenshot]);
 
       // First update
@@ -346,7 +388,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const dump = createDump([screenshot]);
 
       // Write first time
@@ -375,8 +417,8 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot1 = ScreenshotItem.create(fakeBase64(100));
-      const screenshot2 = ScreenshotItem.create(fakeBase64(200));
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
       const dump = createDump([screenshot1, screenshot2]);
 
       generator.onDumpUpdate(dump);
@@ -410,7 +452,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const screenshotId = screenshot.id;
       const dump = createDump([screenshot]);
 
@@ -445,7 +487,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const dump = createDump([screenshot]);
 
       generator.onDumpUpdate(dump);
@@ -470,7 +512,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
 
   describe('nullReportGenerator — no-op', () => {
     it('should do nothing on onDumpUpdate and finalize', async () => {
-      const screenshot = ScreenshotItem.create(fakeBase64(100));
+      const screenshot = ScreenshotItem.create(fakeBase64(100), Date.now());
       const dump = createDump([screenshot]);
 
       // Should not throw
@@ -523,18 +565,20 @@ describe('ReportGenerator — constant memory guarantees', () => {
       for (let e = 0; e < executionCount; e++) {
         const screenshots: ScreenshotItem[] = [];
         for (let s = 0; s < screenshotsPerExecution; s++) {
-          screenshots.push(ScreenshotItem.create(fakeBase64(1000)));
+          screenshots.push(ScreenshotItem.create(fakeBase64(1000), Date.now()));
         }
         allScreenshots.push(screenshots);
 
         const tasks = screenshots.map((sc, i) => ({
+          taskId: `${e}-${i}`,
           type: 'Insight' as const,
           subType: 'Locate',
           param: { prompt: `exec-${e}-task-${i}` },
           uiContext: {
             screenshot: sc,
-            size: { width: 1920, height: 1080 },
-          } as UIContext,
+            shotSize: { width: 1920, height: 1080 },
+            shrunkShotToLogicalRatio: 1,
+          },
           executor: async () => undefined,
           recorder: [],
           status: 'running' as const,
@@ -569,7 +613,7 @@ describe('ReportGenerator — constant memory guarantees', () => {
         autoPrint: false,
       });
 
-      const screenshot = ScreenshotItem.create(fakeBase64(10000));
+      const screenshot = ScreenshotItem.create(fakeBase64(10000), Date.now());
       const dump = createDump([screenshot]);
 
       generator.onDumpUpdate(dump);
@@ -684,9 +728,9 @@ describe('ReportGenerator — constant memory guarantees', () => {
       });
 
       // Create screenshots with different sizes to distinguish them
-      const screenshot1 = ScreenshotItem.create(fakeBase64(100));
-      const screenshot2 = ScreenshotItem.create(fakeBase64(200));
-      const screenshot3 = ScreenshotItem.create(fakeBase64(300));
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
+      const screenshot3 = ScreenshotItem.create(fakeBase64(300), Date.now());
 
       const dump = createDump([screenshot1, screenshot2, screenshot3]);
       generator.onDumpUpdate(dump);
@@ -718,7 +762,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
       });
 
       // Create a large screenshot (100KB)
-      const largeScreenshot = ScreenshotItem.create(fakeBase64(100_000));
+      const largeScreenshot = ScreenshotItem.create(
+        fakeBase64(100_000),
+        Date.now(),
+      );
       const dump = createDump([largeScreenshot]);
 
       generator.onDumpUpdate(dump);
@@ -747,7 +794,10 @@ describe('ReportGenerator — constant memory guarantees', () => {
       const totalScreenshots = 50;
 
       for (let i = 0; i < totalScreenshots; i++) {
-        const newScreenshot = ScreenshotItem.create(fakeBase64(1000));
+        const newScreenshot = ScreenshotItem.create(
+          fakeBase64(1000),
+          Date.now(),
+        );
         const dump = buildIncrementalDump(allScreenshots, newScreenshot);
         generator.onDumpUpdate(dump);
       }
