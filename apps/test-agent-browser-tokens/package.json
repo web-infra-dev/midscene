@@ -1,0 +1,20 @@
+{
+  "name": "test-agent-browser-tokens",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-vm-modules ./node_modules/.bin/vitest run",
+    "test:ebay": "node --experimental-vm-modules ./node_modules/.bin/vitest run ebay-search"
+  },
+  "dependencies": {
+    "@midscene/core": "workspace:*",
+    "@midscene/web": "workspace:*",
+    "@midscene/shared": "workspace:*",
+    "puppeteer": "^24.6.0"
+  },
+  "devDependencies": {
+    "vitest": "^3.0.5",
+    "typescript": "^5.8.3"
+  }
+}
