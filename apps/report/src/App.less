@@ -81,11 +81,19 @@ footer.mt-8 {
   padding: 0 8px;
 }
 
+.main-layout {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
 .page-side {
   height: calc(100% - 8px);
   background: #f2f4f7;
   margin-bottom: 8px;
-  min-width: 280px;
+  flex-shrink: 0;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -93,6 +101,11 @@ footer.mt-8 {
 .resize-handle {
   width: 8px;
   flex-shrink: 0;
+  cursor: col-resize;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
 }
 
 [data-theme='dark'] .page-side {
@@ -301,6 +314,10 @@ footer.mt-8 {
 
   .page-nav-title-hint {
     color: rgba(255, 255, 255, 0.45) !important;
+  }
+
+  .resize-handle:hover {
+    background: rgba(255, 255, 255, 0.06);
   }
 
   .main-right {

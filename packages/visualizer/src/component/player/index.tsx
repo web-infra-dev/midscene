@@ -67,7 +67,6 @@ export function Player(props?: {
   autoZoom?: boolean;
   canDownloadReport?: boolean;
   onTaskChange?: (taskId: string | null) => void;
-  deviceType?: string;
 }) {
   const {
     autoZoom,
@@ -85,11 +84,10 @@ export function Player(props?: {
   }, [props?.autoZoom, setAutoZoom]);
 
   const scripts = props?.replayScripts;
-  const deviceType = props?.deviceType;
   const frameMap = useMemo<FrameMap | null>(() => {
     if (!scripts || scripts.length === 0) return null;
-    return calculateFrameMap(scripts, { deviceType });
-  }, [scripts, deviceType]);
+    return calculateFrameMap(scripts);
+  }, [scripts]);
 
   const playerRef = useRef<PlayerRef>(null);
   const lastTaskIdRef = useRef<string | null>(null);

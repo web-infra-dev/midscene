@@ -3,7 +3,6 @@ import { AbsoluteFill, Img, useCurrentFrame, useVideoConfig } from 'remotion';
 import { mouseLoading } from '../../../utils';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
-import { getDeviceLayout, resolveShellType } from './visual-effects';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -76,8 +75,6 @@ export const StepsTimeline: React.FC<{
     : imgW;
 
   // ── Layout calculations ──
-  const shellType = resolveShellType(frameMap.deviceType);
-  const deviceLayout = getDeviceLayout(shellType);
   const isPortraitImage = imgH > imgW;
 
   let browserW: number;
@@ -350,7 +347,6 @@ export const StepsTimeline: React.FC<{
             top: shellTop,
             width: browserW,
             height: browserH,
-            borderRadius: deviceLayout.borderRadius,
             overflow: 'hidden',
           }}
         >

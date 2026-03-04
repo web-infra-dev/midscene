@@ -54,15 +54,11 @@ export interface FrameMap {
   stepsDurationInFrames: number;
   imageWidth: number;
   imageHeight: number;
-  deviceType?: string;
 }
 
 // ── calculateFrameMap ──
 
-export function calculateFrameMap(
-  scripts: AnimationScript[],
-  options?: { deviceType?: string },
-): FrameMap {
+export function calculateFrameMap(scripts: AnimationScript[]): FrameMap {
   // Determine base image dimensions from first img/insight script
   let baseImageWidth = 1920;
   let baseImageHeight = 1080;
@@ -225,6 +221,5 @@ export function calculateFrameMap(
     stepsDurationInFrames,
     imageWidth: baseImageWidth,
     imageHeight: baseImageHeight,
-    deviceType: options?.deviceType,
   };
 }
