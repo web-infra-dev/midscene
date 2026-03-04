@@ -50,6 +50,7 @@ function buildProgressContent(task: any): string {
  */
 function wrapExecutionDumpForReplay(
   dump: ExecutionDump | IExecutionDump,
+  deviceType?: string,
 ): IGroupedActionDump {
   const modelBriefsSet = new Set<string>();
 
@@ -77,25 +78,43 @@ function wrapExecutionDumpForReplay(
     groupName: 'Playground Execution',
     modelBriefs,
     executions: [dump],
+    deviceType,
   };
+}
+
+export interface UsePlaygroundExecutionOptions {
+  playgroundSDK: PlaygroundSDKLike | null;
+  storage: StorageProvider | undefined | null;
+  actionSpace: DeviceAction<unknown>[];
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
+  setInfoList: React.Dispatch<React.SetStateAction<InfoListItem[]>>;
+  replayCounter: number;
+  setReplayCounter: React.Dispatch<React.SetStateAction<number>>;
+  verticalMode: boolean;
+  currentRunningIdRef: React.MutableRefObject<number | null>;
+  interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>;
+  deviceType?: string;
 }
 
 /**
  * Hook for handling playground execution logic
  */
-export function usePlaygroundExecution(
-  playgroundSDK: PlaygroundSDKLike | null,
-  storage: StorageProvider | undefined | null,
-  actionSpace: DeviceAction<unknown>[],
-  loading: boolean,
-  setLoading: (loading: boolean) => void,
-  setInfoList: React.Dispatch<React.SetStateAction<InfoListItem[]>>,
-  replayCounter: number,
-  setReplayCounter: React.Dispatch<React.SetStateAction<number>>,
-  verticalMode: boolean,
-  currentRunningIdRef: React.MutableRefObject<number | null>,
-  interruptedFlagRef: React.MutableRefObject<Record<number, boolean>>,
-) {
+export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
+  const {
+    playgroundSDK,
+    storage,
+    actionSpace,
+    loading,
+    setLoading,
+    setInfoList,
+    replayCounter,
+    setReplayCounter,
+    verticalMode,
+    currentRunningIdRef,
+    interruptedFlagRef,
+    deviceType,
+  } = options;
   // Get execution options from environment config
   const { deepLocate, deepThink, screenshotIncluded, domIncluded } =
     useEnvConfig();
@@ -261,7 +280,10 @@ export function usePlaygroundExecution(
       // This allows noReplayAPIs to display both output and report
       if (result?.dump) {
         if (result.dump.tasks && Array.isArray(result.dump.tasks)) {
-          const groupedDump = wrapExecutionDumpForReplay(result.dump);
+          const groupedDump = wrapExecutionDumpForReplay(
+            result.dump,
+            deviceType,
+          );
           const info = allScriptsFromDump(groupedDump);
           setReplayCounter((c) => c + 1);
           replayInfo = info;
@@ -333,6 +355,7 @@ export function usePlaygroundExecution(
       deepThink,
       screenshotIncluded,
       domIncluded,
+      deviceType,
     ],
   );
 
@@ -399,7 +422,10 @@ export function usePlaygroundExecution(
             executionData.dump?.tasks &&
             Array.isArray(executionData.dump.tasks)
           ) {
-            const groupedDump = wrapExecutionDumpForReplay(executionData.dump);
+            const groupedDump = wrapExecutionDumpForReplay(
+              executionData.dump,
+              deviceType,
+            );
             replayInfo = allScriptsFromDump(groupedDump);
             setReplayCounter((c) => c + 1);
             counter = replayCounter + 1;
@@ -454,6 +480,7 @@ export function usePlaygroundExecution(
     setInfoList,
     verticalMode,
     replayCounter,
+    deviceType,
   ]);
 
   // Check if execution can be stopped
