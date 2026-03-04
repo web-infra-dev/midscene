@@ -274,7 +274,8 @@ export async function exportBrandedVideo(
       a.href = url;
       a.download = 'midscene_replay.webm';
       a.click();
-      URL.revokeObjectURL(url);
+      stream.getTracks().forEach((track) => track.stop());
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       resolve();
     };
 

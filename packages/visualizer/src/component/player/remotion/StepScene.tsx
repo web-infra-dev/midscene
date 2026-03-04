@@ -255,6 +255,7 @@ export const StepsTimeline: React.FC<{
           }}
         >
           <img
+            alt=""
             src={prevImg}
             style={{
               width: w,
@@ -276,6 +277,7 @@ export const StepsTimeline: React.FC<{
         }}
       >
         <img
+          alt=""
           src={img}
           style={{
             width: w,
@@ -302,6 +304,7 @@ export const StepsTimeline: React.FC<{
 
       {spinningPointer && (
         <img
+          alt=""
           src={mouseLoading}
           style={{
             position: 'absolute',
@@ -318,6 +321,7 @@ export const StepsTimeline: React.FC<{
 
       {showCursor && !spinningPointer && (
         <img
+          alt=""
           src={currentPointerImg}
           style={{
             position: 'absolute',

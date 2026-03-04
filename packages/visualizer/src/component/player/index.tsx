@@ -29,7 +29,7 @@ const downloadReport = (content: string): void => {
   a.href = url;
   a.download = 'midscene_report.html';
   a.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
 function deriveTaskId(
@@ -391,7 +391,7 @@ export function Player(props?: {
                       onClick={isExporting ? undefined : handleExportVideo}
                     >
                       {isExporting ? (
-                        <Spin size="small" percent={exportProgress} />
+                        <Spin size="small" />
                       ) : (
                         <ExportOutlined
                           style={{ width: '16px', height: '16px' }}
