@@ -114,7 +114,7 @@ export const StepsTimeline: React.FC<{
     ? ((Math.sin(spinningElapsedMs / 500 - Math.PI / 2) + 1) / 2) * Math.PI * 2
     : 0;
 
-  // ── AI subtitle indicator ──
+  // ── Subtitle indicator ──
   const renderSubtitleIndicator = (maxWidth: string) => {
     if (!subtitleEnabled || (!title && !subTitle)) return null;
     return (
@@ -136,37 +136,40 @@ export const StepsTimeline: React.FC<{
           maxWidth,
         }}
       >
-        <span
-          style={{
-            fontSize: subBadgeFontSize,
-            fontWeight: 700,
-            color: '#fff',
-            background: 'rgba(163, 77, 255, 1)',
-            width: subBadgeW,
-            height: subBadgeH,
-            borderRadius: 4,
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            letterSpacing: 0.5,
-            flexShrink: 0,
-          }}
-        >
-          AI
-        </span>
-        <div
-          style={{
-            minWidth: 0,
-            overflow: 'hidden',
-            fontSize: subFontSize,
-            fontWeight: 500,
-            color: '#fff',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {[title, subTitle].filter(Boolean).join('–')}
-        </div>
+        {title && (
+          <span
+            style={{
+              fontSize: subBadgeFontSize,
+              fontWeight: 700,
+              color: '#fff',
+              background: 'rgba(163, 77, 255, 1)',
+              height: subBadgeH,
+              borderRadius: 4,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: `0 ${Math.round(subBadgeW * 0.2)}px`,
+              flexShrink: 0,
+            }}
+          >
+            {title}
+          </span>
+        )}
+        {subTitle && (
+          <div
+            style={{
+              minWidth: 0,
+              overflow: 'hidden',
+              fontSize: subFontSize,
+              fontWeight: 500,
+              color: '#fff',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {subTitle}
+          </div>
+        )}
       </div>
     );
   };
