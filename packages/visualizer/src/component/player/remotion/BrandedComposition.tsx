@@ -21,6 +21,3 @@ export const Composition: React.FC<{
     </AbsoluteFill>
   );
 };
-
-/** @deprecated Use Composition instead */
-export const BrandedComposition = Composition;

@@ -76,26 +76,10 @@ export const StepsTimeline: React.FC<{
 
   // ── Layout calculations ──
   const isPortraitImage = imgH > imgW;
-
-  let browserW: number;
-  let contentH: number;
-  let browserH: number;
-  let shellLeft: number;
-  let shellTop: number;
-
-  if (isPortraitImage) {
-    shellTop = 0;
-    contentH = compHeight;
-    browserW = Math.round(compHeight * (imgW / imgH));
-    browserH = compHeight;
-    shellLeft = Math.round((compWidth - browserW) / 2);
-  } else {
-    browserW = compWidth;
-    contentH = compHeight;
-    browserH = compHeight;
-    shellLeft = 0;
-    shellTop = 0;
-  }
+  const browserW = isPortraitImage
+    ? Math.round(compHeight * (imgW / imgH))
+    : compWidth;
+  const portraitLeft = Math.round((compWidth - browserW) / 2);
 
   const subScale = compWidth / 1920;
   const subFontSize = Math.round(Math.max(20 * subScale, 12));
@@ -110,12 +94,12 @@ export const StepsTimeline: React.FC<{
 
   const zoom = imgW / cameraWidth;
   const tx = -cameraLeft * (browserW / imgW);
-  const ty = -cameraTop * (contentH / imgH);
+  const ty = -cameraTop * (compHeight / imgH);
   const transformStyle = `scale(${zoom}) translate(${tx}px, ${ty}px)`;
 
   const camH = cameraWidth * (imgH / imgW);
   const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
-  const ptrY = ((pointerTop - cameraTop) / camH) * contentH;
+  const ptrY = ((pointerTop - cameraTop) / camH) * compHeight;
   const showCursor =
     camera.pointerLeft !== Math.round(imgW / 2) ||
     camera.pointerTop !== Math.round(imgH / 2) ||
@@ -343,14 +327,14 @@ export const StepsTimeline: React.FC<{
         <div
           style={{
             position: 'absolute',
-            left: shellLeft,
-            top: shellTop,
+            left: portraitLeft,
+            top: 0,
             width: browserW,
-            height: browserH,
+            height: compHeight,
             overflow: 'hidden',
           }}
         >
-          {renderContentArea(browserW, contentH)}
+          {renderContentArea(browserW, compHeight)}
         </div>
       ) : (
         renderContentArea(compWidth, compHeight)
