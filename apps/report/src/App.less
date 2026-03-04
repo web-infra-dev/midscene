@@ -84,9 +84,15 @@ footer.mt-8 {
 .page-side {
   height: calc(100% - 8px);
   background: #f2f4f7;
-  padding-right: 8px;
   margin-bottom: 8px;
-  overflow-x: auto;
+  min-width: 280px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.resize-handle {
+  width: 8px;
+  flex-shrink: 0;
 }
 
 [data-theme='dark'] .page-side {
@@ -181,6 +187,8 @@ footer.mt-8 {
   border-radius: 16px;
   background: #fff;
   margin-bottom: 8px;
+  min-width: 0;
+  overflow: hidden;
 
   .main-right-header {
     height: 50px;
