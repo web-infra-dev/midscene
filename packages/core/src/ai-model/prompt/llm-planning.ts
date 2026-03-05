@@ -207,6 +207,24 @@ export async function systemPromptToTaskPlanning({
     "prompt": "Email input field in the registration form"
   }`;
 
+  const moveStartExample = includeBbox
+    ? `{
+    "prompt": "middle-lower area of the screen",
+    "bbox": [260, 1200, 820, 1700]
+  }`
+    : `{
+    "prompt": "middle-lower area of the screen"
+  }`;
+
+  const moveEndExample = includeBbox
+    ? `{
+    "prompt": "upper-middle area of the screen",
+    "bbox": [260, 300, 820, 700]
+  }`
+    : `{
+    "prompt": "upper-middle area of the screen"
+  }`;
+
   const thoughtTag = (content: string) =>
     shouldIncludeThought ? `<thought>${content}</thought>\n` : '';
 
@@ -372,6 +390,7 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Make sure the previous actions are completed successfully. Otherwise, retry or do something else to recover.
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields.
 
 ### Supporting actions list
 
@@ -396,11 +415,22 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
-For example:
+- In examples below, "locate" is only an illustrative field for Tap-style actions.
+- For the real output, always follow the selected action's parameter schema exactly (e.g., Move uses "start"/"end", not "locate").
+For example (Tap):
 <action-type>Tap</action-type>
 <action-param-json>
 {
   "locate": ${locateExample1}
+}
+</action-param-json>
+
+For example (illustrative Move-style params, NOT a real action):
+<action-type>Move</action-type>
+<action-param-json>
+{
+  "start": ${moveStartExample},
+  "end": ${moveEndExample}
 }
 </action-param-json>
 
