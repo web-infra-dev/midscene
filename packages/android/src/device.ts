@@ -1142,12 +1142,18 @@ ${Object.keys(size)
         // Fire-and-forget: delete remote screenshot via separate process
         // Using execFile instead of adb.shell to avoid blocking the main ADB connection
         // (adb.shell has a 60s timeout that can block all subsequent ADB operations)
-        const adbPath = adb.executable?.path || 'adb';
+        const adbPath = adb.executable?.path ?? 'adb';
         const child = execFile(
           adbPath,
           ['-s', this.deviceId, 'shell', `rm ${androidScreenshotPath}`],
           { timeout: 3000 },
-          () => {},
+          (err) => {
+            if (err)
+              debugDevice(
+                'Failed to delete remote screenshot: %s',
+                err.message,
+              );
+          },
         );
         child.unref();
       }
