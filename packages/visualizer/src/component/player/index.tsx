@@ -16,11 +16,11 @@ import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import type { AnimationScript } from '../../utils/replay-scripts';
-import { StepsTimeline } from './remotion/StepScene';
-import { deriveFrameState } from './remotion/derive-frame-state';
-import { exportBrandedVideo } from './remotion/export-branded-video';
-import { calculateFrameMap } from './remotion/frame-calculator';
-import type { FrameMap, ScriptFrame } from './remotion/frame-calculator';
+import { StepsTimeline } from './scenes/StepScene';
+import { deriveFrameState } from './scenes/derive-frame-state';
+import { exportBrandedVideo } from './scenes/export-branded-video';
+import { calculateFrameMap } from './scenes/frame-calculator';
+import type { FrameMap, ScriptFrame } from './scenes/frame-calculator';
 import { useFramePlayer } from './use-frame-player';
 
 const downloadReport = (content: string): void => {
@@ -293,7 +293,6 @@ export function Player(props?: {
       <div
         className="canvas-container"
         ref={containerRef}
-        tabIndex={0}
         onKeyDown={handleKeyDown}
         onMouseMove={showControls}
         onMouseEnter={onMouseEnter}
@@ -458,7 +457,7 @@ export function Player(props?: {
                         style={{ width: '16px', height: '16px' }}
                       />
                     )}
-                    <span style={{ fontSize: '12px' }}>
+                    <span style={{ fontSize: '14px' }}>
                       {isExporting
                         ? `Exporting ${exportProgress}%`
                         : 'Export video'}
@@ -489,7 +488,7 @@ export function Player(props?: {
                       <GlobalPerspectiveIcon
                         style={{ width: '16px', height: '16px' }}
                       />
-                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                      <span style={{ fontSize: '14px', marginRight: '16px' }}>
                         Focus on cursor
                       </span>
                     </div>
@@ -522,7 +521,7 @@ export function Player(props?: {
                       <FontSizeOutlined
                         style={{ width: '16px', height: '16px' }}
                       />
-                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                      <span style={{ fontSize: '14px', marginRight: '16px' }}>
                         Subtitle
                       </span>
                     </div>
@@ -548,7 +547,7 @@ export function Player(props?: {
                     <ThunderboltOutlined
                       style={{ width: '16px', height: '16px' }}
                     />
-                    <span style={{ fontSize: '12px' }}>Playback speed</span>
+                    <span style={{ fontSize: '14px' }}>Playback speed</span>
                   </div>
                   {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
                     <div
@@ -558,7 +557,7 @@ export function Player(props?: {
                         height: '32px',
                         lineHeight: '32px',
                         padding: '0 8px 0 24px',
-                        fontSize: '12px',
+                        fontSize: '14px',
                         cursor: 'pointer',
                         borderRadius: '4px',
                       }}
