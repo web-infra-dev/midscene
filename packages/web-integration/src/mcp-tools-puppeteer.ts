@@ -127,6 +127,11 @@ const browserManager = {
       '--force-color-profile=srgb',
     ];
 
+    // Auto-add --no-sandbox for root user (required on Linux)
+    if (process.getuid?.() === 0) {
+      args.push('--no-sandbox', '--disable-setuid-sandbox');
+    }
+
     const proc = spawn(chromePath, args, {
       detached: true,
       stdio: ['ignore', 'ignore', 'pipe'],
