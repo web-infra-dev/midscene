@@ -11,6 +11,7 @@ import type {
 import type { AnimationScript } from '@midscene/visualizer';
 import {
   allScriptsFromDump,
+  extractDumpMetaInfo,
   generateAnimationScripts,
 } from '@midscene/visualizer';
 import * as Z from 'zustand';
@@ -122,15 +123,23 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     _executionDumpLoadId,
     setReplayAllMode: (replayAllMode: boolean) => {
       const state = get();
+      if (replayAllMode && !state.allExecutionAnimation) {
+        // First time entering replay-all: generate scripts now
+        const allScriptsInfo = allScriptsFromDump(state.dump);
+        if (allScriptsInfo?.scripts.length) {
+          set({
+            allExecutionAnimation: allScriptsInfo.scripts,
+            replayAllMode: true,
+          });
+          resetActiveExecution();
+          return;
+        }
+      }
       if (state.allExecutionAnimation) {
         set({ replayAllMode });
         if (replayAllMode) {
           resetActiveExecution();
         }
-      } else {
-        console.error(
-          'allExecutionAnimation not found, failed to set replayAllMode',
-        );
       }
     },
     setGroupedDump: async (
@@ -144,50 +153,23 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         playwrightAttributes,
       });
 
-      // set the first task as selected
-
       if (dump && dump.executions.length > 0) {
-        // const setDefaultActiveTask = () => {};
-
-        const allScriptsInfo = allScriptsFromDump(dump);
-        if (!allScriptsInfo) {
-          return;
-          // return setDefaultActiveTask();
-        }
-
-        const {
-          scripts: allScripts,
-          width,
-          height,
-          modelBriefs,
-          sdkVersion,
-          deviceType,
-        } = allScriptsInfo;
+        // Extract only metadata (dimensions, version, model info) — no .base64 reads
+        const metaInfo = extractDumpMetaInfo(dump);
+        if (!metaInfo) return;
 
         set({
           _executionDumpLoadId: ++_executionDumpLoadId,
-          insightWidth: width,
-          insightHeight: height,
-          modelBriefs,
-          sdkVersion,
-          deviceType,
+          insightWidth: metaInfo.width,
+          insightHeight: metaInfo.height,
+          modelBriefs: metaInfo.modelBriefs,
+          sdkVersion: metaInfo.sdkVersion,
+          deviceType: metaInfo.deviceType,
         });
 
-        const replayAvailable = allScripts.length > 0;
-        if (replayAvailable) {
-          set({
-            allExecutionAnimation: allScripts,
-            replayAllMode: true,
-          });
-        } else {
-          // set the first task as selected
-          if (
-            dump &&
-            dump.executions.length > 0 &&
-            dump.executions[0].tasks.length > 0
-          ) {
-            get().setActiveTask(dump.executions[0].tasks[0]);
-          }
+        // Default to first task static view instead of replay-all
+        if (dump.executions[0].tasks.length > 0) {
+          get().setActiveTask(dump.executions[0].tasks[0]);
         }
       }
     },

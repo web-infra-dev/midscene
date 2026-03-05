@@ -885,7 +885,10 @@ export class GroupedActionDump implements IGroupedActionDump {
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(dumpData, imageMap);
+    const processedData = restoreImageReferences(
+      dumpData,
+      (id) => imageMap[id] ?? '',
+    );
     return JSON.stringify(processedData);
   }
 

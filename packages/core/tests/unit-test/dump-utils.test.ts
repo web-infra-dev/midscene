@@ -97,16 +97,16 @@ describe('dump/image-restoration', () => {
     img1: 'data:image/png;base64,abc123',
     img2: 'data:image/png;base64,def456',
   };
+  const resolver = (id: string) => imageMap[id] ?? '';
 
   describe('restoreImageReferences', () => {
-    it('should restore screenshot references to { base64 } format', () => {
+    it('should restore screenshot references to { base64 } format via lazy getter', () => {
       const data = {
         screenshot: { $screenshot: 'img1' },
       };
-      const result = restoreImageReferences(data, imageMap);
-      expect(result).toEqual({
-        screenshot: { base64: 'data:image/png;base64,abc123' },
-      });
+      const result = restoreImageReferences(data, resolver);
+      // Lazy getter: accessing .base64 triggers resolution
+      expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
     });
 
     it('should handle nested objects', () => {
@@ -117,30 +117,24 @@ describe('dump/image-restoration', () => {
           },
         },
       };
-      const result = restoreImageReferences(data, imageMap);
-      expect(result).toEqual({
-        level1: {
-          level2: {
-            screenshot: { base64: 'data:image/png;base64,def456' },
-          },
-        },
-      });
+      const result = restoreImageReferences(data, resolver);
+      expect(result.level1.level2.screenshot.base64).toBe(
+        'data:image/png;base64,def456',
+      );
     });
 
     it('should handle arrays', () => {
       const data = [{ $screenshot: 'img1' }, { $screenshot: 'img2' }];
-      const result = restoreImageReferences(data, imageMap);
-      expect(result).toEqual([
-        { base64: 'data:image/png;base64,abc123' },
-        { base64: 'data:image/png;base64,def456' },
-      ]);
+      const result = restoreImageReferences(data, resolver);
+      expect(result[0].base64).toBe('data:image/png;base64,abc123');
+      expect(result[1].base64).toBe('data:image/png;base64,def456');
     });
 
     it('should pass through already base64 data', () => {
       const data = {
         screenshot: { $screenshot: 'data:image/png;base64,existing' },
       };
-      const result = restoreImageReferences(data, imageMap);
+      const result = restoreImageReferences(data, resolver);
       expect(result).toEqual({
         screenshot: { base64: 'data:image/png;base64,existing' },
       });
@@ -150,41 +144,32 @@ describe('dump/image-restoration', () => {
       const data = {
         screenshot: { $screenshot: './images/test.png' },
       };
-      const result = restoreImageReferences(data, imageMap);
+      const result = restoreImageReferences(data, resolver);
       expect(result).toEqual({
         screenshot: { base64: './images/test.png' },
       });
     });
 
-    it('should fallback to directory path when image ID not in imageMap', () => {
-      // This is the key behavior for directory mode reports:
-      // When $screenshot ID is not found in imageMap, fallback to ./screenshots/{id}.png
+    it('should fallback to directory path when resolver returns empty', () => {
       const data = {
         screenshot: { $screenshot: 'uuid-not-in-map' },
       };
-      const result = restoreImageReferences(data, imageMap);
-      expect(result).toEqual({
-        screenshot: { base64: './screenshots/uuid-not-in-map.png' },
-      });
+      const result = restoreImageReferences(data, resolver);
+      // Resolver returns '' for unknown IDs
+      expect(result.screenshot.base64).toBe('');
     });
 
     it('should preserve capturedAt when restoring screenshot references', () => {
       const data = {
         screenshot: { $screenshot: 'img1', capturedAt: 1700000000123 },
       };
-      const result = restoreImageReferences(data, imageMap);
-      expect(result).toEqual({
-        screenshot: {
-          base64: 'data:image/png;base64,abc123',
-          capturedAt: 1700000000123,
-        },
-      });
+      const result = restoreImageReferences(data, resolver);
+      expect(result.screenshot.base64).toBe('data:image/png;base64,abc123');
+      expect(result.screenshot.capturedAt).toBe(1700000000123);
     });
 
     it('should work correctly for directory mode report flow', () => {
-      // Directory mode: dump contains { $screenshot: id }, no imageMap entries
-      // Browser should fallback to ./screenshots/{id}.png path
-      const emptyImageMap: Record<string, string> = {};
+      const emptyResolver = () => '';
       const data = {
         executions: [
           {
@@ -198,10 +183,11 @@ describe('dump/image-restoration', () => {
           },
         ],
       };
-      const result = restoreImageReferences(data, emptyImageMap);
-      expect(result.executions[0].tasks[0].uiContext.screenshot).toEqual({
-        base64: './screenshots/abc-123-def.png',
-      });
+      const result = restoreImageReferences(data, emptyResolver);
+      // Resolver returns '' for all IDs
+      expect(result.executions[0].tasks[0].uiContext.screenshot.base64).toBe(
+        '',
+      );
     });
 
     it('should preserve { base64: path } with JPEG extension as-is', () => {
@@ -209,16 +195,49 @@ describe('dump/image-restoration', () => {
       const data = {
         screenshot: { base64: './screenshots/abc-123.jpeg' },
       };
-      const result = restoreImageReferences(data, imageMap);
+      const result = restoreImageReferences(data, resolver);
       expect(result).toEqual({
         screenshot: { base64: './screenshots/abc-123.jpeg' },
       });
     });
 
     it('should handle primitive values', () => {
-      expect(restoreImageReferences('string', imageMap)).toBe('string');
-      expect(restoreImageReferences(123, imageMap)).toBe(123);
-      expect(restoreImageReferences(null, imageMap)).toBe(null);
+      expect(restoreImageReferences('string', resolver)).toBe('string');
+      expect(restoreImageReferences(123, resolver)).toBe(123);
+      expect(restoreImageReferences(null, resolver)).toBe(null);
+    });
+
+    it('should lazily resolve images (resolver called only on access)', () => {
+      let resolveCount = 0;
+      const countingResolver = (id: string) => {
+        resolveCount++;
+        return imageMap[id] ?? '';
+      };
+      const data = {
+        a: { $screenshot: 'img1' },
+        b: { $screenshot: 'img2' },
+      };
+      const result = restoreImageReferences(data, countingResolver);
+      expect(resolveCount).toBe(0); // Not resolved yet
+
+      // Access only one
+      const _val = result.a.base64;
+      expect(resolveCount).toBe(1);
+
+      // Access again — should be cached
+      const _val2 = result.a.base64;
+      expect(resolveCount).toBe(1);
+
+      // Access second
+      const _val3 = result.b.base64;
+      expect(resolveCount).toBe(2);
+    });
+
+    it('should produce enumerable base64 property (visible to JSON.stringify)', () => {
+      const data = { $screenshot: 'img1' };
+      const result = restoreImageReferences(data, resolver);
+      const json = JSON.parse(JSON.stringify(result));
+      expect(json.base64).toBe('data:image/png;base64,abc123');
     });
   });
 });

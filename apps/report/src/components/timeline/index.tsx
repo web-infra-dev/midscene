@@ -166,42 +166,72 @@ const TimelineWidget = (props: {
       return s % 1 === 0 ? `${s}s` : `${s.toFixed(1)}s`;
     };
 
-    // Load all screenshot images
+    // Viewport-aware lazy loading: downsample by pixel position, then load rest
     const { imgCache } = stateRef.current;
     let isMounted = true;
 
-    const loadAllImages = async () => {
-      await Promise.all(
-        allScreenshots.map(async (shot, index) => {
-          if (imgCache.has(shot.img)) {
-            // Compute layout from cached image
-            const img = imgCache.get(shot.img)!;
-            const w = Math.floor(
-              (screenshotMaxHeight / img.naturalHeight) * img.naturalWidth,
-            );
-            allScreenshots[index].x = leftForTimeOffset(shot.timeOffset);
-            allScreenshots[index].y = screenshotTop;
-            allScreenshots[index].width = w;
-            allScreenshots[index].height = screenshotMaxHeight;
-            return;
-          }
-          try {
-            const img = await loadImage(shot.img);
-            if (!isMounted) return;
-            imgCache.set(shot.img, img);
-            const w = Math.floor(
-              (screenshotMaxHeight / img.naturalHeight) * img.naturalWidth,
-            );
-            allScreenshots[index].x = leftForTimeOffset(shot.timeOffset);
-            allScreenshots[index].y = screenshotTop;
-            allScreenshots[index].width = w;
-            allScreenshots[index].height = screenshotMaxHeight;
-          } catch {
-            /* skip broken images */
-          }
-        }),
+    // Pre-compute x/y positions
+    for (let i = 0; i < allScreenshots.length; i++) {
+      allScreenshots[i].x = leftForTimeOffset(allScreenshots[i].timeOffset);
+      allScreenshots[i].y = screenshotTop;
+    }
+
+    const applyLayout = (index: number, img: HTMLImageElement) => {
+      const w = Math.floor(
+        (screenshotMaxHeight / img.naturalHeight) * img.naturalWidth,
       );
-      if (isMounted) redraw();
+      allScreenshots[index].width = w;
+      allScreenshots[index].height = screenshotMaxHeight;
+    };
+
+    // Apply layout for already-cached images
+    for (let i = 0; i < allScreenshots.length; i++) {
+      const cached = imgCache.get(allScreenshots[i].img);
+      if (cached) {
+        applyLayout(i, cached);
+      }
+    }
+
+    // Downsample: evenly sample up to MAX_INITIAL screenshots.
+    // Remaining screenshots are loaded on-demand when user hovers/clicks.
+    const MAX_INITIAL = Math.max(1, Math.floor(canvasWidth / (20 * sizeRatio)));
+    const step = Math.max(1, Math.floor(allScreenshots.length / MAX_INITIAL));
+    const toLoad: string[] = [];
+    const seen = new Set<string>();
+    for (let i = 0; i < allScreenshots.length; i += step) {
+      const shot = allScreenshots[i];
+      if (shot.img && !imgCache.has(shot.img) && !seen.has(shot.img)) {
+        seen.add(shot.img);
+        toLoad.push(shot.img);
+      }
+    }
+
+    const loadAllImages = async () => {
+      console.log(
+        `[timeline] downsample: loading ${toLoad.length} of ${allScreenshots.length} screenshots`,
+      );
+      const BATCH_SIZE = 6;
+      for (let i = 0; i < toLoad.length; i += BATCH_SIZE) {
+        if (!isMounted) return;
+        const batch = toLoad.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async (url) => {
+            try {
+              const img = await loadImage(url);
+              if (!isMounted) return;
+              imgCache.set(url, img);
+              for (let j = 0; j < allScreenshots.length; j++) {
+                if (allScreenshots[j].img === url) {
+                  applyLayout(j, img);
+                }
+              }
+            } catch {
+              /* skip broken images */
+            }
+          }),
+        );
+        if (isMounted) redraw();
+      }
     };
 
     // ── Draw function ──
@@ -321,6 +351,26 @@ const TimelineWidget = (props: {
 
     redrawRef.current = drawAll;
 
+    // On-demand load: fetch a single screenshot when user hovers/clicks on it
+    const loadingUrls = new Set<string>();
+    const loadOnDemand = (shot: TimelineItem) => {
+      if (!shot.img || imgCache.has(shot.img) || loadingUrls.has(shot.img))
+        return;
+      loadingUrls.add(shot.img);
+      loadImage(shot.img)
+        .then((img) => {
+          if (!isMounted) return;
+          imgCache.set(shot.img, img);
+          for (let j = 0; j < allScreenshots.length; j++) {
+            if (allScreenshots[j].img === shot.img) {
+              applyLayout(j, img);
+            }
+          }
+          redraw();
+        })
+        .catch(() => {});
+    };
+
     // Event handlers
     const onPointerMove = (e: PointerEvent) => {
       const x = e.offsetX * sizeRatio;
@@ -330,6 +380,7 @@ const TimelineWidget = (props: {
 
       const { closestScreenshot } = closestScreenshotItemOnXY(x);
       if (closestScreenshot) {
+        loadOnDemand(closestScreenshot);
         props.onHighlight?.({
           mouseX: x / sizeRatio,
           mouseY: y / sizeRatio,
