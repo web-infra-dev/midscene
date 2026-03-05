@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { execFile } from 'node:child_process';
 import fs, { unlink } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -98,6 +99,8 @@ export class AndroidDevice implements AbstractInterface {
   private scrcpyAdapter: ScrcpyDeviceAdapter | null = null;
   private appNameMapping: Record<string, string> = {};
   private cachedAdjustScale: { x: number; y: number } | null = null;
+  private takeScreenshotFailCount = 0;
+  private static readonly TAKE_SCREENSHOT_FAIL_THRESHOLD = 3;
   interfaceType: InterfaceType = 'android';
   uri: string | undefined;
   options?: AndroidDeviceOpt;
@@ -1025,14 +1028,19 @@ ${Object.keys(size)
     const useShellScreencap = typeof this.options?.displayId === 'number';
 
     try {
-      // Directly check condition instead of throwing error
-      if (!useShellScreencap) {
+      // Skip takeScreenshot if it has failed consecutively, go directly to shell screencap
+      if (
+        !useShellScreencap &&
+        this.takeScreenshotFailCount <
+          AndroidDevice.TAKE_SCREENSHOT_FAIL_THRESHOLD
+      ) {
         debugDevice('Taking screenshot via adb.takeScreenshot');
         screenshotBuffer = await adb.takeScreenshot(null);
         debugDevice('adb.takeScreenshot completed');
 
         // make sure screenshotBuffer is not null
         if (!screenshotBuffer) {
+          this.takeScreenshotFailCount++;
           throw new Error(
             'Failed to capture screenshot: screenshotBuffer is null',
           );
@@ -1043,13 +1051,25 @@ ${Object.keys(size)
           debugDevice(
             'Invalid image buffer detected: not a valid image format',
           );
+          this.takeScreenshotFailCount++;
           throw new Error(
             'Screenshot buffer has invalid format: could not find valid image signature',
           );
         }
+
+        // Reset fail count on success
+        this.takeScreenshotFailCount = 0;
       } else {
-        // Jump directly to shell screencap logic for displayId
-        throw new Error('Using shell screencap for displayId');
+        if (
+          this.takeScreenshotFailCount >=
+          AndroidDevice.TAKE_SCREENSHOT_FAIL_THRESHOLD
+        ) {
+          debugDevice(
+            'Skipping takeScreenshot (failed %d consecutive times), using shell screencap directly',
+            this.takeScreenshotFailCount,
+          );
+        }
+        throw new Error('Using shell screencap directly');
       }
 
       // Additional validation: check buffer size
@@ -1119,12 +1139,17 @@ ${Object.keys(size)
           `Fallback screenshot validated successfully: ${screenshotBuffer.length} bytes`,
         );
       } finally {
-        // Asynchronously delete remote screenshot (don't block)
-        Promise.resolve()
-          .then(() => adb.shell(`rm ${androidScreenshotPath}`))
-          .catch((error) => {
-            debugDevice(`Failed to delete remote screenshot: ${error}`);
-          });
+        // Fire-and-forget: delete remote screenshot via separate process
+        // Using execFile instead of adb.shell to avoid blocking the main ADB connection
+        // (adb.shell has a 60s timeout that can block all subsequent ADB operations)
+        const adbPath = adb.executable?.path || 'adb';
+        const child = execFile(
+          adbPath,
+          ['-s', this.deviceId, 'shell', `rm ${androidScreenshotPath}`],
+          { timeout: 3000 },
+          () => {},
+        );
+        child.unref();
       }
     }
 
