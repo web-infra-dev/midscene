@@ -732,12 +732,19 @@ export class Agent<
     let locatePrompt: TUserPrompt | undefined;
     let opt: LocateOption | undefined;
 
-    // Check if using new signature (first param is locatePrompt, second has scroll params)
+    const isLocatePromptLike = (value: unknown): value is TUserPrompt => {
+      if (typeof value === 'string' || typeof value === 'undefined') {
+        return true;
+      }
+
+      return typeof value === 'object' && value !== null && 'prompt' in value;
+    };
+
+    // Check if using new signature (first param is locatePrompt, second is options)
     if (
+      isLocatePromptLike(locatePromptOrScrollParam) &&
       typeof locatePromptOrOpt === 'object' &&
-      ('direction' in locatePromptOrOpt ||
-        'scrollType' in locatePromptOrOpt ||
-        'distance' in locatePromptOrOpt)
+      locatePromptOrOpt !== null
     ) {
       // New signature: aiScroll(locatePrompt, opt)
       locatePrompt = locatePromptOrScrollParam as TUserPrompt;
