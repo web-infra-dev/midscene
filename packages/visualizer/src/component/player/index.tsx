@@ -90,7 +90,7 @@ export function Player(props?: {
     return calculateFrameMap(scripts);
   }, [scripts]);
 
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const renderLayerRef = useRef<HTMLDivElement>(null);
   const lastTaskIdRef = useRef<string | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -165,6 +165,16 @@ export function Player(props?: {
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
   }, []);
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        player.toggle();
+      }
+    },
+    [player],
+  );
+
   // Seek bar drag
   const seekBarRef = useRef<HTMLDivElement>(null);
   const handleSeekPointerDown = useCallback(
@@ -198,7 +208,7 @@ export function Player(props?: {
   // Fullscreen
   const [isFullscreen, setIsFullscreen] = useState(false);
   const toggleFullscreen = useCallback(() => {
-    const el = wrapperRef.current;
+    const el = containerRef.current;
     if (!el) return;
     if (!document.fullscreenElement) {
       el.requestFullscreen().then(() => setIsFullscreen(true));
@@ -270,13 +280,9 @@ export function Player(props?: {
     return <div className="player-container" />;
   }
 
-  const imgW = frameMap.imageWidth;
-  const imgH = frameMap.imageHeight;
-  const isPortraitImage = imgH > imgW;
-
-  const compositionWidth = imgW;
-  const compositionHeight = imgH;
-  const isPortraitCanvas = imgH > imgW;
+  const compositionWidth = frameMap.imageWidth;
+  const compositionHeight = frameMap.imageHeight;
+  const isPortraitCanvas = compositionHeight > compositionWidth;
 
   const totalFrames = frameMap.totalDurationInFrames;
   const seekPercent =
@@ -286,13 +292,9 @@ export function Player(props?: {
     <div className="player-container" data-fit-mode={props?.fitMode}>
       <div
         className="canvas-container"
-        ref={wrapperRef}
-        onKeyDown={(e) => {
-          if (e.code === 'Space') {
-            e.preventDefault();
-            player.toggle();
-          }
-        }}
+        ref={containerRef}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         onMouseMove={showControls}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
