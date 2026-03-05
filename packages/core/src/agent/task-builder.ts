@@ -249,11 +249,11 @@ export class TaskBuilder {
           );
         });
 
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
         try {
           await Promise.all([
             (async () => {
               if (this.interface.beforeInvokeAction) {
-                setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
                 debug(
                   `will call "beforeInvokeAction" for interface with action name ${action.name}`,
                 );
@@ -261,7 +261,6 @@ export class TaskBuilder {
                 debug(
                   `called "beforeInvokeAction" for interface with action name ${action.name}`,
                 );
-                setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
               }
             })(),
             sleep(200),
@@ -274,6 +273,7 @@ export class TaskBuilder {
             { cause: originalError },
           );
         }
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
 
         const { shrunkShotToLogicalRatio } = uiContext;
         if (shrunkShotToLogicalRatio === undefined) {
@@ -303,6 +303,8 @@ export class TaskBuilder {
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 
+        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+
         const delayAfterRunner =
           action.delayAfterRunner ?? this.waitAfterAction ?? 300;
         if (delayAfterRunner > 0) {
@@ -311,7 +313,6 @@ export class TaskBuilder {
 
         try {
           if (this.interface.afterInvokeAction) {
-            setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
             debug(
               `will call "afterInvokeAction" for interface with action name ${action.name}`,
             );
@@ -319,7 +320,6 @@ export class TaskBuilder {
             debug(
               `called "afterInvokeAction" for interface with action name ${action.name}`,
             );
-            setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
           }
         } catch (originalError: any) {
           const originalMessage =
@@ -329,6 +329,8 @@ export class TaskBuilder {
             { cause: originalError },
           );
         }
+
+        setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
 
         return {
           output: actionResult,
