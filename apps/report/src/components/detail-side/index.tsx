@@ -274,6 +274,11 @@ const DetailSide = (): JSX.Element => {
       task?.timing?.getUiContextEnd,
     ),
     ...buildStageTimingLine(
+      'callAi',
+      task?.timing?.callAiStart,
+      task?.timing?.callAiEnd,
+    ),
+    ...buildStageTimingLine(
       'call beforeInvokeAction',
       task?.timing?.beforeInvokeActionHookStart,
       task?.timing?.beforeInvokeActionHookEnd,
