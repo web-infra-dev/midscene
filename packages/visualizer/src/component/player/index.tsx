@@ -284,17 +284,25 @@ export function Player(props?: {
 
   return (
     <div className="player-container" data-fit-mode={props?.fitMode}>
-      <div className="canvas-container">
+      <div
+        className="canvas-container"
+        ref={wrapperRef}
+        onKeyDown={(e) => {
+          if (e.code === 'Space') {
+            e.preventDefault();
+            player.toggle();
+          }
+        }}
+        onMouseMove={showControls}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
         <div
           className="player-wrapper"
-          ref={wrapperRef}
           data-portrait={isPortraitCanvas ? '' : undefined}
           style={{
             aspectRatio: `${compositionWidth}/${compositionHeight}`,
           }}
-          onMouseMove={showControls}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
         >
           {/* Render layer — renders at native resolution, scaled to fit & centered */}
           <div
@@ -348,231 +356,226 @@ export function Player(props?: {
               );
             })()}
           </div>
+        </div>
 
-          {/* Subtitle — rendered in display coordinates, outside scaled content */}
-          {subtitleEnabled && subtitle && (
-            <div className="player-subtitle">
-              {subtitle.title && (
-                <span className="player-subtitle-badge">{subtitle.title}</span>
-              )}
-              {subtitle.subTitle && (
-                <span className="player-subtitle-text">
-                  {subtitle.subTitle}
-                </span>
-              )}
-            </div>
-          )}
+        {/* Subtitle — rendered in display coordinates, outside scaled content */}
+        {subtitleEnabled && subtitle && (
+          <div className="player-subtitle">
+            {subtitle.title && (
+              <span className="player-subtitle-badge">{subtitle.title}</span>
+            )}
+            {subtitle.subTitle && (
+              <span className="player-subtitle-text">{subtitle.subTitle}</span>
+            )}
+          </div>
+        )}
 
-          {/* Control bar */}
+        {/* Control bar */}
+        <div
+          className={`control-bar ${controlsVisible ? '' : 'hidden'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="status-icon" onClick={player.toggle}>
+            {player.playing ? <PauseOutlined /> : <CaretRightOutlined />}
+          </div>
+
+          <span className="time-display">
+            {formatTime(player.currentFrame, frameMap.fps)} /{' '}
+            {formatTime(totalFrames, frameMap.fps)}
+          </span>
+
           <div
-            className={`control-bar ${controlsVisible ? '' : 'hidden'}`}
-            onClick={(e) => e.stopPropagation()}
+            className="seek-bar-track"
+            ref={seekBarRef}
+            onPointerDown={handleSeekPointerDown}
           >
-            <div className="status-icon" onClick={player.toggle}>
-              {player.playing ? <PauseOutlined /> : <CaretRightOutlined />}
-            </div>
-
-            <span className="time-display">
-              {formatTime(player.currentFrame, frameMap.fps)} /{' '}
-              {formatTime(totalFrames, frameMap.fps)}
-            </span>
-
             <div
-              className="seek-bar-track"
-              ref={seekBarRef}
-              onPointerDown={handleSeekPointerDown}
-            >
-              <div
-                className="seek-bar-fill"
-                style={{ width: `${seekPercent}%` }}
-              />
-              <div
-                className="seek-bar-knob"
-                style={{ left: `${seekPercent}%` }}
-              />
-              {chapterMarkers.map((marker) => (
-                <Tooltip
-                  key={marker.percent}
-                  title={marker.title}
-                  overlayClassName="chapter-tooltip"
+              className="seek-bar-fill"
+              style={{ width: `${seekPercent}%` }}
+            />
+            <div
+              className="seek-bar-knob"
+              style={{ left: `${seekPercent}%` }}
+            />
+            {chapterMarkers.map((marker) => (
+              <Tooltip
+                key={marker.percent}
+                title={marker.title}
+                overlayClassName="chapter-tooltip"
+              >
+                <div
+                  className="chapter-marker"
+                  style={{ left: `${marker.percent}%` }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    player.seekTo(marker.frame);
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </div>
+
+          {/* Custom controls */}
+          <div className="player-custom-controls">
+            {props?.reportFileContent && props?.canDownloadReport !== false ? (
+              <Tooltip title="Download Report">
+                <div
+                  className="status-icon"
+                  onClick={() => downloadReport(props.reportFileContent!)}
                 >
+                  <DownloadOutlined />
+                </div>
+              </Tooltip>
+            ) : null}
+
+            <Dropdown
+              trigger={['hover', 'click']}
+              placement="topRight"
+              overlayStyle={{ minWidth: '148px' }}
+              dropdownRender={() => (
+                <div className="player-settings-dropdown">
+                  {/* Export video */}
                   <div
-                    className="chapter-marker"
-                    style={{ left: `${marker.percent}%` }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      player.seekTo(marker.frame);
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                      cursor: isExporting ? 'not-allowed' : 'pointer',
+                      opacity: isExporting ? 0.5 : 1,
                     }}
-                  />
-                </Tooltip>
-              ))}
-            </div>
-
-            {/* Custom controls */}
-            <div className="player-custom-controls">
-              {props?.reportFileContent &&
-              props?.canDownloadReport !== false ? (
-                <Tooltip title="Download Report">
-                  <div
-                    className="status-icon"
-                    onClick={() => downloadReport(props.reportFileContent!)}
+                    onClick={isExporting ? undefined : handleExportVideo}
                   >
-                    <DownloadOutlined />
-                  </div>
-                </Tooltip>
-              ) : null}
-
-              <Dropdown
-                trigger={['hover', 'click']}
-                placement="topRight"
-                overlayStyle={{ minWidth: '148px' }}
-                dropdownRender={() => (
-                  <div className="player-settings-dropdown">
-                    {/* Export video */}
-                    <div
-                      className="player-settings-item"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '32px',
-                        padding: '0 8px',
-                        borderRadius: '4px',
-                        cursor: isExporting ? 'not-allowed' : 'pointer',
-                        opacity: isExporting ? 0.5 : 1,
-                      }}
-                      onClick={isExporting ? undefined : handleExportVideo}
-                    >
-                      {isExporting ? (
-                        <Spin size="small" />
-                      ) : (
-                        <ExportOutlined
-                          style={{ width: '16px', height: '16px' }}
-                        />
-                      )}
-                      <span style={{ fontSize: '12px' }}>
-                        {isExporting
-                          ? `Exporting ${exportProgress}%`
-                          : 'Export video'}
-                      </span>
-                    </div>
-
-                    <div className="player-settings-divider" />
-
-                    {/* Focus on cursor toggle */}
-                    <div
-                      className="player-settings-item"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        height: '32px',
-                        padding: '0 8px',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <GlobalPerspectiveIcon
-                          style={{ width: '16px', height: '16px' }}
-                        />
-                        <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                          Focus on cursor
-                        </span>
-                      </div>
-                      <Switch
-                        size="small"
-                        checked={autoZoom}
-                        onChange={(checked) => setAutoZoom(checked)}
-                      />
-                    </div>
-
-                    {/* Subtitle toggle */}
-                    <div
-                      className="player-settings-item"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        height: '32px',
-                        padding: '0 8px',
-                        borderRadius: '4px',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                        }}
-                      >
-                        <FontSizeOutlined
-                          style={{ width: '16px', height: '16px' }}
-                        />
-                        <span style={{ fontSize: '12px', marginRight: '16px' }}>
-                          Subtitle
-                        </span>
-                      </div>
-                      <Switch
-                        size="small"
-                        checked={subtitleEnabled}
-                        onChange={(checked) => setSubtitleEnabled(checked)}
-                      />
-                    </div>
-
-                    <div className="player-settings-divider" />
-
-                    {/* Playback speed */}
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        height: '32px',
-                        padding: '0 8px',
-                      }}
-                    >
-                      <ThunderboltOutlined
+                    {isExporting ? (
+                      <Spin size="small" />
+                    ) : (
+                      <ExportOutlined
                         style={{ width: '16px', height: '16px' }}
                       />
-                      <span style={{ fontSize: '12px' }}>Playback speed</span>
-                    </div>
-                    {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
-                      <div
-                        key={speed}
-                        onClick={() => setPlaybackSpeed(speed)}
-                        style={{
-                          height: '32px',
-                          lineHeight: '32px',
-                          padding: '0 8px 0 24px',
-                          fontSize: '12px',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                        }}
-                        className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
-                      >
-                        {speed}x
-                      </div>
-                    ))}
+                    )}
+                    <span style={{ fontSize: '12px' }}>
+                      {isExporting
+                        ? `Exporting ${exportProgress}%`
+                        : 'Export video'}
+                    </span>
                   </div>
-                )}
-                menu={{ items: [] }}
-              >
-                <div className="status-icon">
-                  <PlayerSettingIcon
-                    style={{ width: '16px', height: '16px' }}
-                  />
-                </div>
-              </Dropdown>
 
-              <div className="status-icon" onClick={toggleFullscreen}>
-                {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+                  <div className="player-settings-divider" />
+
+                  {/* Focus on cursor toggle */}
+                  <div
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <GlobalPerspectiveIcon
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                        Focus on cursor
+                      </span>
+                    </div>
+                    <Switch
+                      size="small"
+                      checked={autoZoom}
+                      onChange={(checked) => setAutoZoom(checked)}
+                    />
+                  </div>
+
+                  {/* Subtitle toggle */}
+                  <div
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <FontSizeOutlined
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                        Subtitle
+                      </span>
+                    </div>
+                    <Switch
+                      size="small"
+                      checked={subtitleEnabled}
+                      onChange={(checked) => setSubtitleEnabled(checked)}
+                    />
+                  </div>
+
+                  <div className="player-settings-divider" />
+
+                  {/* Playback speed */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      height: '32px',
+                      padding: '0 8px',
+                    }}
+                  >
+                    <ThunderboltOutlined
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    <span style={{ fontSize: '12px' }}>Playback speed</span>
+                  </div>
+                  {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
+                    <div
+                      key={speed}
+                      onClick={() => setPlaybackSpeed(speed)}
+                      style={{
+                        height: '32px',
+                        lineHeight: '32px',
+                        padding: '0 8px 0 24px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        borderRadius: '4px',
+                      }}
+                      className={`player-speed-option${playbackSpeed === speed ? ' active' : ''}`}
+                    >
+                      {speed}x
+                    </div>
+                  ))}
+                </div>
+              )}
+              menu={{ items: [] }}
+            >
+              <div className="status-icon">
+                <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
               </div>
+            </Dropdown>
+
+            <div className="status-icon" onClick={toggleFullscreen}>
+              {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
             </div>
           </div>
         </div>
