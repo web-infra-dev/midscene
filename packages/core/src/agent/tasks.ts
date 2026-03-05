@@ -39,6 +39,7 @@ import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
+import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
 import { parsePrompt } from './utils';
@@ -335,6 +336,7 @@ export class TaskExecutor {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
             const { modelFamily } = modelConfigForPlanning;
+            const timing = executorContext.task.timing;
 
             const actionSpace = this.getActionSpace();
             debug(
@@ -356,6 +358,7 @@ export class TaskExecutor {
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
+              setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(param.userInstruction, {
                 context: uiContext,
                 actionContext: param.aiActContext,
@@ -377,6 +380,8 @@ export class TaskExecutor {
                 };
               }
               throw planError;
+            } finally {
+              setTimingFieldOnce(timing, 'callAiEnd');
             }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
