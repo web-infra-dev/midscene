@@ -192,17 +192,27 @@ const TimelineWidget = (props: {
       }
     }
 
-    // Load a single image URL, cache it, and apply layout to all matching screenshots
-    const loadAndApplyImage = async (url: string): Promise<void> => {
-      if (imgCache.has(url)) return;
-      const img = await loadImage(url);
-      if (!isMounted) return;
-      imgCache.set(url, img);
-      for (let j = 0; j < allScreenshots.length; j++) {
-        if (allScreenshots[j].img === url) {
-          applyLayout(j, img);
-        }
-      }
+    // Deduplicate concurrent loads: if a URL is already being fetched, reuse the same promise
+    const inflightLoads = new Map<string, Promise<void>>();
+    const loadAndApplyImage = (url: string): Promise<void> => {
+      if (imgCache.has(url)) return Promise.resolve();
+      const existing = inflightLoads.get(url);
+      if (existing) return existing;
+      const promise = loadImage(url)
+        .then((img) => {
+          if (!isMounted) return;
+          imgCache.set(url, img);
+          for (let j = 0; j < allScreenshots.length; j++) {
+            if (allScreenshots[j].img === url) {
+              applyLayout(j, img);
+            }
+          }
+        })
+        .finally(() => {
+          inflightLoads.delete(url);
+        });
+      inflightLoads.set(url, promise);
+      return promise;
     };
 
     // Downsample: evenly sample up to maxInitialCount screenshots.
@@ -355,11 +365,8 @@ const TimelineWidget = (props: {
     redrawRef.current = drawAll;
 
     // On-demand load: fetch a single screenshot when user hovers/clicks on it
-    const pendingUrls = new Set<string>();
     const loadOnDemand = (shot: TimelineItem) => {
-      if (!shot.img || imgCache.has(shot.img) || pendingUrls.has(shot.img))
-        return;
-      pendingUrls.add(shot.img);
+      if (!shot.img || imgCache.has(shot.img)) return;
       loadAndApplyImage(shot.img)
         .then(() => {
           if (isMounted) redraw();

@@ -150,13 +150,22 @@ describe('dump/image-restoration', () => {
       });
     });
 
-    it('should fallback to directory path when resolver returns empty', () => {
+    it('should use resolver return value for unknown IDs', () => {
       const data = {
         screenshot: { $screenshot: 'uuid-not-in-map' },
       };
       const result = restoreImageReferences(data, resolver);
-      // Resolver returns '' for unknown IDs
+      // Default resolver returns '' for IDs not in imageMap
       expect(result.screenshot.base64).toBe('');
+    });
+
+    it('should support directory-path fallback via resolver', () => {
+      const directoryResolver = (id: string) => `./screenshots/${id}.png`;
+      const data = {
+        screenshot: { $screenshot: 'uuid-abc-123' },
+      };
+      const result = restoreImageReferences(data, directoryResolver);
+      expect(result.screenshot.base64).toBe('./screenshots/uuid-abc-123.png');
     });
 
     it('should preserve capturedAt when restoring screenshot references', () => {
@@ -169,7 +178,7 @@ describe('dump/image-restoration', () => {
     });
 
     it('should work correctly for directory mode report flow', () => {
-      const emptyResolver = () => '';
+      const directoryResolver = (id: string) => `./screenshots/${id}.png`;
       const data = {
         executions: [
           {
@@ -183,10 +192,9 @@ describe('dump/image-restoration', () => {
           },
         ],
       };
-      const result = restoreImageReferences(data, emptyResolver);
-      // Resolver returns '' for all IDs
+      const result = restoreImageReferences(data, directoryResolver);
       expect(result.executions[0].tasks[0].uiContext.screenshot.base64).toBe(
-        '',
+        './screenshots/abc-123-def.png',
       );
     });
 
