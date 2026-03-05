@@ -487,8 +487,10 @@ export class TaskBuilder {
         const isCacheHit = !!elementFromCache;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
+        const timing = taskContext.task.timing;
         if (!isXpathHit && !isCacheHit && !isPlanHit) {
           try {
+            setTimingFieldOnce(timing, 'callAiStart');
             locateResult = await this.service.locate(
               param,
               {
@@ -503,6 +505,8 @@ export class TaskBuilder {
               applyDump(error.dump);
             }
             throw error;
+          } finally {
+            setTimingFieldOnce(timing, 'callAiEnd');
           }
         }
 

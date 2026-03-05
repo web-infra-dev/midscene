@@ -417,6 +417,8 @@ export type ExecutionTask<
       start: number;
       getUiContextStart?: number;
       getUiContextEnd?: number;
+      callAiStart?: number;
+      callAiEnd?: number;
       beforeInvokeActionHookStart?: number;
       beforeInvokeActionHookEnd?: number;
       callActionStart?: number;
