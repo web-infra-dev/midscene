@@ -175,13 +175,11 @@ export interface DumpMetaInfo {
 }
 
 /**
- * Extract lightweight metadata from dump without reading any .base64 fields.
- * Used to set up the UI (dimensions, version, model info) before replay.
+ * Extract lightweight metadata from a normalized dump without reading any .base64 fields.
  */
-export const extractDumpMetaInfo = (dump: DumpInput): DumpMetaInfo | null => {
-  const normalizedDump = normalizeDump(dump);
-  if (!normalizedDump) return null;
-
+const extractMetaFromNormalized = (
+  normalizedDump: IGroupedActionDump,
+): DumpMetaInfo | null => {
   let firstWidth: number | undefined;
   let firstHeight: number | undefined;
   const sdkVersion = normalizedDump.sdkVersion;
@@ -245,6 +243,16 @@ export const extractDumpMetaInfo = (dump: DumpInput): DumpMetaInfo | null => {
   };
 };
 
+/**
+ * Extract lightweight metadata from dump without reading any .base64 fields.
+ * Used to set up the UI (dimensions, version, model info) before replay.
+ */
+export const extractDumpMetaInfo = (dump: DumpInput): DumpMetaInfo | null => {
+  const normalizedDump = normalizeDump(dump);
+  if (!normalizedDump) return null;
+  return extractMetaFromNormalized(normalizedDump);
+};
+
 export const allScriptsFromDump = (
   dump: DumpInput,
 ): ReplayScriptsInfo | null => {
@@ -257,7 +265,7 @@ export const allScriptsFromDump = (
     };
   }
 
-  const metaInfo = extractDumpMetaInfo(dump);
+  const metaInfo = extractMetaFromNormalized(normalizedDump);
   if (!metaInfo) {
     return {
       scripts: [],
@@ -383,17 +391,21 @@ export const generateAnimationScripts = (
     };
   };
 
+  // Screenshot fields in ExecutionTask are typed loosely; this alias keeps casts in one place
+  type ScreenshotData = { base64: string } | undefined | null;
+  const asScreenshot = (s: unknown): ScreenshotData => s as ScreenshotData;
+
   // Helper: create AnimationScript with lazy img getter that defers .base64 read
   const createScript = (
     base: Omit<AnimationScript, 'img'>,
-    screenshot: { base64: string } | undefined | null,
+    screenshot: ScreenshotData,
   ): AnimationScript => {
     if (!screenshot) return base as AnimationScript;
     const script = { ...base } as AnimationScript;
-    let cachedImg: string | undefined;
+    let cachedImg: string | null = null;
     Object.defineProperty(script, 'img', {
       get() {
-        if (cachedImg === undefined) {
+        if (cachedImg === null) {
           cachedImg = screenshot.base64;
         }
         return cachedImg;
@@ -460,9 +472,7 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.shotSize?.width || imageWidth;
         const height = context.shotSize?.height || imageHeight;
-        const contextScreenshot = context.screenshot as unknown as {
-          base64: string;
-        };
+        const contextScreenshot = asScreenshot(context.screenshot);
         scripts.push(
           createScript(
             {
@@ -525,7 +535,7 @@ export const generateAnimationScripts = (
               imageHeight: task.uiContext?.shotSize?.height || imageHeight,
               taskId: currentTaskId,
             },
-            screenshot as unknown as { base64: string } | undefined,
+            asScreenshot(screenshot),
           ),
         );
       }
@@ -572,7 +582,7 @@ export const generateAnimationScripts = (
             imageHeight: task.uiContext?.shotSize?.height || imageHeight,
             taskId: currentTaskId,
           },
-          screenshot as unknown as { base64: string } | undefined,
+          asScreenshot(screenshot),
         ),
       );
     } else {
@@ -594,7 +604,7 @@ export const generateAnimationScripts = (
               imageHeight: task.uiContext?.shotSize?.height || imageHeight,
               taskId: currentTaskId,
             },
-            screenshot as unknown as { base64: string },
+            asScreenshot(screenshot),
           ),
         );
       }
@@ -620,7 +630,7 @@ export const generateAnimationScripts = (
             imageHeight: task.uiContext?.shotSize?.height || imageHeight,
             taskId: currentTaskId,
           },
-          screenshot as unknown as { base64: string } | undefined,
+          asScreenshot(screenshot),
         ),
       );
     }

@@ -38,18 +38,23 @@ export function restoreImageReferences<T>(
 
         // Create lazy getter — .base64 is only resolved when first accessed
         let resolved: string | null = null;
-        return Object.defineProperties({} as any, {
-          base64: {
-            get() {
-              if (resolved === null) {
-                resolved = resolveImage(id);
-              }
-              return resolved;
+        const lazy: { base64: string; capturedAt?: number } =
+          Object.defineProperties(
+            {} as { base64: string; capturedAt?: number },
+            {
+              base64: {
+                get() {
+                  if (resolved === null) {
+                    resolved = resolveImage(id);
+                  }
+                  return resolved;
+                },
+                enumerable: true,
+              },
+              capturedAt: { value: capturedAt, enumerable: true },
             },
-            enumerable: true,
-          },
-          capturedAt: { value: capturedAt, enumerable: true },
-        }) as T;
+          );
+        return lazy as T;
       }
       // Invalid $screenshot value, return empty
       console.warn('Invalid $screenshot value type:', typeof id);

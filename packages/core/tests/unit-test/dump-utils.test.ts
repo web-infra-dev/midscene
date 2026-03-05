@@ -220,16 +220,16 @@ describe('dump/image-restoration', () => {
       const result = restoreImageReferences(data, countingResolver);
       expect(resolveCount).toBe(0); // Not resolved yet
 
-      // Access only one
-      const _val = result.a.base64;
+      // Access only one — trigger lazy resolution
+      void result.a.base64;
       expect(resolveCount).toBe(1);
 
       // Access again — should be cached
-      const _val2 = result.a.base64;
+      void result.a.base64;
       expect(resolveCount).toBe(1);
 
       // Access second
-      const _val3 = result.b.base64;
+      void result.b.base64;
       expect(resolveCount).toBe(2);
     });
 

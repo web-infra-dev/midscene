@@ -192,10 +192,29 @@ const TimelineWidget = (props: {
       }
     }
 
-    // Downsample: evenly sample up to MAX_INITIAL screenshots.
+    // Load a single image URL, cache it, and apply layout to all matching screenshots
+    const loadAndApplyImage = async (url: string): Promise<void> => {
+      if (imgCache.has(url)) return;
+      const img = await loadImage(url);
+      if (!isMounted) return;
+      imgCache.set(url, img);
+      for (let j = 0; j < allScreenshots.length; j++) {
+        if (allScreenshots[j].img === url) {
+          applyLayout(j, img);
+        }
+      }
+    };
+
+    // Downsample: evenly sample up to maxInitialCount screenshots.
     // Remaining screenshots are loaded on-demand when user hovers/clicks.
-    const MAX_INITIAL = Math.max(1, Math.floor(canvasWidth / (20 * sizeRatio)));
-    const step = Math.max(1, Math.floor(allScreenshots.length / MAX_INITIAL));
+    const maxInitialCount = Math.max(
+      1,
+      Math.floor(canvasWidth / (20 * sizeRatio)),
+    );
+    const step = Math.max(
+      1,
+      Math.floor(allScreenshots.length / maxInitialCount),
+    );
     const toLoad: string[] = [];
     const seen = new Set<string>();
     for (let i = 0; i < allScreenshots.length; i += step) {
@@ -207,28 +226,12 @@ const TimelineWidget = (props: {
     }
 
     const loadAllImages = async () => {
-      console.log(
-        `[timeline] downsample: loading ${toLoad.length} of ${allScreenshots.length} screenshots`,
-      );
-      const BATCH_SIZE = 6;
-      for (let i = 0; i < toLoad.length; i += BATCH_SIZE) {
+      const batchSize = 6;
+      for (let i = 0; i < toLoad.length; i += batchSize) {
         if (!isMounted) return;
-        const batch = toLoad.slice(i, i + BATCH_SIZE);
+        const batch = toLoad.slice(i, i + batchSize);
         await Promise.all(
-          batch.map(async (url) => {
-            try {
-              const img = await loadImage(url);
-              if (!isMounted) return;
-              imgCache.set(url, img);
-              for (let j = 0; j < allScreenshots.length; j++) {
-                if (allScreenshots[j].img === url) {
-                  applyLayout(j, img);
-                }
-              }
-            } catch {
-              /* skip broken images */
-            }
-          }),
+          batch.map((url) => loadAndApplyImage(url).catch(() => {})),
         );
         if (isMounted) redraw();
       }
@@ -352,21 +355,14 @@ const TimelineWidget = (props: {
     redrawRef.current = drawAll;
 
     // On-demand load: fetch a single screenshot when user hovers/clicks on it
-    const loadingUrls = new Set<string>();
+    const pendingUrls = new Set<string>();
     const loadOnDemand = (shot: TimelineItem) => {
-      if (!shot.img || imgCache.has(shot.img) || loadingUrls.has(shot.img))
+      if (!shot.img || imgCache.has(shot.img) || pendingUrls.has(shot.img))
         return;
-      loadingUrls.add(shot.img);
-      loadImage(shot.img)
-        .then((img) => {
-          if (!isMounted) return;
-          imgCache.set(shot.img, img);
-          for (let j = 0; j < allScreenshots.length; j++) {
-            if (allScreenshots[j].img === shot.img) {
-              applyLayout(j, img);
-            }
-          }
-          redraw();
+      pendingUrls.add(shot.img);
+      loadAndApplyImage(shot.img)
+        .then(() => {
+          if (isMounted) redraw();
         })
         .catch(() => {});
     };
