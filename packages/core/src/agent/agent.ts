@@ -409,6 +409,7 @@ export class Agent<
       groupDescription: this.opts.groupDescription,
       executions: [],
       modelBriefs: [],
+      deviceType: this.interface.interfaceType,
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
