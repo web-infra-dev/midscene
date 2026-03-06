@@ -328,6 +328,37 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
+  // For GPT-5, add "detail": "original" to image inputs to get original resolution images in reasoning content
+  const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
+    if (modelFamily !== 'gpt-5') {
+      return messages;
+    }
+
+    return messages.map((msg) => {
+      if (!Array.isArray(msg.content)) {
+        return msg;
+      }
+
+      const content = msg.content.map((part) => {
+        if (part && part.type === 'image_url' && part.image_url?.url) {
+          return {
+            ...part,
+            image_url: {
+              ...part.image_url,
+              detail: 'original',
+            },
+          };
+        }
+        return part;
+      });
+
+      return {
+        ...msg,
+        content,
+      } as ChatCompletionMessageParam;
+    });
+  })();
+
   try {
     debugCall(
       `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
@@ -337,7 +368,7 @@ export async function callAI(
       const stream = (await completion.create(
         {
           model: modelName,
-          messages,
+          messages: messagesWithImageDetail,
           ...commonConfig,
           ...reasoningEffortConfig,
         },
@@ -419,7 +450,7 @@ export async function callAI(
         try {
           const result = await completion.create({
             model: modelName,
-            messages,
+            messages: messagesWithImageDetail,
             ...commonConfig,
             ...reasoningEffortConfig,
           } as any);
