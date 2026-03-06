@@ -167,19 +167,18 @@ const DetailPanel = (): JSX.Element => {
       activeTask.uiContext?.screenshot?.capturedAt,
     );
 
-    contextLocatorView =
-      highlightElements.length > 0 && activeTask.uiContext?.shotSize ? (
-        <ScreenshotDisplay
-          title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
-        >
-          <Blackboard
-            key={`${_contextLoadId}`}
-            uiContext={activeTask.uiContext}
-            highlightElements={highlightElements}
-            highlightRect={insightDump?.taskInfo?.searchArea}
-          />
-        </ScreenshotDisplay>
-      ) : null;
+    contextLocatorView = activeTask.uiContext?.shotSize ? (
+      <ScreenshotDisplay
+        title={`${isPageContextFrozen ? 'UI Context (Frozen)' : 'UI Context'} / ${contextScreenshotAt}`}
+      >
+        <Blackboard
+          key={`${_contextLoadId}`}
+          uiContext={activeTask.uiContext}
+          highlightElements={highlightElements}
+          highlightRect={insightDump?.taskInfo?.searchArea}
+        />
+      </ScreenshotDisplay>
+    ) : null;
 
     // screenshot view
     const screenshotFromContext = activeTask.uiContext?.screenshot;
