@@ -176,10 +176,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             const startWidth = sidebarWidth;
             let latestWidth = startWidth;
             const onMouseMove = (ev: MouseEvent) => {
-              latestWidth = Math.max(
-                200,
-                Math.min(500, startWidth + ev.clientX - startX),
-              );
+              latestWidth = Math.max(200, startWidth + ev.clientX - startX);
               setSidebarWidth(latestWidth);
             };
             const onMouseUp = () => {
