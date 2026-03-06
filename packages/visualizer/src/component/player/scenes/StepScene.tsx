@@ -102,7 +102,7 @@ export const StepsTimeline: React.FC<{
     prevCamera.pointerTop !== Math.round(imgH / 2);
 
   // Scale overlays proportionally so they stay visible at any resolution
-  const resScale = Math.max(1, imgW / 1920);
+  const resScale = Math.max(1, Math.sqrt(imgW / 1920));
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -130,8 +130,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(253, 89, 7, 0.4)',
-              border: `${3 * resScale}px solid #fd5907`,
-              boxShadow: `${6 * resScale}px ${6 * resScale}px ${3 * resScale}px rgba(51, 51, 51, 0.4)`,
+              border: `${2 * resScale}px solid #fd5907`,
+              boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
@@ -151,8 +151,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(2, 131, 145, 0.4)',
-              border: `${3 * resScale}px solid #028391`,
-              boxShadow: `${6 * resScale}px ${6 * resScale}px ${3 * resScale}px rgba(51, 51, 51, 0.4)`,
+              border: `${2 * resScale}px solid #028391`,
+              boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}

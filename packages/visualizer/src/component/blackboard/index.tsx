@@ -98,7 +98,12 @@ export const Blackboard = (props: {
         {/* Overlay container — scaled to match image coordinates */}
         <div
           className="blackboard-overlay"
-          style={{ aspectRatio: `${screenWidth}/${screenHeight}` }}
+          style={
+            {
+              aspectRatio: `${screenWidth}/${screenHeight}`,
+              '--ui-scale': Math.max(1, Math.sqrt(screenWidth / 1920)),
+            } as React.CSSProperties
+          }
         >
           {/* Search area */}
           {highlightRect && (
