@@ -396,6 +396,33 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
+export function setNodeHashCacheListOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneNodeHashCacheList = [];
+  }
+}
+
+export function setNodeToCacheList(
+  node: globalThis.Node,
+  id: string,
+): void {
+  if (typeof window === 'undefined') return;
+  if (getNodeFromCacheList(id)) return; // already cached (e.g. same hash)
+  const list = (window as any).midsceneNodeHashCacheList ?? [];
+  (window as any).midsceneNodeHashCacheList = list;
+  list.push({ node, id });
+}
+
+export function getNodeFromCacheList(id: string): globalThis.Node | undefined {
+  if (typeof window !== 'undefined') {
+    const list = (window as any).midsceneNodeHashCacheList as
+      | Array<{ node: globalThis.Node; id: string }>
+      | undefined;
+    return list?.find((item) => item.id === id)?.node;
+  }
+  return undefined;
+}
+
 export function midsceneGenerateHash(
   node: globalThis.Node | null,
   content: string,
@@ -403,7 +430,13 @@ export function midsceneGenerateHash(
 ): string {
   const slicedHash = generateHashId(rect, content);
 
-  // Returns the first 10 characters as a short hash
+  if (node) {
+    if (typeof window !== 'undefined' && !(window as any).midsceneNodeHashCacheList) {
+      setNodeHashCacheListOnWindow();
+    }
+    setNodeToCacheList(node, slicedHash);
+  }
+
   return slicedHash;
 }
 
