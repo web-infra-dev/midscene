@@ -278,7 +278,10 @@ export const ALL_ENV_KEYS = [
 export type TEnvKeys = (typeof ALL_ENV_KEYS)[number];
 export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 
-export type TVlModeValues =
+/**
+ * valid Model family types
+ */
+export type TModelFamily =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
   | 'qwen3.5'
@@ -290,9 +293,10 @@ export type TVlModeValues =
   | 'vlm-ui-tars-doubao-1.5'
   | 'glm-v'
   | 'auto-glm'
-  | 'auto-glm-multilingual';
+  | 'auto-glm-multilingual'
+  | 'gpt-5';
 
-export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
+export const MODEL_FAMILY_VALUES: TModelFamily[] = [
   'doubao-vision',
   'doubao-seed',
   'gemini',
@@ -305,21 +309,6 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'glm-v',
   'auto-glm',
   'auto-glm-multilingual',
-];
-
-/**
- * Model family values - unified model configuration approach
- * Replaces the old MIDSCENE_USE_* environment variables
- *
- * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
- * - 'qwen2.5-vl' is Qwen 2.5
- * - 'qwen3-vl' is Qwen 3
- * - 'qwen3.5' is Qwen 3.5 (behaves the same as qwen3-vl)
- */
-export type TModelFamily = TVlModeValues | 'gpt-5';
-
-export const MODEL_FAMILY_VALUES: TModelFamily[] = [
-  ...VL_MODE_RAW_VALID_VALUES,
   'gpt-5',
 ];
 
@@ -365,17 +354,7 @@ export interface IModelConfigForPlanning {
  * IMPORTANT: Planning MUST use a vision language model (VL mode).
  * DOM-based planning is not supported.
  *
- * Required: MIDSCENE_MODEL_FAMILY must be set to one of:
- *   - 'qwen2.5-vl'
- *   - 'qwen3-vl'
- *   - 'qwen3.5'
- *   - 'gemini'
- *   - 'doubao-vision'
- *   - 'doubao-seed'
- *   - 'vlm-ui-tars'
- *   - 'vlm-ui-tars-doubao'
- *   - 'vlm-ui-tars-doubao-1.5'
- *   - 'glm-v'
+ * Required: MIDSCENE_MODEL_FAMILY must be set to one of 「TModelFamily」
  */
 export interface IModelConfigForDefault {
   // model name
