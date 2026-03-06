@@ -130,8 +130,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(253, 89, 7, 0.4)',
-              border: '1px solid #fd5907',
-              boxShadow: '4px 4px 2px rgba(51, 51, 51, 0.4)',
+              border: `${cursorScale}px solid #fd5907`,
+              boxShadow: `${4 * cursorScale}px ${4 * cursorScale}px ${2 * cursorScale}px rgba(51, 51, 51, 0.4)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
@@ -151,8 +151,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(2, 131, 145, 0.4)',
-              border: '1px solid #028391',
-              boxShadow: '4px 4px 2px rgba(51, 51, 51, 0.4)',
+              border: `${cursorScale}px solid #028391`,
+              boxShadow: `${4 * cursorScale}px ${4 * cursorScale}px ${2 * cursorScale}px rgba(51, 51, 51, 0.4)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
