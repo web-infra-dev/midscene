@@ -4,7 +4,11 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
-import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
+import {
+  BaseMidsceneTools,
+  type ToolDefinition,
+  resolveChromePath,
+} from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
@@ -13,50 +17,6 @@ import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
-
-function getSystemChromePath(): string | undefined {
-  const platform = process.platform;
-
-  const chromePaths: Record<string, string[]> = {
-    darwin: [
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    ],
-    win32: [
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      `C:\\Users\\${process.env.USERNAME ?? process.env.USER}\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe`,
-    ],
-    linux: [
-      // Prefer actual binaries over wrapper scripts.
-      // Wrappers in /usr/bin may strip --user-data-dir, causing
-      // "DevTools remote debugging requires a non-default data directory" errors.
-      '/opt/google/chrome/chrome',
-      '/opt/google/chrome/google-chrome',
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/google-chrome',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium',
-      '/snap/bin/chromium',
-    ],
-  };
-
-  const paths = chromePaths[platform] ?? [];
-  return paths.find((p) => existsSync(p));
-}
-
-function resolveChromePath(): string {
-  const envPath = process.env.MIDSCENE_MCP_CHROME_PATH;
-  if (envPath && envPath !== 'auto' && existsSync(envPath)) {
-    return envPath;
-  }
-  const systemPath = getSystemChromePath();
-  if (systemPath) return systemPath;
-
-  throw new Error(
-    'Chrome not found. Install Google Chrome or set MIDSCENE_MCP_CHROME_PATH environment variable.',
-  );
-}
 
 /**
  * Persistent Puppeteer browser manager.
