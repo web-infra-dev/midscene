@@ -127,8 +127,13 @@ const browserManager = {
       '--force-color-profile=srgb',
     ];
 
-    // Auto-add --no-sandbox for root user (required on Linux)
-    if (process.getuid?.() === 0) {
+    // Auto-add --no-sandbox in containerized / CI environments or when running as root
+    if (
+      process.getuid?.() === 0 ||
+      process.env.MIDSCENE_MCP_NO_SANDBOX === '1' ||
+      existsSync('/.dockerenv') ||
+      process.env.container
+    ) {
       args.push('--no-sandbox', '--disable-setuid-sandbox');
     }
 
@@ -149,7 +154,25 @@ const browserManager = {
         }
       };
       proc.stderr!.on('data', onData);
-      setTimeout(() => reject(new Error('Chrome launch timeout')), 15000);
+
+      proc.on('exit', (code) => {
+        proc.stderr!.removeListener('data', onData);
+        reject(
+          new Error(
+            `Chrome exited with code ${code} before DevTools was ready.\nChrome stderr: ${output}\nTip: try setting MIDSCENE_MCP_NO_SANDBOX=1 if running in a container.`,
+          ),
+        );
+      });
+
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `Chrome launch timeout.\nChrome stderr: ${output}\nTip: try setting MIDSCENE_MCP_NO_SANDBOX=1 if running in a container.`,
+            ),
+          ),
+        15000,
+      );
     });
   },
 };
