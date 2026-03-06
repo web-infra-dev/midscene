@@ -62,13 +62,16 @@ function getSystemChromePath(): string | undefined {
       `C:\\Users\\${process.env.USERNAME ?? process.env.USER}\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe`,
     ],
     linux: [
-      '/usr/bin/google-chrome',
+      // Prefer actual binaries over wrapper scripts.
+      // Wrappers in /usr/bin may strip --user-data-dir, causing
+      // "DevTools remote debugging requires a non-default data directory" errors.
+      '/opt/google/chrome/chrome',
+      '/opt/google/chrome/google-chrome',
       '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome',
       '/usr/bin/chromium-browser',
       '/usr/bin/chromium',
       '/snap/bin/chromium',
-      '/opt/google/chrome/chrome',
-      '/opt/google/chrome/google-chrome',
     ],
   };
 
