@@ -150,16 +150,6 @@ const browserManager = {
     await mkdir(USER_DATA_DIR, { recursive: true });
     removeStaleSingletonLock(join(USER_DATA_DIR, 'SingletonLock'));
 
-    // Also clean stale lock in default Chrome profile dir (Linux wrapper scripts
-    // may ignore --user-data-dir and use the default profile)
-    if (process.platform === 'linux') {
-      const defaultChromeDir = join(
-        process.env.HOME || '',
-        '.config/google-chrome',
-      );
-      removeStaleSingletonLock(join(defaultChromeDir, 'SingletonLock'));
-    }
-
     const args = [
       '--headless=new',
       `--user-data-dir=${USER_DATA_DIR}`,
@@ -186,9 +176,19 @@ const browserManager = {
       args.push('--no-sandbox', '--disable-setuid-sandbox');
     }
 
+    // On Linux, override HOME so Chrome uses our USER_DATA_DIR instead of
+    // the default ~/.config/google-chrome/ profile. This avoids SingletonLock
+    // conflicts when wrapper scripts (e.g. /usr/bin/google-chrome) ignore
+    // the --user-data-dir flag.
+    const spawnEnv =
+      process.platform === 'linux'
+        ? { ...process.env, HOME: USER_DATA_DIR }
+        : process.env;
+
     const proc = spawn(chromePath, args, {
       detached: true,
       stdio: ['ignore', 'ignore', 'pipe'],
+      env: spawnEnv,
     });
     proc.unref();
 
