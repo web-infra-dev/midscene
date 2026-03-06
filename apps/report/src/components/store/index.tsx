@@ -50,7 +50,7 @@ export interface DumpStoreType {
   setGroupedDump: (
     dump: GroupedActionDump,
     playwrightAttributes?: PlaywrightTaskAttributes,
-  ) => void;
+  ) => Promise<void>;
   _executionDumpLoadId: number;
   replayAllMode: boolean;
   setReplayAllMode: (replayAllMode: boolean) => void;
@@ -59,6 +59,7 @@ export interface DumpStoreType {
   modelBriefs: string[];
   insightWidth: number | null;
   insightHeight: number | null;
+  deviceType: string | undefined;
   activeExecution: ExecutionDump | null;
   activeExecutionAnimation: AnimationScript[] | null;
   activeTask: ExecutionTask | null;
@@ -70,6 +71,8 @@ export interface DumpStoreType {
   setHoverTask: (task: ExecutionTask | null, timestamp?: number | null) => void;
   hoverPreviewConfig: { x: number; y: number } | null;
   setHoverPreviewConfig: (config: { x: number; y: number } | null) => void;
+  playingTaskId: string | null;
+  setPlayingTaskId: (taskId: string | null) => void;
   reset: () => void;
 }
 /**
@@ -92,6 +95,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     modelBriefs: [],
     insightWidth: null,
     insightHeight: null,
+    deviceType: undefined,
     activeTask: null,
     activeExecution: null,
     activeExecutionAnimation: null,
@@ -100,6 +104,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
     hoverTask: null,
     hoverTimestamp: null,
     hoverPreviewConfig: null,
+    playingTaskId: null,
   };
 
   const resetActiveExecution = () => {
@@ -128,7 +133,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         );
       }
     },
-    setGroupedDump: (
+    setGroupedDump: async (
       dump: GroupedActionDump,
       playwrightAttributes?: PlaywrightTaskAttributes,
     ) => {
@@ -156,6 +161,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           height,
           modelBriefs,
           sdkVersion,
+          deviceType,
         } = allScriptsInfo;
 
         set({
@@ -164,6 +170,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           insightHeight: height,
           modelBriefs,
           sdkVersion,
+          deviceType,
         });
 
         const replayAvailable = allScripts.length > 0;
@@ -243,6 +250,9 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
       } else {
         set({ hoverPreviewConfig: null });
       }
+    },
+    setPlayingTaskId(taskId: string | null) {
+      set({ playingTaskId: taskId });
     },
     reset: () => {
       set(initData);

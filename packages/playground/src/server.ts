@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import http from 'node:http';
 import type { Server } from 'node:http';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
@@ -50,11 +51,17 @@ class PlaygroundServer {
 
   private _initialized = false;
 
+  // Native MJPEG stream probe: null = not tested, true/false = result
+  private _nativeMjpegAvailable: boolean | null = null;
+
   // Factory function for recreating agent
   private agentFactory?: (() => PageAgent | Promise<PageAgent>) | null;
 
   // Track current running task
   private currentTaskId: string | null = null;
+
+  // Flag to pause MJPEG polling during agent recreation
+  private _agentReady = true;
 
   constructor(
     agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
@@ -147,7 +154,19 @@ class PlaygroundServer {
   }
 
   filePathForUuid(uuid: string) {
-    return join(this.tmpDir, `${uuid}.json`);
+    // Validate uuid to prevent path traversal attacks
+    // Only allow alphanumeric characters and hyphens
+    if (!/^[a-zA-Z0-9-]+$/.test(uuid)) {
+      throw new Error('Invalid uuid format');
+    }
+    const filePath = join(this.tmpDir, `${uuid}.json`);
+    // Double-check that resolved path is within tmpDir
+    const resolvedPath = resolve(filePath);
+    const resolvedTmpDir = resolve(this.tmpDir);
+    if (!resolvedPath.startsWith(resolvedTmpDir)) {
+      throw new Error('Invalid path');
+    }
+    return filePath;
   }
 
   saveContextFile(uuid: string, context: string) {
@@ -167,6 +186,7 @@ class PlaygroundServer {
       );
     }
 
+    this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
     // Destroy old agent instance
@@ -181,8 +201,10 @@ class PlaygroundServer {
     // Create new agent instance
     try {
       this.agent = await this.agentFactory();
+      this._agentReady = true;
       console.log('Agent recreated successfully');
     } catch (error) {
+      this._agentReady = true;
       console.error('Failed to recreate agent:', error);
       throw error;
     }
@@ -201,7 +223,14 @@ class PlaygroundServer {
 
     this._app.get('/context/:uuid', async (req: Request, res: Response) => {
       const { uuid } = req.params;
-      const contextFile = this.filePathForUuid(uuid);
+      let contextFile: string;
+      try {
+        contextFile = this.filePathForUuid(uuid);
+      } catch {
+        return res.status(400).json({
+          error: 'Invalid uuid format',
+        });
+      }
 
       if (!existsSync(contextFile)) {
         return res.status(404).json({
@@ -318,6 +347,7 @@ class PlaygroundServer {
         prompt,
         params,
         requestId,
+        deepLocate,
         deepThink,
         screenshotIncluded,
         domIncluded,
@@ -332,6 +362,7 @@ class PlaygroundServer {
 
       // Always recreate agent before execution to ensure latest config is applied
       if (this.agentFactory) {
+        this._agentReady = false;
         console.log('Destroying old agent before execution...');
         try {
           if (this.agent && typeof this.agent.destroy === 'function') {
@@ -344,8 +375,10 @@ class PlaygroundServer {
         console.log('Creating new agent with latest config...');
         try {
           this.agent = await this.agentFactory();
+          this._agentReady = true;
           console.log('Agent created successfully');
         } catch (error) {
+          this._agentReady = true;
           console.error('Failed to create agent:', error);
           return res.status(500).json({
             error: `Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -422,6 +455,7 @@ class PlaygroundServer {
           actionSpace,
           value,
           {
+            deepLocate,
             deepThink,
             screenshotIncluded,
             domIncluded,
@@ -433,7 +467,9 @@ class PlaygroundServer {
       }
 
       try {
-        const dumpString = this.agent.dumpDataString();
+        const dumpString = this.agent.dumpDataString({
+          inlineScreenshots: true,
+        });
         if (dumpString) {
           const groupedDump =
             GroupedActionDump.fromSerializedString(dumpString);
@@ -442,7 +478,8 @@ class PlaygroundServer {
         } else {
           response.dump = null;
         }
-        response.reportHTML = this.agent.reportHTMLString() || null;
+        response.reportHTML =
+          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
 
         this.agent.writeOutActionDumps();
         this.agent.resetDump();
@@ -504,7 +541,9 @@ class PlaygroundServer {
           let reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.();
+            const dumpString = this.agent.dumpDataString?.({
+              inlineScreenshots: true,
+            });
             if (dumpString) {
               const groupedDump =
                 GroupedActionDump.fromSerializedString(dumpString);
@@ -512,13 +551,22 @@ class PlaygroundServer {
               dump = groupedDump.executions?.[0] || null;
             }
 
-            reportHTML = this.agent.reportHTMLString?.() || null;
+            reportHTML =
+              this.agent.reportHTMLString?.({ inlineScreenshots: true }) ||
+              null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Recreate/destroy agent to cancel the current task
-          await this.recreateAgent();
+          // Destroy agent to cancel the current task
+          // No need to recreate here — /execute always creates a fresh agent before each run
+          try {
+            if (this.agent && typeof this.agent.destroy === 'function') {
+              await this.agent.destroy();
+            }
+          } catch (error) {
+            console.warn('Failed to destroy agent during cancel:', error);
+          }
 
           // Clean up
           delete this.taskExecutionDumps[requestId];
@@ -565,6 +613,30 @@ class PlaygroundServer {
           error: `Failed to take screenshot: ${errorMessage}`,
         });
       }
+    });
+
+    // MJPEG streaming endpoint for real-time screen preview
+    // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
+    // falls back to polling screenshotBase64() otherwise.
+    this._app.get('/mjpeg', async (req: Request, res: Response) => {
+      const nativeUrl = this.agent?.interface?.mjpegStreamUrl;
+
+      if (nativeUrl && this._nativeMjpegAvailable !== false) {
+        const proxyOk = await this.probeAndProxyNativeMjpeg(
+          nativeUrl,
+          req,
+          res,
+        );
+        if (proxyOk) return;
+      }
+
+      if (typeof this.agent?.interface?.screenshotBase64 !== 'function') {
+        return res.status(500).json({
+          error: 'Screenshot method not available on current interface',
+        });
+      }
+
+      await this.startPollingMjpegStream(req, res);
     });
 
     // Interface info API for getting interface type and description
@@ -633,6 +705,118 @@ class PlaygroundServer {
           'AI config updated. Agent will be recreated on next execution.',
       });
     });
+  }
+
+  /**
+   * Probe and proxy a native MJPEG stream (e.g. WDA MJPEG server).
+   * Result is cached so we only probe once per server lifetime.
+   */
+  private probeAndProxyNativeMjpeg(
+    nativeUrl: string,
+    req: Request,
+    res: Response,
+  ): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      console.log(`MJPEG: trying native stream from ${nativeUrl}`);
+      const proxyReq = http.get(nativeUrl, (proxyRes) => {
+        this._nativeMjpegAvailable = true;
+        console.log('MJPEG: streaming via native WDA MJPEG server');
+        const contentType = proxyRes.headers['content-type'];
+        if (contentType) {
+          res.setHeader('Content-Type', contentType);
+        }
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Connection', 'keep-alive');
+        proxyRes.pipe(res);
+        req.on('close', () => proxyReq.destroy());
+        resolve(true);
+      });
+      proxyReq.on('error', (err) => {
+        this._nativeMjpegAvailable = false;
+        console.warn(
+          `MJPEG: native stream unavailable (${err.message}), using polling mode`,
+        );
+        resolve(false);
+      });
+    });
+  }
+
+  /**
+   * Stream screenshots as MJPEG by polling screenshotBase64().
+   */
+  private async startPollingMjpegStream(
+    req: Request,
+    res: Response,
+  ): Promise<void> {
+    const defaultMjpegFps = 10;
+    const maxMjpegFps = 30;
+    const maxErrorBackoffMs = 3000;
+    const errorLogThreshold = 3;
+
+    const parsedFps = Number(req.query.fps);
+    const fps = Math.min(
+      Math.max(Number.isNaN(parsedFps) ? defaultMjpegFps : parsedFps, 1),
+      maxMjpegFps,
+    );
+    const interval = Math.round(1000 / fps);
+    const boundary = 'mjpeg-boundary';
+    console.log(`MJPEG: streaming via polling mode (${fps}fps)`);
+
+    res.setHeader(
+      'Content-Type',
+      `multipart/x-mixed-replace; boundary=${boundary}`,
+    );
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Connection', 'keep-alive');
+
+    let stopped = false;
+    let consecutiveErrors = 0;
+    req.on('close', () => {
+      stopped = true;
+    });
+
+    while (!stopped) {
+      // Skip frame while agent is being recreated
+      if (!this._agentReady) {
+        await new Promise((r) => setTimeout(r, 200));
+        continue;
+      }
+
+      const frameStart = Date.now();
+      try {
+        const base64 = await this.agent.interface.screenshotBase64();
+        if (stopped) break;
+        consecutiveErrors = 0;
+
+        const raw = base64.replace(/^data:image\/\w+;base64,/, '');
+        const buf = Buffer.from(raw, 'base64');
+
+        res.write(`--${boundary}\r\n`);
+        res.write('Content-Type: image/jpeg\r\n');
+        res.write(`Content-Length: ${buf.length}\r\n\r\n`);
+        res.write(buf);
+        res.write('\r\n');
+      } catch (err) {
+        if (stopped) break;
+        consecutiveErrors++;
+        if (consecutiveErrors <= errorLogThreshold) {
+          console.error('MJPEG frame error:', err);
+        } else if (consecutiveErrors === errorLogThreshold + 1) {
+          console.error(
+            'MJPEG: suppressing further errors, retrying silently...',
+          );
+        }
+        const backoff = Math.min(1000 * consecutiveErrors, maxErrorBackoffMs);
+        await new Promise((r) => setTimeout(r, backoff));
+        continue;
+      }
+
+      const elapsed = Date.now() - frameStart;
+      const remaining = interval - elapsed;
+      if (remaining > 0) {
+        await new Promise((r) => setTimeout(r, remaining));
+      }
+    }
   }
 
   /**

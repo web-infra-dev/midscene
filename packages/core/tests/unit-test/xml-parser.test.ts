@@ -236,6 +236,22 @@ I should identify the button first.</think>
       expect(actionType).toBe('Hover');
     });
 
+    it('should extract content from half-open tag when closing tag is missing', () => {
+      const xml = `<thought>Need to input value</thought>
+<log>Typing in field</log>
+<action-type>Input
+<action-param-json>{"value":"1000"}</action-param-json>`;
+      const actionType = extractXMLTag(xml, 'action-type');
+      expect(actionType).toBe('Input');
+    });
+
+    it('should return empty string when half-open tag has empty content', () => {
+      const xml = `<action-type>   
+<log>next</log>`;
+      const actionType = extractXMLTag(xml, 'action-type');
+      expect(actionType).toBe('');
+    });
+
     it('should handle data-json extraction with think prefix', () => {
       const xml = `<think>Analyzing the page to extract user data...</think>
 <thought>I can see user information in the profile section</thought>
@@ -244,13 +260,13 @@ I should identify the button first.</think>
       expect(dataJson).toBe('{"name": "John", "age": 30}');
     });
 
-    it('should handle complete-goal extraction with think prefix', () => {
+    it('should handle complete extraction with think prefix', () => {
       const xml = `<think>The task has been completed successfully</think>
 <thought>Task completed</thought>
-<complete-goal success="true">Successfully hovered over the left menu</complete-goal>`;
+<complete success="true">Successfully hovered over the left menu</complete>`;
       const thought = extractXMLTag(xml, 'thought');
       expect(thought).toBe('Task completed');
-      // Note: complete-goal has attributes, so extractXMLTag won't match it directly
+      // Note: complete has attributes, so extractXMLTag won't match it directly
       // This is handled separately in parseXMLPlanningResponse
     });
   });

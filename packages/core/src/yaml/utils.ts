@@ -74,12 +74,16 @@ export function buildDetailedLocateParam(
 ): DetailedLocateParam | undefined {
   debugUtils('will call buildDetailedLocateParam', locatePrompt, opt);
   let prompt = locatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
-  let deepThink = false;
+  let deepLocate = false;
   let cacheable = true;
   let xpath = undefined;
 
   if (typeof opt === 'object' && opt !== null) {
-    deepThink = opt.deepThink ?? false;
+    // Backward-compatible: accept `deepThink` as a deprecated alias for `deepLocate`.
+    // All downstream code works on `deepLocate` only; the compatibility resolution
+    // is intentionally kept here at the entry point so it does not bleed through
+    // the rest of the call stack.
+    deepLocate = opt.deepLocate ?? opt.deepThink ?? false;
     cacheable = opt.cacheable ?? true;
     xpath = opt.xpath;
     if (locatePrompt && opt.prompt && locatePrompt !== opt.prompt) {
@@ -103,7 +107,7 @@ export function buildDetailedLocateParam(
 
   return {
     prompt,
-    deepThink,
+    deepLocate,
     cacheable,
     xpath,
   };
@@ -126,7 +130,7 @@ export function buildDetailedLocateParamAndRestParams(
     // Get all keys from opt
     const allKeys = Object.keys(opt);
 
-    // Keys already included in locateParam: prompt, deepThink, cacheable, xpath
+    // Keys already included in locateParam: prompt, deepLocate, cacheable, xpath
     const locateParamKeys = Object.keys(locateParam || {});
 
     // Extract all other keys

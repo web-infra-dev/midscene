@@ -28,6 +28,9 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 | `MIDSCENE_MODEL_MAX_TOKENS` | `max_tokens` for responses, default 2048 |
 | `MIDSCENE_MODEL_RETRY_COUNT` | Number of retries when AI call fails, default 1 (i.e., retry once after failure) |
 | `MIDSCENE_MODEL_RETRY_INTERVAL` | Interval between retries in milliseconds, default 2000 |
+| `MIDSCENE_MODEL_REASONING_ENABLED` | Enable or disable model reasoning/thinking. Set to `"true"` or `"false"`. Passed through as `enable_thinking` for qwen, `thinking.type` for doubao/glm-v. Unsupported families ignore this setting |
+| `MIDSCENE_MODEL_REASONING_EFFORT` | Reasoning effort level string. Passed through as `reasoning_effort` for doubao, `reasoning.effort` for gpt-5. Common values: `low`, `medium`, `high` |
+| `MIDSCENE_MODEL_REASONING_BUDGET` | Thinking token budget (number). Passed through as `thinking_budget` for qwen. Unsupported families ignore this setting |
 | `MIDSCENE_MODEL_HTTP_PROXY` | HTTP/HTTPS proxy, e.g., `http://127.0.0.1:8080` or `https://proxy.example.com:8080`. Takes precedence over `MIDSCENE_MODEL_SOCKS_PROXY` |
 | `MIDSCENE_MODEL_SOCKS_PROXY` | SOCKS proxy, e.g., `socks5://127.0.0.1:1080` |
 | `MIDSCENE_MODEL_INIT_CONFIG_JSON` | JSON blob that overrides the OpenAI SDK initialization config |

@@ -64,7 +64,7 @@ describe('ScrcpyScreenshotManager', () => {
       const manager = new ScrcpyScreenshotManager({} as any);
       const options = (manager as any).options;
       expect(options.maxSize).toBe(0);
-      expect(options.videoBitRate).toBe(2_000_000);
+      expect(options.videoBitRate).toBe(100_000_000);
       expect(options.idleTimeoutMs).toBe(30_000);
     });
 
@@ -86,8 +86,16 @@ describe('ScrcpyScreenshotManager', () => {
       });
       const options = (manager as any).options;
       expect(options.maxSize).toBe(512);
-      expect(options.videoBitRate).toBe(2_000_000); // default
+      expect(options.videoBitRate).toBe(100_000_000); // default
       expect(options.idleTimeoutMs).toBe(30_000); // default
+    });
+
+    it('should clamp videoBitRate to safe maximum', () => {
+      const manager = new ScrcpyScreenshotManager({} as any, {
+        videoBitRate: 500_000_000,
+      });
+      const options = (manager as any).options;
+      expect(options.videoBitRate).toBe(100_000_000);
     });
   });
 
@@ -145,7 +153,6 @@ describe('ScrcpyScreenshotManager', () => {
       (manager as any).spsHeader = Buffer.from('sps');
       (manager as any).lastRawKeyframe = Buffer.from('keyframe');
       (manager as any).isInitialized = true;
-      (manager as any).h264SearchConfigFn = () => {};
       (manager as any).keyframeResolvers = [() => {}];
       (manager as any).streamReader = { cancel: vi.fn() };
 
@@ -154,7 +161,6 @@ describe('ScrcpyScreenshotManager', () => {
       expect((manager as any).spsHeader).toBeNull();
       expect((manager as any).lastRawKeyframe).toBeNull();
       expect((manager as any).isInitialized).toBe(false);
-      expect((manager as any).h264SearchConfigFn).toBeNull();
       expect((manager as any).keyframeResolvers).toEqual([]);
       expect((manager as any).videoStream).toBeNull();
       expect((manager as any).scrcpyClient).toBeNull();

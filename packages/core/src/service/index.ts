@@ -25,11 +25,7 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
-import {
-  type IModelConfig,
-  MIDSCENE_FORCE_DEEP_THINK,
-  globalConfigManager,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { LocateResultElement } from '@midscene/shared/types';
@@ -48,15 +44,11 @@ export type AnyValue<T> = {
 
 interface ServiceOptions {
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
-  aiVendorFn?: typeof callAIWithObjectResponse;
 }
 
 const debug = getDebug('ai:service');
 export default class Service {
   contextRetrieverFn: () => Promise<UIContext> | UIContext;
-
-  aiVendorFn: Exclude<ServiceOptions['aiVendorFn'], undefined> =
-    callAIWithObjectResponse;
 
   taskInfo?: Omit<ServiceTaskInfo, 'durationMs'>;
 
@@ -71,10 +63,6 @@ export default class Service {
       this.contextRetrieverFn = () => Promise.resolve(context);
     }
 
-    // just for unit test, aiVendorFn is callAIWithObjectResponse by default
-    if (typeof opt?.aiVendorFn !== 'undefined') {
-      this.aiVendorFn = opt.aiVendorFn;
-    }
     if (typeof opt?.taskInfo !== 'undefined') {
       this.taskInfo = opt.taskInfo;
     }
@@ -122,14 +110,8 @@ export default class Service {
 
     assert(typeof query === 'object', 'query should be an object for locate');
 
-    const globalDeepThinkSwitch = globalConfigManager.getEnvConfigInBoolean(
-      MIDSCENE_FORCE_DEEP_THINK,
-    );
-    if (globalDeepThinkSwitch) {
-      debug('globalDeepThinkSwitch', globalDeepThinkSwitch);
-    }
     let searchAreaPrompt;
-    if (query.deepThink || globalDeepThinkSwitch) {
+    if (query.deepLocate) {
       searchAreaPrompt = query.prompt;
     }
 
@@ -137,13 +119,13 @@ export default class Service {
 
     if (searchAreaPrompt && !modelFamily) {
       console.warn(
-        'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
+        'The "deepLocate" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
       );
       searchAreaPrompt = undefined;
     }
 
     if (searchAreaPrompt && isAutoGLM(modelFamily)) {
-      console.warn('The "deepThink" feature is not supported with AutoGLM.');
+      console.warn('The "deepLocate" feature is not supported with AutoGLM.');
       searchAreaPrompt = undefined;
     }
 
@@ -175,7 +157,6 @@ export default class Service {
     const startTime = Date.now();
     const { parseResult, rect, rawResponse, usage, reasoning_content } =
       await AiLocateElement({
-        callAIFn: this.aiVendorFn,
         context,
         targetElementDescription: queryPrompt,
         searchConfig: searchAreaResponse,
@@ -209,7 +190,7 @@ export default class Service {
       matchedRect: rect,
       data: null,
       taskInfo,
-      deepThink: !!searchArea,
+      deepLocate: !!searchArea,
       error: errorLog,
     };
 
@@ -452,12 +433,12 @@ export default class Service {
     target: Rect | [number, number],
     modelConfig: IModelConfig,
     opt?: {
-      deepThink?: boolean;
+      deepLocate?: boolean;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
     const context = await this.contextRetrieverFn();
-    const { size } = context;
+    const { shotSize } = context;
     const screenshotBase64 = context.screenshot.base64;
     assert(screenshotBase64, 'screenshot is required for service.describe');
     // The result of the "describe" function will be used for positioning, so essentially it is a form of grounding.
@@ -477,7 +458,7 @@ export default class Service {
 
     let imagePayload = await compositeElementInfoImg({
       inputImgBase64: screenshotBase64,
-      size,
+      size: shotSize,
       elementsPositionInfo: [
         {
           rect: targetRect,
@@ -486,13 +467,13 @@ export default class Service {
       borderThickness: 3,
     });
 
-    if (opt?.deepThink) {
-      const searchArea = expandSearchArea(targetRect, size);
+    if (opt?.deepLocate) {
+      const searchArea = expandSearchArea(targetRect, shotSize);
       // Only crop when the search area covers at least 50% of the screen
       // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
       // too much context and cause model hallucinations.
-      const widthRatio = searchArea.width / size.width;
-      const heightRatio = searchArea.height / size.height;
+      const widthRatio = searchArea.width / shotSize.width;
+      const heightRatio = searchArea.height / shotSize.height;
       if (widthRatio >= 0.5 && heightRatio >= 0.5) {
         debug('describe: cropping to searchArea', searchArea);
         const croppedResult = await cropByRect(
@@ -506,8 +487,8 @@ export default class Service {
           'describe: skip cropping, search area too small (%dx%d on %dx%d)',
           searchArea.width,
           searchArea.height,
-          size.width,
-          size.height,
+          shotSize.width,
+          shotSize.height,
         );
       }
     }
@@ -528,10 +509,10 @@ export default class Service {
       },
     ];
 
-    const callAIFn = this
-      .aiVendorFn as typeof callAIWithObjectResponse<AIDescribeElementResponse>;
-
-    const res = await callAIFn(msgs, modelConfig);
+    const res = await callAIWithObjectResponse<AIDescribeElementResponse>(
+      msgs,
+      modelConfig,
+    );
 
     const { content } = res;
     assert(!content.error, `describe failed: ${content.error}`);

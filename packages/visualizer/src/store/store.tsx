@@ -7,6 +7,8 @@ const BACKGROUND_VISIBLE_KEY = 'midscene-background-visible';
 const ELEMENTS_VISIBLE_KEY = 'midscene-elements-visible';
 const MODEL_CALL_DETAILS_KEY = 'midscene-model-call-details';
 const DARK_MODE_KEY = 'midscene-dark-mode';
+const PLAYBACK_SPEED_KEY = 'midscene-playback-speed';
+const SUBTITLE_ENABLED_KEY = 'midscene-subtitle-enabled';
 
 const parseBooleanParam = (value: string | null): boolean | undefined => {
   if (value === null) {
@@ -35,17 +37,23 @@ const getQueryPreference = (paramName: string): boolean | undefined => {
   return parseBooleanParam(searchParams.get(paramName));
 };
 
+export type PlaybackSpeedType = 0.5 | 1 | 1.5 | 2;
+
 export const useGlobalPreference = create<{
   backgroundVisible: boolean;
   elementsVisible: boolean;
   autoZoom: boolean;
   modelCallDetailsEnabled: boolean;
   darkModeEnabled: boolean;
+  playbackSpeed: PlaybackSpeedType;
+  subtitleEnabled: boolean;
   setBackgroundVisible: (visible: boolean) => void;
   setElementsVisible: (visible: boolean) => void;
   setAutoZoom: (enabled: boolean) => void;
   setModelCallDetailsEnabled: (enabled: boolean) => void;
   setDarkModeEnabled: (enabled: boolean) => void;
+  setPlaybackSpeed: (speed: PlaybackSpeedType) => void;
+  setSubtitleEnabled: (enabled: boolean) => void;
 }>((set) => {
   const savedAutoZoom = localStorage.getItem(AUTO_ZOOM_KEY) !== 'false';
   const savedBackgroundVisible =
@@ -55,6 +63,15 @@ export const useGlobalPreference = create<{
   const savedModelCallDetails =
     localStorage.getItem(MODEL_CALL_DETAILS_KEY) === 'true';
   const savedDarkMode = localStorage.getItem(DARK_MODE_KEY) === 'true';
+  const parsedPlaybackSpeed = Number.parseFloat(
+    localStorage.getItem(PLAYBACK_SPEED_KEY) || '1',
+  );
+  // Handle NaN case and ensure valid speed value
+  const savedPlaybackSpeed = (
+    Number.isNaN(parsedPlaybackSpeed) ? 1 : parsedPlaybackSpeed
+  ) as PlaybackSpeedType;
+  const savedSubtitleEnabled =
+    localStorage.getItem(SUBTITLE_ENABLED_KEY) !== 'false';
   const autoZoomFromQuery = getQueryPreference('focusOnCursor');
   const elementsVisibleFromQuery = getQueryPreference('showElementMarkers');
   const darkModeFromQuery = getQueryPreference('darkMode');
@@ -74,6 +91,9 @@ export const useGlobalPreference = create<{
       autoZoomFromQuery === undefined ? savedAutoZoom : autoZoomFromQuery,
     modelCallDetailsEnabled: savedModelCallDetails,
     darkModeEnabled: initialDarkMode,
+    playbackSpeed: [0.5, 1, 1.5, 2].includes(savedPlaybackSpeed)
+      ? savedPlaybackSpeed
+      : 1,
     setBackgroundVisible: (visible: boolean) => {
       set({ backgroundVisible: visible });
       localStorage.setItem(BACKGROUND_VISIBLE_KEY, visible.toString());
@@ -94,12 +114,22 @@ export const useGlobalPreference = create<{
       set({ darkModeEnabled: enabled });
       localStorage.setItem(DARK_MODE_KEY, enabled.toString());
     },
+    setPlaybackSpeed: (speed: PlaybackSpeedType) => {
+      set({ playbackSpeed: speed });
+      localStorage.setItem(PLAYBACK_SPEED_KEY, speed.toString());
+    },
+    subtitleEnabled: savedSubtitleEnabled,
+    setSubtitleEnabled: (enabled: boolean) => {
+      set({ subtitleEnabled: enabled });
+      localStorage.setItem(SUBTITLE_ENABLED_KEY, enabled.toString());
+    },
   };
 });
 
 const CONFIG_KEY = 'midscene-env-config';
 const SERVICE_MODE_KEY = 'midscene-service-mode';
 const TRACKING_ACTIVE_TAB_KEY = 'midscene-tracking-active-tab';
+const DEEP_LOCATE_KEY = 'midscene-deep-locate';
 const DEEP_THINK_KEY = 'midscene-deep-think';
 const SCREENSHOT_INCLUDED_KEY = 'midscene-screenshot-included';
 const DOM_INCLUDED_KEY = 'midscene-dom-included';
@@ -164,6 +194,8 @@ export const useEnvConfig = create<{
   syncFromStorage: () => void;
   forceSameTabNavigation: boolean;
   setForceSameTabNavigation: (forceSameTabNavigation: boolean) => void;
+  deepLocate: boolean;
+  setDeepLocate: (deepLocate: boolean) => void;
   deepThink: boolean;
   setDeepThink: (deepThink: boolean) => void;
   screenshotIncluded: boolean;
@@ -192,6 +224,7 @@ export const useEnvConfig = create<{
   ) as ServiceModeType | null;
   const savedForceSameTabNavigation =
     localStorage.getItem(TRACKING_ACTIVE_TAB_KEY) !== 'false';
+  const savedDeepLocate = localStorage.getItem(DEEP_LOCATE_KEY) === 'true';
   const savedDeepThink = localStorage.getItem(DEEP_THINK_KEY) === 'true';
   const savedScreenshotIncluded =
     localStorage.getItem(SCREENSHOT_INCLUDED_KEY) !== 'false';
@@ -239,6 +272,11 @@ export const useEnvConfig = create<{
         TRACKING_ACTIVE_TAB_KEY,
         forceSameTabNavigation.toString(),
       );
+    },
+    deepLocate: savedDeepLocate,
+    setDeepLocate: (deepLocate: boolean) => {
+      set({ deepLocate });
+      localStorage.setItem(DEEP_LOCATE_KEY, deepLocate.toString());
     },
     deepThink: savedDeepThink,
     setDeepThink: (deepThink: boolean) => {

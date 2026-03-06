@@ -25,6 +25,12 @@
         <p>Supports single file upload only</p>
     </div>
 
+    <div class="upload-area">
+        <input type="file" id="directory-input" webkitdirectory directory multiple style="display: none;">
+        <button class="upload-btn" onclick="document.getElementById('directory-input').click()">Choose Directory</button>
+        <p>Supports directory upload (webkitdirectory)</p>
+    </div>
+
     <div class="file-list" id="file-list">
         <h3>Selected Files:</h3>
         <div id="selected-files"></div>
@@ -39,6 +45,11 @@
         document.getElementById('single-file-input').addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
             displayFiles(files, 'single');
+        });
+
+        document.getElementById('directory-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            displayFiles(files, 'directory');
         });
 
         function displayFiles(files, type) {

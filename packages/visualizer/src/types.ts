@@ -222,12 +222,7 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   return undefined;
 };
 
-import type {
-  ExecutionDump,
-  GroupedActionDump,
-  IExecutionDump,
-  WebUIContext,
-} from '@midscene/core';
+import type { ExecutionDump, IExecutionDump } from '@midscene/core';
 import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
 
 // result type
@@ -248,7 +243,7 @@ export interface PlaygroundProps {
 
 // static playground component props type
 export interface StaticPlaygroundProps {
-  context: WebUIContext | null;
+  context: UIContext | null;
 }
 
 // service mode type
@@ -373,6 +368,7 @@ export interface PlaygroundBranding {
   title?: string;
   icon?: ComponentType<any>;
   version?: string;
+  targetName?: string; // e.g., "web page", "computer", "screen"
 }
 
 // main component props interface

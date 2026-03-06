@@ -37,9 +37,13 @@
           cursor: pointer;
           display: flex;
           align-items: center;
+          justify-content: center;
+          padding: 6px;
+          border-radius: 8px;
+          transition: all 0.2s;
 
           &:hover {
-            background: #f5f5f5;
+            background: #e6e8eb;
           }
         }
       }
@@ -190,7 +194,9 @@
       .task-row {
         display: flex;
         cursor: pointer;
-        transition: background 0.1s;
+        transition:
+          background 0.1s,
+          border-left 0.1s;
         border-radius: 8px;
         height: 32px;
         align-items: center;
@@ -201,6 +207,38 @@
 
         &.selected {
           background: @selected-bg;
+        }
+
+        &.playing {
+          position: relative;
+          background: rgba(0, 0, 0, 0.02);
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(0, 0, 0, 0.04) 50%,
+              transparent 100%
+            );
+            animation: shimmer-subtle 1.2s ease-in-out infinite;
+            pointer-events: none;
+          }
+        }
+
+        @keyframes shimmer-subtle {
+          0% {
+            left: -50%;
+          }
+          100% {
+            left: 100%;
+          }
         }
 
         .task-cell {
@@ -285,6 +323,7 @@
 
         // Allow tags to shrink
         .cache-tag,
+        .deeplocate-tag,
         .deepthink-tag {
           flex-shrink: 0;
           white-space: nowrap;
@@ -400,9 +439,14 @@
   background-color: #e0f5ff;
 }
 
-.deepthink-tag {
+.deeplocate-tag {
   color: #722ed1;
   background-color: #f7ebff;
+}
+
+.deepthink-tag {
+  color: #531dab;
+  background-color: #efdbff;
 }
 
 // Dark mode styles
@@ -416,7 +460,7 @@
       .page-nav-left {
         .page-nav-toolbar .icon-button {
           &:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: #2c2e31;
           }
 
           svg {
@@ -451,6 +495,29 @@
 
         &.selected {
           background: rgba(255, 255, 255, 0.16);
+        }
+
+        &.playing {
+          position: relative;
+          background: rgba(255, 255, 255, 0.03);
+          overflow: hidden;
+
+          &::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent 0%,
+              rgba(255, 255, 255, 0.06) 50%,
+              transparent 100%
+            );
+            animation: shimmer-subtle 1.2s ease-in-out infinite;
+            pointer-events: none;
+          }
         }
       }
 
@@ -563,9 +630,14 @@
       background-color: rgba(24, 144, 255, 0.15) !important;
     }
 
-    .deepthink-tag {
+    .deeplocate-tag {
       color: #9254de !important;
       background-color: rgba(146, 84, 222, 0.15) !important;
+    }
+
+    .deepthink-tag {
+      color: #b37feb !important;
+      background-color: rgba(179, 127, 235, 0.15) !important;
     }
   }
 }

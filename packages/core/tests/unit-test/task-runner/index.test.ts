@@ -1,13 +1,23 @@
 import { ScreenshotItem, TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
+  ExecutionTaskApply,
   ExecutionTaskInsightLocate,
   ExecutionTaskPlanningLocate,
   ExecutionTaskPlanningLocateApply,
   UIContext,
 } from '@/index';
-import { fakeService } from 'tests/utils';
-import { describe, expect, it, vi } from 'vitest';
+import Service from '@/service';
+import { createFakeContext } from 'tests/utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock AI service caller
+vi.mock('@/ai-model/service-caller/index', () => ({
+  callAIWithObjectResponse: vi.fn(),
+  AIResponseParseError: class AIResponseParseError extends Error {},
+}));
+
+import { callAIWithObjectResponse } from '@/ai-model/service-caller/index';
 
 const insightFindTask = (shouldThrow?: boolean) => {
   const insightFindTask: ExecutionTaskPlanningLocateApply = {
@@ -23,8 +33,9 @@ const insightFindTask = (shouldThrow?: boolean) => {
         await new Promise((resolve) => setTimeout(resolve, 100));
         throw new Error('test-error');
       }
-      const insight = fakeService('test-task-runner');
-      const { element, dump: insightDump } = await insight.locate(
+      const context = createFakeContext();
+      const service = new Service(context);
+      const { element, dump: insightDump } = await service.locate(
         {
           prompt: param.prompt,
         },
@@ -49,12 +60,13 @@ const insightFindTask = (shouldThrow?: boolean) => {
   return insightFindTask;
 };
 
-const fakeUIContextBuilder = () => {
-  const screenshot = ScreenshotItem.create('');
+const fakeUIContextBuilder = async () => {
+  const screenshot = ScreenshotItem.create('', Date.now());
   return {
     screenshot,
     tree: { node: null, children: [] },
-    size: { width: 0, height: 0 },
+    shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };
 
@@ -64,6 +76,21 @@ describe(
     timeout: 1000 * 60 * 3,
   },
   () => {
+    beforeEach(() => {
+      // Setup default mock implementation for AI calls
+      vi.mocked(callAIWithObjectResponse).mockResolvedValue({
+        content: {
+          bbox: [0, 0, 100, 100] as [number, number, number, number],
+          errors: [],
+        },
+        contentString: JSON.stringify({
+          bbox: [0, 0, 100, 100],
+          errors: [],
+        }),
+        usage: undefined,
+      });
+    });
+
     it('insight - basic run', async () => {
       const insightTask1 = insightFindTask();
       const flushResultData = 'abcdef';
@@ -77,15 +104,16 @@ describe(
         param: taskParam,
         executor: tapperFn,
       };
-      const actionTask2: ExecutionTaskActionApply = {
-        type: 'Action Space',
-        param: taskParam,
-        executor: async () => {
-          return {
-            output: flushResultData,
-          } as any;
-        },
-      };
+      const actionTask2: ExecutionTaskApply<'Action Space', any, string, void> =
+        {
+          type: 'Action Space',
+          param: taskParam,
+          executor: async () => {
+            return {
+              output: flushResultData,
+            };
+          },
+        };
 
       const inputTasks = [insightTask1, actionTask, actionTask2];
 
@@ -203,7 +231,12 @@ describe(
       const recoveryExecutor = vi.fn().mockResolvedValue({
         output: 'recovered',
       });
-      const recoveryTask: ExecutionTaskActionApply = {
+      const recoveryTask: ExecutionTaskApply<
+        'Action Space',
+        any,
+        string,
+        void
+      > = {
         type: 'Action Space',
         executor: recoveryExecutor,
       };
@@ -219,84 +252,6 @@ describe(
       expect(flushResult?.output).toBe('recovered');
     });
 
-    it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = (id: string) => {
-        const screenshot = ScreenshotItem.create(id);
-        return {
-          screenshot,
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext;
-      };
-
-      const firstContext = baseUIContext('first');
-      const screenshotContext = baseUIContext('screenshot');
-      const uiContextBuilder = vi
-        .fn<[], Promise<UIContext>>()
-        .mockResolvedValueOnce(firstContext)
-        .mockResolvedValueOnce(screenshotContext);
-
-      const recordedContexts: UIContext[] = [];
-
-      const runner = new TaskRunner('sub-task-test', uiContextBuilder, {
-        tasks: [
-          {
-            type: 'Action Space',
-            executor: async (_, context) => {
-              recordedContexts.push(context.uiContext!);
-            },
-          },
-          {
-            type: 'Action Space',
-            subTask: true,
-            executor: async (_, context) => {
-              recordedContexts.push(context.uiContext!);
-            },
-          },
-        ],
-      });
-
-      await runner.flush();
-
-      expect(recordedContexts).toHaveLength(2);
-      expect(recordedContexts[0]).toBe(firstContext);
-      expect(recordedContexts[1]).toBe(firstContext);
-      expect(runner.tasks[0].uiContext).toBe(firstContext);
-      expect(runner.tasks[1].uiContext).toBe(firstContext);
-      expect(uiContextBuilder).toHaveBeenCalledTimes(2);
-    });
-
-    it('subTask - throws when previous uiContext missing', async () => {
-      const uiContextBuilder = vi
-        .fn<[], Promise<UIContext>>()
-        .mockResolvedValue({
-          screenshot: ScreenshotItem.create(''),
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext);
-
-      const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
-        tasks: [
-          {
-            type: 'Action Space',
-            subTask: true,
-            executor: vi.fn(),
-          },
-        ],
-      });
-
-      await expect(runner.flush()).rejects.toThrowError(
-        'subTask requires uiContext from previous non-subTask task',
-      );
-      expect(runner.status).toBe('error');
-      expect(runner.tasks[0].errorMessage).toBe(
-        'subTask requires uiContext from previous non-subTask task',
-      );
-      await expect(runner.flush()).rejects.toThrowError(
-        'task runner is in error state',
-      );
-    });
-
     it('error message should be from the last failed task when using allowWhenError', async () => {
       const runner = new TaskRunner('error-message-test', fakeUIContextBuilder);
 
@@ -309,12 +264,13 @@ describe(
       };
 
       // Second task - will succeed
-      const secondTask: ExecutionTaskActionApply = {
-        type: 'Action Space',
-        executor: async () => {
-          return { output: 'success' };
-        },
-      };
+      const secondTask: ExecutionTaskApply<'Action Space', any, string, void> =
+        {
+          type: 'Action Space',
+          executor: async () => {
+            return { output: 'success' };
+          },
+        };
 
       // Third task - will fail with "third-error"
       const thirdTask: ExecutionTaskActionApply = {

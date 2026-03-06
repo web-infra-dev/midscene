@@ -30,6 +30,7 @@ import {
 } from './service-caller/index';
 
 const debug = getDebug('planning');
+const warnLog = getDebug('planning', { console: true });
 
 /**
  * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
@@ -45,9 +46,9 @@ export function parseXMLPlanningResponse(
   const actionType = extractXMLTag(xmlString, 'action-type');
   const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
 
-  // Parse complete-goal tag with success attribute
+  // Parse <complete> tag with success attribute
   const completeGoalRegex =
-    /<complete-goal\s+success="(true|false)">([\s\S]*?)<\/complete-goal>/i;
+    /<complete\s+success="(true|false)">([\s\S]*?)<\/complete>/i;
   const completeGoalMatch = xmlString.match(completeGoalRegex);
   let finalizeMessage: string | undefined;
   let finalizeSuccess: boolean | undefined;
@@ -117,7 +118,7 @@ export async function plan(
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
-  const { size } = context;
+  const { shotSize } = context;
   const screenshotBase64 = context.screenshot.base64;
 
   const { modelFamily } = modelConfig;
@@ -134,8 +135,8 @@ export async function plan(
   });
 
   let imagePayload = screenshotBase64;
-  let imageWidth = size.width;
-  let imageHeight = size.height;
+  let imageWidth = shotSize.width;
+  let imageHeight = shotSize.height;
   const rightLimit = imageWidth;
   const bottomLimit = imageHeight;
 
@@ -165,10 +166,12 @@ export async function plan(
 
   let latestFeedbackMessage: ChatCompletionMessageParam;
 
-  // Build sub-goal status text to include in the message (only when deepThink is enabled)
+  // Build sub-goal status text to include in the message
+  // In deepThink mode: show full sub-goals with logs
+  // In non-deepThink mode: show historical execution logs
   const subGoalsText = includeSubGoals
     ? conversationHistory.subGoalsToText()
-    : '';
+    : conversationHistory.historicalLogsToText();
   const subGoalsSection = subGoalsText ? `\n\n${subGoalsText}` : '';
 
   // Build memories text to include in the message
@@ -225,7 +228,7 @@ export async function plan(
     ...historyLog,
   ];
 
-  const {
+  let {
     content: rawResponse,
     usage,
     reasoning_content,
@@ -233,10 +236,118 @@ export async function plan(
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
   });
 
-  // Parse XML response to JSON object, capture parsing errors
+  // Parse XML response to JSON object, retry once on parse failure
   let planFromAI: RawResponsePlanningAIResponse;
   try {
-    planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    try {
+      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    } catch {
+      const retry = await callAI(msgs, modelConfig, {
+        deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+      });
+      rawResponse = retry.content;
+      usage = retry.usage;
+      reasoning_content = retry.reasoning_content;
+      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    }
+
+    if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
+      warnLog(
+        'Planning response included both an action and <complete>; ignoring <complete> output.',
+      );
+      planFromAI.finalizeMessage = undefined;
+      planFromAI.finalizeSuccess = undefined;
+    }
+
+    const actions = planFromAI.action ? [planFromAI.action] : [];
+    let shouldContinuePlanning = true;
+
+    // Check if task is completed via <complete> tag
+    if (planFromAI.finalizeSuccess !== undefined) {
+      debug('task completed via <complete> tag, stop planning');
+      shouldContinuePlanning = false;
+      // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
+      if (includeSubGoals) {
+        conversationHistory.markAllSubGoalsFinished();
+      }
+    }
+
+    const returnValue: PlanningAIResponse = {
+      ...planFromAI,
+      actions,
+      rawResponse,
+      usage,
+      reasoning_content,
+      yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
+      shouldContinuePlanning,
+    };
+
+    assert(planFromAI, "can't get plans from AI");
+
+    actions.forEach((action) => {
+      const type = action.type;
+      const actionInActionSpace = opts.actionSpace.find(
+        (action) => action.name === type,
+      );
+
+      debug('actionInActionSpace matched', actionInActionSpace);
+      const locateFields = actionInActionSpace
+        ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
+        : [];
+
+      debug('locateFields', locateFields);
+
+      locateFields.forEach((field) => {
+        const locateResult = action.param[field];
+        if (locateResult && modelFamily !== undefined) {
+          // Always use model family to fill bbox parameters
+          action.param[field] = fillBboxParam(
+            locateResult,
+            imageWidth,
+            imageHeight,
+            modelFamily,
+          );
+        }
+      });
+    });
+
+    // Update sub-goals in conversation history based on response (only when deepThink is enabled)
+    if (includeSubGoals) {
+      if (planFromAI.updateSubGoals?.length) {
+        conversationHistory.mergeSubGoals(planFromAI.updateSubGoals);
+      }
+      if (planFromAI.markFinishedIndexes?.length) {
+        for (const index of planFromAI.markFinishedIndexes) {
+          conversationHistory.markSubGoalFinished(index);
+        }
+      }
+      // Append the planning log to the currently running sub-goal
+      if (planFromAI.log) {
+        conversationHistory.appendSubGoalLog(planFromAI.log);
+      }
+    } else {
+      // In non-deepThink mode, accumulate logs as historical execution steps
+      if (planFromAI.log) {
+        conversationHistory.appendHistoricalLog(planFromAI.log);
+      }
+    }
+
+    // Append memory to conversation history if present
+    if (planFromAI.memory) {
+      conversationHistory.appendMemory(planFromAI.memory);
+    }
+
+    conversationHistory.append({
+      role: 'assistant',
+      content: [
+        {
+          type: 'text',
+          text: rawResponse,
+        },
+      ],
+    });
+
+    return returnValue;
   } catch (parseError) {
     // Throw AIResponseParseError with usage and rawResponse preserved
     const errorMessage =
@@ -247,93 +358,4 @@ export async function plan(
       usage,
     );
   }
-
-  if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
-    console.warn(
-      'Planning response included both an action and complete-goal; ignoring complete-goal output.',
-    );
-    planFromAI.finalizeMessage = undefined;
-    planFromAI.finalizeSuccess = undefined;
-  }
-
-  const actions = planFromAI.action ? [planFromAI.action] : [];
-  let shouldContinuePlanning = true;
-
-  // Check if goal is completed via complete-goal tag
-  if (planFromAI.finalizeSuccess !== undefined) {
-    debug('goal completed via complete-goal tag, stop planning');
-    shouldContinuePlanning = false;
-    // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
-    if (includeSubGoals) {
-      conversationHistory.markAllSubGoalsFinished();
-    }
-  }
-
-  const returnValue: PlanningAIResponse = {
-    ...planFromAI,
-    actions,
-    rawResponse,
-    usage,
-    reasoning_content,
-    yamlFlow: buildYamlFlowFromPlans(actions, opts.actionSpace),
-    shouldContinuePlanning,
-  };
-
-  assert(planFromAI, "can't get plans from AI");
-
-  actions.forEach((action) => {
-    const type = action.type;
-    const actionInActionSpace = opts.actionSpace.find(
-      (action) => action.name === type,
-    );
-
-    debug('actionInActionSpace matched', actionInActionSpace);
-    const locateFields = actionInActionSpace
-      ? findAllMidsceneLocatorField(actionInActionSpace.paramSchema)
-      : [];
-
-    debug('locateFields', locateFields);
-
-    locateFields.forEach((field) => {
-      const locateResult = action.param[field];
-      if (locateResult && modelFamily !== undefined) {
-        // Always use model family to fill bbox parameters
-        action.param[field] = fillBboxParam(
-          locateResult,
-          imageWidth,
-          imageHeight,
-          modelFamily,
-        );
-      }
-    });
-  });
-
-  // Update sub-goals in conversation history based on response (only when deepThink is enabled)
-  if (includeSubGoals) {
-    if (planFromAI.updateSubGoals?.length) {
-      conversationHistory.setSubGoals(planFromAI.updateSubGoals);
-    }
-    if (planFromAI.markFinishedIndexes?.length) {
-      for (const index of planFromAI.markFinishedIndexes) {
-        conversationHistory.markSubGoalFinished(index);
-      }
-    }
-  }
-
-  // Append memory to conversation history if present
-  if (planFromAI.memory) {
-    conversationHistory.appendMemory(planFromAI.memory);
-  }
-
-  conversationHistory.append({
-    role: 'assistant',
-    content: [
-      {
-        type: 'text',
-        text: rawResponse,
-      },
-    ],
-  });
-
-  return returnValue;
 }

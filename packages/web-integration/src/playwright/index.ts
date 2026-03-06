@@ -33,6 +33,11 @@ function getPlaywrightVersion(): string | null {
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
   constructor(page: PlaywrightPage, opts?: WebPageAgentOpt) {
+    if (!page) {
+      throw new Error(
+        '[midscene] PlaywrightAgent requires a valid Playwright page instance. Please make sure to pass a valid page object.',
+      );
+    }
     const webPage = new PlaywrightWebPage(page, opts);
     super(webPage, opts);
 

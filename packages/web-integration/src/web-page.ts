@@ -6,6 +6,7 @@ import {
   type DeviceAction,
   defineAction,
   defineActionClearInput,
+  defineActionCursorMove,
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionHover,
@@ -460,10 +461,15 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     const element = param.locate;
     if (element && param.mode !== 'typeOnly') {
       await page.clearInput(element as unknown as ElementInfo);
+    } else if (element && param.mode === 'typeOnly') {
+      // typeOnly mode: click to focus and move cursor to end, but don't clear
+      await page.mouse.click(element.center[0], element.center[1], {
+        button: 'left',
+      });
+      await page.keyboard.press([{ key: 'End' }]);
     }
 
     if (param.mode === 'clear') {
-      // Clear mode removes existing text without entering new characters
       return;
     }
 
@@ -484,6 +490,14 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
     const keys = getKeyCommands(param.keyName);
     await page.keyboard.press(keys as any); // TODO: fix this type error
+  }),
+  defineActionCursorMove(async (param) => {
+    const arrowKey = param.direction === 'left' ? 'ArrowLeft' : 'ArrowRight';
+    const times = param.times ?? 1;
+    for (let i = 0; i < times; i++) {
+      await page.keyboard.press([{ key: arrowKey as any }]);
+      await sleep(100);
+    }
   }),
   defineActionScroll(async (param) => {
     const element = param.locate;

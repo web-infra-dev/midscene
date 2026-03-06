@@ -53,7 +53,7 @@ const mockPage = {
   actionSpace: vi.fn(() => []),
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
-  size: vi.fn().mockResolvedValue({ dpr: 1 }),
+  size: vi.fn().mockResolvedValue({}),
   destroy: vi.fn(),
 } as unknown as AbstractWebPage;
 
@@ -105,33 +105,6 @@ describe('PageAgent RightClick', () => {
   });
 
   it('should handle aiRightClick with locate options', async () => {
-    const mockPlans = [
-      {
-        type: 'Locate' as const,
-        locate: {
-          prompt: 'right click target',
-          deepThink: true,
-          cacheable: false,
-        },
-        param: {
-          prompt: 'right click target',
-          deepThink: true,
-          cacheable: false,
-        },
-        thought: '',
-      },
-      {
-        type: 'RightClick' as const,
-        locate: {
-          prompt: 'right click target',
-          deepThink: true,
-          cacheable: false,
-        },
-        param: null,
-        thought: '',
-      },
-    ];
-
     const mockExecutorResult = {
       runner: {
         dump: () => ({ name: 'test', tasks: [] }),
@@ -144,7 +117,7 @@ describe('PageAgent RightClick', () => {
 
     // Call aiRightClick with options
     await agent.aiRightClick('right click target', {
-      deepThink: true,
+      deepLocate: true,
       cacheable: false,
     });
   });

@@ -201,4 +201,23 @@ describe('file upload functionality', () => {
     });
     await agent.aiAssert('page displays "test-file.txt"');
   });
+
+  it('should throw error when attempting to upload to directory input', async () => {
+    const testFile = join(__dirname, '../../fixtures/test-file.txt');
+
+    const { originPage, reset } = await launchPage(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+    resetFn = reset;
+
+    agent = new PuppeteerAgent(originPage);
+
+    // Attempt to upload to directory input (has 'webkitdirectory' attribute)
+    // This should throw an error because Puppeteer doesn't support directory upload
+    await expect(
+      agent.aiTap('Choose Directory', {
+        fileChooserAccept: [testFile],
+      }),
+    ).rejects.toThrow(/Directory upload.*not supported in Puppeteer/);
+  });
 });

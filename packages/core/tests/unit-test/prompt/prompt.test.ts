@@ -1,7 +1,6 @@
 import { systemPromptToLocateElement } from '@/ai-model';
 import {
   descriptionForAction,
-  planSchema,
   systemPromptToTaskPlanning,
 } from '@/ai-model/prompt/llm-planning';
 import { systemPromptToLocateSection } from '@/ai-model/prompt/llm-section-locator';
@@ -165,18 +164,6 @@ describe('system prompts', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  // it('planning - includeThought false removes thought field', async () => {
-  //   const prompt = await systemPromptToTaskPlanning({
-  //     actionSpace: mockActionSpace,
-  //     modelFamily: undefined,
-  //     includeBbox: false,
-  //     includeThought: false,
-  //   });
-
-  //   expect(prompt).not.toContain('<thought>');
-  //   expect(prompt).toContain('<log>');
-  // });
-
   it('planning - should throw error when includeBbox is true but modelFamily is undefined', async () => {
     await expect(
       systemPromptToTaskPlanning({
@@ -222,6 +209,16 @@ describe('system prompts', () => {
       actionSpace: mockActionSpace,
       modelFamily: 'qwen2.5-vl',
       includeBbox: true,
+    });
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('planning - includeSubGoals true', async () => {
+    const prompt = await systemPromptToTaskPlanning({
+      actionSpace: mockActionSpace,
+      modelFamily: undefined,
+      includeBbox: false,
+      includeSubGoals: true,
     });
     expect(prompt).toMatchSnapshot();
   });
@@ -315,10 +312,10 @@ describe('system prompts', () => {
     );
     expect(prompt).toContain('<mark-sub-goal-done>');
     expect(prompt).toContain("<memory>Name field has been filled with 'John'");
-    // Should show returning specific value in complete-goal
+    // Should show returning specific value in complete
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
-      '<complete-goal success="true">john@example.com</complete-goal>',
+      '<complete success="true">john@example.com</complete>',
     );
   });
 
@@ -336,10 +333,10 @@ describe('system prompts', () => {
     expect(prompt).not.toContain(
       "<memory>Name field has been filled with 'John'",
     );
-    // Should still show returning specific value in complete-goal
+    // Should still show returning specific value in complete
     expect(prompt).toContain('then return the filled email address');
     expect(prompt).toContain(
-      '<complete-goal success="true">john@example.com</complete-goal>',
+      '<complete success="true">john@example.com</complete>',
     );
   });
 

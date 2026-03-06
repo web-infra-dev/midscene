@@ -3,7 +3,10 @@ import type { InfoListItem, PlaygroundResult } from '../types';
 // tracking popup tip
 export const trackingTip = 'Limit popup to current tab';
 
-// deep think tip
+// deep locate tip
+export const deepLocateTip = 'Deep Locate';
+
+// deep think tip (for aiAct planning)
 export const deepThinkTip = 'Deep Think';
 
 // screenshot included tip
@@ -46,23 +49,28 @@ export const apiMetadata = {
 export const defaultMainButtons = ['aiAct', 'aiTap', 'aiQuery', 'aiAssert'];
 
 // welcome message template
-export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
-  {
-    type: 'system',
-    content: `
+export const getWelcomeMessageTemplate = (
+  targetName = 'web page',
+): Omit<InfoListItem, 'id' | 'timestamp'> => ({
+  type: 'system',
+  content: `
       Welcome to Midscene.js Playground!
-      
-      This is a panel for experimenting and testing Midscene.js features. You can use natural language instructions to operate the web page, such as clicking buttons, filling in forms, querying information, etc.
-      
+
+      This is a panel for experimenting and testing Midscene.js features. You can use natural language instructions to operate the ${targetName}, such as clicking buttons, filling in forms, querying information, etc.
+
       Please enter your instructions in the input box below to start experiencing.
     `,
-    loading: false,
-    result: undefined,
-    replayScriptsInfo: null,
-    replayCounter: 0,
-    loadingProgressText: '',
-    verticalMode: false,
-  };
+  loading: false,
+  result: undefined,
+  replayScriptsInfo: null,
+  replayCounter: 0,
+  loadingProgressText: '',
+  verticalMode: false,
+});
+
+// keep backward compatibility
+export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
+  getWelcomeMessageTemplate();
 
 // blank result template
 export const BLANK_RESULT: PlaygroundResult = {

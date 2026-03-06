@@ -101,10 +101,15 @@ export async function resizeAndConvertImgBuffer(
     }
   }
 
-  // browser environment: use Photon
+  // browser environment: use Photon (or Canvas fallback)
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
   const inputBytes = new Uint8Array(inputData);
-  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const bytesliceResult = PhotonImage.new_from_byteslice(inputBytes);
+  const inputImage =
+    bytesliceResult instanceof Promise
+      ? await bytesliceResult
+      : bytesliceResult;
   const originalWidth = inputImage.get_width();
   const originalHeight = inputImage.get_height();
 
@@ -216,7 +221,9 @@ export async function photonFromBase64(
 ): Promise<PhotonImageType> {
   const { PhotonImage } = await getPhoton();
   const { body } = parseBase64(base64);
-  return PhotonImage.new_from_base64(body);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const result = PhotonImage.new_from_base64(body);
+  return result instanceof Promise ? await result : result;
 }
 
 // https://help.aliyun.com/zh/model-studio/user-guide/vision/
@@ -497,10 +504,15 @@ export async function scaleImage(
     }
   }
 
-  // Browser environment or Sharp failed: use Photon
+  // Browser environment or Sharp failed: use Photon (or Canvas fallback)
   const { PhotonImage, SamplingFilter, resize } = await getPhoton();
   const inputBytes = new Uint8Array(buffer);
-  const inputImage = PhotonImage.new_from_byteslice(inputBytes);
+  // Support both sync (Photon) and async (Canvas fallback) versions
+  const bytesliceResult = PhotonImage.new_from_byteslice(inputBytes);
+  const inputImage =
+    bytesliceResult instanceof Promise
+      ? await bytesliceResult
+      : bytesliceResult;
   const originalWidth = inputImage.get_width();
   const originalHeight = inputImage.get_height();
 

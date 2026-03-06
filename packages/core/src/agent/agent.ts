@@ -42,13 +42,9 @@ export type TestStatus =
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
-import {
-  getVersion,
-  groupedActionDumpFileExt,
-  processCacheConfig,
-  reportHTMLContent,
-  writeLogFile,
-} from '@/utils';
+import type { IReportGenerator } from '@/report-generator';
+import { ReportGenerator } from '@/report-generator';
+import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
   buildDetailedLocateParam,
@@ -66,9 +62,8 @@ import {
   globalConfigManager,
   globalModelConfigManager,
 } from '@midscene/shared/env';
-import { imageInfoOfBase64, resizeImgBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
-import { assert } from '@midscene/shared/utils';
+import { assert, ifInBrowser, uuid } from '@midscene/shared/utils';
 import { defineActionSleep } from '../device';
 import { TaskCache } from './task-cache';
 import {
@@ -78,12 +73,7 @@ import {
   withFileChooser,
 } from './tasks';
 import { locateParamStr, paramStr, taskTitleStr, typeStr } from './ui-utils';
-import {
-  commonContextParser,
-  getReportFileName,
-  parsePrompt,
-  printReportMsg,
-} from './utils';
+import { commonContextParser, getReportFileName, parsePrompt } from './utils';
 
 const debug = getDebug('agent');
 
@@ -151,6 +141,7 @@ export type AiActOptions = {
   cacheable?: boolean;
   fileChooserAccept?: string | string[];
   deepThink?: DeepThinkOption;
+  deepLocate?: boolean;
 };
 
 export class Agent<
@@ -218,19 +209,11 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
-  /**
-   * Screenshot scale factor derived from actual screenshot dimensions
-   */
-  private screenshotScale?: number;
-
-  /**
-   * Internal promise to deduplicate screenshot scale computation
-   */
-  private screenshotScalePromise?: Promise<number>;
-
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
   private fullActionSpace: DeviceAction[];
+
+  private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
   get page() {
@@ -251,54 +234,6 @@ export class Agent<
     ) {
       this.modelConfigManager.throwErrorIfNonVLModel();
       this.hasWarnedNonVLModel = true;
-    }
-  }
-
-  /**
-   * Lazily compute the ratio between the physical screenshot width and the logical page width
-   */
-  private async getScreenshotScale(context: UIContext): Promise<number> {
-    if (this.screenshotScale !== undefined) {
-      return this.screenshotScale;
-    }
-
-    if (!this.screenshotScalePromise) {
-      this.screenshotScalePromise = (async () => {
-        const pageWidth = context.size?.width;
-        assert(
-          pageWidth && pageWidth > 0,
-          `Invalid page width when computing screenshot scale: ${pageWidth}`,
-        );
-
-        debug('will get image info of base64');
-        const screenshotBase64 = context.screenshot.base64;
-        const { width: screenshotWidth } =
-          await imageInfoOfBase64(screenshotBase64);
-        debug('image info of base64 done');
-
-        assert(
-          Number.isFinite(screenshotWidth) && screenshotWidth > 0,
-          `Invalid screenshot width when computing screenshot scale: ${screenshotWidth}`,
-        );
-
-        const computedScale = screenshotWidth / pageWidth;
-        assert(
-          Number.isFinite(computedScale) && computedScale > 0,
-          `Invalid computed screenshot scale: ${computedScale}`,
-        );
-
-        debug(
-          `Computed screenshot scale ${computedScale} from screenshot width ${screenshotWidth} and page width ${pageWidth}`,
-        );
-        return computedScale;
-      })();
-    }
-
-    try {
-      this.screenshotScale = await this.screenshotScalePromise;
-      return this.screenshotScale;
-    } finally {
-      this.screenshotScalePromise = undefined;
     }
   }
 
@@ -406,6 +341,7 @@ export class Agent<
             }
           }
 
+          // Fire and forget - don't block task execution
           this.writeOutActionDumps();
         },
       },
@@ -414,6 +350,12 @@ export class Agent<
     this.reportFileName =
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+
+    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
+      generateReport: this.opts.generateReport,
+      outputFormat: this.opts.outputFormat,
+      autoPrintReportMsg: this.opts.autoPrintReportMsg,
+    });
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -431,38 +373,10 @@ export class Agent<
     }
 
     // Get original context
-    let context: UIContext;
-    if (this.interface.getContext) {
-      debug('Using page.getContext for action:', action);
-      context = await this.interface.getContext();
-    } else {
-      debug('Using commonContextParser');
-      context = await commonContextParser(this.interface, {
-        uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
-      });
-    }
-
-    debug('will get screenshot scale');
-    const computedScreenshotScale = await this.getScreenshotScale(context);
-    debug('computedScreenshotScale', computedScreenshotScale);
-
-    if (computedScreenshotScale !== 1) {
-      const scaleForLog = Number.parseFloat(computedScreenshotScale.toFixed(4));
-      debug(
-        `Applying computed screenshot scale: ${scaleForLog} (resize to logical size)`,
-      );
-      const targetWidth = Math.round(context.size.width);
-      const targetHeight = Math.round(context.size.height);
-      debug(`Resizing screenshot to ${targetWidth}x${targetHeight}`);
-      const currentScreenshotBase64 = context.screenshot.base64;
-      const resizedBase64 = await resizeImgBase64(currentScreenshotBase64, {
-        width: targetWidth,
-        height: targetHeight,
-      });
-      context.screenshot = ScreenshotItem.create(resizedBase64);
-    } else {
-      debug(`screenshot scale=${computedScreenshotScale}`);
-    }
+    const context = await commonContextParser(this.interface, {
+      uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+      screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+    });
 
     return context;
   }
@@ -495,6 +409,7 @@ export class Agent<
       groupDescription: this.opts.groupDescription,
       executions: [],
       modelBriefs: [],
+      deviceType: this.interface.interfaceType,
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
@@ -519,35 +434,25 @@ export class Agent<
     currentDump.executions.push(execution);
   }
 
-  dumpDataString() {
+  dumpDataString(opt?: { inlineScreenshots?: boolean }) {
     // update dump info
     this.dump.groupName = this.opts.groupName!;
     this.dump.groupDescription = this.opts.groupDescription;
+    // In browser environment, use inline screenshots since file system is not available
+    if (ifInBrowser || opt?.inlineScreenshots) {
+      return this.dump.serializeWithInlineScreenshots();
+    }
     return this.dump.serialize();
   }
 
-  reportHTMLString() {
-    return reportHTMLContent(this.dumpDataString());
+  reportHTMLString(opt?: { inlineScreenshots?: boolean }) {
+    // dumpDataString() handles browser environment with inline screenshots
+    return reportHTMLContent(this.dumpDataString(opt));
   }
 
   writeOutActionDumps() {
-    if (this.destroyed) {
-      throw new Error(
-        'PageAgent has been destroyed. Cannot update report file.',
-      );
-    }
-    const { generateReport, autoPrintReportMsg } = this.opts;
-    this.reportFile = writeLogFile({
-      fileName: this.reportFileName!,
-      fileExt: groupedActionDumpFileExt,
-      fileContent: this.dumpDataString(),
-      type: 'dump',
-      generateReport,
-    });
-    debug('writeOutActionDumps', this.reportFile);
-    if (generateReport && autoPrintReportMsg && this.reportFile) {
-      printReportMsg(this.reportFile);
-    }
+    this.reportGenerator.onDumpUpdate(this.dump);
+    this.reportFile = this.reportGenerator.getReportPath();
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -728,10 +633,14 @@ export class Agent<
     // Convert value to string to ensure consistency
     const stringValue = typeof value === 'number' ? String(value) : value;
 
+    // backward compat: convert deprecated 'append' to 'typeOnly'
+    const mode = opt?.mode === 'append' ? 'typeOnly' : opt?.mode;
+
     return this.callActionInActionSpace('Input', {
       ...(opt || {}),
       value: stringValue,
       locate: detailedLocateParam,
+      mode,
     });
   }
 
@@ -885,13 +794,28 @@ export class Agent<
         this.modelConfigManager.getModelConfig('default');
       const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
 
-      const includeBboxInPlanning =
-        !deepThink &&
+      const deepLocate = opt?.deepLocate;
+
+      const noIndividualLocateModel =
         modelConfigForPlanning.modelName ===
           defaultIntentModelConfig.modelName &&
         modelConfigForPlanning.openaiBaseURL ===
           defaultIntentModelConfig.openaiBaseURL;
-      debug('setting includeBboxInPlanning to', includeBboxInPlanning);
+
+      const includeBboxInPlanning =
+        !deepThink && noIndividualLocateModel && !deepLocate;
+
+      debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
+        deepThink,
+        noIndividualLocateModel,
+        deepLocate,
+      });
+
+      if (deepLocate && includeBboxInPlanning) {
+        console.warn(
+          'deepLocate option is ignored when includeBboxInPlanning is true (same model for planning and default intent without deepThink). Locate is already done during planning.',
+        );
+      }
 
       const cacheable = opt?.cacheable;
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
@@ -922,7 +846,7 @@ export class Agent<
       }
 
       // If cache matched but yamlWorkflow is empty, fall through to normal execution
-      const imagesIncludeCount: number | undefined = deepThink ? undefined : 2;
+      const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
         modelConfigForPlanning,
@@ -934,6 +858,7 @@ export class Agent<
         imagesIncludeCount,
         deepThink,
         fileChooserAccept,
+        includeBboxInPlanning ? undefined : deepLocate,
       );
 
       // update cache
@@ -1047,7 +972,7 @@ export class Agent<
     opt?: {
       verifyPrompt?: boolean;
       retryLimit?: number;
-      deepThink?: boolean;
+      deepLocate?: boolean;
     } & LocatorValidatorOption,
   ): Promise<AgentDescribeElementAtPointResult> {
     const { verifyPrompt = true, retryLimit = 3 } = opt || {};
@@ -1055,12 +980,12 @@ export class Agent<
     let success = false;
     let retryCount = 0;
     let resultPrompt = '';
-    let deepThink = opt?.deepThink || false;
+    let deepLocate = opt?.deepLocate || false;
     let verifyResult: LocateValidatorResult | undefined;
 
     while (!success && retryCount < retryLimit) {
       if (retryCount >= 2) {
-        deepThink = true;
+        deepLocate = true;
       }
       debug(
         'aiDescribe',
@@ -1069,23 +994,23 @@ export class Agent<
         verifyPrompt,
         'retryCount',
         retryCount,
-        'deepThink',
-        deepThink,
+        'deepLocate',
+        deepLocate,
       );
       // use same intent as aiLocate
       const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
       const text = await this.service.describe(center, modelConfig, {
-        deepThink,
+        deepLocate,
       });
       debug('aiDescribe text', text);
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
 
-      // Don't pass deepThink to verification locate — the description was generated
-      // from a cropped view (deepThink describe), but verification should use regular
+      // Don't pass deepLocate to verification locate — the description was generated
+      // from a cropped view (deepLocate describe), but verification should use regular
       // locate on the full screenshot to confirm the description works universally.
-      // Passing deepThink here would trigger AiLocateSection with an element-level
+      // Passing deepLocate here would trigger AiLocateSection with an element-level
       // description as a section prompt, which is semantically incorrect.
       verifyResult = await this.verifyLocator(
         resultPrompt,
@@ -1102,7 +1027,7 @@ export class Agent<
 
     return {
       prompt: resultPrompt,
-      deepThink,
+      deepLocate,
       verifyResult,
     };
   }
@@ -1213,19 +1138,11 @@ export class Agent<
 
     const { element } = output;
 
-    const dprValue = await (this.interface.size() as any).dpr;
-    const dprEntry = dprValue
-      ? {
-          dpr: dprValue,
-        }
-      : {};
     return {
       rect: element?.rect,
       center: element?.center,
-      ...dprEntry,
-    } as Pick<LocateResultElement, 'rect' | 'center'> & {
-      dpr?: number; // this field is deprecated
-    };
+      dpr: element?.dpr,
+    } as Pick<LocateResultElement, 'rect' | 'center'>;
   }
 
   async aiLocateAll(
@@ -1441,6 +1358,12 @@ export class Agent<
       return;
     }
 
+    // Wait for all queued write operations to complete
+    await this.reportGenerator.flush();
+
+    await this.reportGenerator.finalize(this.dump);
+    this.reportFile = this.reportGenerator.getReportPath();
+
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
@@ -1454,8 +1377,8 @@ export class Agent<
   ) {
     // 1. screenshot
     const base64 = await this.interface.screenshotBase64();
-    const screenshot = ScreenshotItem.create(base64);
     const now = Date.now();
+    const screenshot = ScreenshotItem.create(base64, now);
     // 2. build recorder
     const recorder: ExecutionRecorderItem[] = [
       {
@@ -1466,6 +1389,7 @@ export class Agent<
     ];
     // 3. build ExecutionTaskLog
     const task: ExecutionTaskLog = {
+      taskId: uuid(),
       type: 'Log',
       subType: 'Screenshot',
       status: 'finished',
@@ -1501,6 +1425,7 @@ export class Agent<
     }
 
     this.writeOutActionDumps();
+    await this.reportGenerator.flush();
   }
 
   /**
@@ -1624,6 +1549,10 @@ export class Agent<
   }
 
   private normalizeFilePaths(files: string[]): string[] {
+    if (ifInBrowser) {
+      throw new Error('File chooser is not supported in browser environment');
+    }
+
     return files.map((file) => {
       const absolutePath = resolve(file);
       if (!existsSync(absolutePath)) {

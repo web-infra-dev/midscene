@@ -12,7 +12,7 @@ import {
   it,
   vi,
 } from 'vitest';
-import { AndroidDevice } from '../../src/device';
+import { AndroidDevice, escapeForShell } from '../../src/device';
 
 // Mock the entire appium-adb module
 const createMockAdb = () => ({
@@ -131,10 +131,103 @@ describe('AndroidDevice', () => {
       const size1 = await device.size();
       const size2 = await device.size();
 
-      expect(size1).toEqual({ width: 540, height: 960, dpr: 2 });
+      expect(size1).toEqual({ width: 540, height: 960 });
       expect(size2).toEqual(size1);
       // Caching is removed, so it should be called twice
       expect(vi.spyOn(device as any, 'getScreenSize')).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('adjustCoordinates derives scale from size()', () => {
+    const mockPhysicalInfo = (w: number, h: number) => {
+      vi.spyOn(device as any, 'getDevicePhysicalInfo').mockResolvedValue({
+        physicalWidth: w,
+        physicalHeight: h,
+        dpr: 2,
+        orientation: 0,
+        isCurrentOrientation: true,
+      });
+    };
+
+    it('should derive scale from size() and physical dimensions', async () => {
+      // Physical 1080x1920, logical 540x960 → scale 0.5
+      // coordinates: 200/0.5=400, 400/0.5=800
+      mockPhysicalInfo(1080, 1920);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 540,
+        height: 960,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(200, 400);
+      expect(adjusted).toEqual({ x: 400, y: 800 });
+    });
+
+    it('should work correctly when size() is overridden with custom dimensions', async () => {
+      // Physical 1080x1920, user overrides size() → width=360
+      // scaleX = 360/1080 = 1/3, so 100/(1/3)=300, 200/(1/3)=600
+      mockPhysicalInfo(1080, 1920);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 360,
+        height: 640,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(100, 200);
+      expect(adjusted).toEqual({ x: 300, y: 600 });
+    });
+
+    it('mouseClick should use correct physical coordinates when size() is overridden', async () => {
+      // Physical 1080x1920, logical 540x960 → scale 0.5
+      // click at (100, 200) → physical (200, 400)
+      mockPhysicalInfo(1080, 1920);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 540,
+        height: 960,
+      });
+
+      await device.mouseClick(100, 200);
+      expect(mockAdb.shell).toHaveBeenCalledWith(
+        'input swipe 200 400 200 400 150',
+      );
+    });
+
+    it('should handle 1:1 scale (no scaling)', async () => {
+      mockPhysicalInfo(1080, 1920);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 1080,
+        height: 1920,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(100, 200);
+      expect(adjusted).toEqual({ x: 100, y: 200 });
+    });
+
+    it('should handle non-proportional X/Y scales', async () => {
+      // Physical 1080x1920, logical 540x640 (non-proportional)
+      // scaleX = 540/1080 = 0.5, scaleY = 640/1920 = 1/3
+      // x: 100/0.5=200, y: 100/(1/3)=300
+      mockPhysicalInfo(1080, 1920);
+      vi.spyOn(device, 'size').mockResolvedValue({
+        width: 540,
+        height: 640,
+      });
+
+      const adjusted = await (device as any).adjustCoordinates(100, 100);
+      expect(adjusted).toEqual({ x: 200, y: 300 });
+    });
+
+    it('should cache scale and not call size() repeatedly', async () => {
+      mockPhysicalInfo(1080, 1920);
+      const sizeSpy = vi.spyOn(device, 'size').mockResolvedValue({
+        width: 540,
+        height: 960,
+      });
+
+      await (device as any).adjustCoordinates(100, 100);
+      await (device as any).adjustCoordinates(200, 200);
+      await (device as any).adjustCoordinates(300, 300);
+
+      // size() should only be called once due to caching
+      expect(sizeSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -194,9 +287,8 @@ describe('AndroidDevice', () => {
       vi.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 2,
       });
-      vi.spyOn(ImgUtils, 'isValidPNGImageBuffer').mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       vi.spyOn(ImgUtils, 'resizeAndConvertImgBuffer').mockImplementation(
         async (format, buffer) => ({
           buffer,
@@ -244,7 +336,7 @@ describe('AndroidDevice', () => {
 
   describe('mouse', () => {
     it('click should call shell with adjusted coordinates', async () => {
-      vi.spyOn(device as any, 'adjustCoordinates').mockReturnValue({
+      vi.spyOn(device as any, 'adjustCoordinates').mockResolvedValue({
         x: 200,
         y: 300,
       });
@@ -258,8 +350,8 @@ describe('AndroidDevice', () => {
       const from = { x: 10, y: 20 };
       const to = { x: 30, y: 40 };
       vi.spyOn(device as any, 'adjustCoordinates')
-        .mockReturnValueOnce({ x: 20, y: 40 })
-        .mockReturnValueOnce({ x: 60, y: 80 });
+        .mockResolvedValueOnce({ x: 20, y: 40 })
+        .mockResolvedValueOnce({ x: 60, y: 80 });
       await device.mouseDrag(from, to);
       expect(mockAdb.shell).toHaveBeenCalledWith(
         'input swipe 20 40 60 80 1000',
@@ -268,164 +360,503 @@ describe('AndroidDevice', () => {
   });
 
   describe('keyboard', () => {
+    // =========================================================================
+    // 1. escapeForShell — pure function tests (single-quote context)
+    // In single quotes, only ' itself needs escaping; \n(0x0A) is converted
+    // to literal \n for safe transport (yadb interprets it back to newline).
+    // =========================================================================
+    describe('escapeForShell', () => {
+      // Characters that need escaping in single-quote context
+      it("' → '\\''", () => {
+        expect(escapeForShell("it's")).toBe("it'\\''s");
+      });
+      it('\\n(0x0A) → literal \\n', () => {
+        expect(escapeForShell('a\nb')).toBe('a\\nb');
+      });
+      // Characters that do NOT need escaping in single quotes
+      it('should not escape backslash', () => {
+        expect(escapeForShell('a\\b')).toBe('a\\b');
+      });
+      it('should not escape double quote', () => {
+        expect(escapeForShell('a"b')).toBe('a"b');
+      });
+      it('should not escape backtick', () => {
+        expect(escapeForShell('a`b')).toBe('a`b');
+      });
+      it('should not escape dollar sign', () => {
+        expect(escapeForShell('a$b')).toBe('a$b');
+      });
+      it('should not escape space', () => {
+        expect(escapeForShell('hello world')).toBe('hello world');
+      });
+      it('should not escape shell operators & | ; () <> ~ ^ *', () => {
+        expect(escapeForShell('a&b|c;d(e)f<g>h~i^j*k')).toBe(
+          'a&b|c;d(e)f<g>h~i^j*k',
+        );
+      });
+      it('should not escape ! @ # , . / \\ - _ : = + ? {} []', () => {
+        expect(escapeForShell('!@#,./\\-_:=+?{}')).toBe('!@#,./\\-_:=+?{}');
+        expect(escapeForShell('a!b@c#d')).toBe('a!b@c#d');
+      });
+      it('should not escape %s %d %f', () => {
+        expect(escapeForShell('100%s')).toBe('100%s');
+      });
+      it('should not escape non-ASCII characters', () => {
+        expect(escapeForShell('你好café😀')).toBe('你好café😀');
+      });
+      // Combined: only ' is escaped, everything else passes through
+      it("combined: it's $100\\each → it'\\''s $100\\each", () => {
+        expect(escapeForShell("it's $100\\each")).toBe("it'\\''s $100\\each");
+      });
+    });
+
+    // =========================================================================
+    // 2. shouldUseYadbForText — routing decision
+    // =========================================================================
     describe('shouldUseYadbForText', () => {
-      it('should return false for pure ASCII text', () => {
-        const result = (device as any).shouldUseYadbForText('Hello World 123');
-        expect(result).toBe(false);
+      // --- Cases that should use yadb ---
+      // Non-ASCII
+      it('→ true: Chinese', () => {
+        expect((device as any).shouldUseYadbForText('你好')).toBe(true);
       });
-
-      it('should return true for Latin Unicode characters', () => {
-        const result = (device as any).shouldUseYadbForText('Schönberg');
-        expect(result).toBe(true);
+      it('→ true: Japanese', () => {
+        expect((device as any).shouldUseYadbForText('こんにちは')).toBe(true);
       });
-
-      it('should return true for Chinese characters', () => {
-        const result = (device as any).shouldUseYadbForText('你好');
-        expect(result).toBe(true);
+      it('→ true: Latin Unicode (ö)', () => {
+        expect((device as any).shouldUseYadbForText('Schönberg')).toBe(true);
       });
-
-      it('should return true for Japanese characters', () => {
-        const result = (device as any).shouldUseYadbForText('こんにちは');
-        expect(result).toBe(true);
+      it('→ true: emoji', () => {
+        expect((device as any).shouldUseYadbForText('hello 😀')).toBe(true);
       });
-
-      it('should return true for format specifiers', () => {
+      // Format specifier %[a-zA-Z]
+      it('→ true: %s', () => {
         expect((device as any).shouldUseYadbForText('Test%sString')).toBe(true);
+      });
+      it('→ true: %d %f', () => {
         expect((device as any).shouldUseYadbForText('Value: %d')).toBe(true);
         expect((device as any).shouldUseYadbForText('Price: %f')).toBe(true);
       });
-
-      it('should return false for percent sign not followed by letter', () => {
-        const result = (device as any).shouldUseYadbForText('100% complete');
-        expect(result).toBe(false);
+      // Shell special characters [\\`$]
+      it('→ true: backslash', () => {
+        expect((device as any).shouldUseYadbForText('a\\b')).toBe(true);
       });
-
-      it('should return true for mixed content', () => {
-        const result = (device as any).shouldUseYadbForText(
-          'Schönberg,%sLiechtenstein',
+      it('→ true: backtick', () => {
+        expect((device as any).shouldUseYadbForText('a`b')).toBe(true);
+      });
+      it('→ true: dollar sign', () => {
+        expect((device as any).shouldUseYadbForText('$HOME')).toBe(true);
+      });
+      // Contains both " and '
+      it('→ true: both quotes', () => {
+        expect((device as any).shouldUseYadbForText('it\'s a "test"')).toBe(
+          true,
         );
-        expect(result).toBe(true);
+      });
+      // Mixed triggers
+      it('→ true: mixed (Latin Unicode + %s)', () => {
+        expect(
+          (device as any).shouldUseYadbForText('Schönberg,%sLiechtenstein'),
+        ).toBe(true);
       });
 
-      it('should return false for empty string', () => {
-        const result = (device as any).shouldUseYadbForText('');
-        expect(result).toBe(false);
+      // --- Cases that should use inputText ---
+      it('→ false: pure ASCII letters/numbers', () => {
+        expect((device as any).shouldUseYadbForText('Hello World 123')).toBe(
+          false,
+        );
       });
-
-      it('should return false for ASCII with special chars but no format specifiers', () => {
-        const result = (device as any).shouldUseYadbForText('test@email.com');
-        expect(result).toBe(false);
+      it('→ false: empty string', () => {
+        expect((device as any).shouldUseYadbForText('')).toBe(false);
+      });
+      it('→ false: % not followed by letter', () => {
+        expect((device as any).shouldUseYadbForText('100% complete')).toBe(
+          false,
+        );
+      });
+      it('→ false: only double quote (no single quote)', () => {
+        expect((device as any).shouldUseYadbForText('say "hi"')).toBe(false);
+      });
+      it('→ false: only single quote (no double quote)', () => {
+        expect((device as any).shouldUseYadbForText("it's fine")).toBe(false);
+      });
+      it('→ false: common punctuation ! @ # , . / - _ :', () => {
+        expect((device as any).shouldUseYadbForText('test@email.com')).toBe(
+          false,
+        );
+        expect((device as any).shouldUseYadbForText('hello!')).toBe(false);
+        expect((device as any).shouldUseYadbForText('a#b')).toBe(false);
+      });
+      it('→ false: shell operators & | ; () <> ~ ^ *', () => {
+        expect((device as any).shouldUseYadbForText('a&b')).toBe(false);
+        expect((device as any).shouldUseYadbForText('a|b')).toBe(false);
+        expect((device as any).shouldUseYadbForText('a;b')).toBe(false);
+        expect((device as any).shouldUseYadbForText('a(b)c')).toBe(false);
+        expect((device as any).shouldUseYadbForText('a<b>c')).toBe(false);
+        expect((device as any).shouldUseYadbForText('a*b')).toBe(false);
       });
     });
 
-    it('type should call inputText for pure ASCII text', async () => {
-      device.options = { imeStrategy: 'yadb-for-non-ascii' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
-        isKeyboardShown: false,
-        canCloseKeyboard: true,
-      }); // keyboard already hidden
-      await device.keyboardType('hello');
-      expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
-      // Since keyboard is already hidden, no keyevent should be called
-      expect(mockAdb.isSoftKeyboardPresent).toHaveBeenCalled();
-    });
-
-    it('should use yadb for Latin Unicode characters with yadb-for-non-ascii strategy', async () => {
-      device.options = { imeStrategy: 'yadb-for-non-ascii' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
-      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
-        isKeyboardShown: false,
-        canCloseKeyboard: true,
+    // =========================================================================
+    // 3. keyboardType — integration tests
+    // =========================================================================
+    describe('keyboardType', () => {
+      beforeEach(() => {
+        device.options = {
+          imeStrategy: 'yadb-for-non-ascii',
+          autoDismissKeyboard: false,
+        };
+        vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
+        vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
+        mockAdb.isSoftKeyboardPresent.mockResolvedValue({
+          isKeyboardShown: false,
+          canCloseKeyboard: true,
+        });
       });
 
-      // Text with Latin Unicode characters (ö) should now use yadb
-      // This is the fix for the original issue
-      const textWithLatinUnicode = 'Schönberg,Liechtenstein';
-      await device.keyboardType(textWithLatinUnicode);
-
-      // With improved logic, yadb should be used for Latin Unicode characters
-      expect((device as any).execYadb).toHaveBeenCalledWith(
-        textWithLatinUnicode,
-      );
-      expect(mockAdb.inputText).not.toHaveBeenCalled();
-    });
-
-    it('should handle text with Chinese characters using yadb strategy', async () => {
-      device.options = { imeStrategy: 'yadb-for-non-ascii' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
-      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
-        isKeyboardShown: false,
-        canCloseKeyboard: true,
+      it('should return early for empty string', async () => {
+        await device.keyboardType('');
+        expect(mockAdb.inputText).not.toHaveBeenCalled();
+        expect((device as any).execYadb).not.toHaveBeenCalled();
       });
 
-      // Text with Chinese characters should use yadb instead of inputText
-      const textWithChinese = '你好,Schönberg';
-      await device.keyboardType(textWithChinese);
+      // ---------------------------------------------------------------
+      // 3a. inputText path — characters handled by appium-adb (no escapeForShell)
+      // ---------------------------------------------------------------
+      describe('inputText path — appium-adb compatible characters', () => {
+        it('pure ASCII: hello', async () => {
+          await device.keyboardType('hello');
+          expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+          expect((device as any).execYadb).not.toHaveBeenCalled();
+        });
 
-      // Since the text contains Chinese characters, execYadb should be called instead of inputText
-      expect((device as any).execYadb).toHaveBeenCalledWith(textWithChinese);
-      expect(mockAdb.inputText).not.toHaveBeenCalled();
-    });
+        it('space: hello world', async () => {
+          await device.keyboardType('hello world');
+          expect(mockAdb.inputText).toHaveBeenCalledWith('hello world');
+          expect((device as any).execYadb).not.toHaveBeenCalled();
+        });
 
-    it('should use always-yadb strategy for all text including special characters', async () => {
-      device.options = { imeStrategy: 'always-yadb' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
-      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
-        isKeyboardShown: false,
-        canCloseKeyboard: true,
+        it('common punctuation: ! @ # ? = + , . / - _ :', async () => {
+          const texts = [
+            'hello!',
+            'user@host',
+            'a#b',
+            'a?b',
+            'a=b+c',
+            'a,b.c',
+            'a/b',
+            'a-b_c',
+            'a:b',
+          ];
+          for (const text of texts) {
+            mockAdb.inputText.mockClear();
+            (device as any).execYadb.mockClear();
+            await device.keyboardType(text);
+            expect(mockAdb.inputText).toHaveBeenCalledWith(text);
+            expect((device as any).execYadb).not.toHaveBeenCalled();
+          }
+        });
+
+        it('brackets: {b} [b]', async () => {
+          for (const text of ['a{b}c', 'a[b]c']) {
+            mockAdb.inputText.mockClear();
+            (device as any).execYadb.mockClear();
+            await device.keyboardType(text);
+            expect(mockAdb.inputText).toHaveBeenCalledWith(text);
+            expect((device as any).execYadb).not.toHaveBeenCalled();
+          }
+        });
+
+        it('shell operators: & | ; () <> ~ ^ *', async () => {
+          const texts = [
+            'a&b',
+            'a|b',
+            'a;b',
+            'a(b)c',
+            'a<b>c',
+            'a~b',
+            'a^b',
+            'a*b',
+          ];
+          for (const text of texts) {
+            mockAdb.inputText.mockClear();
+            (device as any).execYadb.mockClear();
+            await device.keyboardType(text);
+            expect(mockAdb.inputText).toHaveBeenCalledWith(text);
+            expect((device as any).execYadb).not.toHaveBeenCalled();
+          }
+        });
+
+        it("single quote only: it's", async () => {
+          await device.keyboardType("it's");
+          expect(mockAdb.inputText).toHaveBeenCalledWith("it's");
+          expect((device as any).execYadb).not.toHaveBeenCalled();
+        });
+
+        it('double quote only: say"hi"', async () => {
+          await device.keyboardType('say"hi"');
+          expect(mockAdb.inputText).toHaveBeenCalledWith('say"hi"');
+          expect((device as any).execYadb).not.toHaveBeenCalled();
+        });
+
+        it('percent not followed by letter: 100% done', async () => {
+          await device.keyboardType('100% done');
+          expect(mockAdb.inputText).toHaveBeenCalledWith('100% done');
+          expect((device as any).execYadb).not.toHaveBeenCalled();
+        });
       });
 
-      // When using always-yadb strategy, all text should use yadb
-      const textWithSpecialChars = 'Schönberg,%sLiechtenstein';
-      await device.keyboardType(textWithSpecialChars);
+      // ---------------------------------------------------------------
+      // 3b. yadb path — characters incompatible with appium-adb (routed to yadb + escapeForShell)
+      // ---------------------------------------------------------------
+      describe('yadb path — appium-adb incompatible characters', () => {
+        // 3b-1. Routing trigger + escapeForShell escaping
+        // In single-quote context, only ' needs escaping; \, ", `, $ pass through
+        describe('characters routed to yadb with escapeForShell applied', () => {
+          it('\\ → execYadb unchanged (no escaping needed in single quotes)', async () => {
+            await device.keyboardType('a\\b');
+            expect((device as any).execYadb).toHaveBeenCalledWith('a\\b');
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+          });
 
-      // Should call execYadb to avoid special character issues with inputText
-      expect((device as any).execYadb).toHaveBeenCalledWith(
-        textWithSpecialChars,
-      );
-      expect(mockAdb.inputText).not.toHaveBeenCalled();
-    });
+          it('` → execYadb unchanged', async () => {
+            await device.keyboardType('a`b');
+            expect((device as any).execYadb).toHaveBeenCalledWith('a`b');
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+          });
 
-    it('should use yadb for text with format specifiers like %s', async () => {
-      device.options = { imeStrategy: 'yadb-for-non-ascii' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
-      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
-        isKeyboardShown: false,
-        canCloseKeyboard: true,
+          it('$ → execYadb unchanged', async () => {
+            await device.keyboardType('$HOME');
+            expect((device as any).execYadb).toHaveBeenCalledWith('$HOME');
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+          });
+
+          it("both quotes → execYadb with ' escaped", async () => {
+            await device.keyboardType('it\'s a "test"');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              "it'\\''s a \"test\"",
+            );
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+          });
+
+          it('combined: $100\\each → unchanged (no escaping needed)', async () => {
+            await device.keyboardType('price: $100\\each');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'price: $100\\each',
+            );
+          });
+        });
+
+        // 3b-2. Routing trigger but escapeForShell does not modify the text
+        describe('characters NOT needing escapeForShell (pass through unchanged)', () => {
+          it('non-ASCII: Chinese', async () => {
+            await device.keyboardType('你好');
+            expect((device as any).execYadb).toHaveBeenCalledWith('你好');
+          });
+
+          it('non-ASCII: Latin Unicode (ö)', async () => {
+            await device.keyboardType('Schönberg,Liechtenstein');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'Schönberg,Liechtenstein',
+            );
+          });
+
+          it('non-ASCII: emoji', async () => {
+            await device.keyboardType('hello 😀');
+            expect((device as any).execYadb).toHaveBeenCalledWith('hello 😀');
+          });
+
+          it('non-ASCII: Japanese', async () => {
+            await device.keyboardType('こんにちは');
+            expect((device as any).execYadb).toHaveBeenCalledWith('こんにちは');
+          });
+
+          it('format specifier: %s (yadb does not interpret %)', async () => {
+            await device.keyboardType('Test%sString');
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'Test%sString',
+            );
+          });
+
+          it('non-ASCII text preserves space, punctuation; single quote is escaped', async () => {
+            await device.keyboardType("café's menu! @#&|;(){}[]<>~^*?=+,./:-_");
+            // Non-ASCII triggers yadb; ' is escaped, everything else passes through
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              "café'\\''s menu! @#&|;(){}[]<>~^*?=+,./:-_",
+            );
+          });
+        });
       });
 
-      // Text containing %s should use yadb to avoid shell interpretation
-      const textWithFormatSpecifier = 'Test%sString';
-      await device.keyboardType(textWithFormatSpecifier);
+      // ---------------------------------------------------------------
+      // 3c. Newline handling
+      // ---------------------------------------------------------------
+      describe('newline handling', () => {
+        // inputText path: split('\n') + keyevent 66
+        describe('inputText path — split + keyevent 66', () => {
+          it('middle newline: line1\\nline2', async () => {
+            await device.keyboardType('line1\nline2');
+            expect(mockAdb.inputText).toHaveBeenCalledTimes(2);
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(1, 'line1');
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(2, 'line2');
+            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+          });
 
-      // With improved logic, yadb should be used for format specifiers
-      expect((device as any).execYadb).toHaveBeenCalledWith(
-        textWithFormatSpecifier,
-      );
-      expect(mockAdb.inputText).not.toHaveBeenCalled();
-    });
+          it('multiple newlines: a\\nb\\nc', async () => {
+            await device.keyboardType('a\nb\nc');
+            expect(mockAdb.inputText).toHaveBeenCalledTimes(3);
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(1, 'a');
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(2, 'b');
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(3, 'c');
+            expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+          });
 
-    it('should use yadb for combined special characters', async () => {
-      device.options = { imeStrategy: 'yadb-for-non-ascii' };
-      vi.spyOn(device as any, 'ensureYadb').mockResolvedValue(undefined);
-      vi.spyOn(device as any, 'execYadb').mockResolvedValue(undefined);
-      mockAdb.isSoftKeyboardPresent.mockResolvedValue({
-        isKeyboardShown: false,
-        canCloseKeyboard: true,
+          it('trailing newline: hello\\n', async () => {
+            await device.keyboardType('hello\n');
+            expect(mockAdb.inputText).toHaveBeenCalledTimes(1);
+            expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+          });
+
+          it('leading newline: \\nhello', async () => {
+            await device.keyboardType('\nhello');
+            expect(mockAdb.inputText).toHaveBeenCalledTimes(1);
+            expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+          });
+
+          it('consecutive newlines: a\\n\\nb', async () => {
+            await device.keyboardType('a\n\nb');
+            expect(mockAdb.inputText).toHaveBeenCalledTimes(2);
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(1, 'a');
+            expect(mockAdb.inputText).toHaveBeenNthCalledWith(2, 'b');
+            expect(mockAdb.keyevent).toHaveBeenCalledTimes(2);
+          });
+
+          it('just a newline: \\n', async () => {
+            await device.keyboardType('\n');
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.keyevent).toHaveBeenCalledTimes(1);
+            expect(mockAdb.keyevent).toHaveBeenCalledWith(66);
+          });
+
+          it('no newline → no keyevent', async () => {
+            await device.keyboardType('no-newline');
+            expect(mockAdb.inputText).toHaveBeenCalledWith('no-newline');
+            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+          });
+        });
+
+        // yadb path: single execYadb call, \n(0x0A) converted to literal \n
+        describe('yadb path — single execYadb call with \\n escaped', () => {
+          it('non-ASCII with middle newline: 你好\\nworld', async () => {
+            await device.keyboardType('你好\nworld');
+            expect((device as any).execYadb).toHaveBeenCalledTimes(1);
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              '你好\\nworld',
+            );
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+          });
+
+          it('shell-special with middle newline: $10\\ntext', async () => {
+            await device.keyboardType('price: $10\nplain text');
+            expect((device as any).execYadb).toHaveBeenCalledTimes(1);
+            expect((device as any).execYadb).toHaveBeenCalledWith(
+              'price: $10\\nplain text',
+            );
+            expect(mockAdb.inputText).not.toHaveBeenCalled();
+            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+          });
+
+          it('non-ASCII trailing newline: 你好\\n', async () => {
+            await device.keyboardType('你好\n');
+            expect((device as any).execYadb).toHaveBeenCalledTimes(1);
+            expect((device as any).execYadb).toHaveBeenCalledWith('你好\\n');
+            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+          });
+
+          it('always-yadb trailing newline: hello\\n', async () => {
+            device.options = {
+              imeStrategy: 'always-yadb',
+              autoDismissKeyboard: false,
+            };
+            await device.keyboardType('hello\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith('hello\\n');
+            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+          });
+
+          it('always-yadb leading newline: \\nhello', async () => {
+            device.options = {
+              imeStrategy: 'always-yadb',
+              autoDismissKeyboard: false,
+            };
+            await device.keyboardType('\nhello');
+            expect((device as any).execYadb).toHaveBeenCalledWith('\\nhello');
+          });
+
+          it('always-yadb consecutive newlines: a\\n\\nb', async () => {
+            device.options = {
+              imeStrategy: 'always-yadb',
+              autoDismissKeyboard: false,
+            };
+            await device.keyboardType('a\n\nb');
+            expect((device as any).execYadb).toHaveBeenCalledWith('a\\n\\nb');
+          });
+
+          it('always-yadb just a newline: \\n', async () => {
+            device.options = {
+              imeStrategy: 'always-yadb',
+              autoDismissKeyboard: false,
+            };
+            await device.keyboardType('\n');
+            expect((device as any).execYadb).toHaveBeenCalledWith('\\n');
+            expect(mockAdb.keyevent).not.toHaveBeenCalled();
+          });
+        });
       });
 
-      // The original problematic text: Latin Unicode + format specifier
-      const specialCharText = 'Schönberg,%sLiechtenstein';
-      await device.keyboardType(specialCharText);
+      // ---------------------------------------------------------------
+      // 3d. IME strategy
+      // ---------------------------------------------------------------
+      describe('IME strategy', () => {
+        it('always-yadb: pure ASCII also uses yadb', async () => {
+          device.options = {
+            imeStrategy: 'always-yadb',
+            autoDismissKeyboard: false,
+          };
+          await device.keyboardType('hello world');
+          expect((device as any).execYadb).toHaveBeenCalledWith('hello world');
+          expect(mockAdb.inputText).not.toHaveBeenCalled();
+        });
 
-      // Both Latin Unicode (ö) and format specifier (%s) should trigger yadb
-      expect((device as any).execYadb).toHaveBeenCalledWith(specialCharText);
-      expect(mockAdb.inputText).not.toHaveBeenCalled();
+        it('always-yadb: shell-special chars get escaped', async () => {
+          device.options = {
+            imeStrategy: 'always-yadb',
+            autoDismissKeyboard: false,
+          };
+          await device.keyboardType('Schönberg,%sLiechtenstein');
+          expect((device as any).execYadb).toHaveBeenCalledWith(
+            'Schönberg,%sLiechtenstein',
+          );
+        });
+
+        it('yadb-for-non-ascii: pure ASCII uses inputText', async () => {
+          await device.keyboardType('hello');
+          expect(mockAdb.inputText).toHaveBeenCalledWith('hello');
+          expect((device as any).execYadb).not.toHaveBeenCalled();
+        });
+
+        it('yadb-for-non-ascii: non-ASCII uses yadb', async () => {
+          await device.keyboardType('你好,Schönberg');
+          expect((device as any).execYadb).toHaveBeenCalledWith(
+            '你好,Schönberg',
+          );
+          expect(mockAdb.inputText).not.toHaveBeenCalled();
+        });
+      });
     });
 
     it('type should hide keyboard when shown', async () => {
@@ -835,7 +1266,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(device, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 1,
       });
     });
 
@@ -864,8 +1294,8 @@ describe('AndroidDevice', () => {
 
       it('should allow scrolling with non-zero deltaX and zero deltaY', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
-          .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 540, y: 480 });
+          .mockResolvedValueOnce({ x: 270, y: 480 })
+          .mockResolvedValueOnce({ x: 170, y: 480 });
 
         await expect((device as any).scroll(100, 0)).resolves.not.toThrow();
 
@@ -876,8 +1306,8 @@ describe('AndroidDevice', () => {
 
       it('should allow scrolling with zero deltaX and non-zero deltaY', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
-          .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 270, y: 240 });
+          .mockResolvedValueOnce({ x: 270, y: 480 })
+          .mockResolvedValueOnce({ x: 270, y: 240 });
 
         await expect((device as any).scroll(0, 100)).resolves.not.toThrow();
 
@@ -886,10 +1316,30 @@ describe('AndroidDevice', () => {
         );
       });
 
+      it('should allow symmetric horizontal range from the same start position', async () => {
+        const adjustCoordinatesSpy = vi
+          .spyOn(device as any, 'adjustCoordinates')
+          .mockImplementation(async (x: number, y: number) => ({ x, y }));
+
+        await (device as any).scroll(9999999, 0);
+        const rightSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
+          -1,
+        )?.[0] as string;
+
+        await (device as any).scroll(-9999999, 0);
+        const leftSwipeCmd = (mockAdb.shell as Mock).mock.calls.at(
+          -1,
+        )?.[0] as string;
+
+        expect(rightSwipeCmd).toBe('input swipe 270 480 0 480 1000');
+        expect(leftSwipeCmd).toBe('input swipe 810 480 1080 480 1000');
+
+        adjustCoordinatesSpy.mockRestore();
+      });
       it('should allow scrolling with both deltaX and deltaY non-zero', async () => {
         vi.spyOn(device as any, 'adjustCoordinates')
-          .mockReturnValueOnce({ x: 270, y: 480 })
-          .mockReturnValueOnce({ x: 540, y: 240 });
+          .mockResolvedValueOnce({ x: 270, y: 480 })
+          .mockResolvedValueOnce({ x: 220, y: 405 });
 
         await expect((device as any).scroll(50, 75)).resolves.not.toThrow();
 
@@ -1520,7 +1970,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1562,7 +2012,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1604,7 +2054,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1617,7 +2067,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 2,
       });
 
       await deviceWithDisplay.screenshotBase64();
@@ -1706,8 +2155,11 @@ describe('AndroidDevice', () => {
       (deviceWithDisplay as any).connectingAdb =
         Promise.resolve(mockAdbInstance);
 
-      // Set device pixel ratio for coordinate adjustment
-      (deviceWithDisplay as any).devicePixelRatio = 1;
+      // Mock adjustCoordinates to pass through (this test focuses on displayId arg)
+      vi.spyOn(
+        deviceWithDisplay as any,
+        'adjustCoordinates',
+      ).mockImplementation(async (x: number, y: number) => ({ x, y }));
 
       await deviceWithDisplay.longPress(100, 200, 1500);
       expect(mockAdbInstance.shell).toHaveBeenCalledWith(
@@ -1739,7 +2191,7 @@ describe('AndroidDevice', () => {
       (fs.promises.readFile as any).mockResolvedValue(mockBuffer);
 
       // Mock image utilities
-      (ImgUtils.isValidPNGImageBuffer as any).mockReturnValue(true);
+      vi.spyOn(ImgUtils, 'isValidImageBuffer').mockReturnValue(true);
       (ImgUtils.resizeAndConvertImgBuffer as any).mockResolvedValue({
         buffer: mockBuffer,
         format: 'png' as const,
@@ -1752,7 +2204,6 @@ describe('AndroidDevice', () => {
       vi.spyOn(deviceWithDisplay, 'size').mockResolvedValue({
         width: 1080,
         height: 1920,
-        dpr: 2,
       });
 
       await deviceWithDisplay.screenshotBase64();

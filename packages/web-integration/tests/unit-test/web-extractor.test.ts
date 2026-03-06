@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
+import { commonContextParser } from '@midscene/core/agent';
 import {
   descriptionOfTree,
   traverseTree,
@@ -44,55 +44,6 @@ describe(
       if (localServer?.server) {
         localServer.server.close();
       }
-    });
-
-    it('basic', async () => {
-      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
-        viewport: {
-          width: 1080,
-          height: 3000,
-          deviceScaleFactor: 1,
-        },
-      });
-
-      const tree = await page.getElementsNodeTree?.();
-      const description = await await descriptionOfTree(tree, 200, false, true);
-      const screenshotBase64 = await page.screenshotBase64();
-
-      // const { tree, screenshotBase64 } = await WebPageContextParser(page, {});
-      const content = treeToList(tree);
-      const markedImg = await compositeElementInfoImg({
-        inputImgBase64: await page.screenshotBase64(),
-        elementsPositionInfo: content,
-      });
-
-      await saveBase64Image({
-        base64Data: screenshotBase64,
-        outputPath: join(pageDir, 'input.png'),
-      });
-      await saveBase64Image({
-        base64Data: markedImg,
-        outputPath: join(pageDir, 'output.png'),
-      });
-
-      const list = content.map((item) => {
-        return {
-          content: item.content,
-          attributes: item.attributes,
-        };
-      });
-
-      expect(list).toMatchSnapshot();
-
-      const simplifiedTree = traverseTree(tree!, (node) => {
-        return {
-          content: node.content,
-          indexId: node.indexId,
-          attributes: node.attributes,
-        } as any;
-      });
-      expect(simplifiedTree).toMatchSnapshot();
-      await reset();
     });
 
     it('merge children rects of button', async () => {
@@ -199,9 +150,9 @@ describe(
     it('profiling', async () => {
       const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.time('total - WebPageContextParser');
-      await WebPageContextParser(page, {});
-      console.timeEnd('total - WebPageContextParser');
+      console.time('total - commonContextParser');
+      await commonContextParser(page, {});
+      console.timeEnd('total - commonContextParser');
       await reset();
     });
 
@@ -274,6 +225,70 @@ describe(
       );
       expect(description).toContain('This should be collected');
       expect(description.split('\n').length).toBeGreaterThan(200);
+      await reset();
+    });
+
+    it('should include attributes without value like disabled, readonly, data-flag', async () => {
+      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
+        viewport: {
+          width: 1080,
+          height: 3000,
+          deviceScaleFactor: 1,
+        },
+      });
+
+      const elementInfosScriptContent = getElementInfosScriptContent();
+
+      // Test disabled input - attribute exists with empty value (DOM behavior)
+      const disabledInput = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_disabled_input"]')`,
+      );
+      expect(disabledInput).toBeDefined();
+      expect(disabledInput.attributes).toHaveProperty('disabled');
+
+      // Test readonly input
+      const readonlyInput = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_readonly_input"]')`,
+      );
+      expect(readonlyInput).toBeDefined();
+      expect(readonlyInput.attributes).toHaveProperty('readonly');
+
+      // Test checked checkbox
+      const checkedCheckbox = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_checked_checkbox"]')`,
+      );
+      expect(checkedCheckbox).toBeDefined();
+      expect(checkedCheckbox.attributes).toHaveProperty('checked');
+
+      // Test required input
+      const requiredInput = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_required_input"]')`,
+      );
+      expect(requiredInput).toBeDefined();
+      expect(requiredInput.attributes).toHaveProperty('required');
+
+      // Test disabled button
+      const disabledButton = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_disabled_button"]')`,
+      );
+      expect(disabledButton).toBeDefined();
+      expect(disabledButton.attributes).toHaveProperty('disabled');
+
+      // Test disabled select
+      const disabledSelect = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_disabled_select"]')`,
+      );
+      expect(disabledSelect).toBeDefined();
+      expect(disabledSelect.attributes).toHaveProperty('disabled');
+
+      // Test custom data attributes without value (data-flag, data-active)
+      const dataFlagDiv = await page.evaluateJavaScript?.(
+        `${elementInfosScriptContent}midscene_element_inspector.getElementInfoByXpath('//*[@id="J_data_flag_div"]')`,
+      );
+      expect(dataFlagDiv).toBeDefined();
+      expect(dataFlagDiv.attributes).toHaveProperty('data-flag');
+      expect(dataFlagDiv.attributes).toHaveProperty('data-active');
+
       await reset();
     });
 

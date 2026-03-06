@@ -30,6 +30,7 @@ export default defineConfig({
     entry: {
       index: './src/index.ts',
       bin: './src/bin.ts',
+      cli: './src/cli.ts',
       'mcp-server': './src/mcp-server.ts',
     },
     define: {

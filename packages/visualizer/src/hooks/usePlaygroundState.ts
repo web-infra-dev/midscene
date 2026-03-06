@@ -10,7 +10,7 @@ import type {
   PlaygroundSDKLike,
   StorageProvider,
 } from '../types';
-import { WELCOME_MESSAGE_TEMPLATE } from '../utils/constants';
+import { getWelcomeMessageTemplate } from '../utils/constants';
 
 /**
  * Hook for managing playground state
@@ -19,6 +19,7 @@ export function usePlaygroundState(
   playgroundSDK: PlaygroundSDKLike | null,
   storage?: StorageProvider | null,
   contextProvider?: ContextProvider,
+  targetName?: string,
 ) {
   // Core state
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,8 @@ export function usePlaygroundState(
   // Scroll management
   const [showScrollToBottomButton, setShowScrollToBottomButton] =
     useState(false);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
+  const lastScrollTopRef = useRef<number>(0);
   const [verticalMode, setVerticalMode] = useState(false);
 
   // Progress tracking
@@ -84,7 +87,7 @@ export function usePlaygroundState(
     const initializeMessages = async () => {
       // Create welcome message only once during initialization
       const welcomeMessage: InfoListItem = {
-        ...WELCOME_MESSAGE_TEMPLATE,
+        ...getWelcomeMessageTemplate(targetName),
         id: 'welcome',
         timestamp: new Date(),
       };
@@ -209,6 +212,15 @@ export function usePlaygroundState(
       const { scrollTop, scrollHeight, clientHeight } = infoListRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
       setShowScrollToBottomButton(!isAtBottom);
+
+      const scrollingUp = scrollTop < lastScrollTopRef.current;
+      lastScrollTopRef.current = scrollTop;
+
+      if (isAtBottom) {
+        setAutoScrollEnabled(true);
+      } else if (scrollingUp) {
+        setAutoScrollEnabled(false);
+      }
     }
   }, []);
 
@@ -219,15 +231,16 @@ export function usePlaygroundState(
         behavior: 'smooth',
       });
       setShowScrollToBottomButton(false);
+      setAutoScrollEnabled(true);
     }
   }, []);
 
-  // Auto scroll when info list updates
+  // Auto scroll when info list updates (only if auto scroll is enabled)
   useEffect(() => {
-    if (infoList.length > 0) {
+    if (infoList.length > 0 && autoScrollEnabled) {
       scrollToBottom();
     }
-  }, [infoList, scrollToBottom]);
+  }, [infoList, scrollToBottom, autoScrollEnabled]);
 
   // Scroll event listener
   useEffect(() => {
@@ -245,7 +258,7 @@ export function usePlaygroundState(
   // Clear messages
   const clearInfoList = useCallback(async () => {
     const welcomeMessage: InfoListItem = {
-      ...WELCOME_MESSAGE_TEMPLATE,
+      ...getWelcomeMessageTemplate(targetName),
       id: 'welcome',
       timestamp: new Date(),
     };
@@ -258,7 +271,7 @@ export function usePlaygroundState(
         console.error('Failed to clear stored messages:', error);
       }
     }
-  }, [storage]);
+  }, [storage, targetName]);
 
   // Refresh context
   const refreshContext = useCallback(async () => {

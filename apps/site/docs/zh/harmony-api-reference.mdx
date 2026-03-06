@@ -1,0 +1,200 @@
+# API 参考（HarmonyOS）
+
+当你需要自定义设备行为、把 Midscene 接入框架，或排查 HDC 问题时，请查阅本节。关于通用构造函数（报告、Hook、缓存等）的参数说明，请参考平台无关的 [API 参考](./api)。
+
+## Action Space（动作空间）
+
+`HarmonyDevice` 使用以下动作空间，Midscene Agent 在规划任务时可以使用这些操作：
+
+- `Tap` —— 点击元素。
+- `DoubleClick` —— 双击元素。
+- `Input` —— 输入文本，支持 `replace`/`typeOnly`/`clear` 模式。
+- `Scroll` —— 以元素为起点或从屏幕中央向上/下/左/右滚动，支持滚动到顶/底/左/右。
+- `DragAndDrop` —— 从一个元素拖拽到另一个元素。
+- `KeyboardPress` —— 按下指定键位。
+- `LongPress` —— 长按目标元素，可选自定义时长。
+- `ClearInput` —— 清空输入框内容。
+- `Launch` —— 打开 HarmonyOS 应用（bundle name）。
+- `RunHdcShell` —— 执行原始 `hdc shell` 命令。
+- `HarmonyBackButton` —— 触发系统返回。
+- `HarmonyHomeButton` —— 回到桌面。
+- `HarmonyRecentAppsButton` —— 打开多任务/最近应用。
+
+## HarmonyDevice {#harmonydevice}
+
+创建一个可供 HarmonyAgent 驱动的 HDC 设备实例。
+
+### 导入
+
+```ts
+import { HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+```
+
+### 构造函数
+
+```ts
+const device = new HarmonyDevice(deviceId, {
+  // 设备参数...
+});
+```
+
+### 设备选项
+
+- `deviceId: string` —— 来自 `hdc list targets` 或 `getConnectedDevices()` 的值。
+- `hdcPath?: string` —— HDC 可执行文件的自定义路径。若未设置，将依次从 `HDC_HOME` 环境变量和常见安装路径中查找。
+- `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
+- `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放。不建议手动修改该参数。
+- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+
+### 使用说明
+
+- 可以使用 `getConnectedDevices()` 发现设备，返回的 `deviceId` 与 `hdc list targets` 输出一致。
+- 如果 HDC 不在系统 PATH 中，可通过 `HDC_HOME` 环境变量或 `hdcPath` 选项指定路径。
+
+### 示例
+
+#### 快速开始
+
+```ts
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const [first] = await getConnectedDevices();
+const device = new HarmonyDevice(first.deviceId, {});
+await device.connect();
+
+const agent = new HarmonyAgent(device, {
+  aiActionContext: '这是一台鸿蒙设备，如果出现弹窗，点击同意。',
+});
+
+await agent.launch('com.huawei.hmos.settings');
+await agent.aiAct('scroll down one screen');
+const items = await agent.aiQuery(
+  'string[], list all visible setting item names',
+);
+console.log(items);
+```
+
+#### 启动应用
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // 打开系统设置
+await agent.launch('com.huawei.hmos.camera');    // 打开相机
+await agent.back();
+await agent.home();
+```
+
+## HarmonyAgent {#harmonyagent}
+
+将 Midscene 的 AI 规划能力绑定到 HarmonyDevice，实现 UI 自动化。
+
+### 导入
+
+```ts
+import { HarmonyAgent } from '@midscene/harmony';
+```
+
+### 构造函数
+
+```ts
+const agent = new HarmonyAgent(device, {
+  // 通用 Agent 参数...
+});
+```
+
+### HarmonyOS 特有选项
+
+- `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
+- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 bundle name。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的 bundle name；若未找到映射，则按原样尝试启动 `target`。
+- 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
+
+### 使用说明
+
+:::info
+
+- 一个设备连接对应一个 Agent。
+- `launch`、`runHdcShell` 等 HarmonyOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [HarmonyOS 平台特定动作](./automate-with-scripts-in-yaml#harmony-部分)。
+- 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
+
+:::
+
+### HarmonyOS 特有方法
+
+#### `agent.launch()`
+
+启动 HarmonyOS 应用。
+
+```ts
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 可以是应用 bundle name（如 `com.huawei.hmos.settings`），也可以是在 `appNameMapping` 中注册的应用名称。如果传入 `http://` 或 `https://` 开头的 URL，将通过浏览器打开。
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // 打开系统设置
+await agent.launch('com.huawei.hmos.camera');    // 打开相机
+```
+
+#### `agent.runHdcShell()`
+
+通过连接的设备运行原始的 `hdc shell` 命令。
+
+```ts
+function runHdcShell(command: string): Promise<string>;
+```
+
+- `command: string` —— 原样传递给 `hdc shell` 的命令。
+
+```ts
+const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
+console.log(result);
+```
+
+#### 导航辅助
+
+- `agent.back(): Promise<void>` —— 触发 HarmonyOS 系统的返回操作。
+- `agent.home(): Promise<void>` —— 返回桌面。
+- `agent.recentApps(): Promise<void>` —— 打开多任务/最近应用界面。
+
+### 辅助工具
+
+#### `agentFromHdcDevice()`
+
+从任意已连接的 HDC 设备创建 `HarmonyAgent`。
+
+```ts
+function agentFromHdcDevice(
+  deviceId?: string,
+  opts?: HarmonyAgentOpt & HarmonyDeviceOpt,
+): Promise<HarmonyAgent>;
+```
+
+- `deviceId?: string` —— 连接特定设备；留空表示使用"第一个可用设备"。
+- `opts?: HarmonyAgentOpt & HarmonyDeviceOpt` —— 在一个对象中合并 Agent 选项与 [`HarmonyDevice`](#harmonydevice) 的设置。
+
+```ts
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+const agent = await agentFromHdcDevice('0123456789ABCDEF'); // 传入 deviceId
+const agent = await agentFromHdcDevice(); // 使用第一个连接的设备
+```
+
+#### `getConnectedDevices()`
+
+列举 Midscene 可驱动的 HDC 设备。
+
+```ts
+function getConnectedDevices(
+  hdcPath?: string,
+): Promise<Array<{ deviceId: string }>>;
+```
+
+```ts
+import { getConnectedDevices } from '@midscene/harmony';
+
+const devices = await getConnectedDevices();
+console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
+```
+
+### 相关阅读
+
+- [HarmonyOS 快速开始](./harmony-getting-started) 获取搭建与脚本示例。

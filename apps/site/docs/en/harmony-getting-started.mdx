@@ -1,0 +1,283 @@
+import StartExperience from './common/start-experience.mdx';
+import SetupEnv from './common/setup-env.mdx';
+
+import { PackageManagerTabs } from '@theme';
+
+# HarmonyOS Getting Started
+
+This guide walks you through everything needed to automate HarmonyOS devices with Midscene: connecting a real device via HDC, configuring model API keys, trying the zero-code Playground, and running your first JavaScript script.
+
+:::info Demo Projects
+
+Control HarmonyOS devices with JavaScript: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+
+Integrate Vitest for testing: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+
+:::
+
+<SetupEnv />
+
+## Prerequisites
+
+Before writing scripts, verify that HDC can connect to your device and the device trusts the current computer.
+
+### Install HDC
+
+HDC (HarmonyOS Device Connector) is a command-line tool provided by HarmonyOS for communicating with devices. Installation options:
+
+- Via [DevEco Studio](https://developer.huawei.com/consumer/en/deveco-studio/) (recommended)
+- Via [HarmonyOS command-line tools](https://developer.huawei.com/consumer/en/download/) standalone installation
+
+Verify HDC is installed:
+
+```bash
+hdc version
+```
+
+A version number in the output confirms successful installation.
+
+:::tip Configuring HDC Path
+
+If `hdc` is not in your system PATH, set the `HDC_HOME` environment variable to the directory containing HDC:
+
+```bash
+export HDC_HOME=/path/to/hdc/directory
+```
+
+:::
+
+### Enable Developer Mode and Verify Device
+
+In your HarmonyOS device settings, go to **Developer Options** and enable **USB Debugging**, then connect via USB cable.
+
+Verify the connection:
+
+```bash
+hdc list targets
+```
+
+A device ID in the output confirms a successful connection:
+
+```log
+0123456789ABCDEF
+```
+
+## Try Playground (Zero Code)
+
+Playground is the fastest way to verify your connection and observe the AI Agent, without writing any code. It shares the same code implementation as `@midscene/harmony`, so flows validated in Playground will work identically when run via scripts.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/harmony.mp4" controls/>
+
+1. Launch the Playground CLI:
+
+```bash
+npx --yes @midscene/harmony-playground
+```
+
+2. Click the gear button in the Playground window and paste your API Key configuration. If you don't have an API Key yet, go back to [Model Configuration](./model-config) to get one.
+
+## Start Your Experience
+
+<StartExperience />
+
+## Integrate Midscene Agent
+
+Once Playground runs successfully, you can switch to reusable JavaScript scripts.
+
+### Step 1: Install Dependencies
+
+<PackageManagerTabs command="install @midscene/harmony --save-dev" />
+
+### Step 2: Write a Script
+
+The following example opens the Settings app on the device and performs scrolling operations.
+
+```typescript title="./demo.ts"
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+Promise.resolve(
+  (async () => {
+    const devices = await getConnectedDevices();
+    const device = new HarmonyDevice(devices[0].deviceId, {});
+
+    const agent = new HarmonyAgent(device, {
+      aiActionContext:
+        'This is a HarmonyOS device. The system language is Chinese. If any popup appears, dismiss or agree to it.',
+    });
+    await device.connect();
+
+    // Open Settings app
+    await agent.launch('com.huawei.hmos.settings');
+    await sleep(2000);
+
+    // Scroll down
+    await agent.aiAct('scroll down one screen');
+
+    // Query page content
+    const items = await agent.aiQuery(
+      'string[], list all visible setting item names',
+    );
+    console.log('Settings items', items);
+
+    // Assert
+    await agent.aiAssert('There is a settings item list on the page');
+  })(),
+);
+```
+
+### Step 3: Run the Example
+
+```bash
+npx tsx demo.ts
+```
+
+### Step 4: View the Report
+
+After a successful run, the console outputs `Midscene - report file updated: /path/to/report/some_id.html`. Open this HTML file in a browser to replay each interaction, query, and assertion.
+
+## Advanced
+
+When you need to customize device behavior, integrate Midscene into a standalone framework, or troubleshoot HDC issues, refer to this section. See [API Reference (HarmonyOS)](./harmony-api-reference) for more constructor parameters.
+
+### Extending Midscene on HarmonyOS
+
+Use `defineAction()` to define custom gestures and pass them via `customActions`. Midscene appends custom actions to the planner, allowing AI to invoke your domain-specific action names.
+
+```typescript
+import { getMidsceneLocationSchema, z } from '@midscene/core';
+import { defineAction } from '@midscene/core/device';
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const ContinuousClick = defineAction({
+  name: 'continuousClick',
+  description: 'Click the same target repeatedly',
+  paramSchema: z.object({
+    locate: getMidsceneLocationSchema(),
+    count: z.number().int().positive().describe('How many times to click'),
+  }),
+  async call(param) {
+    const { locate, count } = param;
+    console.log('click target center', locate.center);
+    console.log('click count', count);
+  },
+});
+
+const devices = await getConnectedDevices();
+const device = new HarmonyDevice(devices[0].deviceId, {});
+await device.connect();
+
+const agent = new HarmonyAgent(device, {
+  customActions: [ContinuousClick],
+});
+
+await agent.aiAct('click the red button five times');
+```
+
+For more details on custom actions and action schemas, see [Integrate with Any Interface](./integrate-with-any-interface#define-a-custom-action).
+
+## More
+
+- View all Agent methods: [API Reference (Common)](./api#interaction-methods)
+- HarmonyOS-specific parameters and interfaces: [HarmonyOS Agent API](./harmony-api-reference)
+- Demo projects
+  - HarmonyOS JavaScript SDK demo: [https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo](https://github.com/web-infra-dev/midscene-example/blob/main/harmony/javascript-sdk-demo)
+  - HarmonyOS + Vitest demo: [https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo](https://github.com/web-infra-dev/midscene-example/tree/main/harmony/vitest-demo)
+
+### Complete example (Vitest + HarmonyAgent)
+
+```typescript
+import type { TestStatus } from '@midscene/core';
+import { ReportMergingTool } from '@midscene/core/report';
+import { sleep } from '@midscene/core/utils';
+import {
+  HarmonyAgent,
+  HarmonyDevice,
+  getConnectedDevices,
+} from '@midscene/harmony';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  it,
+} from 'vitest';
+
+describe('HarmonyOS Settings Test', () => {
+  let device: HarmonyDevice;
+  let agent: HarmonyAgent;
+  let itTestStatus: TestStatus = 'passed';
+  const reportMergingTool = new ReportMergingTool();
+
+  beforeAll(async () => {
+    const devices = await getConnectedDevices();
+    device = new HarmonyDevice(devices[0].deviceId);
+    await device.connect();
+  });
+
+  beforeEach((ctx) => {
+    agent = new HarmonyAgent(device, {
+      groupName: ctx.task.name,
+    });
+  });
+
+  afterEach((ctx) => {
+    if (ctx.task.result?.state === 'pass') {
+      itTestStatus = 'passed';
+    } else if (ctx.task.result?.state === 'skip') {
+      itTestStatus = 'skipped';
+    } else if (ctx.task.result?.errors?.[0].message.includes('timed out')) {
+      itTestStatus = 'timedOut';
+    } else {
+      itTestStatus = 'failed';
+    }
+    reportMergingTool.append({
+      reportFilePath: agent.reportFile as string,
+      reportAttributes: {
+        testId: `${ctx.task.name}`,
+        testTitle: `${ctx.task.name}`,
+        testDescription: 'description',
+        testDuration: (Date.now() - ctx.task.result?.startTime!) | 0,
+        testStatus: itTestStatus,
+      },
+    });
+  });
+
+  afterAll(() => {
+    reportMergingTool.mergeReports('my-harmony-setting-test-report');
+  });
+
+  it('toggle WLAN', async () => {
+    await device.home();
+    await sleep(1000);
+    await device.launch('com.huawei.hmos.settings');
+    await sleep(1000);
+    await agent.aiAct('find and enter WLAN setting');
+    await agent.aiAct(
+      'toggle WLAN status *once*, if WLAN is off please turn it on, otherwise turn it off.',
+    );
+  });
+
+  it('toggle Bluetooth', async () => {
+    await device.home();
+    await sleep(1000);
+    await device.launch('com.huawei.hmos.settings');
+    await sleep(1000);
+    await agent.aiAct('find and enter Bluetooth setting');
+    await agent.aiAct(
+      'toggle Bluetooth status *once*, if Bluetooth is off please turn it on, otherwise turn it off.',
+    );
+  });
+});
+```
+
+:::tip
+
+Merged reports are stored inside `midscene_run/report` by default. Override the directory with `MIDSCENE_RUN_DIR` when running in CI.
+
+:::

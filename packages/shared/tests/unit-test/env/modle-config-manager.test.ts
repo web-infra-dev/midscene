@@ -5,16 +5,25 @@ import {
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
   MIDSCENE_INSIGHT_MODEL_NAME,
+  MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
+  MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
+  MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
+  MIDSCENE_MODEL_REASONING_BUDGET,
+  MIDSCENE_MODEL_REASONING_EFFORT,
+  MIDSCENE_MODEL_REASONING_ENABLED,
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
   MIDSCENE_PLANNING_MODEL_NAME,
+  MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
+  MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
+  MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
   MIDSCENE_PLANNING_MODEL_TIMEOUT,
   OPENAI_API_KEY,
   OPENAI_BASE_URL,
@@ -119,6 +128,93 @@ describe('ModelConfigManager', () => {
     expect(config.createOpenAIClient).toBe(createClient);
   });
 
+  it('parses reasoningEffort from config', () => {
+    const configWithReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_EFFORT]: 'medium',
+    };
+    const manager = new ModelConfigManager(configWithReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEffort).toBe('medium');
+  });
+
+  it('reasoningEffort is undefined when not set', () => {
+    const manager = new ModelConfigManager(baseMap);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEffort).toBeUndefined();
+  });
+
+  it('parses reasoningEnabled from config', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: 'true',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe(true);
+  });
+
+  it('parses reasoningEnabled=false from config', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: 'false',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe(false);
+  });
+
+  it('parses reasoningEnabled=1 as true', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: '1',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe(true);
+  });
+
+  it('parses reasoningEnabled=0 as false', () => {
+    const configWithEnableReasoning = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_ENABLED]: '0',
+    };
+    const manager = new ModelConfigManager(configWithEnableReasoning);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBe(false);
+  });
+
+  it('reasoningEnabled is undefined when not set', () => {
+    const manager = new ModelConfigManager(baseMap);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningEnabled).toBeUndefined();
+  });
+
+  it('parses reasoningBudget from config', () => {
+    const configWithBudget = {
+      ...baseMap,
+      [MIDSCENE_MODEL_REASONING_BUDGET]: '16384',
+    };
+    const manager = new ModelConfigManager(configWithBudget);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningBudget).toBe(16384);
+  });
+
+  it('reasoningBudget is undefined when not set', () => {
+    const manager = new ModelConfigManager(baseMap);
+
+    const config = manager.getModelConfig('default');
+    expect(config.reasoningBudget).toBeUndefined();
+  });
+
   describe('per-intent timeout configuration', () => {
     it('uses per-intent timeout configs from modelConfig', () => {
       const configWithTimeout = {
@@ -178,6 +274,55 @@ describe('ModelConfigManager', () => {
       // insight and planning fall back to default config which has the timeout
       expect(manager.getModelConfig('insight').timeout).toBeUndefined();
       expect(manager.getModelConfig('planning').timeout).toBeUndefined();
+    });
+  });
+
+  describe('per-intent reasoning configuration', () => {
+    it('uses per-intent reasoning configs from modelConfig', () => {
+      const configWithReasoning = {
+        ...baseMap,
+        [MIDSCENE_MODEL_REASONING_EFFORT]: 'low',
+        [MIDSCENE_MODEL_REASONING_ENABLED]: 'true',
+        [MIDSCENE_MODEL_REASONING_BUDGET]: '8192',
+        [MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT]: 'medium',
+        [MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED]: 'false',
+        [MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET]: '4096',
+        [MIDSCENE_PLANNING_MODEL_REASONING_EFFORT]: 'high',
+        [MIDSCENE_PLANNING_MODEL_REASONING_ENABLED]: 'true',
+        [MIDSCENE_PLANNING_MODEL_REASONING_BUDGET]: '16384',
+      };
+      const manager = new ModelConfigManager(configWithReasoning);
+
+      const defaultConfig = manager.getModelConfig('default');
+      expect(defaultConfig.reasoningEffort).toBe('low');
+      expect(defaultConfig.reasoningEnabled).toBe(true);
+      expect(defaultConfig.reasoningBudget).toBe(8192);
+
+      const insightConfig = manager.getModelConfig('insight');
+      expect(insightConfig.reasoningEffort).toBe('medium');
+      expect(insightConfig.reasoningEnabled).toBe(false);
+      expect(insightConfig.reasoningBudget).toBe(4096);
+
+      const planningConfig = manager.getModelConfig('planning');
+      expect(planningConfig.reasoningEffort).toBe('high');
+      expect(planningConfig.reasoningEnabled).toBe(true);
+      expect(planningConfig.reasoningBudget).toBe(16384);
+    });
+
+    it('insight and planning reasoning configs are independent from default', () => {
+      const configWithReasoning = {
+        ...baseMap,
+        [MIDSCENE_MODEL_REASONING_EFFORT]: 'low',
+        [MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT]: 'high',
+      };
+      const manager = new ModelConfigManager(configWithReasoning);
+
+      expect(manager.getModelConfig('default').reasoningEffort).toBe('low');
+      expect(manager.getModelConfig('insight').reasoningEffort).toBe('high');
+      // planning has no reasoning effort configured, and its own config has no value
+      expect(
+        manager.getModelConfig('planning').reasoningEffort,
+      ).toBeUndefined();
     });
   });
 });

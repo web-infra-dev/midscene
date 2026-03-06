@@ -115,4 +115,26 @@ test.describe('file upload functionality', () => {
     await aiTap('Choose Single File', { fileChooserAccept: [testFile] });
     await aiAssert('page displays "test-file.txt"');
   });
+
+  test('should upload directory with webkitdirectory input', async ({
+    aiTap,
+    aiAssert,
+    page,
+  }) => {
+    const testDirectory = join(__dirname, '../../fixtures/test-directory');
+
+    await page.goto(
+      `file://${join(__dirname, '../../fixtures/file-upload.html')}`,
+    );
+
+    // Upload directory (Playwright 1.45+ supports this natively)
+    await aiTap('Choose Directory', {
+      fileChooserAccept: [testDirectory],
+    });
+
+    // Verify files from directory are selected
+    await aiAssert('page displays "file1.txt"');
+    await aiAssert('page displays "file2.txt"');
+    await aiAssert('page displays "directory"');
+  });
 });

@@ -6,7 +6,7 @@ import { pluginSitemap } from '@rspress/plugin-sitemap';
 
 export default defineConfig({
   root: path.join(__dirname, 'docs'),
-  title: 'Midscene - Joyful UI Automation',
+  title: 'Midscene - Vision-Driven UI Automation',
   description: 'Driving all platforms UI automation with vision-based model',
   icon: '/midscene-icon.png',
   logo: {
@@ -79,6 +79,10 @@ export default defineConfig({
           link: '/model-common-config',
         },
         {
+          text: 'Control any platform with Skills 🔥',
+          link: '/skills',
+        },
+        {
           text: 'Showcases',
           link: '/showcases',
         },
@@ -135,31 +139,49 @@ export default defineConfig({
           text: 'API reference (iOS)',
           link: '/ios-api-reference',
         },
-        // {
-        //   sectionHeaderText: 'PC Desktop',
-        // },
-        // {
-        //   text: 'Introduction',
-        //   link: '/computer-introduction',
-        // },
-        // {
-        //   text: 'Getting started',
-        //   link: '/computer-getting-started',
-        // },
-        // {
-        //   text: 'API reference (PC Desktop)',
-        //   link: '/computer-api-reference',
-        // },
         {
-          sectionHeaderText: 'More features',
+          sectionHeaderText: 'HarmonyOS',
         },
         {
-          text: 'Command line tools',
-          link: '/command-line-tools',
+          text: 'Introduction',
+          link: '/harmony-introduction',
+        },
+        {
+          text: 'Getting started',
+          link: '/harmony-getting-started',
+        },
+        {
+          text: 'API reference (HarmonyOS)',
+          link: '/harmony-api-reference',
+        },
+        {
+          sectionHeaderText: 'PC Desktop',
+        },
+        {
+          text: 'Introduction',
+          link: '/computer-introduction',
+        },
+        {
+          text: 'Getting started',
+          link: '/computer-getting-started',
+        },
+        {
+          text: 'API reference (PC Desktop)',
+          link: '/computer-api-reference',
+        },
+        {
+          sectionHeaderText: 'YAML automation',
+        },
+        {
+          text: 'YAML script runner',
+          link: '/yaml-script-runner',
         },
         {
           text: 'Workflow in YAML format',
           link: '/automate-with-scripts-in-yaml',
+        },
+        {
+          sectionHeaderText: 'More features',
         },
         {
           text: 'Caching AI planning & locate',
@@ -233,6 +255,10 @@ export default defineConfig({
           link: '/zh/model-common-config',
         },
         {
+          text: '使用 Skills 控制任意平台 🔥',
+          link: '/zh/skills',
+        },
+        {
           text: '案例展示',
           link: '/zh/showcases',
         },
@@ -289,31 +315,49 @@ export default defineConfig({
           text: 'API 参考（iOS）',
           link: '/zh/ios-api-reference',
         },
-        // {
-        //   sectionHeaderText: 'PC 桌面',
-        // },
-        // {
-        //   text: '介绍',
-        //   link: '/zh/computer-introduction',
-        // },
-        // {
-        //   text: '开始使用',
-        //   link: '/zh/computer-getting-started',
-        // },
-        // {
-        //   text: 'API 参考（PC 桌面）',
-        //   link: '/zh/computer-api-reference',
-        // },
         {
-          sectionHeaderText: '更多特性',
+          sectionHeaderText: 'HarmonyOS',
         },
         {
-          text: '命令行工具',
-          link: '/zh/command-line-tools',
+          text: '介绍',
+          link: '/zh/harmony-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/harmony-getting-started',
+        },
+        {
+          text: 'API 参考（HarmonyOS）',
+          link: '/zh/harmony-api-reference',
+        },
+        {
+          sectionHeaderText: 'PC 桌面',
+        },
+        {
+          text: '介绍',
+          link: '/zh/computer-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/computer-getting-started',
+        },
+        {
+          text: 'API 参考（PC 桌面）',
+          link: '/zh/computer-api-reference',
+        },
+        {
+          sectionHeaderText: 'YAML automation',
+        },
+        {
+          text: 'YAML 脚本运行器',
+          link: '/zh/yaml-script-runner',
         },
         {
           text: 'YAML 格式的工作流',
           link: '/zh/automate-with-scripts-in-yaml',
+        },
+        {
+          sectionHeaderText: '更多特性',
         },
         {
           text: '缓存 AI 规划和定位',
@@ -541,6 +585,14 @@ export default defineConfig({
         {
           from: '^/zh/ios-playground(?:\\.html)?/?$',
           to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/command-line-tools(?:\\.html)?/?$',
+          to: '/yaml-script-runner',
+        },
+        {
+          from: '^/zh/command-line-tools(?:\\.html)?/?$',
+          to: '/zh/yaml-script-runner',
         },
       ],
     }),

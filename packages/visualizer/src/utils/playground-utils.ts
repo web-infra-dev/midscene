@@ -1,10 +1,11 @@
-import type { WebUIContext } from '@midscene/core';
+import type { UIContext } from '@midscene/core';
 import { StaticPage, StaticPageAgent } from '@midscene/web/static';
 import type { ZodObjectSchema } from '../types';
 import { isZodObjectSchema, unwrapZodType } from '../types';
 
 // Get action name based on type
 export const actionNameForType = (type: string) => {
+  if (!type) return '';
   // Remove 'ai' prefix and convert camelCase to space-separated words
   const typeWithoutAi = type.startsWith('ai') ? type.slice(2) : type;
 
@@ -30,7 +31,7 @@ export const actionNameForType = (type: string) => {
 };
 
 // Create static agent from context
-export const staticAgentFromContext = (context: WebUIContext) => {
+export const staticAgentFromContext = (context: UIContext) => {
   const page = new StaticPage(context);
   return new StaticPageAgent(page);
 };

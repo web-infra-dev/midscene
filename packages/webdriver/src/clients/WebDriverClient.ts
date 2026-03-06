@@ -173,6 +173,19 @@ export class WebDriverClient {
     );
   }
 
+  /**
+   * Build a session-scoped endpoint path.
+   * If the endpoint already starts with `/session/`, return as-is;
+   * otherwise prepend `/session/${sessionId}`.
+   */
+  protected buildSessionEndpoint(endpoint: string): string {
+    this.ensureSession();
+    if (endpoint.startsWith('/session/')) {
+      return endpoint;
+    }
+    return `/session/${this.sessionId}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  }
+
   protected ensureSession(): void {
     if (!this.sessionId) {
       throw new Error(

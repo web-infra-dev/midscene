@@ -16,12 +16,26 @@ There are several ways to improve the running time:
 
 ## The webpage continues to flash when running in headed mode
 
-It's common when the viewport `deviceScaleFactor` does not match your system settings. Setting it to 2 in OSX will solve the issue.
+In the local visualization interface, continuous flashing is usually caused by a mismatch between the viewport's `deviceScaleFactor` and the system/browser's pixel ratio (common on high-resolution or Retina screens).
+
+This flashing does not affect Midscene's screenshots or automation execution, but it does affect the local preview experience. To resolve this, set `deviceScaleFactor` to match your browser's `window.devicePixelRatio`, or use Puppeteer's auto-adaptation feature.
 
 ```typescript
+// Puppeteer: Set deviceScaleFactor to 0 to automatically use the device pixel ratio
 await page.setViewport({
-  deviceScaleFactor: 2,
+  deviceScaleFactor: 0,
 });
+
+// Playwright: Playwright does not support using 0 for auto-adaptation like Puppeteer
+const page = await browser.newPage({
+  deviceScaleFactor: 2, // Replace the number 2 with your window.devicePixelRatio
+})
+```
+
+If you are unsure of your browser's pixel ratio, you can press F12 on any page to open the console and type `window.devicePixelRatio` to check; or paste the following into the Chrome address bar and press Enter to see the value in a popup:
+
+```plain
+data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRatio}`)</script>
 ```
 
 ## How do I configure the midscene_run directory?
@@ -67,3 +81,67 @@ You can also customize or disable the timeout by options:
 ## Get an error 403 when using Ollama model in Chrome extension
 
 `OLLAMA_ORIGINS="*"` is required to allow the Chrome extension to access the Ollama model.
+
+## Inaccurate Element Positioning
+
+If you encounter inaccurate element positioning when using Midscene, follow these steps to troubleshoot and resolve the issue:
+
+### 1. Upgrade to the Latest Version
+
+Make sure you are using the latest version of Midscene, as new versions typically include optimizations and improvements for positioning accuracy.
+
+```bash
+# Web automation
+npm install @midscene/web@latest
+# iOS automation
+npm install @midscene/ios@latest
+# CLI tool
+npm install @midscene/cli@latest
+# Or other packages corresponding to your platform
+```
+
+### 2. Use Better Vision Models
+
+Midscene's element positioning capability relies on the AI model's visual understanding ability, so be sure to choose models that support visual capabilities.
+
+Generally, newer versions and models with larger parameters perform better than older versions and smaller models. For example, Qwen3-VL performs better than Qwen2.5-VL, and its plus version performs better than the flash version.
+
+For more model selection suggestions, please refer to [Model Strategy](./model-strategy).
+
+### 3. Check Model Family Configuration
+
+Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Model Configuration](./model-config) for details.
+
+### 4. Analyze the Cause of Positioning Offset
+
+Positioning offset typically occurs in two scenarios:
+
+**Scenario 1: The model cannot understand semantics**
+- Symptoms: Positioning results randomly fall on unrelated elements, with significant variation in results each time.
+- Cause: The model may not understand the semantics behind icon buttons. For example, `aiTap('profile center')` is a functional description, and the model may not know the specific style of a profile center icon; whereas `aiTap('person avatar icon')` is a visual description, and the model can locate the element based on its visual characteristics.
+- Solution: Optimize prompts by combining visual features and position information to describe the element.
+  ```typescript
+  // ❌ Using only functional description
+  await agent.aiTap('profile center');
+
+  // ✅ Using visual description
+  await agent.aiTap('person avatar icon');
+
+  // ✅ Combining visual features and position information
+  await agent.aiTap('person avatar icon in the top right corner of the page');
+  ```
+
+**Scenario 2: The model recognizes accurately but the positioning has deviation**
+- Symptoms: Positioning results fall near the target element but with a few pixels offset.
+- Solution: Enabling `deepThink` will significantly improve positioning effectiveness.
+  ```typescript
+  await agent.aiTap('Login button', {
+    deepThink: true
+  });
+  ```
+
+For more information about `deepThink`, please refer to the [API documentation](/api).
+
+## Does the Doubao phone use Midscene under the hood?
+
+No.

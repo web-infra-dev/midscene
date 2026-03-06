@@ -52,10 +52,12 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const setActiveTask = useExecutionDump((store) => store.setActiveTask);
   const activeTask = useExecutionDump((store) => store.activeTask);
   const setHoverTask = useExecutionDump((store) => store.setHoverTask);
+  const playingTaskId = useExecutionDump((store) => store.playingTaskId);
 
   const setHoverPreviewConfig = useExecutionDump(
     (store) => store.setHoverPreviewConfig,
   );
+  const setPlayingTaskId = useExecutionDump((store) => store.setPlayingTaskId);
   const allTasks = useAllCurrentTasks();
   const currentSelectedIndex = allTasks?.findIndex(
     (task) => task === activeTask,
@@ -74,7 +76,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
         groupName: execution.name,
       });
 
-      // Add task rows
+      // Add task rows with taskId that matches the animation script format
       execution.tasks.forEach((task, taskIndex) => {
         rows.push({
           key: `task-${executionIndex}-${taskIndex}`,
@@ -85,6 +87,23 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
     return rows;
   }, [groupedDump]);
+
+  // Create a map from taskId to task for playback highlighting
+  const taskIdToTaskMap = useMemo(() => {
+    if (!groupedDump) return new Map<string, ExecutionTask>();
+    const map = new Map<string, ExecutionTask>();
+    groupedDump.executions.forEach((execution) => {
+      execution.tasks.forEach((task) => {
+        if (task.taskId) {
+          map.set(task.taskId, task);
+        }
+      });
+    });
+    return map;
+  }, [groupedDump]);
+
+  // Get the currently playing task
+  const playingTask = playingTaskId ? taskIdToTaskMap.get(playingTaskId) : null;
 
   const hasCachedInput = useMemo(() => {
     if (!groupedDump) return false;
@@ -157,8 +176,30 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
+  const getDeepLocateTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    return (task as ExecutionTaskPlanningLocate)?.param?.deepLocate ? (
+      <Tag
+        className="deeplocate-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        DeepLocate
+      </Tag>
+    ) : null;
+  };
+
   const getDeepThinkTag = (task: ExecutionTaskWithSearchAreaUsage) => {
-    return (task as ExecutionTaskPlanningLocate)?.param?.deepThink ? (
+    // deepThink is an aiAct planning-phase option, not a per-locate-task param.
+    // It is not stored in ExecutionTaskPlanningLocate.param; using a generic cast
+    // here to avoid incorrectly coupling it to the locate task type.
+    const param = (task as ExecutionTask & { param?: { deepThink?: boolean } })
+      ?.param;
+    return param?.deepThink ? (
       <Tag
         className="deepthink-tag"
         bordered={false}
@@ -466,6 +507,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getDeepLocateTag(task)}
             {getDeepThinkTag(task)}
           </div>
         );
@@ -544,14 +586,18 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
 
               const task = record.task!;
               const isSelected = task === activeTask;
+              const isPlaying = task === playingTask;
+              const taskId = task.taskId;
 
               return (
                 <div
                   key={record.key}
-                  className={`task-row ${isSelected ? 'selected' : ''}`}
+                  data-task-id={taskId}
+                  className={`task-row ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
                   onClick={() => {
                     setActiveTask(task);
                     setReplayAllMode?.(false);
+                    setPlayingTaskId(null); // Clear playing state when user clicks a task
                   }}
                   onMouseEnter={(event) => {
                     const rect = event.currentTarget.getBoundingClientRect();

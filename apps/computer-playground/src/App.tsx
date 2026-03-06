@@ -182,6 +182,7 @@ export default function App() {
                 branding={{
                   title: 'Computer Playground',
                   version: __APP_VERSION__,
+                  targetName: 'computer',
                 }}
                 className="playground-container"
               />

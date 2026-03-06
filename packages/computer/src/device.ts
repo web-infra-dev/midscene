@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+import { execSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import {
   type DeviceAction,
@@ -26,6 +27,8 @@ import { sleep } from '@midscene/core/utils';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import screenshot from 'screenshot-desktop';
+import type { XvfbInstance } from './xvfb';
+import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
 // Type definitions
 interface LibNut {
@@ -63,9 +66,89 @@ const SCROLL_REPEAT_COUNT = 10;
 const SCROLL_STEP_DELAY = 100;
 const SCROLL_COMPLETE_DELAY = 500;
 
-// Input strategy constants
-const INPUT_STRATEGY_ALWAYS_CLIPBOARD = 'always-clipboard';
-const INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII = 'clipboard-for-non-ascii';
+// macOS AppleScript key code mapping
+// Reference: https://eastmanreference.com/complete-list-of-applescript-key-codes
+const APPLESCRIPT_KEY_CODE_MAP: Record<string, number> = {
+  // Special keys
+  return: 36,
+  enter: 36,
+  tab: 48,
+  space: 49,
+  backspace: 51,
+  delete: 51,
+  escape: 53,
+  forwarddelete: 117,
+
+  // Arrow keys
+  left: 123,
+  right: 124,
+  down: 125,
+  up: 126,
+
+  // Navigation keys
+  home: 115,
+  end: 119,
+  pageup: 116,
+  pagedown: 121,
+
+  // Function keys
+  f1: 122,
+  f2: 120,
+  f3: 99,
+  f4: 118,
+  f5: 96,
+  f6: 97,
+  f7: 98,
+  f8: 100,
+  f9: 101,
+  f10: 109,
+  f11: 103,
+  f12: 111,
+};
+
+// Modifier key mapping for AppleScript
+const APPLESCRIPT_MODIFIER_MAP: Record<string, string> = {
+  command: 'command down',
+  cmd: 'command down',
+  control: 'control down',
+  ctrl: 'control down',
+  shift: 'shift down',
+  alt: 'option down',
+  option: 'option down',
+  meta: 'command down',
+};
+
+/**
+ * Send a key press using AppleScript (macOS only)
+ * More reliable than libnut for TUI applications like Bubble Tea
+ */
+function sendKeyViaAppleScript(key: string, modifiers: string[] = []): void {
+  const lowerKey = key.toLowerCase();
+  const keyCode = APPLESCRIPT_KEY_CODE_MAP[lowerKey];
+
+  // Build modifier string
+  const modifierParts = modifiers
+    .map((m) => APPLESCRIPT_MODIFIER_MAP[m.toLowerCase()])
+    .filter(Boolean);
+  const modifierStr =
+    modifierParts.length > 0 ? ` using {${modifierParts.join(', ')}}` : '';
+
+  let script: string;
+
+  if (keyCode !== undefined) {
+    // Use key code for special keys
+    script = `tell application "System Events" to key code ${keyCode}${modifierStr}`;
+  } else if (lowerKey.length === 1) {
+    // Use keystroke for single characters (letters, numbers, symbols)
+    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
+  } else {
+    // Fallback: try as keystroke
+    script = `tell application "System Events" to keystroke "${key}"${modifierStr}`;
+  }
+
+  debugDevice('sendKeyViaAppleScript', { key, modifiers, script });
+  execSync(`osascript -e '${script}'`);
+}
 
 // Lazy load libnut with fallback
 let libnut: LibNut | null = null;
@@ -189,7 +272,23 @@ export interface ComputerDeviceOpt {
   displayId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   customActions?: DeviceAction<any>[];
-  inputStrategy?: 'always-clipboard' | 'clipboard-for-non-ascii';
+  /**
+   * Keyboard driver for sending key events (macOS only)
+   * - 'applescript': Use AppleScript via osascript (default on macOS, more reliable)
+   * - 'libnut': Use libnut's keyTap (faster but may not work with some TUI apps)
+   */
+  keyboardDriver?: 'applescript' | 'libnut';
+  /**
+   * Headless mode via Xvfb (Linux only).
+   * - true: start Xvfb virtual display
+   * - false/undefined: do not start Xvfb
+   * Can also be set via MIDSCENE_COMPUTER_HEADLESS_LINUX=true environment variable.
+   */
+  headless?: boolean;
+  /**
+   * Resolution for Xvfb virtual display (default '1920x1080x24')
+   */
+  xvfbResolution?: string;
 }
 
 export class ComputerDevice implements AbstractInterface {
@@ -198,11 +297,20 @@ export class ComputerDevice implements AbstractInterface {
   private displayId?: string;
   private description?: string;
   private destroyed = false;
+  private xvfbInstance?: XvfbInstance;
+  private xvfbCleanup?: () => void;
+  /**
+   * On macOS, use AppleScript for keyboard operations by default
+   * to avoid focus issues with system overlays (e.g. Spotlight).
+   */
+  private useAppleScript: boolean;
   uri?: string;
 
   constructor(options?: ComputerDeviceOpt) {
     this.options = options;
     this.displayId = options?.displayId;
+    this.useAppleScript =
+      process.platform === 'darwin' && options?.keyboardDriver !== 'libnut';
   }
 
   describe(): string {
@@ -230,27 +338,153 @@ export class ComputerDevice implements AbstractInterface {
     debugDevice('Connecting to computer device');
 
     try {
+      // Start Xvfb if explicitly requested (option or env var)
+      const headless =
+        this.options?.headless ??
+        process.env.MIDSCENE_COMPUTER_HEADLESS_LINUX === 'true';
+      if (needsXvfb(headless)) {
+        if (!checkXvfbInstalled()) {
+          throw new Error(
+            'Xvfb is required for headless mode but not installed. Install: sudo apt-get install xvfb',
+          );
+        }
+        this.xvfbInstance = await startXvfb({
+          resolution: this.options?.xvfbResolution,
+        });
+        process.env.DISPLAY = this.xvfbInstance.display;
+        debugDevice(`Xvfb started on display ${this.xvfbInstance.display}`);
+
+        // Clean up Xvfb on process exit (stored for removal in destroy())
+        this.xvfbCleanup = () => {
+          if (this.xvfbInstance) {
+            this.xvfbInstance.stop();
+            this.xvfbInstance = undefined;
+          }
+        };
+        process.on('exit', this.xvfbCleanup);
+        process.on('SIGINT', this.xvfbCleanup);
+        process.on('SIGTERM', this.xvfbCleanup);
+      }
+
       // Load libnut on first connect
       libnut = await getLibnut();
 
       const size = await this.size();
       const displays = await ComputerDevice.listDisplays();
 
+      const headlessInfo = this.xvfbInstance
+        ? `\nHeadless: true (Xvfb on ${this.xvfbInstance.display})`
+        : '';
+
       this.description = `
 Type: Computer
 Platform: ${process.platform}
 Display: ${this.displayId || 'Primary'}
 Screen Size: ${size.width}x${size.height}
-Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}
+Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', ') : 'Unknown'}${headlessInfo}
 `;
       debugDevice('Computer device connected', this.description);
+      // Health check: verify screenshot and mouse control are working
+      await this.healthCheck();
     } catch (error) {
+      // Clean up Xvfb on connection failure
+      if (this.xvfbInstance) {
+        this.xvfbInstance.stop();
+        this.xvfbInstance = undefined;
+      }
       debugDevice(`Failed to connect: ${error}`);
       throw new Error(`Unable to connect to computer device: ${error}`);
     }
   }
 
+  private async healthCheck(): Promise<void> {
+    console.log('[HealthCheck] Starting health check...');
+
+    // Step 1: Take a screenshot (with timeout to handle screenshot-desktop
+    // hanging when xrandr is missing on Linux — its promise never settles)
+    console.log('[HealthCheck] Taking screenshot...');
+    const screenshotTimeout = 15_000;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => reject(new Error('Screenshot timed out')),
+        screenshotTimeout,
+      );
+    });
+    const base64 = await Promise.race([
+      this.screenshotBase64().finally(() => clearTimeout(timeoutId)),
+      timeoutPromise,
+    ]);
+    console.log(`[HealthCheck] Screenshot succeeded (length=${base64.length})`);
+
+    // Step 2: Move the mouse
+    console.log('[HealthCheck] Moving mouse...');
+    assert(libnut, 'libnut not initialized');
+    const startPos = libnut.getMousePos();
+    console.log(
+      `[HealthCheck] Current mouse position: (${startPos.x}, ${startPos.y})`,
+    );
+
+    // Move the mouse by a small random offset, then move it back
+    const offsetX = Math.floor(Math.random() * 40) + 10;
+    const offsetY = Math.floor(Math.random() * 40) + 10;
+    const targetX = startPos.x + offsetX;
+    const targetY = startPos.y + offsetY;
+
+    console.log(`[HealthCheck] Moving mouse to (${targetX}, ${targetY})...`);
+    libnut.moveMouse(targetX, targetY);
+    await sleep(50);
+
+    const movedPos = libnut.getMousePos();
+    console.log(
+      `[HealthCheck] Mouse position after move: (${movedPos.x}, ${movedPos.y})`,
+    );
+
+    // Detect if moveMouse actually worked
+    const deltaX = Math.abs(movedPos.x - targetX);
+    const deltaY = Math.abs(movedPos.y - targetY);
+    if (deltaX > 5 || deltaY > 5) {
+      const msg = `[HealthCheck] WARNING: Mouse control may not be working. Expected (${targetX}, ${targetY}), got (${movedPos.x}, ${movedPos.y}), delta=(${deltaX}, ${deltaY})`;
+      console.warn(msg);
+      debugDevice(msg);
+
+      if (process.platform === 'win32' && !this.isRunningAsAdmin()) {
+        const hint =
+          'Midscene is NOT running as Administrator. ' +
+          'Windows blocks mouse/keyboard input to elevated (admin) applications from non-admin processes (UIPI). ' +
+          'Please run your terminal or Node.js as Administrator and try again.';
+        console.error(`\n[HealthCheck] ${hint}\n`);
+        debugDevice(hint);
+      }
+    }
+
+    // Restore original position
+    libnut.moveMouse(startPos.x, startPos.y);
+    console.log(
+      `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
+    );
+
+    console.log('[HealthCheck] Health check passed');
+  }
+
+  /**
+   * Check if the current process is running with Administrator privileges.
+   * Uses "net session" which succeeds only when elevated.
+   */
+  private isRunningAsAdmin(): boolean {
+    if (process.platform !== 'win32') return false;
+    try {
+      execSync('net session', { stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async screenshotBase64(): Promise<string> {
+    if (this.destroyed) {
+      throw new Error('ComputerDevice has been destroyed');
+    }
     debugDevice('Taking screenshot', { displayId: this.displayId });
 
     try {
@@ -286,22 +520,11 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       return {
         width: screenSize.width,
         height: screenSize.height,
-        dpr: 1, // Desktop typically uses logical pixels
       };
     } catch (error) {
       debugDevice(`Failed to get screen size: ${error}`);
       throw new Error(`Failed to get screen size: ${error}`);
     }
-  }
-
-  /**
-   * Check if text contains non-ASCII characters
-   * Matches: Chinese, Japanese, Korean, Latin extended characters (café, niño), emoji, etc.
-   */
-  private shouldUseClipboardForText(text: string): boolean {
-    // Check for any character with code point >= 128 (non-ASCII)
-    const hasNonAscii = /[\x80-\uFFFF]/.test(text);
-    return hasNonAscii;
   }
 
   /**
@@ -329,8 +552,12 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       await sleep(50);
 
       // 3. Simulate paste shortcut
-      const modifier = process.platform === 'darwin' ? 'command' : 'control';
-      libnut.keyTap('v', [modifier]);
+      if (this.useAppleScript) {
+        sendKeyViaAppleScript('v', ['command']);
+      } else {
+        const modifier = process.platform === 'darwin' ? 'command' : 'control';
+        libnut.keyTap('v', [modifier]);
+      }
       await sleep(100);
     } finally {
       // 4. Restore old clipboard content
@@ -344,36 +571,13 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   }
 
   /**
-   * Smart type string with platform-specific strategy
-   * - macOS: Always use libnut (native support for non-ASCII)
-   * - Windows/Linux: Use clipboard for non-ASCII characters
+   * Always use clipboard paste to input text, avoiding IME interference.
+   * Keystroke-based input (AppleScript/libnut) goes through the active input method,
+   * which can swallow characters or convert them when a non-English IME is active.
    */
   private async smartTypeString(text: string): Promise<void> {
     assert(libnut, 'libnut not initialized');
-
-    // macOS: use libnut directly (native Chinese support)
-    if (process.platform === 'darwin') {
-      libnut.typeString(text);
-      return;
-    }
-
-    // Windows/Linux: use smart strategy
-    const inputStrategy =
-      this.options?.inputStrategy ?? INPUT_STRATEGY_CLIPBOARD_FOR_NON_ASCII;
-
-    if (inputStrategy === INPUT_STRATEGY_ALWAYS_CLIPBOARD) {
-      await this.typeViaClipboard(text);
-      return;
-    }
-
-    // clipboard-for-non-ascii strategy: intelligent detection
-    const shouldUseClipboard = this.shouldUseClipboardForText(text);
-
-    if (shouldUseClipboard) {
-      await this.typeViaClipboard(text);
-    } else {
-      libnut.typeString(text);
-    }
+    await this.typeViaClipboard(text);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -464,20 +668,28 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement | undefined;
 
-          if (element && param.mode !== 'append') {
-            // Click and clear
+          if (element) {
+            // Always click to ensure focus
             const [x, y] = element.center;
             libnut.moveMouse(Math.round(x), Math.round(y));
             libnut.mouseClick('left');
             await sleep(INPUT_FOCUS_DELAY);
 
-            // Select all and delete
-            const modifier =
-              process.platform === 'darwin' ? 'command' : 'control';
-            libnut.keyTap('a', [modifier]);
-            await sleep(50);
-            libnut.keyTap('backspace');
-            await sleep(INPUT_CLEAR_DELAY);
+            if (param.mode !== 'append') {
+              // Select all and delete
+              if (this.useAppleScript) {
+                sendKeyViaAppleScript('a', ['command']);
+                await sleep(50);
+                sendKeyViaAppleScript('backspace', []);
+              } else {
+                const modifier =
+                  process.platform === 'darwin' ? 'command' : 'control';
+                libnut.keyTap('a', [modifier]);
+                await sleep(50);
+                libnut.keyTap('backspace');
+              }
+              await sleep(INPUT_CLEAR_DELAY);
+            }
           }
 
           if (param.mode === 'clear') {
@@ -566,12 +778,19 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
           original: param.keyName,
           key,
           modifiers,
+          driver: this.useAppleScript ? 'applescript' : 'libnut',
         });
 
-        if (modifiers.length > 0) {
-          libnut.keyTap(key, modifiers);
+        if (this.useAppleScript) {
+          // Use AppleScript for all keys on macOS when keyboardDriver is 'applescript'
+          sendKeyViaAppleScript(key, modifiers);
         } else {
-          libnut.keyTap(key);
+          // Use libnut (default)
+          if (modifiers.length > 0) {
+            libnut.keyTap(key, modifiers);
+          } else {
+            libnut.keyTap(key);
+          }
         }
       }),
 
@@ -605,9 +824,16 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         libnut.mouseClick('left');
         await sleep(100);
 
-        const modifier = process.platform === 'darwin' ? 'command' : 'control';
-        libnut.keyTap('a', [modifier]);
-        libnut.keyTap('backspace');
+        if (this.useAppleScript) {
+          sendKeyViaAppleScript('a', ['command']);
+          await sleep(50);
+          sendKeyViaAppleScript('backspace', []);
+        } else {
+          const modifier =
+            process.platform === 'darwin' ? 'command' : 'control';
+          libnut.keyTap('a', [modifier]);
+          libnut.keyTap('backspace');
+        }
         await sleep(50);
       }),
     ];
@@ -621,6 +847,17 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
   async destroy(): Promise<void> {
     if (this.destroyed) {
       return;
+    }
+
+    if (this.xvfbInstance) {
+      this.xvfbInstance.stop();
+      this.xvfbInstance = undefined;
+    }
+    if (this.xvfbCleanup) {
+      process.removeListener('exit', this.xvfbCleanup);
+      process.removeListener('SIGINT', this.xvfbCleanup);
+      process.removeListener('SIGTERM', this.xvfbCleanup);
+      this.xvfbCleanup = undefined;
     }
 
     this.destroyed = true;

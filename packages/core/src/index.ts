@@ -7,7 +7,6 @@ export {
   plan,
   AiLocateElement,
   getMidsceneLocationSchema,
-  type MidsceneLocationResultType,
   PointSchema,
   SizeSchema,
   RectSchema,
@@ -64,6 +63,9 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
+// Report generator
+export type { IReportGenerator } from './report-generator';
+export { ReportGenerator, nullReportGenerator } from './report-generator';
+
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
-export type { SerializedScreenshotItem } from './screenshot-item';

@@ -26,6 +26,8 @@ export default defineConfig({
       '@silvia-odwyer/photon',
       '@silvia-odwyer/photon-node',
       '@modelcontextprotocol/sdk',
+      // Keep as external so try-catch can handle missing optional dependency
+      '@ffmpeg-installer/ffmpeg',
     ],
   },
   plugins: [injectReportHtmlFromCore(__dirname)],

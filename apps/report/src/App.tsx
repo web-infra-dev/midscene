@@ -4,7 +4,11 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import { GroupedActionDump } from '@midscene/core';
+import {
+  GroupedActionDump,
+  parseImageScripts,
+  restoreImageReferences,
+} from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -27,6 +31,8 @@ import type {
 } from './types';
 
 let globalRenderCount = 1;
+const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
+const DEFAULT_SIDEBAR_WIDTH = 280;
 
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
@@ -43,12 +49,16 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const insightWidth = useExecutionDump((store) => store.insightWidth);
   const insightHeight = useExecutionDump((store) => store.insightHeight);
   const replayAllMode = useExecutionDump((store) => store.replayAllMode);
+  const setPlayingTaskId = useExecutionDump((store) => store.setPlayingTaskId);
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelBriefs = useExecutionDump((store) => store.modelBriefs);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
-  const mainLayoutChangedRef = useRef(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    return saved ? Number(saved) : DEFAULT_SIDEBAR_WIDTH;
+  });
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const {
@@ -128,6 +138,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           replayScripts={replayAllScripts!}
           imageWidth={insightWidth!}
           imageHeight={insightHeight!}
+          onTaskChange={setPlayingTaskId}
         />
       </div>
     ) : (
@@ -147,62 +158,65 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     );
 
     mainContent = (
-      <PanelGroup
-        autoSaveId="main-page-layout"
-        direction="horizontal"
-        onLayout={() => {
-          if (!mainLayoutChangedRef.current) {
-            setMainLayoutChangeFlag((prev) => prev + 1);
-          }
-        }}
-      >
-        <Panel maxSize={95} defaultSize={25} minSize={15}>
-          <div className="page-side">
-            <Sidebar
-              dumps={dumps}
-              proModeEnabled={proModeEnabled}
-              onProModeChange={setProModeEnabled}
-              replayAllScripts={replayAllScripts}
-              setReplayAllMode={setReplayAllMode}
-            />
-          </div>
-        </Panel>
-        <PanelResizeHandle
+      <div className="main-layout">
+        <div className="page-side" style={{ width: sidebarWidth }}>
+          <Sidebar
+            dumps={dumps}
+            proModeEnabled={proModeEnabled}
+            onProModeChange={setProModeEnabled}
+            replayAllScripts={replayAllScripts}
+            setReplayAllMode={setReplayAllMode}
+          />
+        </div>
+        <div
           className="resize-handle"
-          onDragging={(isChanging) => {
-            if (mainLayoutChangedRef.current && !isChanging) {
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startWidth = sidebarWidth;
+            let latestWidth = startWidth;
+            const onMouseMove = (ev: MouseEvent) => {
+              latestWidth = Math.max(
+                200,
+                Math.min(500, startWidth + ev.clientX - startX),
+              );
+              setSidebarWidth(latestWidth);
+            };
+            const onMouseUp = () => {
+              document.removeEventListener('mousemove', onMouseMove);
+              document.removeEventListener('mouseup', onMouseUp);
+              localStorage.setItem(SIDEBAR_WIDTH_KEY, String(latestWidth));
               setMainLayoutChangeFlag((prev) => prev + 1);
-            }
-            mainLayoutChangedRef.current = isChanging;
+            };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
           }}
         />
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-right">
-            <div
-              className="main-right-header"
-              onClick={() => setTimelineCollapsed(!timelineCollapsed)}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
+        <div className="main-right">
+          <div
+            className="main-right-header"
+            onClick={() => setTimelineCollapsed(!timelineCollapsed)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span
+              className="timeline-collapse-icon"
+              style={{
+                display: 'inline-block',
+                marginRight: 8,
+                transition: 'transform 0.2s',
+                transform: timelineCollapsed
+                  ? 'rotate(-90deg)'
+                  : 'rotate(0deg)',
+              }}
             >
-              <span
-                className="timeline-collapse-icon"
-                style={{
-                  display: 'inline-block',
-                  marginRight: 8,
-                  transition: 'transform 0.2s',
-                  transform: timelineCollapsed
-                    ? 'rotate(-90deg)'
-                    : 'rotate(0deg)',
-                }}
-              >
-                ▼
-              </span>
-              Record
-            </div>
-            {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-            <div className="main-content">{content}</div>
+              ▼
+            </span>
+            Record
           </div>
-        </Panel>
-      </PanelGroup>
+          {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+          <div className="main-content">{content}</div>
+        </div>
+      </div>
     );
   }
 
@@ -322,8 +336,17 @@ export function App() {
               try {
                 console.time('parse_dump');
                 const content = antiEscapeScriptTag(el.textContent || '');
-                cachedJsonContent =
-                  GroupedActionDump.fromSerializedString(content);
+
+                // Build imageMap from <script type="midscene-image"> tags
+                const imageMap = parseImageScripts(
+                  document.documentElement.innerHTML,
+                );
+
+                // Parse dump and restore image references
+                const parsed = JSON.parse(content);
+                const restored = restoreImageReferences(parsed, imageMap);
+                cachedJsonContent = GroupedActionDump.fromJSON(restored);
+
                 console.timeEnd('parse_dump');
                 (cachedJsonContent as any).attributes = attributes;
                 isParsed = true;

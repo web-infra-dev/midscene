@@ -58,6 +58,7 @@ export interface AnimationScript {
   subTitle?: string;
   imageWidth?: number;
   imageHeight?: number;
+  taskId?: string; // ID of the associated ExecutionTask for playback synchronization
 }
 
 const stillDuration = 900;
@@ -136,6 +137,7 @@ export interface ReplayScriptsInfo {
   height?: number;
   sdkVersion?: string;
   modelBriefs: string[];
+  deviceType?: string;
 }
 
 const capitalizeFirstLetter = (str: string) => {
@@ -182,9 +184,9 @@ export const allScriptsFromDump = (
 
   normalizedDump.executions?.filter(Boolean).forEach((execution) => {
     execution.tasks.forEach((task) => {
-      if (task.uiContext?.size?.width) {
-        const w = task.uiContext.size.width;
-        const h = task.uiContext.size.height;
+      if (task.uiContext?.shotSize?.width) {
+        const w = task.uiContext.shotSize.width;
+        const h = task.uiContext.shotSize.height;
         if (!firstWidth) {
           firstWidth = w;
           firstHeight = h;
@@ -205,12 +207,15 @@ export const allScriptsFromDump = (
 
   // Use first dimensions as default for the overall player size
   const allScripts: AnimationScript[] = [];
-  normalizedDump.executions?.filter(Boolean).forEach((execution) => {
+  const executions = normalizedDump.executions?.filter(Boolean) || [];
+  for (let execIndex = 0; execIndex < executions.length; execIndex++) {
+    const execution = executions[execIndex];
     const scripts = generateAnimationScripts(
       execution,
       -1,
       firstWidth!,
       firstHeight!,
+      execIndex,
     );
     if (scripts) {
       allScripts.push(...scripts);
@@ -227,7 +232,7 @@ export const allScriptsFromDump = (
         }
       }
     });
-  });
+  }
 
   const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
     (script, index) => {
@@ -267,6 +272,7 @@ export const allScriptsFromDump = (
     height: firstHeight,
     sdkVersion,
     modelBriefs,
+    deviceType: (normalizedDump as IGroupedActionDump).deviceType,
   };
 };
 
@@ -275,6 +281,7 @@ export const generateAnimationScripts = (
   task: ExecutionTask | number,
   imageWidth: number,
   imageHeight: number,
+  executionIndex = 0,
 ): AnimationScript[] | null => {
   if (!execution || !execution.tasks.length) return null;
   if (imageWidth === 0 || imageHeight === 0) {
@@ -282,8 +289,10 @@ export const generateAnimationScripts = (
   }
 
   let tasksIncluded: ExecutionTask[] = [];
+  let taskStartIndex = 0;
   if (task === -1) {
     tasksIncluded = execution.tasks;
+    taskStartIndex = 0;
   } else {
     // find all tasks before next planning task
     const startIndex = execution.tasks.findIndex((t) => t === task);
@@ -297,6 +306,7 @@ export const generateAnimationScripts = (
       return null;
     }
 
+    taskStartIndex = startIndex;
     for (let i = startIndex; i < execution.tasks.length; i++) {
       if (
         i > startIndex &&
@@ -325,10 +335,16 @@ export const generateAnimationScripts = (
     imageHeight,
   );
 
+  // Get taskId from the task object
+  const getTaskId = (taskIndex: number): string | undefined => {
+    return tasksIncluded[taskIndex]?.taskId;
+  };
+
   const setPointerScript = (
     img: string,
     title: string,
     subTitle: string,
+    taskId?: string,
   ): AnimationScript => {
     return {
       type: 'pointer',
@@ -336,6 +352,7 @@ export const generateAnimationScripts = (
       duration: 0,
       title,
       subTitle,
+      taskId,
     };
   };
 
@@ -346,6 +363,7 @@ export const generateAnimationScripts = (
   let initSubTitle = '';
   let errorStateFlag = false;
   tasksIncluded.forEach((task, index) => {
+    const currentTaskId = getTaskId(index);
     // if (errorStateFlag) return;
 
     if (index === 0) {
@@ -393,11 +411,11 @@ export const generateAnimationScripts = (
       const context = task.uiContext;
       if (context?.screenshot) {
         // show the original screenshot first
-        const width = context.size?.width || imageWidth;
-        const height = context.size?.height || imageHeight;
-        const screenshotData = (context.screenshot?.base64 ||
-          context.screenshot ||
-          '') as string;
+        const width = context.shotSize?.width || imageWidth;
+        const height = context.shotSize?.height || imageHeight;
+        const screenshotData = (
+          context.screenshot as unknown as { base64: string }
+        ).base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -406,6 +424,7 @@ export const generateAnimationScripts = (
           subTitle,
           imageWidth: width,
           imageHeight: height,
+          taskId: currentTaskId,
         });
 
         locateElements.forEach((element) => {
@@ -435,8 +454,9 @@ export const generateAnimationScripts = (
             insightCameraDuration: locateDuration,
             title,
             subTitle: element.description || subTitle,
-            imageWidth: context.size?.width || imageWidth,
-            imageHeight: context.size?.height || imageHeight,
+            imageWidth: context.shotSize?.width || imageWidth,
+            imageHeight: context.shotSize?.height || imageHeight,
+            taskId: currentTaskId,
           });
 
           // scripts.push({
@@ -453,17 +473,18 @@ export const generateAnimationScripts = (
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshot = planningTask.recorder[0]?.screenshot;
-        const screenshotData = (screenshot?.base64 ||
-          screenshot ||
-          '') as string;
+        const screenshotData =
+          (screenshot as unknown as { base64: string } | undefined)?.base64 ||
+          '';
         scripts.push({
           type: 'img',
           img: screenshotData,
           duration: stillDuration,
           title: typeStr(task),
           subTitle: paramStr(task),
-          imageWidth: task.uiContext?.size?.width || imageWidth,
-          imageHeight: task.uiContext?.size?.height || imageHeight,
+          imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+          imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+          taskId: currentTaskId,
         });
       }
     } else if (task.type === 'Action Space') {
@@ -475,6 +496,7 @@ export const generateAnimationScripts = (
         duration: actionSpinningPointerDuration,
         title,
         subTitle,
+        taskId: currentTaskId,
       });
 
       if (insightOnTop) {
@@ -484,18 +506,20 @@ export const generateAnimationScripts = (
           duration: clearInsightDuration,
           title,
           subTitle,
+          taskId: currentTaskId,
         });
         insightOnTop = false;
       }
 
-      scripts.push(setPointerScript(mousePointer, title, subTitle));
+      scripts.push(
+        setPointerScript(mousePointer, title, subTitle, currentTaskId),
+      );
 
       // currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
-      const actionScreenshotData = (screenshot?.base64 ||
-        screenshot ||
-        '') as string;
+      const actionScreenshotData =
+        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
       scripts.push({
         type: 'img',
         img: actionScreenshotData,
@@ -503,8 +527,9 @@ export const generateAnimationScripts = (
         camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
         title,
         subTitle,
-        imageWidth: task.uiContext?.size?.width || imageWidth,
-        imageHeight: task.uiContext?.size?.height || imageHeight,
+        imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+        imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+        taskId: currentTaskId,
       });
     } else {
       // Handle normal tasks
@@ -513,9 +538,8 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
-        const screenshotData = (screenshot?.base64 ||
-          screenshot ||
-          '') as string;
+        const screenshotData = (screenshot as unknown as { base64: string })
+          .base64;
         scripts.push({
           type: 'img',
           img: screenshotData,
@@ -523,8 +547,9 @@ export const generateAnimationScripts = (
           camera: fullPageCameraState,
           title,
           subTitle,
-          imageWidth: task.uiContext?.size?.width || imageWidth,
-          imageHeight: task.uiContext?.size?.height || imageHeight,
+          imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+          imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+          taskId: currentTaskId,
         });
       }
     }
@@ -537,9 +562,8 @@ export const generateAnimationScripts = (
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
-      const errorScreenshotData = (screenshot?.base64 ||
-        screenshot ||
-        '') as string;
+      const errorScreenshotData =
+        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
       scripts.push({
         type: 'img',
         img: errorScreenshotData,
@@ -547,10 +571,10 @@ export const generateAnimationScripts = (
         duration: stillDuration,
         title: errorTitle,
         subTitle: errorSubTitle,
-        imageWidth: task.uiContext?.size?.width || imageWidth,
-        imageHeight: task.uiContext?.size?.height || imageHeight,
+        imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+        imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+        taskId: currentTaskId,
       });
-      return;
     }
   });
 
@@ -560,6 +584,7 @@ export const generateAnimationScripts = (
     type: 'img',
     duration: lastFrameDuration,
     camera: fullPageCameraState,
+    taskId: undefined, // Explicitly set to undefined to clear the playing state
   });
 
   return scripts;

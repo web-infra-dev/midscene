@@ -1,6 +1,11 @@
 import { defineConfig } from '@rslib/core';
 
 export default defineConfig({
+  output: {
+    // Keep @ffmpeg-installer/ffmpeg as external so it's loaded at runtime
+    // This allows try-catch to properly handle missing optional dependency
+    externals: ['@ffmpeg-installer/ffmpeg'],
+  },
   lib: [
     {
       output: {
@@ -28,6 +33,7 @@ export default defineConfig({
   source: {
     entry: {
       index: './src/index.ts',
+      cli: './src/cli.ts',
       'mcp-server': './src/mcp-server.ts',
     },
   },
