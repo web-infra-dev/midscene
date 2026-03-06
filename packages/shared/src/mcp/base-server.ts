@@ -130,10 +130,10 @@ export abstract class BaseMCPServer {
   /**
    * Perform cleanup on shutdown
    */
-  private performCleanup(): void {
+  private async performCleanup(): Promise<void> {
     console.error(`${this.config.name} closing...`);
     this.mcpServer.close();
-    this.toolsManager?.destroy?.().catch(console.error);
+    await this.toolsManager?.destroy?.().catch(console.error);
   }
 
   /**
@@ -182,15 +182,13 @@ export abstract class BaseMCPServer {
 
     // Setup cleanup handlers
     process.stdin.on('close', () => {
-      this.performCleanup();
-      process.exit(0);
+      this.performCleanup().finally(() => process.exit(0));
     });
 
     // Setup signal handlers for graceful shutdown
     const cleanup = () => {
       console.error(`${this.config.name} shutting down...`);
-      this.performCleanup();
-      process.exit(0);
+      this.performCleanup().finally(() => process.exit(0));
     };
 
     process.once('SIGINT', cleanup);
@@ -339,11 +337,11 @@ export abstract class BaseMCPServer {
         sessions.clear();
 
         return new Promise<void>((resolve) => {
-          server.close((err) => {
+          server.close(async (err) => {
             if (err) {
               console.error('Error closing HTTP server:', err);
             }
-            this.performCleanup();
+            await this.performCleanup();
             resolve();
           });
         });
@@ -459,21 +457,18 @@ export abstract class BaseMCPServer {
       try {
         server.close(() => {
           // Server closed callback - all connections finished
-          this.performCleanup();
-          process.exit(0);
+          this.performCleanup().finally(() => process.exit(0));
         });
 
         // Set a timeout in case server.close() hangs
         setTimeout(() => {
           console.error('Forcefully shutting down after timeout');
-          this.performCleanup();
-          process.exit(1);
+          this.performCleanup().finally(() => process.exit(1));
         }, 5000);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         console.error(`Error closing HTTP server: ${message}`);
-        this.performCleanup();
-        process.exit(1);
+        this.performCleanup().finally(() => process.exit(1));
       }
     };
 
