@@ -111,6 +111,14 @@ const browserManager = {
 
   async launchDetachedChrome(): Promise<string> {
     const chromePath = resolveChromePath();
+
+    // Ensure user-data-dir exists and clean up stale SingletonLock
+    await mkdir(USER_DATA_DIR, { recursive: true });
+    const singletonLock = join(USER_DATA_DIR, 'SingletonLock');
+    try {
+      await unlink(singletonLock);
+    } catch {}
+
     const args = [
       '--headless=new',
       `--user-data-dir=${USER_DATA_DIR}`,
