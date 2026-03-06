@@ -27,7 +27,7 @@ const ScreenshotDisplay = (props: {
       <div className="screenshot-item-title">{props.title}</div>
       {props.img && (
         <div>
-          <img src={props.img} alt="screenshot" />
+          <img src={props.img} alt="screenshot" loading="lazy" />
         </div>
       )}
       {props.children && <div>{props.children}</div>}
