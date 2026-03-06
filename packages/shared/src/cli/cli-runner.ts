@@ -2,12 +2,15 @@ import { existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import dotenv from 'dotenv';
+import { getDebug } from '../logger';
 import type { BaseMidsceneTools } from '../mcp/base-tools';
 import type {
   ToolDefinition,
   ToolResult,
   ToolResultContent,
 } from '../mcp/types';
+
+const debug = getDebug('cli-runner');
 
 interface CLICommand {
   name: string;
@@ -137,6 +140,9 @@ export async function runToolsCLI(
   scriptName: string,
   options?: CLIRunnerOptions,
 ): Promise<void> {
+  const rawArgs = options?.argv ?? process.argv.slice(2);
+  debug('CLI invoked: %s %s', scriptName, rawArgs.join(' '));
+
   // Load .env from cwd before any tool initialization
   const envFile = join(process.cwd(), '.env');
   if (existsSync(envFile)) {
@@ -150,9 +156,10 @@ export async function runToolsCLI(
     def,
   }));
 
-  const [commandName, ...restArgs] = options?.argv ?? process.argv.slice(2);
+  const [commandName, ...restArgs] = rawArgs;
 
   if (!commandName || commandName === '--help' || commandName === '-h') {
+    debug('showing help (no command or --help flag)');
     printHelp(scriptName, commands);
     return;
   }
@@ -161,19 +168,27 @@ export async function runToolsCLI(
     (c) => c.name.toLowerCase() === commandName.toLowerCase(),
   );
   if (!match) {
+    debug('unknown command: %s', commandName);
     console.error(`Unknown command: ${commandName}`);
     printHelp(scriptName, commands);
     throw new CLIError(`Unknown command: ${commandName}`);
   }
 
   const parsedArgs = parseCliArgs(restArgs);
+  debug('command: %s, args: %s', match.name, JSON.stringify(parsedArgs));
 
   if (parsedArgs.help === true) {
+    debug('showing command help for: %s', match.name);
     printCommandHelp(scriptName, match);
     return;
   }
 
   const result = await match.def.handler(parsedArgs);
+  debug(
+    'command %s completed, isError: %s',
+    match.name,
+    result.isError ?? false,
+  );
   outputResult(result);
   await tools.destroy();
   if (result.isError) {
