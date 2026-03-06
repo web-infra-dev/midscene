@@ -60,6 +60,10 @@ describe('parameter validation', () => {
   it('should preserve locator fields without validation', async () => {
     const { originPage, reset } = await launchPage('https://www.bing.com/');
     resetFn = reset;
+
+    // Wait for the search input to be present before creating the agent
+    await originPage.waitForSelector('#sb_form_q', { timeout: 30000 });
+
     agent = new PuppeteerAgent(originPage);
 
     const inputXpath = '//*[@id="sb_form_q"]';
