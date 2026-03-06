@@ -1,0 +1,17 @@
+{
+  "name": "midscene-test",
+  "version": "1.0.0",
+  "description": "AI-driven E2E test generation and management with Midscene + Vitest + Playwright",
+  "abstract": "Skill for generating, updating, debugging, and running AI-driven end-to-end tests. Uses Midscene for natural-language element interaction, Vitest as the test framework, and Playwright for native browser automation. Covers API references, test scaffolding templates, CRUD workflows, and troubleshooting guides.",
+  "date": "March 2026",
+  "author": "midscene",
+  "license": "MIT",
+  "scope": "E2E test writing, updating, debugging, and execution",
+  "tools": ["@midscene/web", "vitest", "playwright"],
+  "references": [
+    "https://midscenejs.com",
+    "https://midscenejs.com/api.html",
+    "https://vitest.dev/api/",
+    "https://playwright.dev/docs/api/class-page"
+  ]
+}
