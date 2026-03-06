@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, lstatSync, readlinkSync, unlinkSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
@@ -13,6 +13,40 @@ import { StaticPage } from './static';
 
 const ENDPOINT_FILE = join(tmpdir(), 'midscene-puppeteer-endpoint');
 const USER_DATA_DIR = join(tmpdir(), 'midscene-puppeteer-profile');
+
+/**
+ * Remove a stale Chrome SingletonLock if the owning process is dead.
+ * On Linux, SingletonLock is a symlink whose target is "hostname-pid".
+ */
+function removeStaleSingletonLock(lockPath: string): void {
+  try {
+    const stat = lstatSync(lockPath);
+    if (!stat.isSymbolicLink()) {
+      // Not the expected symlink format, skip
+      return;
+    }
+    const target = readlinkSync(lockPath);
+    const match = target.match(/^(.+)-(\d+)$/);
+    if (!match) return;
+
+    const [, lockHostname, pidStr] = match;
+    if (lockHostname !== hostname()) return; // Lock from a different host
+
+    const pid = Number.parseInt(pidStr, 10);
+    try {
+      // signal 0 just checks if the process exists
+      process.kill(pid, 0);
+      // Process is alive — lock is valid, don't remove
+    } catch {
+      // Process is dead — safe to remove stale lock
+      try {
+        unlinkSync(lockPath);
+      } catch {}
+    }
+  } catch {
+    // Lock doesn't exist or can't be read, nothing to do
+  }
+}
 
 function getSystemChromePath(): string | undefined {
   const platform = process.platform;
@@ -114,10 +148,17 @@ const browserManager = {
 
     // Ensure user-data-dir exists and clean up stale SingletonLock
     await mkdir(USER_DATA_DIR, { recursive: true });
-    const singletonLock = join(USER_DATA_DIR, 'SingletonLock');
-    try {
-      await unlink(singletonLock);
-    } catch {}
+    removeStaleSingletonLock(join(USER_DATA_DIR, 'SingletonLock'));
+
+    // Also clean stale lock in default Chrome profile dir (Linux wrapper scripts
+    // may ignore --user-data-dir and use the default profile)
+    if (process.platform === 'linux') {
+      const defaultChromeDir = join(
+        process.env.HOME || '',
+        '.config/google-chrome',
+      );
+      removeStaleSingletonLock(join(defaultChromeDir, 'SingletonLock'));
+    }
 
     const args = [
       '--headless=new',
