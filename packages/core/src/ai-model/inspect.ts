@@ -666,8 +666,7 @@ export async function AiLocateElements(options: {
   );
 
   // For 'all' mode, use single description; for 'multi' mode, use array
-  const promptInput =
-    mode === 'all' ? descriptionsText[0] : descriptionsText;
+  const promptInput = mode === 'all' ? descriptionsText[0] : descriptionsText;
   const userInstructionPrompt = findElementsPrompt(promptInput, mode);
   const systemPrompt = systemPromptToLocateElements(modelFamily, mode);
 
@@ -700,12 +699,12 @@ export async function AiLocateElements(options: {
       if (bbox && bbox.length === 4) {
         const rect = adaptBboxToRect(
           bbox,
-          context.size.width,
-          context.size.height,
+          context.shotSize.width,
+          context.shotSize.height,
           undefined,
           undefined,
-          context.size.width,
-          context.size.height,
+          context.shotSize.width,
+          context.shotSize.height,
           modelFamily,
         );
         const center = {

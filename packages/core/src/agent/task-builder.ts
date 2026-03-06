@@ -688,7 +688,6 @@ export class TaskBuilder {
     const taskLocator: ExecutionTaskApply = {
       type: 'Planning',
       subType: 'LocateMultiple',
-      subTask: context.subTask || undefined,
       param: detailedLocateParams,
       thought: plan.thought,
       executor: async (param: DetailedLocateParam[], taskContext: any) => {
@@ -746,7 +745,6 @@ export class TaskBuilder {
     const taskLocator: ExecutionTaskApply = {
       type: 'Planning',
       subType: 'LocateAll',
-      subTask: context.subTask || undefined,
       param: detailedLocateParam,
       thought: plan.thought,
       executor: async (param: DetailedLocateParam, taskContext: any) => {

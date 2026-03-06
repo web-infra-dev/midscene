@@ -251,7 +251,7 @@ export default class Service {
 
     const startTime = Date.now();
     const { parseResult, rawResponse, usage } = await AiLocateElements({
-      callAIFn: this.aiVendorFn,
+      callAIFn: callAIWithObjectResponse,
       context,
       targetElementDescriptions: isMulti ? queryPrompts : queryPrompts[0],
       mode,
@@ -286,7 +286,7 @@ export default class Service {
       matchedElement: matchedElements,
       data: null,
       taskInfo,
-      deepThink: false,
+      deepLocate: false,
       error: errorLog,
     };
 
