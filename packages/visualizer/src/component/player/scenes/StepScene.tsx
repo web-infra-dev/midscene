@@ -101,8 +101,8 @@ export const StepsTimeline: React.FC<{
     prevCamera.pointerLeft !== Math.round(imgW / 2) ||
     prevCamera.pointerTop !== Math.round(imgH / 2);
 
-  // Scale cursor proportionally to image resolution (baseline: 1920px width)
-  const cursorScale = Math.max(1, imgW / 1920);
+  // Scale overlays proportionally so they stay visible at any resolution
+  const resScale = Math.max(1, imgW / 1920);
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -130,8 +130,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(253, 89, 7, 0.4)',
-              border: `${cursorScale}px solid #fd5907`,
-              boxShadow: `${4 * cursorScale}px ${4 * cursorScale}px ${2 * cursorScale}px rgba(51, 51, 51, 0.4)`,
+              border: `${3 * resScale}px solid #fd5907`,
+              boxShadow: `${6 * resScale}px ${6 * resScale}px ${3 * resScale}px rgba(51, 51, 51, 0.4)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
@@ -151,8 +151,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(2, 131, 145, 0.4)',
-              border: `${cursorScale}px solid #028391`,
-              boxShadow: `${4 * cursorScale}px ${4 * cursorScale}px ${2 * cursorScale}px rgba(51, 51, 51, 0.4)`,
+              border: `${3 * resScale}px solid #028391`,
+              boxShadow: `${6 * resScale}px ${6 * resScale}px ${3 * resScale}px rgba(51, 51, 51, 0.4)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
@@ -238,10 +238,10 @@ export const StepsTimeline: React.FC<{
           src={mouseLoading}
           style={{
             position: 'absolute',
-            left: ptrX - 11 * cursorScale,
-            top: ptrY - 14 * cursorScale,
-            width: 22 * cursorScale,
-            height: 28 * cursorScale,
+            left: ptrX - 22 * resScale,
+            top: ptrY - 28 * resScale,
+            width: 44 * resScale,
+            height: 56 * resScale,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
@@ -255,10 +255,10 @@ export const StepsTimeline: React.FC<{
           src={currentPointerImg}
           style={{
             position: 'absolute',
-            left: ptrX - 3 * cursorScale,
-            top: ptrY - 2 * cursorScale,
-            width: 22 * cursorScale,
-            height: 28 * cursorScale,
+            left: ptrX - 6 * resScale,
+            top: ptrY - 4 * resScale,
+            width: 44 * resScale,
+            height: 56 * resScale,
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />
