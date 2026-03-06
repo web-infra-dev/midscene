@@ -1,7 +1,4 @@
-import {
-  getSystemChromePath,
-  resolveChromePath,
-} from '@midscene/shared/mcp';
+import { getSystemChromePath, resolveChromePath } from '@midscene/shared/mcp';
 
 // Re-export for backwards compatibility
 export { getSystemChromePath, resolveChromePath as getChromePathFromEnv };

@@ -1,6 +1,9 @@
 import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { getSystemChromePath, resolveChromePath } from '../../src/mcp/chrome-path';
+import {
+  getSystemChromePath,
+  resolveChromePath,
+} from '../../src/mcp/chrome-path';
 
 vi.mock('node:fs', () => ({
   existsSync: vi.fn(),
