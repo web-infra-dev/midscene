@@ -181,7 +181,10 @@ export abstract class BaseMCPServer {
     });
 
     // Setup cleanup handlers
-    process.stdin.on('close', () => this.performCleanup());
+    process.stdin.on('close', () => {
+      this.performCleanup();
+      process.exit(0);
+    });
 
     // Setup signal handlers for graceful shutdown
     const cleanup = () => {
