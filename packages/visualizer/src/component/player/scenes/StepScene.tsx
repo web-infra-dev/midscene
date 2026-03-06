@@ -101,6 +101,9 @@ export const StepsTimeline: React.FC<{
     prevCamera.pointerLeft !== Math.round(imgW / 2) ||
     prevCamera.pointerTop !== Math.round(imgH / 2);
 
+  // Scale cursor proportionally to image resolution (baseline: 1920px width)
+  const cursorScale = Math.max(1, imgW / 1920);
+
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
     : 1;
@@ -235,10 +238,10 @@ export const StepsTimeline: React.FC<{
           src={mouseLoading}
           style={{
             position: 'absolute',
-            left: ptrX - 11,
-            top: ptrY - 14,
-            width: 22,
-            height: 28,
+            left: ptrX - 11 * cursorScale,
+            top: ptrY - 14 * cursorScale,
+            width: 22 * cursorScale,
+            height: 28 * cursorScale,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
@@ -252,10 +255,10 @@ export const StepsTimeline: React.FC<{
           src={currentPointerImg}
           style={{
             position: 'absolute',
-            left: ptrX - 3,
-            top: ptrY - 2,
-            width: 22,
-            height: 28,
+            left: ptrX - 3 * cursorScale,
+            top: ptrY - 2 * cursorScale,
+            width: 22 * cursorScale,
+            height: 28 * cursorScale,
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />
