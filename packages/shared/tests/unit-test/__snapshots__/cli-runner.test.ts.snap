@@ -1,7 +1,9 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`runToolsCLI > --help output matches snapshot 1`] = `
-"
+"test-cli v1.2.3
+
+
 Usage: test-cli <command> [options]
 
 Commands:
@@ -9,6 +11,7 @@ Commands:
   disconnect                     Disconnect from the current device
   take_screenshot                Capture a screenshot of the current screen
   tap                            Tap on a specific element or coordinate on the screen
+  version                        Show CLI version
 
 Run "test-cli <command> --help" for more info."
 `;

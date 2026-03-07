@@ -233,8 +233,37 @@ describe('runToolsCLI', () => {
   it('prints help for --help flag', async () => {
     const tools = createMockTools([]);
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    await runToolsCLI(tools, 'test-cli', { argv: ['--help'] });
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['--help'],
+      version: '1.2.3',
+    });
     expect(consoleSpy).toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('prints version for --version flag', async () => {
+    const tools = createMockTools([]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['--version'],
+      version: '1.2.3',
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith('test-cli v1.2.3');
+    consoleSpy.mockRestore();
+  });
+
+  it('prints version for version command', async () => {
+    const tools = createMockTools([]);
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['version'],
+      version: '1.2.3',
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith('test-cli v1.2.3');
     consoleSpy.mockRestore();
   });
 
@@ -289,7 +318,10 @@ describe('runToolsCLI', () => {
         lines.push(args.map(String).join(' '));
       });
 
-    await runToolsCLI(tools, 'test-cli', { argv: ['--help'] });
+    await runToolsCLI(tools, 'test-cli', {
+      argv: ['--help'],
+      version: '1.2.3',
+    });
 
     expect(lines.join('\n')).toMatchSnapshot();
     consoleSpy.mockRestore();

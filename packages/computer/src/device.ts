@@ -30,6 +30,8 @@ import screenshot from 'screenshot-desktop';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
+declare const __VERSION__: string;
+
 // Type definitions
 interface LibNut {
   getScreenSize(): { width: number; height: number };
@@ -399,6 +401,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   private async healthCheck(): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
+    console.log(`[HealthCheck] @midscene/computer v${__VERSION__}`);
 
     // Step 1: Take a screenshot (with timeout to handle screenshot-desktop
     // hanging when xrandr is missing on Linux — its promise never settles)
