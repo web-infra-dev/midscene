@@ -91,6 +91,22 @@ export function adaptQwen2_5Bbox(
   return result;
 }
 
+export function adaptGpt5Bbox(
+  bbox: number[] | string[] | string,
+): [number, number, number, number] {
+  if (
+    !Array.isArray(bbox) ||
+    bbox.length !== 4 ||
+    !bbox.every((value) => typeof value === 'number' && Number.isFinite(value))
+  ) {
+    const msg = `invalid bbox data for gpt-5 mode: ${JSON.stringify(bbox)} `;
+    throw new Error(msg);
+  }
+
+  const numericBbox = bbox as number[];
+  return [numericBbox[0], numericBbox[1], numericBbox[2], numericBbox[3]];
+}
+
 export function adaptDoubaoBbox(
   bbox: string[] | number[] | string,
   width: number,
@@ -215,6 +231,8 @@ export function adaptBbox(
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
   } else if (modelFamily === 'qwen2.5-vl') {
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
+  } else if (modelFamily === 'gpt-5') {
+    result = adaptGpt5Bbox(normalizedBbox);
   } else {
     // Default: normalized 0-1000 coordinate system
     // Includes: qwen3-vl, qwen3.5, glm-v, auto-glm, auto-glm-multilingual, and future models

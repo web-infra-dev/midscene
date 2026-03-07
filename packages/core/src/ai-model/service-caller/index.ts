@@ -245,7 +245,14 @@ export async function callAI(
   const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
-  const temperature = modelConfig.temperature ?? 0;
+
+  const temperature = (() => {
+    if (modelFamily === 'gpt-5') {
+      debugCall('temperature is ignored for gpt-5');
+      return undefined;
+    }
+    return modelConfig.temperature ?? 0;
+  })();
 
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
@@ -321,6 +328,37 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
+  // For GPT-5, add "detail": "original" to image inputs to get original resolution images in reasoning content
+  const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
+    if (modelFamily !== 'gpt-5') {
+      return messages;
+    }
+
+    return messages.map((msg) => {
+      if (!Array.isArray(msg.content)) {
+        return msg;
+      }
+
+      const content = msg.content.map((part) => {
+        if (part && part.type === 'image_url' && part.image_url?.url) {
+          return {
+            ...part,
+            image_url: {
+              ...part.image_url,
+              detail: 'original',
+            },
+          };
+        }
+        return part;
+      });
+
+      return {
+        ...msg,
+        content,
+      } as ChatCompletionMessageParam;
+    });
+  })();
+
   try {
     debugCall(
       `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
@@ -330,7 +368,7 @@ export async function callAI(
       const stream = (await completion.create(
         {
           model: modelName,
-          messages,
+          messages: messagesWithImageDetail,
           ...commonConfig,
           ...reasoningEffortConfig,
         },
@@ -412,7 +450,7 @@ export async function callAI(
         try {
           const result = await completion.create({
             model: modelName,
-            messages,
+            messages: messagesWithImageDetail,
             ...commonConfig,
             ...reasoningEffortConfig,
           } as any);
@@ -649,16 +687,18 @@ export function resolveReasoningConfig({
     // reasoningEffort and reasoningBudget are ignored for glm-v
   } else if (modelFamily === 'gpt-5') {
     // reasoningEffort → reasoning.effort
-    if (reasoningEffort) {
-      config.reasoning = { effort: reasoningEffort };
-      debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
-    } else if (reasoningEnabled === true) {
-      config.reasoning = { effort: 'high' };
-      debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
-    } else if (reasoningEnabled === false) {
-      config.reasoning = { effort: 'low' };
-      debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
-    }
+    config.reasoning = undefined;
+    debugMessages.push('reasoning config is ignored for gpt-5');
+    // if (reasoningEffort) {
+    //   config.reasoning = { effort: reasoningEffort };
+    //   debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
+    // } else if (reasoningEnabled === true) {
+    //   config.reasoning = { effort: 'high' };
+    //   debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
+    // } else if (reasoningEnabled === false) {
+    //   config.reasoning = { effort: 'low' };
+    //   debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
+    // }
     // reasoningBudget is ignored for gpt-5
   } else if (!modelFamily) {
     return {
