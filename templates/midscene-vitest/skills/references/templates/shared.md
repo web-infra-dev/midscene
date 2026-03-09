@@ -8,16 +8,27 @@ tags: lifecycle, report, assertions, shared
 
 ## Lifecycle (All Platforms)
 
-All three platforms follow the same lifecycle:
+All three platforms follow the same fixture-based lifecycle:
 
-| Hook | Method | Purpose |
-|------|--------|---------|
-| `beforeAll` | `XxxTestContext.setup(options?)` | Initialize shared resource (browser / device) |
-| each `it` | `ctx = await XxxTestContext.create(targetUrl/targetUri, testCtx)` | Create per-test context |
-| `afterEach` | `XxxTestContext.collectReport(ctx, testCtx)` | Collect test report |
-| `afterAll` | `XxxTestContext.mergeAndTeardown(suite, name?)` | Merge reports + cleanup |
+```typescript
+const fixture = XxxTest.init(options?);  // beforeAll + afterEach + afterAll registered automatically
+
+it('scenario', async (testCtx) => {
+  const ctx = await fixture.create(targetUrl, testCtx);  // per-test context
+  // ... test body ...
+});
+```
 
 Where `Xxx` is `Web`, `Android`, or `IOS`.
+
+Under the hood, `init()` registers these hooks:
+
+| Hook | What happens |
+|------|-------------|
+| `beforeAll` | Initialize shared resource (browser / device) |
+| each `it` | `fixture.create()` creates per-test context with fresh agent |
+| `afterEach` | Collect test report, destroy context |
+| `afterAll` | Merge reports + cleanup shared resource |
 
 ## Report Merging
 

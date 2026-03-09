@@ -6,7 +6,7 @@ tags: template, web, playwright, browser
 
 # Web Test Template
 
-Uses `WebTestContext` from `src/context`. Each `create()` opens a new browser page on a shared Chromium instance.
+Uses `WebTest` from `src/context`. Each `fixture.create()` opens a new browser page on a shared Chromium instance.
 
 - `ctx.agent` = `PlaywrightAgent` — AI methods (`aiTap`, `aiInput`, `aiAssert`, `aiQuery`, `aiWaitFor`, `aiAct`)
 - `ctx.page` = Playwright `Page` — native browser APIs (`waitForLoadState`, `goto`, `title`, etc.)
@@ -14,18 +14,14 @@ Uses `WebTestContext` from `src/context`. Each `create()` opens a new browser pa
 ## Scaffolding Template
 
 ```typescript
-import { describe, it, expect, beforeAll, afterEach, afterAll } from 'vitest';
-import { WebTestContext } from '../../src/context';
+import { describe, it, expect } from 'vitest';
+import { WebTest } from '../../src/context';
 
 describe('<FEATURE_NAME>', () => {
-  let ctx: WebTestContext;
-
-  beforeAll(() => WebTestContext.setup());
-  afterEach((testCtx) => WebTestContext.collectReport(ctx, testCtx));
-  afterAll((suite) => WebTestContext.mergeAndTeardown(suite, '<FEATURE_NAME>'));
+  const fixture = WebTest.init();
 
   it('<SCENARIO_1>', async (testCtx) => {
-    ctx = await WebTestContext.create('<TARGET_URL>', testCtx);
+    const ctx = await fixture.create('<TARGET_URL>', testCtx);
 
     // Step 1: interact
     await ctx.agent.aiAct('<describe the interaction>');
@@ -38,7 +34,7 @@ describe('<FEATURE_NAME>', () => {
   });
 
   it('<SCENARIO_2>', async (testCtx) => {
-    ctx = await WebTestContext.create('<TARGET_URL>', testCtx);
+    const ctx = await fixture.create('<TARGET_URL>', testCtx);
     // ...
   });
 });
@@ -47,7 +43,7 @@ describe('<FEATURE_NAME>', () => {
 ## Setup Options
 
 ```typescript
-WebTestContext.setup({
+const fixture = WebTest.init({
   headless: false,                         // show browser window (for debugging)
   viewport: { width: 1280, height: 720 }, // custom viewport
   agentOptions: {                          // passed to PlaywrightAgent
@@ -60,5 +56,5 @@ WebTestContext.setup({
 ## Web-Specific Tips
 
 - Use `ctx.page.waitForLoadState('networkidle')` after navigation or form submission before asserting
-- Use `WebTestContext.create(targetUrl, testCtx, { headless: false })` to override headless per test
+- Use `fixture.create(targetUrl, testCtx, { headless: false })` to override headless per test
 - `ctx.page` supports all standard Playwright Page APIs — see [playwright-api.md](../apis/playwright-api.md)

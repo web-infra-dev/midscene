@@ -87,50 +87,12 @@ await ctx.agent.aiWaitFor('保存成功提示出现');
 
 ## Common Mistakes
 
-**Vague locator descriptions:**
+See [troubleshooting.md](../troubleshooting.md) for detailed examples. Key pitfalls:
 
-```typescript
-// Incorrect — too vague, may match wrong element
-await ctx.agent.aiTap('按钮');
-await ctx.agent.aiInput('输入框', { value: 'test' });
-
-// Correct — specific context helps AI locate precisely
-await ctx.agent.aiTap('页面顶部的蓝色"提交"按钮');
-await ctx.agent.aiInput('用户名输入框', { value: 'test' });
-```
-
-**Missing network wait after navigation:**
-
-```typescript
-// Incorrect — assertion may run before page loads
-await ctx.agent.aiTap('提交按钮');
-await ctx.agent.aiAssert('提交成功');
-
-// Correct — wait for network to settle first
-await ctx.agent.aiTap('提交按钮');
-await ctx.page.waitForLoadState('networkidle');
-await ctx.agent.aiAssert('提交成功');
-```
-
-**Using deprecated aiAction:**
-
-```typescript
-// Incorrect — deprecated
-await ctx.agent.aiAction('scroll down');
-
-// Correct — use aiAct
-await ctx.agent.aiAct('scroll down');
-```
-
-**Ambiguous multi-element targets:**
-
-```typescript
-// Incorrect — which delete button?
-await ctx.agent.aiTap('删除按钮');
-
-// Correct — specify which one
-await ctx.agent.aiTap('第一行商品的删除按钮');
-```
+- **Vague locators** — `'按钮'` is ambiguous; use `'页面顶部的蓝色"提交"按钮'`
+- **Missing network wait** — always `waitForLoadState('networkidle')` after navigation before asserting
+- **Deprecated `aiAction`** — use `aiAct` instead
+- **Ambiguous multi-element targets** — specify row/position: `'第一行商品的删除按钮'`
 
 ## Other Available APIs
 
@@ -179,8 +141,8 @@ Available only on `IOSAgent` (`ctx.agent` in iOS tests):
 `aiActionContext` is a system prompt string appended to all AI actions performed by the agent. Use it to define the AI's role and expertise.
 
 ```typescript
-// Set via agentOptions in setup()
-WebTestContext.setup({
+// Set via agentOptions in init()
+const fixture = WebTest.init({
   agentOptions: {
     aiActionContext: 'You are a Web UI testing expert.',
   },

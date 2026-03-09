@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Install the midscene-vitest skill for AI coding tools.
+# Install the vitest-midscene-addon skill for AI coding tools.
 #
 # Usage:
 #   bash skills/install.sh              # auto-detect & install all
@@ -15,17 +15,20 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SKILL_SRC="$SCRIPT_DIR"
 
 install_claude() {
-  local dest="$PROJECT_ROOT/.claude/skills/midscene-vitest"
+  local dest="$PROJECT_ROOT/.claude/skills/vitest-midscene-addon"
+  local alias_dest="$PROJECT_ROOT/.claude/skills/vma"
   mkdir -p "$(dirname "$dest")"
-  rm -rf "$dest"
+  rm -rf "$dest" "$alias_dest"
   cp -r "$SKILL_SRC" "$dest"
   # Remove install script from installed copy
   rm -f "$dest/install.sh"
-  echo "  + Claude Code -> ${dest#$PROJECT_ROOT/}"
+  # Create shorthand alias: /vma -> /vitest-midscene-addon
+  ln -s vitest-midscene-addon "$alias_dest"
+  echo "  + Claude Code -> ${dest#$PROJECT_ROOT/} (shorthand: /vma)"
 }
 
 install_codex() {
-  local dest="$PROJECT_ROOT/.agents/skills/midscene-vitest"
+  local dest="$PROJECT_ROOT/.agents/skills/vitest-midscene-addon"
   mkdir -p "$(dirname "$dest")"
   rm -rf "$dest"
   cp -r "$SKILL_SRC" "$dest"
@@ -41,9 +44,9 @@ install_trae() {
   local skill_body
   skill_body=$(awk 'BEGIN{n=0} /^---$/{n++;next} n>=2' "$SKILL_SRC/SKILL.md")
 
-  cat > "$dest/midscene-vitest.md" <<TRAE_EOF
+  cat > "$dest/vitest-midscene-addon.md" <<TRAE_EOF
 ---
-description: "AI-driven E2E test generation and management with Midscene + Vitest + Playwright. Use when creating, updating, or debugging E2E test files."
+description: "Enhance Vitest with Midscene for smarter, easier UI testing. Use when setting up projects, creating, updating, or debugging E2E test files."
 alwaysApply: false
 globs: "e2e/**/*.test.ts,src/**/*.ts"
 ---
@@ -52,8 +55,8 @@ TRAE_EOF
 
   # Copy references
   if [ -d "$SKILL_SRC/references" ]; then
-    rm -rf "$dest/midscene-vitest-references"
-    cp -r "$SKILL_SRC/references" "$dest/midscene-vitest-references"
+    rm -rf "$dest/vitest-midscene-addon-references"
+    cp -r "$SKILL_SRC/references" "$dest/vitest-midscene-addon-references"
   fi
 
   echo "  + Trae -> ${dest#$PROJECT_ROOT/}"
@@ -66,7 +69,7 @@ else
   targets=("${@}")
 fi
 
-echo "Installing midscene-vitest skill..."
+echo "Installing vitest-midscene-addon skill..."
 echo ""
 
 for target in "${targets[@]}"; do

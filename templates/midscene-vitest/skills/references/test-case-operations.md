@@ -24,9 +24,9 @@ When the user wants to test a new feature or page.
    - Android: [templates/android.md](./templates/android.md)
    - iOS: [templates/ios.md](./templates/ios.md)
 4. Import the correct context class from `../../src/context`:
-   - `WebTestContext` for Web
-   - `AndroidTestContext` for Android
-   - `IOSTestContext` for iOS
+   - `WebTest` for Web
+   - `AndroidTest` for Android
+   - `IOSTest` for iOS
 5. Fill in `describe` name, `it` blocks, and Midscene API calls per user requirements
 6. Run and verify:
    ```bash
@@ -43,7 +43,7 @@ When the user wants to add scenarios, fix broken locators, or change assertions.
 
 1. Read the existing test file, understand current `describe`/`it` structure
 2. Add new `it` blocks inside the existing `describe`
-3. Reuse the existing `ctx` — do NOT create a second context instance
+3. Each `it` block should call `fixture.create()` to get its own independent context
 
 ### Fix a failing test
 

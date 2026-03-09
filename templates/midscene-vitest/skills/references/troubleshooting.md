@@ -73,10 +73,12 @@ await ctx.agent.aiTap('第一行商品的删除按钮');
 
 ```typescript
 // Default — headless (for CI)
-ctx = await WebTestContext.create('https://example.com', testCtx);
+const fixture = WebTest.init();
+const ctx = await fixture.create('https://example.com', testCtx);
 
 // Debug — headed mode to see the browser
-ctx = await WebTestContext.create('https://example.com', testCtx, { headless: false });
+const fixture = WebTest.init({ headless: false });
+const ctx = await fixture.create('https://example.com', testCtx);
 ```
 
 ---
@@ -102,4 +104,4 @@ If using a remote device, set `MIDSCENE_ADB_REMOTE_HOST` and `MIDSCENE_ADB_REMOT
 curl http://localhost:8100/status
 ```
 
-Override the port via `IOSTestContext.setup({ deviceOptions: { wdaPort: 8100 } })`.
+Override the port via `IOSTest.init({ deviceOptions: { wdaPort: 8100 } })`.
