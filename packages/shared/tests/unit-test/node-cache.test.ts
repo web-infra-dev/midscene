@@ -85,9 +85,16 @@ describe('node cache', () => {
       });
 
       // The node should be cached via the generated hash
-      expect(getNodeFromCacheList(
-        midsceneGenerateHash(null, 'content', { left: 0, top: 0, width: 10, height: 10 }),
-      )).toBe(mockNode);
+      expect(
+        getNodeFromCacheList(
+          midsceneGenerateHash(null, 'content', {
+            left: 0,
+            top: 0,
+            width: 10,
+            height: 10,
+          }),
+        ),
+      ).toBe(mockNode);
     });
 
     it('should evict oldest entry when cache exceeds max size', () => {

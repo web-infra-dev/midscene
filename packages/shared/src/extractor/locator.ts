@@ -14,7 +14,11 @@ const SUB_XPATH_SEPARATOR = '|>>|';
 
 /** Parse the non-standard `zoom` CSS property (Chromium-only) with fallback to 1 */
 function parseCSSZoom(style: CSSStyleDeclaration): number {
-  return Number.parseFloat((style as CSSStyleDeclaration & { zoom?: string }).zoom ?? '1') || 1;
+  return (
+    Number.parseFloat(
+      (style as CSSStyleDeclaration & { zoom?: string }).zoom ?? '1',
+    ) || 1
+  );
 }
 
 /**
@@ -338,7 +342,10 @@ export function getXpathsByPoint(
           continue;
         }
       } catch (error) {
-        logger('[midscene:locator] iframe penetration failed (cross-origin?):', error);
+        logger(
+          '[midscene:locator] iframe penetration failed (cross-origin?):',
+          error,
+        );
       }
     }
 
@@ -399,11 +406,16 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
           if (contentDocument) {
             currentDocument = contentDocument;
           } else {
-            logger('[midscene:locator] iframe contentDocument is null (cross-origin?)');
+            logger(
+              '[midscene:locator] iframe contentDocument is null (cross-origin?)',
+            );
             return null;
           }
         } catch (error) {
-          logger('[midscene:locator] iframe contentDocument access failed:', error);
+          logger(
+            '[midscene:locator] iframe contentDocument access failed:',
+            error,
+          );
           return null;
         }
       } else {
