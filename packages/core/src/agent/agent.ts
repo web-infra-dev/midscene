@@ -790,7 +790,9 @@ export class Agent<
 
     const abortSignal = opt?.abortSignal;
     if (abortSignal?.aborted) {
-      throw new Error(`aiAct aborted: ${abortSignal.reason || 'signal already aborted'}`);
+      throw new Error(
+        `aiAct aborted: ${abortSignal.reason || 'signal already aborted'}`,
+      );
     }
 
     const runAiAct = async () => {
