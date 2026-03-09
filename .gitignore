@@ -125,9 +125,12 @@ packages/computer-playground/static/
 packages/playground/static/
 .cursor
 CLAUDE.md
+AGENTS.md
 .claude
 **/.claude
+**/.agents
 **/CLAUDE.md
+**/AGENTS.md
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
