@@ -143,6 +143,7 @@ function aiAct(
     deepThink?: 'unset' | true | false;
     deepLocate?: boolean;
     fileChooserAccept?: string | string[];
+    abortSignal?: AbortSignal;
   },
 ): Promise<void>;
 function ai(prompt: string): Promise<void>; // 简写形式
@@ -158,6 +159,7 @@ function ai(prompt: string): Promise<void>; // 简写形式
     - `fileChooserAccept?: string | string[]` - 当文件选择器弹出时，指定对应的文件路径。可以是单个文件路径或路径数组。仅在 web 页面（Playwright、Puppeteer）中可用。
       - **注意**：如果文件输入框不支持多文件（没有 `multiple` 属性），但是传入了多个文件，会抛出错误。
       - **注意**：如果点击触发了文件选择器但没有传入 `fileChooserAccept` 参数，文件选择器会被忽略，页面可以继续正常操作。
+    - `abortSignal?: AbortSignal` - 可选的 [AbortSignal](https://developer.mozilla.org/zh-CN/docs/Web/API/AbortSignal)，用于中止 `aiAct` 的执行。当信号被触发时，Midscene 会停止当前的规划循环并抛出错误。适用于实现超时控制或用户主动取消操作的场景。
 
 - 返回值：
 
@@ -176,6 +178,13 @@ await agent.ai(
 
 // 使用 ui-tars 模型时，可以使用更目标驱动的提示词
 await agent.aiAct('发布一条微博，内容为 "Hello World"');
+
+// 使用 abortSignal 设置超时
+const controller = new AbortController();
+setTimeout(() => controller.abort('timeout'), 30000); // 30 秒超时
+await agent.aiAct('填写表单并提交', {
+  abortSignal: controller.signal,
+});
 ```
 
 :::tip
