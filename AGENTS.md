@@ -60,6 +60,11 @@ If Nx/build artifacts get wedged or you hit
   suite; use AI tests or e2e only when the change actually depends on model
   behavior or browser/device integration.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
+- `apps/report` is not standalone at runtime: its built `index.html` template
+  is injected back into `packages/core/dist` during build. If report UI
+  changes do not show up, or report generation still shows
+  `REPLACE_ME_WITH_REPORT_HTML`, rebuild the workspace with
+  `pnpm run build:skip-cache`.
 - `scripts/dev-prepare.js` builds report/playground assets and creates
   symlinks for `packages/playground/static` and `packages/ios/static`. If
   those paths look wrong, regenerate them instead of editing the output.
