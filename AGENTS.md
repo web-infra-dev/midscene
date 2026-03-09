@@ -41,6 +41,17 @@ should point here instead of duplicating rules.
 - AI tests: `npx nx test:ai @midscene/core` or
   `npx nx test:ai @midscene/web`
 
+For app-only debugging, prefer running the app's own dev server from its
+directory instead of the root dev command. Examples:
+
+- `cd apps/report && pnpm run dev`
+- `cd apps/site && pnpm run dev`
+- `cd apps/playground && pnpm run dev`
+- `cd apps/chrome-extension && pnpm run dev`
+
+Use root `pnpm run dev` when you need the monorepo watch/build wiring across
+packages, not when you only need to debug one app.
+
 Useful project names:
 
 - `@midscene/core`
