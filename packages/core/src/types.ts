@@ -980,6 +980,11 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   paramSchema?: z.ZodType<TParam>;
   call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
   delayAfterRunner?: number;
+  /**
+   * An example param object for this action.
+   * Locate fields with { prompt } will automatically get bbox injected when needed.
+   */
+  sample?: Record<string, any>;
 }
 
 /**
