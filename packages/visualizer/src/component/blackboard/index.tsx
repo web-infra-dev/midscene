@@ -1,21 +1,17 @@
 'use client';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
 import type { ReactElement } from 'react';
-import { useMemo, useRef } from 'react';
-import { colorForName, highlightColorForType } from '../../utils/color';
+import { useMemo } from 'react';
 import './index.less';
 
 export const Blackboard = (props: {
   uiContext: UIContext | undefined | null;
   highlightElements?: BaseElement[];
   highlightRect?: Rect;
-  highlightPoints?: [number, number][];
   hideController?: boolean;
-  onCanvasClick?: (position: [number, number]) => void;
 }) => {
   const highlightElements: BaseElement[] = props.highlightElements || [];
   const highlightRect = props.highlightRect;
-  const highlightPoints = props.highlightPoints;
 
   if (!props.uiContext?.shotSize) {
     return (
@@ -40,18 +36,6 @@ export const Blackboard = (props: {
     if (typeof screenshot === 'string') return screenshot;
     return '';
   }, [screenshot]);
-
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!props.onCanvasClick || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const scaleX = screenWidth / rect.width;
-    const scaleY = screenHeight / rect.height;
-    const x = Math.round((e.clientX - rect.left) * scaleX);
-    const y = Math.round((e.clientY - rect.top) * scaleY);
-    props.onCanvasClick([x, y]);
-  };
 
   const highlightElementRects: Rect[] = highlightElements.map((e) => e.rect);
 
@@ -78,12 +62,9 @@ export const Blackboard = (props: {
     <div className="blackboard">
       <div
         className="blackboard-main-content"
-        ref={containerRef}
-        onClick={handleClick}
         style={{
           width: '100%',
           position: 'relative',
-          cursor: props.onCanvasClick ? 'crosshair' : undefined,
         }}
       >
         {screenshotBase64 && (
@@ -136,18 +117,6 @@ export const Blackboard = (props: {
                 <span className="blackboard-rect-label">{el.content}</span>
               )}
             </div>
-          ))}
-
-          {/* Highlight points */}
-          {highlightPoints?.map((point, idx) => (
-            <div
-              key={idx}
-              className="blackboard-point"
-              style={{
-                left: `${(point[0] / screenWidth) * 100}%`,
-                top: `${(point[1] / screenHeight) * 100}%`,
-              }}
-            />
           ))}
         </div>
       </div>
