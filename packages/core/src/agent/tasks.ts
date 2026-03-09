@@ -162,6 +162,7 @@ export class TaskExecutor {
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
+      abortSignal?: AbortSignal;
     },
   ) {
     return this.taskBuilder.build(
@@ -379,6 +380,7 @@ export class TaskExecutor {
                 includeBbox: includeBboxInPlanning,
                 imagesIncludeCount,
                 deepThink,
+                abortSignal,
               });
             } catch (planError) {
               if (planError instanceof AIResponseParseError) {
@@ -467,6 +469,7 @@ export class TaskExecutor {
           {
             cacheable,
             deepLocate,
+            abortSignal,
           },
         );
       } catch (error) {

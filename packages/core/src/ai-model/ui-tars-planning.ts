@@ -50,6 +50,7 @@ export async function uiTarsPlanning(
     context: UIContext;
     modelConfig: IModelConfig;
     actionContext?: string;
+    abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
   const { conversationHistory, context, modelConfig, actionContext } = options;
@@ -85,6 +86,7 @@ export async function uiTarsPlanning(
       ...conversationHistory.snapshot(),
     ],
     modelConfig,
+    { abortSignal: options.abortSignal },
   );
 
   let convertedText: string;

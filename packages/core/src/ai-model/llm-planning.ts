@@ -115,6 +115,7 @@ export async function plan(
     includeBbox: boolean;
     imagesIncludeCount?: number;
     deepThink?: DeepThinkOption;
+    abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -234,6 +235,7 @@ export async function plan(
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+    abortSignal: opts.abortSignal,
   });
 
   // Parse XML response to JSON object, retry once on parse failure
