@@ -83,7 +83,7 @@ const main = async () => {
     const playgroundServer = new PlaygroundServer(
       // Agent factory - creates new agent with device each time
       async () => {
-        const device = new AndroidDevice(selectedDeviceId, { imeStrategy: 'always-yadb' });
+        const device = new AndroidDevice(selectedDeviceId);
         await device.connect();
         return new AndroidAgent(device);
       },
