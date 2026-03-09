@@ -3,7 +3,10 @@ import type { InfoListItem, PlaygroundResult } from '../types';
 // tracking popup tip
 export const trackingTip = 'Limit popup to current tab';
 
-// deep think tip
+// deep locate tip
+export const deepLocateTip = 'Deep Locate';
+
+// deep think tip (for aiAct planning)
 export const deepThinkTip = 'Deep Think';
 
 // screenshot included tip

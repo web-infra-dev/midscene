@@ -90,7 +90,7 @@ describe('Playground Integration Tests', () => {
       expect(validationResult.valid).toBe(true);
 
       // Execute the action
-      const options: ExecutionOptions = { deepThink: true };
+      const options: ExecutionOptions = { deepLocate: true };
       const result = await sdk.executeAction('click', value, options);
 
       expect(result).toEqual({
@@ -98,10 +98,10 @@ describe('Playground Integration Tests', () => {
           success: true,
           action: 'clicked',
           params: {
-            deepThink: true,
+            deepLocate: true,
             locateField: {
               prompt: 'button',
-              deepThink: true,
+              deepLocate: true,
               cacheable: true,
               xpath: undefined,
             },
@@ -128,7 +128,7 @@ describe('Playground Integration Tests', () => {
           params: {
             locate: {
               prompt: 'What is the page title?',
-              deepThink: false,
+              deepLocate: false,
               cacheable: true,
               xpath: undefined,
             },
@@ -277,7 +277,7 @@ describe('Playground Integration Tests', () => {
       };
 
       const options: ExecutionOptions = {
-        deepThink: true,
+        deepLocate: true,
         requestId: 'scroll-123',
       };
 
@@ -289,7 +289,7 @@ describe('Playground Integration Tests', () => {
 
       expect(result).toEqual([
         {
-          deepThink: true,
+          deepLocate: true,
           requestId: 'scroll-123',
           direction: 'down',
           distance: 100,

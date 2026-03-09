@@ -61,11 +61,12 @@ const insightFindTask = (shouldThrow?: boolean) => {
 };
 
 const fakeUIContextBuilder = async () => {
-  const screenshot = ScreenshotItem.create('');
+  const screenshot = ScreenshotItem.create('', Date.now());
   return {
     screenshot,
     tree: { node: null, children: [] },
-    size: { width: 0, height: 0 },
+    shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
   } as unknown as UIContext;
 };
 
@@ -249,84 +250,6 @@ describe(
       expect(runner.status).toBe('completed');
       expect(recoveryExecutor).toHaveBeenCalledTimes(1);
       expect(flushResult?.output).toBe('recovered');
-    });
-
-    it('subTask - reuse previous uiContext', async () => {
-      const baseUIContext = async (id: string) => {
-        const screenshot = ScreenshotItem.create(id);
-        return {
-          screenshot,
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext;
-      };
-
-      const firstContext = await baseUIContext('first');
-      const screenshotContext = await baseUIContext('screenshot');
-      const uiContextBuilder = vi
-        .fn<() => Promise<UIContext>>()
-        .mockResolvedValueOnce(firstContext)
-        .mockResolvedValueOnce(screenshotContext);
-
-      const recordedContexts: UIContext[] = [];
-
-      const runner = new TaskRunner('sub-task-test', uiContextBuilder, {
-        tasks: [
-          {
-            type: 'Action Space',
-            executor: async (_, context) => {
-              recordedContexts.push(context.uiContext!);
-            },
-          },
-          {
-            type: 'Action Space',
-            subTask: true,
-            executor: async (_, context) => {
-              recordedContexts.push(context.uiContext!);
-            },
-          },
-        ],
-      });
-
-      await runner.flush();
-
-      expect(recordedContexts).toHaveLength(2);
-      expect(recordedContexts[0]).toBe(firstContext);
-      expect(recordedContexts[1]).toBe(firstContext);
-      expect(runner.tasks[0].uiContext).toBe(firstContext);
-      expect(runner.tasks[1].uiContext).toBe(firstContext);
-      expect(uiContextBuilder).toHaveBeenCalledTimes(2);
-    });
-
-    it('subTask - throws when previous uiContext missing', async () => {
-      const uiContextBuilder = vi
-        .fn<() => Promise<UIContext>>()
-        .mockResolvedValue({
-          screenshot: ScreenshotItem.create(''),
-          tree: { node: null, children: [] },
-          size: { width: 0, height: 0 },
-        } as unknown as UIContext);
-
-      const runner = new TaskRunner('sub-task-error', uiContextBuilder, {
-        tasks: [
-          {
-            type: 'Action Space',
-            subTask: true,
-            executor: vi.fn(),
-          },
-        ],
-      });
-
-      await expect(runner.flush()).rejects.toThrowError(
-        'subTask requires uiContext from previous non-subTask task',
-      );
-      expect(runner.status).toBe('error');
-      expect(runner.tasks[0].errorMessage).toBe(
-        'subTask requires uiContext from previous non-subTask task',
-      );
-      await expect(runner.flush()).rejects.toThrowError(
-        'task runner is in error state',
-      );
     });
 
     it('error message should be from the last failed task when using allowWhenError', async () => {

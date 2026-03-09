@@ -32,6 +32,6 @@ test('ai shop', async ({
   await aiTap('"add to cart" for black t-shirt products');
 
   await aiTap('click right top cart icon', {
-    deepThink: true,
+    deepLocate: true,
   });
 });

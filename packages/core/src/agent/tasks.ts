@@ -39,6 +39,7 @@ import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
+import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
 import { parsePrompt } from './utils';
@@ -160,7 +161,7 @@ export class TaskExecutor {
     modelConfigForDefaultIntent: IModelConfig,
     options?: {
       cacheable?: boolean;
-      subTask?: boolean;
+      deepLocate?: boolean;
     },
   ) {
     return this.taskBuilder.build(
@@ -244,6 +245,7 @@ export class TaskExecutor {
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
     fileChooserAccept?: string[],
+    deepLocate?: boolean,
     signal?: AbortSignal,
   ): Promise<
     ExecutionResult<
@@ -265,6 +267,7 @@ export class TaskExecutor {
         replanningCycleLimitOverride,
         imagesIncludeCount,
         deepThink,
+        deepLocate,
         signal,
       );
     });
@@ -280,6 +283,7 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
+    deepLocate?: boolean,
     signal?: AbortSignal,
   ): Promise<
     ExecutionResult<
@@ -340,6 +344,7 @@ export class TaskExecutor {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
             const { modelFamily } = modelConfigForPlanning;
+            const timing = executorContext.task.timing;
 
             const actionSpace = this.getActionSpace();
             debug(
@@ -361,6 +366,7 @@ export class TaskExecutor {
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
+              setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(param.userInstruction, {
                 context: uiContext,
                 actionContext: param.aiActContext,
@@ -382,6 +388,8 @@ export class TaskExecutor {
                 };
               }
               throw planError;
+            } finally {
+              setTimingFieldOnce(timing, 'callAiEnd');
             }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
@@ -457,7 +465,7 @@ export class TaskExecutor {
           modelConfigForDefaultIntent,
           {
             cacheable,
-            subTask: true,
+            deepLocate,
           },
         );
       } catch (error) {
@@ -481,7 +489,7 @@ export class TaskExecutor {
       try {
         await session.appendAndRun(executables.tasks, { signal });
       } catch (error: any) {
-        // Abort errors must propagate immediately, not be retried
+        // Re-throw abort errors immediately instead of retrying
         if (error instanceof MidsceneAbortedError) {
           throw error;
         }

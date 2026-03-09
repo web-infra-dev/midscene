@@ -11,25 +11,31 @@ describe('escapeForShell', () => {
     expect(escapeForShell('abc123')).toBe('abc123');
   });
 
-  it('should escape backslashes', () => {
-    expect(escapeForShell('path\\to\\file')).toBe('path\\\\to\\\\file');
-    expect(escapeForShell('\\')).toBe('\\\\');
+  it('should not escape backslashes (literal in single quotes)', () => {
+    expect(escapeForShell('path\\to\\file')).toBe('path\\to\\file');
+    expect(escapeForShell('\\')).toBe('\\');
   });
 
-  it('should escape double quotes', () => {
-    expect(escapeForShell('say "hello"')).toBe('say \\"hello\\"');
-    expect(escapeForShell('"')).toBe('\\"');
+  it('should not escape double quotes (literal in single quotes)', () => {
+    expect(escapeForShell('say "hello"')).toBe('say "hello"');
+    expect(escapeForShell('"')).toBe('"');
   });
 
-  it('should escape backticks', () => {
-    expect(escapeForShell('`whoami`')).toBe('\\`whoami\\`');
-    expect(escapeForShell('`')).toBe('\\`');
+  it('should not escape backticks (literal in single quotes)', () => {
+    expect(escapeForShell('`whoami`')).toBe('`whoami`');
+    expect(escapeForShell('`')).toBe('`');
   });
 
-  it('should escape dollar signs', () => {
-    expect(escapeForShell('$HOME')).toBe('\\$HOME');
-    expect(escapeForShell('${PATH}')).toBe('\\${PATH}');
-    expect(escapeForShell('$')).toBe('\\$');
+  it('should not escape dollar signs (literal in single quotes)', () => {
+    expect(escapeForShell('$HOME')).toBe('$HOME');
+    expect(escapeForShell('${PATH}')).toBe('${PATH}');
+    expect(escapeForShell('$')).toBe('$');
+  });
+
+  it('should escape single quotes', () => {
+    expect(escapeForShell("it's")).toBe("it'\\''s");
+    expect(escapeForShell("'")).toBe("'\\''");
+    expect(escapeForShell("a'b'c")).toBe("a'\\''b'\\''c");
   });
 
   it('should escape newlines', () => {
@@ -46,18 +52,16 @@ describe('escapeForShell', () => {
     expect(escapeForShell(multiline)).toBe(expected);
   });
 
-  it('should escape multiple special characters together', () => {
-    expect(escapeForShell('say "hello $USER"\n')).toBe(
-      'say \\"hello \\$USER\\"\\n',
-    );
-    expect(escapeForShell('`echo $HOME`')).toBe('\\`echo \\$HOME\\`');
+  it('should only escape single quotes and newlines in combined text', () => {
+    expect(escapeForShell('say "hello $USER"\n')).toBe('say "hello $USER"\\n');
+    expect(escapeForShell('`echo $HOME`')).toBe('`echo $HOME`');
   });
 
-  it('should handle backslash before other special chars correctly', () => {
-    // Backslash should be escaped first, then other chars
-    expect(escapeForShell('\\n')).toBe('\\\\n'); // literal \n becomes \\n
-    expect(escapeForShell('\\\n')).toBe('\\\\\\n'); // backslash + newline
-    expect(escapeForShell('\\"')).toBe('\\\\\\"'); // backslash + quote
+  it('should handle backslash before newline correctly', () => {
+    // Literal backslash + n (two chars \\n in source) → unchanged (no 0x0A)
+    expect(escapeForShell('\\n')).toBe('\\n');
+    // Backslash + real newline (0x0A) → backslash + literal \n
+    expect(escapeForShell('\\\n')).toBe('\\\\n');
   });
 
   it('should handle unicode text (passthrough)', () => {
@@ -67,6 +71,6 @@ describe('escapeForShell', () => {
 
   it('should handle mixed unicode and special chars', () => {
     expect(escapeForShell('你好\n世界')).toBe('你好\\n世界');
-    expect(escapeForShell('"中文"')).toBe('\\"中文\\"');
+    expect(escapeForShell('"中文"')).toBe('"中文"');
   });
 });

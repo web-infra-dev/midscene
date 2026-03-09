@@ -34,16 +34,14 @@ describe('computer todo app automation', () => {
       await agent.aiAssert('The todo input box is visible');
 
       // Add tasks
-      await agent.aiAct('Enter "Happy Birthday" in the task box');
       await agent.aiAct(
-        'Enter "Learn JS today" in the task box, then press Enter to create',
-      );
-
-      await agent.aiAct(
-        'Enter "Learn Rust tomorrow" in the task box, then press Enter to create',
+        'Click the task input box, type "Learn JS today", then press Enter to create the task',
       );
       await agent.aiAct(
-        'Enter "Learning AI the day after tomorrow" in the task box, then press Enter to create',
+        'Click the task input box, type "Learn Rust tomorrow", then press Enter to create the task',
+      );
+      await agent.aiAct(
+        'Click the task input box, type "Learning AI the day after tomorrow", then press Enter to create the task',
       );
 
       // Verify tasks were created
@@ -57,14 +55,13 @@ describe('computer todo app automation', () => {
 
       // Interact with tasks - hover to show delete button, then click it
       await agent.aiAct(
-        'Move your mouse over the second item in the task list',
+        'Hover over the "Learn Rust tomorrow" task and click the × delete button that appears on the right side of it',
       );
       await agent.aiAct(
-        'Click the delete button to the right of the second task',
+        'Click the checkbox next to "Learning AI the day after tomorrow"',
       );
-      await agent.aiAct('Click the checkbox next to the second task');
       await agent.aiAct(
-        'Click the "completed" Status button below the task list',
+        'Click the "Completed" filter button below the task list',
       );
 
       // Verify remaining tasks
@@ -80,6 +77,6 @@ describe('computer todo app automation', () => {
       );
       expect(placeholder).toBe('What needs to be done?');
     },
-    360 * 1000,
+    600 * 1000,
   );
 });

@@ -50,3 +50,26 @@ export function isValidPNGImageBuffer(buffer: Buffer): boolean {
 
   return isPNG;
 }
+
+/**
+ * Check if the Buffer is a valid JPEG image
+ * @param buffer The Buffer to check
+ * @returns true if the Buffer is a valid JPEG image, otherwise false
+ */
+export function isValidJPEGImageBuffer(buffer: Buffer): boolean {
+  if (!buffer || buffer.length < 3) {
+    return false;
+  }
+
+  // Check JPEG signature (3 bytes): FF D8 FF
+  return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+}
+
+/**
+ * Check if the Buffer is a valid image (PNG or JPEG)
+ * @param buffer The Buffer to check
+ * @returns true if the Buffer is a valid PNG or JPEG image, otherwise false
+ */
+export function isValidImageBuffer(buffer: Buffer): boolean {
+  return isValidPNGImageBuffer(buffer) || isValidJPEGImageBuffer(buffer);
+}

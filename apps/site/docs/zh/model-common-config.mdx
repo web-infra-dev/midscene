@@ -65,7 +65,7 @@ import 'dotenv/config';
 
 ### 豆包 Seed 模型 {#doubao-seed-model}
 
-推荐使用 Doubao-Seed-1.6-Vision。
+推荐使用 Doubao-Seed-2.0-Lite，同时也支持 Doubao-Seed-1.6-Vision 和 Doubao-Seed-1.8 模型。
 
 从 [火山引擎](https://volcengine.com) 获取 API 密钥，然后补充以下环境变量：
 
@@ -73,12 +73,28 @@ import 'dotenv/config';
 MIDSCENE_MODEL_BASE_URL="https://ark.cn-beijing.volces.com/api/v3"
 MIDSCENE_MODEL_API_KEY="...."
 MIDSCENE_MODEL_NAME="ep-..." # 来自火山引擎的推理接入点 ID 或模型名称
-MIDSCENE_MODEL_FAMILY="doubao-vision"
+MIDSCENE_MODEL_FAMILY="doubao-seed" # 也兼容 "doubao-vision"
+# 可选：控制推理力度 (low, medium, high)
+# MIDSCENE_MODEL_REASONING_EFFORT="medium"
 ```
+
+### 千问 Qwen3.5 {#qwen35}
+
+以[阿里云](https://www.aliyun.com/)的 `qwen3.5-plus` 模型为例，推荐关闭平台默认的思考模式以提升执行速度，其环境变量配置如下：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+MIDSCENE_MODEL_API_KEY="......"
+MIDSCENE_MODEL_NAME="qwen3.5-plus"
+MIDSCENE_MODEL_FAMILY="qwen3.5"
+MIDSCENE_MODEL_REASONING_ENABLED="false"
+```
+
+如果需要开启思考模式，可以配置 `MIDSCENE_MODEL_REASONING_ENABLED="true"` 并增加 `MIDSCENE_MODEL_REASONING_BUDGET="500"` 配置以控制思考耗时。
 
 ### 千问 Qwen3-VL {#qwen3-vl}
 
-以[阿里云](https://www.aliyun.com/) 的 `qwen3-vl-plus` 模型为例，它的环境变量配置如下：
+以[阿里云](https://www.aliyun.com/)的 `qwen3-vl-plus` 模型为例，它的环境变量配置如下：
 
 ```bash
 MIDSCENE_MODEL_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"

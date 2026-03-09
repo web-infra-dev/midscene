@@ -7,7 +7,6 @@ export {
   plan,
   AiLocateElement,
   getMidsceneLocationSchema,
-  type MidsceneLocationResultType,
   PointSchema,
   SizeSchema,
   RectSchema,
@@ -34,7 +33,7 @@ export {
 export { z };
 
 export default Service;
-export { MidsceneAbortedError, TaskRunner, Service, getVersion };
+export { TaskRunner, Service, getVersion, MidsceneAbortedError };
 
 export type {
   MidsceneYamlScript,

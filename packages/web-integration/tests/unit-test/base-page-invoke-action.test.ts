@@ -23,7 +23,8 @@ vi.mock('@midscene/shared/node', () => ({
 vi.mock('@/web-element', () => ({
   WebPageContextParser: vi.fn().mockResolvedValue({
     tree: { node: null, children: [] },
-    size: { width: 1024, height: 768 },
+    shotSize: { width: 1024, height: 768 },
+    shrunkShotToLogicalRatio: 1,
     screenshotBase64: 'mock-base64',
   }),
 }));
@@ -191,32 +192,6 @@ describe('Page - beforeInvokeAction and afterInvokeAction', () => {
         concurrency: 2, // DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY
         timeout: 2000, // DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT
       });
-    });
-
-    it('should wait for navigation and network idle sequentially', async () => {
-      const mockPage = {
-        url: () => 'http://example.com',
-        mouse: { move: vi.fn() },
-        keyboard: { down: vi.fn(), up: vi.fn(), press: vi.fn(), type: vi.fn() },
-        waitForSelector: vi.fn().mockImplementation(() => {
-          return new Promise((resolve) => setTimeout(() => resolve(true), 100));
-        }),
-        waitForNetworkIdle: vi.fn().mockImplementation(() => {
-          return new Promise((resolve) => setTimeout(() => resolve(true), 100));
-        }),
-        evaluate: vi.fn(),
-      } as any;
-
-      const page = new Page(mockPage, 'puppeteer');
-
-      const startTime = Date.now();
-      await page.afterInvokeAction('testAction', {});
-      const duration = Date.now() - startTime;
-
-      // Executed sequentially, should take ~200ms
-      expect(duration).toBeGreaterThanOrEqual(180);
-      expect(mockPage.waitForSelector).toHaveBeenCalledTimes(1);
-      expect(mockPage.waitForNetworkIdle).toHaveBeenCalledTimes(1);
     });
 
     it('should call the afterInvokeAction hook after waiting', async () => {

@@ -12,7 +12,6 @@ export const MIDSCENE_MCP_USE_PUPPETEER_MODE =
 export const MIDSCENE_MCP_CHROME_PATH = 'MIDSCENE_MCP_CHROME_PATH';
 export const MIDSCENE_MCP_ANDROID_MODE = 'MIDSCENE_MCP_ANDROID_MODE';
 export const DOCKER_CONTAINER = 'DOCKER_CONTAINER';
-export const MIDSCENE_FORCE_DEEP_THINK = 'MIDSCENE_FORCE_DEEP_THINK';
 
 // Observability
 export const MIDSCENE_LANGSMITH_DEBUG = 'MIDSCENE_LANGSMITH_DEBUG';
@@ -29,6 +28,12 @@ export const MIDSCENE_MODEL_TIMEOUT = 'MIDSCENE_MODEL_TIMEOUT';
 export const MIDSCENE_MODEL_TEMPERATURE = 'MIDSCENE_MODEL_TEMPERATURE';
 export const MIDSCENE_MODEL_RETRY_COUNT = 'MIDSCENE_MODEL_RETRY_COUNT';
 export const MIDSCENE_MODEL_RETRY_INTERVAL = 'MIDSCENE_MODEL_RETRY_INTERVAL';
+export const MIDSCENE_MODEL_REASONING_EFFORT =
+  'MIDSCENE_MODEL_REASONING_EFFORT';
+export const MIDSCENE_MODEL_REASONING_ENABLED =
+  'MIDSCENE_MODEL_REASONING_ENABLED';
+export const MIDSCENE_MODEL_REASONING_BUDGET =
+  'MIDSCENE_MODEL_REASONING_BUDGET';
 
 /**
  * @deprecated Use MIDSCENE_MODEL_API_KEY instead. This is kept for backward compatibility.
@@ -104,6 +109,12 @@ export const MIDSCENE_INSIGHT_MODEL_RETRY_COUNT =
 export const MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL =
   'MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL';
 export const MIDSCENE_INSIGHT_MODEL_FAMILY = 'MIDSCENE_INSIGHT_MODEL_FAMILY';
+export const MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT =
+  'MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT';
+export const MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED =
+  'MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED';
+export const MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET =
+  'MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET';
 
 // PLANNING
 export const MIDSCENE_PLANNING_MODEL_NAME = 'MIDSCENE_PLANNING_MODEL_NAME';
@@ -126,6 +137,12 @@ export const MIDSCENE_PLANNING_MODEL_RETRY_COUNT =
 export const MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL =
   'MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL';
 export const MIDSCENE_PLANNING_MODEL_FAMILY = 'MIDSCENE_PLANNING_MODEL_FAMILY';
+export const MIDSCENE_PLANNING_MODEL_REASONING_EFFORT =
+  'MIDSCENE_PLANNING_MODEL_REASONING_EFFORT';
+export const MIDSCENE_PLANNING_MODEL_REASONING_ENABLED =
+  'MIDSCENE_PLANNING_MODEL_REASONING_ENABLED';
+export const MIDSCENE_PLANNING_MODEL_REASONING_BUDGET =
+  'MIDSCENE_PLANNING_MODEL_REASONING_BUDGET';
 export const MIDSCENE_MODEL_FAMILY = 'MIDSCENE_MODEL_FAMILY';
 
 /**
@@ -146,7 +163,6 @@ export const BASIC_ENV_KEYS = [
 
 export const BOOLEAN_ENV_KEYS = [
   MIDSCENE_CACHE,
-  MIDSCENE_FORCE_DEEP_THINK,
   MIDSCENE_MCP_USE_PUPPETEER_MODE,
   MIDSCENE_MCP_ANDROID_MODE,
   MIDSCENE_LANGSMITH_DEBUG,
@@ -204,6 +220,9 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_MODEL_TEMPERATURE,
   MIDSCENE_MODEL_RETRY_COUNT,
   MIDSCENE_MODEL_RETRY_INTERVAL,
+  MIDSCENE_MODEL_REASONING_EFFORT,
+  MIDSCENE_MODEL_REASONING_ENABLED,
+  MIDSCENE_MODEL_REASONING_BUDGET,
   MIDSCENE_USE_VLM_UI_TARS,
   MIDSCENE_USE_QWEN_VL,
   MIDSCENE_USE_QWEN3_VL,
@@ -228,6 +247,9 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_INSIGHT_MODEL_RETRY_COUNT,
   MIDSCENE_INSIGHT_MODEL_RETRY_INTERVAL,
   MIDSCENE_INSIGHT_MODEL_FAMILY,
+  MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
+  MIDSCENE_INSIGHT_MODEL_REASONING_ENABLED,
+  MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   // PLANNING
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_SOCKS_PROXY,
@@ -240,6 +262,9 @@ export const MODEL_ENV_KEYS = [
   MIDSCENE_PLANNING_MODEL_RETRY_COUNT,
   MIDSCENE_PLANNING_MODEL_RETRY_INTERVAL,
   MIDSCENE_PLANNING_MODEL_FAMILY,
+  MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
+  MIDSCENE_PLANNING_MODEL_REASONING_ENABLED,
+  MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
   MIDSCENE_MODEL_FAMILY,
 ] as const;
 
@@ -256,7 +281,9 @@ export type TGlobalConfig = Record<TEnvKeys, string | undefined>;
 export type TVlModeValues =
   | 'qwen2.5-vl'
   | 'qwen3-vl'
+  | 'qwen3.5'
   | 'doubao-vision'
+  | 'doubao-seed'
   | 'gemini'
   | 'vlm-ui-tars'
   | 'vlm-ui-tars-doubao'
@@ -267,9 +294,11 @@ export type TVlModeValues =
 
 export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
   'doubao-vision',
+  'doubao-seed',
   'gemini',
   'qwen2.5-vl',
   'qwen3-vl',
+  'qwen3.5',
   'vlm-ui-tars',
   'vlm-ui-tars-doubao',
   'vlm-ui-tars-doubao-1.5',
@@ -285,6 +314,7 @@ export const VL_MODE_RAW_VALID_VALUES: TVlModeValues[] = [
  * Note: These values directly correspond to VL_MODE_RAW_VALID_VALUES
  * - 'qwen2.5-vl' is Qwen 2.5
  * - 'qwen3-vl' is Qwen 3
+ * - 'qwen3.5' is Qwen 3.5 (behaves the same as qwen3-vl)
  */
 export type TModelFamily = TVlModeValues | 'gpt-5';
 
@@ -338,8 +368,10 @@ export interface IModelConfigForPlanning {
  * Required: MIDSCENE_MODEL_FAMILY must be set to one of:
  *   - 'qwen2.5-vl'
  *   - 'qwen3-vl'
+ *   - 'qwen3.5'
  *   - 'gemini'
  *   - 'doubao-vision'
+ *   - 'doubao-seed'
  *   - 'vlm-ui-tars'
  *   - 'vlm-ui-tars-doubao'
  *   - 'vlm-ui-tars-doubao-1.5'
@@ -359,6 +391,12 @@ export interface IModelConfigForDefault {
   [MIDSCENE_MODEL_FAMILY]?: TModelFamily;
   // temperature
   [MIDSCENE_MODEL_TEMPERATURE]?: string;
+  // reasoning effort
+  [MIDSCENE_MODEL_REASONING_EFFORT]?: string;
+  // enable reasoning (boolean as string)
+  [MIDSCENE_MODEL_REASONING_ENABLED]?: string;
+  // reasoning budget (number as string)
+  [MIDSCENE_MODEL_REASONING_BUDGET]?: string;
 }
 
 export interface IModelConfigForDefaultLegacy {
@@ -460,8 +498,23 @@ export interface IModelConfig {
    */
   retryInterval?: number;
   /**
+   * Reasoning effort level for the model.
+   * Passed through to model-family-specific parameters (e.g., reasoning_effort for doubao, reasoning.effort for gpt-5).
+   */
+  reasoningEffort?: string;
+  /**
+   * Enable/disable reasoning for the model.
+   * Passed through to model-family-specific parameters (e.g., enable_thinking for qwen, thinking.type for doubao/glm-v).
+   */
+  reasoningEnabled?: boolean;
+  /**
+   * Reasoning token budget for the model.
+   * Passed through to model-family-specific parameters (e.g., thinking_budget for qwen).
+   */
+  reasoningBudget?: number;
+  /**
    * Model family - unified model configuration
-   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', etc.
+   * Maps directly to model families like 'qwen2.5-vl', 'qwen3-vl', 'doubao-vision', 'doubao-seed', etc.
    */
   modelFamily?: TModelFamily;
   uiTarsModelVersion?: UITarsModelVersion;

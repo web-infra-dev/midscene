@@ -321,7 +321,7 @@ tasks:
   - name: test_right_click_with_options
     flow:
       - aiRightClick: "element to right click"
-        deepThink: true
+        deepLocate: true
         cacheable: false
         moreParam: 
         foo: 123 
@@ -353,7 +353,7 @@ tasks:
             "foo": 123,
             "locate": {
               "cacheable": false,
-              "deepThink": true,
+              "deepLocate": true,
               "prompt": "element to right click",
               "xpath": undefined,
             },
@@ -372,7 +372,7 @@ tasks:
   - name: test_right_click_with_options
     flow:
       - RightClick: "element to right click"
-        deepThink: true
+        deepLocate: true
         cacheable: false
         moreParam: 456
       - Input: "input field 1"
@@ -405,7 +405,7 @@ tasks:
           {
             "locate": {
               "cacheable": false,
-              "deepThink": true,
+              "deepLocate": true,
               "prompt": "element to right click",
               "xpath": undefined,
             },
@@ -417,7 +417,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 1",
               "xpath": undefined,
             },
@@ -429,7 +429,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "item in menu",
               "xpath": undefined,
             },
@@ -448,13 +448,13 @@ tasks:
     flow:
       - aiTap: 'search input box'
       - aiTap: 'search input box'
-        deepThink: true
+        deepLocate: true
         cacheable: false
       - aiTap:
         prompt: 'search input box'
       - aiTap:
         prompt: 'search input box'
-        deepThink: true
+        deepLocate: true
         cacheable: false
       - aiKeyboardPress:
         keyName: 'Enter'
@@ -476,56 +476,42 @@ tasks:
     // console.log(player);
     expect(player.status).toBe('done');
 
-    // Verify aiRightClick was called with correct parameters
+    // Verify aiTap was called with correct parameters
+    expect(
+      (mockAgent.agent.aiTap as MockedFunction<any>).mock.calls,
+    ).toMatchInlineSnapshot(`
+      [
+        [
+          "search input box",
+          {},
+        ],
+        [
+          "search input box",
+          {
+            "cacheable": false,
+            "deepLocate": true,
+          },
+        ],
+        [
+          "search input box",
+          {},
+        ],
+        [
+          "search input box",
+          {
+            "cacheable": false,
+            "deepLocate": true,
+          },
+        ],
+      ]
+    `);
+
+    // Verify remaining actions still go through callActionInActionSpace
     expect(
       (mockAgent.agent.callActionInActionSpace as MockedFunction<any>).mock
         .calls,
     ).toMatchInlineSnapshot(`
       [
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
-        [
-          "Tap",
-          {
-            "locate": {
-              "cacheable": false,
-              "deepThink": true,
-              "prompt": "search input box",
-              "xpath": undefined,
-            },
-          },
-        ],
         [
           "KeyboardPress",
           {
@@ -537,7 +523,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "第一个搜索结果的天气信息卡片",
               "xpath": undefined,
             },
@@ -631,7 +617,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 1",
               "xpath": undefined,
             },
@@ -643,7 +629,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 2",
               "xpath": undefined,
             },
@@ -655,7 +641,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 3",
               "xpath": undefined,
             },
@@ -668,7 +654,7 @@ tasks:
             "keyName": "Enter",
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 3",
               "xpath": undefined,
             },
@@ -680,7 +666,7 @@ tasks:
             "keyName": "Control",
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 4",
               "xpath": undefined,
             },
@@ -692,7 +678,7 @@ tasks:
             "keyName": "Escape",
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field 5",
               "xpath": undefined,
             },
@@ -703,7 +689,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": {
                 "prompt": "Please determine whether there is a specific on the page.",
               },
@@ -716,7 +702,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": {
                 "images": [
                   {
@@ -739,7 +725,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": {
                 "convertHttpImage2Base64": true,
                 "images": [
@@ -759,7 +745,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "move the area contains the logo",
               "xpath": undefined,
             },
@@ -770,7 +756,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": {
                 "convertHttpImage2Base64": true,
                 "images": [
@@ -847,6 +833,7 @@ tasks:
         aiRightClick: vi.fn(async () => {
           throw new Error('Element not found for right click');
         }),
+        aiTap: vi.fn(),
         reportFile: null,
         onTaskStartTip: undefined,
         getActionSpace: async () => [
@@ -877,22 +864,14 @@ tasks:
     expect(player.taskStatusList[1].status).toBe('done');
     expect(player.status).toBe('done');
 
-    // Verify both methods were called
+    // Verify aiTap was called via agent.aiTap
     expect(
-      (errorMockSetup.agent.callActionInActionSpace as MockedFunction<any>).mock
-        .calls,
+      (errorMockSetup.agent.aiTap as MockedFunction<any>).mock.calls,
     ).toMatchInlineSnapshot(`
       [
         [
-          "aiTap",
-          {
-            "locate": {
-              "cacheable": true,
-              "deepThink": false,
-              "prompt": "some button",
-              "xpath": undefined,
-            },
-          },
+          "some button",
+          {},
         ],
       ]
     `);
@@ -998,7 +977,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "input field",
               "xpath": undefined,
             },
@@ -1042,7 +1021,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "price input",
               "xpath": undefined,
             },
@@ -1086,7 +1065,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "quantity input",
               "xpath": undefined,
             },
@@ -1130,7 +1109,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "temperature input",
               "xpath": undefined,
             },
@@ -1180,7 +1159,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "name field",
               "xpath": undefined,
             },
@@ -1192,7 +1171,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "age field",
               "xpath": undefined,
             },
@@ -1204,7 +1183,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "salary field",
               "xpath": undefined,
             },
@@ -1216,7 +1195,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "email field",
               "xpath": undefined,
             },
@@ -1260,7 +1239,7 @@ tasks:
           {
             "locate": {
               "cacheable": true,
-              "deepThink": false,
+              "deepLocate": false,
               "prompt": "answer field",
               "xpath": undefined,
             },

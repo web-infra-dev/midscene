@@ -8,15 +8,24 @@ import { extractImageByIdSync } from './dump/html-utils';
  * - { base64: "path" } - directory mode, references external file path
  */
 export type ScreenshotSerializeFormat =
-  | { $screenshot: string }
-  | { base64: string };
+  | { $screenshot: string; capturedAt: number }
+  | { base64: string; capturedAt: number };
+
+/**
+ * Detect image format from base64 data URI prefix.
+ */
+function detectFormat(base64: string): 'png' | 'jpeg' {
+  if (base64.startsWith('data:image/jpeg')) return 'jpeg';
+  if (base64.startsWith('data:image/jpg')) return 'jpeg';
+  return 'png';
+}
 
 /**
  * ScreenshotItem encapsulates screenshot data.
  *
  * Supports lazy loading after memory release:
  * - inline mode: reads from HTML file using streaming (extractImageByIdSync)
- * - directory mode: reads from PNG file
+ * - directory mode: reads from file on disk
  *
  * After persistence, memory is released but the screenshot can be recovered
  * on-demand from disk, making it safe to release memory at any time.
@@ -24,22 +33,41 @@ export type ScreenshotSerializeFormat =
 export class ScreenshotItem {
   private _id: string;
   private _base64: string | null;
+  private _format: 'png' | 'jpeg';
+  private _capturedAt: number;
   private _persistedAs: ScreenshotSerializeFormat | null = null;
-  private _persistedPath: string | null = null; // directory mode: PNG file path
-  private _persistedHtmlPath: string | null = null; // inline mode: HTML file path
+  private _persistedPath: string | null = null;
+  private _persistedHtmlPath: string | null = null;
 
-  private constructor(id: string, base64: string) {
+  private constructor(id: string, base64: string, capturedAt: number) {
     this._id = id;
     this._base64 = base64;
+    this._format = detectFormat(base64);
+    this._capturedAt = capturedAt;
   }
 
   /** Create a new ScreenshotItem from base64 data */
-  static create(base64: string): ScreenshotItem {
-    return new ScreenshotItem(uuid(), base64);
+  static create(base64: string, capturedAt: number): ScreenshotItem {
+    return new ScreenshotItem(uuid(), base64, capturedAt);
   }
 
   get id(): string {
     return this._id;
+  }
+
+  /** Get the image format (png or jpeg) */
+  get format(): 'png' | 'jpeg' {
+    return this._format;
+  }
+
+  /** Get the file extension for this screenshot */
+  get extension(): string {
+    return this._format === 'jpeg' ? 'jpeg' : 'png';
+  }
+
+  /** Get screenshot capture timestamp in milliseconds */
+  get capturedAt(): number {
+    return this._capturedAt;
   }
 
   get base64(): string {
@@ -48,10 +76,10 @@ export class ScreenshotItem {
       return this._base64;
     }
 
-    // Directory mode: recover from PNG file
+    // Directory mode: recover from file
     if (this._persistedPath !== null) {
       const buffer = readFileSync(this._persistedPath);
-      return `data:image/png;base64,${buffer.toString('base64')}`;
+      return `data:image/${this._format};base64,${buffer.toString('base64')}`;
     }
 
     // Inline mode: recover from HTML file using streaming
@@ -81,7 +109,10 @@ export class ScreenshotItem {
    * @param htmlPath - absolute path to the HTML file containing the image
    */
   markPersistedInline(htmlPath: string): void {
-    this._persistedAs = { $screenshot: this._id };
+    this._persistedAs = {
+      $screenshot: this._id,
+      capturedAt: this._capturedAt,
+    };
     this._persistedHtmlPath = htmlPath;
     this._base64 = null;
   }
@@ -89,18 +120,26 @@ export class ScreenshotItem {
   /**
    * Mark as persisted to file (directory mode).
    * Releases base64 memory, but keeps file path for lazy loading recovery.
-   * @param relativePath - relative path for serialization (e.g., "./screenshots/id.png")
+   * @param relativePath - relative path for serialization (e.g., "./screenshots/id.jpeg")
    * @param absolutePath - absolute path for lazy loading recovery
    */
   markPersistedToPath(relativePath: string, absolutePath: string): void {
-    this._persistedAs = { base64: relativePath };
+    this._persistedAs = {
+      base64: relativePath,
+      capturedAt: this._capturedAt,
+    };
     this._persistedPath = absolutePath;
     this._base64 = null;
   }
 
   /** Serialize for JSON - format depends on persistence state */
   toSerializable(): ScreenshotSerializeFormat {
-    return this._persistedAs ?? { $screenshot: this._id };
+    return (
+      this._persistedAs ?? {
+        $screenshot: this._id,
+        capturedAt: this._capturedAt,
+      }
+    );
   }
 
   /** Check if a value is a serialized ScreenshotItem reference (inline or directory mode) */
@@ -109,10 +148,16 @@ export class ScreenshotItem {
     const record = value as Record<string, unknown>;
     // Check for inline mode: { $screenshot: string }
     if ('$screenshot' in record && typeof record.$screenshot === 'string') {
+      if (!('capturedAt' in record) || typeof record.capturedAt !== 'number') {
+        return false;
+      }
       return true;
     }
     // Check for directory mode: { base64: string } where base64 is a path
     if ('base64' in record && typeof record.base64 === 'string') {
+      if (!('capturedAt' in record) || typeof record.capturedAt !== 'number') {
+        return false;
+      }
       return true;
     }
     return false;

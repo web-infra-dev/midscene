@@ -166,6 +166,22 @@ For remote devices, you also need to set up port forwarding accordingly:
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
+### How to get smoother live screen preview in Playground?
+
+Playground's screen preview supports two modes:
+
+- **Polling mode** (default): Captures screenshots one by one via the WDA screenshot API, achieving ~5-10fps.
+- **Native MJPEG stream** (recommended): Proxies WDA's built-in MJPEG Server directly for higher frame rate and lower latency.
+
+To enable the native MJPEG stream, forward the WDA MJPEG Server port (default 9100) to localhost:
+
+```bash
+# Required for real devices only (simulators don't need this)
+iproxy 9100 9100 YOUR_DEVICE_ID
+```
+
+Playground automatically probes port 9100 on startup. If available, the log will show `MJPEG: streaming via native WDA MJPEG server`; otherwise it falls back to polling mode automatically.
+
 ## More
 
 - For every Agent method, check the [API reference (Common)](./api#interaction-methods).

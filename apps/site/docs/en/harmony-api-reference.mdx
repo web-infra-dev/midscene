@@ -1,0 +1,200 @@
+# API Reference (HarmonyOS)
+
+When you need to customize device behavior, integrate Midscene into a framework, or troubleshoot HDC issues, refer to this section. For common constructor parameters (reports, hooks, caching, etc.), see the platform-agnostic [API Reference](./api).
+
+## Action Space
+
+`HarmonyDevice` uses the following action space. The Midscene Agent can use these operations when planning tasks:
+
+- `Tap` — Tap on an element.
+- `DoubleClick` — Double-tap on an element.
+- `Input` — Input text, supporting `replace`/`typeOnly`/`clear` modes.
+- `Scroll` — Scroll from an element or screen center in any direction, supporting scroll-to-top/bottom/left/right.
+- `DragAndDrop` — Drag from one element to another.
+- `KeyboardPress` — Press a specific key.
+- `LongPress` — Long-press a target element with optional custom duration.
+- `ClearInput` — Clear input field contents.
+- `Launch` — Open a HarmonyOS app (bundle name).
+- `RunHdcShell` — Execute a raw `hdc shell` command.
+- `HarmonyBackButton` — Trigger system back.
+- `HarmonyHomeButton` — Return to home screen.
+- `HarmonyRecentAppsButton` — Open recent apps / multitasking.
+
+## HarmonyDevice {#harmonydevice}
+
+Creates an HDC device instance that can be driven by HarmonyAgent.
+
+### Import
+
+```ts
+import { HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+```
+
+### Constructor
+
+```ts
+const device = new HarmonyDevice(deviceId, {
+  // device options...
+});
+```
+
+### Device Options
+
+- `deviceId: string` — Value from `hdc list targets` or `getConnectedDevices()`.
+- `hdcPath?: string` — Custom path to the HDC executable. If not set, it searches `HDC_HOME` environment variable and common installation paths.
+- `autoDismissKeyboard?: boolean` — Automatically hide keyboard after input, default `true`.
+- `screenshotResizeScale?: number` — Scale screenshots before sending to the model. Not recommended to modify manually.
+- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+
+### Usage Notes
+
+- Use `getConnectedDevices()` to discover devices. The returned `deviceId` matches `hdc list targets` output.
+- If HDC is not in your system PATH, specify it via the `HDC_HOME` environment variable or the `hdcPath` option.
+
+### Examples
+
+#### Quick Start
+
+```ts
+import { HarmonyAgent, HarmonyDevice, getConnectedDevices } from '@midscene/harmony';
+
+const [first] = await getConnectedDevices();
+const device = new HarmonyDevice(first.deviceId, {});
+await device.connect();
+
+const agent = new HarmonyAgent(device, {
+  aiActionContext: 'This is a HarmonyOS device. If any popup appears, agree to it.',
+});
+
+await agent.launch('com.huawei.hmos.settings');
+await agent.aiAct('scroll down one screen');
+const items = await agent.aiQuery(
+  'string[], list all visible setting item names',
+);
+console.log(items);
+```
+
+#### Launch Apps
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // Open Settings
+await agent.launch('com.huawei.hmos.camera');    // Open Camera
+await agent.back();
+await agent.home();
+```
+
+## HarmonyAgent {#harmonyagent}
+
+Binds Midscene's AI planning capabilities to a HarmonyDevice for UI automation.
+
+### Import
+
+```ts
+import { HarmonyAgent } from '@midscene/harmony';
+```
+
+### Constructor
+
+```ts
+const agent = new HarmonyAgent(device, {
+  // common Agent options...
+});
+```
+
+### HarmonyOS-Specific Options
+
+- `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
+- `appNameMapping?: Record<string, string>` — Map friendly app names to bundle names. When you pass an app name to `launch(target)`, the Agent looks up the corresponding bundle name in this mapping; if no mapping is found, it tries to launch `target` as-is.
+- Other fields are the same as [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, etc.
+
+### Usage Notes
+
+:::info
+
+- One device connection corresponds to one Agent.
+- HarmonyOS-specific helpers like `launch` and `runHdcShell` can also be used in YAML scripts. See [HarmonyOS platform-specific actions](./automate-with-scripts-in-yaml#the-harmony-part).
+- For common interaction methods, see [API Reference (Common)](./api#interaction-methods).
+
+:::
+
+### HarmonyOS-Specific Methods
+
+#### `agent.launch()`
+
+Launch a HarmonyOS app.
+
+```ts
+function launch(uri: string): Promise<void>;
+```
+
+- `uri: string` — Can be an app bundle name (e.g., `com.huawei.hmos.settings`), or an app name registered in `appNameMapping`. If a URL starting with `http://` or `https://` is passed, it opens via the browser.
+
+```ts
+await agent.launch('com.huawei.hmos.settings'); // Open Settings
+await agent.launch('com.huawei.hmos.camera');    // Open Camera
+```
+
+#### `agent.runHdcShell()`
+
+Run a raw `hdc shell` command on the connected device.
+
+```ts
+function runHdcShell(command: string): Promise<string>;
+```
+
+- `command: string` — The command passed directly to `hdc shell`.
+
+```ts
+const result = await agent.runHdcShell('hidumper -s RenderService -a screen');
+console.log(result);
+```
+
+#### Navigation Helpers
+
+- `agent.back(): Promise<void>` — Trigger HarmonyOS system back.
+- `agent.home(): Promise<void>` — Return to home screen.
+- `agent.recentApps(): Promise<void>` — Open recent apps / multitasking.
+
+### Utilities
+
+#### `agentFromHdcDevice()`
+
+Create a `HarmonyAgent` from any connected HDC device.
+
+```ts
+function agentFromHdcDevice(
+  deviceId?: string,
+  opts?: HarmonyAgentOpt & HarmonyDeviceOpt,
+): Promise<HarmonyAgent>;
+```
+
+- `deviceId?: string` — Connect to a specific device; leave empty for "first available device".
+- `opts?: HarmonyAgentOpt & HarmonyDeviceOpt` — Merge Agent options and [`HarmonyDevice`](#harmonydevice) settings in a single object.
+
+```ts
+import { agentFromHdcDevice } from '@midscene/harmony';
+
+const agent = await agentFromHdcDevice('0123456789ABCDEF'); // specific device
+const agent = await agentFromHdcDevice(); // first available device
+```
+
+#### `getConnectedDevices()`
+
+List HDC devices that Midscene can drive.
+
+```ts
+function getConnectedDevices(
+  hdcPath?: string,
+): Promise<Array<{ deviceId: string }>>;
+```
+
+```ts
+import { getConnectedDevices } from '@midscene/harmony';
+
+const devices = await getConnectedDevices();
+console.log(devices); // [{ deviceId: '0123456789ABCDEF' }]
+```
+
+### Related Reading
+
+- [HarmonyOS Getting Started](./harmony-getting-started) for setup and script examples.

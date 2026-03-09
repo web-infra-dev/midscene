@@ -1,0 +1,188 @@
+name: Headless Linux
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'packages/computer/**'
+      - 'apps/chrome-extension/**'
+      - '.github/workflows/headless-linux.yml'
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to checkout'
+        required: false
+        default: 'main'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  headless-linux-ai-todo:
+    runs-on: ubuntu-22.04
+    env:
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
+      CI: "1"
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          imagemagick \
+          libxtst6 \
+          libxinerama1 \
+          libx11-6 \
+          libxkbcommon-x11-0 \
+          libpng16-16 \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libgbm1 \
+          libasound2
+        # Install Google Chrome (not snap chromium which can't access Xvfb)
+        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build project
+      run: pnpm run build:skip-cache
+
+    - name: Verify system setup
+      run: |
+        echo "--- Xvfb ---"
+        which Xvfb && echo "Xvfb: OK"
+        echo "--- xrandr ---"
+        which xrandr && echo "xrandr: OK"
+        echo "--- import (imagemagick) ---"
+        which import && echo "import: OK"
+        echo "--- Browser ---"
+        google-chrome-stable --version || echo "Chrome not found"
+        echo "--- DISPLAY ---"
+        echo "DISPLAY=${DISPLAY:-(not set)}"
+
+    - name: Run AI todo test with Xvfb
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/ai-auto-todo.test.ts
+      timeout-minutes: 25
+      id: test-ai
+      continue-on-error: true
+
+    - name: Upload test report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: headless-linux-ai-report
+        path: packages/computer/midscene_run/report
+        if-no-files-found: ignore
+
+    - name: Check test result
+      if: steps.test-ai.outcome == 'failure'
+      run: exit 1
+
+  chrome-extension:
+    runs-on: ubuntu-22.04
+    env:
+      # Env vars for computer agent (screenshot + AI actions)
+      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+      MIDSCENE_MODEL_RETRY_COUNT: "2"
+      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+      MIDSCENE_REPORT_QUIET: "true"
+      MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
+      CI: "1"
+      # Env vars to inject into Chrome extension's config UI via CDP
+      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
+      MIDSCENE_USE_QWEN3_VL: "1"
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          xvfb \
+          x11-xserver-utils \
+          imagemagick \
+          libxtst6 \
+          libxinerama1 \
+          libx11-6 \
+          libxkbcommon-x11-0 \
+          libpng16-16 \
+          libnss3 \
+          libatk-bridge2.0-0 \
+          libdrm2 \
+          libgbm1 \
+          libasound2
+        # Install Google Chrome (not snap chromium which can't access Xvfb)
+        wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get -f install -y
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Build project
+      run: pnpm run build:skip-cache
+
+    - name: Run Chrome extension test
+      run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
+      timeout-minutes: 40
+      id: test-ext
+      continue-on-error: true
+
+    - name: Upload test report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: chrome-extension-report
+        path: packages/computer/midscene_run/report
+        if-no-files-found: ignore
+
+    - name: Check test result
+      if: steps.test-ext.outcome == 'failure'
+      run: exit 1

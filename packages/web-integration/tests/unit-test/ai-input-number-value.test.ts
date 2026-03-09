@@ -50,7 +50,7 @@ const mockPage = {
   actionSpace: vi.fn(() => []),
   screenshotBase64: vi.fn().mockResolvedValue('mock-screenshot'),
   evaluateJavaScript: vi.fn(),
-  size: vi.fn().mockResolvedValue({ dpr: 1 }),
+  size: vi.fn().mockResolvedValue({}),
   destroy: vi.fn(),
 } as unknown as AbstractWebPage;
 

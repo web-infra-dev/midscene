@@ -19,7 +19,7 @@ vi.mock('@yume-chan/adb-server-node-tcp', () => ({
 const createMockManager = () => ({
   validateEnvironment: vi.fn().mockResolvedValue(undefined),
   ensureConnected: vi.fn().mockResolvedValue(undefined),
-  getScreenshotPng: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
+  getScreenshotJpeg: vi.fn().mockResolvedValue(Buffer.from('fake-png')),
   getResolution: vi.fn().mockReturnValue(null),
   disconnect: vi.fn().mockResolvedValue(undefined),
 });
@@ -60,35 +60,23 @@ describe('ScrcpyDeviceAdapter', () => {
 
   describe('isEnabled', () => {
     it('should return false by default (DEFAULT_SCRCPY_CONFIG.enabled)', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       expect(adapter.isEnabled()).toBe(false);
       expect(adapter.isEnabled()).toBe(DEFAULT_SCRCPY_CONFIG.enabled);
     });
 
     it('should return false when config.enabled is false', () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: false },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: false });
       expect(adapter.isEnabled()).toBe(false);
     });
 
     it('should return true when config.enabled is explicitly true', () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       expect(adapter.isEnabled()).toBe(true);
     });
 
     it('should return false when initFailed is true', () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       expect(adapter.isEnabled()).toBe(true);
       (adapter as any).initFailed = true;
       expect(adapter.isEnabled()).toBe(false);
@@ -96,71 +84,83 @@ describe('ScrcpyDeviceAdapter', () => {
   });
 
   describe('resolveConfig', () => {
-    it('should auto-calculate maxSize from 1/dpr when no explicit maxSize', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+    it('should default maxSize to 0 (no scaling) when not explicitly set', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // physicalMax = max(1080, 1920) = 1920
-      // scale = 1 / 2.625 ≈ 0.381
-      // maxSize = round(1920 * 0.381) = 731
-      const expected = Math.round(1920 * (1 / 2.625));
-      expect(config.maxSize).toBe(expected);
+      expect(config.maxSize).toBe(0);
     });
 
-    it('should prefer screenshotResizeScale over 1/dpr', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, 0.5);
+    it('should default maxSize to 0 when no scrcpy config provided', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
-      // physicalMax = 1920, scale = 0.5 → maxSize = 960
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(0);
     });
 
     it('should use explicit maxSize without auto-calculation', () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { maxSize: 1024 },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { maxSize: 1024 });
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.maxSize).toBe(1024);
     });
 
     it('should treat maxSize=0 as explicit (no auto-calculation)', () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { maxSize: 0 },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { maxSize: 0 });
       const config = adapter.resolveConfig(defaultDeviceInfo);
       // maxSize=0 means "no scaling" in scrcpy, should not auto-calculate
       expect(config.maxSize).toBe(0);
     });
 
-    it('should use default idleTimeoutMs and videoBitRate when not provided', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+    it('should use default videoBitRate regardless of resolution', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(DEFAULT_SCRCPY_CONFIG.idleTimeoutMs);
       expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
     });
 
     it('should use custom idleTimeoutMs and videoBitRate', () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { idleTimeoutMs: 60000, videoBitRate: 4000000 },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        idleTimeoutMs: 60000,
+        videoBitRate: 4000000,
+      });
       const config = adapter.resolveConfig(defaultDeviceInfo);
       expect(config.idleTimeoutMs).toBe(60000);
       expect(config.videoBitRate).toBe(4000000);
     });
 
     it('should cache config (same reference on second call)', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const config1 = adapter.resolveConfig(defaultDeviceInfo);
       const config2 = adapter.resolveConfig(defaultDeviceInfo);
       expect(config1).toBe(config2);
     });
 
-    it('should handle landscape device (width > height)', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+    it('should use default videoBitRate for high-resolution devices (no auto-scale)', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
+      const highRes: DevicePhysicalInfo = {
+        physicalWidth: 1440,
+        physicalHeight: 3120,
+        dpr: 3.2,
+        orientation: 0,
+      };
+      const config = adapter.resolveConfig(highRes);
+      expect(config.videoBitRate).toBe(DEFAULT_SCRCPY_CONFIG.videoBitRate);
+    });
+
+    it('should use explicit videoBitRate for high-resolution devices', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', {
+        videoBitRate: 4_000_000,
+      });
+      const highRes: DevicePhysicalInfo = {
+        physicalWidth: 1440,
+        physicalHeight: 3120,
+        dpr: 3.2,
+        orientation: 0,
+      };
+      const config = adapter.resolveConfig(highRes);
+      expect(config.videoBitRate).toBe(4_000_000);
+    });
+
+    it('should default maxSize to 0 for landscape device', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       const landscape: DevicePhysicalInfo = {
         physicalWidth: 1920,
         physicalHeight: 1080,
@@ -168,19 +168,18 @@ describe('ScrcpyDeviceAdapter', () => {
         orientation: 1,
       };
       const config = adapter.resolveConfig(landscape);
-      // max(1920, 1080) = 1920, scale = 1/2 = 0.5 → maxSize = 960
-      expect(config.maxSize).toBe(960);
+      expect(config.maxSize).toBe(0);
     });
   });
 
   describe('getResolution', () => {
     it('should return null when no manager exists', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       expect(adapter.getResolution()).toBeNull();
     });
 
     it('should delegate to manager.getResolution()', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       currentMockManager.getResolution.mockReturnValue({
         width: 576,
         height: 1024,
@@ -190,7 +189,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should return null when manager.getResolution() returns null', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       currentMockManager.getResolution.mockReturnValue(null);
       (adapter as any).manager = currentMockManager;
       expect(adapter.getResolution()).toBeNull();
@@ -199,12 +198,12 @@ describe('ScrcpyDeviceAdapter', () => {
 
   describe('getSize', () => {
     it('should return null when no manager (no resolution)', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       expect(adapter.getSize(defaultDeviceInfo)).toBeNull();
     });
 
-    it('should return Size with scrcpy resolution and device dpr', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+    it('should return Size with scrcpy resolution', () => {
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       currentMockManager.getResolution.mockReturnValue({
         width: 576,
         height: 1024,
@@ -215,19 +214,18 @@ describe('ScrcpyDeviceAdapter', () => {
       expect(size).toEqual({
         width: 576,
         height: 1024,
-        dpr: 2.625,
       });
     });
   });
 
   describe('getScalingRatio', () => {
     it('should return null when no manager', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       expect(adapter.getScalingRatio(1080)).toBeNull();
     });
 
     it('should calculate correct scaling ratio', () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       currentMockManager.getResolution.mockReturnValue({
         width: 540,
         height: 960,
@@ -239,7 +237,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
   describe('ensureManager', () => {
     it('should return cached manager without re-validation', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
 
       const result = await adapter.ensureManager(defaultDeviceInfo);
@@ -248,11 +246,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should call validateEnvironment once before caching new manager', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 
       await adapter.ensureManager(defaultDeviceInfo);
 
@@ -261,11 +255,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should NOT cache manager when validateEnvironment fails', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       currentMockManager.validateEnvironment.mockRejectedValue(
         new Error('ffmpeg not found'),
       );
@@ -277,11 +267,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should include device ID in error message on failure', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'my-pixel-6',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('my-pixel-6', { enabled: true });
       currentMockManager.validateEnvironment.mockRejectedValue(
         new Error('test error'),
       );
@@ -294,22 +280,18 @@ describe('ScrcpyDeviceAdapter', () => {
 
   describe('screenshotBase64', () => {
     it('should return base64 image from manager', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
 
       const result = await adapter.screenshotBase64(defaultDeviceInfo);
       expect(result).toBe('data:image/png;base64,test');
-      expect(currentMockManager.getScreenshotPng).toHaveBeenCalledTimes(1);
+      expect(currentMockManager.getScreenshotJpeg).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('initialize', () => {
     it('should call ensureManager and manager.ensureConnected', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 
       await adapter.initialize(defaultDeviceInfo);
 
@@ -319,11 +301,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should set initFailed=true when ensureManager fails', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       currentMockManager.validateEnvironment.mockRejectedValue(
         new Error('ffmpeg not found'),
       );
@@ -334,11 +312,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should set initFailed=true when ensureConnected fails', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
       currentMockManager.ensureConnected.mockRejectedValue(
         new Error('scrcpy connection failed'),
       );
@@ -351,11 +325,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should not set initFailed on success', async () => {
-      const adapter = new ScrcpyDeviceAdapter(
-        'device',
-        { enabled: true },
-        undefined,
-      );
+      const adapter = new ScrcpyDeviceAdapter('device', { enabled: true });
 
       await adapter.initialize(defaultDeviceInfo);
 
@@ -366,7 +336,7 @@ describe('ScrcpyDeviceAdapter', () => {
 
   describe('disconnect', () => {
     it('should clear manager and resolvedConfig', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
       adapter.resolveConfig(defaultDeviceInfo); // populate cache
 
@@ -378,7 +348,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should handle disconnect errors gracefully (no throw)', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       (adapter as any).manager = currentMockManager;
       currentMockManager.disconnect.mockRejectedValue(
         new Error('disconnect failed'),
@@ -389,7 +359,7 @@ describe('ScrcpyDeviceAdapter', () => {
     });
 
     it('should be no-op when no manager exists', async () => {
-      const adapter = new ScrcpyDeviceAdapter('device', undefined, undefined);
+      const adapter = new ScrcpyDeviceAdapter('device', undefined);
       await expect(adapter.disconnect()).resolves.toBeUndefined();
     });
   });

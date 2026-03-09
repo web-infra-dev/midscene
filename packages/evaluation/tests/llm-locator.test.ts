@@ -74,10 +74,10 @@ testSources.forEach((source) => {
           result = await service.locate(
             {
               prompt,
-              deepThink:
+              deepLocate:
                 modelConfig.modelFamily === 'doubao-vision'
                   ? undefined
-                  : testCase.deepThink,
+                  : testCase.deepLocate,
             },
             {},
             modelConfig,

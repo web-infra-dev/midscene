@@ -1,11 +1,12 @@
 export const EN_US = {
   // Banner - New Badge
-  newBadge: 'Midscene 1.0 is released',
-  changelogLink: "See what's new",
+  newBadge: 'Control Any Platform with Midscene Skills',
+  changelogLink: 'Details',
 
   // Banner - Title
   heroTitle: 'Midscene.js',
-  heroSubtitle: 'Driving all platforms UI automation with vision-based model',
+  heroSubtitle:
+    'Driving all platforms UI automation with vision-based model. Fully open source.',
 
   // Banner - Stats
   githubStars: 'Github Stars',
@@ -17,22 +18,24 @@ export const EN_US = {
 
   // Feature Sections - CLIENTS
   clientsTitle: 'Platforms',
-  clientsHeading: `Web, iOS, Android,
+  clientsHeading: `Web, PC, Mobile,
 and more`,
   clientsDesc1:
     'Control browsers and mobile apps with natural language across multiple platforms',
   clientsDesc2: 'Unified API design for seamless cross-platform automation',
+  clientsDesc3: 'Supports Android, iOS, HarmonyOS, Linux, macOS, and Windows',
 
   // Feature Sections - Platforms
   platformWeb: 'Web',
-  platformIOS: 'iOS',
-  platformAndroid: 'Android',
+  platformPC: 'PC',
+  platformMobile: 'Mobile',
   platformAnyInterface: 'Any Interface',
   platformWebDesc:
     'Integrate with Puppeteer or Playwright, or use Bridge Mode to control desktop browsers.',
-  platformIOSDesc: 'Control iOS devices with WebDriver using natural language',
-  platformAndroidDesc:
-    'Control Android devices with adb using natural language',
+  platformPCDesc:
+    'Control desktop applications on macOS, Windows, and Linux with natural language.',
+  platformMobileDesc:
+    'Control Android, iOS, and HarmonyOS devices with natural language automation.',
   platformAnyInterfaceDesc:
     'Automation on any interface, beyond DOM / Accessibility limitations.',
 
@@ -93,7 +96,7 @@ and more`,
   // Links
   multiModelStrategyLink: '/model-strategy#advanced-combining-multiple-models',
   platformWebLink: '/quick-experience.html',
-  platformIOSLink: '/ios-introduction.html',
-  platformAndroidLink: '/android-introduction.html',
+  platformPCLink: '/quick-experience.html',
+  platformMobileLink: '/android-introduction.html',
   platformAnyInterfaceLink: '/integrate-with-any-interface.html',
 } as const;

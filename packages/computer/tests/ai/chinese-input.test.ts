@@ -10,9 +10,7 @@ describe('chinese and non-ASCII input', () => {
   let agent: ComputerAgent;
 
   beforeAll(async () => {
-    const device = new ComputerDevice({
-      inputStrategy: 'clipboard-for-non-ascii',
-    });
+    const device = new ComputerDevice({});
     agent = new ComputerAgent(device, {
       aiActionContext:
         'You are testing text input on a desktop computer. Focus on testing Chinese and other non-ASCII character input.',
@@ -102,9 +100,7 @@ describe('chinese and non-ASCII input', () => {
     'should use always-clipboard strategy',
     async () => {
       // Create a new device with always-clipboard strategy
-      const deviceAlways = new ComputerDevice({
-        inputStrategy: 'always-clipboard',
-      });
+      const deviceAlways = new ComputerDevice({});
       const agentAlways = new ComputerAgent(deviceAlways, {
         aiActionContext: 'You are testing text input using clipboard.',
       });

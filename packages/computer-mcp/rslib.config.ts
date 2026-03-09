@@ -23,6 +23,7 @@ export default defineConfig({
         }
         cb();
       },
+      '@computer-use/libnut',
       '@silvia-odwyer/photon',
       '@silvia-odwyer/photon-node',
       '@modelcontextprotocol/sdk',

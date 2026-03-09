@@ -1,6 +1,7 @@
 import { findAllMidsceneLocatorField, parseActionParam } from '@/ai-model';
 import type { AbstractInterface } from '@/device';
 import type Service from '@/service';
+import { setTimingFieldOnce } from '@/task-timing';
 import type {
   DetailedLocateParam,
   DeviceAction,
@@ -27,6 +28,8 @@ import {
   ifPlanLocateParamIsBbox,
   matchElementFromCache,
   matchElementFromPlan,
+  transformLogicalElementToScreenshot,
+  transformLogicalRectToScreenshotRect,
 } from './utils';
 
 const debug = getDebug('agent:task-builder');
@@ -63,7 +66,7 @@ interface TaskBuilderDeps {
 
 interface BuildOptions {
   cacheable?: boolean;
-  subTask?: boolean;
+  deepLocate?: boolean;
 }
 
 interface PlanBuildContext {
@@ -71,7 +74,7 @@ interface PlanBuildContext {
   modelConfigForPlanning: IModelConfig;
   modelConfigForDefaultIntent: IModelConfig;
   cacheable?: boolean;
-  subTask: boolean;
+  deepLocate?: boolean;
 }
 
 export class TaskBuilder {
@@ -113,7 +116,7 @@ export class TaskBuilder {
       modelConfigForPlanning,
       modelConfigForDefaultIntent,
       cacheable,
-      subTask: !!options?.subTask,
+      deepLocate: options?.deepLocate,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -152,7 +155,6 @@ export class TaskBuilder {
       subType: 'Finished',
       param: null,
       thought: plan.thought,
-      subTask: context.subTask || undefined,
       executor: async () => {},
     };
     context.tasks.push(taskActionFinished);
@@ -227,8 +229,9 @@ export class TaskBuilder {
       subType: planType,
       thought: plan.thought,
       param: plan.param,
-      subTask: context.subTask || undefined,
       executor: async (param, taskContext) => {
+        const timing = taskContext.task.timing;
+
         debug(
           'executing action',
           planType,
@@ -246,13 +249,18 @@ export class TaskBuilder {
           );
         });
 
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
         try {
           await Promise.all([
             (async () => {
               if (this.interface.beforeInvokeAction) {
-                debug('will call "beforeInvokeAction" for interface');
+                debug(
+                  `will call "beforeInvokeAction" for interface with action name ${action.name}`,
+                );
                 await this.interface.beforeInvokeAction(action.name, param);
-                debug('called "beforeInvokeAction" for interface');
+                debug(
+                  `called "beforeInvokeAction" for interface with action name ${action.name}`,
+                );
               }
             })(),
             sleep(200),
@@ -265,10 +273,20 @@ export class TaskBuilder {
             { cause: originalError },
           );
         }
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
+
+        const { shrunkShotToLogicalRatio } = uiContext;
+        if (shrunkShotToLogicalRatio === undefined) {
+          throw new Error(
+            'shrunkShotToLogicalRatio is not defined in Action task',
+          );
+        }
 
         if (action.paramSchema) {
           try {
-            param = parseActionParam(param, action.paramSchema);
+            param = parseActionParam(param, action.paramSchema, {
+              shrunkShotToLogicalRatio,
+            });
           } catch (error: any) {
             throw new Error(
               `Invalid parameters for action ${action.name}: ${error.message}\nParameters: ${JSON.stringify(param)}`,
@@ -277,10 +295,15 @@ export class TaskBuilder {
           }
         }
 
+        setTimingFieldOnce(timing, 'callActionStart');
+
         debug('calling action', action.name);
         const actionFn = action.call.bind(this.interface);
         const actionResult = await actionFn(param, taskContext);
+        setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
+
+        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
 
         const delayAfterRunner =
           action.delayAfterRunner ?? this.waitAfterAction ?? 300;
@@ -290,9 +313,13 @@ export class TaskBuilder {
 
         try {
           if (this.interface.afterInvokeAction) {
-            debug('will call "afterInvokeAction" for interface');
+            debug(
+              `will call "afterInvokeAction" for interface with action name ${action.name}`,
+            );
             await this.interface.afterInvokeAction(action.name, param);
-            debug('called "afterInvokeAction" for interface');
+            debug(
+              `called "afterInvokeAction" for interface with action name ${action.name}`,
+            );
           }
         } catch (originalError: any) {
           const originalMessage =
@@ -302,6 +329,8 @@ export class TaskBuilder {
             { cause: originalError },
           );
         }
+
+        setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
 
         return {
           output: actionResult,
@@ -318,7 +347,7 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, modelConfigForDefaultIntent } = context;
+    const { cacheable, modelConfigForDefaultIntent, deepLocate } = context;
 
     let locateParam = detailedLocateParam;
 
@@ -335,10 +364,16 @@ export class TaskBuilder {
       };
     }
 
+    if (deepLocate && !locateParam.deepLocate) {
+      locateParam = {
+        ...locateParam,
+        deepLocate: true,
+      };
+    }
+
     const taskLocator: ExecutionTaskPlanningLocateApply = {
       type: 'Planning',
       subType: 'Locate',
-      subTask: context.subTask || undefined,
       param: locateParam,
       thought: plan.thought,
       executor: async (param, taskContext) => {
@@ -357,6 +392,14 @@ export class TaskBuilder {
         }
 
         assert(uiContext, 'uiContext is required for Service task');
+
+        const { shrunkShotToLogicalRatio } = uiContext;
+
+        if (shrunkShotToLogicalRatio === undefined) {
+          throw new Error(
+            'shrunkShotToLogicalRatio is not defined in locate task',
+          );
+        }
 
         let locateDump: ServiceDump | undefined;
         let locateResult: LocateResultWithDump | undefined;
@@ -400,21 +443,27 @@ export class TaskBuilder {
             // xpath locate failed, allow fallback to cache or AI locate
           }
         }
+
         const elementFromXpath = rectFromXpath
           ? generateElementByRect(
-              rectFromXpath,
+              // rectFromXpath is in logical coordinates, which should be transformed to screenshot coordinates;
+              transformLogicalRectToScreenshotRect(
+                rectFromXpath,
+                shrunkShotToLogicalRatio,
+              ),
               typeof param.prompt === 'string'
                 ? param.prompt
                 : param.prompt?.prompt || '',
             )
           : undefined;
+
         const isXpathHit = !!elementFromXpath;
 
         const cachePrompt = param.prompt;
         const locateCacheRecord = this.taskCache?.matchLocateCache(cachePrompt);
         const cacheEntry = locateCacheRecord?.cacheContent?.cache;
 
-        const elementFromCache =
+        const elementFromCacheResult =
           isPlanHit || isXpathHit
             ? null
             : await matchElementFromCache(
@@ -426,11 +475,22 @@ export class TaskBuilder {
                 cachePrompt,
                 param.cacheable,
               );
+
+        // elementFromCacheResult is in logical coordinates, which should be transformed to screenshot coordinates;
+        const elementFromCache = elementFromCacheResult
+          ? transformLogicalElementToScreenshot(
+              elementFromCacheResult,
+              shrunkShotToLogicalRatio,
+            )
+          : undefined;
+
         const isCacheHit = !!elementFromCache;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
+        const timing = taskContext.task.timing;
         if (!isXpathHit && !isCacheHit && !isPlanHit) {
           try {
+            setTimingFieldOnce(timing, 'callAiStart');
             locateResult = await this.service.locate(
               param,
               {
@@ -445,6 +505,8 @@ export class TaskBuilder {
               applyDump(error.dump);
             }
             throw error;
+          } finally {
+            setTimingFieldOnce(timing, 'callAiEnd');
           }
         }
 
@@ -475,8 +537,23 @@ export class TaskBuilder {
         ) {
           if (this.interface.cacheFeatureForPoint) {
             try {
+              // Transform coordinates to logical space for cacheFeatureForPoint
+              // cacheFeatureForPoint needs logical coordinates to locate elements in DOM
+              let pointForCache: [number, number] = element.center;
+              if (shrunkShotToLogicalRatio !== 1) {
+                pointForCache = [
+                  Math.round(element.center[0] / shrunkShotToLogicalRatio),
+                  Math.round(element.center[1] / shrunkShotToLogicalRatio),
+                ];
+                debug(
+                  'Transformed coordinates for cacheFeatureForPoint: %o -> %o',
+                  element.center,
+                  pointForCache,
+                );
+              }
+
               const feature = await this.interface.cacheFeatureForPoint(
-                element.center,
+                pointForCache,
                 {
                   targetDescription:
                     typeof param.prompt === 'string'
@@ -554,7 +631,11 @@ export class TaskBuilder {
 
         return {
           output: {
-            element,
+            element: {
+              ...element,
+              // backward compatibility for aiLocate, which return value needs a dpr field
+              dpr: uiContext.deprecatedDpr,
+            },
           },
           hitBy,
         };

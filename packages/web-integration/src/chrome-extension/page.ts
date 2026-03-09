@@ -6,14 +6,27 @@
 */
 
 import { limitOpenNewTabScript } from '@/web-element';
-import type { ElementTreeNode, Point, Size, UIContext } from '@midscene/core';
+import type {
+  ElementCacheFeature,
+  ElementTreeNode,
+  Point,
+  Rect,
+  Size,
+} from '@midscene/core';
 import type { AbstractInterface, DeviceAction } from '@midscene/core/device';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
+import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
 import type { Protocol as CDPTypes } from 'devtools-protocol';
-import { WebPageContextParser } from '../web-element';
+import {
+  type CacheFeatureOptions,
+  type WebElementCacheFeature,
+  buildRectFromElementInfo,
+  judgeOrderSensitive,
+  sanitizeXpaths,
+} from '../common/cache-helper';
 import {
   type KeyInput,
   type MouseButton,
@@ -25,6 +38,8 @@ import {
   injectStopWaterFlowAnimation,
   injectWaterFlowAnimation,
 } from './dynamic-scripts';
+
+const debug = getDebug('web:chrome-extension:page');
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -301,7 +316,6 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
         size: {
           width: document.documentElement.clientWidth,
           height: document.documentElement.clientHeight,
-          dpr: window.devicePixelRatio,
         },
       };
     };
@@ -406,6 +420,41 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return result.result.value;
   }
 
+  async cacheFeatureForPoint(
+    center: [number, number],
+    options?: CacheFeatureOptions,
+  ): Promise<ElementCacheFeature> {
+    const point: Point = { left: center[0], top: center[1] };
+
+    try {
+      const isOrderSensitive = await judgeOrderSensitive(options, debug);
+      const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
+      return { xpaths: sanitizeXpaths(xpaths) };
+    } catch (error) {
+      debug('cacheFeatureForPoint failed: %O', error);
+      return { xpaths: [] };
+    }
+  }
+
+  async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
+    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
+
+    for (const xpath of xpaths) {
+      try {
+        const elementInfo = await this.getElementInfoByXpath(xpath);
+        if (elementInfo?.rect) {
+          return buildRectFromElementInfo(elementInfo);
+        }
+      } catch (error) {
+        debug('rectMatchesCacheFeature failed for xpath %s: %O', xpath, error);
+      }
+    }
+
+    throw new Error(
+      `No matching element rect found for cache feature (tried ${xpaths.length} xpath(s))`,
+    );
+  }
+
   async getElementsNodeTree() {
     await this.hideMousePointer();
     const content = await this.getPageContentByCDP();
@@ -416,16 +465,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     return content?.tree || { node: null, children: [] };
   }
 
-  async getContext(): Promise<UIContext> {
-    return await WebPageContextParser(this, {});
-  }
-
   async size() {
     if (this.viewportSize) return this.viewportSize;
 
     const result = await this.sendCommandToDebugger('Runtime.evaluate', {
-      expression:
-        '({width: document.documentElement.clientWidth, height: document.documentElement.clientHeight, dpr: window.devicePixelRatio})',
+      expression: '({width: window.innerWidth, height: window.innerHeight})',
       returnByValue: true,
     });
 
@@ -725,8 +769,11 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   async destroy(): Promise<void> {
     this.destroyed = true;
+    const tabIdToDetach = this.activeTabId;
     this.activeTabId = null;
-    await this.detachDebugger();
+    if (tabIdToDetach) {
+      await this.detachDebugger(tabIdToDetach);
+    }
   }
 
   async longPress(x: number, y: number, duration?: number) {

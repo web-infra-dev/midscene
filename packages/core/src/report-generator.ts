@@ -7,10 +7,15 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import {
+  MIDSCENE_REPORT_QUIET,
+  globalConfigManager,
+} from '@midscene/shared/env';
 import { ifInBrowser, logMsg } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
+  getBaseUrlFixScript,
 } from './dump/html-utils';
 import type { GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
@@ -27,7 +32,7 @@ export interface IReportGenerator {
    */
   flush(): Promise<void>;
   /**
-   * Finalize the report. Calls flush() internally before printing the final message.
+   * Finalize the report. Calls flush() internally.
    */
   finalize(dump: GroupedActionDump): Promise<string | undefined>;
   getReportPath(): string | undefined;
@@ -45,6 +50,7 @@ export class ReportGenerator implements IReportGenerator {
   private screenshotMode: 'inline' | 'directory';
   private autoPrint: boolean;
   private writtenScreenshots = new Set<string>();
+  private firstWriteDone = false;
 
   // inline mode state
   private imageEndOffset = 0;
@@ -62,6 +68,7 @@ export class ReportGenerator implements IReportGenerator {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
     this.autoPrint = options.autoPrint ?? true;
+    this.printReportPath('will be generated at');
   }
 
   static create(
@@ -111,20 +118,7 @@ export class ReportGenerator implements IReportGenerator {
     this.onDumpUpdate(dump);
     await this.flush();
     this.destroyed = true;
-
-    if (this.autoPrint && this.reportPath) {
-      if (this.screenshotMode === 'directory') {
-        console.log('\n[Midscene] Directory report generated.');
-        console.log(
-          '[Midscene] Note: This report must be served via HTTP server due to CORS restrictions.',
-        );
-        console.log(
-          `[Midscene] Example: npx serve ${dirname(this.reportPath)}`,
-        );
-      } else {
-        logMsg(`Midscene - report file updated: ${this.reportPath}`);
-      }
-    }
+    this.printReportPath('finalized');
 
     return this.reportPath;
   }
@@ -133,11 +127,29 @@ export class ReportGenerator implements IReportGenerator {
     return this.reportPath;
   }
 
+  private printReportPath(verb: string): void {
+    if (!this.autoPrint || !this.reportPath) return;
+    if (globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET))
+      return;
+
+    if (this.screenshotMode === 'directory') {
+      logMsg(
+        `Midscene - report ${verb}: npx serve ${dirname(this.reportPath)}`,
+      );
+    } else {
+      logMsg(`Midscene - report ${verb}: ${this.reportPath}`);
+    }
+  }
+
   private doWrite(dump: GroupedActionDump): void {
     if (this.screenshotMode === 'inline') {
       this.writeInlineReport(dump);
     } else {
       this.writeDirectoryReport(dump);
+    }
+    if (!this.firstWriteDone) {
+      this.firstWriteDone = true;
+      this.printReportPath('generated');
     }
   }
 
@@ -191,18 +203,18 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // 1. write new screenshots as PNG files and release memory immediately
-    // Screenshots can be recovered from PNG files via lazy loading
+    // 1. write new screenshots and release memory immediately
+    // Screenshots can be recovered from disk via lazy loading
     const screenshots = dump.collectAllScreenshots();
     for (const screenshot of screenshots) {
       if (!this.writtenScreenshots.has(screenshot.id)) {
-        const absolutePath = join(screenshotsDir, `${screenshot.id}.png`);
+        const ext = screenshot.extension;
+        const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
         const buffer = Buffer.from(screenshot.rawBase64, 'base64');
         writeFileSync(absolutePath, buffer);
         this.writtenScreenshots.add(screenshot.id);
-        // Release memory - screenshot can be recovered from PNG file
         screenshot.markPersistedToPath(
-          `./screenshots/${screenshot.id}.png`,
+          `./screenshots/${screenshot.id}.${ext}`,
           absolutePath,
         );
       }
@@ -212,7 +224,7 @@ export class ReportGenerator implements IReportGenerator {
     const serialized = dump.serialize();
     writeFileSync(
       this.reportPath,
-      `${getReportTpl()}\n${generateDumpScriptTag(serialized)}`,
+      `${getReportTpl()}${getBaseUrlFixScript()}${generateDumpScriptTag(serialized)}`,
     );
   }
 }

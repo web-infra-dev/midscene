@@ -168,6 +168,19 @@ describe('dump/image-restoration', () => {
       });
     });
 
+    it('should preserve capturedAt when restoring screenshot references', () => {
+      const data = {
+        screenshot: { $screenshot: 'img1', capturedAt: 1700000000123 },
+      };
+      const result = restoreImageReferences(data, imageMap);
+      expect(result).toEqual({
+        screenshot: {
+          base64: 'data:image/png;base64,abc123',
+          capturedAt: 1700000000123,
+        },
+      });
+    });
+
     it('should work correctly for directory mode report flow', () => {
       // Directory mode: dump contains { $screenshot: id }, no imageMap entries
       // Browser should fallback to ./screenshots/{id}.png path
@@ -188,6 +201,17 @@ describe('dump/image-restoration', () => {
       const result = restoreImageReferences(data, emptyImageMap);
       expect(result.executions[0].tasks[0].uiContext.screenshot).toEqual({
         base64: './screenshots/abc-123-def.png',
+      });
+    });
+
+    it('should preserve { base64: path } with JPEG extension as-is', () => {
+      // Directory mode with JPEG: dump contains { base64: "./screenshots/id.jpeg" }
+      const data = {
+        screenshot: { base64: './screenshots/abc-123.jpeg' },
+      };
+      const result = restoreImageReferences(data, imageMap);
+      expect(result).toEqual({
+        screenshot: { base64: './screenshots/abc-123.jpeg' },
       });
     });
 

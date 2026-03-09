@@ -6,18 +6,20 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Helper function to create mock UIContext with ScreenshotItem
 const createMockUIContext = async (screenshotData = 'mock-screenshot') => {
-  const screenshot = ScreenshotItem.create(screenshotData);
+  const screenshot = ScreenshotItem.create(screenshotData, Date.now());
   return {
     screenshot,
-    size: { width: 1920, height: 1080 },
+    shotSize: { width: 1920, height: 1080 },
+    shrunkShotToLogicalRatio: 1,
   };
 };
 
 const createEmptyUIContext = async () => {
-  const screenshot = ScreenshotItem.create('');
+  const screenshot = ScreenshotItem.create('', Date.now());
   return {
     screenshot,
-    size: { width: 0, height: 0 },
+    shotSize: { width: 0, height: 0 },
+    shrunkShotToLogicalRatio: 1,
   };
 };
 
@@ -151,7 +153,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -196,7 +197,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -237,7 +237,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -276,7 +275,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {
@@ -317,7 +315,6 @@ describe('TaskExecutor - Null Data Handling', () => {
         modelName: 'mock-model',
         modelDescription: 'mock-model-description',
         intent: 'default',
-        from: 'legacy-env',
       };
 
       const taskExecutor = new TaskExecutor({} as any, mockInsight, {

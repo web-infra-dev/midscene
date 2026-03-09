@@ -1,5 +1,106 @@
 # 更新日志
 
+## v1.5 - HarmonyOS（鸿蒙）自动化支持
+
+v1.5 版本新增了 HarmonyOS 自动化支持，新增 Qwen3.5 和 doubao-seed 2.0 模型支持，同时对桌面自动化、报告系统、Chrome 扩展等进行了多项改进。
+
+### 新增 HarmonyOS（鸿蒙）自动化支持
+
+新增 `@midscene/harmony` 包，正式支持 HarmonyOS 平台自动化。Midscene 的自动化能力从 Web、Android、iOS、桌面进一步扩展到鸿蒙生态。
+
+### 新增 Qwen3.5 与 doubao-seed 2.0 模型支持
+
+适配了通义千问 Qwen3.5 和豆包 doubao-seed 2.0 模型，开发者可以使用更新的模型获得更好的视觉理解效果。
+
+### 新增通用模型推理配置
+
+新增 `MIDSCENE_MODEL_REASONING_EFFORT` 环境变量，作为通用的模型推理强度配置参数，方便开发者在不同模型间统一控制推理行为。
+
+### 桌面自动化改进
+
+- **Xvfb 虚拟显示器支持**：在无头 Linux 环境下支持 Xvfb 虚拟显示器，适用于 CI/CD 服务器等无 GUI 环境的桌面自动化
+- **连接健康检查**：桌面自动化连接时新增健康检查，提升连接可靠性
+- **macOS 输入优化**：macOS 上所有文本输入改用剪贴板方式，避免输入法（IME）导致的输入异常
+- **鼠标控制失败检测**：自动检测鼠标控制失败并提示管理员权限需求
+- **停止执行优化**：在停止执行时通过检查 destroyed 状态及时中断截图操作，避免无效等待
+
+### 截图与显示优化
+
+- **自定义截图缩放**：支持自定义截图缩放比例（screenshot shrink），在保证识别准确性的前提下优化性能
+- **Android 缩放比解耦**：将 scalingRatio 从 size() 方法中解耦，提升灵活性
+
+### 报告系统改进
+
+- **时序信息更详细**：报告中的时序信息粒度更细，帮助开发者更精确地分析性能瓶颈
+- **合并报告支持目录模式**：`mergeReports` 支持目录模式的报告文件
+
+### Chrome 扩展改进
+
+- **新增始终拒绝选项**：Chrome 扩展新增"始终拒绝"选项，并修复确认弹窗的竞态条件
+- **CLI 结束后关闭 Bridge 服务**：CLI 命令完成后自动关闭 Bridge 服务器，避免残留进程
+
+### 问题修复
+
+- 修复表单渲染中 input mode schema 的 `z.preprocess` 处理问题
+- 修复 Android 滑动参数传递问题
+- 修复 Web 端尺寸计算问题
+- 修复 `BASE_URL_FIX_SCRIPT` 闭合标签未被 HTML 解析器识别的问题
+- 修复 PlaywrightAgent/PuppeteerAgent 构造函数中 page 为 undefined 的保护处理
+
+## v1.4 - Skills：让 AI 助手直接操控你的设备
+
+v1.4 版本推出了 Midscene Skills —— 一套可安装到 Claude Code、OpenClaw 等 AI 助手中的技能包，让 AI 助手直接操控浏览器、桌面、Android 和 iOS 设备。同时本版本还包含独立桌面 MCP 服务、各平台 CLI 独立入口、AI 规划增强等多项改进。
+
+### Midscene Skills —— AI 助手的设备操控技能包
+
+Midscene Skills 是一套可安装到 Claude Code、OpenClaw 等 AI 助手中的技能包。安装后，AI 助手可以通过自然语言直接操控浏览器、桌面、Android 和 iOS 设备。
+
+各平台包（`@midscene/android`、`@midscene/ios`、`@midscene/web` 等）现在各自暴露了独立的 CLI 入口，Skills 正是基于此能力构建。
+
+**覆盖平台：**
+- 浏览器（Puppeteer 无头模式）
+- Chrome Bridge（用户自己的桌面 Chrome）
+- 桌面（macOS、Windows、Linux）
+- Android（通过 ADB）
+- iOS（通过 WebDriverAgent）
+
+详见：[Midscene Skills](https://github.com/web-infra-dev/midscene-skills)
+
+### 独立桌面自动化 MCP 包
+
+新增 `@midscene/computer-mcp` 包，将 PC 桌面自动化能力以独立 MCP 服务的形式提供。开发者可以直接在 Cursor、Trae 等支持 MCP 的工具中使用桌面自动化能力，无需额外集成。
+
+详见文档：[PC 桌面自动化](./computer-introduction)
+
+### Chrome 扩展支持 MCP 后台连接
+
+Chrome 扩展新增后台 Bridge 模式的 MCP 连接支持，可以将桌面浏览器作为 MCP 工具暴露给 AI 助手，进一步打通 MCP 生态。
+
+### AI 规划能力增强
+
+- **`aiAct` 新增 `deepLocate` 选项**：在执行操作时启用深度定位，提升复杂界面下的元素定位准确率
+- **Swipe 与 DragAndDrop 语义区分**：模型现在能更精确地区分滑动和拖放操作，减少手势规划错误
+- **LLM 规划增加页面导航限制**：防止模型在规划时生成不合理的页面跳转操作，提升任务执行稳定性
+- **macOS 键盘输入改用 AppleScript**：提升桌面自动化中键盘输入的稳定性和兼容性
+- **鼠标移动操作**：新增 cursor move 动作支持
+
+### YAML 脚本与文件上传增强
+
+- **YAML `aiTap` 支持 `fileChooserAccept`**：在 YAML 脚本中可直接处理文件上传对话框
+- **支持目录上传**：Web 端支持 `webkitdirectory` 类型的文件夹选择上传
+
+### Chrome 扩展 Bridge 模式缓存
+
+Bridge 模式下新增缓存支持，复用已有的 AI 规划结果，减少重复调用，提升调试效率。
+
+### Android 改进
+
+- 优化文字输入逻辑，提升输入稳定性
+
+### iOS 改进
+
+- **Playground 实时画面流**：iOS Playground 新增实时画面展示，调试时可实时预览设备屏幕。
+
 ## v1.3 - PC 桌面自动化支持
 
 v1.3 版本带来了全新的 PC 桌面自动化能力，大幅优化了 Android 截图性能，并对报告系统和稳定性进行了多项改进。
