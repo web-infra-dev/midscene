@@ -271,6 +271,7 @@ export async function plan(
     includeBbox: boolean;
     imagesIncludeCount?: number;
     deepThink?: DeepThinkOption;
+    abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -406,6 +407,7 @@ export async function plan(
   } = await callAI(msgs, modelConfig, {
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
     response_format: responseFormat,
+    abortSignal: opts.abortSignal,
   });
 
   // Parse JSON response, retry once on parse failure
@@ -417,6 +419,7 @@ export async function plan(
       const retry = await callAI(msgs, modelConfig, {
         deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
         response_format: responseFormat,
+        abortSignal: opts.abortSignal,
       });
       rawResponse = retry.content;
       usage = retry.usage;

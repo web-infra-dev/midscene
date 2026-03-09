@@ -67,6 +67,7 @@ export default class Service {
     query: DetailedLocateParam,
     opt: LocateOpts,
     modelConfig: IModelConfig,
+    abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
@@ -105,6 +106,7 @@ export default class Service {
         context,
         sectionDescription: searchAreaPrompt,
         modelConfig,
+        abortSignal,
       });
       assert(
         searchAreaResponse.rect,
@@ -124,6 +126,7 @@ export default class Service {
         targetElementDescription: queryPrompt,
         searchConfig: searchAreaResponse,
         modelConfig,
+        abortSignal,
       });
 
     const timeCost = Date.now() - startTime;

@@ -147,25 +147,16 @@ const capitalizeFirstLetter = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
-export const allScriptsFromDump = (
-  dump:
-    | GroupedActionDump
-    | IGroupedActionDump
-    | ExecutionDump
-    | null
-    | undefined,
-): ReplayScriptsInfo | null => {
-  if (!dump) {
-    console.warn('[allScriptsFromDump] dump is empty');
-    return {
-      scripts: [],
-      modelBriefs: [],
-    };
-  }
+type DumpInput =
+  | GroupedActionDump
+  | IGroupedActionDump
+  | ExecutionDump
+  | null
+  | undefined;
 
-  const normalizedDump: IGroupedActionDump = Array.isArray(
-    (dump as GroupedActionDump).executions,
-  )
+const normalizeDump = (dump: DumpInput): IGroupedActionDump | null => {
+  if (!dump) return null;
+  return Array.isArray((dump as GroupedActionDump).executions)
     ? (dump as GroupedActionDump)
     : {
         sdkVersion: '',
@@ -173,13 +164,25 @@ export const allScriptsFromDump = (
         modelBriefs: [],
         executions: [dump as ExecutionDump],
       };
+};
 
-  // find out the width and height of the screenshot - collect all unique dimensions
-  const dimensionsSet = new Set<string>();
-  let firstWidth: number | undefined = undefined;
-  let firstHeight: number | undefined = undefined;
-  const sdkVersion: string | undefined = normalizedDump.sdkVersion;
+export interface DumpMetaInfo {
+  width: number;
+  height: number;
+  sdkVersion?: string;
+  modelBriefs: string[];
+  deviceType?: string;
+}
 
+/**
+ * Extract lightweight metadata from a normalized dump without reading any .base64 fields.
+ */
+const extractMetaFromNormalized = (
+  normalizedDump: IGroupedActionDump,
+): DumpMetaInfo | null => {
+  let firstWidth: number | undefined;
+  let firstHeight: number | undefined;
+  const sdkVersion = normalizedDump.sdkVersion;
   const modelBriefsSet = new Set<string>();
 
   normalizedDump.executions?.filter(Boolean).forEach((execution) => {
@@ -191,36 +194,7 @@ export const allScriptsFromDump = (
           firstWidth = w;
           firstHeight = h;
         }
-        dimensionsSet.add(`${w}x${h}`);
       }
-    });
-  });
-
-  if (!firstWidth || !firstHeight) {
-    console.warn('width or height is missing in dump file');
-    return {
-      scripts: [],
-      sdkVersion,
-      modelBriefs: [],
-    };
-  }
-
-  // Use first dimensions as default for the overall player size
-  const allScripts: AnimationScript[] = [];
-  const executions = normalizedDump.executions?.filter(Boolean) || [];
-  for (let execIndex = 0; execIndex < executions.length; execIndex++) {
-    const execution = executions[execIndex];
-    const scripts = generateAnimationScripts(
-      execution,
-      -1,
-      firstWidth!,
-      firstHeight!,
-      execIndex,
-    );
-    if (scripts) {
-      allScripts.push(...scripts);
-    }
-    execution.tasks.forEach((task) => {
       if (task.usage) {
         const { model_name, model_description, intent } = task.usage;
         if (intent && model_name) {
@@ -232,16 +206,12 @@ export const allScriptsFromDump = (
         }
       }
     });
-  }
+  });
 
-  const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
-    (script, index) => {
-      if (index !== allScripts.length - 1 && script.title === 'Done') {
-        return false;
-      }
-      return true;
-    },
-  );
+  if (!firstWidth || !firstHeight) {
+    console.warn('width or height is missing in dump file');
+    return null;
+  }
 
   const normalizedModelBriefs = normalizedDump.modelBriefs?.length
     ? normalizedDump.modelBriefs
@@ -255,24 +225,89 @@ export const allScriptsFromDump = (
       return list;
     }
     const firstOneInfo = list[0]?.split('/', 2)[1];
-    // merge same modelName and modelDescription
     if (
       firstOneInfo &&
       list.slice(1).every((item) => item?.split('/', 2)[1] === firstOneInfo)
     ) {
       return [firstOneInfo];
     }
-
     return list;
   })();
 
   return {
-    scripts: allScriptsWithoutIntermediateDoneFrame,
     width: firstWidth,
     height: firstHeight,
     sdkVersion,
     modelBriefs,
     deviceType: (normalizedDump as IGroupedActionDump).deviceType,
+  };
+};
+
+/**
+ * Extract lightweight metadata from dump without reading any .base64 fields.
+ * Used to set up the UI (dimensions, version, model info) before replay.
+ */
+export const extractDumpMetaInfo = (dump: DumpInput): DumpMetaInfo | null => {
+  const normalizedDump = normalizeDump(dump);
+  if (!normalizedDump) return null;
+  return extractMetaFromNormalized(normalizedDump);
+};
+
+export const allScriptsFromDump = (
+  dump: DumpInput,
+): ReplayScriptsInfo | null => {
+  const normalizedDump = normalizeDump(dump);
+  if (!normalizedDump) {
+    console.warn('[allScriptsFromDump] dump is empty');
+    return {
+      scripts: [],
+      modelBriefs: [],
+    };
+  }
+
+  const metaInfo = extractMetaFromNormalized(normalizedDump);
+  if (!metaInfo) {
+    return {
+      scripts: [],
+      sdkVersion: normalizedDump.sdkVersion,
+      modelBriefs: [],
+    };
+  }
+
+  const { width: firstWidth, height: firstHeight } = metaInfo;
+
+  const allScripts: AnimationScript[] = [];
+  const executions = normalizedDump.executions?.filter(Boolean) || [];
+  for (let execIndex = 0; execIndex < executions.length; execIndex++) {
+    const execution = executions[execIndex];
+    const scripts = generateAnimationScripts(
+      execution,
+      -1,
+      firstWidth,
+      firstHeight,
+      execIndex,
+    );
+    if (scripts) {
+      allScripts.push(...scripts);
+    }
+  }
+
+  const allScriptsWithoutIntermediateDoneFrame = allScripts.filter(
+    (script, index) => {
+      if (index !== allScripts.length - 1 && script.title === 'Done') {
+        return false;
+      }
+      return true;
+    },
+  );
+
+  return {
+    scripts: allScriptsWithoutIntermediateDoneFrame,
+    width: firstWidth,
+    height: firstHeight,
+    sdkVersion: metaInfo.sdkVersion,
+    modelBriefs: metaInfo.modelBriefs,
+    deviceType: metaInfo.deviceType,
   };
 };
 
@@ -356,6 +391,30 @@ export const generateAnimationScripts = (
     };
   };
 
+  // Screenshot fields in ExecutionTask are typed loosely; this alias keeps casts in one place
+  type ScreenshotData = { base64: string } | undefined | null;
+  const asScreenshot = (s: unknown): ScreenshotData => s as ScreenshotData;
+
+  // Helper: create AnimationScript with lazy img getter that defers .base64 read
+  const createScript = (
+    base: Omit<AnimationScript, 'img'>,
+    screenshot: ScreenshotData,
+  ): AnimationScript => {
+    if (!screenshot) return base as AnimationScript;
+    const script = { ...base } as AnimationScript;
+    let cachedImg: string | null = null;
+    Object.defineProperty(script, 'img', {
+      get() {
+        if (cachedImg === null) {
+          cachedImg = screenshot.base64;
+        }
+        return cachedImg;
+      },
+      enumerable: true,
+    });
+    return script;
+  };
+
   const scripts: AnimationScript[] = [];
   let insightCameraState: TargetCameraState | undefined = undefined;
   // let currentCameraState: TargetCameraState = fullPageCameraState;
@@ -413,19 +472,21 @@ export const generateAnimationScripts = (
         // show the original screenshot first
         const width = context.shotSize?.width || imageWidth;
         const height = context.shotSize?.height || imageHeight;
-        const screenshotData = (
-          context.screenshot as unknown as { base64: string }
-        ).base64;
-        scripts.push({
-          type: 'img',
-          img: screenshotData,
-          duration: stillAfterInsightDuration,
-          title,
-          subTitle,
-          imageWidth: width,
-          imageHeight: height,
-          taskId: currentTaskId,
-        });
+        const contextScreenshot = asScreenshot(context.screenshot);
+        scripts.push(
+          createScript(
+            {
+              type: 'img',
+              duration: stillAfterInsightDuration,
+              title,
+              subTitle,
+              imageWidth: width,
+              imageHeight: height,
+              taskId: currentTaskId,
+            },
+            contextScreenshot,
+          ),
+        );
 
         locateElements.forEach((element) => {
           insightCameraState = {
@@ -435,57 +496,48 @@ export const generateAnimationScripts = (
           };
 
           const newCameraState: TargetCameraState = insightCameraState;
-          // currentCameraState === fullPageCameraState
-          //   ? insightCameraState
-          //   : mergeTwoCameraState(currentCameraState, insightCameraState);
 
-          // console.log('insightCameraState', insightCameraState);
-          // console.log('currentCameraState', currentCameraState);
-          // console.log('newCameraState', newCameraState);
+          scripts.push(
+            createScript(
+              {
+                type: 'insight',
+                context: context,
+                camera: newCameraState,
+                highlightElement: element,
+                searchArea: task.log?.taskInfo?.searchArea,
+                duration: locateDuration * 0.5,
+                insightCameraDuration: locateDuration,
+                title,
+                subTitle: element.description || subTitle,
+                imageWidth: context.shotSize?.width || imageWidth,
+                imageHeight: context.shotSize?.height || imageHeight,
+                taskId: currentTaskId,
+              },
+              contextScreenshot,
+            ),
+          );
 
-          scripts.push({
-            type: 'insight',
-            img: screenshotData,
-            context: context,
-            camera: newCameraState,
-            highlightElement: element,
-            searchArea: task.log?.taskInfo?.searchArea,
-            duration: locateDuration * 0.5,
-            insightCameraDuration: locateDuration,
-            title,
-            subTitle: element.description || subTitle,
-            imageWidth: context.shotSize?.width || imageWidth,
-            imageHeight: context.shotSize?.height || imageHeight,
-            taskId: currentTaskId,
-          });
-
-          // scripts.push({
-          //   type: 'sleep',
-          //   duration: stillAfterInsightDuration,
-          //   title,
-          //   subTitle,
-          // });
           insightOnTop = true;
-          // currentCameraState = newCameraState;
         });
       }
 
       const planningTask = task as ExecutionTaskPlanning;
       if (planningTask.recorder && planningTask.recorder.length > 0) {
         const screenshot = planningTask.recorder[0]?.screenshot;
-        const screenshotData =
-          (screenshot as unknown as { base64: string } | undefined)?.base64 ||
-          '';
-        scripts.push({
-          type: 'img',
-          img: screenshotData,
-          duration: stillDuration,
-          title: typeStr(task),
-          subTitle: paramStr(task),
-          imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-          imageHeight: task.uiContext?.shotSize?.height || imageHeight,
-          taskId: currentTaskId,
-        });
+        scripts.push(
+          createScript(
+            {
+              type: 'img',
+              duration: stillDuration,
+              title: typeStr(task),
+              subTitle: paramStr(task),
+              imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+              imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+              taskId: currentTaskId,
+            },
+            asScreenshot(screenshot),
+          ),
+        );
       }
     } else if (task.type === 'Action Space') {
       const title = typeStr(task);
@@ -518,19 +570,21 @@ export const generateAnimationScripts = (
       // currentCameraState = insightCameraState ?? fullPageCameraState;
       // const ifLastTask = index === taskCount - 1;
       const screenshot = task.recorder?.[0]?.screenshot;
-      const actionScreenshotData =
-        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
-      scripts.push({
-        type: 'img',
-        img: actionScreenshotData,
-        duration: actionDuration,
-        camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
-        title,
-        subTitle,
-        imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-        imageHeight: task.uiContext?.shotSize?.height || imageHeight,
-        taskId: currentTaskId,
-      });
+      scripts.push(
+        createScript(
+          {
+            type: 'img',
+            duration: actionDuration,
+            camera: task.subType === 'Sleep' ? fullPageCameraState : undefined,
+            title,
+            subTitle,
+            imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+            imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+            taskId: currentTaskId,
+          },
+          asScreenshot(screenshot),
+        ),
+      );
     } else {
       // Handle normal tasks
       const title = typeStr(task);
@@ -538,19 +592,21 @@ export const generateAnimationScripts = (
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
 
       if (screenshot) {
-        const screenshotData = (screenshot as unknown as { base64: string })
-          .base64;
-        scripts.push({
-          type: 'img',
-          img: screenshotData,
-          duration: stillDuration,
-          camera: fullPageCameraState,
-          title,
-          subTitle,
-          imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-          imageHeight: task.uiContext?.shotSize?.height || imageHeight,
-          taskId: currentTaskId,
-        });
+        scripts.push(
+          createScript(
+            {
+              type: 'img',
+              duration: stillDuration,
+              camera: fullPageCameraState,
+              title,
+              subTitle,
+              imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+              imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+              taskId: currentTaskId,
+            },
+            asScreenshot(screenshot),
+          ),
+        );
       }
     }
     if (task.status !== 'finished') {
@@ -562,19 +618,21 @@ export const generateAnimationScripts = (
           ? 'Further actions cannot be performed in the current environment'
           : errorMsg;
       const screenshot = task.recorder?.[task.recorder.length - 1]?.screenshot;
-      const errorScreenshotData =
-        (screenshot as unknown as { base64: string } | undefined)?.base64 || '';
-      scripts.push({
-        type: 'img',
-        img: errorScreenshotData,
-        camera: fullPageCameraState,
-        duration: stillDuration,
-        title: errorTitle,
-        subTitle: errorSubTitle,
-        imageWidth: task.uiContext?.shotSize?.width || imageWidth,
-        imageHeight: task.uiContext?.shotSize?.height || imageHeight,
-        taskId: currentTaskId,
-      });
+      scripts.push(
+        createScript(
+          {
+            type: 'img',
+            camera: fullPageCameraState,
+            duration: stillDuration,
+            title: errorTitle,
+            subTitle: errorSubTitle,
+            imageWidth: task.uiContext?.shotSize?.width || imageWidth,
+            imageHeight: task.uiContext?.shotSize?.height || imageHeight,
+            taskId: currentTaskId,
+          },
+          asScreenshot(screenshot),
+        ),
+      );
     }
   });
 

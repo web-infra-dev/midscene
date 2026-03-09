@@ -227,6 +227,7 @@ export async function callAI(
         schema: Record<string, unknown>;
       };
     };
+    abortSignal?: AbortSignal;
   },
 ): Promise<{
   content: string;
@@ -347,6 +348,7 @@ export async function callAI(
         },
         {
           stream: true,
+          ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
         },
       )) as Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
         _request_id?: string | null;
@@ -421,12 +423,15 @@ export async function callAI(
 
       for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
-          const result = await completion.create({
-            model: modelName,
-            messages,
-            ...commonConfig,
-            ...reasoningEffortConfig,
-          } as any);
+          const result = await completion.create(
+            {
+              model: modelName,
+              messages,
+              ...commonConfig,
+              ...reasoningEffortConfig,
+            } as any,
+            options?.abortSignal ? { signal: options.abortSignal } : undefined,
+          );
 
           timeCost = Date.now() - startTime;
 
@@ -466,6 +471,10 @@ export async function callAI(
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;
+          // Do not retry if the request was aborted by the caller
+          if (options?.abortSignal?.aborted) {
+            break;
+          }
           if (attempt < maxAttempts) {
             warnCall(
               `AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
@@ -520,6 +529,7 @@ export async function callAIWithObjectResponse<T>(
   modelConfig: IModelConfig,
   options?: {
     deepThink?: DeepThinkOption;
+    abortSignal?: AbortSignal;
   },
 ): Promise<{
   content: T;
@@ -529,6 +539,7 @@ export async function callAIWithObjectResponse<T>(
 }> {
   const response = await callAI(messages, modelConfig, {
     deepThink: options?.deepThink,
+    abortSignal: options?.abortSignal,
   });
   assert(response, 'empty response');
   const modelFamily = modelConfig.modelFamily;
@@ -551,8 +562,13 @@ export async function callAIWithObjectResponse<T>(
 export async function callAIWithStringResponse(
   msgs: AIArgs,
   modelConfig: IModelConfig,
+  options?: {
+    abortSignal?: AbortSignal;
+  },
 ): Promise<{ content: string; usage?: AIUsageInfo }> {
-  const { content, usage } = await callAI(msgs, modelConfig);
+  const { content, usage } = await callAI(msgs, modelConfig, {
+    abortSignal: options?.abortSignal,
+  });
   return { content, usage };
 }
 

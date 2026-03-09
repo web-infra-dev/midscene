@@ -162,6 +162,7 @@ export class TaskExecutor {
     options?: {
       cacheable?: boolean;
       deepLocate?: boolean;
+      abortSignal?: AbortSignal;
     },
   ) {
     return this.taskBuilder.build(
@@ -246,6 +247,7 @@ export class TaskExecutor {
     deepThink?: DeepThinkOption,
     fileChooserAccept?: string[],
     deepLocate?: boolean,
+    abortSignal?: AbortSignal,
   ): Promise<
     ExecutionResult<
       | {
@@ -267,6 +269,7 @@ export class TaskExecutor {
         imagesIncludeCount,
         deepThink,
         deepLocate,
+        abortSignal,
       );
     });
   }
@@ -282,6 +285,7 @@ export class TaskExecutor {
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
     deepLocate?: boolean,
+    abortSignal?: AbortSignal,
   ): Promise<
     ExecutionResult<
       | {
@@ -312,6 +316,13 @@ export class TaskExecutor {
 
     // Main planning loop - unified plan/replan logic
     while (true) {
+      // Check abort signal before each planning cycle
+      if (abortSignal?.aborted) {
+        return session.appendErrorPlan(
+          `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
+        );
+      }
+
       // Get sub-goal status text if available
       const subGoalStatus =
         this.conversationHistory.subGoalsToText() || undefined;
@@ -369,6 +380,7 @@ export class TaskExecutor {
                 includeBbox: includeBboxInPlanning,
                 imagesIncludeCount,
                 deepThink,
+                abortSignal,
               });
             } catch (planError) {
               if (planError instanceof AIResponseParseError) {
@@ -457,6 +469,7 @@ export class TaskExecutor {
           {
             cacheable,
             deepLocate,
+            abortSignal,
           },
         );
       } catch (error) {
@@ -494,6 +507,13 @@ export class TaskExecutor {
 
       if (errorCountInOnePlanningLoop > maxErrorCountAllowedInOnePlanningLoop) {
         return session.appendErrorPlan('Too many errors in one planning loop');
+      }
+
+      // Check abort signal after executing actions
+      if (abortSignal?.aborted) {
+        return session.appendErrorPlan(
+          `Task aborted: ${abortSignal.reason || 'abort signal received'}`,
+        );
       }
 
       // // Check if task is complete
