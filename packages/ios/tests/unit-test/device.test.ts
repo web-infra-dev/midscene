@@ -209,6 +209,27 @@ describe('IOSDevice', () => {
       );
     });
 
+    it('should terminate app by bundle ID', async () => {
+      await device.connect();
+
+      await device.terminate('com.apple.Preferences');
+      expect(mockWdaClient.terminateApp).toHaveBeenCalledWith(
+        'com.apple.Preferences',
+      );
+      expect(mockWdaClient.terminateApp).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle app terminate failure', async () => {
+      mockWdaClient.terminateApp = vi
+        .fn()
+        .mockRejectedValue(new Error('App terminate failed'));
+      await device.connect();
+
+      await expect(device.terminate('com.invalid.app')).rejects.toThrow(
+        'App terminate failed',
+      );
+    });
+
     it('should handle URL launch with HTTP URL', async () => {
       // Add openUrl method to mock
       mockWdaClient.openUrl = vi.fn().mockResolvedValue(undefined);

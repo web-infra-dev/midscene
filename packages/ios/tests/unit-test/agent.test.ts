@@ -40,6 +40,7 @@ describe('IOSAgent', () => {
     mockDevice = {
       connect: vi.fn().mockResolvedValue(undefined),
       launch: vi.fn().mockResolvedValue(undefined),
+      terminate: vi.fn().mockResolvedValue(undefined),
       destroy: vi.fn().mockResolvedValue(undefined),
       runWdaRequest: vi.fn().mockResolvedValue({ success: true }),
       screenshotBase64: vi.fn().mockResolvedValue(validPngBase64),
@@ -52,6 +53,13 @@ describe('IOSAgent', () => {
           paramSchema: undefined,
           call: async (param: any) => {
             return mockDevice.launch!(param);
+          },
+        },
+        {
+          name: 'Terminate',
+          paramSchema: undefined,
+          call: async (param: any) => {
+            return mockDevice.terminate!(param);
           },
         },
         {
@@ -108,6 +116,26 @@ describe('IOSAgent', () => {
 
       await expect(agent.launch('com.invalid.app')).rejects.toThrow(
         'Launch failed',
+      );
+    });
+  });
+
+  describe('Terminate Method', () => {
+    it('should terminate app by bundle ID using callActionInActionSpace', async () => {
+      const bundleId = 'com.apple.Preferences';
+
+      await agent.terminate(bundleId);
+
+      expect(mockDevice.terminate).toHaveBeenCalledWith(bundleId);
+      expect(mockDevice.terminate).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle terminate errors from actionSpace', async () => {
+      const error = new Error('Terminate failed');
+      mockDevice.terminate = vi.fn().mockRejectedValue(error);
+
+      await expect(agent.terminate('com.invalid.app')).rejects.toThrow(
+        'Terminate failed',
       );
     });
   });
