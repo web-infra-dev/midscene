@@ -58,6 +58,13 @@ const findDefaultValue = (field: unknown): any | undefined => {
  * Walks the sample and for any locate field (identified by paramSchema),
  * adds a fake bbox array when includeBbox is true.
  */
+const SAMPLE_BBOXES: [number, number, number, number][] = [
+  [50, 100, 200, 200],
+  [300, 400, 500, 500],
+  [600, 100, 800, 250],
+  [50, 600, 250, 750],
+];
+
 const injectBboxIntoSample = (
   sample: Record<string, any>,
   locateFields: string[],
@@ -65,9 +72,14 @@ const injectBboxIntoSample = (
 ): Record<string, any> => {
   if (!includeBbox) return sample;
   const result = { ...sample };
+  let bboxIndex = 0;
   for (const field of locateFields) {
     if (result[field] && typeof result[field] === 'object' && result[field].prompt) {
-      result[field] = { ...result[field], bbox: [100, 200, 300, 400] };
+      result[field] = {
+        ...result[field],
+        bbox: SAMPLE_BBOXES[bboxIndex % SAMPLE_BBOXES.length],
+      };
+      bboxIndex++;
     }
   }
   return result;

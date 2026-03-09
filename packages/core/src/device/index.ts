@@ -322,8 +322,8 @@ export const defineActionDragAndDrop = (
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
     sample: {
-      from: { prompt: 'Task card "Buy groceries"' },
-      to: { prompt: '"Done" column header' },
+      from: { prompt: 'the "report.pdf" file icon' },
+      to: { prompt: 'the upload drop zone' },
     },
     call,
   });
