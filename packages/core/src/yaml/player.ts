@@ -452,7 +452,9 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         let locatePrompt: TUserPrompt;
         let opts = tapOptions;
-        // Support both { aiTap: { locate: {...} } }
+        // Support both formats:
+        // 1. { aiTap: null, locate: { prompt, images, ... } }  (locate as sibling key)
+        // 2. { aiTap: { locate: { prompt, images, ... } } }    (locate nested in aiTap)
         const locateObj = locate
           ?? (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
 
