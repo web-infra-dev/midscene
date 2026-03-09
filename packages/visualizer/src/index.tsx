@@ -1,7 +1,9 @@
 export {
   type AnimationScript,
+  type DumpMetaInfo,
   type ReplayScriptsInfo,
   allScriptsFromDump,
+  extractDumpMetaInfo,
   generateAnimationScripts,
 } from './utils/replay-scripts';
 export { useEnvConfig, useGlobalPreference } from './store/store';
