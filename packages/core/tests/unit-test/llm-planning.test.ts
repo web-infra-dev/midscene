@@ -834,8 +834,7 @@ describe('parseJSONPlanningResponse', () => {
       action_param: null,
       complete: {
         success: true,
-        message:
-          "The product names are: 'Product A', 'Product B', 'Product C'",
+        message: "The product names are: 'Product A', 'Product B', 'Product C'",
       },
       error: null,
     });

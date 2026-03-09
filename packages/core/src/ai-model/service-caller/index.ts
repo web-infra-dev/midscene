@@ -295,7 +295,9 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
-    ...(options?.response_format ? { response_format: options.response_format } : {}),
+    ...(options?.response_format
+      ? { response_format: options.response_format }
+      : {}),
   };
 
   if (isAutoGLM(modelFamily)) {

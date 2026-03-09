@@ -404,10 +404,14 @@ Return a JSON object following this structure. The response MUST be valid JSON.
 
 **Always include (REQUIRED):**
 {
-  "thought": "Your thought process here. NEVER skip this field."${shouldIncludeSubGoals ? `,
+  "thought": "Your thought process here. NEVER skip this field."${
+    shouldIncludeSubGoals
+      ? `,
   "update_sub_goals": [...] or null,
   "mark_finished_indexes": [...] or null,
-  "memory": "..." or null` : ''}
+  "memory": "..." or null`
+      : ''
+  }
 }
 
 **Then choose ONE of the following paths:**

@@ -43,15 +43,18 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
   const properties: Record<string, unknown> = {
     thought: {
       type: 'string',
-      description: 'Your thought process about the current state and next action',
+      description:
+        'Your thought process about the current state and next action',
     },
     log: {
       type: ['string', 'null'],
-      description: 'A brief preamble message to the user explaining what you are about to do',
+      description:
+        'A brief preamble message to the user explaining what you are about to do',
     },
     action_type: {
       type: ['string', 'null'],
-      description: 'The action type to execute, must be one of the supporting actions',
+      description:
+        'The action type to execute, must be one of the supporting actions',
     },
     action_param: {
       description: 'The parameters for the action',
@@ -84,7 +87,14 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
     },
   };
 
-  const required = ['thought', 'log', 'action_type', 'action_param', 'complete', 'error'];
+  const required = [
+    'thought',
+    'log',
+    'action_type',
+    'action_param',
+    'complete',
+    'error',
+  ];
 
   if (includeSubGoals) {
     // Insert sub-goal fields after 'thought' to match prompt order:
@@ -98,13 +108,19 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
             items: {
               type: 'object',
               properties: {
-                index: { type: 'integer', description: 'Sub-goal index (1-based)' },
+                index: {
+                  type: 'integer',
+                  description: 'Sub-goal index (1-based)',
+                },
                 status: {
                   type: 'string',
                   enum: ['pending', 'finished'],
                   description: 'Status of the sub-goal',
                 },
-                description: { type: 'string', description: 'Description of the sub-goal' },
+                description: {
+                  type: 'string',
+                  description: 'Description of the sub-goal',
+                },
               },
               required: ['index', 'status', 'description'],
               additionalProperties: false,
@@ -125,7 +141,8 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
       },
       memory: {
         type: ['string', 'null'],
-        description: 'Information to remember from the current screenshot for future steps',
+        description:
+          'Information to remember from the current screenshot for future steps',
       },
     };
 
@@ -144,7 +161,13 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
     Object.assign(properties, reordered);
 
     // Insert sub-goal required fields after 'thought'
-    required.splice(1, 0, 'update_sub_goals', 'mark_finished_indexes', 'memory');
+    required.splice(
+      1,
+      0,
+      'update_sub_goals',
+      'mark_finished_indexes',
+      'memory',
+    );
   }
 
   return {
@@ -189,11 +212,13 @@ export function parseJSONPlanningResponse(
   let finalizeMessage: string | undefined;
   let finalizeSuccess: boolean | undefined;
   if (parsed.complete && typeof parsed.complete === 'object') {
-    finalizeSuccess = parsed.complete.success === true || parsed.complete.success === 'true'
-      ? true
-      : parsed.complete.success === false || parsed.complete.success === 'false'
-        ? false
-        : undefined;
+    finalizeSuccess =
+      parsed.complete.success === true || parsed.complete.success === 'true'
+        ? true
+        : parsed.complete.success === false ||
+            parsed.complete.success === 'false'
+          ? false
+          : undefined;
     finalizeMessage = parsed.complete.message?.trim() || undefined;
   }
 
@@ -206,7 +231,8 @@ export function parseJSONPlanningResponse(
       }))
     : undefined;
 
-  const markFinishedIndexes: number[] | undefined = parsed.mark_finished_indexes?.length
+  const markFinishedIndexes: number[] | undefined = parsed.mark_finished_indexes
+    ?.length
     ? parsed.mark_finished_indexes
     : undefined;
 
@@ -367,7 +393,8 @@ export async function plan(
     'glm-v',
     'auto-glm',
   ];
-  const supportsJsonSchema = !modelFamiliesWithoutJsonSchema.includes(modelFamily);
+  const supportsJsonSchema =
+    !modelFamiliesWithoutJsonSchema.includes(modelFamily);
   const responseFormat = supportsJsonSchema
     ? buildPlanningResponseSchema(includeSubGoals)
     : undefined;
