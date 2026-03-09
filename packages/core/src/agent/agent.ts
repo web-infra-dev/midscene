@@ -980,18 +980,12 @@ export class Agent<
     let success = false;
     let retryCount = 0;
     let resultPrompt = '';
-    const initialDeepLocate = opt?.deepLocate || false;
+    let deepLocate = opt?.deepLocate || false;
     let verifyResult: LocateValidatorResult | undefined;
 
     while (!success && retryCount < retryLimit) {
-      // Alternate strategy on retries: if deepLocate was requested,
-      // try without it on odd retries to get different descriptions.
-      // If deepLocate was not requested, enable it after retry 2.
-      let useDeepLocate: boolean;
-      if (initialDeepLocate) {
-        useDeepLocate = retryCount % 2 === 0;
-      } else {
-        useDeepLocate = retryCount >= 2;
+      if (retryCount >= 2) {
+        deepLocate = true;
       }
       debug(
         'aiDescribe',
@@ -1001,13 +995,13 @@ export class Agent<
         'retryCount',
         retryCount,
         'deepLocate',
-        useDeepLocate,
+        deepLocate,
       );
       // use same intent as aiLocate
       const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
       const text = await this.service.describe(center, modelConfig, {
-        deepLocate: useDeepLocate,
+        deepLocate,
       });
       debug('aiDescribe text', text);
       assert(text.description, `failed to describe element at [${center}]`);
@@ -1033,7 +1027,7 @@ export class Agent<
 
     return {
       prompt: resultPrompt,
-      deepLocate: initialDeepLocate,
+      deepLocate,
       verifyResult,
     };
   }
