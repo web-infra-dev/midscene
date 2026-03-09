@@ -49,10 +49,6 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
       type: ['string', 'null'],
       description: 'A brief preamble message to the user explaining what you are about to do',
     },
-    error: {
-      type: ['string', 'null'],
-      description: 'Error message if there is an error',
-    },
     action_type: {
       type: ['string', 'null'],
       description: 'The action type to execute, must be one of the supporting actions',
@@ -82,49 +78,73 @@ export function buildPlanningResponseSchema(includeSubGoals: boolean): {
         { type: 'null' },
       ],
     },
+    error: {
+      type: ['string', 'null'],
+      description: 'Error message if there is an error',
+    },
   };
 
-  const required = ['thought', 'log', 'error', 'action_type', 'action_param', 'complete'];
+  const required = ['thought', 'log', 'action_type', 'action_param', 'complete', 'error'];
 
   if (includeSubGoals) {
-    properties.update_sub_goals = {
-      description: 'Sub-goals to create or update',
-      anyOf: [
-        {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              index: { type: 'integer', description: 'Sub-goal index (1-based)' },
-              status: {
-                type: 'string',
-                enum: ['pending', 'finished'],
-                description: 'Status of the sub-goal',
+    // Insert sub-goal fields after 'thought' to match prompt order:
+    // thought -> update_sub_goals -> mark_finished_indexes -> memory -> log -> action_type -> ...
+    const subGoalProperties: Record<string, unknown> = {
+      update_sub_goals: {
+        description: 'Sub-goals to create or update',
+        anyOf: [
+          {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                index: { type: 'integer', description: 'Sub-goal index (1-based)' },
+                status: {
+                  type: 'string',
+                  enum: ['pending', 'finished'],
+                  description: 'Status of the sub-goal',
+                },
+                description: { type: 'string', description: 'Description of the sub-goal' },
               },
-              description: { type: 'string', description: 'Description of the sub-goal' },
+              required: ['index', 'status', 'description'],
+              additionalProperties: false,
             },
-            required: ['index', 'status', 'description'],
-            additionalProperties: false,
           },
-        },
-        { type: 'null' },
-      ],
+          { type: 'null' },
+        ],
+      },
+      mark_finished_indexes: {
+        description: 'Indexes of sub-goals to mark as finished',
+        anyOf: [
+          {
+            type: 'array',
+            items: { type: 'integer' },
+          },
+          { type: 'null' },
+        ],
+      },
+      memory: {
+        type: ['string', 'null'],
+        description: 'Information to remember from the current screenshot for future steps',
+      },
     };
-    properties.mark_finished_indexes = {
-      description: 'Indexes of sub-goals to mark as finished',
-      anyOf: [
-        {
-          type: 'array',
-          items: { type: 'integer' },
-        },
-        { type: 'null' },
-      ],
-    };
-    properties.memory = {
-      type: ['string', 'null'],
-      description: 'Information to remember from the current screenshot for future steps',
-    };
-    required.push('update_sub_goals', 'mark_finished_indexes', 'memory');
+
+    // Rebuild properties in correct order: thought, sub-goal fields, then rest
+    const reordered: Record<string, unknown> = { thought: properties.thought };
+    Object.assign(reordered, subGoalProperties);
+    for (const [key, value] of Object.entries(properties)) {
+      if (key !== 'thought') {
+        reordered[key] = value;
+      }
+    }
+    // Replace properties entries
+    for (const key of Object.keys(properties)) {
+      delete properties[key];
+    }
+    Object.assign(properties, reordered);
+
+    // Insert sub-goal required fields after 'thought'
+    required.splice(1, 0, 'update_sub_goals', 'mark_finished_indexes', 'memory');
   }
 
   return {
