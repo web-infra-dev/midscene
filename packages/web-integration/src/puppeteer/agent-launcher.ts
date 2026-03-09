@@ -168,6 +168,7 @@ export async function launchPuppeteerPage(
   preference?: {
     headed?: boolean;
     keepWindow?: boolean;
+    ignoreDefaultArgs?: boolean | string[];
   },
   browser?: Browser,
   existingPage?: Page,
@@ -178,7 +179,7 @@ export async function launchPuppeteerPage(
   // prepare the environment
   const ua = target.userAgent || defaultUA;
   let width = defaultViewportWidth;
-  if (target.viewportWidth) {
+  if (target.viewportWidth !== undefined && target.viewportWidth !== null) {
     assert(
       typeof target.viewportWidth === 'number',
       'viewportWidth must be a number',
@@ -187,7 +188,7 @@ export async function launchPuppeteerPage(
     assert(width > 0, `viewportWidth must be greater than 0, but got ${width}`);
   }
   let height = defaultViewportHeight;
-  if (target.viewportHeight) {
+  if (target.viewportHeight !== undefined && target.viewportHeight !== null) {
     assert(
       typeof target.viewportHeight === 'number',
       'viewportHeight must be a number',
@@ -199,13 +200,16 @@ export async function launchPuppeteerPage(
     );
   }
   let dpr = defaultViewportScale;
-  if (target.viewportScale) {
+  if (
+    target.deviceScaleFactor !== undefined &&
+    target.deviceScaleFactor !== null
+  ) {
     assert(
-      typeof target.viewportScale === 'number',
-      'viewportScale must be a number',
+      typeof target.deviceScaleFactor === 'number',
+      'deviceScaleFactor must be a number',
     );
-    dpr = Number.parseInt(target.viewportScale as unknown as string, 10);
-    assert(dpr > 0, `viewportScale must be greater than 0, but got ${dpr}`);
+    dpr = Number.parseInt(target.deviceScaleFactor as unknown as string, 10);
+    assert(dpr >= 0, `deviceScaleFactor must be >= 0, but got ${dpr}`);
   }
   const viewportConfig = {
     width,
@@ -267,6 +271,7 @@ export async function launchPuppeteerPage(
         defaultViewport: defaultViewportConfig,
         args,
         acceptInsecureCerts: target.acceptInsecureCerts,
+        ignoreDefaultArgs: preference?.ignoreDefaultArgs,
       });
       freeFn.push({
         name: 'puppeteer_browser',

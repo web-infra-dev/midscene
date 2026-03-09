@@ -170,6 +170,22 @@ const agent = await agentFromWebDriverAgent({
 iproxy 8100 8100 YOUR_DEVICE_ID
 ```
 
+### 如何在 Playground 中获得更流畅的实时画面？
+
+Playground 的画面预览支持两种模式：
+
+- **轮询模式**（默认）：逐帧调用 WDA 截图 API，帧率约 5-10fps。
+- **原生 MJPEG 流**（推荐）：直接代理 WDA 内置的 MJPEG Server，帧率更高、延迟更低。
+
+要启用原生 MJPEG 流，需要将 WDA MJPEG Server 的端口（默认 9100）转发到本机：
+
+```bash
+# 真机需要端口转发（模拟器不需要）
+iproxy 9100 9100 YOUR_DEVICE_ID
+```
+
+Playground 启动时会自动探测 9100 端口。如果可用，日志会显示 `MJPEG: streaming via native WDA MJPEG server`；否则自动回退到轮询模式。
+
 ## 更多
 
 - 查看所有 Agent 方法：[API 参考（通用）](./api#interaction-methods)

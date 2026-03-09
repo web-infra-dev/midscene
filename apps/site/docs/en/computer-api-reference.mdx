@@ -6,7 +6,7 @@ For common APIs that work across all platforms, see [Common API Reference](./api
 
 ## Agent Creation
 
-### `agentFromComputer(opts?): Promise<ComputerAgent>`
+`agentFromComputer(opts?): Promise<ComputerAgent>`
 
 Create an agent for desktop automation.
 
@@ -22,11 +22,19 @@ interface ComputerAgentOpt {
   // Device options
   displayId?: string;
   customActions?: DeviceAction<any>[];
+  headless?: boolean;
+  xvfbResolution?: string;
 }
 ```
 
 - `displayId` (optional): Specify which display to control. Get available displays with `ComputerDevice.listDisplays()`.
 - `customActions` (optional): Add custom actions to the device.
+- `headless` (optional, Linux only): Set to `true` to start a virtual display via [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml), enabling desktop automation on headless Linux servers and CI environments without a physical display. Can also be set via the `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` environment variable.
+- `xvfbResolution` (optional): Resolution for the Xvfb virtual display. Defaults to `'1920x1080x24'`.
+
+:::tip Example: Testing Electron Apps on Headless Linux CI
+A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
 
 **Example:**
 
@@ -47,7 +55,7 @@ const agent2 = await agentFromComputer({
 
 ## Device Management
 
-### `ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+`ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
 
 List all available displays.
 
@@ -74,7 +82,7 @@ console.log('Available displays:', displays);
 // ]
 ```
 
-### `checkComputerEnvironment(): Promise<EnvironmentCheck>`
+`checkComputerEnvironment(): Promise<EnvironmentCheck>`
 
 Check if the computer environment is properly configured.
 

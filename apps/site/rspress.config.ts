@@ -79,6 +79,10 @@ export default defineConfig({
           link: '/model-common-config',
         },
         {
+          text: 'Control any platform with Skills 🔥',
+          link: '/skills',
+        },
+        {
           text: 'Showcases',
           link: '/showcases',
         },
@@ -136,6 +140,21 @@ export default defineConfig({
           link: '/ios-api-reference',
         },
         {
+          sectionHeaderText: 'HarmonyOS',
+        },
+        {
+          text: 'Introduction',
+          link: '/harmony-introduction',
+        },
+        {
+          text: 'Getting started',
+          link: '/harmony-getting-started',
+        },
+        {
+          text: 'API reference (HarmonyOS)',
+          link: '/harmony-api-reference',
+        },
+        {
           sectionHeaderText: 'PC Desktop',
         },
         {
@@ -151,15 +170,18 @@ export default defineConfig({
           link: '/computer-api-reference',
         },
         {
-          sectionHeaderText: 'More features',
+          sectionHeaderText: 'YAML automation',
         },
         {
-          text: 'Command line tools',
-          link: '/command-line-tools',
+          text: 'YAML script runner',
+          link: '/yaml-script-runner',
         },
         {
           text: 'Workflow in YAML format',
           link: '/automate-with-scripts-in-yaml',
+        },
+        {
+          sectionHeaderText: 'More features',
         },
         {
           text: 'Caching AI planning & locate',
@@ -233,6 +255,10 @@ export default defineConfig({
           link: '/zh/model-common-config',
         },
         {
+          text: '使用 Skills 控制任意平台 🔥',
+          link: '/zh/skills',
+        },
+        {
           text: '案例展示',
           link: '/zh/showcases',
         },
@@ -290,6 +316,21 @@ export default defineConfig({
           link: '/zh/ios-api-reference',
         },
         {
+          sectionHeaderText: 'HarmonyOS',
+        },
+        {
+          text: '介绍',
+          link: '/zh/harmony-introduction',
+        },
+        {
+          text: '开始使用',
+          link: '/zh/harmony-getting-started',
+        },
+        {
+          text: 'API 参考（HarmonyOS）',
+          link: '/zh/harmony-api-reference',
+        },
+        {
           sectionHeaderText: 'PC 桌面',
         },
         {
@@ -305,15 +346,18 @@ export default defineConfig({
           link: '/zh/computer-api-reference',
         },
         {
-          sectionHeaderText: '更多特性',
+          sectionHeaderText: 'YAML automation',
         },
         {
-          text: '命令行工具',
-          link: '/zh/command-line-tools',
+          text: 'YAML 脚本运行器',
+          link: '/zh/yaml-script-runner',
         },
         {
           text: 'YAML 格式的工作流',
           link: '/zh/automate-with-scripts-in-yaml',
+        },
+        {
+          sectionHeaderText: '更多特性',
         },
         {
           text: '缓存 AI 规划和定位',
@@ -541,6 +585,14 @@ export default defineConfig({
         {
           from: '^/zh/ios-playground(?:\\.html)?/?$',
           to: '/zh/ios-getting-started',
+        },
+        {
+          from: '^/command-line-tools(?:\\.html)?/?$',
+          to: '/yaml-script-runner',
+        },
+        {
+          from: '^/zh/command-line-tools(?:\\.html)?/?$',
+          to: '/zh/yaml-script-runner',
         },
       ],
     }),

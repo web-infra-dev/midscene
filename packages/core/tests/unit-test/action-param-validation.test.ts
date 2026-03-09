@@ -60,7 +60,7 @@ describe('Action Parameter Validation', () => {
       const rawParam = {
         locate: {
           prompt: 'button',
-          deepThink: true,
+          deepLocate: true,
         },
         value: 'test',
       };
@@ -70,7 +70,7 @@ describe('Action Parameter Validation', () => {
       // Locator field should not be parsed/validated
       expect(parsed.locate).toEqual({
         prompt: 'button',
-        deepThink: true,
+        deepLocate: true,
       });
       expect(parsed.value).toBe('test');
     });
@@ -320,6 +320,137 @@ describe('Action Parameter Validation', () => {
       expect(parsed.locate).toEqual(rawParam.locate);
       expect(parsed.value).toBe('test');
     });
+
+    it('should transform locate field coordinates when shrunkShotToLogicalRatio !== 1', () => {
+      const schema = z.object({
+        locate: getMidsceneLocationSchema().describe('The element to tap'),
+        value: z.string(),
+      });
+
+      const rawParam = {
+        locate: {
+          center: [200, 400] as [number, number],
+          rect: { left: 100, top: 300, width: 200, height: 200 },
+          description: 'button',
+        },
+        value: 'test',
+      };
+
+      const parsed = parseActionParam(rawParam, schema, {
+        shrunkShotToLogicalRatio: 2,
+      });
+
+      expect(parsed.locate).toEqual({
+        center: [100, 200],
+        rect: { left: 50, top: 150, width: 100, height: 100 },
+        description: 'button',
+      });
+      expect(parsed.value).toBe('test');
+    });
+
+    it('should not transform coordinates when shrunkShotToLogicalRatio is 1', () => {
+      const schema = z.object({
+        locate: getMidsceneLocationSchema().describe('The element'),
+        value: z.string(),
+      });
+
+      const rawParam = {
+        locate: {
+          center: [200, 400] as [number, number],
+          rect: { left: 100, top: 300, width: 200, height: 200 },
+          description: 'button',
+        },
+        value: 'test',
+      };
+
+      const parsed = parseActionParam(rawParam, schema, {
+        shrunkShotToLogicalRatio: 1,
+      });
+
+      expect(parsed.locate).toEqual(rawParam.locate);
+    });
+
+    it('should not transform coordinates when shrunkShotToLogicalRatio is not provided', () => {
+      const schema = z.object({
+        locate: getMidsceneLocationSchema().describe('The element'),
+        value: z.string(),
+      });
+
+      const rawParam = {
+        locate: {
+          center: [200, 400] as [number, number],
+          rect: { left: 100, top: 300, width: 200, height: 200 },
+          description: 'button',
+        },
+        value: 'test',
+      };
+
+      const parsed = parseActionParam(rawParam, schema);
+
+      expect(parsed.locate).toEqual(rawParam.locate);
+    });
+
+    it('should transform multiple locate fields with shrunkShotToLogicalRatio', () => {
+      const schema = z.object({
+        from: getMidsceneLocationSchema().describe('Start position'),
+        to: getMidsceneLocationSchema().describe('End position'),
+        value: z.string(),
+      });
+
+      const rawParam = {
+        from: {
+          center: [200, 400] as [number, number],
+          rect: { left: 100, top: 300, width: 200, height: 200 },
+          description: 'start',
+        },
+        to: {
+          center: [600, 800] as [number, number],
+          rect: { left: 500, top: 700, width: 200, height: 200 },
+          description: 'end',
+        },
+        value: 'drag',
+      };
+
+      const parsed = parseActionParam(rawParam, schema, {
+        shrunkShotToLogicalRatio: 2,
+      });
+
+      expect(parsed.from).toEqual({
+        center: [100, 200],
+        rect: { left: 50, top: 150, width: 100, height: 100 },
+        description: 'start',
+      });
+      expect(parsed.to).toEqual({
+        center: [300, 400],
+        rect: { left: 250, top: 350, width: 100, height: 100 },
+        description: 'end',
+      });
+    });
+
+    it('should skip coordinate transform for locate fields without center/rect', () => {
+      const schema = z.object({
+        locate: getMidsceneLocationSchema().describe('The element'),
+        value: z.string(),
+      });
+
+      const rawParam = {
+        locate: {
+          prompt: 'some button',
+          deepThink: true,
+        },
+        value: 'test',
+      };
+
+      const parsed = parseActionParam(rawParam, schema, {
+        shrunkShotToLogicalRatio: 2,
+      });
+
+      // Should pass through as-is since there's no center/rect to transform
+      expect(parsed.locate).toEqual({
+        prompt: 'some button',
+        deepThink: true,
+      });
+    });
   });
 
   describe('KeyboardPress Action', () => {
@@ -352,7 +483,7 @@ describe('Action Parameter Validation', () => {
         keyName: 'Control+V',
         locate: {
           prompt: 'text input field',
-          deepThink: false,
+          deepLocate: false,
         },
       };
 
@@ -361,7 +492,7 @@ describe('Action Parameter Validation', () => {
       expect(parsed.keyName).toEqual('Control+V');
       expect(parsed.locate).toEqual({
         prompt: 'text input field',
-        deepThink: false,
+        deepLocate: false,
       });
     });
 

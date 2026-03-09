@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { WebPageContextParser } from '@/web-element';
 import type { WebElementInfo } from '@/web-element';
+import { commonContextParser } from '@midscene/core/agent';
 import {
   descriptionOfTree,
   traverseTree,
@@ -44,55 +44,6 @@ describe(
       if (localServer?.server) {
         localServer.server.close();
       }
-    });
-
-    it('basic', async () => {
-      const { page, reset } = await launchPage(`http://127.0.0.1:${port}`, {
-        viewport: {
-          width: 1080,
-          height: 3000,
-          deviceScaleFactor: 1,
-        },
-      });
-
-      const tree = await page.getElementsNodeTree?.();
-      const description = await await descriptionOfTree(tree, 200, false, true);
-      const screenshotBase64 = await page.screenshotBase64();
-
-      // const { tree, screenshotBase64 } = await WebPageContextParser(page, {});
-      const content = treeToList(tree);
-      const markedImg = await compositeElementInfoImg({
-        inputImgBase64: await page.screenshotBase64(),
-        elementsPositionInfo: content,
-      });
-
-      await saveBase64Image({
-        base64Data: screenshotBase64,
-        outputPath: join(pageDir, 'input.png'),
-      });
-      await saveBase64Image({
-        base64Data: markedImg,
-        outputPath: join(pageDir, 'output.png'),
-      });
-
-      const list = content.map((item) => {
-        return {
-          content: item.content,
-          attributes: item.attributes,
-        };
-      });
-
-      expect(list).toMatchSnapshot();
-
-      const simplifiedTree = traverseTree(tree!, (node) => {
-        return {
-          content: node.content,
-          indexId: node.indexId,
-          attributes: node.attributes,
-        } as any;
-      });
-      expect(simplifiedTree).toMatchSnapshot();
-      await reset();
     });
 
     it('merge children rects of button', async () => {
@@ -199,9 +150,9 @@ describe(
     it('profiling', async () => {
       const { page, reset } = await launchPage('https://www.bytedance.com');
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.time('total - WebPageContextParser');
-      await WebPageContextParser(page, {});
-      console.timeEnd('total - WebPageContextParser');
+      console.time('total - commonContextParser');
+      await commonContextParser(page, {});
+      console.timeEnd('total - commonContextParser');
       await reset();
     });
 

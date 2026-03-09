@@ -36,12 +36,12 @@ export class ExecutionSession {
 
   async appendAndRun(
     tasks: ExecutionTaskApply[] | ExecutionTaskApply,
-    options?: { allowWhenError?: boolean; signal?: AbortSignal },
+    options?: { allowWhenError?: boolean },
   ) {
     return this.runner.appendAndFlush(tasks, options);
   }
 
-  async run(options?: { allowWhenError?: boolean; signal?: AbortSignal }) {
+  async run(options?: { allowWhenError?: boolean }) {
     return this.runner.flush(options);
   }
 

@@ -15,7 +15,11 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { uuid } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { ifPlanLocateParamIsBbox } from '../../src/agent/utils';
+import {
+  ifPlanLocateParamIsBbox,
+  transformLogicalElementToScreenshot,
+  transformLogicalRectToScreenshotRect,
+} from '../../src/agent/utils';
 import {
   getTmpDir,
   getTmpFile,
@@ -792,5 +796,99 @@ describe('ifPlanLocateParamIsBbox', () => {
       bbox: null as any,
     };
     expect(ifPlanLocateParamIsBbox(param)).toBe(false);
+  });
+});
+
+describe('shrunkShotToLogicalRatio', () => {
+  it('transformLogicalElementToScreenshot with shrunkShotToLogicalRatio=1', () => {
+    expect(
+      transformLogicalElementToScreenshot(
+        {
+          description: 'test element',
+          center: [150, 250],
+          rect: {
+            left: 100,
+            top: 200,
+            width: 300,
+            height: 400,
+          },
+        },
+        1,
+      ),
+    ).toStrictEqual({
+      description: 'test element',
+      center: [150, 250],
+      rect: {
+        left: 100,
+        top: 200,
+        width: 300,
+        height: 400,
+      },
+    });
+  });
+
+  it('transformLogicalElementToScreenshot with shrunkShotToLogicalRatio=2', () => {
+    expect(
+      transformLogicalElementToScreenshot(
+        {
+          description: 'test element',
+          center: [150, 250],
+          rect: {
+            left: 100,
+            top: 200,
+            width: 300,
+            height: 400,
+          },
+        },
+        2,
+      ),
+    ).toStrictEqual({
+      description: 'test element',
+      center: [300, 500],
+      rect: {
+        left: 200,
+        top: 400,
+        width: 600,
+        height: 800,
+      },
+    });
+  });
+
+  it('transformLogicalRectToScreenshotRect with shrunkShotToLogicalRatio=1', () => {
+    expect(
+      transformLogicalRectToScreenshotRect(
+        {
+          left: 100,
+          top: 200,
+          width: 300,
+          height: 400,
+        },
+        1,
+      ),
+    ).toStrictEqual({
+      left: 100,
+      top: 200,
+      width: 300,
+      height: 400,
+    });
+  });
+
+  it('transformLogicalRectToScreenshotRect with shrunkShotToLogicalRatio=2', () => {
+    expect(
+      transformLogicalRectToScreenshotRect(
+        {
+          left: 100,
+          top: 200,
+          width: 300,
+          height: 400,
+        },
+        2,
+      ),
+    ).toStrictEqual({
+      left: 200,
+      top: 400,
+      width: 600,
+      height: 800,
+    });
   });
 });

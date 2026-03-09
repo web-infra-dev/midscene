@@ -14,7 +14,7 @@ import {
 import type { AbstractInterface, FileChooserHandler } from '@/device';
 import type Service from '@/service';
 import type { TaskRunner } from '@/task-runner';
-import { MidsceneAbortedError, TaskExecutionError } from '@/task-runner';
+import { TaskExecutionError } from '@/task-runner';
 import type {
   DeepThinkOption,
   DeviceAction,
@@ -39,6 +39,7 @@ import { ExecutionSession } from './execution-session';
 import { TaskBuilder } from './task-builder';
 import type { TaskCache } from './task-cache';
 export { locatePlanForLocate } from './task-builder';
+import { setTimingFieldOnce } from '@/task-timing';
 import { descriptionOfTree } from '@midscene/shared/extractor';
 import { taskTitleStr } from './ui-utils';
 import { parsePrompt } from './utils';
@@ -160,7 +161,7 @@ export class TaskExecutor {
     modelConfigForDefaultIntent: IModelConfig,
     options?: {
       cacheable?: boolean;
-      subTask?: boolean;
+      deepLocate?: boolean;
     },
   ) {
     return this.taskBuilder.build(
@@ -244,7 +245,7 @@ export class TaskExecutor {
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
     fileChooserAccept?: string[],
-    signal?: AbortSignal,
+    deepLocate?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -265,7 +266,7 @@ export class TaskExecutor {
         replanningCycleLimitOverride,
         imagesIncludeCount,
         deepThink,
-        signal,
+        deepLocate,
       );
     });
   }
@@ -280,7 +281,7 @@ export class TaskExecutor {
     replanningCycleLimitOverride?: number,
     imagesIncludeCount?: number,
     deepThink?: DeepThinkOption,
-    signal?: AbortSignal,
+    deepLocate?: boolean,
   ): Promise<
     ExecutionResult<
       | {
@@ -311,11 +312,6 @@ export class TaskExecutor {
 
     // Main planning loop - unified plan/replan logic
     while (true) {
-      // Check if the operation has been aborted
-      if (signal?.aborted) {
-        throw new MidsceneAbortedError(signal.reason);
-      }
-
       // Get sub-goal status text if available
       const subGoalStatus =
         this.conversationHistory.subGoalsToText() || undefined;
@@ -340,6 +336,7 @@ export class TaskExecutor {
             const { uiContext } = executorContext;
             assert(uiContext, 'uiContext is required for Planning task');
             const { modelFamily } = modelConfigForPlanning;
+            const timing = executorContext.task.timing;
 
             const actionSpace = this.getActionSpace();
             debug(
@@ -361,6 +358,7 @@ export class TaskExecutor {
 
             let planResult: Awaited<ReturnType<typeof planImpl>>;
             try {
+              setTimingFieldOnce(timing, 'callAiStart');
               planResult = await planImpl(param.userInstruction, {
                 context: uiContext,
                 actionContext: param.aiActContext,
@@ -382,6 +380,8 @@ export class TaskExecutor {
                 };
               }
               throw planError;
+            } finally {
+              setTimingFieldOnce(timing, 'callAiEnd');
             }
             debug('planResult', JSON.stringify(planResult, null, 2));
 
@@ -439,7 +439,6 @@ export class TaskExecutor {
         },
         {
           allowWhenError: true,
-          signal,
         },
       );
 
@@ -457,7 +456,7 @@ export class TaskExecutor {
           modelConfigForDefaultIntent,
           {
             cacheable,
-            subTask: true,
+            deepLocate,
           },
         );
       } catch (error) {
@@ -479,12 +478,8 @@ export class TaskExecutor {
       this.conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
       try {
-        await session.appendAndRun(executables.tasks, { signal });
+        await session.appendAndRun(executables.tasks);
       } catch (error: any) {
-        // Abort errors must propagate immediately, not be retried
-        if (error instanceof MidsceneAbortedError) {
-          throw error;
-        }
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();

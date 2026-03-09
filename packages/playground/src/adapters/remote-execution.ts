@@ -193,6 +193,7 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     // Add optional parameters only if they have meaningful values
     const optionalFields = [
       { key: 'requestId', value: options.requestId },
+      { key: 'deepLocate', value: options.deepLocate },
       { key: 'deepThink', value: options.deepThink },
       { key: 'screenshotIncluded', value: options.screenshotIncluded },
       { key: 'domIncluded', value: options.domIncluded },

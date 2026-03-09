@@ -80,7 +80,8 @@ export function StandardPlayground({
 
   // Form and environment configuration
   const [form] = Form.useForm();
-  const { config, deepThink, screenshotIncluded, domIncluded } = useEnvConfig();
+  const { config, deepLocate, deepThink, screenshotIncluded, domIncluded } =
+    useEnvConfig();
 
   const currentAgentRef = useRef<any>(null);
   const currentRunningIdRef = useRef<string | null>(null);
@@ -284,6 +285,25 @@ export function StandardPlayground({
         );
       }
 
+      // During deepThink -> deepLocate migration:
+      // keep deepThink only for aiAct, and avoid passing it to non-aiAct actions.
+      if (actionType !== 'aiAct' && deepThink) {
+        console.warn(
+          '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct.',
+          {
+            actionType,
+            requestId: thisRunningId,
+          },
+        );
+      }
+      const baseExecutionOptions = {
+        deepLocate,
+        ...(actionType === 'aiAct' ? { deepThink } : {}),
+        screenshotIncluded,
+        domIncluded,
+        requestId: thisRunningId,
+      };
+
       if (serviceMode === 'Server' && playgroundSDK.current) {
         // Use PlaygroundSDK for server mode
         const uiContext = await activeAgent?.getUIContext();
@@ -292,10 +312,7 @@ export function StandardPlayground({
           { type: actionType, prompt: value.prompt, params: value.params },
           {
             context: uiContext,
-            deepThink,
-            screenshotIncluded,
-            domIncluded,
-            requestId: thisRunningId,
+            ...baseExecutionOptions,
           },
         );
 
@@ -327,12 +344,7 @@ export function StandardPlayground({
         const response = await sdk.executeAction(
           actionType,
           { type: actionType, prompt: value.prompt, params: value.params },
-          {
-            deepThink,
-            screenshotIncluded,
-            domIncluded,
-            requestId: thisRunningId,
-          },
+          baseExecutionOptions,
         );
         if (response && typeof response === 'object' && 'result' in response) {
           const serverResponse = response as ServerResponse;
@@ -417,7 +429,15 @@ export function StandardPlayground({
       hasDump: !!result.dump,
       hasError: !!result.error,
     });
-  }, [form, getAgent, serviceMode, deepThink, actionSpace, actionSpaceLoading]);
+  }, [
+    form,
+    getAgent,
+    serviceMode,
+    deepLocate,
+    deepThink,
+    actionSpace,
+    actionSpaceLoading,
+  ]);
 
   // Dummy handleStop for Standard mode (no real stopping functionality)
   const handleStop = async () => {

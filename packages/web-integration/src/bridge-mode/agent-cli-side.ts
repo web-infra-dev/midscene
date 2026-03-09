@@ -64,10 +64,6 @@ export const getBridgePageInCliSide = (options?: {
         };
       }
 
-      if (prop === 'getContext') {
-        return undefined;
-      }
-
       if (prop === 'interfaceType') {
         return BridgePageType;
       }

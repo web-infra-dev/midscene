@@ -29,6 +29,7 @@ describe('iOS Package Structure', () => {
       expect(actionNames).toContain('Scroll');
       expect(actionNames).toContain('IOSHomeButton');
       expect(actionNames).toContain('LongPress');
+      expect(actionNames).toContain('Swipe');
       expect(actionNames).toContain('IOSAppSwitcher');
     });
 

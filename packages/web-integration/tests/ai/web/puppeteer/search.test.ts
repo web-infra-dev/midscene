@@ -43,15 +43,15 @@ describe(
 
       if (settingsButton) {
         await ctx.agent.aiTap('the settings button', {
-          deepThink: true,
+          deepLocate: true,
         });
 
         await ctx.agent.aiTap('搜索设置', {
-          deepThink: true,
+          deepLocate: true,
         });
 
         await ctx.agent.aiTap('the close button of the popup', {
-          deepThink: true,
+          deepLocate: true,
         });
 
         await ctx.agent.aiAssert('there is NOT a popup shown in the page');

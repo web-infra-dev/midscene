@@ -29,6 +29,27 @@ Node.js 18.19.0 or higher is required.
 
 **Linux**: [ImageMagick](https://imagemagick.org/script/download.php) is required for screenshot functionality.
 
+**Headless Linux (CI)**: To run desktop automation on a headless Linux server (e.g. GitHub Actions), install Xvfb and its dependencies, then enable headless mode:
+
+```bash
+# Install dependencies
+sudo apt-get install -y xvfb x11-xserver-utils imagemagick
+```
+
+```typescript
+// Option 1: Pass headless option
+const agent = await agentFromComputer({ headless: true });
+
+// Option 2: Set environment variable
+// MIDSCENE_COMPUTER_HEADLESS_LINUX=true npx tsx example.ts
+```
+
+Xvfb creates a virtual display so that mouse, keyboard, and screenshot operations work without a physical monitor. See [API Reference](./computer-api-reference) for details.
+
+:::tip Example: Testing Electron Apps on Headless Linux CI
+A complete demo of testing [Obsidian](https://obsidian.md/) (an Electron app) on headless Linux CI with `@midscene/computer`: [https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
+
 ## Try Playground (no code)
 
 Playground is the fastest way to validate the connection and observe AI-driven steps without writing code. It shares the same core as `@midscene/computer`, so anything that works here will behave the same once scripted.
@@ -194,5 +215,5 @@ if (!env.available) {
 
 - [API Reference](./computer-api-reference)
 - [Use YAML format automation scripts](./automate-with-scripts-in-yaml)
-- [Command-line tools](./command-line-tools)
+- [YAML script runner](./yaml-script-runner)
 - [Caching for efficiency](./caching)

@@ -6,7 +6,7 @@
 
 ## Agent 创建
 
-### `agentFromComputer(opts?): Promise<ComputerAgent>`
+`agentFromComputer(opts?): Promise<ComputerAgent>`
 
 创建用于桌面自动化的 agent。
 
@@ -22,11 +22,19 @@ interface ComputerAgentOpt {
   // 设备选项
   displayId?: string;
   customActions?: DeviceAction<any>[];
+  headless?: boolean;
+  xvfbResolution?: string;
 }
 ```
 
 - `displayId`（可选）：指定要控制的显示器。使用 `ComputerDevice.listDisplays()` 获取可用显示器。
 - `customActions`（可选）：向设备添加自定义操作。
+- `headless`（可选，仅 Linux）：设为 `true` 时通过 [Xvfb](https://www.x.org/releases/X11R7.6/doc/man/man1/Xvfb.1.xhtml) 启动虚拟显示器，使桌面自动化能在无物理显示器的 Linux 服务器和 CI 环境中运行。也可通过环境变量 `MIDSCENE_COMPUTER_HEADLESS_LINUX=true` 设置。
+- `xvfbResolution`（可选）：Xvfb 虚拟显示器的分辨率，默认为 `'1920x1080x24'`。
+
+:::tip 示例：在无头 Linux CI 中测试 Electron 应用
+使用 `@midscene/computer` 在无头 Linux CI 中测试 [Obsidian](https://obsidian.md/)（Electron 应用）的完整示例：[https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo](https://github.com/web-infra-dev/midscene-example/tree/main/computer/electron-demo)
+:::
 
 **示例：**
 
@@ -47,7 +55,7 @@ const agent2 = await agentFromComputer({
 
 ## 设备管理
 
-### `ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
+`ComputerDevice.listDisplays(): Promise<DisplayInfo[]>`
 
 列出所有可用显示器。
 
@@ -74,7 +82,7 @@ console.log('可用显示器:', displays);
 // ]
 ```
 
-### `checkComputerEnvironment(): Promise<EnvironmentCheck>`
+`checkComputerEnvironment(): Promise<EnvironmentCheck>`
 
 检查计算机环境是否正确配置。
 

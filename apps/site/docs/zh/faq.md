@@ -38,12 +38,27 @@ export MIDSCENE_RUN_DIR="/tmp/midscene_output"
 
 ## 浏览器界面持续闪动
 
-一般是 viewport `deviceScaleFactor` 参数与系统环境不匹配造成的。如果你在 Mac 系统下运行，可以把它设成 2 来解决。
+在本地可视化界面中遇到持续闪烁，通常是因为 viewport 的 `deviceScaleFactor` 与系统/浏览器的像素比不匹配（常见于高分辨率或 Retina 屏幕）。
+
+该闪动不会影响 Midscene 的截图或自动化运行，但会影响本地预览体验。解决方法：将 `deviceScaleFactor` 设置为与浏览器的 `window.devicePixelRatio` 一致，或使用 Puppeteer 的自动适配功能。
 
 ```typescript
+// Puppeteer：将 deviceScaleFactor 设为 0 可自动使用设备像素比
 await page.setViewport({
-  deviceScaleFactor: 2,
+  deviceScaleFactor: 0,
 });
+
+// Playwright：不支持像 Puppeteer 一样使用 0 表示自动适配
+const page = await browser.newPage({
+  deviceScaleFactor: 2, // 请把这里的数字 2 替换为你的 window.devicePixelRatio
+})
+
+```
+
+如果不确定浏览器的像素比，可在任意页面按下 F12 打开控制台，输入 `window.devicePixelRatio` 查看；或在 Chrome 地址栏粘贴下面内容并回车以弹窗显示当前值：
+
+```plain
+data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRatio}`)</script>
 ```
 
 ## 如何通过链接控制报告中播放器的默认回放样式？

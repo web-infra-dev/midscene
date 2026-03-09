@@ -77,7 +77,7 @@ export async function parseStructuredParams(
       if (locatePrompt && typeof locatePrompt === 'string') {
         // Build detailed locate param using the locate prompt and options
         const detailedLocateParam = buildDetailedLocateParam(locatePrompt, {
-          deepThink: options.deepThink,
+          deepLocate: options.deepLocate,
           cacheable: true, // Default to true for playground
         });
         if (detailedLocateParam) {
@@ -167,6 +167,17 @@ export async function executeAction(
   value: FormValue,
   options: ExecutionOptions,
 ): Promise<unknown> {
+  if (actionType !== 'aiAct' && options.deepThink !== undefined) {
+    console.warn(
+      '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+      {
+        actionType,
+        requestId: options.requestId,
+        options,
+      },
+    );
+  }
+
   const action = actionSpace?.find(
     (a: DeviceAction<unknown>) =>
       a.interfaceAlias === actionType || a.name === actionType,
@@ -187,7 +198,7 @@ export async function executeAction(
       // For prompt-based actions, we need to build the detailed locate param
       const detailedLocateParam = value.prompt
         ? buildDetailedLocateParam(value.prompt, {
-            deepThink: options.deepThink,
+            deepLocate: options.deepLocate,
             cacheable: true,
           })
         : undefined;

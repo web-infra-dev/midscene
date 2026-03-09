@@ -1,4 +1,5 @@
 import type { ScreenshotItem } from '@/screenshot-item';
+import { setTimingFieldOnce } from '@/task-timing';
 import {
   ExecutionDump,
   type ExecutionRecorderItem,
@@ -28,7 +29,6 @@ type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
 
 type TaskRunnerOperationOptions = {
   allowWhenError?: boolean;
-  signal?: AbortSignal;
 };
 
 export class TaskRunner {
@@ -165,21 +165,6 @@ export class TaskRunner {
     this.status = this.tasks.length > 0 ? 'pending' : 'init';
   }
 
-  private findPreviousNonSubTaskUIContext(
-    currentIndex: number,
-  ): UIContext | undefined {
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      const candidate = this.tasks[i];
-      if (!candidate || candidate.subTask) {
-        continue;
-      }
-      if (candidate.uiContext) {
-        return candidate.uiContext;
-      }
-    }
-    return undefined;
-  }
-
   async append(
     task: ExecutionTaskApply[] | ExecutionTaskApply,
     options?: TaskRunnerOperationOptions,
@@ -236,17 +221,6 @@ export class TaskRunner {
     let previousFindOutput: ExecutionTaskPlanningLocateOutput | undefined;
 
     while (taskIndex < this.tasks.length) {
-      // Check if the operation has been aborted
-      if (options?.signal?.aborted) {
-        // Mark all remaining tasks as cancelled
-        for (let i = taskIndex; i < this.tasks.length; i++) {
-          this.tasks[i].status = 'cancelled';
-        }
-        this.status = 'error';
-        await this.emitOnTaskUpdate();
-        throw new MidsceneAbortedError(options.signal.reason);
-      }
-
       const task = this.tasks[taskIndex];
       assert(
         task.status === 'pending',
@@ -274,19 +248,13 @@ export class TaskRunner {
         assert(executor, `executor is required for task type: ${task.type}`);
 
         let returnValue;
-        let uiContext: UIContext | undefined;
-        if (task.subTask) {
-          uiContext = this.findPreviousNonSubTaskUIContext(taskIndex);
-          assert(
-            uiContext,
-            'subTask requires uiContext from previous non-subTask task',
-          );
-        } else {
-          // For Insight tasks (Query/Assert/WaitFor), always get fresh context
-          // to ensure we have the latest UI state after any preceding actions
-          const forceRefresh = task.type === 'Insight';
-          uiContext = await this.getUiContext({ forceRefresh });
-        }
+        // For Insight tasks (Query/Assert/WaitFor), always get fresh context
+        // to ensure we have the latest UI state after any preceding actions
+        const forceRefresh = task.type === 'Insight';
+        setTimingFieldOnce(task.timing, 'getUiContextStart');
+        const uiContext = await this.getUiContext({ forceRefresh });
+        setTimingFieldOnce(task.timing, 'getUiContextEnd');
+
         task.uiContext = uiContext;
         const executorContext: ExecutorContext = {
           task,
@@ -324,8 +292,10 @@ export class TaskRunner {
         const isLastTask = taskIndex === this.tasks.length - 1;
 
         if (isLastTask) {
+          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotStart');
           const screenshot = await this.captureScreenshot();
           this.attachRecorderItem(task, screenshot, 'after-calling');
+          setTimingFieldOnce(task.timing, 'captureAfterCallingSnapshotEnd');
         }
 
         Object.assign(task, returnValue);
@@ -454,22 +424,5 @@ export class TaskExecutionError extends Error {
     super(message, options);
     this.runner = runner;
     this.errorTask = errorTask;
-  }
-}
-
-/**
- * Error thrown when an operation is aborted via an AbortSignal.
- */
-export class MidsceneAbortedError extends Error {
-  override name = 'MidsceneAbortedError';
-
-  constructor(reason?: unknown) {
-    const message =
-      reason instanceof Error
-        ? reason.message
-        : typeof reason === 'string'
-          ? reason
-          : 'The operation was aborted';
-    super(message, reason instanceof Error ? { cause: reason } : undefined);
   }
 }

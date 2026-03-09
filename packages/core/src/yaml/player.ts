@@ -447,20 +447,41 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         const locatePrompt: TUserPrompt | undefined = locate ?? aiScroll;
 
         await agent.aiScroll(locatePrompt, scrollOptions);
+      } else if ('aiTap' in flowItem) {
+        const { aiTap, prompt, locate, ...tapOptions } = flowItem as any;
+
+        let locatePrompt: TUserPrompt;
+        let opts = tapOptions;
+
+        if (typeof aiTap === 'string' && aiTap) {
+          // User YAML: aiTap: 'search input box'
+          locatePrompt = aiTap;
+        } else if (typeof locate === 'object' && locate?.prompt) {
+          // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepLocate, cacheable } }
+          const { prompt: lp, ...locateOpts } = locate;
+          locatePrompt = lp;
+          opts = { ...locateOpts, ...tapOptions };
+        } else {
+          // User YAML: aiTap: { prompt: '...' } or aiTap: null + prompt: '...'
+          locatePrompt = aiTap?.prompt || prompt || locate;
+        }
+
+        assert(locatePrompt, 'missing prompt for aiTap');
+        await agent.aiTap(locatePrompt, opts);
       } else {
         // generic action, find the action in actionSpace
 
-        /* for aiTap, aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
+        /* for aiRightClick, the parameters are a flattened data for the 'locate', these are all valid data
 
-        - aiTap: 'search input box'
-        - aiTap: 'search input box'
-          deepThink: true
+        - aiRightClick: 'search input box'
+        - aiRightClick: 'search input box'
+          deepLocate: true
           cacheable: false
-        - aiTap:
+        - aiRightClick:
           prompt: 'search input box'
-        - aiTap:
+        - aiRightClick:
           prompt: 'search input box'
-          deepThink: true
+          deepLocate: true
           cacheable: false
         */
 

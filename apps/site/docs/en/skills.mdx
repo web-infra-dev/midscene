@@ -1,0 +1,85 @@
+# Control any platform with Skills
+
+[Agent Skills](https://github.com/anthropics/skills) are a format for extending AI coding agents with specialized capabilities. Midscene provides Agent Skills that let AI coding tools (like Claude Code, Cline, etc.) drive UI automation through CLI commands — no MCP server setup required.
+
+Unlike [MCP integration](./mcp), Skills work by running CLI commands directly in the terminal. The AI agent acts as the brain: it takes screenshots, analyzes the UI, and decides which actions to perform next.
+
+## Supported platforms
+
+| Skill | Package | CLI command | Description |
+|-------|---------|-------------|-------------|
+| Browser Automation | `@midscene/web` | `npx @midscene/web` | Headless Chrome via Puppeteer, opens new browser tabs |
+| Chrome Bridge Automation | `@midscene/web` | `npx @midscene/web --bridge` | User's own Chrome browser, preserves cookies and sessions |
+| Desktop Computer Automation | `@midscene/computer` | `npx @midscene/computer` | macOS, Windows, Linux desktop control |
+| Android Device Automation | `@midscene/android` | `npx @midscene/android` | Android device control via ADB |
+| iOS Device Automation | `@midscene/ios` | `npx @midscene/ios` | iOS device control via WebDriverAgent |
+
+## Installation
+
+Make sure [Node.js](https://nodejs.org) is installed, then run:
+
+```bash
+# General installation
+npx skills add web-infra-dev/midscene-skills
+
+# Claude Code
+npx skills add web-infra-dev/midscene-skills -a claude-code
+
+# OpenClaw
+npx skills add web-infra-dev/midscene-skills -a openclaw
+```
+
+Skills repository: [github.com/web-infra-dev/midscene-skills](https://github.com/web-infra-dev/midscene-skills)
+
+## Model configuration
+
+Midscene skills require a vision model with strong visual grounding capabilities. Configure the following environment variables — either as system environment variables or in a `.env` file in the current working directory (Midscene loads `.env` automatically):
+
+```bash
+MIDSCENE_MODEL_API_KEY="your-api-key"
+MIDSCENE_MODEL_NAME="model-name"
+MIDSCENE_MODEL_BASE_URL="https://..."
+MIDSCENE_MODEL_FAMILY="family-identifier"
+```
+
+For supported models and configuration details, see [Model strategy](./model-strategy) and [Common model configuration](./model-common-config).
+
+## Use skills
+
+In your AI chat assistant, you can use the following command to use skills:
+
+```markdown
+Open photo app, see what is the first photo in the album.
+```
+
+## Example: Coding Agent self-verifies after writing code
+
+In this example, we ask Claude Code to develop an Electron Todo app, and after writing the code, it uses the `desktop-computer-automation` Skill to launch the app, interact with the UI, and take screenshots to verify the feature works as expected — no manual intervention or test scripts needed.
+
+**Prompt:**
+
+```
+Build an Electron Todo app with add, toggle, and delete functionality.
+After development, launch the app and verify with desktop automation: add 3 todos, check one off, delete one, and take a screenshot to confirm the final state is correct.
+```
+
+The coding agent autonomously completes the entire workflow: write the Todo component → launch the Electron app → connect to the desktop → take screenshots to understand the UI → interact via natural language → take screenshots to verify results. The developer only describes the intent, and Skills give the agent the ability to "see the screen and move the mouse", letting it verify its own code just like a human would.
+
+<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/computer-skill.mp4" height="300" controls />
+
+## More use cases
+
+Skills go beyond local desktop testing. By combining different Skills, you can cover a wide range of automation scenarios:
+
+- **Desktop app testing** — Verify functionality of Electron, Qt, WPF and other desktop applications
+- **Remote computer control** — Operate applications on remote machines via remote desktop connections for remote ops and debugging
+- **Mobile app testing** — Use `@midscene/android` and `@midscene/ios` Skills to test mobile apps on real devices or simulators
+- **Cross-app workflows** — Chain operations across multiple apps, e.g. fetch data from browser → paste into Excel → take screenshot and send to Slack
+- **CI/CD integration** — Run desktop automation in headless mode on Linux CI via Xvfb, no physical display needed
+- **Daily task automation** — Batch form filling, scheduled screenshot monitoring, automatic file organization, etc.
+
+## More
+
+Please refer to the [Skills Repository](https://github.com/web-infra-dev/midscene-skills) for more details.
+
+

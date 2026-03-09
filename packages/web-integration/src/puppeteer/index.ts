@@ -30,6 +30,11 @@ export type { WebPageAgentOpt } from '@/web-element';
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
+    if (!page) {
+      throw new Error(
+        '[midscene] PuppeteerAgent requires a valid Puppeteer page instance. Please make sure to pass a valid page object.',
+      );
+    }
     const webPage = new PuppeteerWebPage(page, opts);
     super(webPage, opts);
 

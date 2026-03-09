@@ -29,10 +29,11 @@ export function sleep(ms: number) {
 export function createFakeContext(content?: string): UIContext {
   const screenshotPath = getFixture('baidu.png');
   const screenshotBase64 = localImg2Base64(screenshotPath);
-  const screenshot = ScreenshotItem.create(screenshotBase64);
+  const screenshot = ScreenshotItem.create(screenshotBase64, Date.now());
 
   return {
     screenshot,
-    size: { width: 1920, height: 1080 },
+    shotSize: { width: 1920, height: 1080 },
+    shrunkShotToLogicalRatio: 1,
   };
 }

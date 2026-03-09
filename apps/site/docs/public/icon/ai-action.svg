@@ -1,16 +1,17 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Background circle -->
-  <circle cx="32" cy="32" r="28" fill="#0555FF" opacity="0.1"/>
+  <circle cx="32" cy="32" r="28" fill="#0555FF" opacity="0.08"/>
 
-  <!-- Brain/AI icon representing planning -->
-  <path d="M32 12C25.373 12 20 17.373 20 24C20 25.5 20.3 26.9 20.8 28.2L18 31C17.4 31.6 17 32.4 17 33.2V38C17 39.1 17.9 40 19 40H21V43C21 44.1 21.9 45 23 45H26V48C26 49.1 26.9 50 28 50H36C37.1 50 38 49.1 38 48V45H41C42.1 45 43 44.1 43 43V40H45C46.1 40 47 39.1 47 38V33.2C47 32.4 46.6 31.6 46 31L43.2 28.2C43.7 26.9 44 25.5 44 24C44 17.373 38.627 12 32 12Z" fill="#0555FF"/>
+  <!-- Terminal window -->
+  <rect x="12" y="14" width="40" height="36" rx="4" stroke="#0555FF" stroke-width="2.5" fill="none"/>
+  <rect x="12" y="14" width="40" height="10" rx="4" fill="#0555FF" opacity="0.12"/>
+  <circle cx="20" cy="19" r="2" fill="#0555FF" opacity="0.35"/>
+  <circle cx="27" cy="19" r="2" fill="#0555FF" opacity="0.35"/>
 
-  <!-- Circuit lines representing automation -->
-  <path d="M28 28H24V32H28V28Z" fill="white"/>
-  <path d="M40 28H36V32H40V28Z" fill="white"/>
-  <path d="M34 22H30V26H34V22Z" fill="white"/>
+  <!-- Command lines -->
+  <path d="M19 30L24 34L19 38" stroke="#0555FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="28" y="33" width="16" height="2.5" rx="1.25" fill="#0555FF" opacity="0.5"/>
 
-  <!-- Arrow showing action flow -->
-  <path d="M48 36L52 40L48 44" stroke="#0555FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M42 40H52" stroke="#0555FF" stroke-width="2" stroke-linecap="round"/>
+  <!-- AI sparkle -->
+  <path d="M44 16L45.2 19.8L49 21L45.2 22.2L44 26L42.8 22.2L39 21L42.8 19.8L44 16Z" fill="#0555FF"/>
 </svg>

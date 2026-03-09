@@ -9,31 +9,39 @@ describe('ScreenshotItem', () => {
 
   describe('create', () => {
     it('should create a ScreenshotItem from base64 string', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       expect(item).toBeInstanceOf(ScreenshotItem);
       expect(item.base64).toBe(testBase64);
+    });
+
+    it('should store capturedAt when provided', () => {
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
+      expect(item.capturedAt).toBe(capturedAt);
     });
   });
 
   describe('base64 getter', () => {
     it('should return the base64 data', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       expect(item.base64).toBe(testBase64);
     });
   });
 
   describe('toSerializable', () => {
     it('should return an object with $screenshot property', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
       const serialized = item.toSerializable();
       expect(serialized).toHaveProperty('$screenshot');
+      expect(serialized).toHaveProperty('capturedAt', capturedAt);
       expect(typeof (serialized as { $screenshot: string }).$screenshot).toBe(
         'string',
       );
     });
 
     it('should produce JSON-serializable output', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       const obj = { screenshot: item };
       const serialized = JSON.stringify(obj, (_key, value) => {
         if (value && typeof value.toSerializable === 'function') {
@@ -49,20 +57,29 @@ describe('ScreenshotItem', () => {
 
   describe('isSerialized', () => {
     it('should return true for inline mode format ($screenshot)', () => {
-      expect(ScreenshotItem.isSerialized({ $screenshot: 'test-id' })).toBe(
-        true,
-      );
-      expect(ScreenshotItem.isSerialized({ $screenshot: 'another-id' })).toBe(
-        true,
-      );
+      expect(
+        ScreenshotItem.isSerialized({ $screenshot: 'test-id', capturedAt: 1 }),
+      ).toBe(true);
+      expect(
+        ScreenshotItem.isSerialized({
+          $screenshot: 'another-id',
+          capturedAt: 2,
+        }),
+      ).toBe(true);
     });
 
     it('should return true for directory mode format (base64 path)', () => {
       expect(
-        ScreenshotItem.isSerialized({ base64: './screenshots/test.png' }),
+        ScreenshotItem.isSerialized({
+          base64: './screenshots/test.png',
+          capturedAt: 1,
+        }),
       ).toBe(true);
       expect(
-        ScreenshotItem.isSerialized({ base64: 'data:image/png;base64,abc' }),
+        ScreenshotItem.isSerialized({
+          base64: 'data:image/png;base64,abc',
+          capturedAt: 2,
+        }),
       ).toBe(true);
     });
 
@@ -71,6 +88,11 @@ describe('ScreenshotItem', () => {
       expect(ScreenshotItem.isSerialized({ screenshot: 'id' })).toBe(false);
       expect(ScreenshotItem.isSerialized({ $screenshot: 123 })).toBe(false);
       expect(ScreenshotItem.isSerialized({ base64: 123 })).toBe(false);
+      expect(ScreenshotItem.isSerialized({ $screenshot: 'id' })).toBe(false);
+      expect(ScreenshotItem.isSerialized({ base64: 'x' })).toBe(false);
+      expect(
+        ScreenshotItem.isSerialized({ $screenshot: 'id', capturedAt: 'wrong' }),
+      ).toBe(false);
     });
 
     it('should return false for non-object values', () => {
@@ -86,29 +108,39 @@ describe('ScreenshotItem', () => {
     it('should strip data URI prefix from PNG', () => {
       const item = ScreenshotItem.create(
         'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUA',
+        Date.now(),
       );
       expect(item.rawBase64).toBe('iVBORw0KGgoAAAANSUhEUgAAAAUA');
     });
 
     it('should strip data URI prefix from JPEG', () => {
-      const item = ScreenshotItem.create('data:image/jpeg;base64,/9j/4AAQ');
+      const item = ScreenshotItem.create(
+        'data:image/jpeg;base64,/9j/4AAQ',
+        Date.now(),
+      );
       expect(item.rawBase64).toBe('/9j/4AAQ');
     });
 
     it('should strip data URI prefix from JPG', () => {
-      const item = ScreenshotItem.create('data:image/jpg;base64,/9j/4AAQ');
+      const item = ScreenshotItem.create(
+        'data:image/jpg;base64,/9j/4AAQ',
+        Date.now(),
+      );
       expect(item.rawBase64).toBe('/9j/4AAQ');
     });
 
     it('should return unchanged if no prefix', () => {
-      const item = ScreenshotItem.create('iVBORw0KGgoAAAANSUhEUgAAAAUA');
+      const item = ScreenshotItem.create(
+        'iVBORw0KGgoAAAANSUhEUgAAAAUA',
+        Date.now(),
+      );
       expect(item.rawBase64).toBe('iVBORw0KGgoAAAANSUhEUgAAAAUA');
     });
 
     it('should throw when no recovery path available after release', () => {
       // This tests the edge case where a ScreenshotItem is created but
       // memory is released without a valid recovery path (shouldn't happen in practice)
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       // Simulate an invalid state by providing non-existent HTML path
       item.markPersistedInline('/non-existent-path.html');
       // Should throw because the HTML file doesn't exist
@@ -118,16 +150,23 @@ describe('ScreenshotItem', () => {
 
   describe('id and base64', () => {
     it('should have unique id for each instance', () => {
-      const item1 = ScreenshotItem.create(testBase64);
-      const item2 = ScreenshotItem.create(testBase64);
+      const item1 = ScreenshotItem.create(testBase64, Date.now());
+      const item2 = ScreenshotItem.create(testBase64, Date.now());
       expect(item1.id).not.toBe(item2.id);
     });
 
     it('should preserve base64 data through toSerializable', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       const serialized = item.toSerializable();
       expect((serialized as { $screenshot: string }).$screenshot).toBe(item.id);
       expect(item.base64).toBe(testBase64);
+    });
+
+    it('should include capturedAt in serialized format when provided', () => {
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
+      const serialized = item.toSerializable();
+      expect(serialized).toEqual({ $screenshot: item.id, capturedAt });
     });
   });
 
@@ -146,13 +185,14 @@ describe('ScreenshotItem', () => {
     });
 
     it('should have base64 available before persistence', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       expect(item.hasBase64()).toBe(true);
       expect(item.base64).toBe(testBase64);
     });
 
     it('markPersistedInline should release memory and support lazy loading recovery', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
       const id = item.id;
 
       // Create a temporary HTML file with the screenshot data
@@ -167,11 +207,12 @@ describe('ScreenshotItem', () => {
       expect(item.hasBase64()).toBe(false);
       // Should recover from HTML file via lazy loading
       expect(item.base64).toBe(testBase64);
-      expect(item.toSerializable()).toEqual({ $screenshot: id });
+      expect(item.toSerializable()).toEqual({ $screenshot: id, capturedAt });
     });
 
     it('markPersistedToPath should release memory and support lazy loading recovery', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const capturedAt = Date.now();
+      const item = ScreenshotItem.create(testBase64, capturedAt);
       const relativePath = './screenshots/test-id.png';
       const absolutePath = join(tmpDir, 'test-id.png');
 
@@ -184,11 +225,14 @@ describe('ScreenshotItem', () => {
       expect(item.hasBase64()).toBe(false);
       // Should recover from PNG file via lazy loading
       expect(item.base64).toContain('data:image/png;base64,');
-      expect(item.toSerializable()).toEqual({ base64: relativePath });
+      expect(item.toSerializable()).toEqual({
+        base64: relativePath,
+        capturedAt,
+      });
     });
 
     it('toSerializable should return $screenshot format before persistence', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       const serialized = item.toSerializable();
 
       expect(serialized).toHaveProperty('$screenshot');
@@ -196,7 +240,7 @@ describe('ScreenshotItem', () => {
     });
 
     it('should throw when recovery path does not exist (directory mode)', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       item.markPersistedToPath(
         './screenshots/non-existent.png',
         '/non-existent-path.png',
@@ -206,7 +250,7 @@ describe('ScreenshotItem', () => {
     });
 
     it('should throw when recovery HTML does not contain the image (inline mode)', () => {
-      const item = ScreenshotItem.create(testBase64);
+      const item = ScreenshotItem.create(testBase64, Date.now());
       const htmlPath = join(tmpDir, 'empty.html');
       writeFileSync(htmlPath, '<html></html>');
 

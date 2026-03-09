@@ -1,4 +1,4 @@
-import { type WebPageAgentOpt, WebPageContextParser } from '@/web-element';
+import type { WebPageAgentOpt } from '@/web-element';
 import type {
   DeviceAction,
   ElementCacheFeature,
@@ -6,12 +6,7 @@ import type {
   Point,
   Rect,
   Size,
-  UIContext,
 } from '@midscene/core';
-import {
-  AiJudgeOrderSensitive,
-  callAIWithObjectResponse,
-} from '@midscene/core/ai-model';
 import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import {
@@ -19,7 +14,6 @@ import {
   DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY,
   DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
 } from '@midscene/shared/constants';
-import type { IModelConfig } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
 import { treeToList } from '@midscene/shared/extractor';
 import { createImgBase64ByFormat } from '@midscene/shared/img';
@@ -32,26 +26,19 @@ import { assert } from '@midscene/shared/utils';
 import type { Page as PlaywrightPage } from 'playwright';
 import type { CDPSession, Protocol, Page as PuppeteerPage } from 'puppeteer';
 import {
+  type CacheFeatureOptions,
+  type WebElementCacheFeature,
+  buildRectFromElementInfo,
+  judgeOrderSensitive,
+  sanitizeXpaths,
+} from '../common/cache-helper';
+import {
   type KeyInput,
   type MouseButton,
   commonWebActionsForWebPage,
 } from '../web-page';
 
 export const debugPage = getDebug('web:page');
-
-type WebElementCacheFeature = ElementCacheFeature & {
-  xpaths?: string[];
-};
-
-const sanitizeXpaths = (xpaths: unknown): string[] => {
-  if (!Array.isArray(xpaths)) {
-    return [];
-  }
-
-  return xpaths.filter(
-    (xpath): xpath is string => typeof xpath === 'string' && xpath.length > 0,
-  );
-};
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
@@ -124,7 +111,14 @@ export class Page<
     return this.evaluate(script);
   }
 
-  async waitForNavigation() {
+  async waitForNavigation(
+    moment:
+      | 'screenshot'
+      | 'getElementsInfo'
+      | 'getElementsNodeTree'
+      | 'afterInvokeAction',
+    actionName?: string,
+  ) {
     if (this.waitForNavigationTimeout === 0) {
       debugPage('waitForNavigation timeout is 0, skip waiting');
       return;
@@ -135,8 +129,9 @@ export class Page<
       this.interfaceType === 'puppeteer' ||
       this.interfaceType === 'playwright'
     ) {
-      debugPage('waitForNavigation begin');
-      debugPage(`waitForNavigation timeout: ${this.waitForNavigationTimeout}`);
+      debugPage(
+        `waitForNavigation begin at moment ${moment} with timeout: ${this.waitForNavigationTimeout} and actionName: ${actionName}`,
+      );
       try {
         await (this.underlyingPage as PuppeteerPage).waitForSelector('html', {
           timeout: this.waitForNavigationTimeout,
@@ -151,13 +146,19 @@ export class Page<
     }
   }
 
-  async waitForNetworkIdle(): Promise<void> {
+  async waitForNetworkIdle(
+    moment: 'afterInvokeAction',
+    actionName?: string,
+  ): Promise<void> {
     if (this.interfaceType === 'puppeteer') {
       if (this.waitForNetworkIdleTimeout === 0) {
         debugPage('waitForNetworkIdle timeout is 0, skip waiting');
         return;
       }
 
+      debugPage(
+        `waitForNetworkIdle begin at moment ${moment} with timeout: ${this.waitForNetworkIdleTimeout} and concurrency: ${DEFAULT_WAIT_FOR_NETWORK_IDLE_CONCURRENCY} and actionName: ${actionName}`,
+      );
       try {
         await (this.underlyingPage as PuppeteerPage).waitForNetworkIdle({
           idleTime: 200,
@@ -170,6 +171,7 @@ export class Page<
           '[midscene:warning] Waiting for the "network idle" has timed out, but Midscene will continue execution. Please check https://midscenejs.com/faq.html#customize-the-network-timeout for more information on customizing the network timeout',
         );
       }
+      debugPage('waitForNetworkIdle end');
     } else {
       // TODO: implement playwright waitForNetworkIdle
     }
@@ -180,7 +182,7 @@ export class Page<
     // const scripts = await getExtraReturnLogic();
     // const captureElementSnapshot = await this.evaluate(scripts);
     // return captureElementSnapshot as ElementInfo[];
-    await this.waitForNavigation();
+    await this.waitForNavigation('getElementsInfo');
     debugPage('getElementsInfo begin');
     const tree = await this.getElementsNodeTree();
     debugPage('getElementsInfo end');
@@ -205,58 +207,26 @@ export class Page<
 
   async cacheFeatureForPoint(
     center: [number, number],
-    options?: {
-      targetDescription?: string;
-      modelConfig?: IModelConfig;
-    },
+    options?: CacheFeatureOptions,
   ): Promise<ElementCacheFeature> {
-    const point: Point = {
-      left: center[0],
-      top: center[1],
-    };
+    const point: Point = { left: center[0], top: center[1] };
 
     try {
-      // Determine isOrderSensitive
-      let isOrderSensitive = false;
-      if (options?.targetDescription && options?.modelConfig) {
-        try {
-          const judgeResult = await AiJudgeOrderSensitive(
-            options.targetDescription,
-            callAIWithObjectResponse,
-            options.modelConfig,
-          );
-          isOrderSensitive = judgeResult.isOrderSensitive;
-          debugPage(
-            'judged isOrderSensitive=%s for description: %s',
-            isOrderSensitive,
-            options.targetDescription,
-          );
-        } catch (error) {
-          debugPage('Failed to judge isOrderSensitive: %s', error);
-          // Fall back to false on error
-        }
-      }
-
+      const isOrderSensitive = await judgeOrderSensitive(options, debugPage);
       const xpaths = await this.getXpathsByPoint(point, isOrderSensitive);
       const sanitized = sanitizeXpaths(xpaths);
       if (!sanitized.length) {
         debugPage('cacheFeatureForPoint: no xpath found at point %o', center);
       }
-      return {
-        xpaths: sanitized,
-      };
+      return { xpaths: sanitized };
     } catch (error) {
       debugPage('cacheFeatureForPoint failed: %s', error);
-      return {
-        xpaths: [],
-      };
+      return { xpaths: [] };
     }
   }
 
   async rectMatchesCacheFeature(feature: ElementCacheFeature): Promise<Rect> {
-    const webFeature = feature as WebElementCacheFeature;
-    const xpaths = sanitizeXpaths(webFeature.xpaths);
-
+    const xpaths = sanitizeXpaths((feature as WebElementCacheFeature).xpaths);
     debugPage('rectMatchesCacheFeature: trying %d xpath(s)', xpaths.length);
 
     for (const xpath of xpaths) {
@@ -268,18 +238,7 @@ export class Page<
             'rectMatchesCacheFeature: found element, rect: %o',
             elementInfo.rect,
           );
-          const matchedRect: Rect = {
-            left: elementInfo.rect.left,
-            top: elementInfo.rect.top,
-            width: elementInfo.rect.width,
-            height: elementInfo.rect.height,
-          };
-
-          if (this.viewportSize?.dpr) {
-            matchedRect.dpr = this.viewportSize.dpr;
-          }
-
-          return matchedRect;
+          return buildRectFromElementInfo(elementInfo);
         }
         debugPage(
           'rectMatchesCacheFeature: element found but no rect (elementInfo: %o)',
@@ -303,7 +262,7 @@ export class Page<
     // ref: packages/web-integration/src/playwright/ai-fixture.ts popup logic
     // During test execution, a new page might be opened through a connection, and the page remains confined to the same page instance.
     // The page may go through opening, closing, and reopening; if the page is closed, evaluate may return undefined, which can lead to errors.
-    await this.waitForNavigation();
+    await this.waitForNavigation('getElementsNodeTree');
     const scripts = await getExtraReturnLogic(true);
     assert(scripts, 'scripts should be set before writing report in browser');
     const startTime = Date.now();
@@ -317,9 +276,8 @@ export class Page<
     if (this.viewportSize) return this.viewportSize;
     const sizeInfo: Size = await this.evaluate(() => {
       return {
-        width: document.documentElement.clientWidth,
-        height: document.documentElement.clientHeight,
-        dpr: window.devicePixelRatio,
+        width: window.innerWidth,
+        height: window.innerHeight,
       };
     });
     this.viewportSize = sizeInfo;
@@ -329,7 +287,6 @@ export class Page<
   async screenshotBase64(): Promise<string> {
     const imgType = 'jpeg';
     const quality = 90;
-    await this.waitForNavigation();
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
@@ -606,8 +563,11 @@ export class Page<
   }
 
   async afterInvokeAction(name: string, param: any): Promise<void> {
-    await this.waitForNavigation();
-    await this.waitForNetworkIdle();
+    await Promise.all([
+      this.waitForNavigation('afterInvokeAction', name),
+      this.waitForNetworkIdle('afterInvokeAction', name),
+    ]);
+
     if (this.onAfterInvokeAction) {
       await this.onAfterInvokeAction(name, param);
     }
@@ -615,9 +575,6 @@ export class Page<
 
   async destroy(): Promise<void> {}
 
-  async getContext(): Promise<UIContext> {
-    return await WebPageContextParser(this, {});
-  }
   async swipe(
     from: { x: number; y: number },
     to: { x: number; y: number },
@@ -848,15 +805,14 @@ select {
   const injectStyle = async () => {
     try {
       await (page as PuppeteerPage & PlaywrightPage).evaluate(
-        (id, content) => {
+        ({ id, content }: { id: string; content: string }) => {
           if (document.getElementById(id)) return;
           const style = document.createElement('style');
           style.id = id;
           style.textContent = content;
           document.head.appendChild(style);
         },
-        styleId,
-        styleContent,
+        { id: styleId, content: styleContent },
       );
       debugPage(
         'Midscene - Added base-select appearance style for select elements because of forceChromeSelectRendering is enabled',

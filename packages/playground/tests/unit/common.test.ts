@@ -180,11 +180,95 @@ describe('common utilities', () => {
       expect(mockCallAction).toHaveBeenCalledWith('testAction', {
         locate: {
           prompt: 'test prompt',
-          deepThink: false,
+          deepLocate: false,
           cacheable: true,
           xpath: undefined,
         },
       });
+    });
+
+    it('should warn for non-aiAct deepThink without mutating params', async () => {
+      // NOTE: This test documents intentional migration-period behavior.
+      // deepThink in non-aiAct options triggers a warning but is NOT stripped,
+      // because executeAction is a low-level utility that should not silently
+      // mutate caller-provided options. The filtering responsibility belongs to
+      // upstream callers (playground/report layer) before reaching this point.
+      // TODO: Remove this test and the corresponding warning once migration is complete.
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const activeAgent: PlaygroundAgent = {
+        callActionInActionSpace: mockCallAction,
+      };
+
+      const action: DeviceAction<unknown> = {
+        name: 'Tap',
+        interfaceAlias: 'aiTap',
+        description: 'Tap action',
+        call: vi.fn(),
+      };
+
+      const value: FormValue = {
+        type: 'aiTap',
+        prompt: 'tap login button',
+      };
+
+      await executeAction(activeAgent, 'aiTap', [action], value, {
+        deepLocate: false,
+        deepThink: true,
+        requestId: 'req-1',
+      });
+
+      const actionParams = mockCallAction.mock.calls[0][1];
+      expect(actionParams.deepThink).toBe(true);
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+        {
+          actionType: 'aiTap',
+          options: {
+            deepLocate: false,
+            deepThink: true,
+            requestId: 'req-1',
+          },
+          requestId: 'req-1',
+        },
+      );
+
+      warnSpy.mockRestore();
+    });
+
+    it('should keep deepThink for aiAct action without warning', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const mockCallAction = vi.fn().mockResolvedValue('action result');
+      const activeAgent: PlaygroundAgent = {
+        callActionInActionSpace: mockCallAction,
+      };
+
+      const action: DeviceAction<unknown> = {
+        name: 'aiAction',
+        interfaceAlias: 'aiAct',
+        description: 'Plan action',
+        call: vi.fn(),
+      };
+
+      const value: FormValue = {
+        type: 'aiAct',
+        prompt: 'do something',
+      };
+
+      await executeAction(activeAgent, 'aiAct', [action], value, {
+        deepLocate: false,
+        deepThink: true,
+        requestId: 'req-2',
+      });
+
+      const actionParams = mockCallAction.mock.calls[0][1];
+      expect(actionParams.deepThink).toBe(true);
+      expect(warnSpy).not.toHaveBeenCalledWith(
+        '[Playground] Received deepThink in non-aiAct action options. deepThink is expected to be used with aiAct during migration.',
+        expect.anything(),
+      );
+
+      warnSpy.mockRestore();
     });
 
     it('should handle aiAssert action specially', async () => {
@@ -285,7 +369,7 @@ describe('common utilities', () => {
       expect(mockCallAction).toHaveBeenCalledWith('realName', {
         locate: {
           prompt: 'test prompt',
-          deepThink: false,
+          deepLocate: false,
           cacheable: true,
           xpath: undefined,
         },

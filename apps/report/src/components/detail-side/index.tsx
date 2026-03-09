@@ -245,6 +245,61 @@ const DetailSide = (): JSX.Element => {
   const aiActContextValue = (task as ExecutionTaskPlanningApply)?.param
     ?.aiActContext;
 
+  const formatStageCostLine = (
+    label: string,
+    start?: number,
+    end?: number,
+  ): string | null => {
+    if (typeof start !== 'number' || typeof end !== 'number') {
+      return null;
+    }
+
+    const cost = Math.max(0, end - start);
+    return `${label} +${cost}ms`;
+  };
+
+  const buildStageTimingLine = (
+    label: string,
+    start?: number,
+    end?: number,
+  ): string[] => {
+    const line = formatStageCostLine(label, start, end);
+    return line ? [line] : [];
+  };
+
+  const timingDetailLines = [
+    ...buildStageTimingLine(
+      'getUiContext',
+      task?.timing?.getUiContextStart,
+      task?.timing?.getUiContextEnd,
+    ),
+    ...buildStageTimingLine(
+      'callAi',
+      task?.timing?.callAiStart,
+      task?.timing?.callAiEnd,
+    ),
+    ...buildStageTimingLine(
+      'call beforeInvokeAction',
+      task?.timing?.beforeInvokeActionHookStart,
+      task?.timing?.beforeInvokeActionHookEnd,
+    ),
+    ...buildStageTimingLine(
+      'call action',
+      task?.timing?.callActionStart,
+      task?.timing?.callActionEnd,
+    ),
+    ...buildStageTimingLine(
+      'call afterInvokeAction',
+      task?.timing?.afterInvokeActionHookStart,
+      task?.timing?.afterInvokeActionHookEnd,
+    ),
+    ...buildStageTimingLine(
+      'capture after-calling snapshot',
+      task?.timing?.captureAfterCallingSnapshotStart,
+      task?.timing?.captureAfterCallingSnapshotEnd,
+    ),
+  ];
+
   // Helper functions for rendering element items
   const elementEl = renderElementDetailBox;
 
@@ -323,6 +378,20 @@ const DetailSide = (): JSX.Element => {
         key: 'start',
         content: fullTimeStrWithMilliseconds(task?.timing?.start),
       },
+      ...(timingDetailLines.length > 0
+        ? [
+            {
+              key: 'timing detail',
+              content: (
+                <div className="description-content">
+                  {timingDetailLines.map((line, index) => (
+                    <div key={index}>{line}</div>
+                  ))}
+                </div>
+              ),
+            },
+          ]
+        : []),
       {
         key: 'end',
         content: fullTimeStrWithMilliseconds(task?.timing?.end),
@@ -883,7 +952,7 @@ const DetailSide = (): JSX.Element => {
         }
       });
 
-      // Add output message if exists (from complete-goal)
+      // Add output message if exists (from <complete> tag)
       const outputMessage = (task as ExecutionTaskPlanning).output?.output;
       if (outputMessage) {
         planItems.push(

@@ -298,6 +298,51 @@ export function generateImageScriptTag(id: string, data: string): string {
   );
 }
 
+/**
+ * Inline script that fixes relative URL resolution for directory-mode reports.
+ *
+ * Problem: when a static server (e.g. `npx serve`) serves `name/index.html`
+ * at URL `/name` (without trailing slash), relative paths like
+ * `./screenshots/xxx.png` resolve to `/screenshots/xxx.png` instead of
+ * `/name/screenshots/xxx.png`.
+ *
+ * Fix: dynamically insert a <base> tag so relative URLs resolve correctly.
+ */
+// Do not use template string here, will cause bundle error with <script
+//
+// The closing </script> tag is built at runtime via scriptClose() so that no
+// bundler (rslib, webpack, rsbuild) can ever see or inline a literal
+// '</script>' into JS source.  A literal '</script>' inside a <script> block
+// causes the HTML parser to prematurely close the block — which breaks the
+// report viewer when this module is bundled into the report HTML template.
+//
+// Do NOT replace this with a string constant, hex escape (\x3c), or simple
+// concatenation — bundlers will optimise / inline them and re-introduce the
+// literal '</script>'.
+let _baseUrlFixScript: string;
+export function getBaseUrlFixScript(): string {
+  if (!_baseUrlFixScript) {
+    // Closing </script> MUST be split so that no bundler (rslib / webpack /
+    // terser) can ever produce a literal '</script>' in bundle output.
+    // A literal '</script>' inside a <script> block causes the HTML parser
+    // to prematurely close the block, which breaks the report viewer when
+    // this module is bundled into the report template.
+    const close = '</' + 'script>';
+    _baseUrlFixScript =
+      // biome-ignore lint/style/useTemplate: see above
+      '\n<script>(function(){' +
+      'var p=window.location.pathname;' +
+      'if(p.endsWith("/")||/\\.\\w+$/.test(p))return;' +
+      'var b=document.createElement("base");' +
+      'b.href=p+"/";' +
+      'document.head.insertBefore(b,document.head.firstChild)' +
+      '})()' +
+      close +
+      '\n';
+  }
+  return _baseUrlFixScript;
+}
+
 export function generateDumpScriptTag(
   json: string,
   attributes?: Record<string, string>,

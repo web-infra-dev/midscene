@@ -10,3 +10,5 @@ export {
   getConnectedDisplays,
   checkAccessibilityPermission,
 } from './utils';
+
+export { checkXvfbInstalled, needsXvfb } from './xvfb';

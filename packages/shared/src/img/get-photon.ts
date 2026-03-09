@@ -45,17 +45,11 @@ export default async function getPhoton(): Promise<{
         await photon.default();
       }
       debug('Photon loaded: @silvia-odwyer/photon (browser/worker)');
-      console.log(
-        '[midscene:img] Photon loaded: @silvia-odwyer/photon (browser/worker)',
-      );
       photonModule = photon;
     } else if (ifInNode) {
       // Node.js environment: use @silvia-odwyer/photon-node
       photonModule = await import('@silvia-odwyer/photon-node');
       debug('Photon loaded: @silvia-odwyer/photon-node (node)');
-      console.log(
-        '[midscene:img] Photon loaded: @silvia-odwyer/photon-node (node)',
-      );
     }
 
     // verify that the critical functions exist (only for Photon, not Canvas fallback)

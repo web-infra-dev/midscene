@@ -47,7 +47,7 @@ describe('RemoteExecutionAdapter', () => {
         call: vi.fn(),
       };
       const params = { prompt: 'test prompt' };
-      const options: ExecutionOptions = { deepThink: true };
+      const options: ExecutionOptions = { deepLocate: true };
 
       const result = await adapter.parseStructuredParams(
         action,
@@ -70,7 +70,7 @@ describe('RemoteExecutionAdapter', () => {
         empty: '',
         prompt: 'test prompt',
       };
-      const options: ExecutionOptions = { deepThink: true };
+      const options: ExecutionOptions = { deepLocate: true };
 
       const result = await adapter.parseStructuredParams(
         action,
@@ -80,7 +80,7 @@ describe('RemoteExecutionAdapter', () => {
 
       expect(result).toEqual([
         {
-          deepThink: true,
+          deepLocate: true,
           field: 'value',
         },
       ]);
@@ -126,7 +126,7 @@ describe('RemoteExecutionAdapter', () => {
         params: { target: 'button' },
       };
       const options: ExecutionOptions = {
-        deepThink: true,
+        deepLocate: true,
         requestId: 'req-123',
       };
 
@@ -141,7 +141,7 @@ describe('RemoteExecutionAdapter', () => {
           type: 'click',
           prompt: 'click button',
           requestId: 'req-123',
-          deepThink: true,
+          deepLocate: true,
           params: { target: 'button' },
         }),
       });

@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import Service from './service/index';
-import { MidsceneAbortedError, TaskRunner } from './task-runner';
+import { TaskRunner } from './task-runner';
 import { getVersion } from './utils';
 
 export {
   plan,
   AiLocateElement,
   getMidsceneLocationSchema,
-  type MidsceneLocationResultType,
   PointSchema,
   SizeSchema,
   RectSchema,
@@ -34,7 +33,7 @@ export {
 export { z };
 
 export default Service;
-export { MidsceneAbortedError, TaskRunner, Service, getVersion };
+export { TaskRunner, Service, getVersion };
 
 export type {
   MidsceneYamlScript,

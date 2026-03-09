@@ -63,7 +63,7 @@ export async function autoGLMPlanning(
 
     const parsedAction = parseAction(parsedResponse);
     debug('Parsed action object:', parsedAction);
-    transformedActions = transformAutoGLMAction(parsedAction, context.size);
+    transformedActions = transformAutoGLMAction(parsedAction, context.shotSize);
     debug('Transformed actions:', transformedActions);
   } catch (parseError) {
     // Throw AIResponseParseError with usage and rawResponse preserved
