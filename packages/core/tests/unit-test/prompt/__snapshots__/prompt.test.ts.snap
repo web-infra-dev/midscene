@@ -323,6 +323,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -333,6 +349,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
@@ -599,6 +631,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: { prompt: string /* description of the target element */ } // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field"
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -609,6 +651,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: { prompt: string /* description of the target element */ } // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area"
+      }
+    }
+    </action-param-json>
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
@@ -860,6 +912,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -870,6 +938,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
@@ -1192,6 +1276,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: { prompt: string /* description of the target element */ } // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field"
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -1202,6 +1296,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: { prompt: string /* description of the target element */ } // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area"
+      }
+    }
+    </action-param-json>
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
@@ -1511,6 +1615,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -1521,6 +1641,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:
@@ -1787,6 +1923,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: { prompt: string /* description of the target element */ } // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field"
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -1797,6 +1943,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: { prompt: string /* description of the target element */ } // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area"
+      }
+    }
+    </action-param-json>
 - DragAndDrop, Drag an element to another position
   - type: "DragAndDrop"
   - param:

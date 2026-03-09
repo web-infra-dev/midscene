@@ -27,6 +27,10 @@ export const mockActionSpace: DeviceAction<any>[] = [
         .optional()
         .describe('The input field to target'),
     }),
+    sample: {
+      value: 'test@example.com',
+      locate: { prompt: 'the email input field' },
+    },
     call: async () => {},
   },
   {
@@ -49,6 +53,10 @@ export const mockActionSpace: DeviceAction<any>[] = [
         .optional()
         .describe('The element to scroll'),
     }),
+    sample: {
+      value: 'down',
+      locate: { prompt: 'the product list area' },
+    },
     call: async () => {},
   },
   {
