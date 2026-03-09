@@ -67,6 +67,7 @@ interface TaskBuilderDeps {
 interface BuildOptions {
   cacheable?: boolean;
   deepLocate?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 interface PlanBuildContext {
@@ -75,6 +76,7 @@ interface PlanBuildContext {
   modelConfigForDefaultIntent: IModelConfig;
   cacheable?: boolean;
   deepLocate?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 export class TaskBuilder {
@@ -117,6 +119,7 @@ export class TaskBuilder {
       modelConfigForDefaultIntent,
       cacheable,
       deepLocate: options?.deepLocate,
+      abortSignal: options?.abortSignal,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -347,7 +350,8 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, modelConfigForDefaultIntent, deepLocate } = context;
+    const { cacheable, modelConfigForDefaultIntent, deepLocate, abortSignal } =
+      context;
 
     let locateParam = detailedLocateParam;
 
@@ -497,6 +501,7 @@ export class TaskBuilder {
                 context: uiContext,
               },
               modelConfigForDefaultIntent,
+              abortSignal,
             );
             applyDump(locateResult.dump);
             elementFromAiLocate = locateResult.element;
