@@ -4,6 +4,7 @@ import type {
   InterfaceType,
   PlanningAIResponse,
   RawResponsePlanningAIResponse,
+  SubGoal,
   UIContext,
 } from '@/types';
 import type { IModelConfig, TModelFamily } from '@midscene/shared/env';
@@ -19,11 +20,6 @@ import {
 import type { ConversationHistory } from './conversation-history';
 import { systemPromptToTaskPlanning } from './prompt/llm-planning';
 import {
-  extractXMLTag,
-  parseMarkFinishedIndexes,
-  parseSubGoalsFromXML,
-} from './prompt/util';
-import {
   AIResponseParseError,
   callAI,
   safeParseJson,
@@ -33,60 +29,174 @@ const debug = getDebug('planning');
 const warnLog = getDebug('planning', { console: true });
 
 /**
- * Parse XML response from LLM and convert to RawResponsePlanningAIResponse
+ * Build the JSON Schema for the planning response format.
+ * Used with OpenAI's response_format: { type: "json_schema" }
  */
-export function parseXMLPlanningResponse(
-  xmlString: string,
-  modelFamily: TModelFamily | undefined,
-): RawResponsePlanningAIResponse {
-  const thought = extractXMLTag(xmlString, 'thought');
-  const memory = extractXMLTag(xmlString, 'memory');
-  const log = extractXMLTag(xmlString, 'log') || '';
-  const error = extractXMLTag(xmlString, 'error');
-  const actionType = extractXMLTag(xmlString, 'action-type');
-  const actionParamStr = extractXMLTag(xmlString, 'action-param-json');
+export function buildPlanningResponseSchema(includeSubGoals: boolean): {
+  type: 'json_schema';
+  json_schema: {
+    name: string;
+    strict: boolean;
+    schema: Record<string, unknown>;
+  };
+} {
+  const properties: Record<string, unknown> = {
+    thought: {
+      type: 'string',
+      description: 'Your thought process about the current state and next action',
+    },
+    log: {
+      type: ['string', 'null'],
+      description: 'A brief preamble message to the user explaining what you are about to do',
+    },
+    error: {
+      type: ['string', 'null'],
+      description: 'Error message if there is an error',
+    },
+    action_type: {
+      type: ['string', 'null'],
+      description: 'The action type to execute, must be one of the supporting actions',
+    },
+    action_param: {
+      description: 'The parameters for the action',
+      anyOf: [{ type: 'object' }, { type: 'null' }],
+    },
+    complete: {
+      description: 'Set when the task is completed or failed',
+      anyOf: [
+        {
+          type: 'object',
+          properties: {
+            success: {
+              type: 'boolean',
+              description: 'Whether the task was completed successfully',
+            },
+            message: {
+              type: 'string',
+              description: 'Message to provide to the user',
+            },
+          },
+          required: ['success', 'message'],
+          additionalProperties: false,
+        },
+        { type: 'null' },
+      ],
+    },
+  };
 
-  // Parse <complete> tag with success attribute
-  const completeGoalRegex =
-    /<complete\s+success="(true|false)">([\s\S]*?)<\/complete>/i;
-  const completeGoalMatch = xmlString.match(completeGoalRegex);
-  let finalizeMessage: string | undefined;
-  let finalizeSuccess: boolean | undefined;
+  const required = ['thought', 'log', 'error', 'action_type', 'action_param', 'complete'];
 
-  if (completeGoalMatch) {
-    finalizeSuccess = completeGoalMatch[1] === 'true';
-    finalizeMessage = completeGoalMatch[2]?.trim() || undefined;
+  if (includeSubGoals) {
+    properties.update_sub_goals = {
+      description: 'Sub-goals to create or update',
+      anyOf: [
+        {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              index: { type: 'integer', description: 'Sub-goal index (1-based)' },
+              status: {
+                type: 'string',
+                enum: ['pending', 'finished'],
+                description: 'Status of the sub-goal',
+              },
+              description: { type: 'string', description: 'Description of the sub-goal' },
+            },
+            required: ['index', 'status', 'description'],
+            additionalProperties: false,
+          },
+        },
+        { type: 'null' },
+      ],
+    };
+    properties.mark_finished_indexes = {
+      description: 'Indexes of sub-goals to mark as finished',
+      anyOf: [
+        {
+          type: 'array',
+          items: { type: 'integer' },
+        },
+        { type: 'null' },
+      ],
+    };
+    properties.memory = {
+      type: ['string', 'null'],
+      description: 'Information to remember from the current screenshot for future steps',
+    };
+    required.push('update_sub_goals', 'mark_finished_indexes', 'memory');
   }
 
-  // Parse sub-goal related tags
-  const updatePlanContent = extractXMLTag(xmlString, 'update-plan-content');
-  const markSubGoalDone = extractXMLTag(xmlString, 'mark-sub-goal-done');
+  return {
+    type: 'json_schema',
+    json_schema: {
+      name: 'planning_response',
+      strict: false,
+      schema: {
+        type: 'object',
+        properties,
+        required,
+        additionalProperties: false,
+      },
+    },
+  };
+}
 
-  const updateSubGoals = updatePlanContent
-    ? parseSubGoalsFromXML(updatePlanContent)
+/**
+ * Parse JSON response from LLM and convert to RawResponsePlanningAIResponse
+ */
+export function parseJSONPlanningResponse(
+  jsonString: string,
+  modelFamily: TModelFamily | undefined,
+): RawResponsePlanningAIResponse {
+  let parsed: any;
+  try {
+    parsed = safeParseJson(jsonString, modelFamily);
+  } catch (e) {
+    throw new Error(`Failed to parse planning JSON response: ${e}`);
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Planning response is not a valid JSON object');
+  }
+
+  const thought = parsed.thought || undefined;
+  const memory = parsed.memory || undefined;
+  const log = parsed.log || '';
+  const error = parsed.error || undefined;
+
+  // Parse complete field
+  let finalizeMessage: string | undefined;
+  let finalizeSuccess: boolean | undefined;
+  if (parsed.complete && typeof parsed.complete === 'object') {
+    finalizeSuccess = parsed.complete.success === true || parsed.complete.success === 'true'
+      ? true
+      : parsed.complete.success === false || parsed.complete.success === 'false'
+        ? false
+        : undefined;
+    finalizeMessage = parsed.complete.message?.trim() || undefined;
+  }
+
+  // Parse sub-goal related fields
+  const updateSubGoals: SubGoal[] | undefined = parsed.update_sub_goals?.length
+    ? parsed.update_sub_goals.map((sg: any) => ({
+        index: sg.index,
+        status: sg.status as 'pending' | 'finished',
+        description: sg.description,
+      }))
     : undefined;
-  const markFinishedIndexes = markSubGoalDone
-    ? parseMarkFinishedIndexes(markSubGoalDone)
+
+  const markFinishedIndexes: number[] | undefined = parsed.mark_finished_indexes?.length
+    ? parsed.mark_finished_indexes
     : undefined;
 
   // Parse action
   let action: any = null;
-  if (actionType && actionType.toLowerCase() !== 'null') {
-    const type = actionType.trim();
-    let param: any = undefined;
-
-    if (actionParamStr) {
-      try {
-        // Parse the JSON string in action-param-json
-        param = safeParseJson(actionParamStr, modelFamily);
-      } catch (e) {
-        throw new Error(`Failed to parse action-param-json: ${e}`);
-      }
-    }
-
+  if (parsed.action_type && parsed.action_type !== 'null') {
+    const type = String(parsed.action_type).trim();
     action = {
       type,
-      ...(param !== undefined ? { param } : {}),
+      ...(parsed.action_param != null ? { param: parsed.action_param } : {}),
     };
   }
 
@@ -228,32 +338,48 @@ export async function plan(
     ...historyLog,
   ];
 
+  // Build JSON schema for response format
+  // Some model families (doubao-seed, doubao-vision, qwen2.5-vl, glm-v, auto-glm) don't support json_schema response format
+  const modelFamiliesWithoutJsonSchema: (string | undefined)[] = [
+    'doubao-seed',
+    'doubao-vision',
+    'qwen2.5-vl',
+    'glm-v',
+    'auto-glm',
+  ];
+  const supportsJsonSchema = !modelFamiliesWithoutJsonSchema.includes(modelFamily);
+  const responseFormat = supportsJsonSchema
+    ? buildPlanningResponseSchema(includeSubGoals)
+    : undefined;
+
   let {
     content: rawResponse,
     usage,
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+    response_format: responseFormat,
   });
 
-  // Parse XML response to JSON object, retry once on parse failure
+  // Parse JSON response, retry once on parse failure
   let planFromAI: RawResponsePlanningAIResponse;
   try {
     try {
-      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+      planFromAI = parseJSONPlanningResponse(rawResponse, modelFamily);
     } catch {
       const retry = await callAI(msgs, modelConfig, {
         deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+        response_format: responseFormat,
       });
       rawResponse = retry.content;
       usage = retry.usage;
       reasoning_content = retry.reasoning_content;
-      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+      planFromAI = parseJSONPlanningResponse(rawResponse, modelFamily);
     }
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
       warnLog(
-        'Planning response included both an action and <complete>; ignoring <complete> output.',
+        'Planning response included both an action and "complete"; ignoring "complete" output.',
       );
       planFromAI.finalizeMessage = undefined;
       planFromAI.finalizeSuccess = undefined;
@@ -262,9 +388,9 @@ export async function plan(
     const actions = planFromAI.action ? [planFromAI.action] : [];
     let shouldContinuePlanning = true;
 
-    // Check if task is completed via <complete> tag
+    // Check if task is completed via "complete" field
     if (planFromAI.finalizeSuccess !== undefined) {
-      debug('task completed via <complete> tag, stop planning');
+      debug('task completed via "complete" field, stop planning');
       shouldContinuePlanning = false;
       // Mark all sub-goals as finished when goal is completed (only when deepThink is enabled)
       if (includeSubGoals) {
@@ -353,7 +479,7 @@ export async function plan(
     const errorMessage =
       parseError instanceof Error ? parseError.message : String(parseError);
     throw new AIResponseParseError(
-      `XML parse error: ${errorMessage}`,
+      `JSON parse error: ${errorMessage}`,
       rawResponse,
       usage,
     );

@@ -267,7 +267,7 @@ I should identify the button first.</think>
       const thought = extractXMLTag(xml, 'thought');
       expect(thought).toBe('Task completed');
       // Note: complete has attributes, so extractXMLTag won't match it directly
-      // This is handled separately in parseXMLPlanningResponse
+      // This was previously handled separately in the XML planning parser
     });
   });
 });

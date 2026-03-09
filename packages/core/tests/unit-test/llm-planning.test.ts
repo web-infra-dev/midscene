@@ -1,4 +1,4 @@
-import { parseXMLPlanningResponse } from '@/ai-model/llm-planning';
+import { parseJSONPlanningResponse } from '@/ai-model/llm-planning';
 import { descriptionForAction } from '@/ai-model/prompt/llm-planning';
 import {
   parseMarkFinishedIndexes,
@@ -615,26 +615,25 @@ describe('llm planning - descriptionForAction with ZodEffects and ZodUnion', () 
   });
 });
 
-describe('parseXMLPlanningResponse', () => {
-  it('should parse complete XML response with all fields', () => {
+describe('parseJSONPlanningResponse', () => {
+  it('should parse complete JSON response with all fields', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>I need to click the login button</thought>
-<memory>User credentials are already filled</memory>
-<log>Click the login button</log>
-<error></error>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": {
-    "prompt": "The login button",
-    "bbox": [100, 200, 300, 400]
-  }
-}
-</action-param-json>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'I need to click the login button',
+      memory: 'User credentials are already filled',
+      log: 'Click the login button',
+      error: null,
+      action_type: 'Tap',
+      action_param: {
+        locate: {
+          prompt: 'The login button',
+          bbox: [100, 200, 300, 400],
+        },
+      },
+      complete: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
       thought: 'I need to click the login button',
@@ -652,23 +651,25 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse XML response with only required fields', () => {
+  it('should parse JSON response with only required fields', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Performing action</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": {
-    "prompt": "Button"
-  }
-}
-</action-param-json>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Performing action',
+      log: 'Performing action',
+      action_type: 'Tap',
+      action_param: {
+        locate: {
+          prompt: 'Button',
+        },
+      },
+      complete: null,
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
+      thought: 'Performing action',
       log: 'Performing action',
       action: {
         type: 'Tap',
@@ -681,51 +682,61 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse XML response with null action', () => {
+  it('should parse JSON response with null action', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Task completed</log>
-<action-type>null</action-type>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Task completed',
+      log: 'Task completed',
+      action_type: null,
+      action_param: null,
+      complete: null,
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
+      thought: 'Task completed',
       log: 'Task completed',
       action: null,
     });
   });
 
-  it('should parse XML response without action-type', () => {
+  it('should parse JSON response without action_type', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Just logging</log>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Just logging',
+      log: 'Just logging',
+      complete: null,
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
+      thought: 'Just logging',
       log: 'Just logging',
       action: null,
     });
   });
 
-  it('should parse XML response with error field', () => {
+  it('should parse JSON response with error field', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Attempting to recover</log>
-<error>Previous action failed</error>
-<action-type>Scroll</action-type>
-<action-param-json>
-{
-  "direction": "down"
-}
-</action-param-json>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Something went wrong',
+      log: 'Attempting to recover',
+      error: 'Previous action failed',
+      action_type: 'Scroll',
+      action_param: {
+        direction: 'down',
+      },
+      complete: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
+      thought: 'Something went wrong',
       log: 'Attempting to recover',
       error: 'Previous action failed',
       action: {
@@ -739,14 +750,19 @@ describe('parseXMLPlanningResponse', () => {
 
   it('should parse action without param', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Waiting</log>
-<action-type>Wait</action-type>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Need to wait',
+      log: 'Waiting',
+      action_type: 'Wait',
+      action_param: null,
+      complete: null,
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
+      thought: 'Need to wait',
       log: 'Waiting',
       action: {
         type: 'Wait',
@@ -754,42 +770,43 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should handle multiline content in tags', () => {
+  it('should handle multiline content in fields', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>
-  This is a complex thought
-  spanning multiple lines
-</thought>
-<log>Executing complex action</log>
-<action-type>Input</action-type>
-<action-param-json>
-{
-  "value": "test value",
-  "locate": {
-    "prompt": "input field"
-  }
-}
-</action-param-json>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'This is a complex thought\nspanning multiple lines',
+      log: 'Executing complex action',
+      action_type: 'Input',
+      action_param: {
+        value: 'test value',
+        locate: {
+          prompt: 'input field',
+        },
+      },
+      complete: null,
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result.thought).toBe(
-      'This is a complex thought\n  spanning multiple lines',
+      'This is a complex thought\nspanning multiple lines',
     );
     expect(result.log).toBe('Executing complex action');
     expect(result.action?.type).toBe('Input');
   });
 
-  it('should not throw error when log field is missing and no action', () => {
+  it('should parse complete with success=true and message', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Some thought</thought>
-<complete success="true">Task completed</complete>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Some thought',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: { success: true, message: 'Task completed' },
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
     expect(result).toEqual({
       thought: 'Some thought',
       log: '',
@@ -799,91 +816,31 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should throw error when action-param-json is invalid JSON', () => {
+  it('should throw error when response is not a valid object', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Action</log>
-<action-type>Tap</action-type>
-<action-param-json>
-{invalid json}
-</action-param-json>
-    `.trim();
+    const invalidJson = '"just a string"';
 
-    expect(() => parseXMLPlanningResponse(xml, modelFamily)).toThrow(
-      'Failed to parse action-param-json',
+    expect(() => parseJSONPlanningResponse(invalidJson, modelFamily)).toThrow(
+      'Planning response is not a valid JSON object',
     );
   });
 
-  it('should handle case-insensitive tag matching', () => {
+  it('should parse complete with success=true and product names', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<LOG>Case insensitive log</LOG>
-<ACTION-TYPE>Tap</ACTION-TYPE>
-    `.trim();
-
-    const result = parseXMLPlanningResponse(xml, modelFamily);
-
-    expect(result.log).toBe('Case insensitive log');
-    expect(result.action?.type).toBe('Tap');
-  });
-
-  it('should parse half-open action-type tag without closing tag', () => {
-    const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>The Priority input field is active now.</thought>
-<log>Type "1000" into the Priority input field</log>
-<action-type>Input
-<action-param-json>
-{
-  "value": "1000"
-}
-</action-param-json>
-    `.trim();
-
-    const result = parseXMLPlanningResponse(xml, modelFamily);
-
-    expect(result).toEqual({
-      thought: 'The Priority input field is active now.',
-      log: 'Type "1000" into the Priority input field',
-      action: {
-        type: 'Input',
-        param: {
-          value: '1000',
-        },
+    const json = JSON.stringify({
+      thought: 'Task completed successfully',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: {
+        success: true,
+        message:
+          "The product names are: 'Product A', 'Product B', 'Product C'",
       },
+      error: null,
     });
-  });
 
-  it('should parse XML with special characters in content', () => {
-    const modelFamily = 'doubao-vision';
-    const xml = `
-<log>Click "Submit" button</log>
-<memory>Values: <100 & >50</memory>
-<action-type>Tap</action-type>
-<action-param-json>
-{
-  "locate": {
-    "prompt": "Button with & symbol"
-  }
-}
-</action-param-json>
-    `.trim();
-
-    const result = parseXMLPlanningResponse(xml, modelFamily);
-
-    expect(result.log).toBe('Click "Submit" button');
-    expect(result.memory).toBe('Values: <100 & >50');
-    expect(result.action?.param.locate.prompt).toBe('Button with & symbol');
-  });
-
-  it('should parse complete tag with success=true and message', () => {
-    const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Task completed successfully</thought>
-<complete success="true">The product names are: 'Product A', 'Product B', 'Product C'</complete>
-    `.trim();
-
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
       thought: 'Task completed successfully',
@@ -895,14 +852,21 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse complete tag with success=false and error message', () => {
+  it('should parse complete with success=false and error message', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Task failed</thought>
-<complete success="false">Unable to find the required element on the page</complete>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Task failed',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: {
+        success: false,
+        message: 'Unable to find the required element on the page',
+      },
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
       thought: 'Task failed',
@@ -913,14 +877,18 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse complete tag with empty message', () => {
+  it('should parse complete with empty message', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Task completed</thought>
-<complete success="true"></complete>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Task completed',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: { success: true, message: '' },
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
       thought: 'Task completed',
@@ -930,19 +898,22 @@ describe('parseXMLPlanningResponse', () => {
     });
   });
 
-  it('should parse complete tag with multiline message', () => {
+  it('should parse complete with multiline message', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Data extraction completed</thought>
-<complete success="true">
-Extracted data:
-- Item 1: Value A
-- Item 2: Value B
-- Item 3: Value C
-</complete>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Data extraction completed',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: {
+        success: true,
+        message:
+          'Extracted data:\n- Item 1: Value A\n- Item 2: Value B\n- Item 3: Value C',
+      },
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
       thought: 'Data extraction completed',
@@ -954,15 +925,22 @@ Extracted data:
     });
   });
 
-  it('should parse complete tag along with other optional fields', () => {
+  it('should parse complete along with other optional fields', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>All tasks completed successfully</thought>
-<memory>Total items processed: 10</memory>
-<complete success="true">All 10 items have been processed</complete>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'All tasks completed successfully',
+      memory: 'Total items processed: 10',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: {
+        success: true,
+        message: 'All 10 items have been processed',
+      },
+      error: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result).toEqual({
       thought: 'All tasks completed successfully',
@@ -974,37 +952,33 @@ Extracted data:
     });
   });
 
-  it('should handle complete tag case insensitively', () => {
+  it('should parse update_sub_goals', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Task done</thought>
-<COMPLETE success="true">Success message</COMPLETE>
-    `.trim();
-
-    const result = parseXMLPlanningResponse(xml, modelFamily);
-
-    expect(result).toEqual({
-      thought: 'Task done',
-      log: '',
-      action: null,
-      finalizeMessage: 'Success message',
-      finalizeSuccess: true,
+    const json = JSON.stringify({
+      thought: 'Breaking down the task',
+      log: 'Planning the steps',
+      action_type: null,
+      action_param: null,
+      complete: null,
+      error: null,
+      update_sub_goals: [
+        { index: 1, status: 'pending', description: 'Log in to the system' },
+        {
+          index: 2,
+          status: 'pending',
+          description: 'Complete all to-do items',
+        },
+        {
+          index: 3,
+          status: 'pending',
+          description: 'Submit the registration form',
+        },
+      ],
+      mark_finished_indexes: null,
+      memory: null,
     });
-  });
 
-  it('should parse update-plan-content with sub-goals', () => {
-    const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Breaking down the task</thought>
-<log>Planning the steps</log>
-<update-plan-content>
-  <sub-goal index="1" status="pending">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-  <sub-goal index="3" status="pending">Submit the registration form</sub-goal>
-</update-plan-content>
-    `.trim();
-
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result.updateSubGoals).toEqual([
       { index: 1, status: 'pending', description: 'Log in to the system' },
@@ -1017,58 +991,93 @@ Extracted data:
     ]);
   });
 
-  it('should parse mark-sub-goal-done with finished indexes', () => {
+  it('should parse mark_finished_indexes', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>First step completed</thought>
-<log>Moving to next step</log>
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'First step completed',
+      log: 'Moving to next step',
+      action_type: null,
+      action_param: null,
+      complete: null,
+      error: null,
+      update_sub_goals: null,
+      mark_finished_indexes: [1],
+      memory: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result.markFinishedIndexes).toEqual([1]);
   });
 
-  it('should parse multiple finished indexes in mark-sub-goal-done', () => {
+  it('should parse multiple finished indexes', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Multiple steps completed</thought>
-<log>Great progress</log>
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-  <sub-goal index="2" status="finished" />
-</mark-sub-goal-done>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Multiple steps completed',
+      log: 'Great progress',
+      action_type: null,
+      action_param: null,
+      complete: null,
+      error: null,
+      update_sub_goals: null,
+      mark_finished_indexes: [1, 2],
+      memory: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result.markFinishedIndexes).toEqual([1, 2]);
   });
 
-  it('should parse both update-plan-content and mark-sub-goal-done', () => {
+  it('should parse both update_sub_goals and mark_finished_indexes', () => {
     const modelFamily = 'doubao-vision';
-    const xml = `
-<thought>Updating plan after progress</thought>
-<log>Continuing work</log>
-<update-plan-content>
-  <sub-goal index="1" status="finished">Log in to the system</sub-goal>
-  <sub-goal index="2" status="pending">Complete all to-do items</sub-goal>
-</update-plan-content>
-<mark-sub-goal-done>
-  <sub-goal index="1" status="finished" />
-</mark-sub-goal-done>
-    `.trim();
+    const json = JSON.stringify({
+      thought: 'Updating plan after progress',
+      log: 'Continuing work',
+      action_type: null,
+      action_param: null,
+      complete: null,
+      error: null,
+      update_sub_goals: [
+        {
+          index: 1,
+          status: 'finished',
+          description: 'Log in to the system',
+        },
+        {
+          index: 2,
+          status: 'pending',
+          description: 'Complete all to-do items',
+        },
+      ],
+      mark_finished_indexes: [1],
+      memory: null,
+    });
 
-    const result = parseXMLPlanningResponse(xml, modelFamily);
+    const result = parseJSONPlanningResponse(json, modelFamily);
 
     expect(result.updateSubGoals).toEqual([
       { index: 1, status: 'finished', description: 'Log in to the system' },
       { index: 2, status: 'pending', description: 'Complete all to-do items' },
     ]);
     expect(result.markFinishedIndexes).toEqual([1]);
+  });
+
+  it('should handle string "true"/"false" for complete.success', () => {
+    const modelFamily = 'doubao-vision';
+    const json = JSON.stringify({
+      thought: 'Done',
+      log: null,
+      action_type: null,
+      action_param: null,
+      complete: { success: 'true', message: 'Done' },
+      error: null,
+    });
+
+    const result = parseJSONPlanningResponse(json, modelFamily);
+
+    expect(result.finalizeSuccess).toBe(true);
+    expect(result.finalizeMessage).toBe('Done');
   });
 });
 

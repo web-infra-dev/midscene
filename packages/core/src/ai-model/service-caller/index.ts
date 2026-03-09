@@ -219,6 +219,14 @@ export async function callAI(
     stream?: boolean;
     onChunk?: StreamingCallback;
     deepThink?: DeepThinkOption;
+    response_format?: {
+      type: 'json_schema';
+      json_schema: {
+        name: string;
+        strict?: boolean;
+        schema: Record<string, unknown>;
+      };
+    };
   },
 ): Promise<{
   content: string;
@@ -287,6 +295,7 @@ export async function callAI(
           vl_high_resolution_images: true,
         }
       : {}),
+    ...(options?.response_format ? { response_format: options.response_format } : {}),
   };
 
   if (isAutoGLM(modelFamily)) {
