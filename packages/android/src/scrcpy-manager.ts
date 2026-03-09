@@ -26,6 +26,12 @@ const KEYFRAME_POLL_INTERVAL_MS = 200;
 const MAX_SCAN_BYTES = 1_000;
 const CONNECTION_WAIT_MS = 1_000;
 
+// Busy-loop detection thresholds
+const BUSY_LOOP_WINDOW_MS = 1_000; // Sliding window for measuring frame rate
+const BUSY_LOOP_MAX_READS = 500; // Max reads per window before considered busy-loop
+const BUSY_LOOP_COOLDOWN_MS = 50; // Throttle delay when busy-loop detected
+const BUSY_LOOP_WARN_INTERVAL_MS = 5_000; // Min interval between busy-loop warnings
+
 // Scrcpy default configuration (disabled by default, opt-in via scrcpyConfig.enabled)
 export const DEFAULT_SCRCPY_CONFIG = {
   enabled: false,
@@ -261,19 +267,60 @@ export class ScrcpyScreenshotManager {
 
   /**
    * Main frame consumption loop
+   * Includes busy-loop detection: if reader.read() resolves too fast
+   * (e.g. broken stream returning immediately), we throttle to prevent 100% CPU.
    */
   private async consumeFramesLoop(reader: any): Promise<void> {
+    let readCount = 0;
+    let windowStart = Date.now();
+    let lastBusyWarn = 0;
+    let totalReads = 0;
+
     try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
+        totalReads++;
+        readCount++;
+
+        // Busy-loop detection: check reads per sliding window
+        const now = Date.now();
+        const elapsed = now - windowStart;
+        if (elapsed >= BUSY_LOOP_WINDOW_MS) {
+          const readsPerSec = (readCount / elapsed) * 1000;
+          if (readCount > BUSY_LOOP_MAX_READS) {
+            // Only warn at throttled interval to avoid log spam
+            if (now - lastBusyWarn >= BUSY_LOOP_WARN_INTERVAL_MS) {
+              warnScrcpy(
+                `[CPU-DIAG] Possible busy loop detected! ${readCount} reads in ${elapsed}ms (${readsPerSec.toFixed(0)} reads/sec). ` +
+                  `Total reads: ${totalReads}. Throttling with ${BUSY_LOOP_COOLDOWN_MS}ms delay.`,
+              );
+              lastBusyWarn = now;
+            }
+            // Throttle: yield control to prevent CPU spin
+            await new Promise((resolve) =>
+              setTimeout(resolve, BUSY_LOOP_COOLDOWN_MS),
+            );
+          } else {
+            debugScrcpy(
+              `[CPU-DIAG] Frame loop stats: ${readCount} reads in ${elapsed}ms (${readsPerSec.toFixed(1)} reads/sec), total: ${totalReads}`,
+            );
+          }
+          // Reset window
+          readCount = 0;
+          windowStart = Date.now();
+        }
+
         this.processFrame(value);
       }
     } catch (error) {
-      debugScrcpy(`Frame consumer error: ${error}`);
+      debugScrcpy(`Frame consumer error (total reads: ${totalReads}): ${error}`);
       await this.disconnect();
     }
+    debugScrcpy(
+      `Frame consumer loop ended normally (total reads: ${totalReads})`,
+    );
   }
 
   /**
