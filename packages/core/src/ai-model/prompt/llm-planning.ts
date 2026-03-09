@@ -174,11 +174,12 @@ export const descriptionForAction = (
     }
   }
 
-  // Render sample if provided
+  // Render sample if provided, using the same XML tag format as the real output
   if (action.sample && typeof action.sample === 'object') {
     const locateFields = findAllMidsceneLocatorField(action.paramSchema);
     const sampleWithBbox = injectBboxIntoSample(action.sample, locateFields, includeBbox);
-    fields.push(`- sample: ${JSON.stringify(sampleWithBbox)}`);
+    const sampleStr = `- sample:\n${tab}${tab}<action-type>${action.name}</action-type>\n${tab}${tab}<action-param-json>\n${tab}${tab}${JSON.stringify(sampleWithBbox, null, 2).replace(/\n/g, `\n${tab}${tab}`)}\n${tab}${tab}</action-param-json>`;
+    fields.push(sampleStr);
   }
 
   return `- ${action.name}, ${action.description || 'No description provided'}
