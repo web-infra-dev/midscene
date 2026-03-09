@@ -353,6 +353,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -599,6 +600,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -842,6 +844,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1144,6 +1147,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1445,6 +1449,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1691,6 +1696,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>

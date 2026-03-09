@@ -1,3 +1,4 @@
+import { findAllMidsceneLocatorField } from '@/common';
 import type { DeviceAction } from '@/types';
 import type { TModelFamily } from '@midscene/shared/env';
 import { getPreferredLanguage } from '@midscene/shared/env';
@@ -52,9 +53,30 @@ const findDefaultValue = (field: unknown): any | undefined => {
   return undefined;
 };
 
+/**
+ * Inject bbox into locate fields of a sample object.
+ * Walks the sample and for any locate field (identified by paramSchema),
+ * adds a fake bbox array when includeBbox is true.
+ */
+const injectBboxIntoSample = (
+  sample: Record<string, any>,
+  locateFields: string[],
+  includeBbox: boolean,
+): Record<string, any> => {
+  if (!includeBbox) return sample;
+  const result = { ...sample };
+  for (const field of locateFields) {
+    if (result[field] && typeof result[field] === 'object' && result[field].prompt) {
+      result[field] = { ...result[field], bbox: [100, 200, 300, 400] };
+    }
+  }
+  return result;
+};
+
 export const descriptionForAction = (
   action: DeviceAction<any>,
   locatorSchemaTypeDescription: string,
+  includeBbox = false,
 ) => {
   const tab = '  ';
   const fields: string[] = [];
@@ -140,6 +162,13 @@ export const descriptionForAction = (
     }
   }
 
+  // Render sample if provided
+  if (action.sample && typeof action.sample === 'object') {
+    const locateFields = findAllMidsceneLocatorField(action.paramSchema);
+    const sampleWithBbox = injectBboxIntoSample(action.sample, locateFields, includeBbox);
+    fields.push(`- sample: ${JSON.stringify(sampleWithBbox)}`);
+  }
+
   return `- ${action.name}, ${action.description || 'No description provided'}
 ${tab}${fields.join(`\n${tab}`)}
 `.trim();
@@ -171,6 +200,7 @@ export async function systemPromptToTaskPlanning({
     return descriptionForAction(
       action,
       vlLocateParam(includeBbox ? modelFamily : undefined),
+      includeBbox,
     );
   });
   const actionList = actionDescriptionList.join('\n');
@@ -396,6 +426,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>

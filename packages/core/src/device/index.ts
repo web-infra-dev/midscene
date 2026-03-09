@@ -321,6 +321,10 @@ export const defineActionDragAndDrop = (
       'Pick up a specific UI element and move it to a new position (e.g., reorder a card, move a file into a folder, sort list items). The element itself moves with your finger/mouse.',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
+    sample: {
+      from: { prompt: 'Task card "Buy groceries"' },
+      to: { prompt: '"Done" column header' },
+    },
     call,
   });
 };
@@ -461,6 +465,10 @@ export const defineActionSwipe = (
     description:
       'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
     paramSchema: ActionSwipeParamSchema,
+    sample: {
+      start: { prompt: 'middle-lower area of the screen' },
+      end: { prompt: 'upper-middle area of the screen' },
+    },
     call,
   });
 };
