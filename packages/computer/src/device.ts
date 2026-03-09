@@ -630,6 +630,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         description: 'Move the mouse to the element',
         interfaceAlias: 'aiHover',
         paramSchema: actionHoverParamSchema,
+        sample: {
+          locate: { prompt: 'the navigation menu item "Products"' },
+        },
         call: async (param) => {
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement;
@@ -664,6 +667,10 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
             .describe('The input field to be filled')
             .optional(),
         }),
+        sample: {
+          value: 'test@example.com',
+          locate: { prompt: 'the email input field' },
+        },
         call: async (param) => {
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement | undefined;

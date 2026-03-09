@@ -651,6 +651,9 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
           'The URL to navigate to. Must start with https://, file://, or a similar protocol.',
         ),
     }),
+    sample: {
+      url: 'https://www.example.com',
+    },
     call: async (param) => {
       if (!page.navigate) {
         throw new Error(

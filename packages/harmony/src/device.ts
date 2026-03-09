@@ -126,6 +126,10 @@ export class HarmonyDevice implements AbstractInterface {
             .describe('The input field to be filled')
             .optional(),
         }),
+        sample: {
+          value: 'test@example.com',
+          locate: { prompt: 'the email input field' },
+        },
         call: async (param) => {
           const element = param.locate;
 
@@ -242,6 +246,9 @@ export class HarmonyDevice implements AbstractInterface {
             'The element to be long pressed',
           ),
         }),
+        sample: {
+          locate: { prompt: 'the message bubble' },
+        },
         call: async (param) => {
           const element = param.locate;
           if (!element) {
@@ -759,6 +766,9 @@ const createPlatformActions = (
       description: 'Execute HDC shell command on HarmonyOS device',
       interfaceAlias: 'runHdcShell',
       paramSchema: runHdcShellParamSchema,
+      sample: {
+        command: 'hidumper -s WindowManagerService -a -a',
+      },
       call: async (param) => {
         if (!param.command || param.command.trim() === '') {
           throw new Error('RunHdcShell requires a non-empty command parameter');
@@ -772,6 +782,9 @@ const createPlatformActions = (
       description: 'Launch a HarmonyOS app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
+      sample: {
+        uri: 'com.example.app',
+      },
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Launch requires a non-empty uri parameter');

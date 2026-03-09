@@ -104,6 +104,10 @@ export class IOSDevice implements AbstractInterface {
             .describe('The input field to be filled')
             .optional(),
         }),
+        sample: {
+          value: 'test@example.com',
+          locate: { prompt: 'the email input field' },
+        },
         call: async (param) => {
           const element = param.locate;
           if (param.mode !== 'typeOnly') {
@@ -223,6 +227,9 @@ export class IOSDevice implements AbstractInterface {
             'The element to be long pressed',
           ),
         }),
+        sample: {
+          locate: { prompt: 'the message bubble' },
+        },
         call: async (param) => {
           const element = param.locate;
           assert(element, 'LongPress requires an element to be located');
@@ -1020,6 +1027,10 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Execute WebDriverAgent API request directly on iOS device',
       interfaceAlias: 'runWdaRequest',
       paramSchema: runWdaRequestParamSchema,
+      sample: {
+        method: 'GET',
+        endpoint: '/status',
+      },
       call: async (param) => {
         return await device.runWdaRequest(
           param.method,
@@ -1033,6 +1044,9 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Launch an iOS app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
+      sample: {
+        param: 'com.apple.mobilesafari',
+      },
       call: async (param) => {
         await device.launch(param);
       },
