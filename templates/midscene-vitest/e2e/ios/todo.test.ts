@@ -1,23 +1,17 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { IOSTestContext } from '../../src/context';
+import { describe, expect, it } from 'vitest';
+import { IOSTest } from '../../src/context';
 
 const pageUrl = 'https://todomvc.com/examples/react/dist/';
 
 describe('iOS TodoMVC', () => {
-  let ctx: IOSTestContext;
-
-  beforeAll(() =>
-    IOSTestContext.setup({
-      agentOptions: {
-        aiActionContext: 'You are an iOS app testing expert.',
-      },
-    }),
-  );
-  afterEach((testCtx) => IOSTestContext.collectReport(ctx, testCtx));
-  afterAll((suite) => IOSTestContext.mergeAndTeardown(suite));
+  const fixture = IOSTest.init({
+    agentOptions: {
+      aiActionContext: 'You are an iOS app testing expert.',
+    },
+  });
 
   it('should add and complete a todo', async (testCtx) => {
-    ctx = await IOSTestContext.create(pageUrl, testCtx);
+    const ctx = await fixture.create(pageUrl, testCtx);
 
     await ctx.agent.aiAct(
       "type 'Study AI today' in the task box input and press the Enter key",

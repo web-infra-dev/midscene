@@ -1,11 +1,11 @@
-export { WebTestContext } from './web';
-export type { WebTestContextOptions } from './web';
+export type { TestFixture } from './base';
 
-export { AndroidTestContext } from './android';
-export type { AndroidTestContextOptions } from './android';
+export { WebTest } from './web';
+export type { WebTestOptions } from './web';
 
-export { IOSTestContext } from './ios';
-export type { IOSTestContextOptions } from './ios';
+export { AndroidTest } from './android';
+export type { AndroidTestOptions } from './android';
 
-/** @deprecated Use `WebTestContext` instead */
-export { WebTestContext as TestContext } from './web';
+export { IOSTest } from './ios';
+export type { IOSTestOptions } from './ios';
+

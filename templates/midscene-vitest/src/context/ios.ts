@@ -6,10 +6,11 @@ import {
 import type { IOSDeviceOpt } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { ReportHelper, buildReportMeta } from '../report-helper';
+import { afterAll, afterEach, beforeAll } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
-import { BaseTestContext } from './base';
+import { BaseTestContext, type TestFixture } from './base';
 
-export interface IOSTestContextOptions {
+export interface IOSTestOptions {
   /** Options passed to IOSDevice (e.g. WDA port, device UDID). */
   deviceOptions?: IOSDeviceOpt;
   /** Options passed to IOSAgent (e.g. aiActionContext, appNameMapping). */
@@ -18,9 +19,9 @@ export interface IOSTestContextOptions {
   launchDelay?: number;
 }
 
-export class IOSTestContext extends BaseTestContext<IOSAgent> {
+export class IOSTest extends BaseTestContext<IOSAgent> {
   private static sharedDevice: IOSDevice | null = null;
-  private static sharedOptions: IOSTestContextOptions = {};
+  private static sharedOptions: IOSTestOptions = {};
   private static reportHelper = new ReportHelper();
 
   /**
@@ -29,14 +30,14 @@ export class IOSTestContext extends BaseTestContext<IOSAgent> {
    * Requires a running WDA instance on the target device/simulator.
    * Each `create()` call launches a URL/app and creates a fresh agent.
    */
-  static async setup(options?: IOSTestContextOptions): Promise<void> {
-    IOSTestContext.sharedOptions = options ?? {};
+  static async setup(options?: IOSTestOptions): Promise<void> {
+    IOSTest.sharedOptions = options ?? {};
 
     const device = new IOSDevice(options?.deviceOptions ?? {});
     await device.connect();
 
-    IOSTestContext.sharedDevice = device;
-    IOSTestContext.reportHelper.reset();
+    IOSTest.sharedDevice = device;
+    IOSTest.reportHelper.reset();
   }
 
   /**
@@ -46,38 +47,36 @@ export class IOSTestContext extends BaseTestContext<IOSAgent> {
    */
   static async create(
     targetUri: string,
-    testCtx: {
-      task: { name: string; suite?: { name: string } };
-    },
-  ): Promise<IOSTestContext> {
-    if (!IOSTestContext.sharedDevice) {
+    testCtx: VitestTestContext,
+  ): Promise<IOSTest> {
+    if (!IOSTest.sharedDevice) {
       throw new Error(
-        'IOSTestContext.setup() must be called before create(). Call it in beforeAll.',
+        'IOSTest.setup() must be called before create(). Call it in beforeAll.',
       );
     }
 
-    await IOSTestContext.sharedDevice.launch(targetUri);
-    const delay = IOSTestContext.sharedOptions.launchDelay ?? 3000;
+    await IOSTest.sharedDevice.launch(targetUri);
+    const delay = IOSTest.sharedOptions.launchDelay ?? 3000;
     if (delay > 0) {
       await sleep(delay);
     }
 
     const { groupName, reportFileName } = buildReportMeta(testCtx);
-    const agent = new IOSAgent(IOSTestContext.sharedDevice, {
-      ...IOSTestContext.sharedOptions.agentOptions,
+    const agent = new IOSAgent(IOSTest.sharedDevice, {
+      ...IOSTest.sharedOptions.agentOptions,
       groupName,
       reportFileName,
     });
 
-    return new IOSTestContext(agent);
+    return new IOSTest(agent);
   }
 
   static async collectReport(
-    ctx: IOSTestContext | undefined,
+    ctx: IOSTest | undefined,
     testCtx: VitestTestContext,
   ): Promise<void> {
     return BaseTestContext._collectReport(
-      IOSTestContext.reportHelper,
+      IOSTest.reportHelper,
       ctx,
       testCtx,
     );
@@ -88,15 +87,44 @@ export class IOSTestContext extends BaseTestContext<IOSAgent> {
     reportName?: string,
   ): Promise<string | null> {
     return BaseTestContext._mergeAndTeardown(
-      IOSTestContext.reportHelper,
-      IOSTestContext.teardown,
+      IOSTest.reportHelper,
+      IOSTest.teardown,
       suite,
       reportName,
     );
   }
 
   static async teardown(): Promise<void> {
-    await IOSTestContext.sharedDevice?.destroy();
-    IOSTestContext.sharedDevice = null;
+    await IOSTest.sharedDevice?.destroy();
+    IOSTest.sharedDevice = null;
+  }
+
+  /**
+   * Register all lifecycle hooks and return an object with a `create` method
+   * for per-test contexts.
+   *
+   * Usage:
+   * ```ts
+   * const fixture = IOSTest.init({ agentOptions: { ... } });
+   * it('test', async (testCtx) => {
+   *   const ctx = await fixture.create('https://example.com', testCtx);
+   * });
+   * ```
+   */
+  static init(options?: IOSTestOptions): TestFixture<IOSTest> {
+    let currentCtx: IOSTest | undefined;
+
+    beforeAll(() => IOSTest.setup(options));
+    afterEach((testCtx) =>
+      IOSTest.collectReport(currentCtx, testCtx),
+    );
+    afterAll((suite) => IOSTest.mergeAndTeardown(suite));
+
+    return {
+      create: async (targetUri: string, testCtx: VitestTestContext) => {
+        currentCtx = await IOSTest.create(targetUri, testCtx);
+        return currentCtx;
+      },
+    };
   }
 }

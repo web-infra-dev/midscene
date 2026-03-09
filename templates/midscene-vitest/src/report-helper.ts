@@ -97,9 +97,10 @@ export class ReportHelper {
 /**
  * Build report file name and group name from vitest test context.
  */
-export function buildReportMeta(testCtx: {
-  task: { name: string; suite?: { name: string } };
-}): { groupName: string; reportFileName: string } {
+export function buildReportMeta(testCtx: VitestTestContext): {
+  groupName: string;
+  reportFileName: string;
+} {
   const groupName = testCtx.task.suite?.name || 'UnnamedGroup';
   const taskName = testCtx.task.name;
   return {

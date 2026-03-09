@@ -1,23 +1,17 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { AndroidTestContext } from '../../src/context';
+import { describe, expect, it } from 'vitest';
+import { AndroidTest } from '../../src/context';
 
 const pageUrl = 'https://todomvc.com/examples/react/dist/';
 
 describe('Android TodoMVC', () => {
-  let ctx: AndroidTestContext;
-
-  beforeAll(() =>
-    AndroidTestContext.setup({
-      agentOptions: {
-        aiActionContext: 'You are an Android app testing expert.',
-      },
-    }),
-  );
-  afterEach((testCtx) => AndroidTestContext.collectReport(ctx, testCtx));
-  afterAll((suite) => AndroidTestContext.mergeAndTeardown(suite));
+  const fixture = AndroidTest.init({
+    agentOptions: {
+      aiActionContext: 'You are an Android app testing expert.',
+    },
+  });
 
   it('should add and complete a todo', async (testCtx) => {
-    ctx = await AndroidTestContext.create(pageUrl, testCtx);
+    const ctx = await fixture.create(pageUrl, testCtx);
 
     await ctx.agent.aiAct(
       "type 'Study AI today' in the task box input and press the Enter key",
