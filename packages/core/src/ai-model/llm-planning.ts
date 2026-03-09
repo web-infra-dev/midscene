@@ -246,6 +246,7 @@ export async function plan(
     } catch {
       const retry = await callAI(msgs, modelConfig, {
         deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+        abortSignal: opts.abortSignal,
       });
       rawResponse = retry.content;
       usage = retry.usage;

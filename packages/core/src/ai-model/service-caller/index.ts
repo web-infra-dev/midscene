@@ -460,6 +460,10 @@ export async function callAI(
           break; // Success, exit retry loop
         } catch (error) {
           lastError = error as Error;
+          // Do not retry if the request was aborted by the caller
+          if (options?.abortSignal?.aborted) {
+            break;
+          }
           if (attempt < maxAttempts) {
             warnCall(
               `AI call failed (attempt ${attempt}/${maxAttempts}), retrying in ${retryInterval}ms... Error: ${lastError.message}`,
