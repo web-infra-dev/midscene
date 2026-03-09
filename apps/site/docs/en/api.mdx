@@ -176,8 +176,6 @@ await agent.ai(
   'Click the login button at the top of the page, then enter "test@example.com" in the username field',
 );
 
-// When using UI Agent models like ui-tars, you can try a more goal-driven prompt
-await agent.aiAct('Post a Tweet "Hello World"');
 
 // Using abortSignal to set a timeout
 const controller = new AbortController();
@@ -185,6 +183,9 @@ setTimeout(() => controller.abort('timeout'), 30000); // 30s timeout
 await agent.aiAct('Fill in the form and submit', {
   abortSignal: controller.signal,
 });
+
+// For complex tasks, you can enable the deepThink parameter
+await agent.aiAct('Complete the GitHub account registration form. The region must be set to "Canada". Make sure no fields on the form are missed and all form fields pass validation. Just fill in the form fields without actually submitting the registration. Finally, return the actual content filled in the form fields', { deepThink: true });
 ```
 
 :::tip
