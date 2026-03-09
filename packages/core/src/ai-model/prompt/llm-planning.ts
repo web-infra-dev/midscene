@@ -74,7 +74,11 @@ const injectBboxIntoSample = (
   const result = { ...sample };
   let bboxIndex = 0;
   for (const field of locateFields) {
-    if (result[field] && typeof result[field] === 'object' && result[field].prompt) {
+    if (
+      result[field] &&
+      typeof result[field] === 'object' &&
+      result[field].prompt
+    ) {
       result[field] = {
         ...result[field],
         bbox: SAMPLE_BBOXES[bboxIndex % SAMPLE_BBOXES.length],
@@ -177,7 +181,11 @@ export const descriptionForAction = (
   // Render sample if provided, using the same XML tag format as the real output
   if (action.sample && typeof action.sample === 'object') {
     const locateFields = findAllMidsceneLocatorField(action.paramSchema);
-    const sampleWithBbox = injectBboxIntoSample(action.sample, locateFields, includeBbox);
+    const sampleWithBbox = injectBboxIntoSample(
+      action.sample,
+      locateFields,
+      includeBbox,
+    );
     const sampleStr = `- sample:\n${tab}${tab}<action-type>${action.name}</action-type>\n${tab}${tab}<action-param-json>\n${tab}${tab}${JSON.stringify(sampleWithBbox, null, 2).replace(/\n/g, `\n${tab}${tab}`)}\n${tab}${tab}</action-param-json>`;
     fields.push(sampleStr);
   }
