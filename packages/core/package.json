@@ -48,6 +48,11 @@
       "types": "./dist/types/report.d.ts",
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
+    },
+    "./mcp": {
+      "types": "./dist/types/mcp/index.d.ts",
+      "import": "./dist/es/mcp/index.mjs",
+      "require": "./dist/lib/mcp/index.js"
     }
   },
   "typesVersions": {
@@ -58,7 +63,8 @@
       "tree": ["./dist/types/tree.d.ts"],
       "device": ["./dist/types/device.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
-      "yaml": ["./dist/types/yaml.d.ts"]
+      "yaml": ["./dist/types/yaml.d.ts"],
+      "mcp": ["./dist/types/mcp/index.d.ts"]
     }
   },
   "scripts": {
