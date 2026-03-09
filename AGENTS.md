@@ -7,6 +7,9 @@ should point here instead of duplicating rules.
 
 - Use `pnpm` only. The workspace requires Node `>=18.19.0` and pnpm
   `>=9.3.0`.
+- Read `CONTRIBUTING.md` before local development. Dev/build workflows,
+  app-local dev servers, and report rebuild troubleshooting are maintained
+  there to avoid duplication.
 - Before creating a commit or updating a PR, run `pnpm run lint` from the
   repository root.
 - For code changes, run the smallest relevant Nx target for each touched
@@ -33,24 +36,12 @@ should point here instead of duplicating rules.
 ## Commands That Matter
 
 - Install deps: `pnpm install`
-- Dev mode: `pnpm run dev`
 - Lint: `pnpm run lint`
 - Focused build: `npx nx build <project>`
 - Focused test: `npx nx test <project>`
 - Web e2e: `npx nx e2e @midscene/web`
 - AI tests: `npx nx test:ai @midscene/core` or
   `npx nx test:ai @midscene/web`
-
-For app-only debugging, prefer running the app's own dev server from its
-directory instead of the root dev command. Examples:
-
-- `cd apps/report && pnpm run dev`
-- `cd apps/site && pnpm run dev`
-- `cd apps/playground && pnpm run dev`
-- `cd apps/chrome-extension && pnpm run dev`
-
-Use root `pnpm run dev` when you need the monorepo watch/build wiring across
-packages, not when you only need to debug one app.
 
 Useful project names:
 
@@ -62,23 +53,12 @@ Useful project names:
 - `doc`
 - `chrome-extension`
 
-If Nx/build artifacts get wedged or you hit
-`REPLACE_ME_WITH_REPORT_HTML`, run `pnpm run build:skip-cache`.
-
 ## Change Rules That Actually Matter
 
 - Add or update tests when behavior changes. Start with the nearest unit test
   suite; use AI tests or e2e only when the change actually depends on model
   behavior or browser/device integration.
 - Do not hand-edit generated output under `dist/` or `apps/site/doc_build/`.
-- `apps/report` is not standalone at runtime: its built `index.html` template
-  is injected back into `packages/core/dist` during build. If report UI
-  changes do not show up, or report generation still shows
-  `REPLACE_ME_WITH_REPORT_HTML`, rebuild the workspace with
-  `pnpm run build:skip-cache`.
-- `scripts/dev-prepare.js` builds report/playground assets and creates
-  symlinks for `packages/playground/static` and `packages/ios/static`. If
-  those paths look wrong, regenerate them instead of editing the output.
 - When changing shared packages or exported entry points, run a focused build
   for the affected project before finishing.
 

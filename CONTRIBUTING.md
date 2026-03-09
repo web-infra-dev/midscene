@@ -104,9 +104,34 @@ Build all packages:
 pnpm run build
 ```
 
+### Development Workflows
+
+Use the root dev command only when you need monorepo-wide watch/build wiring:
+
+```sh
+pnpm run dev
+```
+
+This command runs `scripts/dev-prepare.js` first, prepares the report and
+playground assets, and then starts Nx watch builds across packages.
+
+If you only need to debug a single app, start that app's own dev server
+instead of the root dev command:
+
+```sh
+cd apps/report && pnpm run dev
+cd apps/site && pnpm run dev
+cd apps/playground && pnpm run dev
+cd apps/chrome-extension && pnpm run dev
+```
+
 ### `REPLACE_ME_WITH_REPORT_HTML` error in the report file
 
-If you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, it's usually because of the circular dependency issue of Midscene. You can rebuild the entire project without nx cache to solve this issue.
+`apps/report` is not standalone at runtime. Its built `index.html` template is
+injected back into `packages/core/dist` during build. If report UI changes do
+not show up, or you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, the
+template injection is usually stale. Rebuild the entire workspace without Nx
+cache to fix it:
 
 ```sh
 # Rebuild the entire project without cache
