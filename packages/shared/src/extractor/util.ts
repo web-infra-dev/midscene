@@ -396,31 +396,40 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
+/** Maximum number of cached node entries to prevent memory leaks */
+const NODE_CACHE_MAX_SIZE = 2000;
+
+/**
+ * Reset the node hash cache. Call at the beginning of each extraction cycle
+ * to prevent stale DOM references from accumulating.
+ */
 export function setNodeHashCacheListOnWindow() {
   if (typeof window !== 'undefined') {
-    (window as any).midsceneNodeHashCacheList = [];
+    (window as any).midsceneNodeHashCache = new Map<string, globalThis.Node>();
   }
 }
 
-export function setNodeToCacheList(
-  node: globalThis.Node,
-  id: string,
-): void {
-  if (typeof window === 'undefined') return;
-  if (getNodeFromCacheList(id)) return; // already cached (e.g. same hash)
-  const list = (window as any).midsceneNodeHashCacheList ?? [];
-  (window as any).midsceneNodeHashCacheList = list;
-  list.push({ node, id });
+function getNodeCacheMap(): Map<string, globalThis.Node> | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return (window as any).midsceneNodeHashCache as
+    | Map<string, globalThis.Node>
+    | undefined;
+}
+
+export function setNodeToCacheList(node: globalThis.Node, id: string): void {
+  const cache = getNodeCacheMap();
+  if (!cache) return;
+  if (cache.has(id)) return;
+
+  if (cache.size >= NODE_CACHE_MAX_SIZE) {
+    const firstKey = cache.keys().next().value;
+    if (firstKey !== undefined) cache.delete(firstKey);
+  }
+  cache.set(id, node);
 }
 
 export function getNodeFromCacheList(id: string): globalThis.Node | undefined {
-  if (typeof window !== 'undefined') {
-    const list = (window as any).midsceneNodeHashCacheList as
-      | Array<{ node: globalThis.Node; id: string }>
-      | undefined;
-    return list?.find((item) => item.id === id)?.node;
-  }
-  return undefined;
+  return getNodeCacheMap()?.get(id);
 }
 
 export function midsceneGenerateHash(
@@ -431,7 +440,7 @@ export function midsceneGenerateHash(
   const slicedHash = generateHashId(rect, content);
 
   if (node) {
-    if (typeof window !== 'undefined' && !(window as any).midsceneNodeHashCacheList) {
+    if (typeof window !== 'undefined' && !getNodeCacheMap()) {
       setNodeHashCacheListOnWindow();
     }
     setNodeToCacheList(node, slicedHash);

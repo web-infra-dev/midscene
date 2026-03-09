@@ -1,11 +1,89 @@
 import type { ElementInfo } from '.';
 import type { Point } from '../types';
 import { isSvgElement } from './dom-util';
-import { getRect, getNodeFromCacheList, isElementPartiallyInViewport } from './util';
+import {
+  getNodeFromCacheList,
+  getRect,
+  isElementPartiallyInViewport,
+  logger,
+} from './util';
 import { collectElementInfo } from './web-extractor';
 
 /** Separator for compound XPath across iframes (e.g. "iframePath|>>|/html/body/div") */
 const SUB_XPATH_SEPARATOR = '|>>|';
+
+/** Parse the non-standard `zoom` CSS property (Chromium-only) with fallback to 1 */
+function parseCSSZoom(style: CSSStyleDeclaration): number {
+  return Number.parseFloat((style as CSSStyleDeclaration & { zoom?: string }).zoom ?? '1') || 1;
+}
+
+/**
+ * Calculate the accumulated offset from an iframe-nested node's document
+ * up to the top-level document, accounting for border, padding, and zoom at each level.
+ */
+function calculateIframeOffset(
+  nodeOwnerDoc: Document | null,
+  rootDoc: Document | null,
+): { left: number; top: number } {
+  let leftOffset = 0;
+  let topOffset = 0;
+  let iterDoc = nodeOwnerDoc;
+
+  while (iterDoc && iterDoc !== rootDoc) {
+    try {
+      const frameElement = iterDoc.defaultView?.frameElement;
+      if (!frameElement) break;
+
+      const rect = (frameElement as Element).getBoundingClientRect();
+      const parentWin = iterDoc.defaultView?.parent;
+
+      let borderLeft = 0;
+      let borderTop = 0;
+      let zoom = 1;
+      try {
+        if (parentWin) {
+          const style = parentWin.getComputedStyle(frameElement as Element);
+          borderLeft = Number.parseFloat(style.borderLeftWidth) || 0;
+          borderTop = Number.parseFloat(style.borderTopWidth) || 0;
+          zoom = parseCSSZoom(style);
+        }
+      } catch {
+        // cross-origin iframe style access may fail, use defaults
+      }
+
+      leftOffset = leftOffset / zoom + rect.left + borderLeft;
+      topOffset = topOffset / zoom + rect.top + borderTop;
+      iterDoc = (frameElement as Element).ownerDocument;
+    } catch {
+      break;
+    }
+  }
+
+  return { left: leftOffset, top: topOffset };
+}
+
+/**
+ * Translate a point from the parent window coordinate space into
+ * the iframe's local coordinate space.
+ */
+function translatePointToIframeCoordinates(
+  point: { left: number; top: number },
+  iframeElement: Element,
+  parentWindow: Window,
+): { left: number; top: number } {
+  const rect = iframeElement.getBoundingClientRect();
+  const style = parentWindow.getComputedStyle(iframeElement);
+  const clientLeft = iframeElement.clientLeft;
+  const clientTop = iframeElement.clientTop;
+  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+  const paddingTop = Number.parseFloat(style.paddingTop) || 0;
+  const zoom = parseCSSZoom(style);
+
+  return {
+    left: (point.left - rect.left - clientLeft - paddingLeft) / zoom,
+    top: (point.top - rect.top - clientTop - paddingTop) / zoom,
+  };
+}
 
 const getElementXpathIndex = (element: Element): number => {
   let index = 1;
@@ -104,17 +182,14 @@ export const getElementXpath = (
   // special element handling (iframe-aware: prefix with frame path when not limitToCurrentDocument)
   try {
     const nodeName = el.nodeName.toLowerCase();
-    if (
-      el === el.ownerDocument?.documentElement ||
-      nodeName === 'html'
-    ) {
+    if (el === el.ownerDocument?.documentElement || nodeName === 'html') {
       if (!limitToCurrentDocument) {
         const frameElement = el.ownerDocument?.defaultView?.frameElement;
         if (frameElement) {
           const framePath = getElementXpath(
             frameElement as Element,
             isOrderSensitive,
-            isLeafElement,
+            false,
             limitToCurrentDocument,
           );
           return `${framePath}${SUB_XPATH_SEPARATOR}/html`;
@@ -129,7 +204,7 @@ export const getElementXpath = (
           const framePath = getElementXpath(
             frameElement as Element,
             isOrderSensitive,
-            isLeafElement,
+            false,
             limitToCurrentDocument,
           );
           return `${framePath}${SUB_XPATH_SEPARATOR}/html/body`;
@@ -137,7 +212,8 @@ export const getElementXpath = (
       }
       return '/html/body';
     }
-  } catch {
+  } catch (error) {
+    logger('[midscene:locator] ownerDocument access failed:', error);
     if (el.nodeName.toLowerCase() === 'html') return '/html';
     if (el.nodeName.toLowerCase() === 'body') return '/html/body';
   }
@@ -194,6 +270,8 @@ export const getElementXpath = (
   );
 };
 
+/** Retrieve XPath for a previously cached node by its hash ID.
+ *  Returns a local xpath within the node's own document (limitToCurrentDocument=true). */
 export function getXpathsById(id: string): string[] | null {
   const node = getNodeFromCacheList(id);
   if (!node) return null;
@@ -205,8 +283,10 @@ export function getXpathsByPoint(
   point: Point,
   isOrderSensitive: boolean,
 ): string[] | null {
-  let currentWindow: Window = typeof window !== 'undefined' ? window : (undefined as any);
-  let currentDocument: Document = typeof document !== 'undefined' ? document : (undefined as any);
+  let currentWindow: Window =
+    typeof window !== 'undefined' ? window : (undefined as any);
+  let currentDocument: Document =
+    typeof document !== 'undefined' ? document : (undefined as any);
   let { left, top } = point;
   let depth = 0;
   const MAX_DEPTH = 10;
@@ -235,37 +315,30 @@ export function getXpathsByPoint(
     const tag = element.tagName.toLowerCase();
     if (tag === 'iframe' || tag === 'frame') {
       try {
-        const rect = element.getBoundingClientRect();
-        const style = currentWindow.getComputedStyle(element);
-        const clientLeft = element.clientLeft;
-        const clientTop = element.clientTop;
-        const paddingLeft = parseFloat(style.paddingLeft) || 0;
-        const paddingTop = parseFloat(style.paddingTop) || 0;
-        const zoom = parseFloat((style as any).zoom) || 1;
-
-        const newLeft =
-          (left - rect.left - clientLeft - paddingLeft) / zoom;
-        const newTop = (top - rect.top - clientTop - paddingTop) / zoom;
-
         const contentWindow = (element as HTMLIFrameElement).contentWindow;
         const contentDocument = (element as HTMLIFrameElement).contentDocument;
 
         if (contentWindow && contentDocument) {
+          const localPoint = translatePointToIframeCoordinates(
+            { left, top },
+            element,
+            currentWindow,
+          );
           const currentIframeXpath = getElementXpath(
             element,
             isOrderSensitive,
-            true,
+            false,
             true,
           );
           xpathPrefix += currentIframeXpath + SUB_XPATH_SEPARATOR;
           currentWindow = contentWindow;
           currentDocument = contentDocument;
-          left = newLeft;
-          top = newTop;
+          left = localPoint.left;
+          top = localPoint.top;
           continue;
         }
-      } catch {
-        // ignore
+      } catch (error) {
+        logger('[midscene:locator] iframe penetration failed (cross-origin?):', error);
       }
     }
 
@@ -286,10 +359,14 @@ export function getXpathsByPoint(
 }
 
 export function getNodeInfoByXpath(xpath: string): Node | null {
-  const parts = xpath.split(SUB_XPATH_SEPARATOR).map((p) => p.trim()).filter(Boolean);
+  const parts = xpath
+    .split(SUB_XPATH_SEPARATOR)
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (parts.length === 0) return null;
 
-  let currentDocument: Document = typeof document !== 'undefined' ? document : (undefined as any);
+  let currentDocument: Document =
+    typeof document !== 'undefined' ? document : (undefined as any);
   let node: Node | null = null;
 
   for (let i = 0; i < parts.length; i++) {
@@ -303,6 +380,9 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
     );
 
     if (xpathResult.snapshotLength !== 1) {
+      logger(
+        `[midscene:locator] XPath "${currentXpath}" matched ${xpathResult.snapshotLength} elements (expected 1), discarding.`,
+      );
       return null;
     }
 
@@ -319,9 +399,11 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
           if (contentDocument) {
             currentDocument = contentDocument;
           } else {
+            logger('[midscene:locator] iframe contentDocument is null (cross-origin?)');
             return null;
           }
-        } catch {
+        } catch (error) {
+          logger('[midscene:locator] iframe contentDocument access failed:', error);
           return null;
         }
       } else {
@@ -335,59 +417,34 @@ export function getNodeInfoByXpath(xpath: string): Node | null {
 
 export function getElementInfoByXpath(xpath: string): ElementInfo | null {
   const node = getNodeInfoByXpath(xpath);
+  if (!node) return null;
 
-  if (!node) {
-    return null;
-  }
-
-  let currentWindow: Window = typeof window !== 'undefined' ? window : (undefined as any);
-  let currentDocument: Document = typeof document !== 'undefined' ? document : (undefined as any);
+  let targetWindow: Window =
+    typeof window !== 'undefined' ? window : (undefined as any);
+  let targetDocument: Document =
+    typeof document !== 'undefined' ? document : (undefined as any);
 
   if (node.ownerDocument?.defaultView) {
-    currentWindow = node.ownerDocument.defaultView;
-    currentDocument = node.ownerDocument;
+    targetWindow = node.ownerDocument.defaultView;
+    targetDocument = node.ownerDocument;
   }
 
-  let leftOffset = 0;
-  let topOffset = 0;
-  let iterDoc: Document | null = node.ownerDocument ?? null;
   const rootDoc = typeof document !== 'undefined' ? document : null;
+  const iframeOffset = calculateIframeOffset(
+    node.ownerDocument ?? null,
+    rootDoc,
+  );
 
-  while (iterDoc && iterDoc !== rootDoc) {
-    try {
-      const frameElement = iterDoc.defaultView?.frameElement;
-      if (!frameElement) break;
-
-      const rect = (frameElement as Element).getBoundingClientRect();
-      const parentWin = iterDoc.defaultView?.parent;
-
-      let borderLeft = 0;
-      let borderTop = 0;
-      let zoom = 1;
-      try {
-        if (parentWin) {
-          const style = parentWin.getComputedStyle(frameElement as Element);
-          borderLeft = parseFloat(style.borderLeftWidth) || 0;
-          borderTop = parseFloat(style.borderTopWidth) || 0;
-          zoom = parseFloat((style as any).zoom) || 1;
-        }
-      } catch {
-        // cross-origin may fail
-      }
-
-      leftOffset = leftOffset / zoom + rect.left + borderLeft;
-      topOffset = topOffset / zoom + rect.top + borderTop;
-      iterDoc = (frameElement as Element).ownerDocument;
-    } catch {
-      break;
-    }
-  }
-
-  const Win = currentWindow as typeof globalThis.window;
-  const Doc = currentDocument as typeof globalThis.document;
-  if (node instanceof (Win as any).HTMLElement) {
-    const rect = getRect(node, 1, Win);
-    const isVisible = isElementPartiallyInViewport(rect, Win, Doc, 1);
+  const targetWin = targetWindow as typeof globalThis.window;
+  const targetDoc = targetDocument as typeof globalThis.document;
+  if (node instanceof (targetWin as any).HTMLElement) {
+    const rect = getRect(node, 1, targetWin);
+    const isVisible = isElementPartiallyInViewport(
+      rect,
+      targetWin,
+      targetDoc,
+      1,
+    );
     if (!isVisible) {
       (node as HTMLElement).scrollIntoView({
         behavior: 'instant',
@@ -396,12 +453,5 @@ export function getElementInfoByXpath(xpath: string): ElementInfo | null {
     }
   }
 
-  return collectElementInfo(
-    node,
-    Win,
-    Doc,
-    1,
-    { left: leftOffset, top: topOffset },
-    true,
-  );
+  return collectElementInfo(node, targetWin, targetDoc, 1, iframeOffset, true);
 }
