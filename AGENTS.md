@@ -8,6 +8,17 @@ coding agents.
 
 Midscene.js is a visual-driven AI automation framework for Web, Android, and iOS. It uses visual language models (VLMs) like Qwen3-VL, UI-TARS, and Gemini to understand and interact with user interfaces through screenshots, without requiring DOM markup or semantic selectors.
 
+## High-Value Rules
+
+- Before creating a commit or opening/updating a PR, run `pnpm run lint`
+  from the repository root.
+- For user-facing documentation changes, update both English and Chinese
+  copies in the same change.
+- Common documentation pairs are `README.md` and `README.zh.md`, plus
+  `apps/site/docs/en/**` and `apps/site/docs/zh/**`.
+- For docs site changes, check `apps/site/agents.md` for additional
+  translation rules before editing copy.
+
 ## Build System & Tooling
 
 ### Package Manager
@@ -159,7 +170,14 @@ Create `.env` in the repository root before running AI tests.
 
 ### Running Tests
 
-Always run tests after changes. AI tests are slow and cost money, so use caching during development:
+Before commit or PR, the minimum required validation is:
+
+```bash
+pnpm run lint
+```
+
+For code changes, also run the smallest relevant test target. AI tests are
+slow and cost money, so use caching during development:
 
 ```bash
 # Fast feedback loop
