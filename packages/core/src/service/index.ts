@@ -339,28 +339,18 @@ export default class Service {
 
     if (opt?.deepLocate) {
       const searchArea = expandSearchArea(targetRect, shotSize);
-      // Only crop when the search area covers at least 50% of the screen
-      // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
-      // too much context and cause model hallucinations.
-      const widthRatio = searchArea.width / shotSize.width;
-      const heightRatio = searchArea.height / shotSize.height;
-      if (widthRatio >= 0.5 && heightRatio >= 0.5) {
-        debug('describe: cropping to searchArea', searchArea);
-        const croppedResult = await cropByRect(
-          imagePayload,
-          searchArea,
-          modelFamily === 'qwen2.5-vl',
-        );
-        imagePayload = croppedResult.imageBase64;
-      } else {
-        debug(
-          'describe: skip cropping, search area too small (%dx%d on %dx%d)',
-          searchArea.width,
-          searchArea.height,
-          shotSize.width,
-          shotSize.height,
-        );
-      }
+      // Always crop in describe mode. Unlike locate's deepLocate (where
+      // cropping too small loses context for finding elements), describe's
+      // deepLocate intentionally zooms in so the model produces a more
+      // precise description from a focused view. expandSearchArea already
+      // guarantees a minimum 400x400 area with surrounding context.
+      debug('describe: cropping to searchArea', searchArea);
+      const croppedResult = await cropByRect(
+        imagePayload,
+        searchArea,
+        modelFamily === 'qwen2.5-vl',
+      );
+      imagePayload = croppedResult.imageBase64;
     }
 
     const msgs: AIArgs = [
