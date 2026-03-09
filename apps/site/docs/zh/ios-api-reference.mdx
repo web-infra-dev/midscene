@@ -15,6 +15,7 @@
 - `LongPress` —— 长按目标元素，可选自定义时长。
 - `ClearInput` —— 清空输入框内容。
 - `Launch` —— 打开网页、Bundle ID 或 URL Scheme。
+- `Terminate` —— 通过 Bundle ID 关闭正在运行的 iOS 应用。
 - `RunWdaRequest` —— 直接调用 WebDriverAgent REST 接口。
 - `IOSHomeButton` —— 执行 iOS 系统 Home 操作。
 - `IOSAppSwitcher` —— 打开 iOS 多任务视图。
@@ -104,7 +105,7 @@ const agent = new IOSAgent(device, {
 ### iOS 特有选项
 
 - `customActions?: DeviceAction<any>[]` —— 通过 `defineAction` 扩展规划器的可用动作。
-- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 Bundle Identifier。当你在 `launch(target)` 里传入应用名称时，Agent 会在此映射中查找对应的 Bundle ID；若未找到映射，则按原样尝试启动 `target`。用户提供的 appNameMapping 优先级高于默认映射。
+- `appNameMapping?: Record<string, string>` —— 将友好的应用名称映射到 Bundle Identifier。当你在 `launch(target)` 或 `terminate(bundleId)` 里传入应用名称时，Agent 会在此映射中查找对应的 Bundle ID；若未找到映射，则按原样使用 `target`。用户提供的 appNameMapping 优先级高于默认映射。
 - 其余字段与 [API constructors](./api#common-parameters) 一致：`generateReport`、`reportFileName`、`aiActionContext`、`modelConfig`、`cacheId`、`createOpenAIClient`、`onTaskStartTip` 等。
 
 ### 使用说明
@@ -112,7 +113,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `launch`、`runWdaRequest` 等 iOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [iOS 平台特定动作](./automate-with-scripts-in-yaml#the-ios-part)。
+- `launch`、`terminate`、`runWdaRequest` 等 iOS 专属辅助函数也可在 YAML 脚本中使用，语法见 [iOS 平台特定动作](./automate-with-scripts-in-yaml#the-ios-part)。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
 
 :::
@@ -134,6 +135,21 @@ await agent.launch('https://www.apple.com');
 await agent.launch('com.apple.Preferences');
 await agent.launch('myapp://profile/user/123');
 await agent.launch('tel:+1234567890');
+```
+
+#### `agent.terminate()`
+
+通过 Bundle ID 终止（关闭）正在运行的 iOS 应用。
+
+```ts
+function terminate(bundleId: string): Promise<void>;
+```
+
+- `bundleId: string` —— 要终止的应用的 Bundle Identifier（如 `com.apple.Preferences`）。若传入应用名称且在 `appNameMapping` 中存在映射，将自动解析为对应 Bundle ID。
+
+```ts
+await agent.terminate('com.apple.Preferences');
+await agent.terminate('com.apple.mobilesafari');
 ```
 
 #### `agent.runWdaRequest()`

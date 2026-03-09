@@ -340,6 +340,7 @@ tasks:
 - `/wda/device/info` - Get device information
 - `/session/{sessionId}/wda/pressButton` - Press hardware buttons
 - `/session/{sessionId}/wda/apps/launch` - Launch apps
+- `/session/{sessionId}/wda/apps/terminate` - Terminate apps
 - `/session/{sessionId}/wda/apps/activate` - Activate apps
 
 **`launch` - Launch App or URL**
@@ -358,6 +359,20 @@ tasks:
   - name: Open webpage
     flow:
       - launch: https://www.example.com
+```
+
+**`terminate` - Terminate App**
+
+Terminate (close) a running iOS app by its bundle ID.
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: Terminate Settings app
+    flow:
+      - terminate: com.apple.Preferences
 ```
 
 ### The `computer` part
