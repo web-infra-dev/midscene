@@ -14,21 +14,11 @@ This guide describes how to operate on E2E test files in the `e2e/` directory. E
 
 When the user wants to test a new feature or page.
 
-1. Confirm the **platform** (web / android / ios), **feature name**, and **target URL or app** with the user
-2. Create test file in the appropriate platform directory:
-   - Web: `e2e/web/<feature>.test.ts`
-   - Android: `e2e/android/<feature>.test.ts`
-   - iOS: `e2e/ios/<feature>.test.ts`
-3. Scaffold using the matching platform template:
-   - Web: [templates/web.md](./templates/web.md)
-   - Android: [templates/android.md](./templates/android.md)
-   - iOS: [templates/ios.md](./templates/ios.md)
-4. Import the correct context class from `../../src/context`:
-   - `WebTest` for Web
-   - `AndroidTest` for Android
-   - `IOSTest` for iOS
-5. Fill in `describe` name, `it` blocks, and Midscene API calls per user requirements
-6. Run and verify:
+1. Confirm **feature name** and **target URL or app** with the user (platform should already be known from [enhance.md](./phases/enhance.md))
+2. Create `e2e/<platform>/<feature>.test.ts` using the matching platform pattern (includes imports, lifecycle, and scaffolding):
+   - [patterns/web.md](./patterns/web.md) / [patterns/android.md](./patterns/android.md) / [patterns/ios.md](./patterns/ios.md)
+3. Fill in `describe` name, `it` blocks, and Midscene API calls per user requirements
+4. Run and verify:
    ```bash
    npx vitest run e2e/<platform>/<feature>.test.ts
    ```

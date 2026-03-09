@@ -2,11 +2,11 @@
   "name": "vitest-midscene-addon",
   "version": "1.0.0",
   "description": "Enhance Vitest with Midscene for smarter, easier UI testing across Web, Android, and iOS",
-  "abstract": "Skill for setting up projects, generating, updating, debugging, and running AI-driven E2E tests. Uses Midscene for natural-language UI interaction, Vitest as the test framework, and Playwright/ADB/WDA for platform automation.",
+  "abstract": "Three-phase skill (Create → Transform → Enhance) for AI-driven E2E testing. Detects project state, scaffolds new projects, converts existing ones non-destructively, and creates/updates/debugs/runs tests. Uses Midscene for natural-language UI interaction, Vitest as the test framework, and Playwright/ADB/WDA for platform automation.",
   "date": "March 2026",
   "author": "midscene",
   "license": "MIT",
-  "scope": "Project setup, E2E test writing, updating, debugging, and execution",
+  "scope": "Project state detection, scaffolding, non-destructive conversion, E2E test CRUD, debugging, and execution",
   "tools": ["@midscene/web", "@midscene/android", "@midscene/ios", "vitest", "playwright"],
   "references": [
     "https://midscenejs.com",

@@ -1,17 +1,37 @@
 ---
-title: Web Test Template
+title: Web Test Pattern
 impact: CRITICAL
-tags: template, web, playwright, browser
+tags: pattern, web, playwright, browser, lifecycle
 ---
 
-# Web Test Template
+# Web Test Pattern
 
 Uses `WebTest` from `src/context`. Each `fixture.create()` opens a new browser page on a shared Chromium instance.
 
 - `ctx.agent` = `PlaywrightAgent` — AI methods (`aiTap`, `aiInput`, `aiAssert`, `aiQuery`, `aiWaitFor`, `aiAct`)
 - `ctx.page` = Playwright `Page` — native browser APIs (`waitForLoadState`, `goto`, `title`, etc.)
 
-## Scaffolding Template
+## Lifecycle
+
+```typescript
+const fixture = WebTest.init(options?);  // beforeAll + afterEach + afterAll registered automatically
+
+it('scenario', async (testCtx) => {
+  const ctx = await fixture.create('https://example.com', testCtx);  // per-test context
+  // ... test body ...
+});
+```
+
+Under the hood, `init()` registers these hooks:
+
+| Hook | What happens |
+|------|-------------|
+| `beforeAll` | Launch shared Chromium browser |
+| each `it` | `fixture.create()` opens a new page, creates fresh `PlaywrightAgent` |
+| `afterEach` | Collect test report, close page |
+| `afterAll` | Merge reports + close browser |
+
+## Scaffolding Pattern
 
 ```typescript
 import { describe, it, expect } from 'vitest';

@@ -1,17 +1,37 @@
 ---
-title: Android Test Template
+title: Android Test Pattern
 impact: CRITICAL
-tags: template, android, adb, scrcpy, mobile
+tags: pattern, android, adb, scrcpy, mobile, lifecycle
 ---
 
-# Android Test Template
+# Android Test Pattern
 
 Uses `AndroidTest` from `src/context`. Connects to a device via ADB; each `fixture.create()` launches a URL/app on the shared device and creates a fresh agent.
 
 - `ctx.agent` = `AndroidAgent` — AI methods + platform-specific: `back()`, `home()`, `recentApps()`, `launch(uri)`, `runAdbShell(cmd)`
 - No `ctx.page` — use agent methods only
 
-## Scaffolding Template
+## Lifecycle
+
+```typescript
+const fixture = AndroidTest.init(options?);  // beforeAll + afterEach + afterAll registered automatically
+
+it('scenario', async (testCtx) => {
+  const ctx = await fixture.create('com.example.app', testCtx);  // per-test context
+  // ... test body ...
+});
+```
+
+Under the hood, `init()` registers these hooks:
+
+| Hook | What happens |
+|------|-------------|
+| `beforeAll` | Connect to ADB device |
+| each `it` | `fixture.create()` launches URL/app, creates fresh `AndroidAgent` |
+| `afterEach` | Collect test report, destroy agent |
+| `afterAll` | Merge reports + disconnect device |
+
+## Scaffolding Pattern
 
 ```typescript
 import { describe, it, expect } from 'vitest';

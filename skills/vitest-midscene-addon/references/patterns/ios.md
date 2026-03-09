@@ -1,17 +1,37 @@
 ---
-title: iOS Test Template
+title: iOS Test Pattern
 impact: CRITICAL
-tags: template, ios, wda, webdriveragent, mobile
+tags: pattern, ios, wda, webdriveragent, mobile, lifecycle
 ---
 
-# iOS Test Template
+# iOS Test Pattern
 
 Uses `IOSTest` from `src/context`. Connects via WebDriverAgent; each `fixture.create()` launches a URL/app on the shared device and creates a fresh agent.
 
 - `ctx.agent` = `IOSAgent` — AI methods + platform-specific: `home()`, `appSwitcher()`, `launch(uri)`, `runWdaRequest(req)`
 - No `ctx.page` — use agent methods only
 
-## Scaffolding Template
+## Lifecycle
+
+```typescript
+const fixture = IOSTest.init(options?);  // beforeAll + afterEach + afterAll registered automatically
+
+it('scenario', async (testCtx) => {
+  const ctx = await fixture.create('com.apple.mobilesafari', testCtx);  // per-test context
+  // ... test body ...
+});
+```
+
+Under the hood, `init()` registers these hooks:
+
+| Hook | What happens |
+|------|-------------|
+| `beforeAll` | Connect to device via WebDriverAgent |
+| each `it` | `fixture.create()` launches URL/app, creates fresh `IOSAgent` |
+| `afterEach` | Collect test report, destroy agent |
+| `afterAll` | Merge reports + disconnect device |
+
+## Scaffolding Pattern
 
 ```typescript
 import { describe, it, expect } from 'vitest';

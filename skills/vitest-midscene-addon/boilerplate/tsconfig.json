@@ -9,5 +9,5 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["e2e", "helpers", "src", "vitest.d.ts"]
+  "include": ["e2e", "src", "vitest.d.ts"]
 }

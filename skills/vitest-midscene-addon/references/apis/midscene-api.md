@@ -90,7 +90,7 @@ await ctx.agent.aiWaitFor('保存成功提示出现');
 See [troubleshooting.md](../troubleshooting.md) for detailed examples. Key pitfalls:
 
 - **Vague locators** — `'按钮'` is ambiguous; use `'页面顶部的蓝色"提交"按钮'`
-- **Missing network wait** — always `waitForLoadState('networkidle')` after navigation before asserting
+- **Missing network wait** — Web: `waitForLoadState('networkidle')` after navigation before asserting; Android/iOS: use `aiWaitFor` instead
 - **Deprecated `aiAction`** — use `aiAct` instead
 - **Ambiguous multi-element targets** — specify row/position: `'第一行商品的删除按钮'`
 
