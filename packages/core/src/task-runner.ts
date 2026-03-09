@@ -29,6 +29,7 @@ type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
 
 type TaskRunnerOperationOptions = {
   allowWhenError?: boolean;
+  signal?: AbortSignal;
 };
 
 export class TaskRunner {
@@ -221,6 +222,17 @@ export class TaskRunner {
     let previousFindOutput: ExecutionTaskPlanningLocateOutput | undefined;
 
     while (taskIndex < this.tasks.length) {
+      // Check if the operation has been aborted
+      if (options?.signal?.aborted) {
+        // Mark all remaining tasks as cancelled
+        for (let i = taskIndex; i < this.tasks.length; i++) {
+          this.tasks[i].status = 'cancelled';
+        }
+        this.status = 'error';
+        await this.emitOnTaskUpdate();
+        throw new MidsceneAbortedError(options.signal.reason);
+      }
+
       const task = this.tasks[taskIndex];
       assert(
         task.status === 'pending',
@@ -407,6 +419,23 @@ export class TaskRunner {
       output: undefined,
       runner: this,
     };
+  }
+}
+
+/**
+ * Error thrown when an operation is aborted via an AbortSignal.
+ */
+export class MidsceneAbortedError extends Error {
+  override name = 'MidsceneAbortedError';
+
+  constructor(reason?: unknown) {
+    const message =
+      reason instanceof Error
+        ? reason.message
+        : typeof reason === 'string'
+          ? reason
+          : 'The operation was aborted';
+    super(message, reason instanceof Error ? { cause: reason } : undefined);
   }
 }
 

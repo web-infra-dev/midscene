@@ -142,6 +142,8 @@ export type AiActOptions = {
   fileChooserAccept?: string | string[];
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
+  /** An optional AbortSignal that can be used to cancel the action. */
+  signal?: AbortSignal;
 };
 
 export class Agent<
@@ -859,6 +861,7 @@ export class Agent<
         deepThink,
         fileChooserAccept,
         includeBboxInPlanning ? undefined : deepLocate,
+        opt?.signal,
       );
 
       // update cache
