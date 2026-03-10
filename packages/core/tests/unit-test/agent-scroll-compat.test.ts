@@ -77,9 +77,7 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
       'Scroll',
       expect.objectContaining({
         locate: expect.objectContaining({
-          prompt: {
-            prompt: '计数器',
-          },
+          prompt: '计数器',
         }),
       }),
     );
