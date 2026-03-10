@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { calculateFrameMap } from '../src/component/player/scenes/frame-calculator';
 import { getPlaybackFrameState } from '../src/component/player/scenes/playback-frame';
+import { getPlaybackViewport } from '../src/component/player/scenes/playback-layout';
 import type { AnimationScript } from '../src/utils/replay-scripts';
 
 describe('playback composition sizing', () => {
@@ -32,6 +33,8 @@ describe('playback composition sizing', () => {
     expect(portraitFrame?.imageHeight).toBe(1280);
     expect(landscapeFrame?.imageWidth).toBe(1280);
     expect(landscapeFrame?.imageHeight).toBe(720);
+    expect(portraitFrame?.camera.width).toBe(720);
+    expect(landscapeFrame?.camera.width).toBe(1280);
   });
 
   it('falls back to the provided image size when scripts omit dimensions', () => {
@@ -53,5 +56,14 @@ describe('playback composition sizing', () => {
     expect(frameMap.imageHeight).toBe(900);
     expect(frameState?.imageWidth).toBe(1600);
     expect(frameState?.imageHeight).toBe(900);
+  });
+
+  it('letterboxes exported portrait frames instead of stretching them', () => {
+    const viewport = getPlaybackViewport(960, 540, 720, 1280);
+
+    expect(viewport.contentHeight).toBe(540);
+    expect(viewport.contentWidth).toBeCloseTo(303.75, 5);
+    expect(viewport.offsetX).toBeCloseTo(328.125, 5);
+    expect(viewport.offsetY).toBe(0);
   });
 });
