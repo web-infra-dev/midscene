@@ -47,17 +47,19 @@ export class ReportMergingTool {
       overwrite?: boolean;
     },
   ): string | null {
-    if (this.reportInfos.length <= 1) {
-      logMsg('Not enough reports to merge');
+    const { rmOriginalReports = false, overwrite = false } = opts ?? {};
+
+    if (this.reportInfos.length === 0) {
+      logMsg('No reports to merge');
       return null;
     }
 
-    const { rmOriginalReports = false, overwrite = false } = opts ?? {};
     const targetDir = getMidsceneRunSubDir('report');
 
     // Check if any source report is directory mode
-    const hasDirectoryModeReport = this.reportInfos.some((info) =>
-      this.isDirectoryModeReport(info.reportFilePath),
+    const hasDirectoryModeReport = this.reportInfos.some(
+      (info) =>
+        info.reportFilePath && this.isDirectoryModeReport(info.reportFilePath),
     );
 
     const resolvedName =
@@ -106,27 +108,31 @@ export class ReportMergingTool {
         const reportInfo = this.reportInfos[i];
         logMsg(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
-        if (this.isDirectoryModeReport(reportInfo.reportFilePath)) {
-          // Directory mode: copy external screenshot files
-          const reportDir = path.dirname(reportInfo.reportFilePath);
-          const screenshotsDir = path.join(reportDir, 'screenshots');
-          const mergedScreenshotsDir = path.join(
-            path.dirname(outputFilePath),
-            'screenshots',
-          );
-          mkdirSync(mergedScreenshotsDir, { recursive: true });
-          for (const file of readdirSync(screenshotsDir)) {
-            const src = path.join(screenshotsDir, file);
-            const dest = path.join(mergedScreenshotsDir, file);
-            copyFileSync(src, dest);
-          }
-        } else {
-          // Inline mode: stream image scripts to output file
-          streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
-        }
-
-        const dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
         const { reportAttributes } = reportInfo;
+        let dumpString = '';
+
+        if (reportInfo.reportFilePath) {
+          if (this.isDirectoryModeReport(reportInfo.reportFilePath)) {
+            // Directory mode: copy external screenshot files
+            const reportDir = path.dirname(reportInfo.reportFilePath);
+            const screenshotsDir = path.join(reportDir, 'screenshots');
+            const mergedScreenshotsDir = path.join(
+              path.dirname(outputFilePath),
+              'screenshots',
+            );
+            mkdirSync(mergedScreenshotsDir, { recursive: true });
+            for (const file of readdirSync(screenshotsDir)) {
+              const src = path.join(screenshotsDir, file);
+              const dest = path.join(mergedScreenshotsDir, file);
+              copyFileSync(src, dest);
+            }
+          } else {
+            // Inline mode: stream image scripts to output file
+            streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
+          }
+
+          dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
+        }
 
         const reportHtmlStr = `${reportHTMLContent(
           {
@@ -137,6 +143,7 @@ export class ReportMergingTool {
               playwright_test_title: reportAttributes.testTitle,
               playwright_test_id: reportAttributes.testId,
               playwright_test_description: reportAttributes.testDescription,
+              is_merged: true,
             },
           },
           undefined,
@@ -152,6 +159,7 @@ export class ReportMergingTool {
       // Remove original reports if needed
       if (rmOriginalReports) {
         for (const info of this.reportInfos) {
+          if (!info.reportFilePath) continue;
           try {
             if (this.isDirectoryModeReport(info.reportFilePath)) {
               // Directory mode: remove the entire report directory
