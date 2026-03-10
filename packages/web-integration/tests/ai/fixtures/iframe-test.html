@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Iframe Locator Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .top-section { margin-bottom: 20px; }
+    .iframe-section { margin-top: 20px; }
+    iframe { border: 2px solid #333; }
+  </style>
+</head>
+<body>
+  <div class="top-section">
+    <h1>Top Level Page</h1>
+    <button id="top-btn">Top Button</button>
+    <p id="top-text">This is the top level document</p>
+  </div>
+
+  <div class="iframe-section">
+    <h3>Same-origin iframe:</h3>
+    <iframe id="test-iframe" src="iframe-child.html" width="400" height="200"></iframe>
+  </div>
+</body>
+</html>
