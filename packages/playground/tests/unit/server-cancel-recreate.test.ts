@@ -1,166 +1,343 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PlaygroundAgent } from '../../src/types';
 
-/**
- * Bug regression test: After clicking Stop then Run, the system should not
- * report "agent already destroyed". The cancel handler must recreate the agent
- * so subsequent executions use a fresh, non-destroyed agent instance.
- */
+vi.mock('../../src/common', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/common')>();
+  return {
+    ...actual,
+    executeAction: vi.fn(),
+  };
+});
+
+import * as common from '../../src/common';
+import { PlaygroundServer } from '../../src/server';
+
+type MockResponse = ReturnType<typeof createMockResponse>;
+type RouteHandler = (
+  req: Record<string, any>,
+  res: MockResponse,
+) => Promise<void>;
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
+
+function createGroupedDump(name: string): string {
+  return JSON.stringify({
+    sdkVersion: 'test',
+    groupName: 'test-group',
+    modelBriefs: [],
+    executions: [
+      {
+        logTime: Date.now(),
+        name,
+        tasks: [],
+      },
+    ],
+  });
+}
+
+function createMockAgent(label: string): PlaygroundAgent {
+  return {
+    interface: {
+      interfaceType: 'mock',
+      actionSpace: vi.fn(() => []),
+      screenshotBase64: vi.fn().mockResolvedValue(`${label}-screenshot`),
+      describe: vi.fn(() => `${label}-description`),
+    },
+    destroy: vi.fn().mockResolvedValue(undefined),
+    dumpDataString: vi.fn(() => createGroupedDump(label)),
+    reportHTMLString: vi.fn(() => `${label}-report`),
+    writeOutActionDumps: vi.fn(),
+    resetDump: vi.fn(),
+  } as unknown as PlaygroundAgent;
+}
+
+function createMockResponse() {
+  const res = {
+    statusCode: 200,
+    jsonBody: undefined as unknown,
+    sentBody: undefined as unknown,
+    status: vi.fn((code: number) => {
+      res.statusCode = code;
+      return res;
+    }),
+    json: vi.fn((body: unknown) => {
+      res.jsonBody = body;
+      return res;
+    }),
+    send: vi.fn((body: unknown) => {
+      res.sentBody = body;
+      return res;
+    }),
+    setHeader: vi.fn(),
+    write: vi.fn(),
+    end: vi.fn(),
+  };
+
+  return res;
+}
+
+function getPostHandler(server: PlaygroundServer, path: string): RouteHandler {
+  const postMock = vi.mocked(server.app.post as any);
+  const route = postMock.mock.calls.find(([routePath]) => routePath === path);
+
+  if (!route) {
+    throw new Error(`Route not found: ${path}`);
+  }
+
+  return route[1] as RouteHandler;
+}
+
 describe('PlaygroundServer cancel and recreate agent', () => {
-  it('should recreate agent after cancel so it is not destroyed', async () => {
-    // Simulate the agent lifecycle in PlaygroundServer
-    let agentInstance = {
-      destroyed: false,
-      interface: { screenshotBase64: vi.fn() },
-      destroy: vi.fn(async () => {
-        agentInstance.destroyed = true;
-      }),
-    };
+  const launchedServers: PlaygroundServer[] = [];
 
-    const agentFactory = vi.fn(async () => {
-      // Factory creates a fresh agent (not destroyed)
-      agentInstance = {
-        destroyed: false,
-        interface: { screenshotBase64: vi.fn() },
-        destroy: vi.fn(async () => {
-          agentInstance.destroyed = true;
-        }),
-      };
-      return agentInstance;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(common.executeAction).mockReset();
+  });
+
+  afterEach(async () => {
+    await Promise.all(
+      launchedServers.splice(0).map((server) => server.close()),
+    );
+  });
+
+  async function launchServer(
+    agent:
+      | PlaygroundAgent
+      | (() => PlaygroundAgent)
+      | (() => Promise<PlaygroundAgent>),
+  ): Promise<PlaygroundServer> {
+    const server = new PlaygroundServer(agent);
+    launchedServers.push(server);
+    await server.launch();
+    return server;
+  }
+
+  it('keeps using the in-flight agent for dump/report cleanup after cancel', async () => {
+    const activeAgent = createMockAgent('active');
+    const recreatedAgent = createMockAgent('recreated');
+    const agentFactory = vi
+      .fn<() => Promise<PlaygroundAgent>>()
+      .mockResolvedValueOnce(activeAgent)
+      .mockResolvedValueOnce(recreatedAgent);
+
+    const server = await launchServer(agentFactory);
+    const executeHandler = getPostHandler(server, '/execute');
+    const cancelHandler = getPostHandler(server, '/cancel/:requestId');
+    const deferred = createDeferred<string>();
+
+    vi.mocked(common.executeAction).mockReturnValueOnce(deferred.promise);
+
+    const executeRes = createMockResponse();
+    const executePromise = executeHandler(
+      {
+        body: {
+          type: 'aiQuery',
+          prompt: 'run',
+          requestId: 'req-1',
+        },
+      },
+      executeRes,
+    );
+
+    await Promise.resolve();
+
+    const cancelRes = createMockResponse();
+    await cancelHandler(
+      {
+        params: {
+          requestId: 'req-1',
+        },
+      },
+      cancelRes,
+    );
+
+    deferred.resolve('done');
+    await executePromise;
+
+    expect(cancelRes.jsonBody).toMatchObject({
+      status: 'cancelled',
+      canExecute: true,
+      reportHTML: 'active-report',
     });
-
-    // Simulate the recreateAgent logic from server.ts
-    async function recreateAgent() {
-      // Destroy old agent
-      if (agentInstance && typeof agentInstance.destroy === 'function') {
-        await agentInstance.destroy();
-      }
-      // Create new agent
-      const newAgent = await agentFactory();
-      return newAgent;
-    }
-
-    // Initial state - agent is alive
-    expect(agentInstance.destroyed).toBe(false);
-
-    // Simulate cancel: recreateAgent is called
-    const newAgent = await recreateAgent();
-
-    // After cancel + recreate, the new agent should NOT be destroyed
-    expect(newAgent.destroyed).toBe(false);
-    expect(agentFactory).toHaveBeenCalledTimes(1);
-
-    // The new agent should be usable (not the old destroyed one)
-    expect(newAgent).toBe(agentInstance);
-  });
-
-  it('should fail if cancel only destroys without recreating (old buggy behavior)', async () => {
-    // This test documents the OLD buggy behavior where cancel only destroyed
-    // the agent without recreating it, causing "agent already destroyed" on next Run
-    let agent = {
-      destroyed: false,
-      destroy: vi.fn(async () => {
-        agent.destroyed = true;
-      }),
-    };
-
-    const agentFactory = vi.fn(async () => {
-      agent = {
-        destroyed: false,
-        destroy: vi.fn(async () => {
-          agent.destroyed = true;
-        }),
-      };
-      return agent;
+    expect(executeRes.sentBody).toMatchObject({
+      result: 'done',
+      reportHTML: 'active-report',
     });
-
-    // OLD buggy cancel behavior: only destroy, don't recreate
-    async function oldBuggyCancelHandler() {
-      if (agent && typeof agent.destroy === 'function') {
-        await agent.destroy();
-      }
-      // Missing: agent = await agentFactory()
-    }
-
-    // Simulate cancel with old buggy handler
-    await oldBuggyCancelHandler();
-
-    // Agent is destroyed and NOT recreated - this was the bug
-    expect(agent.destroyed).toBe(true);
-    expect(agentFactory).not.toHaveBeenCalled();
+    expect(activeAgent.writeOutActionDumps).toHaveBeenCalledTimes(1);
+    expect(activeAgent.resetDump).toHaveBeenCalledTimes(1);
+    expect(recreatedAgent.writeOutActionDumps).not.toHaveBeenCalled();
+    expect(recreatedAgent.resetDump).not.toHaveBeenCalled();
   });
 
-  it('should handle deviceOptions propagation without "options in" guard', () => {
-    // Old code used: 'options' in this.agent.interface
-    // which could fail at runtime for some device types.
-    // New code uses direct cast assignment.
+  it('marks instance-mode cancel as non-restartable and blocks later execute calls', async () => {
+    const fixedAgent = createMockAgent('fixed');
+    const server = await launchServer(fixedAgent);
+    const executeHandler = getPostHandler(server, '/execute');
+    const cancelHandler = getPostHandler(server, '/cancel/:requestId');
+    const deferred = createDeferred<string>();
 
-    const iface: Record<string, unknown> = {
-      screenshotBase64: vi.fn(),
-      size: vi.fn(),
-    };
-    // iface does NOT have 'options' property initially
+    vi.mocked(common.executeAction).mockReturnValueOnce(deferred.promise);
 
-    // OLD code: 'options' in iface would be true for plain objects
-    // but could fail for class instances with property descriptors
-    // The fix: use direct cast assignment
-    const deviceOptions = { alwaysRefreshScreenInfo: true };
+    const runningRes = createMockResponse();
+    const runningPromise = executeHandler(
+      {
+        body: {
+          type: 'aiQuery',
+          prompt: 'run',
+          requestId: 'req-fixed',
+        },
+      },
+      runningRes,
+    );
 
-    // Simulate the fixed code path
-    const typedIface = iface as { options?: Record<string, unknown> };
-    typedIface.options = {
-      ...(typedIface.options || {}),
-      ...deviceOptions,
-    };
+    await Promise.resolve();
 
-    expect(typedIface.options).toEqual({ alwaysRefreshScreenInfo: true });
+    const cancelRes = createMockResponse();
+    await cancelHandler(
+      {
+        params: {
+          requestId: 'req-fixed',
+        },
+      },
+      cancelRes,
+    );
+
+    deferred.resolve('stopped');
+    await runningPromise;
+
+    expect(cancelRes.jsonBody).toMatchObject({
+      status: 'cancelled',
+      canExecute: false,
+    });
+    expect((cancelRes.jsonBody as { message: string }).message).toContain(
+      'fixed agent instance',
+    );
+
+    const rerunRes = createMockResponse();
+    await executeHandler(
+      {
+        body: {
+          type: 'aiQuery',
+          prompt: 'rerun',
+          requestId: 'req-rerun',
+        },
+      },
+      rerunRes,
+    );
+
+    expect(rerunRes.statusCode).toBe(409);
+    expect(rerunRes.jsonBody).toMatchObject({
+      error: expect.stringContaining('fixed agent instance'),
+    });
   });
 
-  it('should destroy agent on cancel even without factory (instance mode)', async () => {
-    // When PlaygroundServer is created with an agent instance (no factory),
-    // cancel should still destroy the agent to stop the running task.
-    const agent = {
-      destroyed: false,
-      destroy: vi.fn(async () => {
-        agent.destroyed = true;
-      }),
-    };
+  it('merges deviceOptions even when the interface had no options property', async () => {
+    const agent = createMockAgent('device');
+    (agent.interface as Record<string, unknown>).options = undefined;
 
-    const agentFactory = null; // no factory
+    const server = await launchServer(agent);
+    const executeHandler = getPostHandler(server, '/execute');
 
-    // Simulate the fixed recreateAgent logic
-    async function recreateAgent() {
-      // Destroy old agent
-      if (agent && typeof agent.destroy === 'function') {
-        await agent.destroy();
-      }
-      // No factory — cannot recreate, but destroy still happened
-      if (!agentFactory) {
-        return;
-      }
-    }
+    vi.mocked(common.executeAction).mockResolvedValueOnce('done');
 
-    await recreateAgent();
+    const res = createMockResponse();
+    await executeHandler(
+      {
+        body: {
+          type: 'aiQuery',
+          prompt: 'run',
+          deviceOptions: {
+            alwaysRefreshScreenInfo: true,
+          },
+        },
+      },
+      res,
+    );
 
-    // Agent should be destroyed even without factory
-    expect(agent.destroyed).toBe(true);
-    expect(agent.destroy).toHaveBeenCalledTimes(1);
-  });
-
-  it('should merge deviceOptions with existing options', () => {
-    const iface = {
-      options: { existingOption: 'value', alwaysRefreshScreenInfo: false },
-    } as { options?: Record<string, unknown> };
-
-    const deviceOptions = { alwaysRefreshScreenInfo: true };
-
-    iface.options = {
-      ...(iface.options || {}),
-      ...deviceOptions,
-    };
-
-    expect(iface.options).toEqual({
-      existingOption: 'value',
+    expect(
+      (agent.interface as { options?: Record<string, unknown> }).options,
+    ).toEqual({
       alwaysRefreshScreenInfo: true,
+    });
+  });
+
+  it('surfaces recreate failures during cancel and allows a later factory recovery', async () => {
+    const activeAgent = createMockAgent('active');
+    const recoveredAgent = createMockAgent('recovered');
+    const agentFactory = vi
+      .fn<() => Promise<PlaygroundAgent>>()
+      .mockResolvedValueOnce(activeAgent)
+      .mockRejectedValueOnce(new Error('factory failed'));
+
+    const server = await launchServer(agentFactory);
+    const executeHandler = getPostHandler(server, '/execute');
+    const cancelHandler = getPostHandler(server, '/cancel/:requestId');
+    const deferred = createDeferred<string>();
+
+    vi.mocked(common.executeAction).mockReturnValueOnce(deferred.promise);
+
+    const runningRes = createMockResponse();
+    const runningPromise = executeHandler(
+      {
+        body: {
+          type: 'aiQuery',
+          prompt: 'run',
+          requestId: 'req-factory-error',
+        },
+      },
+      runningRes,
+    );
+
+    await Promise.resolve();
+
+    const cancelRes = createMockResponse();
+    await cancelHandler(
+      {
+        params: {
+          requestId: 'req-factory-error',
+        },
+      },
+      cancelRes,
+    );
+
+    deferred.resolve('stopped');
+    await runningPromise;
+
+    expect(cancelRes.statusCode).toBe(500);
+    expect(cancelRes.jsonBody).toMatchObject({
+      error: expect.stringContaining('failed to prepare the next agent'),
+      reportHTML: 'active-report',
+    });
+
+    agentFactory.mockResolvedValueOnce(recoveredAgent);
+    vi.mocked(common.executeAction).mockResolvedValueOnce('recovered-result');
+
+    const retryRes = createMockResponse();
+    await executeHandler(
+      {
+        body: {
+          type: 'aiQuery',
+          prompt: 'retry',
+          requestId: 'req-after-recovery',
+        },
+      },
+      retryRes,
+    );
+
+    expect(retryRes.sentBody).toMatchObject({
+      result: 'recovered-result',
+      reportHTML: 'recovered-report',
     });
   });
 });

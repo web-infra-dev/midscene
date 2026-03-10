@@ -24,6 +24,8 @@ const defaultPort = PLAYGROUND_SERVER_PORT;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const STATIC_PATH = join(__dirname, '..', '..', 'static');
+const FIXED_AGENT_CANCEL_MESSAGE =
+  'Task cancelled. This PlaygroundServer was created with a fixed agent instance, so future /execute requests are disabled. Create the server with an agent factory to support reruns after cancel.';
 
 const errorHandler = (
   err: unknown,
@@ -44,7 +46,7 @@ class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  agent: PageAgent;
+  agent: PageAgent | null;
   staticPath: string;
   taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
@@ -65,6 +67,9 @@ class PlaygroundServer {
 
   // Flag to track if AI config has changed and agent needs recreation
   private _configDirty = false;
+
+  // When set, requests should fail fast instead of touching a destroyed agent.
+  private agentUnavailableReason: string | null = null;
 
   constructor(
     agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
@@ -115,6 +120,89 @@ class PlaygroundServer {
     return this._app;
   }
 
+  private getAgentErrorMessage(): string {
+    return this.agentUnavailableReason || 'Agent is not initialized';
+  }
+
+  private getActiveAgent(): PageAgent {
+    if (!this.agent) {
+      throw new Error(this.getAgentErrorMessage());
+    }
+    return this.agent;
+  }
+
+  private getActiveAgentOrRespond(res: Response): PageAgent | null {
+    if (!this.agent || this.agentUnavailableReason) {
+      res.status(409).json({
+        error: this.getAgentErrorMessage(),
+      });
+      return null;
+    }
+    return this.agent;
+  }
+
+  private async destroyAgent(
+    agent: PageAgent | null,
+    warningMessage: string,
+  ): Promise<void> {
+    try {
+      if (agent && typeof agent.destroy === 'function') {
+        await agent.destroy();
+      }
+    } catch (error) {
+      console.warn(warningMessage, error);
+    }
+  }
+
+  private async createAgentFromFactory(): Promise<PageAgent> {
+    if (!this.agentFactory) {
+      throw new Error('Agent factory function not provided');
+    }
+
+    const nextAgent = await this.agentFactory();
+    this.agent = nextAgent;
+    this.agentUnavailableReason = null;
+    return nextAgent;
+  }
+
+  private async prepareAgentForExecution(): Promise<PageAgent> {
+    const shouldRecreateAgent =
+      Boolean(this.agentFactory) &&
+      Boolean(this._configDirty || !this.agent || this.agentUnavailableReason);
+
+    if (shouldRecreateAgent) {
+      const recreateReason = this._configDirty
+        ? 'AI config changed, recreating agent...'
+        : 'Recovering agent before execution...';
+      this._configDirty = false;
+      this._agentReady = false;
+      console.log(recreateReason);
+
+      await this.destroyAgent(this.agent, 'Failed to destroy old agent:');
+
+      try {
+        const recreatedAgent = await this.createAgentFromFactory();
+        this._agentReady = true;
+        console.log('Agent ready for execution');
+        return recreatedAgent;
+      } catch (error) {
+        this._agentReady = true;
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.agent = null;
+        this.agentUnavailableReason = `Failed to create agent: ${errorMessage}`;
+        console.error('Failed to recreate agent:', error);
+        throw new Error(this.agentUnavailableReason);
+      }
+    }
+
+    if (this.agentUnavailableReason) {
+      throw new Error(this.agentUnavailableReason);
+    }
+
+    return this.getActiveAgent();
+  }
+
   /**
    * Initialize Express app with all routes and middleware
    * Called automatically by launch() if not already initialized
@@ -129,12 +217,15 @@ class PlaygroundServer {
     this._app.use(
       (req: Request, _res: Response, next: express.NextFunction) => {
         const { context } = req.body || {};
+        const activeAgent = this.agent;
         if (
+          activeAgent &&
+          !this.agentUnavailableReason &&
           context &&
-          'updateContext' in this.agent.interface &&
-          typeof this.agent.interface.updateContext === 'function'
+          'updateContext' in activeAgent.interface &&
+          typeof activeAgent.interface.updateContext === 'function'
         ) {
-          this.agent.interface.updateContext(context);
+          activeAgent.interface.updateContext(context);
           console.log('Context updated by PlaygroundServer middleware');
         }
         next();
@@ -182,36 +273,42 @@ class PlaygroundServer {
   /**
    * Recreate agent instance (for cancellation)
    */
-  private async recreateAgent(): Promise<void> {
+  private async recreateAgent(
+    currentAgent: PageAgent,
+  ): Promise<{ canExecute: boolean; message: string }> {
     this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
-    // Destroy old agent instance
-    try {
-      if (this.agent && typeof this.agent.destroy === 'function') {
-        await this.agent.destroy();
-      }
-    } catch (error) {
-      console.warn('Failed to destroy old agent:', error);
-    }
+    await this.destroyAgent(currentAgent, 'Failed to destroy old agent:');
 
     // Create new agent instance if factory is available
     if (this.agentFactory) {
       try {
-        this.agent = await this.agentFactory();
+        await this.createAgentFromFactory();
         this._agentReady = true;
         console.log('Agent recreated successfully');
+        return {
+          canExecute: true,
+          message: 'Task cancelled successfully',
+        };
       } catch (error) {
         this._agentReady = true;
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        this.agent = null;
+        this.agentUnavailableReason = `Task cancelled, but failed to prepare the next agent: ${errorMessage}`;
         console.error('Failed to recreate agent:', error);
-        throw error;
+        throw new Error(this.agentUnavailableReason);
       }
-    } else {
-      this._agentReady = true;
-      console.warn(
-        'Agent destroyed but cannot recreate: no factory function provided. Next /execute call will fail.',
-      );
     }
+
+    this._agentReady = true;
+    this.agentUnavailableReason = FIXED_AGENT_CANCEL_MESSAGE;
+    console.warn(FIXED_AGENT_CANCEL_MESSAGE);
+    return {
+      canExecute: false,
+      message: FIXED_AGENT_CANCEL_MESSAGE,
+    };
   }
 
   /**
@@ -262,9 +359,14 @@ class PlaygroundServer {
 
     this._app.post('/action-space', async (req: Request, res: Response) => {
       try {
+        const activeAgent = this.getActiveAgentOrRespond(res);
+        if (!activeAgent) {
+          return;
+        }
+
         let actionSpace = [];
 
-        actionSpace = this.agent.interface.actionSpace();
+        actionSpace = activeAgent.interface.actionSpace();
 
         // Process actionSpace to make paramSchema serializable with shape info
         const processedActionSpace = actionSpace.map((action: unknown) => {
@@ -364,43 +466,6 @@ class PlaygroundServer {
         });
       }
 
-      // Recreate agent only when AI config has changed (via /config API)
-      if (this.agentFactory && this._configDirty) {
-        this._configDirty = false;
-        this._agentReady = false;
-        console.log('AI config changed, recreating agent...');
-        try {
-          if (this.agent && typeof this.agent.destroy === 'function') {
-            await this.agent.destroy();
-          }
-        } catch (error) {
-          console.warn('Failed to destroy old agent:', error);
-        }
-
-        try {
-          this.agent = await this.agentFactory();
-          this._agentReady = true;
-          console.log('Agent recreated with new config');
-        } catch (error) {
-          this._agentReady = true;
-          console.error('Failed to recreate agent:', error);
-          return res.status(500).json({
-            error: `Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          });
-        }
-      }
-
-      // Update device options if provided
-      if (deviceOptions && this.agent.interface) {
-        const iface = this.agent.interface as unknown as {
-          options?: Record<string, unknown>;
-        };
-        iface.options = {
-          ...(iface.options || {}),
-          ...deviceOptions,
-        };
-      }
-
       // Check if another task is running
       if (this.currentTaskId) {
         return res.status(409).json({
@@ -409,13 +474,33 @@ class PlaygroundServer {
         });
       }
 
+      let activeAgent: PageAgent;
+      try {
+        activeAgent = await this.prepareAgentForExecution();
+      } catch (error) {
+        return res.status(409).json({
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+
+      // Update device options if provided
+      if (deviceOptions && activeAgent.interface) {
+        const iface = activeAgent.interface as {
+          options?: Record<string, unknown>;
+        };
+        iface.options = {
+          ...(iface.options || {}),
+          ...deviceOptions,
+        };
+      }
+
       // Lock this task
       if (requestId) {
         this.currentTaskId = requestId;
         this.taskExecutionDumps[requestId] = null;
 
         // Use onDumpUpdate to receive and store executionDump directly
-        this.agent.onDumpUpdate = (
+        activeAgent.onDumpUpdate = (
           _dump: string,
           executionDump?: ExecutionDump,
         ) => {
@@ -445,7 +530,7 @@ class PlaygroundServer {
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
-        const actionSpace = this.agent.interface.actionSpace();
+        const actionSpace = activeAgent.interface.actionSpace();
 
         // Prepare value object for executeAction
         const value = {
@@ -455,7 +540,7 @@ class PlaygroundServer {
         };
 
         response.result = await executeAction(
-          this.agent,
+          activeAgent,
           type,
           actionSpace,
           value,
@@ -472,7 +557,7 @@ class PlaygroundServer {
       }
 
       try {
-        const dumpString = this.agent.dumpDataString({
+        const dumpString = activeAgent.dumpDataString({
           inlineScreenshots: true,
         });
         if (dumpString) {
@@ -484,10 +569,10 @@ class PlaygroundServer {
           response.dump = null;
         }
         response.reportHTML =
-          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
+          activeAgent.reportHTMLString({ inlineScreenshots: true }) || null;
 
-        this.agent.writeOutActionDumps();
-        this.agent.resetDump();
+        activeAgent.writeOutActionDumps();
+        activeAgent.resetDump();
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
@@ -542,6 +627,8 @@ class PlaygroundServer {
             });
           }
 
+          const activeAgent = this.getActiveAgent();
+
           console.log(`Cancelling task: ${requestId}`);
 
           // Get current execution data before cancelling (dump and reportHTML)
@@ -549,7 +636,7 @@ class PlaygroundServer {
           let reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.({
+            const dumpString = activeAgent.dumpDataString?.({
               inlineScreenshots: true,
             });
             if (dumpString) {
@@ -560,17 +647,26 @@ class PlaygroundServer {
             }
 
             reportHTML =
-              this.agent.reportHTMLString?.({ inlineScreenshots: true }) ||
+              activeAgent.reportHTMLString?.({ inlineScreenshots: true }) ||
               null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
           // Destroy and recreate agent to cancel the current task
+          let cancelResult: { canExecute: boolean; message: string };
           try {
-            await this.recreateAgent();
+            cancelResult = await this.recreateAgent(activeAgent);
           } catch (error) {
-            console.warn('Failed to recreate agent during cancel:', error);
+            const errorMessage =
+              error instanceof Error ? error.message : 'Unknown error';
+            delete this.taskExecutionDumps[requestId];
+            this.currentTaskId = null;
+            return res.status(500).json({
+              error: errorMessage,
+              dump,
+              reportHTML,
+            });
           }
 
           // Clean up
@@ -579,7 +675,8 @@ class PlaygroundServer {
 
           res.json({
             status: 'cancelled',
-            message: 'Task cancelled successfully',
+            message: cancelResult.message,
+            canExecute: cancelResult.canExecute,
             dump,
             reportHTML,
           });
@@ -597,14 +694,19 @@ class PlaygroundServer {
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
+        const activeAgent = this.getActiveAgentOrRespond(res);
+        if (!activeAgent) {
+          return;
+        }
+
         // Check if page has screenshotBase64 method
-        if (typeof this.agent.interface.screenshotBase64 !== 'function') {
+        if (typeof activeAgent.interface.screenshotBase64 !== 'function') {
           return res.status(500).json({
             error: 'Screenshot method not available on current interface',
           });
         }
 
-        const base64Screenshot = await this.agent.interface.screenshotBase64();
+        const base64Screenshot = await activeAgent.interface.screenshotBase64();
 
         res.json({
           screenshot: base64Screenshot,
@@ -624,7 +726,12 @@ class PlaygroundServer {
     // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
     // falls back to polling screenshotBase64() otherwise.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
-      const nativeUrl = this.agent?.interface?.mjpegStreamUrl;
+      const activeAgent = this.getActiveAgentOrRespond(res);
+      if (!activeAgent) {
+        return;
+      }
+
+      const nativeUrl = activeAgent.interface?.mjpegStreamUrl;
 
       if (nativeUrl && this._nativeMjpegAvailable !== false) {
         const proxyOk = await this.probeAndProxyNativeMjpeg(
@@ -635,7 +742,7 @@ class PlaygroundServer {
         if (proxyOk) return;
       }
 
-      if (typeof this.agent?.interface?.screenshotBase64 !== 'function') {
+      if (typeof activeAgent.interface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
@@ -647,8 +754,13 @@ class PlaygroundServer {
     // Interface info API for getting interface type and description
     this._app.get('/interface-info', async (_req: Request, res: Response) => {
       try {
-        const type = this.agent.interface.interfaceType || 'Unknown';
-        const description = this.agent.interface.describe?.() || undefined;
+        const activeAgent = this.getActiveAgentOrRespond(res);
+        if (!activeAgent) {
+          return;
+        }
+
+        const type = activeAgent.interface.interfaceType || 'Unknown';
+        const description = activeAgent.interface.describe?.() || undefined;
 
         res.json({
           type,
@@ -790,7 +902,13 @@ class PlaygroundServer {
 
       const frameStart = Date.now();
       try {
-        const base64 = await this.agent.interface.screenshotBase64();
+        const activeAgent = this.agent;
+        if (!activeAgent || this.agentUnavailableReason) {
+          console.warn(`MJPEG stopped: ${this.getAgentErrorMessage()}`);
+          break;
+        }
+
+        const base64 = await activeAgent.interface.screenshotBase64();
         if (stopped) break;
         consecutiveErrors = 0;
 
@@ -823,6 +941,8 @@ class PlaygroundServer {
         await new Promise((r) => setTimeout(r, remaining));
       }
     }
+
+    res.end();
   }
 
   /**
@@ -883,7 +1003,7 @@ class PlaygroundServer {
     // If using factory mode, initialize agent
     if (this.agentFactory) {
       console.log('Initializing agent from factory function...');
-      this.agent = await this.agentFactory();
+      await this.createAgentFromFactory();
       console.log('Agent initialized successfully');
     }
 
@@ -908,7 +1028,7 @@ class PlaygroundServer {
       if (this.server) {
         // Clean up the single agent
         try {
-          this.agent.destroy();
+          this.agent?.destroy();
         } catch (error) {
           console.warn('Failed to destroy agent:', error);
         }
