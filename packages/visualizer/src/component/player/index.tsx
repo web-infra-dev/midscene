@@ -1,136 +1,27 @@
 'use client';
-import 'pixi.js/unsafe-eval';
-import * as PIXI from 'pixi.js';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import './index.less';
-import { mouseLoading, mousePointer } from '@/utils';
 import {
   CaretRightOutlined,
+  CompressOutlined,
   DownloadOutlined,
+  ExpandOutlined,
   ExportOutlined,
-  LoadingOutlined,
+  FontSizeOutlined,
+  PauseOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
-import type { BaseElement, LocateResultElement, Rect } from '@midscene/core';
 import { Dropdown, Spin, Switch, Tooltip, message } from 'antd';
 import GlobalPerspectiveIcon from '../../icons/global-perspective.svg';
 import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
-import { getTextureFromCache, loadTexture } from '../../utils/pixi-loader';
-import type {
-  AnimationScript,
-  CameraState,
-  TargetCameraState,
-} from '../../utils/replay-scripts';
-import { rectMarkForItem } from '../blackboard';
-
-const canvasPaddingLeft = 0;
-const canvasPaddingTop = 0;
-
-const cubicBezier = (
-  t: number,
-  p0: number,
-  p1: number,
-  p2: number,
-  p3: number,
-): number => {
-  const t2 = 1 - t;
-  return (
-    p0 * t2 * t2 * t2 +
-    3 * p1 * t * t2 * t2 +
-    3 * p2 * t * t * t2 +
-    p3 * t * t * t
-  );
-};
-
-const cubicImage = (t: number): number => {
-  // return cubicBezier(t, 0, 0.69, 0.43, 1);
-  return linear(t);
-};
-
-const cubicInsightElement = (t: number): number => {
-  return cubicBezier(t, 0, 0.5, 0.5, 1);
-};
-
-const cubicMouse = (t: number): number => {
-  return linear(t);
-};
-
-const linear = (t: number): number => {
-  return t;
-};
-
-type FrameFn = (callback: (current: number) => void) => void;
-
-const ERROR_FRAME_CANCEL = 'frame cancel (this is an error on purpose)';
-const frameKit = (): {
-  frame: FrameFn;
-  cancel: () => void;
-  timeout: (callback: () => void, ms: number) => void;
-  sleep: (ms: number) => Promise<void>;
-  isCancelled: () => boolean;
-} => {
-  let cancelFlag = false;
-  const pendingTimeouts: number[] = [];
-
-  return {
-    frame: (callback: (current: number) => void) => {
-      if (cancelFlag) {
-        throw new Error(ERROR_FRAME_CANCEL);
-      }
-      requestAnimationFrame(() => {
-        if (cancelFlag) {
-          // Don't throw in requestAnimationFrame callback - just return silently
-          return;
-        }
-        callback(performance.now());
-      });
-    },
-    timeout: (callback: () => void, ms: number) => {
-      if (cancelFlag) {
-        throw new Error(ERROR_FRAME_CANCEL);
-      }
-      const timeoutId = window.setTimeout(() => {
-        if (cancelFlag) {
-          // Don't throw in setTimeout callback - just return silently
-          return;
-        }
-        callback();
-      }, ms);
-      pendingTimeouts.push(timeoutId);
-    },
-    sleep: (ms: number): Promise<void> => {
-      if (cancelFlag) {
-        return Promise.reject(new Error(ERROR_FRAME_CANCEL));
-      }
-      return new Promise((resolve, reject) => {
-        const timeoutId = window.setTimeout(() => {
-          if (cancelFlag) {
-            reject(new Error(ERROR_FRAME_CANCEL));
-          } else {
-            resolve();
-          }
-        }, ms);
-        pendingTimeouts.push(timeoutId);
-      });
-    },
-    isCancelled: () => cancelFlag,
-    cancel: () => {
-      cancelFlag = true;
-      // Clear all pending timeouts to stop animations immediately
-      for (const id of pendingTimeouts) {
-        clearTimeout(id);
-      }
-      pendingTimeouts.length = 0;
-    },
-  };
-};
-
-const singleElementFadeInDuration = 80;
-const LAYER_ORDER_IMG = 0;
-const LAYER_ORDER_INSIGHT = 1;
-const LAYER_ORDER_POINTER = 2;
-const LAYER_ORDER_SPINNING_POINTER = 3;
+import type { AnimationScript } from '../../utils/replay-scripts';
+import { StepsTimeline } from './scenes/StepScene';
+import { deriveFrameState } from './scenes/derive-frame-state';
+import { exportBrandedVideo } from './scenes/export-branded-video';
+import { calculateFrameMap } from './scenes/frame-calculator';
+import type { FrameMap, ScriptFrame } from './scenes/frame-calculator';
+import { useFramePlayer } from './use-frame-player';
 
 const downloadReport = (content: string): void => {
   const blob = new Blob([content], { type: 'text/html' });
@@ -139,80 +30,32 @@ const downloadReport = (content: string): void => {
   a.href = url;
   a.download = 'midscene_report.html';
   a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 };
 
-class RecordingSession {
-  canvas: HTMLCanvasElement;
-  mediaRecorder: MediaRecorder | null = null;
-  chunks: BlobPart[];
-  recording = false;
-
-  constructor(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    this.chunks = [];
-  }
-
-  start() {
-    const stream = this.canvas.captureStream(60); // 60fps
-    const mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'video/webm',
-    });
-
-    mediaRecorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        this.chunks.push(event.data);
+function deriveTaskId(
+  scriptFrames: ScriptFrame[],
+  stepsFrame: number,
+): string | null {
+  let taskId: string | null = null;
+  for (const sf of scriptFrames) {
+    if (sf.durationInFrames === 0) {
+      if (sf.startFrame <= stepsFrame) {
+        taskId = sf.taskId ?? taskId;
       }
-    };
-
-    // Add error handler for MediaRecorder
-    mediaRecorder.onerror = (event) => {
-      console.error('MediaRecorder error:', event);
-      message.error('Video recording failed. Please try again.');
-      this.recording = false;
-      this.mediaRecorder = null;
-    };
-
-    this.mediaRecorder = mediaRecorder;
-    this.recording = true;
-    return this.mediaRecorder.start();
-  }
-
-  stop() {
-    if (!this.recording || !this.mediaRecorder) {
-      console.warn('not recording');
-      return;
+      continue;
     }
-
-    // Bind onstop handler BEFORE calling stop() to ensure it's attached in time
-    this.mediaRecorder.onstop = () => {
-      // Check if we have any data
-      if (this.chunks.length === 0) {
-        console.error('No video data captured');
-        message.error('Video export failed: No data captured.');
-        return;
-      }
-
-      const blob = new Blob(this.chunks, { type: 'video/webm' });
-
-      // Check blob size
-      if (blob.size === 0) {
-        console.error('Video blob is empty');
-        message.error('Video export failed: Empty file.');
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'midscene_replay.webm';
-      a.click();
-      URL.revokeObjectURL(url);
-    };
-
-    this.mediaRecorder.stop();
-    this.recording = false;
-    this.mediaRecorder = null;
+    if (stepsFrame < sf.startFrame) break;
+    taskId = sf.taskId ?? taskId;
   }
+  return taskId;
+}
+
+function formatTime(frame: number, fps: number): string {
+  const totalSeconds = Math.floor(frame / fps);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
 export function Player(props?: {
@@ -221,17 +64,20 @@ export function Player(props?: {
   imageHeight?: number;
   reportFileContent?: string | null;
   key?: string | number;
-  fitMode?: 'width' | 'height'; // 'width': width adaptive, 'height': height adaptive, default to 'height'
-  autoZoom?: boolean; // enable auto zoom when playing, default to true
-  canDownloadReport?: boolean; // enable download report, default to true
-  onTaskChange?: (taskId: string | null) => void; // callback when task changes during playback
+  fitMode?: 'width' | 'height';
+  autoZoom?: boolean;
+  canDownloadReport?: boolean;
+  onTaskChange?: (taskId: string | null) => void;
 }) {
-  const [titleText, setTitleText] = useState('');
-  const [subTitleText, setSubTitleText] = useState('');
-  const { autoZoom, setAutoZoom, playbackSpeed, setPlaybackSpeed } =
-    useGlobalPreference();
+  const {
+    autoZoom,
+    setAutoZoom,
+    playbackSpeed,
+    setPlaybackSpeed,
+    subtitleEnabled,
+    setSubtitleEnabled,
+  } = useGlobalPreference();
 
-  // Update state when prop changes
   useEffect(() => {
     if (props?.autoZoom !== undefined) {
       setAutoZoom(props.autoZoom);
@@ -239,932 +85,388 @@ export function Player(props?: {
   }, [props?.autoZoom, setAutoZoom]);
 
   const scripts = props?.replayScripts;
-  const imageWidth = props?.imageWidth || 1920;
-  const imageHeight = props?.imageHeight || 1080;
-  const fitMode = props?.fitMode || 'height'; // default to height adaptive
-  const currentImg = useRef<string | null>(scripts?.[0]?.img || null);
+  const frameMap = useMemo<FrameMap | null>(() => {
+    if (!scripts || scripts.length === 0) return null;
+    return calculateFrameMap(scripts);
+  }, [scripts]);
 
-  const divContainerRef = useRef<HTMLDivElement>(null);
-  const app = useMemo<PIXI.Application>(() => new PIXI.Application(), []);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const renderLayerRef = useRef<HTMLDivElement>(null);
+  const lastTaskIdRef = useRef<string | null>(null);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  const pointerSprite = useRef<PIXI.Sprite | null>(null);
-  const spinningPointerSprite = useRef<PIXI.Sprite | null>(null);
-
-  const [replayMark, setReplayMark] = useState(0);
-  const triggerReplay = () => {
-    setReplayMark(Date.now());
-  };
-
-  const windowContentContainer = useMemo(() => {
-    const container = new PIXI.Container();
-    return container;
-  }, []);
-  const insightMarkContainer = useMemo(() => {
-    const container = new PIXI.Container();
-    container.zIndex = LAYER_ORDER_INSIGHT;
-    return container;
-  }, []);
-
-  const basicCameraState = {
-    left: 0,
-    top: 0,
-    width: imageWidth,
-    pointerLeft: Math.round(imageWidth / 2),
-    pointerTop: Math.round(imageHeight / 2),
-  };
-
-  // -1: not started, 0: running, 1: finished
-  const [animationProgress, setAnimationProgress] = useState(-1);
-  const cancelFlag = useRef(false);
-  const appInitialized = useRef(false);
-
+  // Observe render layer size to compute scale factor
   useEffect(() => {
-    cancelFlag.current = false;
-    return () => {
-      cancelFlag.current = true;
-    };
-  }, []);
-
-  const cameraState = useRef<CameraState>({ ...basicCameraState });
-
-  const resizeCanvasIfNeeded = async (
-    newWidth: number,
-    newHeight: number,
-  ): Promise<void> => {
-    // Guard: check if app is initialized before accessing app.screen
-    if (!appInitialized.current || !app.screen) {
-      return;
-    }
-    if (app.screen.width !== newWidth || app.screen.height !== newHeight) {
-      // Update renderer size
-      app.renderer.resize(newWidth, newHeight);
-
-      // Update container aspect ratio
-      if (divContainerRef.current) {
-        const aspectRatio = newWidth / newHeight;
-        divContainerRef.current.style.setProperty(
-          '--canvas-aspect-ratio',
-          aspectRatio.toString(),
+    const el = renderLayerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainerSize((prev) =>
+          prev.width === width && prev.height === height
+            ? prev
+            : { width, height },
         );
       }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
-      // Update basic camera state for new dimensions
-      const newBasicCameraState = {
-        left: 0,
-        top: 0,
-        width: newWidth,
-        pointerLeft: Math.round(newWidth / 2),
-        pointerTop: Math.round(newHeight / 2),
+  const player = useFramePlayer({
+    durationInFrames: Math.max(frameMap?.totalDurationInFrames ?? 1, 1),
+    fps: frameMap?.fps ?? 30,
+    autoPlay: true,
+    loop: false,
+    playbackRate: playbackSpeed,
+  });
+
+  // Track frame for taskId callback
+  useEffect(() => {
+    if (!frameMap || !props?.onTaskChange) return;
+    const taskId = deriveTaskId(frameMap.scriptFrames, player.currentFrame);
+    if (taskId !== lastTaskIdRef.current) {
+      lastTaskIdRef.current = taskId;
+      props.onTaskChange(taskId);
+    }
+  }, [frameMap, props?.onTaskChange, player.currentFrame]);
+
+  // Derive subtitle from current frame
+  const subtitle = useMemo(() => {
+    if (!frameMap) return null;
+    const state = deriveFrameState(
+      frameMap.scriptFrames,
+      player.currentFrame,
+      frameMap.imageWidth,
+      frameMap.imageHeight,
+      frameMap.fps,
+    );
+    if (!state.title && !state.subTitle) return null;
+    return { title: state.title, subTitle: state.subTitle };
+  }, [frameMap, player.currentFrame]);
+
+  // Controls auto-hide
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showControls = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), 3000);
+  }, []);
+
+  const onMouseEnter = useCallback(() => {
+    setControlsVisible(true);
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+  }, []);
+
+  const onMouseLeave = useCallback(() => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
+  }, []);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        player.toggle();
+      }
+    },
+    [player],
+  );
+
+  // Seek bar drag
+  const seekBarRef = useRef<HTMLDivElement>(null);
+  const handleSeekPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!frameMap || !seekBarRef.current) return;
+      const bar = seekBarRef.current;
+      bar.setPointerCapture(e.pointerId);
+
+      const seek = (clientX: number) => {
+        const rect = bar.getBoundingClientRect();
+        const ratio = Math.max(
+          0,
+          Math.min(1, (clientX - rect.left) / rect.width),
+        );
+        player.seekTo(Math.round(ratio * (frameMap.totalDurationInFrames - 1)));
       };
-      cameraState.current = newBasicCameraState;
+
+      seek(e.clientX);
+
+      const onMove = (ev: PointerEvent) => seek(ev.clientX);
+      const onUp = () => {
+        bar.removeEventListener('pointermove', onMove);
+        bar.removeEventListener('pointerup', onUp);
+      };
+      bar.addEventListener('pointermove', onMove);
+      bar.addEventListener('pointerup', onUp);
+    },
+    [frameMap, player],
+  );
+
+  // Fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const toggleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => setIsFullscreen(true));
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false));
     }
-  };
+  }, []);
 
-  const repaintImage = async (
-    scriptWidth?: number,
-    scriptHeight?: number,
-  ): Promise<void> => {
-    const imgToUpdate = currentImg.current;
-    if (!imgToUpdate) {
-      console.warn('no image to update');
-      return;
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  // Export video
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+
+  const handleExportVideo = useCallback(async () => {
+    if (!frameMap || isExporting) return;
+    setIsExporting(true);
+    setExportProgress(0);
+    try {
+      await exportBrandedVideo(frameMap, (pct) =>
+        setExportProgress(Math.round(pct * 100)),
+      );
+      message.success('Video exported');
+    } catch (e) {
+      console.error('Export failed:', e);
+      message.error('Export failed');
+    } finally {
+      setIsExporting(false);
+      setExportProgress(0);
     }
+  }, [frameMap, isExporting]);
 
-    // Use script-specific dimensions if provided, otherwise default to original
-    const targetWidth = scriptWidth || imageWidth;
-    const targetHeight = scriptHeight || imageHeight;
+  // Compute chapter markers
+  const chapterMarkers = useMemo(() => {
+    if (!frameMap) return [];
+    const { scriptFrames, totalDurationInFrames } = frameMap;
+    if (totalDurationInFrames === 0) return [];
 
-    // Resize canvas if dimensions changed
-    await resizeCanvasIfNeeded(targetWidth, targetHeight);
-
-    if (!getTextureFromCache(imgToUpdate)) {
-      console.warn('image not loaded', imgToUpdate);
-      await loadTexture(imgToUpdate!);
-    }
-    const texture = getTextureFromCache(imgToUpdate);
-    if (!texture) {
-      throw new Error('texture not found');
-    }
-    const sprite = PIXI.Sprite.from(texture);
-    if (!sprite) {
-      throw new Error('sprite not found');
-    }
-
-    const mainImgLabel = 'main-img';
-    const child = windowContentContainer.getChildByLabel(mainImgLabel);
-    if (child) {
-      windowContentContainer.removeChild(child);
-    }
-    sprite.label = mainImgLabel;
-    sprite.zIndex = LAYER_ORDER_IMG;
-
-    // use current canvas size, keep image quality
-    sprite.width = targetWidth;
-    sprite.height = targetHeight;
-
-    windowContentContainer.addChild(sprite);
-  };
-
-  const spinningPointer = (frame: FrameFn): (() => void) => {
-    if (!spinningPointerSprite.current) {
-      spinningPointerSprite.current = PIXI.Sprite.from(mouseLoading);
-      spinningPointerSprite.current.zIndex = LAYER_ORDER_SPINNING_POINTER;
-      spinningPointerSprite.current.anchor.set(0.5, 0.5);
-      spinningPointerSprite.current.scale.set(0.5);
-      spinningPointerSprite.current.label = 'spinning-pointer';
-    }
-
-    spinningPointerSprite.current.x = pointerSprite.current?.x || 0;
-    spinningPointerSprite.current.y = pointerSprite.current?.y || 0;
-    windowContentContainer.addChild(spinningPointerSprite.current);
-
-    let startTime: number;
-    let isCancelled = false;
-
-    const animate = (currentTime: number) => {
-      if (isCancelled) return;
-      if (!startTime) startTime = currentTime;
-      const elapsedTime = currentTime - startTime;
-
-      // Non-linear timing function (ease-in-out)
-      const progress = (Math.sin(elapsedTime / 500 - Math.PI / 2) + 1) / 2;
-
-      const rotation = progress * Math.PI * 2;
-
-      if (spinningPointerSprite.current) {
-        spinningPointerSprite.current.rotation = rotation;
-      }
-
-      frame(animate);
-    };
-
-    frame(animate);
-
-    const stopFn = () => {
-      if (spinningPointerSprite.current) {
-        windowContentContainer.removeChild(spinningPointerSprite.current);
-      }
-      isCancelled = true;
-    };
-
-    return stopFn;
-  };
-
-  const updatePointer = async (
-    img: string,
-    x?: number,
-    y?: number,
-  ): Promise<void> => {
-    if (!getTextureFromCache(img)) {
-      console.warn('image not loaded', img);
-      await loadTexture(img);
-    }
-    const texture = getTextureFromCache(img);
-    if (!texture) {
-      throw new Error('texture not found');
-    }
-    const sprite = PIXI.Sprite.from(texture);
-
-    let targetX = pointerSprite.current?.x;
-    let targetY = pointerSprite.current?.y;
-    if (typeof x === 'number') {
-      targetX = x;
-    }
-    if (typeof y === 'number') {
-      targetY = y;
-    }
-    if (typeof targetX === 'undefined' || typeof targetY === 'undefined') {
-      console.warn('invalid pointer position', x, y);
-      return;
-    }
-
-    if (pointerSprite.current) {
-      const pointer = windowContentContainer.getChildByLabel('pointer');
-      if (pointer) {
-        windowContentContainer.removeChild(pointer);
-      }
-    }
-
-    pointerSprite.current = sprite;
-    pointerSprite.current.x = targetX;
-    pointerSprite.current.y = targetY;
-    pointerSprite.current.label = 'pointer';
-    pointerSprite.current.zIndex = LAYER_ORDER_POINTER;
-    windowContentContainer.addChild(pointerSprite.current);
-  };
-
-  const updateCamera = (state: CameraState, currentWidth?: number): void => {
-    cameraState.current = state;
-
-    // Use current canvas width if provided, otherwise fall back to original imageWidth
-    const effectiveWidth = currentWidth || app.screen?.width || imageWidth;
-
-    // If auto zoom is enabled, apply zoom
-    const newScale = autoZoom ? Math.max(1, effectiveWidth / state.width) : 1;
-    windowContentContainer.scale.set(newScale);
-
-    // If auto zoom is enabled, pan the camera
-    windowContentContainer.x = autoZoom
-      ? Math.round(canvasPaddingLeft - state.left * newScale)
-      : canvasPaddingLeft;
-    windowContentContainer.y = autoZoom
-      ? Math.round(canvasPaddingTop - state.top * newScale)
-      : canvasPaddingTop;
-
-    const pointer = windowContentContainer.getChildByLabel('pointer');
-    if (pointer) {
-      pointer.scale.set(1 / newScale);
-
+    const markers: { percent: number; title: string; frame: number }[] = [];
+    for (const sf of scriptFrames) {
       if (
-        typeof state.pointerLeft === 'number' &&
-        typeof state.pointerTop === 'number'
-      ) {
-        pointer.x = state.pointerLeft;
-        pointer.y = state.pointerTop;
+        (sf.type !== 'img' && sf.type !== 'insight') ||
+        sf.durationInFrames === 0
+      )
+        continue;
+      const globalFrame = sf.startFrame;
+      const percent = (globalFrame / totalDurationInFrames) * 100;
+      if (percent > 1 && percent < 99) {
+        const parts = [sf.title, sf.subTitle].filter(Boolean);
+        markers.push({
+          percent,
+          title:
+            parts.length > 0
+              ? parts.join(': ')
+              : `Chapter ${markers.length + 1}`,
+          frame: globalFrame,
+        });
       }
     }
-  };
-
-  const cameraAnimation = async (
-    targetState: TargetCameraState,
-    duration: number,
-    frame: FrameFn,
-  ): Promise<void> => {
-    // Get current canvas dimensions
-    const currentCanvasWidth = app.screen?.width || imageWidth;
-    const currentCanvasHeight = app.screen?.height || imageHeight;
-
-    // If auto zoom is disabled, skip camera animation (only animate pointer)
-    if (!autoZoom) {
-      const currentState = { ...cameraState.current };
-      const startPointerLeft = currentState.pointerLeft;
-      const startPointerTop = currentState.pointerTop;
-      const startTime = performance.now();
-
-      const shouldMovePointer =
-        typeof targetState.pointerLeft === 'number' &&
-        typeof targetState.pointerTop === 'number' &&
-        (targetState.pointerLeft !== startPointerLeft ||
-          targetState.pointerTop !== startPointerTop);
-
-      if (!shouldMovePointer) return;
-
-      await new Promise<void>((resolve) => {
-        const animate = (currentTime: number) => {
-          const elapsedTime = currentTime - startTime;
-          const rawProgress = Math.min(elapsedTime / duration, 1);
-          const progress = cubicMouse(rawProgress);
-
-          const nextState: CameraState = {
-            ...currentState,
-            pointerLeft:
-              startPointerLeft +
-              (targetState.pointerLeft! - startPointerLeft) * progress,
-            pointerTop:
-              startPointerTop +
-              (targetState.pointerTop! - startPointerTop) * progress,
-          };
-
-          updateCamera(nextState, currentCanvasWidth);
-
-          if (elapsedTime < duration) {
-            frame(animate);
-          } else {
-            resolve();
-          }
-        };
-        frame(animate);
-      });
-      return;
-    }
-
-    const currentState = { ...cameraState.current };
-    const startLeft = currentState.left;
-    const startTop = currentState.top;
-    const startPointerLeft = currentState.pointerLeft;
-    const startPointerTop = currentState.pointerTop;
-    const startScale = currentState.width / currentCanvasWidth;
-
-    const startTime = performance.now();
-    const shouldMovePointer =
-      typeof targetState.pointerLeft === 'number' &&
-      typeof targetState.pointerTop === 'number' &&
-      (targetState.pointerLeft !== startPointerLeft ||
-        targetState.pointerTop !== startPointerTop);
-
-    // move pointer first, then move camera
-    const pointerMoveDuration = shouldMovePointer ? duration * 0.375 : 0;
-    const cameraMoveStart = pointerMoveDuration;
-    const cameraMoveDuration = duration - pointerMoveDuration;
-
-    await new Promise<void>((resolve) => {
-      const animate = (currentTime: number) => {
-        const nextState: CameraState = { ...cameraState.current };
-        const elapsedTime = currentTime - startTime;
-
-        // Mouse movement animation
-        if (shouldMovePointer) {
-          if (elapsedTime <= pointerMoveDuration) {
-            const rawMouseProgress = Math.min(
-              elapsedTime / pointerMoveDuration,
-              1,
-            );
-            const mouseProgress = cubicMouse(rawMouseProgress);
-            nextState.pointerLeft =
-              startPointerLeft +
-              (targetState.pointerLeft! - startPointerLeft) * mouseProgress;
-            nextState.pointerTop =
-              startPointerTop +
-              (targetState.pointerTop! - startPointerTop) * mouseProgress;
-          } else {
-            nextState.pointerLeft = targetState.pointerLeft!;
-            nextState.pointerTop = targetState.pointerTop!;
-          }
-        }
-
-        // Camera movement animation (starts 500ms after mouse movement begins)
-        if (elapsedTime > cameraMoveStart) {
-          const cameraElapsedTime = elapsedTime - cameraMoveStart;
-          const rawCameraProgress = Math.min(
-            cameraElapsedTime / cameraMoveDuration,
-            1,
-          );
-          const cameraProgress = cubicImage(rawCameraProgress);
-
-          // get the target scale
-          const targetScale = targetState.width / currentCanvasWidth;
-          const progressScale =
-            startScale + (targetScale - startScale) * cameraProgress;
-          const progressWidth = currentCanvasWidth * progressScale;
-          const progressHeight = currentCanvasHeight * progressScale;
-          nextState.width = progressWidth;
-
-          const progressLeft =
-            startLeft + (targetState.left - startLeft) * cameraProgress;
-          const progressTop =
-            startTop + (targetState.top - startTop) * cameraProgress;
-
-          const horizontalExceed =
-            progressLeft + progressWidth - currentCanvasWidth;
-          const verticalExceed =
-            progressTop + progressHeight - currentCanvasHeight;
-
-          nextState.left =
-            horizontalExceed > 0
-              ? progressLeft + horizontalExceed
-              : progressLeft;
-          nextState.top =
-            verticalExceed > 0 ? progressTop + verticalExceed : progressTop;
-        }
-
-        updateCamera(nextState, currentCanvasWidth);
-
-        if (elapsedTime < duration) {
-          frame(animate);
-        } else {
-          resolve();
-        }
-      };
-
-      frame(animate);
-    });
-  };
-
-  const fadeInGraphics = (
-    graphics: PIXI.Container | PIXI.Graphics | PIXI.Text,
-    duration: number,
-    frame: FrameFn,
-    targetAlpha = 1,
-  ): Promise<void> => {
-    return new Promise<void>((resolve) => {
-      const startTime = performance.now();
-      const animate = (currentTime: number) => {
-        const elapsedTime = currentTime - startTime;
-        const progress = Math.min(elapsedTime / duration, 1);
-        graphics.alpha =
-          targetAlpha === 0 ? 1 - linear(progress) : linear(progress);
-        if (elapsedTime < duration) {
-          frame(animate);
-        } else {
-          resolve();
-        }
-      };
-
-      frame(animate);
-    });
-  };
-
-  const fadeOutItem = async (
-    graphics: PIXI.Container | PIXI.Graphics | PIXI.Text,
-    duration: number,
-    frame: FrameFn,
-  ): Promise<void> => {
-    return fadeInGraphics(graphics, duration, frame, 0);
-  };
-
-  const insightElementsAnimation = async (
-    elements: BaseElement[],
-    highlightElements: (BaseElement | LocateResultElement)[],
-    searchArea: Rect | undefined,
-    duration: number,
-    frame: FrameFn,
-  ): Promise<void> => {
-    insightMarkContainer.removeChildren();
-
-    const elementsToAdd = [...elements];
-    const totalLength = elementsToAdd.length;
-    let childrenCount = 0;
-
-    await new Promise<void>((resolve) => {
-      const startTime = performance.now();
-      const animate = (currentTime: number) => {
-        const elapsedTime = currentTime - startTime;
-        const progress = cubicInsightElement(
-          Math.min(elapsedTime / duration, 1),
-        );
-
-        const elementsToAddNow = Math.floor(progress * totalLength);
-
-        while (childrenCount < elementsToAddNow) {
-          const randomIndex = Math.floor(Math.random() * elementsToAdd.length);
-          const element = elementsToAdd.splice(randomIndex, 1)[0];
-          if (element) {
-            const [insightMarkGraphic] = rectMarkForItem(
-              element.rect,
-              element.content,
-              'element',
-            );
-            insightMarkGraphic.alpha = 0;
-            insightMarkContainer.addChild(insightMarkGraphic);
-            childrenCount++;
-            fadeInGraphics(
-              insightMarkGraphic,
-              singleElementFadeInDuration,
-              frame,
-            );
-          }
-        }
-
-        if (elapsedTime < duration) {
-          frame(animate);
-        } else {
-          // Add all remaining items when time ends
-          while (elementsToAdd.length > 0) {
-            const randomIndex = Math.floor(
-              Math.random() * elementsToAdd.length,
-            );
-            const element = elementsToAdd.splice(randomIndex, 1)[0];
-            const [insightMarkGraphic] = rectMarkForItem(
-              element.rect,
-              element.content,
-              'element',
-            );
-            insightMarkGraphic.alpha = 1; // Set alpha to 1 immediately for remaining items
-            insightMarkContainer.addChild(insightMarkGraphic);
-          }
-
-          if (searchArea) {
-            const [searchAreaGraphic] = rectMarkForItem(
-              searchArea,
-              'Search Area',
-              'searchArea',
-            );
-            searchAreaGraphic.alpha = 1;
-            insightMarkContainer.addChild(searchAreaGraphic);
-          }
-
-          highlightElements.map((element) => {
-            const [insightMarkGraphic] = rectMarkForItem(
-              element.rect,
-              (element as BaseElement).content || '',
-              'highlight',
-            );
-            insightMarkGraphic.alpha = 1;
-            insightMarkContainer.addChild(insightMarkGraphic);
-          });
-
-          resolve();
-        }
-      };
-
-      frame(animate);
-    });
-  };
-
-  const init = async (): Promise<void> => {
-    if (!divContainerRef.current || !scripts) return;
-
-    // use original image size for initialization
-    // this can keep the original image quality, then scale the canvas with CSS
-    await app.init({
-      width: imageWidth,
-      height: imageHeight,
-      background: 0xf4f4f4,
-      autoDensity: true,
-      antialias: true,
-    });
-
-    // Mark app as initialized after app.init() completes
-    appInitialized.current = true;
-
-    if (!divContainerRef.current) return;
-    divContainerRef.current.appendChild(app.canvas);
-
-    windowContentContainer.x = 0;
-    windowContentContainer.y = 0;
-    app.stage.addChild(windowContentContainer);
-
-    insightMarkContainer.x = 0;
-    insightMarkContainer.y = 0;
-    windowContentContainer.addChild(insightMarkContainer);
-  };
-
-  const [isRecording, setIsRecording] = useState(false);
-  const recorderSessionRef = useRef<RecordingSession | null>(null);
-  const cancelAnimationRef = useRef<(() => void) | null>(null);
-  // Playback session ID to prevent stale callbacks from cancelled playbacks
-  const playbackSessionIdRef = useRef(0);
-
-  const handleExport = async () => {
-    if (recorderSessionRef.current) {
-      console.warn('recorderSession exists');
-      return;
-    }
-
-    if (!app.canvas) {
-      console.warn('canvas is not initialized');
-      return;
-    }
-
-    // Cancel any ongoing animation before starting export
-    if (cancelAnimationRef.current) {
-      cancelAnimationRef.current();
-      cancelAnimationRef.current = null;
-      // Wait for animation cleanup to complete
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-
-    recorderSessionRef.current = new RecordingSession(app.canvas);
-    setIsRecording(true);
-    triggerReplay();
-  };
-
-  const play = (): (() => void) => {
-    let cancelFn: () => void;
-    // Increment session ID to invalidate callbacks from previous playback
-    const currentSessionId = ++playbackSessionIdRef.current;
-    // Helper to safely call onTaskChange only if this session is still active
-    const safeOnTaskChange = (taskId: string | null) => {
-      if (playbackSessionIdRef.current === currentSessionId) {
-        props?.onTaskChange?.(taskId);
-      }
-    };
-    Promise.resolve(
-      (async () => {
-        if (!app || !appInitialized.current) {
-          throw new Error('app is not initialized');
-        }
-        if (!scripts) {
-          throw new Error('scripts is required');
-        }
-        const { frame, cancel, timeout, sleep: baseSleep } = frameKit();
-
-        // Scale duration by playback speed (faster playback = shorter duration)
-        const scaleByPlaybackSpeed = (duration: number) =>
-          duration / playbackSpeed;
-        // Wrap sleep to apply playback speed
-        const sleep = (ms: number) => baseSleep(scaleByPlaybackSpeed(ms));
-        cancelFn = cancel;
-        cancelAnimationRef.current = cancel;
-        const allImages: string[] = scripts
-          .filter((item) => !!item.img)
-          .map((item) => item.img!);
-
-        // Load and display the image
-        await Promise.all(
-          [...allImages, mouseLoading, mousePointer].map(loadTexture),
-        );
-
-        // pointer on top
-        insightMarkContainer.removeChildren();
-        await updatePointer(mousePointer, imageWidth / 2, imageHeight / 2);
-        await repaintImage();
-        await updateCamera({ ...basicCameraState });
-        const totalDuration = scaleByPlaybackSpeed(
-          scripts.reduce((acc, item) => {
-            return (
-              acc +
-              item.duration +
-              (item.camera && item.insightCameraDuration
-                ? item.insightCameraDuration
-                : 0)
-            );
-          }, 0),
-        );
-        // progress bar
-        const progressUpdateInterval = 200;
-        const startTime = performance.now();
-        setAnimationProgress(0);
-        const updateProgress = () => {
-          const progress = Math.min(
-            (performance.now() - startTime) / totalDuration,
-            1,
-          );
-          setAnimationProgress(progress);
-          if (progress < 1) {
-            return timeout(updateProgress, progressUpdateInterval);
-          }
-        };
-        frame(updateProgress);
-        if (recorderSessionRef.current) {
-          recorderSessionRef.current.start();
-        }
-
-        // Track current taskId for callback
-        let currentTaskId: string | null = null;
-
-        // Immediately notify the first task's taskId before starting the loop
-        // This ensures the sidebar highlights the first step right when playback starts
-        const firstTaskId = scripts[0]?.taskId ?? null;
-        if (firstTaskId) {
-          currentTaskId = firstTaskId;
-          safeOnTaskChange(currentTaskId);
-        }
-
-        // play animation
-        for (const index in scripts) {
-          const item = scripts[index];
-          setTitleText(item.title || '');
-          setSubTitleText(item.subTitle || '');
-
-          // Notify task change if taskId changed
-          const newTaskId = item.taskId ?? null;
-          if (newTaskId !== currentTaskId) {
-            currentTaskId = newTaskId;
-            safeOnTaskChange(currentTaskId);
-          }
-
-          if (item.type === 'sleep') {
-            await sleep(item.duration);
-          } else if (item.type === 'insight') {
-            if (!item.img) {
-              throw new Error('img is required');
-            }
-            currentImg.current = item.img;
-            await repaintImage(item.imageWidth, item.imageHeight);
-            const highlightElements = item.highlightElement
-              ? [item.highlightElement]
-              : [];
-            await insightElementsAnimation(
-              [],
-              highlightElements,
-              item.searchArea,
-              scaleByPlaybackSpeed(item.duration),
-              frame,
-            );
-            if (item.camera) {
-              if (!item.insightCameraDuration) {
-                throw new Error('insightCameraDuration is required');
-              }
-              await cameraAnimation(
-                item.camera,
-                scaleByPlaybackSpeed(item.insightCameraDuration),
-                frame,
-              );
-            }
-          } else if (item.type === 'clear-insight') {
-            await fadeOutItem(
-              insightMarkContainer,
-              scaleByPlaybackSpeed(item.duration),
-              frame,
-            );
-            insightMarkContainer.removeChildren();
-            insightMarkContainer.alpha = 1;
-          } else if (item.type === 'img') {
-            if (item.img && item.img !== currentImg.current) {
-              currentImg.current = item.img!;
-              await repaintImage(item.imageWidth, item.imageHeight);
-            }
-            if (item.camera) {
-              await cameraAnimation(
-                item.camera,
-                scaleByPlaybackSpeed(item.duration),
-                frame,
-              );
-            } else {
-              await sleep(item.duration);
-            }
-          } else if (item.type === 'pointer') {
-            if (!item.img) {
-              throw new Error('pointer img is required');
-            }
-            await updatePointer(item.img);
-          } else if (item.type === 'spinning-pointer') {
-            const stop = spinningPointer(frame);
-            await sleep(item.duration);
-            stop();
-          }
-        }
-
-        // Clear taskId when playback ends
-        safeOnTaskChange(null);
-
-        if (recorderSessionRef.current) {
-          // Add delay to capture final frames before stopping the recorder
-          await sleep(1200);
-          recorderSessionRef.current.stop();
-          recorderSessionRef.current = null;
-          setIsRecording(false);
-        }
-      })().catch((e) => {
-        console.error('player error', e);
-
-        // Ignore frame cancel errors (these are expected when animation is cancelled)
-        if (e?.message === ERROR_FRAME_CANCEL) {
-          console.log('Animation cancelled (expected behavior)');
-          // Clear taskId when cancelled (only if this session is still active)
-          safeOnTaskChange(null);
-          return;
-        }
-
-        // Reset recording state on error
-        const wasRecording = !!recorderSessionRef.current;
-        if (recorderSessionRef.current) {
-          try {
-            recorderSessionRef.current.stop();
-          } catch (stopError) {
-            console.error('Error stopping recorder:', stopError);
-          }
-          recorderSessionRef.current = null;
-        }
-        setIsRecording(false);
-        // Clear taskId on error (only if this session is still active)
-        safeOnTaskChange(null);
-
-        // Only show error message if we were actually recording
-        if (wasRecording) {
-          message.error('Failed to export video. Please try again.');
-        }
-      }),
-    );
-    // Cleanup function
-    return () => {
-      cancelFn?.();
-      cancelAnimationRef.current = null;
-    };
-  };
-
-  useEffect(() => {
-    Promise.resolve(
-      (async () => {
-        await init();
-
-        // dynamically set the aspect ratio and fit mode of the container
-        if (divContainerRef.current && imageWidth && imageHeight) {
-          const aspectRatio = imageWidth / imageHeight;
-          divContainerRef.current.style.setProperty(
-            '--canvas-aspect-ratio',
-            aspectRatio.toString(),
-          );
-
-          // set adaptive mode for canvas container
-          divContainerRef.current.setAttribute('data-fit-mode', fitMode);
-
-          // set adaptive mode for player container (for background color switching)
-          const playerContainer = divContainerRef.current.closest(
-            '.player-container',
-          ) as HTMLElement;
-          if (playerContainer) {
-            playerContainer.setAttribute('data-fit-mode', fitMode);
-          }
-        }
-
-        triggerReplay();
-      })(),
-    );
-
-    return () => {
-      // Mark app as not initialized before destroying
-      appInitialized.current = false;
-      try {
-        app.destroy(true, { children: true, texture: true });
-      } catch (e) {
-        console.warn('destroy failed', e);
-      }
-    };
-  }, [imageWidth, imageHeight, fitMode]);
-
-  useEffect(() => {
-    if (replayMark) {
-      return play();
-    }
-  }, [replayMark]);
-
-  const [mouseOverStatusIcon, setMouseOverStatusIcon] = useState(false);
-  const [mouseOverSettingsIcon, setMouseOverSettingsIcon] = useState(false);
-  const progressString = Math.round(animationProgress * 100);
-  const transitionStyle = animationProgress === 0 ? 'none' : '0.3s';
-
-  // press space to replay
-  const canReplayNow = animationProgress === 1;
-  useEffect(() => {
-    if (canReplayNow) {
-      const listener = (event: KeyboardEvent) => {
-        if (event.key === ' ') {
-          triggerReplay();
-        }
-      };
-      window.addEventListener('keydown', listener);
-      return () => {
-        window.removeEventListener('keydown', listener);
-      };
-    }
-  }, [canReplayNow]);
-
-  let statusIconElement;
-  let statusOnClick: () => void = () => {};
-  if (animationProgress < 1) {
-    statusIconElement = (
-      <Spin indicator={<LoadingOutlined spin color="#333" />} size="default" />
-    );
-  } else {
-    // Finished - show replay button
-    statusIconElement = (
-      <Spin indicator={<CaretRightOutlined color="#333" />} size="default" />
-    );
-    statusOnClick = () => triggerReplay();
+    return markers;
+  }, [frameMap]);
+
+  // If no scripts, show empty
+  if (!scripts || scripts.length === 0 || !frameMap) {
+    return <div className="player-container" />;
   }
 
-  return (
-    <div className="player-container">
-      <div className="canvas-container" ref={divContainerRef} />
-      <div className="player-timeline-wrapper">
-        <div className="player-timeline">
-          <div
-            className="player-timeline-progress"
-            style={{
-              width: `${progressString}%`,
-              transition: transitionStyle,
-            }}
-          />
-        </div>
-      </div>
-      <div className="player-tools-wrapper">
-        <div className="player-tools">
-          <div className="player-control">
-            <div className="status-text">
-              <div className="title">{titleText}</div>
-              <Tooltip title={subTitleText}>
-                <div className="subtitle">{subTitleText}</div>
-              </Tooltip>
-            </div>
-            {isRecording ? null : (
-              <div
-                className="status-icon"
-                onMouseEnter={() => setMouseOverStatusIcon(true)}
-                onMouseLeave={() => setMouseOverStatusIcon(false)}
-                onClick={statusOnClick}
-              >
-                {statusIconElement}
-              </div>
-            )}
+  const compositionWidth = frameMap.imageWidth;
+  const compositionHeight = frameMap.imageHeight;
+  const isPortraitCanvas = compositionHeight > compositionWidth;
 
+  const totalFrames = frameMap.totalDurationInFrames;
+  const seekPercent =
+    totalFrames > 1 ? (player.currentFrame / (totalFrames - 1)) * 100 : 0;
+
+  return (
+    <div className="player-container" data-fit-mode={props?.fitMode}>
+      <div
+        className="canvas-container"
+        ref={containerRef}
+        onKeyDown={handleKeyDown}
+        onMouseMove={showControls}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        <div
+          className="player-wrapper"
+          data-portrait={isPortraitCanvas ? '' : undefined}
+          style={{
+            aspectRatio: `${compositionWidth}/${compositionHeight}`,
+          }}
+        >
+          {/* Render layer — renders at native resolution, scaled to fit & centered */}
+          <div
+            ref={renderLayerRef}
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              width: '100%',
+              height: '100%',
+              overflow: 'hidden',
+            }}
+            onClick={player.toggle}
+          >
+            {(() => {
+              const scale =
+                containerSize.width > 0 && containerSize.height > 0
+                  ? Math.min(
+                      containerSize.width / compositionWidth,
+                      containerSize.height / compositionHeight,
+                    )
+                  : 1;
+              return (
+                <div
+                  style={{
+                    width: compositionWidth * scale,
+                    height: compositionHeight * scale,
+                    flexShrink: 0,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: compositionWidth,
+                      height: compositionHeight,
+                      transformOrigin: '0 0',
+                      transform: `scale(${scale})`,
+                    }}
+                  >
+                    <StepsTimeline
+                      frameMap={frameMap}
+                      autoZoom={autoZoom}
+                      frame={player.currentFrame}
+                      width={compositionWidth}
+                      height={compositionHeight}
+                      fps={frameMap.fps}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Subtitle — rendered in display coordinates, outside scaled content */}
+        {subtitleEnabled && subtitle && (
+          <div className="player-subtitle">
+            {subtitle.title && (
+              <span className="player-subtitle-badge">{subtitle.title}</span>
+            )}
+            {subtitle.subTitle && (
+              <span className="player-subtitle-text">{subtitle.subTitle}</span>
+            )}
+          </div>
+        )}
+
+        {/* Control bar */}
+        <div
+          className={`control-bar ${controlsVisible ? '' : 'hidden'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="status-icon" onClick={player.toggle}>
+            {player.playing ? <PauseOutlined /> : <CaretRightOutlined />}
+          </div>
+
+          <span className="time-display">
+            {formatTime(player.currentFrame, frameMap.fps)} /{' '}
+            {formatTime(totalFrames, frameMap.fps)}
+          </span>
+
+          <div
+            className="seek-bar-track"
+            ref={seekBarRef}
+            onPointerDown={handleSeekPointerDown}
+          >
+            <div
+              className="seek-bar-fill"
+              style={{ width: `${seekPercent}%` }}
+            />
+            <div
+              className="seek-bar-knob"
+              style={{ left: `${seekPercent}%` }}
+            />
+            {chapterMarkers.map((marker) => (
+              <Tooltip
+                key={marker.percent}
+                title={marker.title}
+                overlayClassName="chapter-tooltip"
+              >
+                <div
+                  className="chapter-marker"
+                  style={{ left: `${marker.percent}%` }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    player.seekTo(marker.frame);
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </div>
+
+          {/* Custom controls */}
+          <div className="player-custom-controls">
             {props?.reportFileContent && props?.canDownloadReport !== false ? (
               <Tooltip title="Download Report">
                 <div
                   className="status-icon"
-                  onMouseEnter={() => setMouseOverStatusIcon(true)}
-                  onMouseLeave={() => setMouseOverStatusIcon(false)}
                   onClick={() => downloadReport(props.reportFileContent!)}
                 >
-                  <DownloadOutlined color="#333" />
+                  <DownloadOutlined />
                 </div>
               </Tooltip>
             ) : null}
-            <Tooltip title={isRecording ? 'Generating...' : 'Export Video'}>
-              <div
-                className="status-icon"
-                onClick={isRecording ? undefined : handleExport}
-                style={{
-                  opacity: isRecording ? 0.5 : 1,
-                  cursor: isRecording ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {isRecording ? (
-                  <Spin size="default" percent={progressString} />
-                ) : (
-                  <ExportOutlined />
-                )}
-              </div>
-            </Tooltip>
+
             <Dropdown
               trigger={['hover', 'click']}
-              placement="bottomRight"
-              overlayStyle={{
-                minWidth: '148px',
-              }}
+              placement="topRight"
+              overlayStyle={{ minWidth: '148px' }}
               dropdownRender={() => (
                 <div className="player-settings-dropdown">
+                  {/* Export video */}
+                  <div
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                      cursor: isExporting ? 'not-allowed' : 'pointer',
+                      opacity: isExporting ? 0.5 : 1,
+                    }}
+                    onClick={isExporting ? undefined : handleExportVideo}
+                  >
+                    {isExporting ? (
+                      <Spin size="small" />
+                    ) : (
+                      <ExportOutlined
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                    )}
+                    <span style={{ fontSize: '14px' }}>
+                      {isExporting
+                        ? `Exporting ${exportProgress}%`
+                        : 'Export video'}
+                    </span>
+                  </div>
+
+                  <div className="player-settings-divider" />
+
+                  {/* Focus on cursor toggle */}
                   <div
                     className="player-settings-item"
                     style={{
@@ -1186,20 +488,53 @@ export function Player(props?: {
                       <GlobalPerspectiveIcon
                         style={{ width: '16px', height: '16px' }}
                       />
-                      <span style={{ fontSize: '12px', marginRight: '16px' }}>
+                      <span style={{ fontSize: '14px', marginRight: '16px' }}>
                         Focus on cursor
                       </span>
                     </div>
                     <Switch
                       size="small"
                       checked={autoZoom}
-                      onChange={(checked) => {
-                        setAutoZoom(checked);
-                        triggerReplay();
-                      }}
+                      onChange={(checked) => setAutoZoom(checked)}
                     />
                   </div>
+
+                  {/* Subtitle toggle */}
+                  <div
+                    className="player-settings-item"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      height: '32px',
+                      padding: '0 8px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <FontSizeOutlined
+                        style={{ width: '16px', height: '16px' }}
+                      />
+                      <span style={{ fontSize: '14px', marginRight: '16px' }}>
+                        Subtitle
+                      </span>
+                    </div>
+                    <Switch
+                      size="small"
+                      checked={subtitleEnabled}
+                      onChange={(checked) => setSubtitleEnabled(checked)}
+                    />
+                  </div>
+
                   <div className="player-settings-divider" />
+
+                  {/* Playback speed */}
                   <div
                     style={{
                       display: 'flex',
@@ -1212,20 +547,17 @@ export function Player(props?: {
                     <ThunderboltOutlined
                       style={{ width: '16px', height: '16px' }}
                     />
-                    <span style={{ fontSize: '12px' }}>Playback speed</span>
+                    <span style={{ fontSize: '14px' }}>Playback speed</span>
                   </div>
                   {([0.5, 1, 1.5, 2] as PlaybackSpeedType[]).map((speed) => (
                     <div
                       key={speed}
-                      onClick={() => {
-                        setPlaybackSpeed(speed);
-                        triggerReplay();
-                      }}
+                      onClick={() => setPlaybackSpeed(speed)}
                       style={{
                         height: '32px',
                         lineHeight: '32px',
                         padding: '0 8px 0 24px',
-                        fontSize: '12px',
+                        fontSize: '14px',
                         cursor: 'pointer',
                         borderRadius: '4px',
                       }}
@@ -1238,22 +570,14 @@ export function Player(props?: {
               )}
               menu={{ items: [] }}
             >
-              <div
-                className="status-icon"
-                onMouseEnter={() => setMouseOverSettingsIcon(true)}
-                onMouseLeave={() => setMouseOverSettingsIcon(false)}
-                style={{
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: mouseOverSettingsIcon ? 1 : 0.7,
-                  transition: 'opacity 0.2s',
-                }}
-              >
+              <div className="status-icon">
                 <PlayerSettingIcon style={{ width: '16px', height: '16px' }} />
               </div>
             </Dropdown>
+
+            <div className="status-icon" onClick={toggleFullscreen}>
+              {isFullscreen ? <CompressOutlined /> : <ExpandOutlined />}
+            </div>
           </div>
         </div>
       </div>

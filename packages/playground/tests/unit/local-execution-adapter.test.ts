@@ -59,7 +59,7 @@ describe('LocalExecutionAdapter', () => {
         call: vi.fn(),
       };
       const params = { prompt: 'test prompt' };
-      const options: ExecutionOptions = { deepThink: true };
+      const options: ExecutionOptions = { deepLocate: true };
 
       const result = await adapter.parseStructuredParams(
         action,
@@ -82,7 +82,7 @@ describe('LocalExecutionAdapter', () => {
         otherField: 'value',
         prompt: 'test prompt',
       };
-      const options: ExecutionOptions = { deepThink: true };
+      const options: ExecutionOptions = { deepLocate: true };
 
       const result = await adapter.parseStructuredParams(
         action,
@@ -93,7 +93,7 @@ describe('LocalExecutionAdapter', () => {
       // The actual implementation merges all params and options into a single object
       expect(result).toEqual([
         {
-          deepThink: true,
+          deepLocate: true,
           locateField: expect.any(Object), // This will be a detailed locate param object
           otherField: 'value',
         },
@@ -117,7 +117,7 @@ describe('LocalExecutionAdapter', () => {
         field1: 'value1',
         field2: 'value2',
       };
-      const options: ExecutionOptions = { deepThink: true };
+      const options: ExecutionOptions = { deepLocate: true };
 
       const result = await adapter.parseStructuredParams(
         action,
@@ -127,7 +127,7 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual([
         {
-          deepThink: true,
+          deepLocate: true,
           field1: 'value1',
           field2: 'value2',
         },

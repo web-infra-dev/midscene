@@ -142,6 +142,7 @@ export type AiActOptions = {
   fileChooserAccept?: string | string[];
   deepThink?: DeepThinkOption;
   deepLocate?: boolean;
+  abortSignal?: AbortSignal;
 };
 
 export class Agent<
@@ -409,6 +410,7 @@ export class Agent<
       groupDescription: this.opts.groupDescription,
       executions: [],
       modelBriefs: [],
+      deviceType: this.interface.interfaceType,
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
@@ -786,6 +788,13 @@ export class Agent<
       ? this.normalizeFileInput(opt.fileChooserAccept)
       : undefined;
 
+    const abortSignal = opt?.abortSignal;
+    if (abortSignal?.aborted) {
+      throw new Error(
+        `aiAct aborted: ${abortSignal.reason || 'signal already aborted'}`,
+      );
+    }
+
     const runAiAct = async () => {
       const modelConfigForPlanning =
         this.modelConfigManager.getModelConfig('planning');
@@ -793,15 +802,23 @@ export class Agent<
         this.modelConfigManager.getModelConfig('default');
       const deepThink = opt?.deepThink === 'unset' ? undefined : opt?.deepThink;
 
-      const includeBboxInPlanning =
-        !deepThink &&
+      const deepLocate = opt?.deepLocate;
+
+      const noIndividualLocateModel =
         modelConfigForPlanning.modelName ===
           defaultIntentModelConfig.modelName &&
         modelConfigForPlanning.openaiBaseURL ===
           defaultIntentModelConfig.openaiBaseURL;
-      debug('setting includeBboxInPlanning to', includeBboxInPlanning);
 
-      const deepLocate = opt?.deepLocate;
+      const includeBboxInPlanning =
+        !deepThink && noIndividualLocateModel && !deepLocate;
+
+      debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
+        deepThink,
+        noIndividualLocateModel,
+        deepLocate,
+      });
+
       if (deepLocate && includeBboxInPlanning) {
         console.warn(
           'deepLocate option is ignored when includeBboxInPlanning is true (same model for planning and default intent without deepThink). Locate is already done during planning.',
@@ -850,6 +867,7 @@ export class Agent<
         deepThink,
         fileChooserAccept,
         includeBboxInPlanning ? undefined : deepLocate,
+        abortSignal,
       );
 
       // update cache
@@ -963,7 +981,7 @@ export class Agent<
     opt?: {
       verifyPrompt?: boolean;
       retryLimit?: number;
-      deepThink?: boolean;
+      deepLocate?: boolean;
     } & LocatorValidatorOption,
   ): Promise<AgentDescribeElementAtPointResult> {
     const { verifyPrompt = true, retryLimit = 3 } = opt || {};
@@ -971,12 +989,12 @@ export class Agent<
     let success = false;
     let retryCount = 0;
     let resultPrompt = '';
-    let deepThink = opt?.deepThink || false;
+    let deepLocate = opt?.deepLocate || false;
     let verifyResult: LocateValidatorResult | undefined;
 
     while (!success && retryCount < retryLimit) {
       if (retryCount >= 2) {
-        deepThink = true;
+        deepLocate = true;
       }
       debug(
         'aiDescribe',
@@ -985,23 +1003,23 @@ export class Agent<
         verifyPrompt,
         'retryCount',
         retryCount,
-        'deepThink',
-        deepThink,
+        'deepLocate',
+        deepLocate,
       );
       // use same intent as aiLocate
       const modelConfig = this.modelConfigManager.getModelConfig('insight');
 
       const text = await this.service.describe(center, modelConfig, {
-        deepThink,
+        deepLocate,
       });
       debug('aiDescribe text', text);
       assert(text.description, `failed to describe element at [${center}]`);
       resultPrompt = text.description;
 
-      // Don't pass deepThink to verification locate — the description was generated
-      // from a cropped view (deepThink describe), but verification should use regular
+      // Don't pass deepLocate to verification locate — the description was generated
+      // from a cropped view (deepLocate describe), but verification should use regular
       // locate on the full screenshot to confirm the description works universally.
-      // Passing deepThink here would trigger AiLocateSection with an element-level
+      // Passing deepLocate here would trigger AiLocateSection with an element-level
       // description as a section prompt, which is semantically incorrect.
       verifyResult = await this.verifyLocator(
         resultPrompt,
@@ -1018,7 +1036,7 @@ export class Agent<
 
     return {
       prompt: resultPrompt,
-      deepThink,
+      deepLocate,
       verifyResult,
     };
   }

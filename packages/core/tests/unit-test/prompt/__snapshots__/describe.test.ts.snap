@@ -2,7 +2,9 @@
 
 exports[`elementDescriberInstruction > should return the correct instruction 1`] = `
 "
-Describe the element in the red rectangle for precise identification. Use English.
+Describe the element in the red rectangle for precise identification.
+
+IMPORTANT: You MUST write the description in English.
 
 CRITICAL REQUIREMENTS:
 1. UNIQUENESS: The description must uniquely identify this element on the current page
@@ -28,6 +30,7 @@ GUIDELINES:
 - Avoid page-specific or temporary content
 - Don't mention the red rectangle or selection box
 - Focus on stable, reusable characteristics
+- **Write the description in English**
 
 EXAMPLES:
 - "Login button with text 'Sign In'"

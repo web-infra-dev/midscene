@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "1.5.0",
+  "version": "1.5.3",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -134,7 +134,6 @@
     "@types/semver": "7.7.0",
     "devtools-protocol": "0.0.1380148",
     "js-yaml": "4.1.0",
-    "langsmith": "0.3.74",
     "playwright": "^1.45.0",
     "puppeteer": "24.6.0",
     "tsx": "^4.19.2",

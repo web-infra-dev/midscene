@@ -22,11 +22,7 @@ import type {
   UIContext,
 } from '@/types';
 import { ServiceError } from '@/types';
-import {
-  type IModelConfig,
-  MIDSCENE_FORCE_DEEP_THINK,
-  globalConfigManager,
-} from '@midscene/shared/env';
+import type { IModelConfig } from '@midscene/shared/env';
 import { compositeElementInfoImg, cropByRect } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { assert } from '@midscene/shared/utils';
@@ -71,20 +67,15 @@ export default class Service {
     query: DetailedLocateParam,
     opt: LocateOpts,
     modelConfig: IModelConfig,
+    abortSignal?: AbortSignal,
   ): Promise<LocateResultWithDump> {
     const queryPrompt = typeof query === 'string' ? query : query.prompt;
     assert(queryPrompt, 'query is required for locate');
 
     assert(typeof query === 'object', 'query should be an object for locate');
 
-    const globalDeepThinkSwitch = globalConfigManager.getEnvConfigInBoolean(
-      MIDSCENE_FORCE_DEEP_THINK,
-    );
-    if (globalDeepThinkSwitch) {
-      debug('globalDeepThinkSwitch', globalDeepThinkSwitch);
-    }
     let searchAreaPrompt;
-    if (query.deepThink || globalDeepThinkSwitch) {
+    if (query.deepLocate) {
       searchAreaPrompt = query.prompt;
     }
 
@@ -92,13 +83,13 @@ export default class Service {
 
     if (searchAreaPrompt && !modelFamily) {
       console.warn(
-        'The "deepThink" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
+        'The "deepLocate" feature is not supported with multimodal LLM. Please config VL model for Midscene. https://midscenejs.com/model-config',
       );
       searchAreaPrompt = undefined;
     }
 
     if (searchAreaPrompt && isAutoGLM(modelFamily)) {
-      console.warn('The "deepThink" feature is not supported with AutoGLM.');
+      console.warn('The "deepLocate" feature is not supported with AutoGLM.');
       searchAreaPrompt = undefined;
     }
 
@@ -115,6 +106,7 @@ export default class Service {
         context,
         sectionDescription: searchAreaPrompt,
         modelConfig,
+        abortSignal,
       });
       assert(
         searchAreaResponse.rect,
@@ -134,6 +126,7 @@ export default class Service {
         targetElementDescription: queryPrompt,
         searchConfig: searchAreaResponse,
         modelConfig,
+        abortSignal,
       });
 
     const timeCost = Date.now() - startTime;
@@ -163,7 +156,7 @@ export default class Service {
       matchedRect: rect,
       data: null,
       taskInfo,
-      deepThink: !!searchArea,
+      deepLocate: !!searchArea,
       error: errorLog,
     };
 
@@ -313,7 +306,7 @@ export default class Service {
     target: Rect | [number, number],
     modelConfig: IModelConfig,
     opt?: {
-      deepThink?: boolean;
+      deepLocate?: boolean;
     },
   ): Promise<Pick<AIDescribeElementResponse, 'description'>> {
     assert(target, 'target is required for service.describe');
@@ -347,30 +340,20 @@ export default class Service {
       borderThickness: 3,
     });
 
-    if (opt?.deepThink) {
+    if (opt?.deepLocate) {
       const searchArea = expandSearchArea(targetRect, shotSize);
-      // Only crop when the search area covers at least 50% of the screen
-      // in both dimensions. Small crops (e.g., 500px on 1920x1080) lose
-      // too much context and cause model hallucinations.
-      const widthRatio = searchArea.width / shotSize.width;
-      const heightRatio = searchArea.height / shotSize.height;
-      if (widthRatio >= 0.5 && heightRatio >= 0.5) {
-        debug('describe: cropping to searchArea', searchArea);
-        const croppedResult = await cropByRect(
-          imagePayload,
-          searchArea,
-          modelFamily === 'qwen2.5-vl',
-        );
-        imagePayload = croppedResult.imageBase64;
-      } else {
-        debug(
-          'describe: skip cropping, search area too small (%dx%d on %dx%d)',
-          searchArea.width,
-          searchArea.height,
-          shotSize.width,
-          shotSize.height,
-        );
-      }
+      // Always crop in describe mode. Unlike locate's deepLocate (where
+      // cropping too small loses context for finding elements), describe's
+      // deepLocate intentionally zooms in so the model produces a more
+      // precise description from a focused view. expandSearchArea already
+      // guarantees a minimum 400x400 area with surrounding context.
+      debug('describe: cropping to searchArea', searchArea);
+      const croppedResult = await cropByRect(
+        imagePayload,
+        searchArea,
+        modelFamily === 'qwen2.5-vl',
+      );
+      imagePayload = croppedResult.imageBase64;
     }
 
     const msgs: AIArgs = [

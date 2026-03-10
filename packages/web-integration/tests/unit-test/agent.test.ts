@@ -105,33 +105,6 @@ describe('PageAgent RightClick', () => {
   });
 
   it('should handle aiRightClick with locate options', async () => {
-    const mockPlans = [
-      {
-        type: 'Locate' as const,
-        locate: {
-          prompt: 'right click target',
-          deepThink: true,
-          cacheable: false,
-        },
-        param: {
-          prompt: 'right click target',
-          deepThink: true,
-          cacheable: false,
-        },
-        thought: '',
-      },
-      {
-        type: 'RightClick' as const,
-        locate: {
-          prompt: 'right click target',
-          deepThink: true,
-          cacheable: false,
-        },
-        param: null,
-        thought: '',
-      },
-    ];
-
     const mockExecutorResult = {
       runner: {
         dump: () => ({ name: 'test', tasks: [] }),
@@ -144,7 +117,7 @@ describe('PageAgent RightClick', () => {
 
     // Call aiRightClick with options
     await agent.aiRightClick('right click target', {
-      deepThink: true,
+      deepLocate: true,
       cacheable: false,
     });
   });
@@ -598,5 +571,88 @@ describe('PageAgent cache configuration', () => {
         });
       }).toThrow('cache: true requires an explicit cache ID');
     });
+  });
+});
+
+describe('PageAgent aiAct abortSignal', () => {
+  let agent: PageAgent;
+  let mockTaskExecutor: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    agent = new PageAgent(mockPage, {
+      generateReport: false,
+      autoPrintReportMsg: false,
+      modelConfig: mockedModelConfig,
+    });
+
+    mockTaskExecutor = {
+      action: vi.fn(),
+      loadYamlFlowAsPlanning: vi.fn(),
+    };
+
+    agent.taskExecutor = mockTaskExecutor;
+  });
+
+  it('should throw immediately if abortSignal is already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort('cancelled by user');
+
+    await expect(
+      agent.aiAct('click the button', {
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow('aiAct aborted');
+    expect(mockTaskExecutor.action).not.toHaveBeenCalled();
+  });
+
+  it('should pass abortSignal to taskExecutor.action', async () => {
+    const controller = new AbortController();
+    const mockExecutorResult = {
+      output: { output: 'done', yamlFlow: [] },
+      runner: {
+        dump: () => ({ name: 'test', tasks: [] }),
+        isInErrorState: () => false,
+      },
+    };
+    mockTaskExecutor.action.mockResolvedValue(mockExecutorResult);
+
+    await agent.aiAct('click the button', {
+      abortSignal: controller.signal,
+    });
+
+    // Verify the last argument passed to action is the abortSignal
+    const callArgs = mockTaskExecutor.action.mock.calls[0];
+    expect(callArgs[callArgs.length - 1]).toBe(controller.signal);
+  });
+
+  it('should work normally without abortSignal', async () => {
+    const mockExecutorResult = {
+      output: { output: 'done', yamlFlow: [] },
+      runner: {
+        dump: () => ({ name: 'test', tasks: [] }),
+        isInErrorState: () => false,
+      },
+    };
+    mockTaskExecutor.action.mockResolvedValue(mockExecutorResult);
+
+    await agent.aiAct('click the button');
+
+    // Last argument should be undefined (no abortSignal)
+    const callArgs = mockTaskExecutor.action.mock.calls[0];
+    expect(callArgs[callArgs.length - 1]).toBeUndefined();
+  });
+
+  it('should throw with default reason when aborted without reason', async () => {
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      agent.aiAct('click the button', {
+        abortSignal: controller.signal,
+      }),
+    ).rejects.toThrow('aiAct aborted');
+    expect(mockTaskExecutor.action).not.toHaveBeenCalled();
   });
 });

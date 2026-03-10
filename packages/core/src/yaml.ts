@@ -5,7 +5,9 @@ import type { UIContext } from './types';
 
 export interface LocateOption {
   prompt?: TUserPrompt;
-  deepThink?: boolean; // only available in vl model
+  deepLocate?: boolean; // only available in vl model
+  /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
+  deepThink?: boolean; // alias for deepLocate
   cacheable?: boolean; // user can set this param to false to disable the cache for a single agent api
   xpath?: string; // only available in web
   uiContext?: UIContext;
@@ -18,7 +20,7 @@ export interface ServiceExtractOption {
   [key: string]: unknown;
 }
 
-export interface DetailedLocateParam extends LocateOption {
+export interface DetailedLocateParam extends Omit<LocateOption, 'deepThink'> {
   prompt: TUserPrompt;
 }
 

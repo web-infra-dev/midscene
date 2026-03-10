@@ -27,6 +27,10 @@ export const mockActionSpace: DeviceAction<any>[] = [
         .optional()
         .describe('The input field to target'),
     }),
+    sample: {
+      value: 'test@example.com',
+      locate: { prompt: 'the email input field' },
+    },
     call: async () => {},
   },
   {
@@ -49,6 +53,23 @@ export const mockActionSpace: DeviceAction<any>[] = [
         .optional()
         .describe('The element to scroll'),
     }),
+    sample: {
+      value: 'down',
+      locate: { prompt: 'the product list area' },
+    },
+    call: async () => {},
+  },
+  {
+    name: 'DragAndDrop',
+    description: 'Drag an element to another position',
+    paramSchema: z.object({
+      from: getMidsceneLocationSchema().describe('The element to drag'),
+      to: getMidsceneLocationSchema().describe('The drop target'),
+    }),
+    sample: {
+      from: { prompt: 'the "report.pdf" file icon' },
+      to: { prompt: 'the upload drop zone' },
+    },
     call: async () => {},
   },
 ];

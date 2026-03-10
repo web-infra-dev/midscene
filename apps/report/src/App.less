@@ -81,12 +81,27 @@ footer.mt-8 {
   padding: 0 8px;
 }
 
+.main-layout {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+  height: 100%;
+  overflow: hidden;
+}
+
 .page-side {
   height: calc(100% - 8px);
   background: #f2f4f7;
-  padding-right: 8px;
   margin-bottom: 8px;
-  overflow-x: auto;
+  flex-shrink: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.resize-handle {
+  width: 8px;
+  flex-shrink: 0;
+  cursor: col-resize;
 }
 
 [data-theme='dark'] .page-side {
@@ -181,6 +196,8 @@ footer.mt-8 {
   border-radius: 16px;
   background: #fff;
   margin-bottom: 8px;
+  min-width: 0;
+  overflow: hidden;
 
   .main-right-header {
     height: 50px;

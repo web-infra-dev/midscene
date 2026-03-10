@@ -29,25 +29,19 @@ English | [简体中文](./README.zh.md)
   </a>
 </p>
 
-## 📣 Control Any Platform with Midscene Skills
+## 📣 Midscene Skills is here!
 
-> Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to control any platform.
+Use [Midscene Skills](https://github.com/web-infra-dev/midscene-skills) to control any platform with [OpenClaw](https://github.com/OpenClaw/OpenClaw) 
 
 ## Showcases
 
-autonomously register the GitHub form in a web browser and pass all field validations.
-
-<video src="https://lf3-static.bytednsdoc.com/obj/eden-cn/nupipfups/Midscene/1.0-showcases/github2.mp4" height="300" controls></video>
-
-Plus these real-world showcases:
+* [Web Automation - Automatically register the GitHub form in a web browser and pass all field validations](https://midscenejs.com/showcases#web)
 * [iOS Automation - Meituan coffee order](https://midscenejs.com/showcases#ios)
 * [iOS Automation - Auto-like the first @midscene_ai tweet](https://midscenejs.com/showcases#ios)
 * [Android Automation - DCar: Xiaomi SU7 specs](https://midscenejs.com/showcases#android)
 * [Android Automation - Booking a hotel for Christmas](https://midscenejs.com/showcases#android)
 * [MCP Integration - Midscene MCP UI prepatch release](https://midscenejs.com/showcases#mcp)
-
-See more real-world showcases — click to explore: [showcases](https://midscenejs.com/showcases)
-Community showcase: [robotic arm + vision + voice for in-vehicle testing](https://midscenejs.com/showcases#community-showcases)
+* [robotic arm + vision + voice for in-vehicle testing](https://midscenejs.com/showcases#community-showcases)
 
 ## 💡 Features
 

@@ -115,6 +115,7 @@ export async function plan(
     includeBbox: boolean;
     imagesIncludeCount?: number;
     deepThink?: DeepThinkOption;
+    abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
   const { context, modelConfig, conversationHistory } = opts;
@@ -228,18 +229,30 @@ export async function plan(
     ...historyLog,
   ];
 
-  const {
+  let {
     content: rawResponse,
     usage,
     reasoning_content,
   } = await callAI(msgs, modelConfig, {
     deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+    abortSignal: opts.abortSignal,
   });
 
-  // Parse XML response to JSON object, capture parsing errors
+  // Parse XML response to JSON object, retry once on parse failure
   let planFromAI: RawResponsePlanningAIResponse;
   try {
-    planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    try {
+      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    } catch {
+      const retry = await callAI(msgs, modelConfig, {
+        deepThink: opts.deepThink === 'unset' ? undefined : opts.deepThink,
+        abortSignal: opts.abortSignal,
+      });
+      rawResponse = retry.content;
+      usage = retry.usage;
+      reasoning_content = retry.reasoning_content;
+      planFromAI = parseXMLPlanningResponse(rawResponse, modelFamily);
+    }
 
     if (planFromAI.action && planFromAI.finalizeSuccess !== undefined) {
       warnLog(

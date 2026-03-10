@@ -67,6 +67,7 @@ interface TaskBuilderDeps {
 interface BuildOptions {
   cacheable?: boolean;
   deepLocate?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 interface PlanBuildContext {
@@ -75,6 +76,7 @@ interface PlanBuildContext {
   modelConfigForDefaultIntent: IModelConfig;
   cacheable?: boolean;
   deepLocate?: boolean;
+  abortSignal?: AbortSignal;
 }
 
 export class TaskBuilder {
@@ -117,6 +119,7 @@ export class TaskBuilder {
       modelConfigForDefaultIntent,
       cacheable,
       deepLocate: options?.deepLocate,
+      abortSignal: options?.abortSignal,
     };
 
     type PlanHandler = (plan: PlanningAction) => Promise<void> | void;
@@ -249,11 +252,11 @@ export class TaskBuilder {
           );
         });
 
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
         try {
           await Promise.all([
             (async () => {
               if (this.interface.beforeInvokeAction) {
-                setTimingFieldOnce(timing, 'beforeInvokeActionHookStart');
                 debug(
                   `will call "beforeInvokeAction" for interface with action name ${action.name}`,
                 );
@@ -261,7 +264,6 @@ export class TaskBuilder {
                 debug(
                   `called "beforeInvokeAction" for interface with action name ${action.name}`,
                 );
-                setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
               }
             })(),
             sleep(200),
@@ -274,6 +276,7 @@ export class TaskBuilder {
             { cause: originalError },
           );
         }
+        setTimingFieldOnce(timing, 'beforeInvokeActionHookEnd');
 
         const { shrunkShotToLogicalRatio } = uiContext;
         if (shrunkShotToLogicalRatio === undefined) {
@@ -303,6 +306,8 @@ export class TaskBuilder {
         setTimingFieldOnce(timing, 'callActionEnd');
         debug('called action', action.name, 'result:', actionResult);
 
+        setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
+
         const delayAfterRunner =
           action.delayAfterRunner ?? this.waitAfterAction ?? 300;
         if (delayAfterRunner > 0) {
@@ -311,7 +316,6 @@ export class TaskBuilder {
 
         try {
           if (this.interface.afterInvokeAction) {
-            setTimingFieldOnce(timing, 'afterInvokeActionHookStart');
             debug(
               `will call "afterInvokeAction" for interface with action name ${action.name}`,
             );
@@ -319,7 +323,6 @@ export class TaskBuilder {
             debug(
               `called "afterInvokeAction" for interface with action name ${action.name}`,
             );
-            setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
           }
         } catch (originalError: any) {
           const originalMessage =
@@ -329,6 +332,8 @@ export class TaskBuilder {
             { cause: originalError },
           );
         }
+
+        setTimingFieldOnce(timing, 'afterInvokeActionHookEnd');
 
         return {
           output: actionResult,
@@ -345,7 +350,8 @@ export class TaskBuilder {
     context: PlanBuildContext,
     onResult?: (result: LocateResultElement) => void,
   ): ExecutionTaskPlanningLocateApply {
-    const { cacheable, modelConfigForDefaultIntent, deepLocate } = context;
+    const { cacheable, modelConfigForDefaultIntent, deepLocate, abortSignal } =
+      context;
 
     let locateParam = detailedLocateParam;
 
@@ -362,10 +368,10 @@ export class TaskBuilder {
       };
     }
 
-    if (deepLocate && !locateParam.deepThink) {
+    if (deepLocate && !locateParam.deepLocate) {
       locateParam = {
         ...locateParam,
-        deepThink: true,
+        deepLocate: true,
       };
     }
 
@@ -485,14 +491,17 @@ export class TaskBuilder {
         const isCacheHit = !!elementFromCache;
 
         let elementFromAiLocate: LocateResultElement | null | undefined;
+        const timing = taskContext.task.timing;
         if (!isXpathHit && !isCacheHit && !isPlanHit) {
           try {
+            setTimingFieldOnce(timing, 'callAiStart');
             locateResult = await this.service.locate(
               param,
               {
                 context: uiContext,
               },
               modelConfigForDefaultIntent,
+              abortSignal,
             );
             applyDump(locateResult.dump);
             elementFromAiLocate = locateResult.element;
@@ -501,6 +510,8 @@ export class TaskBuilder {
               applyDump(error.dump);
             }
             throw error;
+          } finally {
+            setTimingFieldOnce(timing, 'callAiEnd');
           }
         }
 

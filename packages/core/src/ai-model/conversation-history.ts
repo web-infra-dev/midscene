@@ -42,6 +42,7 @@ export class ConversationHistory {
     this.memories.length = 0;
     this.subGoals.length = 0;
     this.historicalLogs.length = 0;
+    this.pendingFeedbackMessage = '';
   }
 
   /**

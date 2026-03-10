@@ -113,7 +113,7 @@ describe('buildDetailedLocateParam', () => {
 
     expect(result).toEqual({
       prompt: 'Click on the login button',
-      deepThink: false,
+      deepLocate: false,
       cacheable: true,
       xpath: undefined,
     });
@@ -122,7 +122,7 @@ describe('buildDetailedLocateParam', () => {
   it('should build detailed locate param with options', () => {
     const locatePrompt = 'Find the submit button';
     const options = {
-      deepThink: true,
+      deepLocate: true,
       cacheable: false,
       xpath: '//button[@type="submit"]',
       // prompt: 'Override prompt',
@@ -132,9 +132,9 @@ describe('buildDetailedLocateParam', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "cacheable": false,
-        "deepThink": true,
+        "deepLocate": true,
         "prompt": "Find the submit button",
-        "xpath": "//button[@type="submit"]",
+        "xpath": "//button[@type=\"submit\"]",
       }
     `);
   });
@@ -142,14 +142,14 @@ describe('buildDetailedLocateParam', () => {
   it('should handle partial options with defaults', () => {
     const locatePrompt = 'Locate the search input';
     const options = {
-      deepThink: true,
+      deepLocate: true,
       // cacheable and xpath not provided - should use defaults
     };
     const result = buildDetailedLocateParam(locatePrompt, options);
 
     expect(result).toEqual({
       prompt: 'Locate the search input',
-      deepThink: true,
+      deepLocate: true,
       cacheable: true, // default value
       xpath: undefined, // default value
     });
@@ -166,7 +166,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
 
     expect(result.locateParam).toEqual({
       prompt: 'Click on the login button',
-      deepThink: false,
+      deepLocate: false,
       cacheable: true,
       xpath: undefined,
     });
@@ -182,7 +182,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
       screenshotBase64: 'mock-base64-string',
     };
     const options = {
-      deepThink: true,
+      deepLocate: true,
       cacheable: false,
       xpath: '//button[@type="submit"]',
       prompt: 'Override prompt',
@@ -193,7 +193,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
     expect(result.locateParam).toMatchInlineSnapshot(`
       {
         "cacheable": false,
-        "deepThink": true,
+        "deepLocate": true,
         "prompt": "Find the submit button",
         "xpath": "//button[@type="submit"]",
       }
@@ -206,7 +206,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
   it('should handle multiple rest params', () => {
     const locatePrompt = 'Locate the search input';
     const options = {
-      deepThink: true,
+      deepLocate: true,
       uiContext: {
         tree: { node: null, children: [] },
         shotSize: { width: 1024, height: 768 },
@@ -221,7 +221,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
 
     expect(result.locateParam).toEqual({
       prompt: 'Locate the search input',
-      deepThink: true,
+      deepLocate: true,
       cacheable: true,
       xpath: undefined,
     });
@@ -247,7 +247,7 @@ describe('buildDetailedLocateParamAndRestParams', () => {
 
     expect(result.locateParam).toEqual({
       prompt: 'Test prompt',
-      deepThink: false,
+      deepLocate: false,
       cacheable: true,
       xpath: undefined,
     });

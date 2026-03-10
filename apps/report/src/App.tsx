@@ -4,11 +4,7 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import {
-  GroupedActionDump,
-  parseImageScripts,
-  restoreImageReferences,
-} from '@midscene/core';
+import { GroupedActionDump, restoreImageReferences } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -30,7 +26,29 @@ import type {
   VisualizerProps,
 } from './types';
 
+// Shared image cache across all test cases — resolved images are cached by id
+const imageCache = new Map<string, string>();
+
+function resolveImageFromDom(id: string): string {
+  const cached = imageCache.get(id);
+  if (cached) return cached;
+
+  const el = document.querySelector(
+    `script[type="midscene-image"][data-id="${CSS.escape(id)}"]`,
+  );
+  if (el?.textContent) {
+    const data = antiEscapeScriptTag(el.textContent);
+    imageCache.set(id, data);
+    return data;
+  }
+
+  // Fallback to directory path
+  return `./screenshots/${id}.png`;
+}
+
 let globalRenderCount = 1;
+const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
+const DEFAULT_SIDEBAR_WIDTH = 280;
 
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
@@ -53,7 +71,10 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const modelBriefs = useExecutionDump((store) => store.modelBriefs);
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
-  const mainLayoutChangedRef = useRef(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    return saved ? Number(saved) : DEFAULT_SIDEBAR_WIDTH;
+  });
   const dump = useExecutionDump((store) => store.dump);
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const {
@@ -153,62 +174,62 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     );
 
     mainContent = (
-      <PanelGroup
-        autoSaveId="main-page-layout"
-        direction="horizontal"
-        onLayout={() => {
-          if (!mainLayoutChangedRef.current) {
-            setMainLayoutChangeFlag((prev) => prev + 1);
-          }
-        }}
-      >
-        <Panel maxSize={95} defaultSize={25} minSize={15}>
-          <div className="page-side">
-            <Sidebar
-              dumps={dumps}
-              proModeEnabled={proModeEnabled}
-              onProModeChange={setProModeEnabled}
-              replayAllScripts={replayAllScripts}
-              setReplayAllMode={setReplayAllMode}
-            />
-          </div>
-        </Panel>
-        <PanelResizeHandle
+      <div className="main-layout">
+        <div className="page-side" style={{ width: sidebarWidth }}>
+          <Sidebar
+            dumps={dumps}
+            proModeEnabled={proModeEnabled}
+            onProModeChange={setProModeEnabled}
+            replayAllScripts={replayAllScripts}
+            setReplayAllMode={setReplayAllMode}
+          />
+        </div>
+        <div
           className="resize-handle"
-          onDragging={(isChanging) => {
-            if (mainLayoutChangedRef.current && !isChanging) {
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startWidth = sidebarWidth;
+            let latestWidth = startWidth;
+            const onMouseMove = (ev: MouseEvent) => {
+              latestWidth = Math.max(200, startWidth + ev.clientX - startX);
+              setSidebarWidth(latestWidth);
+            };
+            const onMouseUp = () => {
+              document.removeEventListener('mousemove', onMouseMove);
+              document.removeEventListener('mouseup', onMouseUp);
+              localStorage.setItem(SIDEBAR_WIDTH_KEY, String(latestWidth));
               setMainLayoutChangeFlag((prev) => prev + 1);
-            }
-            mainLayoutChangedRef.current = isChanging;
+            };
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
           }}
         />
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-right">
-            <div
-              className="main-right-header"
-              onClick={() => setTimelineCollapsed(!timelineCollapsed)}
-              style={{ cursor: 'pointer', userSelect: 'none' }}
+        <div className="main-right">
+          <div
+            className="main-right-header"
+            onClick={() => setTimelineCollapsed(!timelineCollapsed)}
+            style={{ cursor: 'pointer', userSelect: 'none' }}
+          >
+            <span
+              className="timeline-collapse-icon"
+              style={{
+                display: 'inline-block',
+                marginRight: 8,
+                transition: 'transform 0.2s',
+                transform: timelineCollapsed
+                  ? 'rotate(-90deg)'
+                  : 'rotate(0deg)',
+              }}
             >
-              <span
-                className="timeline-collapse-icon"
-                style={{
-                  display: 'inline-block',
-                  marginRight: 8,
-                  transition: 'transform 0.2s',
-                  transform: timelineCollapsed
-                    ? 'rotate(-90deg)'
-                    : 'rotate(0deg)',
-                }}
-              >
-                ▼
-              </span>
-              Record
-            </div>
-            {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
-            <div className="main-content">{content}</div>
+              ▼
+            </span>
+            Record
           </div>
-        </Panel>
-      </PanelGroup>
+          {!timelineCollapsed && <Timeline key={mainLayoutChangeFlag} />}
+          <div className="main-content">{content}</div>
+        </div>
+      </div>
     );
   }
 
@@ -329,14 +350,11 @@ export function App() {
                 console.time('parse_dump');
                 const content = antiEscapeScriptTag(el.textContent || '');
 
-                // Build imageMap from <script type="midscene-image"> tags
-                const imageMap = parseImageScripts(
-                  document.documentElement.innerHTML,
-                );
-
-                // Parse dump and restore image references
                 const parsed = JSON.parse(content);
-                const restored = restoreImageReferences(parsed, imageMap);
+                const restored = restoreImageReferences(
+                  parsed,
+                  resolveImageFromDom,
+                );
                 cachedJsonContent = GroupedActionDump.fromJSON(restored);
 
                 console.timeEnd('parse_dump');

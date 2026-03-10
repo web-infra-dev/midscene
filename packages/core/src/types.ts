@@ -101,7 +101,7 @@ export interface LocateValidatorResult {
 
 export interface AgentDescribeElementAtPointResult {
   prompt: string;
-  deepThink: boolean;
+  deepLocate: boolean;
   verifyResult?: LocateValidatorResult;
 }
 
@@ -186,7 +186,7 @@ export interface ServiceDump extends DumpMeta {
   };
   matchedElement: LocateResultElement[];
   matchedRect?: Rect;
-  deepThink?: boolean;
+  deepLocate?: boolean;
   data: any;
   assertionPass?: boolean;
   assertionThought?: string;
@@ -417,6 +417,8 @@ export type ExecutionTask<
       start: number;
       getUiContextStart?: number;
       getUiContextEnd?: number;
+      callAiStart?: number;
+      callAiEnd?: number;
       beforeInvokeActionHookStart?: number;
       beforeInvokeActionHookEnd?: number;
       callActionStart?: number;
@@ -705,6 +707,7 @@ export interface IGroupedActionDump {
   groupDescription?: string;
   modelBriefs: string[];
   executions: IExecutionDump[];
+  deviceType?: string;
 }
 
 /**
@@ -716,6 +719,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   groupDescription?: string;
   modelBriefs: string[];
   executions: ExecutionDump[];
+  deviceType?: string;
 
   constructor(data: IGroupedActionDump) {
     this.sdkVersion = data.sdkVersion;
@@ -725,6 +729,7 @@ export class GroupedActionDump implements IGroupedActionDump {
     this.executions = data.executions.map((exec) =>
       exec instanceof ExecutionDump ? exec : ExecutionDump.fromJSON(exec),
     );
+    this.deviceType = data.deviceType;
   }
 
   /**
@@ -771,6 +776,7 @@ export class GroupedActionDump implements IGroupedActionDump {
       groupDescription: this.groupDescription,
       modelBriefs: this.modelBriefs,
       executions: this.executions.map((exec) => exec.toJSON()),
+      deviceType: this.deviceType,
     };
   }
 
@@ -881,7 +887,10 @@ export class GroupedActionDump implements IGroupedActionDump {
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(dumpData, imageMap);
+    const processedData = restoreImageReferences(
+      dumpData,
+      (id) => imageMap[id] ?? '',
+    );
     return JSON.stringify(processedData);
   }
 
@@ -971,6 +980,11 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   paramSchema?: z.ZodType<TParam>;
   call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
   delayAfterRunner?: number;
+  /**
+   * An example param object for this action.
+   * Locate fields with { prompt } will automatically get bbox injected when needed.
+   */
+  sample?: Record<string, any>;
 }
 
 /**

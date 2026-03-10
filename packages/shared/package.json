@@ -1,6 +1,6 @@
 {
   "name": "@midscene/shared",
-  "version": "1.5.0",
+  "version": "1.5.3",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "types": "./dist/types/index.d.ts",
@@ -98,7 +98,8 @@
     "js-sha256": "0.11.0",
     "sharp": "^0.34.3",
     "dotenv": "^16.4.5",
-    "uuid": "11.1.0"
+    "uuid": "11.1.0",
+    "zod": "3.24.3"
   },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
@@ -109,8 +110,7 @@
     "openai": "6.3.0",
     "rimraf": "~3.0.2",
     "typescript": "^5.8.3",
-    "vitest": "3.0.5",
-    "zod": "3.24.3"
+    "vitest": "3.0.5"
   },
   "sideEffects": [],
   "publishConfig": {

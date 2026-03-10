@@ -149,9 +149,9 @@ export function UniversalPlayground({
     handleRun: executeAction,
     handleStop,
     canStop,
-  } = usePlaygroundExecution(
+  } = usePlaygroundExecution({
     playgroundSDK,
-    effectiveStorage,
+    storage: effectiveStorage,
     actionSpace,
     loading,
     setLoading,
@@ -161,11 +161,12 @@ export function UniversalPlayground({
     verticalMode,
     currentRunningIdRef,
     interruptedFlagRef,
-  );
+    deviceType: componentConfig.deviceType,
+  });
 
   // Override SDK config when environment config changes
   useEffect(() => {
-    // Only pass global config, not execution options like deepThink, screenshotIncluded, domIncluded
+    // Only pass global config, not execution options like deepLocate, screenshotIncluded, domIncluded
     // These execution options will be passed through ExecutionOptions during execution
     if (playgroundSDK?.overrideConfig && config) {
       playgroundSDK.overrideConfig(config).catch((error) => {

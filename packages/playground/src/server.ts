@@ -60,8 +60,11 @@ class PlaygroundServer {
   // Track current running task
   private currentTaskId: string | null = null;
 
-  // Flag to pause MJPEG polling during agent recreation
+  // Flag to pause MJPEG polling during agent recreation or task execution
   private _agentReady = true;
+
+  // Flag to track if AI config has changed and agent needs recreation
+  private _configDirty = false;
 
   constructor(
     agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
@@ -347,6 +350,7 @@ class PlaygroundServer {
         prompt,
         params,
         requestId,
+        deepLocate,
         deepThink,
         screenshotIncluded,
         domIncluded,
@@ -359,10 +363,11 @@ class PlaygroundServer {
         });
       }
 
-      // Always recreate agent before execution to ensure latest config is applied
-      if (this.agentFactory) {
+      // Recreate agent only when AI config has changed (via /config API)
+      if (this.agentFactory && this._configDirty) {
+        this._configDirty = false;
         this._agentReady = false;
-        console.log('Destroying old agent before execution...');
+        console.log('AI config changed, recreating agent...');
         try {
           if (this.agent && typeof this.agent.destroy === 'function') {
             await this.agent.destroy();
@@ -371,14 +376,13 @@ class PlaygroundServer {
           console.warn('Failed to destroy old agent:', error);
         }
 
-        console.log('Creating new agent with latest config...');
         try {
           this.agent = await this.agentFactory();
           this._agentReady = true;
-          console.log('Agent created successfully');
+          console.log('Agent recreated with new config');
         } catch (error) {
           this._agentReady = true;
-          console.error('Failed to create agent:', error);
+          console.error('Failed to recreate agent:', error);
           return res.status(500).json({
             error: `Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
           });
@@ -436,6 +440,8 @@ class PlaygroundServer {
         requestId,
       };
 
+      // Pause MJPEG polling during execution to avoid ADB contention
+      this._agentReady = false;
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
@@ -454,6 +460,7 @@ class PlaygroundServer {
           actionSpace,
           value,
           {
+            deepLocate,
             deepThink,
             screenshotIncluded,
             domIncluded,
@@ -487,6 +494,9 @@ class PlaygroundServer {
         console.error(
           `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
         );
+      } finally {
+        // Resume MJPEG polling after execution
+        this._agentReady = true;
       }
 
       res.send(response);
@@ -675,6 +685,7 @@ class PlaygroundServer {
 
       try {
         overrideAIConfig(aiConfig);
+        this._configDirty = true;
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
