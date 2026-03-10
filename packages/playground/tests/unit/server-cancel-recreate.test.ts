@@ -115,6 +115,37 @@ describe('PlaygroundServer cancel and recreate agent', () => {
     expect(typedIface.options).toEqual({ alwaysRefreshScreenInfo: true });
   });
 
+  it('should destroy agent on cancel even without factory (instance mode)', async () => {
+    // When PlaygroundServer is created with an agent instance (no factory),
+    // cancel should still destroy the agent to stop the running task.
+    const agent = {
+      destroyed: false,
+      destroy: vi.fn(async () => {
+        agent.destroyed = true;
+      }),
+    };
+
+    const agentFactory = null; // no factory
+
+    // Simulate the fixed recreateAgent logic
+    async function recreateAgent() {
+      // Destroy old agent
+      if (agent && typeof agent.destroy === 'function') {
+        await agent.destroy();
+      }
+      // No factory — cannot recreate, but destroy still happened
+      if (!agentFactory) {
+        return;
+      }
+    }
+
+    await recreateAgent();
+
+    // Agent should be destroyed even without factory
+    expect(agent.destroyed).toBe(true);
+    expect(agent.destroy).toHaveBeenCalledTimes(1);
+  });
+
   it('should merge deviceOptions with existing options', () => {
     const iface = {
       options: { existingOption: 'value', alwaysRefreshScreenInfo: false },

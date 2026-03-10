@@ -183,12 +183,6 @@ class PlaygroundServer {
    * Recreate agent instance (for cancellation)
    */
   private async recreateAgent(): Promise<void> {
-    if (!this.agentFactory) {
-      throw new Error(
-        'Cannot recreate agent: factory function not provided. Attempting to destroy existing agent only.',
-      );
-    }
-
     this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
@@ -201,15 +195,22 @@ class PlaygroundServer {
       console.warn('Failed to destroy old agent:', error);
     }
 
-    // Create new agent instance
-    try {
-      this.agent = await this.agentFactory();
+    // Create new agent instance if factory is available
+    if (this.agentFactory) {
+      try {
+        this.agent = await this.agentFactory();
+        this._agentReady = true;
+        console.log('Agent recreated successfully');
+      } catch (error) {
+        this._agentReady = true;
+        console.error('Failed to recreate agent:', error);
+        throw error;
+      }
+    } else {
       this._agentReady = true;
-      console.log('Agent recreated successfully');
-    } catch (error) {
-      this._agentReady = true;
-      console.error('Failed to recreate agent:', error);
-      throw error;
+      console.warn(
+        'Agent destroyed but cannot recreate: no factory function provided. Next /execute call will fail.',
+      );
     }
   }
 
