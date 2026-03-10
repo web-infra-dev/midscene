@@ -6,9 +6,9 @@ import {
 import type { IOSDeviceOpt } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { ReportHelper, buildReportMeta } from '../report-helper';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, test } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
-import { BaseTestContext, type TestFixture } from './base';
+import { BaseTestContext } from './base';
 
 export interface IOSTestOptions {
   /** Options passed to IOSDevice (e.g. WDA port, device UDID). */
@@ -100,31 +100,36 @@ export class IOSTest extends BaseTestContext<IOSAgent> {
   }
 
   /**
-   * Register all lifecycle hooks and return an object with a `create` method
-   * for per-test contexts.
+   * Register all lifecycle hooks and return an extended `test` function
+   * that provides `{ agent }` as a fixture.
    *
    * Usage:
    * ```ts
-   * const fixture = IOSTest.init({ agentOptions: { ... } });
-   * it('test', async (testCtx) => {
-   *   const ctx = await fixture.create('https://example.com', testCtx);
+   * const it = IOSTest.init('https://example.com', { agentOptions: { ... } });
+   * it('test', async ({ agent }) => {
+   *   await agent.aiAct('...');
    * });
    * ```
    */
-  static init(options?: IOSTestOptions): TestFixture<IOSTest> {
+  static init(targetUri: string, options?: IOSTestOptions) {
     let currentCtx: IOSTest | undefined;
 
     beforeAll(() => IOSTest.setup(options));
-    afterEach((testCtx) =>
-      IOSTest.collectReport(currentCtx, testCtx),
-    );
+    afterEach((testCtx) => {
+      const ctx = currentCtx;
+      currentCtx = undefined;
+      return IOSTest.collectReport(ctx, testCtx);
+    });
     afterAll((suite) => IOSTest.mergeAndTeardown(suite));
 
-    return {
-      create: async (targetUri: string, testCtx: VitestTestContext) => {
-        currentCtx = await IOSTest.create(targetUri, testCtx);
-        return currentCtx;
+    return test.extend<{ agent: IOSAgent }>({
+      agent: async ({ task }, use) => {
+        currentCtx = await IOSTest.create(
+          targetUri,
+          { task } as VitestTestContext,
+        );
+        await use(currentCtx.agent);
       },
-    };
+    });
   }
 }

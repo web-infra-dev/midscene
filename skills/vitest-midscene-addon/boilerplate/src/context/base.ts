@@ -14,14 +14,6 @@ interface AgentLike {
 }
 
 /**
- * A fixture returned by `XxxTest.init()` that provides a `createContext`
- * method for producing per-test contexts.
- */
-export interface TestFixture<TCtx, TCreateArgs extends any[] = [string, VitestTestContext]> {
-  create(...args: TCreateArgs): Promise<TCtx>;
-}
-
-/**
  * Base class for all platform test contexts.
  *
  * Handles the instance-level lifecycle (agent, reportFile, destroy)

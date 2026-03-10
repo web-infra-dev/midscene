@@ -7,9 +7,9 @@ import {
 import type { AndroidDeviceOpt } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { ReportHelper, buildReportMeta } from '../report-helper';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, test } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
-import { BaseTestContext, type TestFixture } from './base';
+import { BaseTestContext } from './base';
 
 export interface AndroidTestOptions {
   /** ADB device serial. If omitted, the first connected device is used. */
@@ -112,31 +112,36 @@ export class AndroidTest extends BaseTestContext<AndroidAgent> {
   }
 
   /**
-   * Register all lifecycle hooks and return an object with a `create` method
-   * for per-test contexts.
+   * Register all lifecycle hooks and return an extended `test` function
+   * that provides `{ agent }` as a fixture.
    *
    * Usage:
    * ```ts
-   * const fixture = AndroidTest.init({ agentOptions: { ... } });
-   * it('test', async (testCtx) => {
-   *   const ctx = await fixture.create('https://example.com', testCtx);
+   * const it = AndroidTest.init('https://example.com', { agentOptions: { ... } });
+   * it('test', async ({ agent }) => {
+   *   await agent.aiAct('...');
    * });
    * ```
    */
-  static init(options?: AndroidTestOptions): TestFixture<AndroidTest> {
+  static init(targetUri: string, options?: AndroidTestOptions) {
     let currentCtx: AndroidTest | undefined;
 
     beforeAll(() => AndroidTest.setup(options));
-    afterEach((testCtx) =>
-      AndroidTest.collectReport(currentCtx, testCtx),
-    );
+    afterEach((testCtx) => {
+      const ctx = currentCtx;
+      currentCtx = undefined;
+      return AndroidTest.collectReport(ctx, testCtx);
+    });
     afterAll((suite) => AndroidTest.mergeAndTeardown(suite));
 
-    return {
-      create: async (targetUri: string, testCtx: VitestTestContext) => {
-        currentCtx = await AndroidTest.create(targetUri, testCtx);
-        return currentCtx;
+    return test.extend<{ agent: AndroidAgent }>({
+      agent: async ({ task }, use) => {
+        currentCtx = await AndroidTest.create(
+          targetUri,
+          { task } as VitestTestContext,
+        );
+        await use(currentCtx.agent);
       },
-    };
+    });
   }
 }

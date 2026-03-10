@@ -1,9 +1,9 @@
 import { PlaywrightAgent, type WebPageAgentOpt } from '@midscene/web/playwright';
 import { type Browser, type Page, chromium } from 'playwright';
 import { ReportHelper, buildReportMeta } from '../report-helper';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, test } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
-import { BaseTestContext, type TestFixture } from './base';
+import { BaseTestContext } from './base';
 
 const DEFAULT_ARGS = ['--no-sandbox', '--ignore-certificate-errors'];
 
@@ -97,39 +97,42 @@ export class WebTest extends BaseTestContext<PlaywrightAgent> {
   }
 
   /**
-   * Register all lifecycle hooks (beforeAll / afterEach / afterAll) and return
-   * an object with a `create` method for per-test contexts.
+   * Register all lifecycle hooks and return an extended `test` function
+   * that provides `{ page, agent }` as fixtures.
    *
    * Usage:
    * ```ts
-   * const fixture = WebTest.init();
-   * it('test', async (testCtx) => {
-   *   const ctx = await fixture.create('https://example.com', testCtx);
+   * const it = WebTest.init('https://example.com');
+   * it('test', async ({ page, agent }) => {
+   *   await agent.aiAct('...');
+   *   await page.waitForLoadState('networkidle');
    * });
    * ```
    */
-  static init(options?: WebTestOptions): TestFixture<WebTest, [string, VitestTestContext, WebTestOptions?]> {
+  static init(targetUrl: string, options?: WebTestOptions) {
     let currentCtx: WebTest | undefined;
 
     beforeAll(() => WebTest.setup(options));
-    afterEach((testCtx) =>
-      WebTest.collectReport(currentCtx, testCtx),
-    );
+    afterEach((testCtx) => {
+      const ctx = currentCtx;
+      currentCtx = undefined;
+      return WebTest.collectReport(ctx, testCtx);
+    });
     afterAll((suite) => WebTest.mergeAndTeardown(suite));
 
-    return {
-      create: async (
-        targetUrl: string,
-        testCtx: VitestTestContext,
-        createOptions?: WebTestOptions,
-      ) => {
+    return test.extend<{ page: Page; agent: PlaywrightAgent }>({
+      page: async ({ task }, use) => {
         currentCtx = await WebTest.create(
           targetUrl,
-          testCtx,
-          createOptions,
+          { task } as VitestTestContext,
+          options,
         );
-        return currentCtx;
+        await use(currentCtx.page);
       },
-    };
+      agent: async ({ page }, use) => {
+        void page; // ensure page fixture resolves first
+        await use(currentCtx!.agent);
+      },
+    });
   }
 }
