@@ -13,11 +13,11 @@ describe('node cache', () => {
     global.Node = { ELEMENT_NODE: 1, TEXT_NODE: 3 } as any;
     global.SVGElement = class {} as any;
     global.XPathResult = { ORDERED_NODE_SNAPSHOT_TYPE: 7 } as any;
-    delete (global.window as any).midsceneNodeHashCache;
+    (global.window as any).midsceneNodeHashCache = undefined;
   });
 
   afterEach(() => {
-    delete (global.window as any).midsceneNodeHashCache;
+    (global.window as any).midsceneNodeHashCache = undefined;
   });
 
   describe('setNodeHashCacheListOnWindow', () => {
