@@ -8,6 +8,7 @@ import {
   type DeviceActionIOSHomeButton,
   type DeviceActionLaunch,
   type DeviceActionRunWdaRequest,
+  type DeviceActionTerminate,
   IOSDevice,
   type IOSDeviceOpt,
 } from './device';
@@ -47,6 +48,12 @@ export class IOSAgent extends PageAgent<IOSDevice> {
   runWdaRequest!: WrappedAction<DeviceActionRunWdaRequest>;
 
   /**
+   * Terminate (close) an iOS app by bundle ID
+   * Type-safe wrapper around the Terminate action from actionSpace
+   */
+  terminate!: WrappedAction<DeviceActionTerminate>;
+
+  /**
    * Trigger the system home operation on iOS devices
    */
   home!: WrappedAction<DeviceActionIOSHomeButton>;
@@ -77,6 +84,8 @@ export class IOSAgent extends PageAgent<IOSDevice> {
     this.launch = this.createActionWrapper<DeviceActionLaunch>('Launch');
     this.runWdaRequest =
       this.createActionWrapper<DeviceActionRunWdaRequest>('RunWdaRequest');
+    this.terminate =
+      this.createActionWrapper<DeviceActionTerminate>('Terminate');
     this.home =
       this.createActionWrapper<DeviceActionIOSHomeButton>('IOSHomeButton');
     this.appSwitcher =

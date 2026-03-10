@@ -116,8 +116,16 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
     deviceType,
   } = options;
   // Get execution options from environment config
-  const { deepLocate, deepThink, screenshotIncluded, domIncluded } =
-    useEnvConfig();
+  const {
+    deepLocate,
+    deepThink,
+    screenshotIncluded,
+    domIncluded,
+    imeStrategy,
+    autoDismissKeyboard,
+    keyboardDismissStrategy,
+    alwaysRefreshScreenInfo,
+  } = useEnvConfig();
 
   // Handle form submission and execution
   const handleRun = useCallback(
@@ -232,6 +240,12 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           ...(actionType === 'aiAct' ? { deepThink } : {}),
           screenshotIncluded,
           domIncluded,
+          deviceOptions: {
+            imeStrategy,
+            autoDismissKeyboard,
+            keyboardDismissStrategy,
+            alwaysRefreshScreenInfo,
+          },
         };
         result.result = await playgroundSDK.executeAction(
           actionType,
@@ -356,6 +370,10 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
       screenshotIncluded,
       domIncluded,
       deviceType,
+      imeStrategy,
+      autoDismissKeyboard,
+      keyboardDismissStrategy,
+      alwaysRefreshScreenInfo,
     ],
   );
 

@@ -359,6 +359,22 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     return this;
   }
 
+  /**
+   * Terminate (close) an iOS app by bundle ID.
+   * Supports app name resolution via setAppNameMapping when provided.
+   */
+  public async terminate(bundleId: string): Promise<void> {
+    const resolved = this.resolveBundleId(bundleId) ?? bundleId;
+    try {
+      debugDevice(`Terminating app: ${resolved}`);
+      await this.wdaBackend.terminateApp(resolved);
+      debugDevice(`Successfully terminated: ${resolved}`);
+    } catch (error: any) {
+      debugDevice(`Error terminating ${resolved}: ${error}`);
+      throw new Error(`Failed to terminate ${resolved}: ${error.message}`);
+    }
+  }
+
   async getElementsInfo(): Promise<ElementInfo[]> {
     return [];
   }
@@ -1005,6 +1021,16 @@ export type DeviceActionRunWdaRequest = DeviceAction<
 >;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
 
+const terminateParamSchema = z
+  .string()
+  .describe(
+    'Bundle ID of the app to terminate (close). Use the exact bundle ID, e.g. com.apple.Preferences.',
+  );
+
+type TerminateParam = z.infer<typeof terminateParamSchema>;
+
+export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
+
 /**
  * Platform-specific action definitions for iOS
  * Single source of truth for both runtime behavior and type definitions
@@ -1037,6 +1063,15 @@ const createPlatformActions = (device: IOSDevice) => {
         await device.launch(param);
       },
     }),
+    Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
+      name: 'Terminate',
+      description: 'Terminate (close) an iOS app by its bundle ID',
+      interfaceAlias: 'terminate',
+      paramSchema: terminateParamSchema,
+      call: async (param) => {
+        await device.terminate(param);
+      },
+    }),
     IOSHomeButton: defineAction({
       name: 'IOSHomeButton',
       description: 'Trigger the system "home" operation on iOS devices',
@@ -1055,4 +1090,5 @@ const createPlatformActions = (device: IOSDevice) => {
 };
 
 export type DeviceActionIOSHomeButton = DeviceAction<undefined, void>;
+
 export type DeviceActionIOSAppSwitcher = DeviceAction<undefined, void>;

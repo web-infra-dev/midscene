@@ -344,6 +344,7 @@ tasks:
 - `/wda/device/info` - 获取设备信息
 - `/session/{sessionId}/wda/pressButton` - 按硬件按钮
 - `/session/{sessionId}/wda/apps/launch` - 启动应用
+- `/session/{sessionId}/wda/apps/terminate` - 终止应用
 - `/session/{sessionId}/wda/apps/activate` - 激活应用
 
 **`launch` - 启动应用或 URL**
@@ -362,6 +363,20 @@ tasks:
   - name: 打开网页
     flow:
       - launch: https://www.example.com
+```
+
+**`terminate` - 终止应用**
+
+通过 Bundle ID 终止（关闭）正在运行的 iOS 应用。
+
+```yaml
+ios:
+  wdaPort: 8100
+
+tasks:
+  - name: 终止设置应用
+    flow:
+      - terminate: com.apple.Preferences
 ```
 
 ### `computer` 部分

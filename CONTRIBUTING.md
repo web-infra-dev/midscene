@@ -78,6 +78,33 @@ git config user.email "SOME_EMAIL@example.com"
 
 ---
 
+
+## Repo Map
+
+- `packages/core`: agent execution, planning, model integration, device
+  abstractions. The package name is `@midscene/core`.
+- `packages/web-integration`: source for npm package `@midscene/web`;
+  Playwright/Puppeteer integration and main web e2e coverage. The package name is `@midscene/web`.
+- `packages/shared`: shared utilities used across the monorepo. The package name is `@midscene/shared`.
+- `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
+  `*-mcp` and `*-playground` packages live alongside them. The package names are `@midscene/android`, `@midscene/ios`, `@midscene/computer`, `@midscene/harmony`.
+- `packages/visualizer` and `apps/report`: report rendering and viewer UI.
+- `apps/site`: documentation site. The Nx project name is `doc`, not `site`.
+- `apps/chrome-extension`, `apps/playground`, `apps/report`,
+  `apps/recorder-form`: user-facing apps. 
+
+### Commands That Matter
+
+- Install deps: `pnpm install`
+- Lint: `pnpm run lint`
+- Focused build: `npx nx build <project>`
+- Focused test: `npx nx test <project>`
+- Web e2e: `npx nx e2e @midscene/web`
+- AI tests: `npx nx test:ai @midscene/core` or
+  `npx nx test:ai @midscene/web`
+
+---
+
 ## Making Changes and Building
 
 Once you have set up the local development environment in your forked repo, we can start development.
@@ -104,9 +131,34 @@ Build all packages:
 pnpm run build
 ```
 
+### Development Workflows
+
+Use the root dev command only when you need monorepo-wide watch/build wiring:
+
+```sh
+pnpm run dev
+```
+
+This command runs `scripts/dev-prepare.js` first, prepares the report and
+playground assets, and then starts Nx watch builds across packages.
+
+If you only need to debug a single app, start that app's own dev server
+instead of the root dev command:
+
+```sh
+cd apps/report && pnpm run dev
+cd apps/site && pnpm run dev
+cd apps/playground && pnpm run dev
+cd apps/chrome-extension && pnpm run dev
+```
+
 ### `REPLACE_ME_WITH_REPORT_HTML` error in the report file
 
-If you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, it's usually because of the circular dependency issue of Midscene. You can rebuild the entire project without nx cache to solve this issue.
+`apps/report` is not standalone at runtime. Its built `index.html` template is
+injected back into `packages/core/dist` during build. If report UI changes do
+not show up, or you see `REPLACE_ME_WITH_REPORT_HTML` in the report file, the
+template injection is usually stale. Rebuild the entire workspace without Nx
+cache to fix it:
 
 ```sh
 # Rebuild the entire project without cache
