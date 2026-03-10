@@ -1966,7 +1966,11 @@ const createPlatformActions = (
   AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
 } => {
   return {
-    RunAdbShell: defineAction<typeof runAdbShellParamSchema, RunAdbShellParam, string>({
+    RunAdbShell: defineAction<
+      typeof runAdbShellParamSchema,
+      RunAdbShellParam,
+      string
+    >({
       name: 'RunAdbShell',
       description: 'Execute ADB shell command on Android device',
       interfaceAlias: 'runAdbShell',
