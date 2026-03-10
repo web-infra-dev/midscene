@@ -1063,11 +1063,7 @@ const createPlatformActions = (device: IOSDevice) => {
         await device.launch(param);
       },
     }),
-    Terminate: defineAction<
-      typeof terminateParamSchema,
-      TerminateParam,
-      void
-    >({
+    Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
       name: 'Terminate',
       description: 'Terminate (close) an iOS app by its bundle ID',
       interfaceAlias: 'terminate',
@@ -1094,4 +1090,5 @@ const createPlatformActions = (device: IOSDevice) => {
 };
 
 export type DeviceActionIOSHomeButton = DeviceAction<undefined, void>;
+
 export type DeviceActionIOSAppSwitcher = DeviceAction<undefined, void>;
