@@ -6,7 +6,7 @@ import {
 import type { IOSDeviceOpt } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { ReportHelper, buildReportMeta } from '../report-helper';
-import { afterAll, afterEach, beforeAll, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
 import { BaseTestContext } from './base';
 
@@ -25,12 +25,9 @@ export class IOSTest extends BaseTestContext<IOSAgent> {
   private static reportHelper = new ReportHelper();
 
   /**
-   * Connect to an iOS device via WebDriverAgent. Call once in `beforeAll`.
-   *
-   * Requires a running WDA instance on the target device/simulator.
-   * Each `create()` call launches a URL/app and creates a fresh agent.
+   * Connect to an iOS device via WebDriverAgent. Called once in `beforeAll`.
    */
-  static async setup(options?: IOSTestOptions): Promise<void> {
+  static async connectDevice(options?: IOSTestOptions): Promise<void> {
     IOSTest.sharedOptions = options ?? {};
 
     const device = new IOSDevice(options?.deviceOptions ?? {});
@@ -41,7 +38,7 @@ export class IOSTest extends BaseTestContext<IOSAgent> {
   }
 
   /**
-   * Launch a URL or app and return a test context. Call in each `it` block.
+   * Launch a URL or app and return a test context.
    *
    * @param uri - A URL (https://...), bundle ID, or app name to launch
    */
@@ -51,7 +48,7 @@ export class IOSTest extends BaseTestContext<IOSAgent> {
   ): Promise<IOSTest> {
     if (!IOSTest.sharedDevice) {
       throw new Error(
-        'IOSTest.setup() must be called before create(). Call it in beforeAll.',
+        'IOSTest.connectDevice() must be called before create(). Call it in beforeAll.',
       );
     }
 
@@ -100,21 +97,27 @@ export class IOSTest extends BaseTestContext<IOSAgent> {
   }
 
   /**
-   * Register all lifecycle hooks and return an extended `test` function
-   * that provides `{ agent }` as a fixture.
+   * Register lifecycle hooks and return a context object whose `agent`
+   * property points to the current test's agent instance.
    *
    * Usage:
    * ```ts
-   * const it = IOSTest.init('https://example.com', { agentOptions: { ... } });
-   * it('test', async ({ agent }) => {
-   *   await agent.aiAct('...');
+   * describe('iOS TodoMVC', () => {
+   *   const ctx = IOSTest.setup('https://todomvc.com/examples/react/dist/');
+   *
+   *   it('should add a todo', async () => {
+   *     await ctx.agent.aiAct('...');
+   *   });
    * });
    * ```
    */
-  static init(targetUri: string, options?: IOSTestOptions) {
+  static setup(targetUri: string, options?: IOSTestOptions) {
     let currentCtx: IOSTest | undefined;
 
-    beforeAll(() => IOSTest.setup(options));
+    beforeAll(() => IOSTest.connectDevice(options));
+    beforeEach(async (testCtx) => {
+      currentCtx = await IOSTest.create(targetUri, testCtx);
+    });
     afterEach((testCtx) => {
       const ctx = currentCtx;
       currentCtx = undefined;
@@ -122,14 +125,8 @@ export class IOSTest extends BaseTestContext<IOSAgent> {
     });
     afterAll((suite) => IOSTest.mergeAndTeardown(suite));
 
-    return test.extend<{ agent: IOSAgent }>({
-      agent: async ({ task }, use) => {
-        currentCtx = await IOSTest.create(
-          targetUri,
-          { task } as VitestTestContext,
-        );
-        await use(currentCtx.agent);
-      },
-    });
+    return {
+      get agent() { return currentCtx!.agent; },
+    } as { agent: IOSAgent };
   }
 }

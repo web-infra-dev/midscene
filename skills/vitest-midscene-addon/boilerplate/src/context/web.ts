@@ -1,7 +1,7 @@
 import { PlaywrightAgent, type WebPageAgentOpt } from '@midscene/web/playwright';
 import { type Browser, type Page, chromium } from 'playwright';
 import { ReportHelper, buildReportMeta } from '../report-helper';
-import { afterAll, afterEach, beforeAll, test } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
 import { BaseTestContext } from './base';
 
@@ -31,9 +31,9 @@ export class WebTest extends BaseTestContext<PlaywrightAgent> {
   }
 
   /**
-   * Initialize the shared browser instance. Call once in `beforeAll`.
+   * Launch the shared Chromium browser. Called once in `beforeAll`.
    */
-  static async setup(options?: WebTestOptions): Promise<void> {
+  static async launchBrowser(options?: WebTestOptions): Promise<void> {
     WebTest.sharedOptions = options ?? {};
     WebTest.sharedBrowser = await chromium.launch({
       headless: options?.headless ?? true,
@@ -43,7 +43,7 @@ export class WebTest extends BaseTestContext<PlaywrightAgent> {
   }
 
   /**
-   * Create a new page + agent on the shared browser. Call in each `it` block.
+   * Create a new page + agent on the shared browser.
    */
   static async create(
     targetUrl: string,
@@ -51,7 +51,7 @@ export class WebTest extends BaseTestContext<PlaywrightAgent> {
     options?: WebTestOptions,
   ): Promise<WebTest> {
     if (!WebTest.sharedBrowser) {
-      await WebTest.setup(options);
+      await WebTest.launchBrowser(options);
     }
     const opts = { ...WebTest.sharedOptions, ...options };
     const page = await WebTest.sharedBrowser!.newPage({
@@ -97,22 +97,28 @@ export class WebTest extends BaseTestContext<PlaywrightAgent> {
   }
 
   /**
-   * Register all lifecycle hooks and return an extended `test` function
-   * that provides `{ page, agent }` as fixtures.
+   * Register lifecycle hooks and return a context object whose `page` and
+   * `agent` properties point to the current test's instances.
    *
    * Usage:
    * ```ts
-   * const it = WebTest.init('https://example.com');
-   * it('test', async ({ page, agent }) => {
-   *   await agent.aiAct('...');
-   *   await page.waitForLoadState('networkidle');
+   * describe('百度搜索', () => {
+   *   const ctx = WebTest.setup('https://baidu.com');
+   *
+   *   it('搜索', async () => {
+   *     await ctx.agent.aiAct('...');
+   *     await ctx.page.waitForLoadState('networkidle');
+   *   });
    * });
    * ```
    */
-  static init(targetUrl: string, options?: WebTestOptions) {
+  static setup(targetUrl: string, options?: WebTestOptions) {
     let currentCtx: WebTest | undefined;
 
-    beforeAll(() => WebTest.setup(options));
+    beforeAll(() => WebTest.launchBrowser(options));
+    beforeEach(async (testCtx) => {
+      currentCtx = await WebTest.create(targetUrl, testCtx, options);
+    });
     afterEach((testCtx) => {
       const ctx = currentCtx;
       currentCtx = undefined;
@@ -120,19 +126,9 @@ export class WebTest extends BaseTestContext<PlaywrightAgent> {
     });
     afterAll((suite) => WebTest.mergeAndTeardown(suite));
 
-    return test.extend<{ page: Page; agent: PlaywrightAgent }>({
-      page: async ({ task }, use) => {
-        currentCtx = await WebTest.create(
-          targetUrl,
-          { task } as VitestTestContext,
-          options,
-        );
-        await use(currentCtx.page);
-      },
-      agent: async ({ page }, use) => {
-        void page; // ensure page fixture resolves first
-        await use(currentCtx!.agent);
-      },
-    });
+    return {
+      get page() { return currentCtx!.page; },
+      get agent() { return currentCtx!.agent; },
+    } as { page: Page; agent: PlaywrightAgent };
   }
 }
