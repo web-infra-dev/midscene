@@ -17,7 +17,7 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it.only(
+    it.skip(
       'long task',
       async () => {
         const { originPage, reset } = await launchPage(
