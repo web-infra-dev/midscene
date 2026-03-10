@@ -14,44 +14,7 @@ should point here instead of duplicating rules.
   repository root.
 - For code changes, run the smallest relevant Nx target for each touched
   project instead of defaulting to full monorepo validation.
-- Do not default to `pnpm run test`, `pnpm run build`, or AI suites unless
-  the change is cross-cutting or the user asks for broad validation.
-- AI tests require a root `.env`. Prefer cached runs first when possible and
-  explicitly say when AI tests were skipped.
-
-## Repo Map
-
-- `packages/core`: agent execution, planning, model integration, device
-  abstractions.
-- `packages/web-integration`: source for npm package `@midscene/web`;
-  Playwright/Puppeteer integration and main web e2e coverage.
-- `packages/shared`: shared utilities used across the monorepo.
-- `packages/{android,ios,computer,harmony}`: platform runtimes. Matching
-  `*-mcp` and `*-playground` packages live alongside them.
-- `packages/visualizer` and `apps/report`: report rendering and viewer UI.
-- `apps/site`: documentation site. The Nx project name is `doc`, not `site`.
-- `apps/chrome-extension`, `apps/playground`, `apps/report`,
-  `apps/recorder-form`: user-facing apps.
-
-## Commands That Matter
-
-- Install deps: `pnpm install`
-- Lint: `pnpm run lint`
-- Focused build: `npx nx build <project>`
-- Focused test: `npx nx test <project>`
-- Web e2e: `npx nx e2e @midscene/web`
-- AI tests: `npx nx test:ai @midscene/core` or
-  `npx nx test:ai @midscene/web`
-
-Useful project names:
-
-- `@midscene/core`
-- `@midscene/web`
-- `@midscene/shared`
-- `@midscene/visualizer`
-- `@midscene/report`
-- `doc`
-- `chrome-extension`
+- AI tests require some environment variables like `MIDSCENE_MODEL_BASE_URL` to be set.
 
 ## Change Rules That Actually Matter
 
