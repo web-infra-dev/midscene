@@ -20,6 +20,7 @@ interface CLICommand {
 export interface CLIRunnerOptions {
   stripPrefix?: string;
   argv?: string[];
+  version?: string;
 }
 
 export class CLIError extends Error {
@@ -126,12 +127,25 @@ function printCommandHelp(scriptName: string, cmd: CLICommand): void {
   }
 }
 
-function printHelp(scriptName: string, commands: CLICommand[]): void {
+function printVersion(scriptName: string, version: string): void {
+  console.log(`${scriptName} v${version}`);
+}
+
+function printHelp(
+  scriptName: string,
+  commands: CLICommand[],
+  version?: string,
+): void {
+  if (version) {
+    printVersion(scriptName, version);
+    console.log('');
+  }
   console.log(`\nUsage: ${scriptName} <command> [options]\n`);
   console.log('Commands:');
   for (const { name, def } of commands) {
     console.log(`  ${name.padEnd(30)} ${def.description}`);
   }
+  console.log(`  ${'version'.padEnd(30)} Show CLI version`);
   console.log(`\nRun "${scriptName} <command> --help" for more info.`);
 }
 
@@ -155,12 +169,25 @@ export async function runToolsCLI(
     name: removePrefix(def.name, options?.stripPrefix).toLowerCase(),
     def,
   }));
+  const cliVersion = options?.version;
 
   const [commandName, ...restArgs] = rawArgs;
 
   if (!commandName || commandName === '--help' || commandName === '-h') {
     debug('showing help (no command or --help flag)');
-    printHelp(scriptName, commands);
+    printHelp(scriptName, commands, cliVersion);
+    return;
+  }
+
+  if (
+    commandName === '--version' ||
+    commandName === '-v' ||
+    commandName.toLowerCase() === 'version'
+  ) {
+    if (!cliVersion) {
+      throw new CLIError('Failed to determine CLI version');
+    }
+    printVersion(scriptName, cliVersion);
     return;
   }
 
@@ -170,7 +197,7 @@ export async function runToolsCLI(
   if (!match) {
     debug('unknown command: %s', commandName);
     console.error(`Unknown command: ${commandName}`);
-    printHelp(scriptName, commands);
+    printHelp(scriptName, commands, cliVersion);
     throw new CLIError(`Unknown command: ${commandName}`);
   }
 
