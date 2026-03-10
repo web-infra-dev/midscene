@@ -769,7 +769,11 @@ const createPlatformActions = (
   HarmonyRecentAppsButton: DeviceActionHarmonyRecentAppsButton;
 } => {
   return {
-    RunHdcShell: defineAction<typeof runHdcShellParamSchema, RunHdcShellParam, string>({
+    RunHdcShell: defineAction<
+      typeof runHdcShellParamSchema,
+      RunHdcShellParam,
+      string
+    >({
       name: 'RunHdcShell',
       description: 'Execute HDC shell command on HarmonyOS device',
       interfaceAlias: 'runHdcShell',

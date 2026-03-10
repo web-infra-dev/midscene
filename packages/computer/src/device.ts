@@ -670,10 +670,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       }),
 
       // Input
-      defineAction<
-        typeof computerInputParamSchema,
-        ComputerInputParam
-      >({
+      defineAction<typeof computerInputParamSchema, ComputerInputParam>({
         name: 'Input',
         description: 'Input text into the input field',
         interfaceAlias: 'aiInput',
