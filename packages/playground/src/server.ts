@@ -390,13 +390,12 @@ class PlaygroundServer {
       }
 
       // Update device options if provided
-      if (
-        deviceOptions &&
-        this.agent.interface &&
-        'options' in this.agent.interface
-      ) {
-        this.agent.interface.options = {
-          ...(this.agent.interface.options || {}),
+      if (deviceOptions && this.agent.interface) {
+        const iface = this.agent.interface as unknown as {
+          options?: Record<string, unknown>;
+        };
+        iface.options = {
+          ...(iface.options || {}),
           ...deviceOptions,
         };
       }
@@ -566,14 +565,11 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Destroy agent to cancel the current task
-          // No need to recreate here — /execute always creates a fresh agent before each run
+          // Destroy and recreate agent to cancel the current task
           try {
-            if (this.agent && typeof this.agent.destroy === 'function') {
-              await this.agent.destroy();
-            }
+            await this.recreateAgent();
           } catch (error) {
-            console.warn('Failed to destroy agent during cancel:', error);
+            console.warn('Failed to recreate agent during cancel:', error);
           }
 
           // Clean up

@@ -600,6 +600,9 @@ ${Object.keys(size)
   }> {
     // Return cached value if not always fetching and cache exists
     const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
+    debugDevice(
+      `getScreenSize: alwaysRefreshScreenInfo=${this.options?.alwaysRefreshScreenInfo}, shouldCache=${shouldCache}, hasCachedSize=${!!this.cachedScreenSize}`,
+    );
     if (shouldCache && this.cachedScreenSize) {
       return this.cachedScreenSize;
     }
@@ -816,6 +819,9 @@ ${Object.keys(size)
   async getDisplayOrientation(): Promise<number> {
     // Return cached value if not always fetching and cache exists
     const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
+    debugDevice(
+      `getDisplayOrientation: alwaysRefreshScreenInfo=${this.options?.alwaysRefreshScreenInfo}, shouldCache=${shouldCache}, hasCachedOrientation=${this.cachedOrientation !== null}`,
+    );
     if (shouldCache && this.cachedOrientation !== null) {
       return this.cachedOrientation;
     }
@@ -900,6 +906,9 @@ ${Object.keys(size)
    */
   private async getAdjustScale(): Promise<{ x: number; y: number }> {
     const shouldCache = !(this.options?.alwaysRefreshScreenInfo ?? false);
+    debugDevice(
+      `getAdjustScale: alwaysRefreshScreenInfo=${this.options?.alwaysRefreshScreenInfo}, shouldCache=${shouldCache}, hasCachedScale=${!!this.cachedAdjustScale}`,
+    );
     if (shouldCache && this.cachedAdjustScale) {
       return this.cachedAdjustScale;
     }
