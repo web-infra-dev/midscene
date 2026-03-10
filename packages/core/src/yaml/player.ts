@@ -455,8 +455,11 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         // Support both formats:
         // 1. { aiTap: null, locate: { prompt, images, ... } }  (locate as sibling key)
         // 2. { aiTap: { locate: { prompt, images, ... } } }    (locate nested in aiTap)
-        const locateObj = locate
-          ?? (typeof aiTap === 'object' && aiTap !== null ? aiTap.locate : undefined);
+        const locateObj =
+          locate ??
+          (typeof aiTap === 'object' && aiTap !== null
+            ? aiTap.locate
+            : undefined);
 
         if (typeof aiTap === 'string' && aiTap) {
           // User YAML: aiTap: 'search input box'
