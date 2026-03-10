@@ -64,6 +64,11 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error('[scrcpy] Failed to download server:', error.message);
-  process.exit(1);
+  console.warn(
+    '[scrcpy] Warning: Failed to download server:',
+    error.message,
+  );
+  console.warn(
+    '[scrcpy] The build will continue, but the scrcpy server binary will not be available.',
+  );
 });

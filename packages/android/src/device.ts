@@ -151,7 +151,12 @@ export class AndroidDevice implements AbstractInterface {
           value: 'test@example.com',
           locate: { prompt: 'the email input field' },
         },
-        call: async (param) => {
+        call: async (param: {
+          value: string;
+          autoDismissKeyboard?: boolean;
+          mode?: 'replace' | 'clear' | 'typeOnly';
+          locate?: LocateResultElement;
+        }) => {
           const element = param.locate;
           if (param.mode !== 'typeOnly') {
             await this.clearInput(element as unknown as ElementInfo);
@@ -1961,7 +1966,7 @@ const createPlatformActions = (
   AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
 } => {
   return {
-    RunAdbShell: defineAction({
+    RunAdbShell: defineAction<typeof runAdbShellParamSchema, RunAdbShellParam, string>({
       name: 'RunAdbShell',
       description: 'Execute ADB shell command on Android device',
       interfaceAlias: 'runAdbShell',
@@ -1977,7 +1982,7 @@ const createPlatformActions = (
         return await adb.shell(param.command);
       },
     }),
-    Launch: defineAction({
+    Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
       name: 'Launch',
       description: 'Launch an Android app or URL',
       interfaceAlias: 'launch',
