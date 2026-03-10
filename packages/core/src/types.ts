@@ -1130,7 +1130,7 @@ export type TestStatus =
   | 'interrupted';
 
 export interface ReportFileWithAttributes {
-  reportFilePath: string;
+  reportFilePath?: string;
   reportAttributes: {
     testDuration: number;
     testStatus: TestStatus;
