@@ -533,6 +533,78 @@ tasks:
     `);
   });
 
+  test('aiTap with locate containing image prompts (sibling and nested formats)', async () => {
+    const yamlString = `
+target:
+  url: "https://example.com"
+tasks:
+  - name: test_aiTap_image_prompt
+    flow:
+      - aiTap:
+        locate:
+          prompt: the area contains the image.
+          images:
+            - name: target image
+              url: https://example.com/image.png
+          convertHttpImage2Base64: true
+      - aiTap:
+          locate:
+            prompt: the area contains the image.
+            images:
+              - name: target image
+                url: https://example.com/image.png
+            convertHttpImage2Base64: true
+`;
+
+    const script = parseYamlScript(yamlString);
+    const mockAgent = await getMockAgent();
+    const player = new ScriptPlayer<MidsceneYamlScriptWebEnv>(
+      script,
+      async () => mockAgent,
+    );
+
+    await player.run();
+
+    expect(player.errorInSetup).toBeUndefined();
+    expect(player.taskStatusList[0].error).toBeUndefined();
+    expect(player.status).toBe('done');
+
+    // Both formats should produce the same aiTap calls
+    const aiTapCalls = (mockAgent.agent.aiTap as MockedFunction<any>).mock
+      .calls;
+    expect(aiTapCalls).toHaveLength(2);
+    // Both calls should have the same arguments regardless of YAML nesting style
+    expect(aiTapCalls[0]).toEqual(aiTapCalls[1]);
+    expect(aiTapCalls).toMatchInlineSnapshot(`
+      [
+        [
+          "the area contains the image.",
+          {
+            "convertHttpImage2Base64": true,
+            "images": [
+              {
+                "name": "target image",
+                "url": "https://example.com/image.png",
+              },
+            ],
+          },
+        ],
+        [
+          "the area contains the image.",
+          {
+            "convertHttpImage2Base64": true,
+            "images": [
+              {
+                "name": "target image",
+                "url": "https://example.com/image.png",
+              },
+            ],
+          },
+        ],
+      ]
+    `);
+  });
+
   test('aiInput, aiScroll, aiKeyboardPress , different style', async () => {
     const yamlString = `
 target:

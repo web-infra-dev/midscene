@@ -510,28 +510,30 @@ For steps whose prompt accepts images, you can attach images to the prompt by se
 
 Image URLs can be local paths, Base64 strings, or remote links. When using image links that cannot be accessed for the model, set `convertHttpImage2Base64: true` so Midscene will download the image and send the base64 string to the model.
 
-For interactions like `aiTap`, `aiHover`, `aiDoubleClick`, `aiRightClick`, put the text and images in the `locate` field.
+For interactions like `aiTap`, `aiHover`, `aiDoubleClick`, `aiRightClick`, put the text and images in the `locate` field as a sibling of the action key.
 
 ```yaml
 tasks:
   - name: Verify branding
     flow:
       - aiHover:
-          locate:
-            prompt: Move the cursor to the region containing the GitHub logo.
-            images:
-              - name: GitHub logo
-                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-            convertHttpImage2Base64: true
+        locate:
+          prompt: Move the cursor to the region containing the GitHub logo.
+          images:
+            - name: GitHub logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
 
       - aiTap:
-          locate:
-            prompt: Tap the region containing the GitHub logo.
-            images:
-              - name: GitHub logo
-                url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
-            convertHttpImage2Base64: true
+        locate:
+          prompt: Tap the region containing the GitHub logo.
+          images:
+            - name: GitHub logo
+              url: https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png
+          convertHttpImage2Base64: true
 ```
+
+> The legacy nested format (where `locate` is indented under the action key, e.g. `aiTap: \n    locate: ...`) is still supported but not recommended.
 
 For insight steps like `aiAsk`, `aiQuery`, `aiBoolean`, `aiNumber`, `aiString`, and `aiAssert`, you can set the `prompt` and `images` fields directly.
 

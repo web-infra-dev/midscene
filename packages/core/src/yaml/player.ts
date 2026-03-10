@@ -452,18 +452,26 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
 
         let locatePrompt: TUserPrompt;
         let opts = tapOptions;
+        // Support both formats:
+        // 1. { aiTap: null, locate: { prompt, images, ... } }  (locate as sibling key)
+        // 2. { aiTap: { locate: { prompt, images, ... } } }    (locate nested in aiTap)
+        const locateObj =
+          locate ??
+          (typeof aiTap === 'object' && aiTap !== null
+            ? aiTap.locate
+            : undefined);
 
         if (typeof aiTap === 'string' && aiTap) {
           // User YAML: aiTap: 'search input box'
           locatePrompt = aiTap;
-        } else if (typeof locate === 'object' && locate?.prompt) {
+        } else if (typeof locateObj === 'object' && locateObj?.prompt) {
           // buildYamlFlowFromPlans: { aiTap: '', locate: { prompt, deepLocate, cacheable } }
-          const { prompt: lp, ...locateOpts } = locate;
+          const { prompt: lp, ...locateOpts } = locateObj;
           locatePrompt = lp;
           opts = { ...locateOpts, ...tapOptions };
         } else {
           // User YAML: aiTap: { prompt: '...' } or aiTap: null + prompt: '...'
-          locatePrompt = aiTap?.prompt || prompt || locate;
+          locatePrompt = aiTap?.prompt || prompt || locateObj;
         }
 
         assert(locatePrompt, 'missing prompt for aiTap');
