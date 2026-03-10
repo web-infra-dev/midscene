@@ -33,6 +33,33 @@ import { HdcClient } from './hdc';
 
 export type { HarmonyDeviceOpt } from '@midscene/core/device';
 
+// Input action schema for Harmony
+const harmonyInputParamSchema = z.object({
+  value: z
+    .string()
+    .describe(
+      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+    ),
+  mode: z.preprocess(
+    (val) => (val === 'append' ? 'typeOnly' : val),
+    z
+      .enum(['replace', 'clear', 'typeOnly'])
+      .default('replace')
+      .optional()
+      .describe(
+        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - attempt to clear the field (limited support on HarmonyOS).',
+      ),
+  ),
+  locate: getMidsceneLocationSchema()
+    .describe('The input field to be filled')
+    .optional(),
+});
+type HarmonyInputParam = {
+  value: string;
+  mode?: 'replace' | 'clear' | 'typeOnly';
+  locate?: LocateResultElement;
+};
+
 const defaultScrollUntilTimes = 10;
 const defaultSwipeSpeed = 600;
 const defaultFastSwipeSpeed = 2000;
@@ -102,30 +129,11 @@ export class HarmonyDevice implements AbstractInterface {
         assert(element, 'Element not found, cannot double click');
         await this.doubleTap(element.center[0], element.center[1]);
       }),
-      defineAction({
+      defineAction<typeof harmonyInputParamSchema, HarmonyInputParam>({
         name: 'Input',
         description: 'Input text into the input field',
         interfaceAlias: 'aiInput',
-        paramSchema: z.object({
-          value: z
-            .string()
-            .describe(
-              'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-            ),
-          mode: z.preprocess(
-            (val) => (val === 'append' ? 'typeOnly' : val),
-            z
-              .enum(['replace', 'clear', 'typeOnly'])
-              .default('replace')
-              .optional()
-              .describe(
-                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - attempt to clear the field (limited support on HarmonyOS).',
-              ),
-          ),
-          locate: getMidsceneLocationSchema()
-            .describe('The input field to be filled')
-            .optional(),
-        }),
+        paramSchema: harmonyInputParamSchema,
         sample: {
           value: 'test@example.com',
           locate: { prompt: 'the email input field' },
@@ -761,7 +769,7 @@ const createPlatformActions = (
   HarmonyRecentAppsButton: DeviceActionHarmonyRecentAppsButton;
 } => {
   return {
-    RunHdcShell: defineAction({
+    RunHdcShell: defineAction<typeof runHdcShellParamSchema, RunHdcShellParam, string>({
       name: 'RunHdcShell',
       description: 'Execute HDC shell command on HarmonyOS device',
       interfaceAlias: 'runHdcShell',
@@ -777,7 +785,7 @@ const createPlatformActions = (
         return await hdc.shell(param.command);
       },
     }),
-    Launch: defineAction({
+    Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
       name: 'Launch',
       description: 'Launch a HarmonyOS app or URL',
       interfaceAlias: 'launch',

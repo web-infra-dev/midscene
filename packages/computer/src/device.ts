@@ -53,6 +53,24 @@ interface ScreenshotDisplay {
   primary?: boolean;
 }
 
+// Input action schema for computer
+const computerInputParamSchema = z.object({
+  value: z.string().describe('The text to input'),
+  mode: z
+    .enum(['replace', 'clear', 'append'])
+    .default('replace')
+    .optional()
+    .describe('Input mode: replace, clear, or append'),
+  locate: getMidsceneLocationSchema()
+    .describe('The input field to be filled')
+    .optional(),
+});
+type ComputerInputParam = {
+  value: string;
+  mode?: 'replace' | 'clear' | 'append';
+  locate?: LocateResultElement;
+};
+
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
 const SMOOTH_MOVE_STEPS_MOUSE_MOVE = 10;
@@ -652,21 +670,14 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       }),
 
       // Input
-      defineAction({
+      defineAction<
+        typeof computerInputParamSchema,
+        ComputerInputParam
+      >({
         name: 'Input',
         description: 'Input text into the input field',
         interfaceAlias: 'aiInput',
-        paramSchema: z.object({
-          value: z.string().describe('The text to input'),
-          mode: z
-            .enum(['replace', 'clear', 'append'])
-            .default('replace')
-            .optional()
-            .describe('Input mode: replace, clear, or append'),
-          locate: getMidsceneLocationSchema()
-            .describe('The input field to be filled')
-            .optional(),
-        }),
+        paramSchema: computerInputParamSchema,
         sample: {
           value: 'test@example.com',
           locate: { prompt: 'the email input field' },
