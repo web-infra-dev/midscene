@@ -7,9 +7,9 @@ import {
 import type { AndroidDeviceOpt } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { ReportHelper, buildReportMeta } from '../report-helper';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import type { RunnerTestSuite, TestContext as VitestTestContext } from 'vitest';
-import { BaseTestContext, type TestFixture } from './base';
+import { BaseTestContext } from './base';
 
 export interface AndroidTestOptions {
   /** ADB device serial. If omitted, the first connected device is used. */
@@ -28,12 +28,9 @@ export class AndroidTest extends BaseTestContext<AndroidAgent> {
   private static reportHelper = new ReportHelper();
 
   /**
-   * Connect to an Android device. Call once in `beforeAll`.
-   *
-   * Each `create()` call launches a URL/app on the shared device
-   * and creates a fresh agent for independent reporting.
+   * Connect to an Android device. Called once in `beforeAll`.
    */
-  static async setup(options?: AndroidTestOptions): Promise<void> {
+  static async connectDevice(options?: AndroidTestOptions): Promise<void> {
     AndroidTest.sharedOptions = options ?? {};
 
     const deviceId =
@@ -53,7 +50,7 @@ export class AndroidTest extends BaseTestContext<AndroidAgent> {
   }
 
   /**
-   * Launch a URL or app and return a test context. Call in each `it` block.
+   * Launch a URL or app and return a test context.
    *
    * @param uri - A URL (https://...) or app package name / app name to launch
    */
@@ -63,7 +60,7 @@ export class AndroidTest extends BaseTestContext<AndroidAgent> {
   ): Promise<AndroidTest> {
     if (!AndroidTest.sharedDevice) {
       throw new Error(
-        'AndroidTest.setup() must be called before create(). Call it in beforeAll.',
+        'AndroidTest.connectDevice() must be called before create(). Call it in beforeAll.',
       );
     }
 
@@ -112,31 +109,36 @@ export class AndroidTest extends BaseTestContext<AndroidAgent> {
   }
 
   /**
-   * Register all lifecycle hooks and return an object with a `create` method
-   * for per-test contexts.
+   * Register lifecycle hooks and return a context object whose `agent`
+   * property points to the current test's agent instance.
    *
    * Usage:
    * ```ts
-   * const fixture = AndroidTest.init({ agentOptions: { ... } });
-   * it('test', async (testCtx) => {
-   *   const ctx = await fixture.create('https://example.com', testCtx);
+   * describe('Android TodoMVC', () => {
+   *   const ctx = AndroidTest.setup('https://todomvc.com/examples/react/dist/');
+   *
+   *   it('should add a todo', async () => {
+   *     await ctx.agent.aiAct('...');
+   *   });
    * });
    * ```
    */
-  static init(options?: AndroidTestOptions): TestFixture<AndroidTest> {
+  static setup(targetUri: string, options?: AndroidTestOptions) {
     let currentCtx: AndroidTest | undefined;
 
-    beforeAll(() => AndroidTest.setup(options));
-    afterEach((testCtx) =>
-      AndroidTest.collectReport(currentCtx, testCtx),
-    );
+    beforeAll(() => AndroidTest.connectDevice(options));
+    beforeEach(async (testCtx) => {
+      currentCtx = await AndroidTest.create(targetUri, testCtx);
+    });
+    afterEach((testCtx) => {
+      const ctx = currentCtx;
+      currentCtx = undefined;
+      return AndroidTest.collectReport(ctx, testCtx);
+    });
     afterAll((suite) => AndroidTest.mergeAndTeardown(suite));
 
     return {
-      create: async (targetUri: string, testCtx: VitestTestContext) => {
-        currentCtx = await AndroidTest.create(targetUri, testCtx);
-        return currentCtx;
-      },
-    };
+      get agent() { return currentCtx!.agent; },
+    } as { agent: AndroidAgent };
   }
 }

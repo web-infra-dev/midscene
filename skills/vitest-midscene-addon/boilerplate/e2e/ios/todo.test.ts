@@ -4,15 +4,13 @@ import { IOSTest } from '../../src/context';
 const pageUrl = 'https://todomvc.com/examples/react/dist/';
 
 describe('iOS TodoMVC', () => {
-  const fixture = IOSTest.init({
+  const ctx = IOSTest.setup(pageUrl, {
     agentOptions: {
       aiActionContext: 'You are an iOS app testing expert.',
     },
   });
 
-  it('should add and complete a todo', async (testCtx) => {
-    const ctx = await fixture.create(pageUrl, testCtx);
-
+  it('should add and complete a todo', async () => {
     await ctx.agent.aiAct(
       "type 'Study AI today' in the task box input and press the Enter key",
     );

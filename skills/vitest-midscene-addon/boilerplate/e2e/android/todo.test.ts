@@ -4,15 +4,13 @@ import { AndroidTest } from '../../src/context';
 const pageUrl = 'https://todomvc.com/examples/react/dist/';
 
 describe('Android TodoMVC', () => {
-  const fixture = AndroidTest.init({
+  const ctx = AndroidTest.setup(pageUrl, {
     agentOptions: {
       aiActionContext: 'You are an Android app testing expert.',
     },
   });
 
-  it('should add and complete a todo', async (testCtx) => {
-    const ctx = await fixture.create(pageUrl, testCtx);
-
+  it('should add and complete a todo', async () => {
     await ctx.agent.aiAct(
       "type 'Study AI today' in the task box input and press the Enter key",
     );
