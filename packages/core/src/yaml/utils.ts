@@ -73,7 +73,21 @@ export function buildDetailedLocateParam(
   opt?: LocateOption,
 ): DetailedLocateParam | undefined {
   debugUtils('will call buildDetailedLocateParam', locatePrompt, opt);
-  let prompt = locatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
+  // Normalize object-form TUserPrompt: when the object only contains a
+  // `prompt` string (no multimodal fields like `images`), unwrap it to
+  // avoid double nesting like { prompt: { prompt: '...' } }.
+  let normalizedLocatePrompt: TUserPrompt = locatePrompt;
+  if (
+    typeof locatePrompt === 'object' &&
+    locatePrompt !== null &&
+    'prompt' in locatePrompt
+  ) {
+    const { prompt: innerPrompt, ...rest } = locatePrompt;
+    const hasMultimodalFields = Object.keys(rest).length > 0;
+    normalizedLocatePrompt = hasMultimodalFields ? locatePrompt : innerPrompt;
+  }
+
+  let prompt = normalizedLocatePrompt || opt?.prompt || (opt as any)?.locate; // as a shortcut
   let deepLocate = false;
   let cacheable = true;
   let xpath = undefined;
