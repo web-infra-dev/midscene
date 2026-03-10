@@ -312,7 +312,7 @@ export class AndroidDevice implements AbstractInterface {
         }),
         sample: {
           direction: 'down',
-          locate: { prompt: 'the content list area' },
+          locate: { prompt: 'the center of the content list area' },
         },
         call: async (param) => {
           const element = param.locate;

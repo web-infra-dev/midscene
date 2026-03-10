@@ -767,7 +767,7 @@ const createPlatformActions = (
       interfaceAlias: 'runHdcShell',
       paramSchema: runHdcShellParamSchema,
       sample: {
-        command: 'hidumper -s WindowManagerService -a -a',
+        command: 'hidumper -s WindowManagerService -a',
       },
       call: async (param) => {
         if (!param.command || param.command.trim() === '') {

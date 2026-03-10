@@ -317,7 +317,7 @@ export const defineActionScroll = (
     sample: {
       direction: 'down',
       scrollType: 'singleAction',
-      locate: { prompt: 'the product list area' },
+      locate: { prompt: 'the center of the product list area' },
     },
     call,
   });
@@ -493,8 +493,8 @@ export const defineActionSwipe = (
       'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
     paramSchema: ActionSwipeParamSchema,
     sample: {
-      start: { prompt: 'middle-lower area of the screen' },
-      end: { prompt: 'upper-middle area of the screen' },
+      start: { prompt: 'center of the notification' },
+      end: { prompt: 'upper edge of the screen' },
     },
     call,
   });
