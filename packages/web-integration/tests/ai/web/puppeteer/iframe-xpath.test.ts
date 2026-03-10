@@ -97,7 +97,9 @@ describe('iframe element locate and cache (puppeteer agent)', () => {
     });
 
     // Center point should be within the iframe bounds
-    expect(result.center[0]).toBeGreaterThanOrEqual(Math.floor(iframeRect.left));
+    expect(result.center[0]).toBeGreaterThanOrEqual(
+      Math.floor(iframeRect.left),
+    );
     expect(result.center[1]).toBeGreaterThanOrEqual(Math.floor(iframeRect.top));
     expect(result.center[0]).toBeLessThanOrEqual(
       Math.ceil(iframeRect.right) + 1,

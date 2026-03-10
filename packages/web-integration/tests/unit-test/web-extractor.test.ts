@@ -412,6 +412,5 @@ describe(
         await reset();
       });
     });
-
   },
 );
