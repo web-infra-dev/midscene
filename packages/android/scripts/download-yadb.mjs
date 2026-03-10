@@ -47,8 +47,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.warn('[yadb] Warning: Failed to download:', error.message);
-  console.warn(
-    '[yadb] The build will continue, but the yadb binary will not be available.',
-  );
+  console.error('[yadb] Failed to download:', error.message);
+  process.exit(1);
 });
