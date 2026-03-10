@@ -147,7 +147,16 @@ export class AndroidDevice implements AbstractInterface {
             .describe('The input field to be filled')
             .optional(),
         }),
-        call: async (param) => {
+        sample: {
+          value: 'test@example.com',
+          locate: { prompt: 'the email input field' },
+        },
+        call: async (param: {
+          value: string;
+          autoDismissKeyboard?: boolean;
+          mode?: 'replace' | 'clear' | 'typeOnly';
+          locate?: LocateResultElement;
+        }) => {
           const element = param.locate;
           if (param.mode !== 'typeOnly') {
             await this.clearInput(element as unknown as ElementInfo);
@@ -264,6 +273,9 @@ export class AndroidDevice implements AbstractInterface {
             'The element to be long pressed',
           ),
         }),
+        sample: {
+          locate: { prompt: 'the message bubble' },
+        },
         call: async (param) => {
           const element = param.locate;
           if (!element) {
@@ -303,6 +315,10 @@ export class AndroidDevice implements AbstractInterface {
             .optional()
             .describe('The element to start the pull from (optional)'),
         }),
+        sample: {
+          direction: 'down',
+          locate: { prompt: 'the center of the content list area' },
+        },
         call: async (param) => {
           const element = param.locate;
           const startPoint = element
@@ -1950,11 +1966,18 @@ const createPlatformActions = (
   AndroidRecentAppsButton: DeviceActionAndroidRecentAppsButton;
 } => {
   return {
-    RunAdbShell: defineAction({
+    RunAdbShell: defineAction<
+      typeof runAdbShellParamSchema,
+      RunAdbShellParam,
+      string
+    >({
       name: 'RunAdbShell',
       description: 'Execute ADB shell command on Android device',
       interfaceAlias: 'runAdbShell',
       paramSchema: runAdbShellParamSchema,
+      sample: {
+        command: 'dumpsys window displays | grep -E "mCurrentFocus"',
+      },
       call: async (param) => {
         if (!param.command || param.command.trim() === '') {
           throw new Error('RunAdbShell requires a non-empty command parameter');
@@ -1963,11 +1986,14 @@ const createPlatformActions = (
         return await adb.shell(param.command);
       },
     }),
-    Launch: defineAction({
+    Launch: defineAction<typeof launchParamSchema, LaunchParam, void>({
       name: 'Launch',
       description: 'Launch an Android app or URL',
       interfaceAlias: 'launch',
       paramSchema: launchParamSchema,
+      sample: {
+        uri: 'com.example.app',
+      },
       call: async (param) => {
         if (!param.uri || param.uri.trim() === '') {
           throw new Error('Launch requires a non-empty uri parameter');

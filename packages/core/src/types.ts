@@ -984,7 +984,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
    * An example param object for this action.
    * Locate fields with { prompt } will automatically get bbox injected when needed.
    */
-  sample?: Record<string, any>;
+  sample?: { [K in keyof TParam]?: any };
 }
 
 /**
