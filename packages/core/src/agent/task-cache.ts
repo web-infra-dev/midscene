@@ -185,9 +185,27 @@ export class TaskCache {
   }
 
   matchPlanCache(prompt: string): MatchCacheResult<PlanningCache> | undefined {
-    return this.matchCache(prompt, 'plan') as
+    const result = this.matchCache(prompt, 'plan') as
       | MatchCacheResult<PlanningCache>
       | undefined;
+    if (!result) return undefined;
+    // Check whether flow is not empty after parsing by yamlWorkflow
+    const yamlWorkflow = result.cacheContent.yamlWorkflow;
+    if (yamlWorkflow?.trim()) {
+      try {
+        const parsed = yaml.load(yamlWorkflow) as any;
+        const hasNonEmptyFlow = parsed?.tasks?.some(
+          (task: any) => Array.isArray(task.flow) && task.flow.length > 0,
+        );
+        if (!hasNonEmptyFlow) {
+          debug('plan cache matched but flow is empty, treat as cache miss');
+          return undefined;
+        }
+      } catch {
+        return undefined;
+      }
+    }
+    return result;
   }
 
   matchLocateCache(
