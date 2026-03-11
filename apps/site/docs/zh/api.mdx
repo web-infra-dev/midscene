@@ -752,7 +752,7 @@ await agent.aiAssert('"Sauce Labs Onesie" 的价格是 7.99');
 
 ```typescript
 const items = await agent.aiQuery(
-  '"{name: string, price: number}[], 返回商品名称和价格列表',
+  '{name: string, price: number}[], 返回商品名称和价格列表',
 );
 const onesieItem = items.find((item) => item.name === 'Sauce Labs Onesie');
 expect(onesieItem).toBeTruthy();
