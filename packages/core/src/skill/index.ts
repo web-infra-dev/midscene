@@ -41,7 +41,7 @@ export interface SkillCLIOptions {
  * @example
  * ```typescript
  * #!/usr/bin/env node
- * import { runSkillCLI } from '@midscene/core/mcp';
+ * import { runSkillCLI } from '@midscene/core/skill';
  * import { SampleDevice } from './sample-device';
  *
  * runSkillCLI({

@@ -49,10 +49,10 @@
       "import": "./dist/es/report.mjs",
       "require": "./dist/lib/report.js"
     },
-    "./mcp": {
-      "types": "./dist/types/mcp/index.d.ts",
-      "import": "./dist/es/mcp/index.mjs",
-      "require": "./dist/lib/mcp/index.js"
+    "./skill": {
+      "types": "./dist/types/skill/index.d.ts",
+      "import": "./dist/es/skill/index.mjs",
+      "require": "./dist/lib/skill/index.js"
     }
   },
   "typesVersions": {
@@ -64,7 +64,7 @@
       "device": ["./dist/types/device.d.ts"],
       "agent": ["./dist/types/agent.d.ts"],
       "yaml": ["./dist/types/yaml.d.ts"],
-      "mcp": ["./dist/types/mcp/index.d.ts"]
+      "mcp": ["./dist/types/skill/index.d.ts"]
     }
   },
   "scripts": {

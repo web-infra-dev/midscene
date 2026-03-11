@@ -1,4 +1,4 @@
-import { runSkillCLI } from '@/mcp/index';
+import { runSkillCLI } from '@/skill/index';
 import { describe, expect, it } from 'vitest';
 
 describe('runSkillCLI', () => {
