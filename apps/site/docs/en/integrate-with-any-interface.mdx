@@ -190,9 +190,36 @@ await server.close();
 console.log('Playground closed!');
 ```
 
-### Step 4. Test the MCP server
+### Step 4. Add Skill support (optional)
 
-(still in progress)
+[Agent Skills](https://github.com/anthropics/skills) let AI coding assistants (Claude Code, Cline, etc.) drive your custom interface through CLI commands. Learn more in the [Skills documentation](./skills).
+
+Add a CLI entry file to your npm package (e.g., `./src/cli.ts`):
+
+```ts
+#!/usr/bin/env node
+import { runSkillCLI } from '@midscene/core/skill';
+import { SampleDevice } from './sample-device';
+
+runSkillCLI({
+  DeviceClass: SampleDevice,
+  scriptName: 'my-device',
+});
+```
+
+Then add a `bin` field to your `package.json`:
+
+```json
+{
+  "bin": {
+    "my-device": "./dist/cli.js"
+  }
+}
+```
+
+Once published, AI coding assistants can control your custom interface via `npx my-device`.
+
+For Skill authoring guidelines and more examples, see the [midscene-skills](https://github.com/web-infra-dev/midscene-skills) repository.
 
 ### Step 5. Release the npm package, and let your users use it
 
