@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { ScreenshotItem } from '../../src/screenshot-item';
 import {
   ExecutionDump,
   GroupedActionDump,
@@ -269,6 +270,48 @@ describe('GroupedActionDump', () => {
       expect(parsed.executions[0].logTime).toBe(1234567890);
       expect(parsed.executions[0].name).toBe('Execution 1');
       expect(parsed.executions[1].name).toBe('Execution 2');
+    });
+
+    it('should preserve capturedAt in inline screenshot serialization', () => {
+      const capturedAt = 1700000000123;
+      const screenshot = ScreenshotItem.create(
+        'data:image/png;base64,test-inline-screenshot',
+        capturedAt,
+      );
+
+      const dump = new GroupedActionDump({
+        sdkVersion: '1.0.0',
+        groupName: 'Inline Screenshot Test',
+        modelBriefs: [],
+        executions: [
+          {
+            logTime: 123,
+            name: 'Execution',
+            tasks: [
+              {
+                taskId: 'task-1',
+                type: 'Insight',
+                status: 'finished',
+                uiContext: {
+                  screenshot,
+                  shotSize: { width: 100, height: 100 },
+                  shrunkShotToLogicalRatio: 1,
+                },
+                executor: async () => {},
+              } as any,
+            ],
+          },
+        ],
+      });
+
+      const serialized = dump.serializeWithInlineScreenshots();
+      const parsed = JSON.parse(serialized);
+      const screenshotData = parsed.executions[0].tasks[0].uiContext.screenshot;
+
+      expect(screenshotData.base64).toBe(
+        'data:image/png;base64,test-inline-screenshot',
+      );
+      expect(screenshotData.capturedAt).toBe(capturedAt);
     });
   });
 

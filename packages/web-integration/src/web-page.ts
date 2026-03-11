@@ -26,6 +26,14 @@ import { transformHotkeyInput } from '@midscene/shared/us-keyboard-layout';
 
 const debug = getDebug('web:page');
 
+const navigateParamSchema = z.object({
+  url: z
+    .string()
+    .describe(
+      'The URL to navigate to. Must start with https://, file://, or a similar protocol.',
+    ),
+});
+
 function normalizeKeyInputs(value: string | string[]): string[] {
   const inputs = Array.isArray(value) ? value : [value];
   const result: string[] = [];
@@ -640,17 +648,14 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     await page.clearInput(param.locate as ElementInfo | undefined);
   }),
 
-  defineAction({
+  defineAction<typeof navigateParamSchema, { url: string }>({
     name: 'Navigate',
     description:
       'Navigate the browser to a specified URL. Opens the URL in the current tab.',
-    paramSchema: z.object({
-      url: z
-        .string()
-        .describe(
-          'The URL to navigate to. Must start with https://, file://, or a similar protocol.',
-        ),
-    }),
+    paramSchema: navigateParamSchema,
+    sample: {
+      url: 'https://www.example.com',
+    },
     call: async (param) => {
       if (!page.navigate) {
         throw new Error(

@@ -10,6 +10,7 @@ export {
   checkComputerEnvironment,
   getConnectedDisplays,
   checkAccessibilityPermission,
+  version,
 } from './utils';
 
 export { checkXvfbInstalled, needsXvfb } from './xvfb';

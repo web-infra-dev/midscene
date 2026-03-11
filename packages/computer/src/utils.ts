@@ -1,5 +1,12 @@
 import { createRequire } from 'node:module';
+declare const __VERSION__: string;
 import { ComputerDevice, type DisplayInfo } from './device';
+
+export function version(): string {
+  const currentVersion = __VERSION__;
+  console.log(`@midscene/computer v${currentVersion}`);
+  return currentVersion;
+}
 export interface EnvironmentCheck {
   available: boolean;
   error?: string;

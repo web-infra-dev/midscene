@@ -37,6 +37,7 @@ export { extractTreeNodeAsString as webExtractNodeTreeAsString } from './web-ext
 
 export {
   getXpathsByPoint,
+  getXpathsById,
   getNodeInfoByXpath,
   getElementInfoByXpath,
   getElementXpath,

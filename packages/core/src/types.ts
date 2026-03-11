@@ -742,12 +742,12 @@ export class GroupedActionDump implements IGroupedActionDump {
 
   /**
    * Serialize the GroupedActionDump with inline screenshots to a JSON string.
-   * Each ScreenshotItem is replaced with { base64: "..." }.
+   * Each ScreenshotItem is replaced with { base64: "...", capturedAt }.
    */
   serializeWithInlineScreenshots(indents?: number): string {
     const processValue = (obj: unknown): unknown => {
       if (obj instanceof ScreenshotItem) {
-        return { base64: obj.base64 };
+        return { base64: obj.base64, capturedAt: obj.capturedAt };
       }
       if (Array.isArray(obj)) {
         return obj.map(processValue);
@@ -984,7 +984,7 @@ export interface DeviceAction<TParam = any, TReturn = any> {
    * An example param object for this action.
    * Locate fields with { prompt } will automatically get bbox injected when needed.
    */
-  sample?: Record<string, any>;
+  sample?: { [K in keyof TParam]?: any };
 }
 
 /**
