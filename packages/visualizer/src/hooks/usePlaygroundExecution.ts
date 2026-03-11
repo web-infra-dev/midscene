@@ -52,31 +52,12 @@ function wrapExecutionDumpForReplay(
   dump: ExecutionDump | IExecutionDump,
   deviceType?: string,
 ): IGroupedActionDump {
-  const modelBriefsSet = new Set<string>();
-
-  if (dump?.tasks && Array.isArray(dump.tasks)) {
-    dump.tasks.forEach((task) => {
-      if (task.usage) {
-        const { model_name, model_description, intent } = task.usage;
-        if (intent && model_name) {
-          modelBriefsSet.add(
-            model_description
-              ? `${intent}/${model_name}(${model_description})`
-              : `${intent}/${model_name}`,
-          );
-        }
-      }
-    });
-  } else {
-    console.warn('[wrapExecutionDumpForReplay] Invalid dump structure:', dump);
-  }
-
-  const modelBriefs = [...modelBriefsSet];
-
   return {
     sdkVersion: '',
     groupName: 'Playground Execution',
-    modelBriefs,
+    // modelBriefs is intentionally left empty in playground flow.
+    // Downstream metadata extraction derives model info from task.usage.
+    modelBriefs: [],
     executions: [dump],
     deviceType,
   };

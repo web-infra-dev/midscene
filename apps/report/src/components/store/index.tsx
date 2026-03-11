@@ -6,6 +6,7 @@ import type {
   ExecutionTaskPlanningLocate,
   GroupedActionDump,
   LocateResultElement,
+  ModelBrief,
   ServiceDump,
 } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
@@ -57,7 +58,7 @@ export interface DumpStoreType {
   setReplayAllMode: (replayAllMode: boolean) => void;
   allExecutionAnimation: AnimationScript[] | null;
   sdkVersion: string | null;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
   insightWidth: number | null;
   insightHeight: number | null;
   deviceType: string | undefined;
