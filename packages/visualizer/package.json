@@ -18,6 +18,7 @@
     "dev": "npm run build:watch",
     "build": "rslib build",
     "build:watch": "rslib build --watch --no-clean",
+    "test": "vitest --run",
     "serve": "http-server ./dist/ -p 3000"
   },
   "peerDependencies": {
@@ -43,6 +44,7 @@
     "rimraf": "~3.0.2",
     "tsx": "^4.19.2",
     "typescript": "^5.8.3",
+    "vitest": "3.0.5",
     "zustand": "4.5.2"
   },
   "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],

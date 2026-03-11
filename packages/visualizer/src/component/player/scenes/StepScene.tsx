@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { mouseLoading } from '../../../utils';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
+import { getPlaybackViewport } from './playback-layout';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -81,20 +82,21 @@ export const StepsTimeline: React.FC<{
     : imgW;
 
   // ── Layout calculations ──
-  const isPortraitImage = imgH > imgW;
-  const browserW = isPortraitImage
-    ? Math.round(compHeight * (imgW / imgH))
-    : compWidth;
-  const portraitLeft = Math.round((compWidth - browserW) / 2);
+  const { offsetX, offsetY, contentWidth, contentHeight } = getPlaybackViewport(
+    compWidth,
+    compHeight,
+    imgW,
+    imgH,
+  );
 
   const zoom = imgW / cameraWidth;
-  const tx = -cameraLeft * (browserW / imgW);
-  const ty = -cameraTop * (compHeight / imgH);
+  const tx = -cameraLeft * (contentWidth / imgW);
+  const ty = -cameraTop * (contentHeight / imgH);
   const transformStyle = `scale(${zoom}) translate(${tx}px, ${ty}px)`;
 
   const camH = cameraWidth * (imgH / imgW);
-  const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
-  const ptrY = ((pointerTop - cameraTop) / camH) * compHeight;
+  const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * contentWidth;
+  const ptrY = ((pointerTop - cameraTop) / camH) * contentHeight;
   const showCursor =
     camera.pointerLeft !== Math.round(imgW / 2) ||
     camera.pointerTop !== Math.round(imgH / 2) ||
@@ -277,22 +279,18 @@ export const StepsTimeline: React.FC<{
         backgroundColor: '#000',
       }}
     >
-      {isPortraitImage ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: portraitLeft,
-            top: 0,
-            width: browserW,
-            height: compHeight,
-            overflow: 'hidden',
-          }}
-        >
-          {renderContentArea(browserW, compHeight)}
-        </div>
-      ) : (
-        renderContentArea(compWidth, compHeight)
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          left: offsetX,
+          top: offsetY,
+          width: contentWidth,
+          height: contentHeight,
+          overflow: 'hidden',
+        }}
+      >
+        {renderContentArea(contentWidth, contentHeight)}
+      </div>
     </div>
   );
 };

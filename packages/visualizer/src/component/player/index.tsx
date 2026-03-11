@@ -17,10 +17,10 @@ import PlayerSettingIcon from '../../icons/player-setting.svg';
 import { type PlaybackSpeedType, useGlobalPreference } from '../../store/store';
 import type { AnimationScript } from '../../utils/replay-scripts';
 import { StepsTimeline } from './scenes/StepScene';
-import { deriveFrameState } from './scenes/derive-frame-state';
 import { exportBrandedVideo } from './scenes/export-branded-video';
 import { calculateFrameMap } from './scenes/frame-calculator';
 import type { FrameMap, ScriptFrame } from './scenes/frame-calculator';
+import { getPlaybackFrameState } from './scenes/playback-frame';
 import { useFramePlayer } from './use-frame-player';
 
 const downloadReport = (content: string): void => {
@@ -87,8 +87,11 @@ export function Player(props?: {
   const scripts = props?.replayScripts;
   const frameMap = useMemo<FrameMap | null>(() => {
     if (!scripts || scripts.length === 0) return null;
-    return calculateFrameMap(scripts);
-  }, [scripts]);
+    return calculateFrameMap(scripts, {
+      imageWidth: props?.imageWidth,
+      imageHeight: props?.imageHeight,
+    });
+  }, [props?.imageHeight, props?.imageWidth, scripts]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const renderLayerRef = useRef<HTMLDivElement>(null);
@@ -131,19 +134,19 @@ export function Player(props?: {
     }
   }, [frameMap, props?.onTaskChange, player.currentFrame]);
 
-  // Derive subtitle from current frame
-  const subtitle = useMemo(() => {
+  const currentFrameState = useMemo(() => {
     if (!frameMap) return null;
-    const state = deriveFrameState(
-      frameMap.scriptFrames,
-      player.currentFrame,
-      frameMap.imageWidth,
-      frameMap.imageHeight,
-      frameMap.fps,
-    );
-    if (!state.title && !state.subTitle) return null;
-    return { title: state.title, subTitle: state.subTitle };
+    return getPlaybackFrameState(frameMap, player.currentFrame);
   }, [frameMap, player.currentFrame]);
+
+  const subtitle = useMemo(() => {
+    if (!currentFrameState) return null;
+    if (!currentFrameState.title && !currentFrameState.subTitle) return null;
+    return {
+      title: currentFrameState.title,
+      subTitle: currentFrameState.subTitle,
+    };
+  }, [currentFrameState]);
 
   // Controls auto-hide
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -280,8 +283,9 @@ export function Player(props?: {
     return <div className="player-container" />;
   }
 
-  const compositionWidth = frameMap.imageWidth;
-  const compositionHeight = frameMap.imageHeight;
+  const compositionWidth = currentFrameState?.imageWidth || frameMap.imageWidth;
+  const compositionHeight =
+    currentFrameState?.imageHeight || frameMap.imageHeight;
   const isPortraitCanvas = compositionHeight > compositionWidth;
 
   const totalFrames = frameMap.totalDurationInFrames;
