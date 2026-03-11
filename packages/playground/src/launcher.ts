@@ -3,6 +3,7 @@ import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import cors from 'cors';
 import PlaygroundServer from './server';
+import type { AgentFactory } from './types';
 
 export interface LaunchPlaygroundOptions {
   /**
@@ -44,6 +45,20 @@ export interface LaunchPlaygroundOptions {
   enableCors?: boolean;
 
   /**
+   * Custom static assets directory for the playground frontend
+   * @default bundled static assets from @midscene/playground
+   */
+  staticPath?: string;
+
+  /**
+   * Hook for configuring the PlaygroundServer before launch
+   * Useful for adding custom middleware beyond the built-in CORS option
+   */
+  configureServer?: (
+    server: PlaygroundServer,
+  ) => void | Promise<void>;
+
+  /**
    * CORS configuration options
    * @default { origin: '*', credentials: true } when enableCors is true
    */
@@ -77,6 +92,8 @@ export interface LaunchPlaygroundResult {
   close: () => Promise<void>;
 }
 
+type LaunchableAgentSource = Agent | AgentFactory;
+
 /**
  * Create a playground launcher for a specific agent
  *
@@ -104,7 +121,7 @@ export interface LaunchPlaygroundResult {
  * server.close();
  * ```
  */
-export function playgroundForAgent(agent: Agent) {
+function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
   return {
     /**
      * Launch the playground server with optional configuration
@@ -119,35 +136,49 @@ export function playgroundForAgent(agent: Agent) {
         verbose = true,
         id,
         enableCors = false,
+        staticPath,
+        configureServer,
         corsOptions = { origin: '*', credentials: true },
       } = options;
 
-      // Extract agent components - Agent has interface property
-      const webPage = agent.interface;
-      if (!webPage) {
+      if (
+        typeof agentOrFactory !== 'function' &&
+        !agentOrFactory.interface
+      ) {
         throw new Error('Agent must have an interface property');
       }
 
       if (verbose) {
         console.log('🚀 Starting Midscene Playground...');
-        console.log(`📱 Agent: ${agent.constructor.name}`);
-        console.log(`🖥️ Page: ${webPage.constructor.name}`);
+        if (typeof agentOrFactory === 'function') {
+          console.log('📱 Agent: factory');
+        } else {
+          console.log(`📱 Agent: ${agentOrFactory.constructor.name}`);
+          console.log(
+            `🖥️ Page: ${agentOrFactory.interface.constructor.name}`,
+          );
+        }
         console.log(`🌐 Port: ${port}`);
+        if (staticPath) {
+          console.log(`📁 Static path: ${staticPath}`);
+        }
         if (enableCors) {
           console.log('🔓 CORS enabled');
         }
       }
 
-      // Create and launch the server with agent instance
       const server = new PlaygroundServer(
-        agent as unknown as PageAgent,
-        undefined, // staticPath - use default
-        id, // Optional override ID (usually not needed now)
+        agentOrFactory as PageAgent | AgentFactory,
+        staticPath,
+        id,
       );
 
-      // Register CORS middleware if enabled
       if (enableCors) {
         server.app.use(cors(corsOptions));
+      }
+
+      if (configureServer) {
+        await configureServer(server);
       }
 
       const launchedServer = (await server.launch(port)) as PlaygroundServer;
@@ -187,6 +218,21 @@ export function playgroundForAgent(agent: Agent) {
       };
     },
   };
+}
+
+/**
+ * Create a playground launcher from an already initialized agent instance
+ */
+export function playgroundForAgent(agent: Agent) {
+  return createPlaygroundLauncher(agent);
+}
+
+/**
+ * Create a playground launcher from an agent factory
+ * Useful for device-backed agents that need to be recreated after cancellation
+ */
+export function playgroundForAgentFactory(agentFactory: AgentFactory) {
+  return createPlaygroundLauncher(agentFactory);
 }
 
 /**

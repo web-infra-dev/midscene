@@ -1,0 +1,52 @@
+{
+  "name": "@midscene/playground-app",
+  "version": "1.5.4",
+  "description": "Reusable React shell for Midscene playground applications",
+  "repository": "https://github.com/web-infra-dev/midscene",
+  "homepage": "https://midscenejs.com/",
+  "types": "./dist/types/index.d.ts",
+  "main": "./dist/lib/index.js",
+  "module": "./dist/es/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "dev": "npm run build:watch",
+    "build": "rslib build",
+    "build:watch": "rslib build --watch --no-clean"
+  },
+  "peerDependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "dependencies": {
+    "@midscene/playground": "workspace:*",
+    "@midscene/visualizer": "workspace:*",
+    "antd": "^5.21.6",
+    "react-resizable-panels": "2.0.22"
+  },
+  "devDependencies": {
+    "@rsbuild/plugin-less": "^1.5.0",
+    "@rsbuild/plugin-node-polyfill": "1.4.2",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-svgr": "^1.2.2",
+    "@rslib/core": "^0.18.3",
+    "@types/node": "^18.0.0",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.1",
+    "less": "^4.2.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^5.8.3"
+  },
+  "sideEffects": ["**/*.css", "**/*.less", "**/*.sass", "**/*.scss"],
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT"
+}

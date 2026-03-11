@@ -1,0 +1,23 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "sourceMap": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "rootDir": "src",
+    "target": "ES2022",
+    "types": ["react", "node"],
+    "declarationDir": "dist/types"
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../playground"
+    },
+    {
+      "path": "../visualizer"
+    }
+  ]
+}

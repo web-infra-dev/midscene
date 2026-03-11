@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { select } from '@inquirer/prompts';
-import { PlaygroundServer } from '@midscene/playground';
+import { playgroundForAgentFactory } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
 import { HarmonyAgent } from './agent';
@@ -45,12 +45,6 @@ const main = async () => {
     const selectedDeviceId = await selectDevice();
     console.log(`✅ Selected device: ${selectedDeviceId}`);
 
-    const playgroundServer = new PlaygroundServer(async () => {
-      const device = new HarmonyDevice(selectedDeviceId);
-      await device.connect();
-      return new HarmonyAgent(device);
-    }, staticDir);
-
     console.log('🚀 Starting server...');
 
     const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
@@ -61,7 +55,18 @@ const main = async () => {
       );
     }
 
-    await playgroundServer.launch(availablePort);
+    const { server: playgroundServer } = await playgroundForAgentFactory(
+      async () => {
+        const device = new HarmonyDevice(selectedDeviceId);
+        await device.connect();
+        return new HarmonyAgent(device);
+      },
+    ).launch({
+      port: availablePort,
+      openBrowser: false,
+      verbose: false,
+      staticPath: staticDir,
+    });
 
     console.log('');
     console.log('✨ Midscene HarmonyOS Playground is ready!');
