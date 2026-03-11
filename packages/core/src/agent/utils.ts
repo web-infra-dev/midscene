@@ -87,6 +87,22 @@ export async function commonContextParser(
   }
   debug('screenshot dimensions', imgWidth, 'x', imgHeight);
 
+  // Detect orientation mismatch between logical size and screenshot.
+  // Some devices (e.g. OPPO) report wrong orientation via ADB, causing
+  // size() to return portrait dimensions even when the device is landscape.
+  // We detect this by comparing aspect ratios and swap if they disagree.
+  const logicalIsPortrait = logicalWidth < logicalHeight;
+  const screenshotIsPortrait = imgWidth < imgHeight;
+  let finalLogicalWidth = logicalWidth;
+  let finalLogicalHeight = logicalHeight;
+  if (logicalIsPortrait !== screenshotIsPortrait) {
+    debug(
+      `Orientation mismatch detected: logical size ${logicalWidth}x${logicalHeight} (${logicalIsPortrait ? 'portrait' : 'landscape'}) vs screenshot ${imgWidth}x${imgHeight} (${screenshotIsPortrait ? 'portrait' : 'landscape'}). Swapping logical dimensions.`,
+    );
+    finalLogicalWidth = logicalHeight;
+    finalLogicalHeight = logicalWidth;
+  }
+
   // Validate user-specified shrink factor
   const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
 
@@ -96,7 +112,7 @@ export async function commonContextParser(
     );
   }
 
-  const dpr = imgWidth / logicalWidth;
+  const dpr = imgWidth / finalLogicalWidth;
 
   debug('calculated dpr:', dpr);
 

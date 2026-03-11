@@ -183,12 +183,6 @@ class PlaygroundServer {
    * Recreate agent instance (for cancellation)
    */
   private async recreateAgent(): Promise<void> {
-    if (!this.agentFactory) {
-      throw new Error(
-        'Cannot recreate agent: factory function not provided. Attempting to destroy existing agent only.',
-      );
-    }
-
     this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
@@ -201,15 +195,22 @@ class PlaygroundServer {
       console.warn('Failed to destroy old agent:', error);
     }
 
-    // Create new agent instance
-    try {
-      this.agent = await this.agentFactory();
+    // Create new agent instance if factory is available
+    if (this.agentFactory) {
+      try {
+        this.agent = await this.agentFactory();
+        this._agentReady = true;
+        console.log('Agent recreated successfully');
+      } catch (error) {
+        this._agentReady = true;
+        console.error('Failed to recreate agent:', error);
+        throw error;
+      }
+    } else {
       this._agentReady = true;
-      console.log('Agent recreated successfully');
-    } catch (error) {
-      this._agentReady = true;
-      console.error('Failed to recreate agent:', error);
-      throw error;
+      console.warn(
+        'Agent destroyed but cannot recreate: no factory function provided. Next /execute call will fail.',
+      );
     }
   }
 
@@ -390,13 +391,12 @@ class PlaygroundServer {
       }
 
       // Update device options if provided
-      if (
-        deviceOptions &&
-        this.agent.interface &&
-        'options' in this.agent.interface
-      ) {
-        this.agent.interface.options = {
-          ...(this.agent.interface.options || {}),
+      if (deviceOptions && this.agent.interface) {
+        const iface = this.agent.interface as unknown as {
+          options?: Record<string, unknown>;
+        };
+        iface.options = {
+          ...(iface.options || {}),
           ...deviceOptions,
         };
       }
@@ -566,14 +566,11 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Destroy agent to cancel the current task
-          // No need to recreate here — /execute always creates a fresh agent before each run
+          // Destroy and recreate agent to cancel the current task
           try {
-            if (this.agent && typeof this.agent.destroy === 'function') {
-              await this.agent.destroy();
-            }
+            await this.recreateAgent();
           } catch (error) {
-            console.warn('Failed to destroy agent during cancel:', error);
+            console.warn('Failed to recreate agent during cancel:', error);
           }
 
           // Clean up
