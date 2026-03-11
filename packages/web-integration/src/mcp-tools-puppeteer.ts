@@ -3,7 +3,12 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ScreenshotItem, z } from '@midscene/core';
+import {
+  ScreenshotItem,
+  createSessionAgentOptions,
+  exportSessionReport,
+  z,
+} from '@midscene/core';
 import {
   BaseMidsceneTools,
   type ToolDefinition,
@@ -182,7 +187,15 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       }
     }
 
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
+    const sessionOptions = createSessionAgentOptions({
+      sessionId: this.getInvocationStringArg('sessionId'),
+      platform: 'web',
+      commandId: this.getInvocationCommandId(),
+      commandName: this.getInvocationCommandName(),
+    });
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
+      ...sessionOptions,
+    });
     return this.agent;
   }
 
@@ -204,29 +217,38 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
             .optional()
             .describe('URL to open in new tab (omit to use current page)'),
         },
-        handler: async (args) => {
-          const { url } = args as { url?: string };
+        handler: async (args) =>
+          this.runWithInvocationContext(
+            {
+              ...(args as Record<string, unknown>),
+              __commandName: 'web_connect',
+            },
+            async () => {
+              const { url } = args as { url?: string };
 
-          // Destroy existing agent
-          if (this.agent) {
-            try {
-              await this.agent.destroy?.();
-            } catch {}
-            this.agent = undefined;
-          }
+              // Destroy existing agent
+              if (this.agent) {
+                try {
+                  await this.agent.destroy?.();
+                } catch {}
+                this.agent = undefined;
+              }
 
-          this.agent = await this.ensureAgent(url);
+              this.agent = await this.ensureAgent(url);
 
-          const screenshot = await this.agent.page?.screenshotBase64();
-          const label = url ?? 'current page';
+              const screenshot = await this.agent.page?.screenshotBase64();
+              const label = url ?? 'current page';
 
-          return {
-            content: [
-              { type: 'text', text: `Connected to: ${label}` },
-              ...(screenshot ? this.buildScreenshotContent(screenshot) : []),
-            ],
-          };
-        },
+              return {
+                content: [
+                  { type: 'text', text: `Connected to: ${label}` },
+                  ...(screenshot
+                    ? this.buildScreenshotContent(screenshot)
+                    : []),
+                ],
+              };
+            },
+          ),
       },
       {
         name: 'web_disconnect',
@@ -243,6 +265,32 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
           browserManager.disconnect();
           return this.buildTextResult(
             'Disconnected from web page (browser still running)',
+          );
+        },
+      },
+      {
+        name: 'web_export_session_report',
+        description:
+          'Generate a merged HTML report from a persisted web session',
+        schema: {
+          sessionId: z.string().describe('Persistent session ID to export'),
+        },
+        handler: async (args: Record<string, unknown>) => {
+          const sessionId = args.sessionId;
+          if (typeof sessionId !== 'string' || !sessionId) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'sessionId is required to export a session report',
+                },
+              ],
+              isError: true,
+            };
+          }
+          const reportPath = exportSessionReport(sessionId);
+          return this.buildTextResult(
+            `Session report generated: ${reportPath}`,
           );
         },
       },

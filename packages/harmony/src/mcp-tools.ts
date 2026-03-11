@@ -1,4 +1,8 @@
-import { z } from '@midscene/core';
+import {
+  createSessionAgentOptions,
+  exportSessionReport,
+  z,
+} from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { type HarmonyAgent, agentFromHdcDevice } from './agent';
@@ -26,8 +30,15 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
     }
 
     debug('Creating Harmony agent with deviceId:', deviceId || 'auto-detect');
+    const sessionOptions = createSessionAgentOptions({
+      sessionId: this.getInvocationStringArg('sessionId'),
+      platform: 'harmony',
+      commandId: this.getInvocationCommandId(),
+      commandName: this.getInvocationCommandName(),
+    });
     const agent = await agentFromHdcDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...sessionOptions,
     });
     this.agent = agent;
     return agent;
@@ -45,21 +56,25 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
             .optional()
             .describe('HarmonyOS device ID (from hdc list targets)'),
         },
-        handler: async ({ deviceId }: { deviceId?: string }) => {
-          const agent = await this.ensureAgent(deviceId);
-          const screenshot = await agent.page.screenshotBase64();
+        handler: async (args: { deviceId?: string; sessionId?: string }) =>
+          this.runWithInvocationContext(
+            { ...args, __commandName: 'harmony_connect' },
+            async () => {
+              const agent = await this.ensureAgent(args.deviceId);
+              const screenshot = await agent.page.screenshotBase64();
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Connected to HarmonyOS device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}`,
-              },
-              ...this.buildScreenshotContent(screenshot),
-            ],
-            isError: false,
-          };
-        },
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Connected to HarmonyOS device${args.deviceId ? `: ${args.deviceId}` : ' (auto-detected)'}`,
+                  },
+                  ...this.buildScreenshotContent(screenshot),
+                ],
+                isError: false,
+              };
+            },
+          ),
       },
       {
         name: 'harmony_disconnect',
@@ -67,6 +82,32 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
           'Disconnect from current HarmonyOS device and release HDC resources',
         schema: {},
         handler: this.createDisconnectHandler('HarmonyOS device'),
+      },
+      {
+        name: 'harmony_export_session_report',
+        description:
+          'Generate a merged HTML report from a persisted HarmonyOS session',
+        schema: {
+          sessionId: z.string().describe('Persistent session ID to export'),
+        },
+        handler: async (args: Record<string, unknown>) => {
+          const sessionId = args.sessionId;
+          if (typeof sessionId !== 'string' || !sessionId) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'sessionId is required to export a session report',
+                },
+              ],
+              isError: true,
+            };
+          }
+          const reportPath = exportSessionReport(sessionId);
+          return this.buildTextResult(
+            `Session report generated: ${reportPath}`,
+          );
+        },
       },
     ];
   }

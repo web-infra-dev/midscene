@@ -1,4 +1,9 @@
-import { ScreenshotItem, z } from '@midscene/core';
+import {
+  ScreenshotItem,
+  createSessionAgentOptions,
+  exportSessionReport,
+  z,
+} from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from './bridge-mode';
 import { StaticPage } from './static';
@@ -42,7 +47,16 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
   private async initBridgeModeAgent(
     url?: string,
   ): Promise<AgentOverChromeBridge> {
-    const agent = new AgentOverChromeBridge({ closeConflictServer: true });
+    const sessionOptions = createSessionAgentOptions({
+      sessionId: this.getInvocationStringArg('sessionId'),
+      platform: 'web',
+      commandId: this.getInvocationCommandId(),
+      commandName: this.getInvocationCommandName(),
+    });
+    const agent = new AgentOverChromeBridge({
+      closeConflictServer: true,
+      ...sessionOptions,
+    });
 
     if (!url) {
       await agent.connectCurrentTab();
@@ -66,28 +80,37 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
             .optional()
             .describe('URL to open in new tab (omit to connect current tab)'),
         },
-        handler: async (args) => {
-          const { url } = args as { url?: string };
+        handler: async (args) =>
+          this.runWithInvocationContext(
+            {
+              ...(args as Record<string, unknown>),
+              __commandName: 'web_connect',
+            },
+            async () => {
+              const { url } = args as { url?: string };
 
-          // Bypass ensureAgent's URL check — directly init bridge agent
-          if (this.agent) {
-            try {
-              await this.agent.destroy?.();
-            } catch {}
-            this.agent = undefined;
-          }
-          this.agent = await this.initBridgeModeAgent(url);
+              // Bypass ensureAgent's URL check — directly init bridge agent
+              if (this.agent) {
+                try {
+                  await this.agent.destroy?.();
+                } catch {}
+                this.agent = undefined;
+              }
+              this.agent = await this.initBridgeModeAgent(url);
 
-          const screenshot = await this.agent.page?.screenshotBase64();
-          const label = url ?? 'current tab';
+              const screenshot = await this.agent.page?.screenshotBase64();
+              const label = url ?? 'current tab';
 
-          return {
-            content: [
-              { type: 'text', text: `Connected to: ${label}` },
-              ...(screenshot ? this.buildScreenshotContent(screenshot) : []),
-            ],
-          };
-        },
+              return {
+                content: [
+                  { type: 'text', text: `Connected to: ${label}` },
+                  ...(screenshot
+                    ? this.buildScreenshotContent(screenshot)
+                    : []),
+                ],
+              };
+            },
+          ),
       },
       {
         name: 'web_disconnect',
@@ -95,6 +118,32 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
           'Disconnect from current web page and release browser resources',
         schema: {},
         handler: this.createDisconnectHandler('web page'),
+      },
+      {
+        name: 'web_export_session_report',
+        description:
+          'Generate a merged HTML report from a persisted web session',
+        schema: {
+          sessionId: z.string().describe('Persistent session ID to export'),
+        },
+        handler: async (args: Record<string, unknown>) => {
+          const sessionId = args.sessionId;
+          if (typeof sessionId !== 'string' || !sessionId) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'sessionId is required to export a session report',
+                },
+              ],
+              isError: true,
+            };
+          }
+          const reportPath = exportSessionReport(sessionId);
+          return this.buildTextResult(
+            `Session report generated: ${reportPath}`,
+          );
+        },
       },
     ];
   }

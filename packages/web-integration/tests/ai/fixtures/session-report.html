@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Midscene Session Report Fixture</title>
+    <style>
+      body {
+        font-family: Helvetica, Arial, sans-serif;
+        background: #f5f5f5;
+        margin: 0;
+        padding: 40px 20px;
+      }
+
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        color: #0f172a;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: #475569;
+      }
+
+      label,
+      input,
+      button {
+        display: block;
+        font-size: 18px;
+      }
+
+      label {
+        color: #0f172a;
+        font-weight: 600;
+      }
+
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        margin: 12px 0 20px;
+        padding: 12px 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 10px;
+        padding: 12px 18px;
+        background: #0f766e;
+        color: #ffffff;
+        font-weight: 700;
+      }
+
+      button:disabled {
+        background: #94a3b8;
+      }
+
+      #status {
+        margin-top: 20px;
+        min-height: 28px;
+        color: #0f172a;
+        font-size: 20px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Midscene Session Verification</h1>
+      <p>Use multiple session commands and export one merged report.</p>
+      <label for="name-input">Name</label>
+      <input id="name-input" aria-label="Name" placeholder="Type here" />
+      <button id="complete-btn" disabled>Complete Flow</button>
+      <div id="status">Waiting</div>
+    </main>
+
+    <script>
+      const input = document.getElementById('name-input');
+      const button = document.getElementById('complete-btn');
+      const status = document.getElementById('status');
+
+      input.addEventListener('input', () => {
+        const value = input.value.trim();
+        button.disabled = !value;
+        status.textContent = value ? `Ready: ${value}` : 'Waiting';
+      });
+
+      button.addEventListener('click', () => {
+        const value = input.value.trim();
+        status.textContent = `Submitted: ${value}`;
+        document.body.dataset.submitted = value;
+      });
+    </script>
+  </body>
+</html>

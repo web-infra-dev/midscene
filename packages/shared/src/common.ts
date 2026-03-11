@@ -47,7 +47,7 @@ export const getMidsceneRunBaseDir = () => {
  * @returns The absolute path to the requested directory
  */
 export const getMidsceneRunSubDir = (
-  subdir: 'dump' | 'cache' | 'report' | 'tmp' | 'log' | 'output',
+  subdir: 'dump' | 'cache' | 'report' | 'tmp' | 'log' | 'output' | 'session',
 ): string => {
   if (!ifInNode) {
     return '';

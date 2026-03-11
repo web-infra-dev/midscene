@@ -328,9 +328,26 @@ export class Agent<
       useDeviceTimestamp: this.opts.useDeviceTimestamp,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: (runner) => {
+        onTaskUpdate: async (runner) => {
           const executionDump = runner.dump();
-          this.appendExecutionDump(executionDump, runner);
+          const executionIndex = this.appendExecutionDump(
+            executionDump,
+            runner,
+          );
+
+          if (this.opts.onExecutionDumpUpdate) {
+            try {
+              await this.opts.onExecutionDumpUpdate(
+                this.dump.executions[executionIndex],
+                {
+                  executionIndex,
+                  groupedDump: this.dump,
+                },
+              );
+            } catch (error) {
+              console.error('Error in onExecutionDumpUpdate hook', error);
+            }
+          }
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
@@ -417,22 +434,23 @@ export class Agent<
     return this.dump;
   }
 
-  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
+  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {
     const currentDump = this.dump;
     if (runner) {
       const existingIndex = this.executionDumpIndexByRunner.get(runner);
       if (existingIndex !== undefined) {
         currentDump.executions[existingIndex] = execution;
-        return;
+        return existingIndex;
       }
       currentDump.executions.push(execution);
       this.executionDumpIndexByRunner.set(
         runner,
         currentDump.executions.length - 1,
       );
-      return;
+      return currentDump.executions.length - 1;
     }
     currentDump.executions.push(execution);
+    return currentDump.executions.length - 1;
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {

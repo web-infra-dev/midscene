@@ -1,4 +1,8 @@
-import { z } from '@midscene/core';
+import {
+  createSessionAgentOptions,
+  exportSessionReport,
+  z,
+} from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { type AndroidAgent, agentFromAdbDevice } from './agent';
@@ -34,8 +38,15 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
+    const sessionOptions = createSessionAgentOptions({
+      sessionId: this.getInvocationStringArg('sessionId'),
+      platform: 'android',
+      commandId: this.getInvocationCommandId(),
+      commandName: this.getInvocationCommandName(),
+    });
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
+      ...sessionOptions,
     });
     this.agent = agent;
     return agent;
@@ -56,21 +67,25 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
             .optional()
             .describe('Android device ID (from adb devices)'),
         },
-        handler: async ({ deviceId }: { deviceId?: string }) => {
-          const agent = await this.ensureAgent(deviceId);
-          const screenshot = await agent.page.screenshotBase64();
+        handler: async (args: { deviceId?: string; sessionId?: string }) =>
+          this.runWithInvocationContext(
+            { ...args, __commandName: 'android_connect' },
+            async () => {
+              const agent = await this.ensureAgent(args.deviceId);
+              const screenshot = await agent.page.screenshotBase64();
 
-          return {
-            content: [
-              {
-                type: 'text',
-                text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}`,
-              },
-              ...this.buildScreenshotContent(screenshot),
-            ],
-            isError: false,
-          };
-        },
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: `Connected to Android device${args.deviceId ? `: ${args.deviceId}` : ' (auto-detected)'}`,
+                  },
+                  ...this.buildScreenshotContent(screenshot),
+                ],
+                isError: false,
+              };
+            },
+          ),
       },
       {
         name: 'android_disconnect',
@@ -78,6 +93,32 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
           'Disconnect from current Android device and release ADB resources',
         schema: {},
         handler: this.createDisconnectHandler('Android device'),
+      },
+      {
+        name: 'android_export_session_report',
+        description:
+          'Generate a merged HTML report from a persisted Android session',
+        schema: {
+          sessionId: z.string().describe('Persistent session ID to export'),
+        },
+        handler: async (args: Record<string, unknown>) => {
+          const sessionId = args.sessionId;
+          if (typeof sessionId !== 'string' || !sessionId) {
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: 'sessionId is required to export a session report',
+                },
+              ],
+              isError: true,
+            };
+          }
+          const reportPath = exportSessionReport(sessionId);
+          return this.buildTextResult(
+            `Session report generated: ${reportPath}`,
+          );
+        },
       },
     ];
   }

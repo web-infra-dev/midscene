@@ -66,6 +66,8 @@ export {
 // Report generator
 export type { IReportGenerator } from './report-generator';
 export { ReportGenerator, nullReportGenerator } from './report-generator';
+export { SessionStore, createSessionAgentOptions } from './session-store';
+export { exportSessionReport } from './session-report';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';

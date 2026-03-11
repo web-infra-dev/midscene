@@ -1,6 +1,7 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { z } from 'zod';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
@@ -25,6 +26,7 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
   protected mcpServer?: McpServer;
   protected agent?: TAgent;
   protected toolDefinitions: ToolDefinition[] = [];
+  private invocationContext?: Record<string, unknown>;
 
   /**
    * Ensure agent is initialized and ready for use.
@@ -48,6 +50,64 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    */
   protected abstract createTemporaryDevice(): BaseDevice;
 
+  protected async runWithInvocationContext<TResult>(
+    args: Record<string, unknown> | undefined,
+    fn: () => Promise<TResult>,
+  ): Promise<TResult> {
+    const previousContext = this.invocationContext;
+    const commandId =
+      typeof args?.__commandId === 'string' && args.__commandId
+        ? args.__commandId
+        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    this.invocationContext = {
+      ...(args ?? {}),
+      __commandId: commandId,
+    };
+
+    try {
+      return await fn();
+    } finally {
+      this.invocationContext = previousContext;
+    }
+  }
+
+  protected getInvocationContext(): Record<string, unknown> | undefined {
+    return this.invocationContext;
+  }
+
+  protected getInvocationStringArg(name: string): string | undefined {
+    const value = this.invocationContext?.[name];
+    return typeof value === 'string' && value ? value : undefined;
+  }
+
+  protected getInvocationCommandId(): string | undefined {
+    return this.getInvocationStringArg('__commandId');
+  }
+
+  protected getInvocationCommandName(): string | undefined {
+    return this.getInvocationStringArg('__commandName');
+  }
+
+  private withSharedCliSchema(tool: ToolDefinition): ToolDefinition {
+    if (tool.schema.sessionId) {
+      return tool;
+    }
+
+    return {
+      ...tool,
+      schema: {
+        ...tool.schema,
+        sessionId: z
+          .string()
+          .optional()
+          .describe(
+            'Persistent session ID used to group executions across separate CLI processes',
+          ),
+      },
+    };
+  }
+
   /**
    * Initialize all tools by querying actionSpace
    * Uses two-layer fallback strategy:
@@ -60,7 +120,9 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     // 1. Add platform-specific tools first (device connection, etc.)
     // These don't require an agent and should always be available
     const platformTools = this.preparePlatformTools();
-    this.toolDefinitions.push(...platformTools);
+    this.toolDefinitions.push(
+      ...platformTools.map((tool) => this.withSharedCliSchema(tool)),
+    );
 
     // 2. Get action space: use pre-set agent if available, otherwise temp device.
     //    When called via mcpKitForAgent(), agent is set before initTools().
@@ -83,14 +145,19 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     }
 
     // 3. Generate tools from action space (core innovation)
-    const actionTools = generateToolsFromActionSpace(actionSpace, () =>
-      this.ensureAgent(),
+    const actionTools = generateToolsFromActionSpace(actionSpace, (args) =>
+      this.runWithInvocationContext(args, () => this.ensureAgent()),
     );
 
     // 4. Add common tools (screenshot, waitFor)
-    const commonTools = generateCommonTools(() => this.ensureAgent());
+    const commonTools = generateCommonTools((args) =>
+      this.runWithInvocationContext(args, () => this.ensureAgent()),
+    );
 
-    this.toolDefinitions.push(...actionTools, ...commonTools);
+    this.toolDefinitions.push(
+      ...actionTools.map((tool) => this.withSharedCliSchema(tool)),
+      ...commonTools.map((tool) => this.withSharedCliSchema(tool)),
+    );
 
     debug('Total tools prepared:', this.toolDefinitions.length);
   }

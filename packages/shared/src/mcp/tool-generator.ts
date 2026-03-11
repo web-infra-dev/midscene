@@ -311,7 +311,7 @@ async function captureFailureResult(
  */
 export function generateToolsFromActionSpace(
   actionSpace: ActionSpaceItem[],
-  getAgent: () => Promise<BaseAgent>,
+  getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
 ): ToolDefinition[] {
   return actionSpace.map((action) => {
     const schema = extractActionSchema(action.paramSchema as z.ZodTypeAny);
@@ -322,7 +322,10 @@ export function generateToolsFromActionSpace(
       schema,
       handler: async (args: Record<string, unknown>) => {
         try {
-          const agent = await getAgent();
+          const agent = await getAgent({
+            ...args,
+            __commandName: action.name,
+          });
 
           if (agent.aiAction) {
             const instruction = buildActionInstruction(action.name, args);
@@ -362,16 +365,19 @@ export function generateToolsFromActionSpace(
  * Generate common tools (screenshot, act)
  */
 export function generateCommonTools(
-  getAgent: () => Promise<BaseAgent>,
+  getAgent: (args?: Record<string, unknown>) => Promise<BaseAgent>,
 ): ToolDefinition[] {
   return [
     {
       name: 'take_screenshot',
       description: 'Capture screenshot of current page/screen',
       schema: {},
-      handler: async (): Promise<ToolResult> => {
+      handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
         try {
-          const agent = await getAgent();
+          const agent = await getAgent({
+            ...args,
+            __commandName: 'take_screenshot',
+          });
           const screenshot = await agent.page?.screenshotBase64();
           if (!screenshot) {
             return createErrorResult('Screenshot not available');
@@ -403,7 +409,10 @@ export function generateCommonTools(
       handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
         const prompt = args.prompt as string;
         try {
-          const agent = await getAgent();
+          const agent = await getAgent({
+            ...args,
+            __commandName: 'act',
+          });
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
