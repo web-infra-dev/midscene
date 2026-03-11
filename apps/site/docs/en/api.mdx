@@ -757,7 +757,7 @@ For example, you might replace the above code with:
 
 ```typescript
 const items = await agent.aiQuery(
-  '"{name: string, price: number}[], return product names and prices',
+  '{name: string, price: number}[], return product names and prices',
 );
 const onesieItem = items.find((item) => item.name === 'Sauce Labs Onesie');
 expect(onesieItem).toBeTruthy();
