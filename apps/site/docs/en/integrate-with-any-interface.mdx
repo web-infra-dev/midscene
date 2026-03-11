@@ -190,53 +190,9 @@ await server.close();
 console.log('Playground closed!');
 ```
 
-### Step 4. Test the MCP server (optional)
+### Step 4. Add Skill support (optional)
 
-Launch an MCP server for your Agent, so you can use your custom interface from MCP clients like Claude Desktop or Cursor.
-
-```ts
-import 'dotenv/config';
-import { Agent } from '@midscene/core/agent';
-import { mcpServerForAgent } from '@midscene/core/mcp';
-
-const device = new SampleDevice();
-const agent = new Agent(device);
-
-// stdio mode (for Claude Desktop, Cursor, etc.)
-await mcpServerForAgent(agent).launch();
-```
-
-You can also launch the MCP server in HTTP mode:
-
-```ts
-await mcpServerForAgent(agent).launchHttp({ port: 3000 });
-```
-
-To configure this MCP server in Claude Desktop (`claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
-    "my-custom-device": {
-      "command": "node",
-      "args": ["path/to/your/mcp-entry.mjs"]
-    }
-  }
-}
-```
-
-If you only need to extract tool definitions (for integrating into another MCP server), use `mcpKitForAgent`:
-
-```ts
-import { mcpKitForAgent } from '@midscene/core/mcp';
-
-const { description, tools } = await mcpKitForAgent(agent);
-// tools is an array of ToolDefinition objects that can be registered on any MCP server
-```
-
-### Step 5. Add Skill support (optional)
-
-[Agent Skills](https://github.com/anthropics/skills) let AI coding assistants (Claude Code, Cline, etc.) drive your custom interface through CLI commands — no MCP server setup required. Learn more in the [Skills documentation](./skills).
+[Agent Skills](https://github.com/anthropics/skills) let AI coding assistants (Claude Code, Cline, etc.) drive your custom interface through CLI commands. Learn more in the [Skills documentation](./skills).
 
 Add a CLI entry file to your npm package (e.g., `./src/cli.ts`):
 
@@ -263,7 +219,9 @@ Then add a `bin` field to your `package.json`:
 
 Once published, AI coding assistants can control your custom interface via `npx my-device`.
 
-### Step 6. Release the npm package, and let your users use it
+For Skill authoring guidelines and more examples, see the [midscene-skills](https://github.com/web-infra-dev/midscene-skills) repository.
+
+### Step 5. Release the npm package, and let your users use it
 
 The agent and interface class have been exported in `./index.ts` file. Now you can publish it to npm.
 
@@ -289,7 +247,7 @@ const agent = new Agent(device);
 await agent.aiAct('click the button');
 ```
 
-### Step 7. Invoke your class in Midscene CLI and YAML script
+### Step 6. Invoke your class in Midscene CLI and YAML script
 
 Write a yaml script with the `interface` section to invoke your class.
 

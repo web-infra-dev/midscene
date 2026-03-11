@@ -189,53 +189,9 @@ await server.close();
 console.log('Playground 已关闭！');
 ```
 
-### 步骤 4. 测试 MCP 服务（可选）
+### 步骤 4. 添加 Skill 支持（可选）
 
-为 Agent 启动一个 MCP 服务，即可在 Claude Desktop、Cursor 等 MCP 客户端中使用你的自定义界面。
-
-```ts
-import 'dotenv/config';
-import { Agent } from '@midscene/core/agent';
-import { mcpServerForAgent } from '@midscene/core/mcp';
-
-const device = new SampleDevice();
-const agent = new Agent(device);
-
-// stdio 模式（用于 Claude Desktop、Cursor 等客户端）
-await mcpServerForAgent(agent).launch();
-```
-
-你也可以启动 HTTP 模式的 MCP 服务：
-
-```ts
-await mcpServerForAgent(agent).launchHttp({ port: 3000 });
-```
-
-在 Claude Desktop 中配置此 MCP 服务（`claude_desktop_config.json`）：
-
-```json
-{
-  "mcpServers": {
-    "my-custom-device": {
-      "command": "node",
-      "args": ["path/to/your/mcp-entry.mjs"]
-    }
-  }
-}
-```
-
-如果你只需要提取工具定义（用于集成到其他 MCP 服务中），可以使用 `mcpKitForAgent`：
-
-```ts
-import { mcpKitForAgent } from '@midscene/core/mcp';
-
-const { description, tools } = await mcpKitForAgent(agent);
-// tools 是一个 ToolDefinition 数组，可以注册到任意 MCP 服务器
-```
-
-### 步骤 5. 添加 Skill 支持（可选）
-
-[Agent Skills](https://github.com/anthropics/skills) 让 AI 编程助手（如 Claude Code、Cline 等）可以通过 CLI 命令驱动你的自定义界面，无需配置 MCP 服务。了解更多请参考 [Skills 文档](./skills)。
+[Agent Skills](https://github.com/anthropics/skills) 让 AI 编程助手（如 Claude Code、Cline 等）可以通过 CLI 命令驱动你的自定义界面。了解更多请参考 [Skills 文档](./skills)。
 
 在你的 npm 包中添加一个 CLI 入口文件（如 `./src/cli.ts`）：
 
@@ -262,7 +218,9 @@ runSkillCLI({
 
 发布后，AI 编程助手即可通过 `npx my-device` 命令来控制你的自定义界面。
 
-### 步骤 6. 发布 npm 包，让你的用户使用它
+关于 Skill 的编写规范和更多示例，请参考 [midscene-skills](https://github.com/web-infra-dev/midscene-skills) 仓库。
+
+### 步骤 5. 发布 npm 包，让你的用户使用它
 
 `./index.ts` 文件已经导出了你的 Agent 与界面类。现在可以发布到 npm。
 
@@ -288,7 +246,7 @@ const agent = new Agent(device);
 await agent.aiAct('click the button');
 ```
 
-### 步骤 7. 在 Midscene CLI 和 YAML 脚本中调用你的类
+### 步骤 6. 在 Midscene CLI 和 YAML 脚本中调用你的类
 
 编写一个包含 `interface` 字段的 yaml 脚本来调用你的类：
 
