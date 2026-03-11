@@ -332,13 +332,14 @@ export class Agent<
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
 
-          // Call all registered dump update listeners
-          const dumpString = this.dumpDataString();
-          for (const listener of this.dumpUpdateListeners) {
-            try {
-              listener(dumpString, executionDump);
-            } catch (error) {
-              console.error('Error in onDumpUpdate listener', error);
+          if (this.dumpUpdateListeners.length > 0) {
+            const dumpString = this.dumpDataString();
+            for (const listener of this.dumpUpdateListeners) {
+              try {
+                listener(dumpString, executionDump);
+              } catch (error) {
+                console.error('Error in onDumpUpdate listener', error);
+              }
             }
           }
 
@@ -1317,13 +1318,14 @@ export class Agent<
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
 
-    // Call all registered dump update listeners
-    const dumpString = this.dumpDataString();
-    for (const listener of this.dumpUpdateListeners) {
-      try {
-        listener(dumpString);
-      } catch (error) {
-        console.error('Error in onDumpUpdate listener', error);
+    if (this.dumpUpdateListeners.length > 0) {
+      const dumpString = this.dumpDataString();
+      for (const listener of this.dumpUpdateListeners) {
+        try {
+          listener(dumpString);
+        } catch (error) {
+          console.error('Error in onDumpUpdate listener', error);
+        }
       }
     }
 
