@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
 import { beforeAll, describe, it, vi } from 'vitest';
+import { hasAiModelConfig } from '../../../../scripts/ai-test-config';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
@@ -15,7 +16,7 @@ vi.setConfig({ testTimeout: 360 * 1000 });
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
 
-describe('chrome extension smoke test', () => {
+describe.skipIf(!hasAiModelConfig())('chrome extension smoke test', () => {
   let agent: ComputerAgent;
   let extId: string;
   const extensionPath = path.resolve(
