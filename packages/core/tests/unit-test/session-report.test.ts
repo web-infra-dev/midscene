@@ -76,7 +76,7 @@ describe('SessionStore + exportSessionReport', () => {
     rmSync(runDir, { recursive: true, force: true });
   });
 
-  it('upserts the same execution key without growing execution count', () => {
+  it('overwrites the same order slot without growing execution count', () => {
     const sessionId = 'session-upsert';
 
     SessionStore.ensureSession({
@@ -88,25 +88,25 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    const first = SessionStore.upsertExecution({
+    const order = SessionStore.nextOrder(sessionId);
+    SessionStore.persistExecution(
       sessionId,
-      executionKey: 'command-1:0',
-      execution: createExecutionDump({
+      order,
+      createExecutionDump({
         executionName: 'first-version',
         prompt: 'first prompt',
       }),
-    });
-    SessionStore.saveExecutionOrder(sessionId, 'command-1:0', first.order);
+    );
 
-    const second = SessionStore.upsertExecution({
+    // Overwrite same order slot with updated execution
+    SessionStore.persistExecution(
       sessionId,
-      executionKey: 'command-1:0',
-      execution: createExecutionDump({
+      order,
+      createExecutionDump({
         executionName: 'updated-version',
         prompt: 'updated prompt',
       }),
-    });
-    SessionStore.saveExecutionOrder(sessionId, 'command-1:0', second.order);
+    );
 
     const session = SessionStore.load(sessionId);
     const dump = SessionStore.buildSessionDump(sessionId);
@@ -118,7 +118,7 @@ describe('SessionStore + exportSessionReport', () => {
 
   it('persists agent metadata when Agent is created with sessionId', () => {
     const sessionId = 'agent-constructor-session';
-    const agent = new Agent(createMockInterface(), {
+    new Agent(createMockInterface(), {
       sessionId,
       generateReport: false,
       modelConfig: mockedModelConfig,
@@ -131,7 +131,6 @@ describe('SessionStore + exportSessionReport', () => {
     );
     expect(persistedSession.groupName).toBe('Midscene Report');
     expect(persistedSession.platform).toBe('puppeteer');
-    expect(agent.opts.commandId).toBeTruthy();
   });
 
   it('exports a merged report from persisted session shards', () => {
@@ -147,25 +146,25 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    const first = SessionStore.upsertExecution({
+    const order1 = SessionStore.nextOrder(sessionId);
+    SessionStore.persistExecution(
       sessionId,
-      executionKey: 'command-1:0',
-      execution: createExecutionDump({
+      order1,
+      createExecutionDump({
         executionName: 'first execution',
         prompt: 'open page',
       }),
-    });
-    SessionStore.saveExecutionOrder(sessionId, 'command-1:0', first.order);
+    );
 
-    const second = SessionStore.upsertExecution({
+    const order2 = SessionStore.nextOrder(sessionId);
+    SessionStore.persistExecution(
       sessionId,
-      executionKey: 'command-2:0',
-      execution: createExecutionDump({
+      order2,
+      createExecutionDump({
         executionName: 'second execution',
         prompt: 'click button',
       }),
-    });
-    SessionStore.saveExecutionOrder(sessionId, 'command-2:0', second.order);
+    );
 
     const reportPath = exportSessionReport(sessionId);
     const html = readFileSync(reportPath, 'utf-8');

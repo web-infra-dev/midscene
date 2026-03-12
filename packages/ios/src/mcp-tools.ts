@@ -1,7 +1,6 @@
 import {
+  createExportSessionReportTool,
   createSessionAgentOptions,
-  exportSessionReport,
-  z,
 } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
@@ -30,8 +29,6 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
     const sessionOptions = createSessionAgentOptions({
       sessionId: this.getInvocationStringArg('sessionId'),
       platform: 'ios',
-      commandId: this.getInvocationCommandId(),
-      commandName: this.getInvocationCommandName(),
     });
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
@@ -51,7 +48,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
         schema: {},
         handler: async (args: { sessionId?: string }) =>
           this.runWithInvocationContext(
-            { ...args, __commandName: 'ios_connect' },
+            args as Record<string, unknown>,
             async () => {
               const agent = await this.ensureAgent();
               const screenshot = await agent.page.screenshotBase64();
@@ -76,32 +73,7 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
         schema: {},
         handler: this.createDisconnectHandler('iOS device'),
       },
-      {
-        name: 'ios_export_session_report',
-        description:
-          'Generate a merged HTML report from a persisted iOS session',
-        schema: {
-          sessionId: z.string().describe('Persistent session ID to export'),
-        },
-        handler: async (args: Record<string, unknown>) => {
-          const sessionId = args.sessionId;
-          if (typeof sessionId !== 'string' || !sessionId) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'sessionId is required to export a session report',
-                },
-              ],
-              isError: true,
-            };
-          }
-          const reportPath = exportSessionReport(sessionId);
-          return this.buildTextResult(
-            `Session report generated: ${reportPath}`,
-          );
-        },
-      },
+      createExportSessionReportTool(),
     ];
   }
 }

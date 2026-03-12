@@ -322,10 +322,7 @@ export function generateToolsFromActionSpace(
       schema,
       handler: async (args: Record<string, unknown>) => {
         try {
-          const agent = await getAgent({
-            ...args,
-            __commandName: action.name,
-          });
+          const agent = await getAgent(args);
 
           if (agent.aiAction) {
             const instruction = buildActionInstruction(action.name, args);
@@ -374,10 +371,7 @@ export function generateCommonTools(
       schema: {},
       handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
         try {
-          const agent = await getAgent({
-            ...args,
-            __commandName: 'take_screenshot',
-          });
+          const agent = await getAgent(args);
           const screenshot = await agent.page?.screenshotBase64();
           if (!screenshot) {
             return createErrorResult('Screenshot not available');
@@ -409,10 +403,7 @@ export function generateCommonTools(
       handler: async (args: Record<string, unknown>): Promise<ToolResult> => {
         const prompt = args.prompt as string;
         try {
-          const agent = await getAgent({
-            ...args,
-            __commandName: 'act',
-          });
+          const agent = await getAgent(args);
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }

@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   ScreenshotItem,
+  createExportSessionReportTool,
   createSessionAgentOptions,
-  exportSessionReport,
   z,
 } from '@midscene/core';
 import {
@@ -190,8 +190,6 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     const sessionOptions = createSessionAgentOptions({
       sessionId: this.getInvocationStringArg('sessionId'),
       platform: 'web',
-      commandId: this.getInvocationCommandId(),
-      commandName: this.getInvocationCommandName(),
     });
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
       ...sessionOptions,
@@ -219,10 +217,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
         },
         handler: async (args) =>
           this.runWithInvocationContext(
-            {
-              ...(args as Record<string, unknown>),
-              __commandName: 'web_connect',
-            },
+            args as Record<string, unknown>,
             async () => {
               const { url } = args as { url?: string };
 
@@ -268,32 +263,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
           );
         },
       },
-      {
-        name: 'web_export_session_report',
-        description:
-          'Generate a merged HTML report from a persisted web session',
-        schema: {
-          sessionId: z.string().describe('Persistent session ID to export'),
-        },
-        handler: async (args: Record<string, unknown>) => {
-          const sessionId = args.sessionId;
-          if (typeof sessionId !== 'string' || !sessionId) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'sessionId is required to export a session report',
-                },
-              ],
-              isError: true,
-            };
-          }
-          const reportPath = exportSessionReport(sessionId);
-          return this.buildTextResult(
-            `Session report generated: ${reportPath}`,
-          );
-        },
-      },
+      createExportSessionReportTool(),
       {
         name: 'web_close',
         description: 'Close the browser completely and release all resources.',

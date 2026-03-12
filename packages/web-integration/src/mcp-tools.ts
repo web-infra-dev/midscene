@@ -1,7 +1,7 @@
 import {
   ScreenshotItem,
+  createExportSessionReportTool,
   createSessionAgentOptions,
-  exportSessionReport,
   z,
 } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
@@ -50,8 +50,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     const sessionOptions = createSessionAgentOptions({
       sessionId: this.getInvocationStringArg('sessionId'),
       platform: 'web',
-      commandId: this.getInvocationCommandId(),
-      commandName: this.getInvocationCommandName(),
     });
     const agent = new AgentOverChromeBridge({
       closeConflictServer: true,
@@ -82,10 +80,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         },
         handler: async (args) =>
           this.runWithInvocationContext(
-            {
-              ...(args as Record<string, unknown>),
-              __commandName: 'web_connect',
-            },
+            args as Record<string, unknown>,
             async () => {
               const { url } = args as { url?: string };
 
@@ -119,32 +114,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         schema: {},
         handler: this.createDisconnectHandler('web page'),
       },
-      {
-        name: 'web_export_session_report',
-        description:
-          'Generate a merged HTML report from a persisted web session',
-        schema: {
-          sessionId: z.string().describe('Persistent session ID to export'),
-        },
-        handler: async (args: Record<string, unknown>) => {
-          const sessionId = args.sessionId;
-          if (typeof sessionId !== 'string' || !sessionId) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'sessionId is required to export a session report',
-                },
-              ],
-              isError: true,
-            };
-          }
-          const reportPath = exportSessionReport(sessionId);
-          return this.buildTextResult(
-            `Session report generated: ${reportPath}`,
-          );
-        },
-      },
+      createExportSessionReportTool(),
     ];
   }
 }

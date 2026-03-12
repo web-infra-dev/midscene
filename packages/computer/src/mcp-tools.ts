@@ -1,6 +1,6 @@
 import {
+  createExportSessionReportTool,
   createSessionAgentOptions,
-  exportSessionReport,
   z,
 } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
@@ -43,8 +43,6 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
     const sessionOptions = createSessionAgentOptions({
       sessionId: this.getInvocationStringArg('sessionId'),
       platform: 'computer',
-      commandId: this.getInvocationCommandId(),
-      commandName: this.getInvocationCommandName(),
     });
     const opts = {
       ...(displayId ? { displayId } : {}),
@@ -83,7 +81,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
           sessionId?: string;
         }) =>
           this.runWithInvocationContext(
-            { ...args, __commandName: 'computer_connect' },
+            args as Record<string, unknown>,
             async () => {
               const agent = await this.ensureAgent(
                 args.displayId,
@@ -109,32 +107,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
         schema: {},
         handler: this.createDisconnectHandler('computer'),
       },
-      {
-        name: 'computer_export_session_report',
-        description:
-          'Generate a merged HTML report from a persisted computer session',
-        schema: {
-          sessionId: z.string().describe('Persistent session ID to export'),
-        },
-        handler: async (args: Record<string, unknown>) => {
-          const sessionId = args.sessionId;
-          if (typeof sessionId !== 'string' || !sessionId) {
-            return {
-              content: [
-                {
-                  type: 'text',
-                  text: 'sessionId is required to export a session report',
-                },
-              ],
-              isError: true,
-            };
-          }
-          const reportPath = exportSessionReport(sessionId);
-          return this.buildTextResult(
-            `Session report generated: ${reportPath}`,
-          );
-        },
-      },
+      createExportSessionReportTool(),
       {
         name: 'computer_list_displays',
         description: 'List all available displays/monitors',

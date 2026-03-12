@@ -1137,15 +1137,6 @@ export interface AgentOpt {
    * separate Agent instances and CLI processes.
    */
   sessionId?: string;
-  /**
-   * Stable command identifier for the current Agent lifecycle.
-   * When omitted and sessionId is set, Agent will generate one.
-   */
-  commandId?: string;
-  /**
-   * Optional command label associated with the current Agent lifecycle.
-   */
-  commandName?: string;
   groupName?: string;
   groupDescription?: string;
   /* if auto generate report, default true */

@@ -5,7 +5,6 @@ import { z } from 'zod';
 
 class DummyTools extends BaseMidsceneTools<BaseAgent> {
   sessionIdSeen?: string;
-  commandNameSeen?: string;
 
   private readonly mockAgent: BaseAgent = {
     getActionSpace: async () => [],
@@ -17,7 +16,6 @@ class DummyTools extends BaseMidsceneTools<BaseAgent> {
 
   protected async ensureAgent(): Promise<BaseAgent> {
     this.sessionIdSeen = this.getInvocationStringArg('sessionId');
-    this.commandNameSeen = this.getInvocationCommandName();
     return this.mockAgent;
   }
 
@@ -40,13 +38,10 @@ class DummyTools extends BaseMidsceneTools<BaseAgent> {
         description: 'Connect dummy tool',
         schema: {},
         handler: async (args: Record<string, unknown>) =>
-          this.runWithInvocationContext(
-            { ...args, __commandName: 'dummy_connect' },
-            async () => {
-              await this.ensureAgent();
-              return this.buildTextResult('connected');
-            },
-          ),
+          this.runWithInvocationContext(args, async () => {
+            await this.ensureAgent();
+            return this.buildTextResult('connected');
+          }),
       },
     ];
   }
@@ -66,7 +61,6 @@ describe('BaseMidsceneTools session invocation context', () => {
     await tapTool!.handler({ sessionId: 'session-1' });
 
     expect(tools.sessionIdSeen).toBe('session-1');
-    expect(tools.commandNameSeen).toBe('Tap');
   });
 
   it('forwards invocation context to platform-specific tools', async () => {
@@ -82,6 +76,5 @@ describe('BaseMidsceneTools session invocation context', () => {
     await connectTool!.handler({ sessionId: 'session-2' });
 
     expect(tools.sessionIdSeen).toBe('session-2');
-    expect(tools.commandNameSeen).toBe('dummy_connect');
   });
 });

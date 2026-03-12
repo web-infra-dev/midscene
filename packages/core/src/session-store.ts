@@ -20,9 +20,7 @@ export interface PersistedSession {
   deviceType?: string;
   createdAt: number;
   updatedAt: number;
-  status: 'active' | 'closed';
   executionCount: number;
-  executionOrder: Record<string, number>;
   reportFilePath?: string;
 }
 
@@ -34,21 +32,6 @@ interface EnsureSessionInput {
   sdkVersion?: string;
   modelBriefs?: string[];
   deviceType?: string;
-}
-
-interface UpsertExecutionInput {
-  sessionId: string;
-  executionKey: string;
-  execution: ExecutionDump;
-}
-
-interface SessionAgentOptionsInput {
-  sessionId?: string;
-  platform: string;
-  commandId?: string;
-  commandName?: string;
-  groupName?: string;
-  groupDescription?: string;
 }
 
 function defaultGroupName(platform: string, sessionId: string): string {
@@ -65,17 +48,15 @@ function normalizeSessionRecord(
     sessionId: session.sessionId,
     platform: session.platform,
     groupName:
-      session.groupName ||
+      session.groupName ??
       defaultGroupName(session.platform, session.sessionId),
     groupDescription: session.groupDescription,
-    sdkVersion: session.sdkVersion || '',
-    modelBriefs: session.modelBriefs || [],
-    deviceType: session.deviceType || session.platform,
-    createdAt: session.createdAt || Date.now(),
-    updatedAt: session.updatedAt || Date.now(),
-    status: session.status || 'active',
-    executionCount: session.executionCount || 0,
-    executionOrder: session.executionOrder || {},
+    sdkVersion: session.sdkVersion ?? '',
+    modelBriefs: session.modelBriefs ?? [],
+    deviceType: session.deviceType ?? session.platform,
+    createdAt: session.createdAt ?? Date.now(),
+    updatedAt: session.updatedAt ?? Date.now(),
+    executionCount: session.executionCount ?? 0,
     reportFilePath: session.reportFilePath,
   };
 }
@@ -148,10 +129,10 @@ export const SessionStore = {
       input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
       const next: PersistedSession = {
         ...existing,
-        platform: input.platform || existing.platform,
+        platform: input.platform ?? existing.platform,
         groupName:
-          input.groupName ||
-          existing.groupName ||
+          input.groupName ??
+          existing.groupName ??
           defaultGroupName(input.platform, input.sessionId),
         groupDescription: input.groupDescription ?? existing.groupDescription,
         sdkVersion: input.sdkVersion ?? existing.sdkVersion,
@@ -167,16 +148,14 @@ export const SessionStore = {
       sessionId: input.sessionId,
       platform: input.platform,
       groupName:
-        input.groupName || defaultGroupName(input.platform, input.sessionId),
+        input.groupName ?? defaultGroupName(input.platform, input.sessionId),
       groupDescription: input.groupDescription,
-      sdkVersion: input.sdkVersion || '',
-      modelBriefs: input.modelBriefs || [],
-      deviceType: input.deviceType || input.platform,
+      sdkVersion: input.sdkVersion ?? '',
+      modelBriefs: input.modelBriefs ?? [],
+      deviceType: input.deviceType ?? input.platform,
       createdAt: now,
       updatedAt: now,
-      status: 'active',
       executionCount: 0,
-      executionOrder: {},
     });
   },
 
@@ -192,39 +171,31 @@ export const SessionStore = {
     });
   },
 
-  upsertExecution(input: UpsertExecutionInput): {
-    order: number;
-    basePath: string;
-  } {
-    const session = SessionStore.load(input.sessionId);
-    const existingOrder = session.executionOrder[input.executionKey];
-    const order = existingOrder ?? session.executionCount + 1;
-    const basePath = SessionStore.executionBasePath(input.sessionId, order);
-
-    ExecutionDump.cleanupFiles(basePath);
-    input.execution.serializeToFiles(basePath);
-
-    return {
-      order,
-      basePath,
-    };
-  },
-
-  saveExecutionOrder(
-    sessionId: string,
-    executionKey: string,
-    order: number,
-  ): PersistedSession {
+  /**
+   * Atomically allocate the next execution order number.
+   */
+  nextOrder(sessionId: string): number {
     const session = SessionStore.load(sessionId);
-    return SessionStore.save({
+    const next = session.executionCount + 1;
+    SessionStore.save({
       ...session,
-      executionOrder: {
-        ...session.executionOrder,
-        [executionKey]: order,
-      },
-      executionCount: Math.max(session.executionCount, order),
+      executionCount: next,
       updatedAt: Date.now(),
     });
+    return next;
+  },
+
+  /**
+   * Write (or overwrite) an execution at the given order slot.
+   */
+  persistExecution(
+    sessionId: string,
+    order: number,
+    execution: ExecutionDump,
+  ): void {
+    const basePath = SessionStore.executionBasePath(sessionId, order);
+    ExecutionDump.cleanupFiles(basePath);
+    execution.serializeToFiles(basePath);
   },
 
   buildSessionDump(sessionId: string): IGroupedActionDump {
@@ -250,14 +221,17 @@ export const SessionStore = {
       groupDescription: session.groupDescription,
       modelBriefs: session.modelBriefs,
       executions,
-      deviceType: session.deviceType || session.platform,
+      deviceType: session.deviceType ?? session.platform,
     };
   },
 };
 
-export function createSessionAgentOptions(
-  input: SessionAgentOptionsInput,
-): Partial<AgentOpt> {
+export function createSessionAgentOptions(input: {
+  sessionId?: string;
+  platform: string;
+  groupName?: string;
+  groupDescription?: string;
+}): Partial<AgentOpt> {
   if (!input.sessionId) {
     return {};
   }
@@ -265,10 +239,8 @@ export function createSessionAgentOptions(
   return {
     generateReport: false,
     sessionId: input.sessionId,
-    commandId: input.commandId,
-    commandName: input.commandName,
     groupName:
-      input.groupName || defaultGroupName(input.platform, input.sessionId),
+      input.groupName ?? defaultGroupName(input.platform, input.sessionId),
     groupDescription: input.groupDescription,
   };
 }

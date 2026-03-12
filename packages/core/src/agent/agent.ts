@@ -213,6 +213,8 @@ export class Agent<
 
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
+  private sessionExecutionOrders = new Map<number, number>();
+
   private fullActionSpace: DeviceAction[];
 
   private reportGenerator: IReportGenerator;
@@ -281,10 +283,6 @@ export class Agent<
     if (resolvedAiActContext !== undefined) {
       this.opts.aiActContext = resolvedAiActContext;
       this.opts.aiActionContext ??= resolvedAiActContext;
-    }
-
-    if (this.opts.sessionId && !this.opts.commandId) {
-      this.opts.commandId = uuid();
     }
 
     if (
@@ -470,18 +468,13 @@ export class Agent<
       return;
     }
 
-    this.syncSessionMetadata();
+    let order = this.sessionExecutionOrders.get(executionIndex);
+    if (order === undefined) {
+      order = SessionStore.nextOrder(this.opts.sessionId);
+      this.sessionExecutionOrders.set(executionIndex, order);
+    }
 
-    const commandId = this.opts.commandId || uuid();
-    this.opts.commandId = commandId;
-    const executionKey = `${commandId}:${executionIndex}`;
-    const { order } = SessionStore.upsertExecution({
-      sessionId: this.opts.sessionId,
-      executionKey,
-      execution,
-    });
-
-    SessionStore.saveExecutionOrder(this.opts.sessionId, executionKey, order);
+    SessionStore.persistExecution(this.opts.sessionId, order, execution);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {

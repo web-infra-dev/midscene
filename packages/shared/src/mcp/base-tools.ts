@@ -55,15 +55,7 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     fn: () => Promise<TResult>,
   ): Promise<TResult> {
     const previousContext = this.invocationContext;
-    const commandId =
-      typeof args?.__commandId === 'string' && args.__commandId
-        ? args.__commandId
-        : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-
-    this.invocationContext = {
-      ...(args ?? {}),
-      __commandId: commandId,
-    };
+    this.invocationContext = args ?? {};
 
     try {
       return await fn();
@@ -72,21 +64,9 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     }
   }
 
-  protected getInvocationContext(): Record<string, unknown> | undefined {
-    return this.invocationContext;
-  }
-
   protected getInvocationStringArg(name: string): string | undefined {
     const value = this.invocationContext?.[name];
     return typeof value === 'string' && value ? value : undefined;
-  }
-
-  protected getInvocationCommandId(): string | undefined {
-    return this.getInvocationStringArg('__commandId');
-  }
-
-  protected getInvocationCommandName(): string | undefined {
-    return this.getInvocationStringArg('__commandName');
   }
 
   private withSharedCliSchema(tool: ToolDefinition): ToolDefinition {
