@@ -24,8 +24,8 @@ export function createExportSessionReportTool() {
     schema: {
       sessionId: z.string().describe('Persistent session ID to export'),
     },
-    handler: async (args: Record<string, unknown>) => {
-      const sessionId = args.sessionId;
+    handler: async (args: { sessionId?: string }) => {
+      const { sessionId } = args;
       if (typeof sessionId !== 'string' || !sessionId) {
         return {
           content: [

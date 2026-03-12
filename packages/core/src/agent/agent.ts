@@ -213,7 +213,7 @@ export class Agent<
 
   private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
-  private sessionExecutionOrders = new Map<number, number>();
+  private sessionExecutionOrders: number[] = [];
 
   private fullActionSpace: DeviceAction[];
 
@@ -468,10 +468,10 @@ export class Agent<
       return;
     }
 
-    let order = this.sessionExecutionOrders.get(executionIndex);
+    let order = this.sessionExecutionOrders[executionIndex];
     if (order === undefined) {
       order = SessionStore.nextOrder(this.opts.sessionId);
-      this.sessionExecutionOrders.set(executionIndex, order);
+      this.sessionExecutionOrders[executionIndex] = order;
     }
 
     SessionStore.persistExecution(this.opts.sessionId, order, execution);

@@ -172,7 +172,8 @@ export const SessionStore = {
   },
 
   /**
-   * Atomically allocate the next execution order number.
+   * Allocate the next execution order number.
+   * Note: not safe under concurrent writes from multiple processes.
    */
   nextOrder(sessionId: string): number {
     const session = SessionStore.load(sessionId);
