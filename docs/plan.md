@@ -50,16 +50,6 @@
 3. 图片恢复统一通过 resolver 完成
 4. 只有 final export 才把截图内联进 HTML
 
-## 补充约束（2026-03-12 Android 回归）
-
-最新 beta 日志说明，真正的性能问题不只在 listener 热路径，还在运行时结果返回和调试输出链路上。补充约束如下：
-
-1. 运行时禁止调用 `reportHTMLString({ inlineScreenshots: true })` 作为默认结果返回。
-2. 运行时禁止调用 `writeOutActionDumps()` 去刷新最终 HTML 报告。
-3. `cancelExecution` / `getCurrentExecutionData` / server `/execute` 返回必须优先提供 compact snapshot。
-4. `unstableLogContent` 只能写 compact snapshot，不能再复制整份 inline dump。
-5. 如果某个消费方仍需要可回放结果，只允许在单次最终结果上按需生成，不得进入 task update 热路径。
-
 ## 数据模型
 
 ### 新增类型
@@ -210,19 +200,14 @@ addExecutionEventListener(
   - `onDumpUpdate` 退化为兼容 API
 - `packages/playground/src/adapters/local-execution.ts`
   - 监听新事件协议
-  - 本地结果改成 live dump + compact snapshot，移除运行时 `reportHTMLString/writeOutActionDumps`
+  - 只有兼容旧回调时才生成 dump string
 - `packages/playground/src/adapters/remote-execution.ts`
   - 轮询/推送 `DumpEvent`
   - 本地和远端统一 UI 消费形态
 - `packages/playground/src/server.ts`
   - `taskExecutionDumps` 升级为 `taskExecutionEvents` 或 `taskExecutionState`
   - `/task-progress/:requestId` 返回紧凑状态对象或事件
-  - `/execute` 和 `/cancel` 默认返回 compact snapshot；如需回放，仅在最终返回阶段按需生成一次结果 dump
-
-### YAML / Runner
-
-- `packages/core/src/yaml/player.ts`
-  - `unstableLogContent` 改写为 compact snapshot，不再复制 inline dump/base64
+  - `/execute` 和 `/cancel` 的最终返回通过 finalize/export 获得 dump/report，而不是运行中反复生成
 
 ### Visualizer
 
@@ -455,33 +440,30 @@ async finalizeReport() {
 
 ### 阶段一：建立运行时存储层
 
-- [x] 新增 `RuntimeArtifactStore`
-- [x] 为运行时 screenshot ref 补充序列化与恢复能力
-- [x] 补充 core 单元测试覆盖 runtime store 与 compact screenshot ref
+- [ ] 新增 `RuntimeArtifactStore`
+- [ ] 为运行时 screenshot ref 补充序列化与恢复能力
+- [ ] 补充 core 单元测试覆盖 runtime store 与 compact screenshot ref
 
 ### 阶段二：引入新事件协议
 
-- [x] 在 `Agent` 中增加 `addExecutionEventListener`
-- [x] 保留 `addDumpUpdateListener` 兼容层，按需生成 compact dump string
-- [x] 将 task update 热路径切换到 runtime store + event emit
+- [ ] 在 `Agent` 中增加 `addExecutionEventListener`
+- [ ] 保留 `addDumpUpdateListener` 兼容层，按需生成 compact dump string
+- [ ] 将 task update 热路径切换到 runtime store + event emit
 
 ### 阶段三：迁移 playground 与 remote server
 
-- [x] `PlaygroundSDK` 暴露 `onExecutionEvent` / `onSnapshotUpdate`
-- [x] 本地 adapter 切到新事件协议
-- [x] 远端 server / adapter 切到 compact progress payload
-- [x] 本地执行结果改成 `live dump + compact snapshot`
-- [x] 停止在 playground 运行时刷新 `reportHTML` / report 文件
+- [ ] `PlaygroundSDK` 暴露 `onExecutionEvent` / `onSnapshotUpdate`
+- [ ] 本地 adapter 切到新事件协议
+- [ ] 远端 server / adapter 切到 compact progress payload
 
 ### 阶段四：最终导出与清理
 
-- [x] 将 `ReportGenerator` 收敛为最终导出器
-- [x] finalize 阶段从 runtime store 导出 inline HTML
-- [x] 执行结束或取消后清理 temp 目录
+- [ ] 将 `ReportGenerator` 收敛为最终导出器
+- [ ] finalize 阶段从 runtime store 导出 inline HTML
+- [ ] 执行结束或取消后清理 temp 目录
 
 ### 阶段五：验证
 
-- [x] 运行 core 聚焦测试
-- [x] 运行 playground 聚焦测试
-- [x] 运行 lint
-- [x] 验证 `unstableLogContent` 不再写 inline screenshot/base64
+- [ ] 运行 core 聚焦测试
+- [ ] 运行 playground 聚焦测试
+- [ ] 运行 lint
