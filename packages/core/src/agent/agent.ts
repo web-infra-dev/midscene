@@ -1495,11 +1495,13 @@ export class Agent<
   }
 
   _unstableLogContent() {
-    const { groupName, groupDescription, executions } = this.dump;
+    const snapshot = this.getSerializedSnapshot();
     return {
-      groupName,
-      groupDescription,
-      executions: executions || [],
+      groupName: snapshot.groupName ?? this.dump.groupName,
+      groupDescription: snapshot.groupDescription ?? this.dump.groupDescription,
+      executions:
+        (snapshot.executions as SerializedExecutionDumpObject[] | undefined) ||
+        [],
     };
   }
 

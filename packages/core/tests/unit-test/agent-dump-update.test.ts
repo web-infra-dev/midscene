@@ -95,4 +95,18 @@ describe('Agent dump update serialization', () => {
       executions: [expect.objectContaining({ name: 'event-listener' })],
     });
   });
+
+  it('returns compact unstable log content without inline screenshots', async () => {
+    const agent = createAgent();
+
+    await agent.recordToReport('compact-log', {
+      content: 'compact content',
+    });
+
+    const content = agent._unstableLogContent();
+    const serialized = JSON.stringify(content);
+
+    expect(serialized).toContain('"$screenshot"');
+    expect(serialized).not.toContain('data:image/');
+  });
 });

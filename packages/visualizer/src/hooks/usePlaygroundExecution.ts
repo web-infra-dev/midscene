@@ -3,8 +3,10 @@ import type {
   ExecutionDump,
   IExecutionDump,
   IGroupedActionDump,
+  SerializedDumpObject,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import type { ExecutionData } from '@midscene/playground';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -267,6 +269,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           if (resultObj.dump) {
             result.dump = resultObj.dump;
           }
+          if (resultObj.snapshot) {
+            result.snapshot = resultObj.snapshot;
+          }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
           if (resultObj.error) result.error = formatError(resultObj.error);
 
@@ -284,6 +289,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         // The adapter may attach these even on error
         if (typeof e === 'object' && e !== null) {
           if (e.dump) result.dump = e.dump;
+          if (e.snapshot) result.snapshot = e.snapshot;
           if (e.reportHTML) result.reportHTML = e.reportHTML;
         }
       }
@@ -396,10 +402,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         );
 
         // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
-        let executionData: {
-          dump: ExecutionDump | null;
-          reportHTML: string | null;
-        } | null = null;
+        let executionData: ExecutionData | null = null;
 
         if (cancelResult) {
           executionData = cancelResult;
@@ -471,6 +474,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             result: {
               result: null,
               dump: executionData.dump,
+              snapshot: executionData.snapshot,
               reportHTML: executionData.reportHTML,
               error: null,
             },

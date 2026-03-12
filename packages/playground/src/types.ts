@@ -1,6 +1,8 @@
 import type {
   AgentExecutionEventPayload,
   DeviceAction,
+  ExecutionDump,
+  IExecutionDump,
   SerializedDumpObject,
 } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
@@ -22,9 +24,16 @@ export interface ValidationResult {
 
 export interface ServerResponse {
   result?: unknown;
-  dump?: any;
-  reportHTML?: string;
+  dump?: ExecutionData['dump'];
+  snapshot?: SerializedDumpObject | null;
+  reportHTML?: string | null;
   error?: string;
+}
+
+export interface ExecutionData {
+  dump: ExecutionDump | IExecutionDump | null;
+  snapshot: SerializedDumpObject | null;
+  reportHTML: string | null;
 }
 
 export interface DeviceOptions {

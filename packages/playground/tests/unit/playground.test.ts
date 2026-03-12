@@ -12,11 +12,18 @@ import type {
 } from '../../src/types';
 
 describe('Playground Integration Tests', () => {
+  let liveExecutionDump: ExecutionDump;
+
   describe('End-to-end workflow with LocalExecutionAdapter', () => {
     let mockAgent: PlaygroundAgent;
     let sdk: PlaygroundSDK;
 
     beforeEach(() => {
+      liveExecutionDump = new ExecutionDump({
+        logTime: Date.now(),
+        name: 'playground-live-dump',
+        tasks: [],
+      });
       mockAgent = {
         getActionSpace: async () => [
           {
@@ -57,6 +64,12 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
+        dump: {
+          executions: [liveExecutionDump],
+        },
+        getExecutionSnapshot: () => ({
+          executions: [{ name: 'compact-playground-dump', tasks: [] }],
+        }),
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
@@ -107,7 +120,10 @@ describe('Playground Integration Tests', () => {
             },
           },
         },
-        dump: expect.any(ExecutionDump),
+        dump: liveExecutionDump,
+        snapshot: {
+          executions: [{ name: 'compact-playground-dump', tasks: [] }],
+        },
         reportHTML: null,
         error: null,
       });
@@ -135,7 +151,10 @@ describe('Playground Integration Tests', () => {
             screenshotIncluded: true,
           },
         },
-        dump: expect.any(ExecutionDump),
+        dump: liveExecutionDump,
+        snapshot: {
+          executions: [{ name: 'compact-playground-dump', tasks: [] }],
+        },
         reportHTML: null,
         error: null,
       });
@@ -207,6 +226,11 @@ describe('Playground Integration Tests', () => {
     let mockAgent: PlaygroundAgent;
 
     beforeEach(() => {
+      liveExecutionDump = new ExecutionDump({
+        logTime: Date.now(),
+        name: 'playground-live-dump',
+        tasks: [],
+      });
       mockAgent = {
         getActionSpace: async () => [],
         onTaskStartTip: undefined,
@@ -214,6 +238,12 @@ describe('Playground Integration Tests', () => {
         aiQuery: async (prompt: string, options?: any) => {
           return { result: `Query result for: ${prompt}`, options };
         },
+        dump: {
+          executions: [liveExecutionDump],
+        },
+        getExecutionSnapshot: () => ({
+          executions: [{ name: 'compact-playground-dump', tasks: [] }],
+        }),
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
@@ -228,7 +258,10 @@ describe('Playground Integration Tests', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: liveExecutionDump,
+        snapshot: {
+          executions: [{ name: 'compact-playground-dump', tasks: [] }],
+        },
         reportHTML: null,
       });
     });
