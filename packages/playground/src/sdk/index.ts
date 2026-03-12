@@ -5,10 +5,12 @@ import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
   AgentFactory,
+  ExecutionEventCallback,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
   PlaygroundConfig,
+  SnapshotUpdateCallback,
   ValidationResult,
 } from '../types';
 
@@ -119,7 +121,11 @@ export class PlaygroundSDK {
   }
 
   // Get task progress (for remote execution)
-  async getTaskProgress(requestId: string): Promise<{ executionDump?: any }> {
+  async getTaskProgress(requestId: string): Promise<{
+    event?: unknown;
+    executionDump?: any;
+    snapshot?: unknown;
+  }> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getTaskProgress(requestId);
     }
@@ -142,6 +148,14 @@ export class PlaygroundSDK {
     } else if (this.adapter instanceof RemoteExecutionAdapter) {
       this.adapter.onDumpUpdate(callback);
     }
+  }
+
+  onExecutionEvent(callback: ExecutionEventCallback): void {
+    this.adapter.onExecutionEvent?.(callback);
+  }
+
+  onSnapshotUpdate(callback: SnapshotUpdateCallback): void {
+    this.adapter.onSnapshotUpdate?.(callback);
   }
 
   // Progress update callback management

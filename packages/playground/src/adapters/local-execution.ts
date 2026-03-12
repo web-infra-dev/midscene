@@ -1,13 +1,19 @@
-import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import type {
+  AgentExecutionEventPayload,
+  DeviceAction,
+  ExecutionDump,
+} from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
 import type {
   AgentFactory,
+  ExecutionEventCallback,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
+  SnapshotUpdateCallback,
 } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -18,6 +24,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     dump: string,
     executionDump?: ExecutionDump,
   ) => void;
+  private executionEventCallback?: ExecutionEventCallback;
+  private snapshotUpdateCallback?: SnapshotUpdateCallback;
   private progressCallback?: (tip: string) => void;
   private readonly _id: string; // Unique identifier for this local adapter instance
   private currentRequestId?: string; // Track current request to prevent stale callbacks
@@ -41,6 +49,16 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     this.dumpUpdateCallback = undefined;
     // Set the new callback
     this.dumpUpdateCallback = callback;
+  }
+
+  onExecutionEvent(callback: ExecutionEventCallback): void {
+    this.executionEventCallback = undefined;
+    this.executionEventCallback = callback;
+  }
+
+  onSnapshotUpdate(callback: SnapshotUpdateCallback): void {
+    this.snapshotUpdateCallback = undefined;
+    this.snapshotUpdateCallback = callback;
   }
 
   // Set progress callback for monitoring operation status
@@ -171,7 +189,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
     // Get actionSpace using our simplified getActionSpace method
     const actionSpace = await this.getActionSpace();
-    let removeListener: (() => void) | undefined;
+    let removeDumpUpdateListener: (() => void) | undefined;
+    let removeExecutionEventListener: (() => void) | undefined;
 
     // Reset dump at the start of execution to ensure clean state
     try {
@@ -185,20 +204,33 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Track current request ID to prevent stale callbacks
       this.currentRequestId = options.requestId;
 
-      // Add listener and save remove function
-      removeListener = agent.addDumpUpdateListener(
-        (dump: string, executionDump?: ExecutionDump) => {
-          // Only process if this is still the current request
-          if (this.currentRequestId !== options.requestId) {
-            return;
-          }
+      if (this.dumpUpdateCallback) {
+        removeDumpUpdateListener = agent.addDumpUpdateListener(
+          (dump: string, executionDump?: ExecutionDump) => {
+            if (this.currentRequestId !== options.requestId) {
+              return;
+            }
 
-          // Forward to external callback
-          if (this.dumpUpdateCallback) {
-            this.dumpUpdateCallback(dump, executionDump);
-          }
-        },
-      );
+            this.dumpUpdateCallback?.(dump, executionDump);
+          },
+        );
+      }
+
+      if (
+        (this.executionEventCallback || this.snapshotUpdateCallback) &&
+        agent.addExecutionEventListener
+      ) {
+        removeExecutionEventListener = agent.addExecutionEventListener(
+          (payload: AgentExecutionEventPayload) => {
+            if (this.currentRequestId !== options.requestId) {
+              return;
+            }
+
+            this.executionEventCallback?.(payload);
+            this.snapshotUpdateCallback?.(payload.getSnapshot());
+          },
+        );
+      }
     }
 
     try {
@@ -248,7 +280,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // Try to get reportHTML - may fail in browser environment (fs not available)
       try {
         if (agent.reportHTMLString) {
-          response.reportHTML = agent.reportHTMLString() || null;
+          response.reportHTML =
+            agent.reportHTMLString({ inlineScreenshots: true }) || null;
         }
       } catch (error: unknown) {
         // reportHTMLString may throw in browser environment
@@ -268,10 +301,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       // The caller (usePlaygroundExecution) will check response.error to determine success
       return response;
     } finally {
-      // Remove listener to prevent accumulation
-      if (removeListener) {
-        removeListener();
-      }
+      removeDumpUpdateListener?.();
+      removeExecutionEventListener?.();
     }
   }
 
@@ -335,7 +366,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
     // where fs.readFileSync is not available
     try {
       if (typeof this.agent.reportHTMLString === 'function') {
-        const html = this.agent.reportHTMLString();
+        const html = this.agent.reportHTMLString({
+          inlineScreenshots: true,
+        });
         if (
           html &&
           typeof html === 'string' &&
@@ -392,7 +425,8 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
 
       // Get report HTML
       if (this.agent?.reportHTMLString) {
-        response.reportHTML = this.agent.reportHTMLString() || null;
+        response.reportHTML =
+          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
       }
     } catch (error: unknown) {
       console.error('Failed to get current execution data:', error);

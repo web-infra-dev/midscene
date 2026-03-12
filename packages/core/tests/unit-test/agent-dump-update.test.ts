@@ -43,11 +43,9 @@ describe('Agent dump update serialization', () => {
     expect(dumpDataStringSpy).not.toHaveBeenCalled();
   });
 
-  it('serializes dump once during task updates when a dump listener is registered', () => {
+  it('uses compact snapshot strings for legacy dump listeners during task updates', () => {
     const agent = createAgent();
-    const dumpDataStringSpy = vi
-      .spyOn(agent, 'dumpDataString')
-      .mockReturnValue('serialized-dump');
+    const dumpDataStringSpy = vi.spyOn(agent, 'dumpDataString');
     const listener = vi.fn();
     const onTaskUpdate = (agent as any).taskExecutor.hooks.onTaskUpdate;
 
@@ -57,10 +55,10 @@ describe('Agent dump update serialization', () => {
       dump: () => createExecutionDump('with-listener'),
     });
 
-    expect(dumpDataStringSpy).toHaveBeenCalledTimes(1);
+    expect(dumpDataStringSpy).not.toHaveBeenCalled();
     expect(listener).toHaveBeenCalledTimes(1);
-    expect(listener).toHaveBeenCalledWith(
-      'serialized-dump',
+    expect(listener.mock.calls[0][0]).toContain('"name":"with-listener"');
+    expect(listener.mock.calls[0][1]).toEqual(
       expect.objectContaining({ name: 'with-listener' }),
     );
   });
@@ -74,5 +72,27 @@ describe('Agent dump update serialization', () => {
     });
 
     expect(dumpDataStringSpy).not.toHaveBeenCalled();
+  });
+
+  it('emits execution events with compact snapshots during task updates', async () => {
+    const agent = createAgent();
+    const listener = vi.fn();
+    const onTaskUpdate = (agent as any).taskExecutor.hooks.onTaskUpdate;
+
+    agent.addExecutionEventListener(listener);
+
+    onTaskUpdate({
+      dump: () => createExecutionDump('event-listener'),
+    });
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const payload = listener.mock.calls[0][0];
+    expect(payload.event.type).toBe('execution_updated');
+    expect(payload.event.executionDump).toMatchObject({
+      name: 'event-listener',
+    });
+    expect(payload.getSnapshot()).toMatchObject({
+      executions: [expect.objectContaining({ name: 'event-listener' })],
+    });
   });
 });

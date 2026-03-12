@@ -13,3 +13,17 @@ export {
   generateImageScriptTag,
   generateDumpScriptTag,
 } from './html-utils';
+export {
+  RuntimeArtifactStore,
+  isScreenshotArtifactRef,
+  screenshotArtifactRefFromPath,
+} from './runtime-artifact-store';
+export type {
+  AgentExecutionEvent,
+  AgentExecutionEventPayload,
+  ExecutionUpdatedEvent,
+  ReportFlushedEvent,
+  ScreenshotArtifactRef,
+  SerializedDumpObject,
+  SerializedExecutionDumpObject,
+} from './runtime-artifact-store';

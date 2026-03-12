@@ -1,6 +1,19 @@
-import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import type {
+  AgentExecutionEvent,
+  AgentExecutionEventPayload,
+  DeviceAction,
+  ExecutionDump,
+  ScreenshotArtifactRef,
+  SerializedDumpObject,
+} from '@midscene/core';
 import { parseStructuredParams } from '../common';
-import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
+import type {
+  ExecutionEventCallback,
+  ExecutionOptions,
+  FormValue,
+  SnapshotUpdateCallback,
+  ValidationResult,
+} from '../types';
 import { BasePlaygroundAdapter } from './base';
 
 export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
@@ -10,6 +23,8 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     dump: string,
     executionDump?: ExecutionDump,
   ) => void;
+  private executionEventCallback?: ExecutionEventCallback;
+  private snapshotUpdateCallback?: SnapshotUpdateCallback;
   private pollingIntervalId?: ReturnType<typeof setInterval>;
 
   constructor(serverUrl: string) {
@@ -23,6 +38,16 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   ): void {
     this.dumpUpdateCallback = undefined;
     this.dumpUpdateCallback = callback;
+  }
+
+  onExecutionEvent(callback: ExecutionEventCallback): void {
+    this.executionEventCallback = undefined;
+    this.executionEventCallback = callback;
+  }
+
+  onSnapshotUpdate(callback: SnapshotUpdateCallback): void {
+    this.snapshotUpdateCallback = undefined;
+    this.snapshotUpdateCallback = callback;
   }
 
   // Get adapter ID (cached after first status check for remote)
@@ -150,8 +175,13 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       payload.context = options.context;
     }
 
-    // Start polling if requestId is provided and dumpUpdateCallback is set
-    if (options.requestId && this.dumpUpdateCallback) {
+    // Start polling if requestId is provided and there is any progress subscriber
+    if (
+      options.requestId &&
+      (this.dumpUpdateCallback ||
+        this.executionEventCallback ||
+        this.snapshotUpdateCallback)
+    ) {
       this.startProgressPolling(options.requestId);
     }
 
@@ -311,7 +341,9 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
   }
 
   async getTaskProgress(requestId: string): Promise<{
+    event?: AgentExecutionEvent;
     executionDump?: ExecutionDump;
+    snapshot?: SerializedDumpObject;
   }> {
     if (!this.serverUrl) {
       return {};
@@ -351,16 +383,68 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       try {
         const progressData = await this.getTaskProgress(requestId);
 
-        if (progressData.executionDump) {
-          // Invoke dump update callback if set
-          if (this.dumpUpdateCallback) {
-            this.dumpUpdateCallback('', progressData.executionDump);
-          }
+        if (progressData.event && this.executionEventCallback) {
+          const snapshot = progressData.snapshot || {};
+          const payload: AgentExecutionEventPayload = {
+            event: progressData.event,
+            getSnapshot: () => snapshot,
+            hydrateImage: async (ref: ScreenshotArtifactRef) => {
+              return this.fetchArtifactImage(requestId, ref);
+            },
+          };
+          this.executionEventCallback(payload);
+        }
+
+        if (progressData.snapshot && this.snapshotUpdateCallback) {
+          this.snapshotUpdateCallback(progressData.snapshot);
+        }
+
+        if (this.dumpUpdateCallback) {
+          const dumpString = progressData.snapshot
+            ? JSON.stringify(progressData.snapshot)
+            : '';
+          const executionDump =
+            progressData.executionDump ??
+            (progressData.event?.type === 'execution_updated'
+              ? (progressData.event.executionDump as unknown as ExecutionDump)
+              : undefined);
+          this.dumpUpdateCallback(dumpString, executionDump);
         }
       } catch (error) {
         console.error('Error polling task progress:', error);
       }
     }, 500); // Poll every 500ms
+  }
+
+  private async fetchArtifactImage(
+    requestId: string,
+    ref: ScreenshotArtifactRef,
+  ): Promise<string> {
+    if (!this.serverUrl) {
+      throw new Error('No server URL configured');
+    }
+
+    const response = await fetch(
+      `${this.serverUrl}/task-artifact-image/${encodeURIComponent(requestId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ref }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch artifact image: ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as { base64?: string };
+    if (!data.base64) {
+      throw new Error(`Artifact image ${ref.id} not found`);
+    }
+
+    return data.base64;
   }
 
   /**
