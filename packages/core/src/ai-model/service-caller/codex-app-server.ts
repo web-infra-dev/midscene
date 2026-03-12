@@ -332,6 +332,7 @@ class CodexAppServerConnection {
       crlfDelay: Number.POSITIVE_INFINITY,
     });
     const connection = new CodexAppServerConnection(child, lineReader);
+    connection.detachFromEventLoop();
     connection.attachProcessListeners();
     await connection.initializeHandshake();
 
@@ -620,6 +621,17 @@ class CodexAppServerConnection {
     });
   }
 
+  /**
+   * Keep codex process reusable but let short-lived callers exit naturally.
+   * Without unref, one-shot scripts/tests that call AI once can hang.
+   */
+  private detachFromEventLoop() {
+    this.child.unref?.();
+    this.child.stdin?.unref?.();
+    this.child.stdout?.unref?.();
+    this.child.stderr?.unref?.();
+  }
+
   private async initializeHandshake() {
     const deadlineAt = Date.now() + CODEX_DEFAULT_PROCESS_START_TIMEOUT_MS;
     await this.request({
@@ -707,7 +719,11 @@ class CodexAppServerConnection {
     });
 
     while (true) {
-      const message = await this.nextMessage({ deadlineAt, abortSignal });
+      const message = await this.nextMessage({
+        deadlineAt,
+        abortSignal,
+        includePending: false,
+      });
 
       if (this.isResponseMessage(message) && message.id === requestId) {
         if (message.error) {
@@ -763,11 +779,13 @@ class CodexAppServerConnection {
   private async nextMessage({
     deadlineAt,
     abortSignal,
+    includePending = true,
   }: {
     deadlineAt?: number;
     abortSignal?: AbortSignal;
+    includePending?: boolean;
   }): Promise<JsonRpcMessage> {
-    if (this.pendingMessages.length) {
+    if (includePending && this.pendingMessages.length) {
       return this.pendingMessages.shift() as JsonRpcMessage;
     }
 
