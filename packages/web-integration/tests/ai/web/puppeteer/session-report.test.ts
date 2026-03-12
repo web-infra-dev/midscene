@@ -54,6 +54,7 @@ dotenv.config({
 
 vi.setConfig({
   testTimeout: 180 * 1000,
+  hookTimeout: 180 * 1000,
 });
 
 function createFixtureServer(fileName: string): Promise<{
@@ -215,7 +216,7 @@ describe('session merged report e2e', () => {
     }
   });
 
-  it('merges multiple session acts into one exported report and renders both executions', async () => {
+  it('covers the browser skill flow and renders both executions in one merged report', async () => {
     const sessionId = `session-report-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -230,6 +231,13 @@ describe('session merged report e2e', () => {
       sessionId,
     });
     expect(connectResult.result.isError).toBe(false);
+    expect(connectResult.result.imageCount).toBeGreaterThan(0);
+
+    const screenshotResult = await runSessionCommand('take_screenshot', {
+      sessionId,
+    });
+    expect(screenshotResult.result.isError).toBe(false);
+    expect(screenshotResult.result.imageCount).toBeGreaterThan(0);
 
     const firstActResult = await runSessionCommand('act', {
       prompt: FIRST_PROMPT,
@@ -250,8 +258,12 @@ describe('session merged report e2e', () => {
     });
     expect(exportResult.result.isError).toBe(false);
 
-    const sessionFilePath = path.join(sessionDir, 'session.json');
+    const sessionFilePath = path.join(sessionDir, 'agent.json');
     expect(existsSync(sessionFilePath)).toBe(true);
+    expect(existsSync(path.join(sessionDir, '1.json'))).toBe(true);
+    expect(existsSync(path.join(sessionDir, '2.json'))).toBe(true);
+    expect(existsSync(path.join(sessionDir, 'session.json'))).toBe(false);
+    expect(existsSync(path.join(sessionDir, 'executions'))).toBe(false);
 
     const sessionState = JSON.parse(readFileSync(sessionFilePath, 'utf-8')) as {
       executionCount: number;
@@ -265,6 +277,16 @@ describe('session merged report e2e', () => {
 
     const firstExecutionName = `Act - ${FIRST_PROMPT}`;
     const secondExecutionName = `Act - ${SECOND_PROMPT}`;
+
+    const reportConnectResult = await runSessionCommand('connect', {
+      url: `file://${sessionState.reportFilePath}`,
+    });
+    expect(reportConnectResult.result.isError).toBe(false);
+    expect(reportConnectResult.result.imageCount).toBeGreaterThan(0);
+
+    const reportScreenshotResult = await runSessionCommand('take_screenshot');
+    expect(reportScreenshotResult.result.isError).toBe(false);
+    expect(reportScreenshotResult.result.imageCount).toBeGreaterThan(0);
 
     const { originPage, reset } = await launchPage(
       `file://${sessionState.reportFilePath}`,

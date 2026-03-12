@@ -54,6 +54,7 @@ import {
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
+import { SessionStore } from '@/session-store';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -282,6 +283,10 @@ export class Agent<
       this.opts.aiActionContext ??= resolvedAiActContext;
     }
 
+    if (this.opts.sessionId && !this.opts.commandId) {
+      this.opts.commandId = uuid();
+    }
+
     if (
       opts?.modelConfig &&
       (typeof opts?.modelConfig !== 'object' || Array.isArray(opts.modelConfig))
@@ -335,6 +340,11 @@ export class Agent<
             runner,
           );
 
+          this.persistSessionDump(
+            this.dump.executions[executionIndex],
+            executionIndex,
+          );
+
           if (this.opts.onExecutionDumpUpdate) {
             try {
               await this.opts.onExecutionDumpUpdate(
@@ -374,6 +384,8 @@ export class Agent<
       outputFormat: this.opts.outputFormat,
       autoPrintReportMsg: this.opts.autoPrintReportMsg,
     });
+
+    this.syncSessionMetadata();
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -432,6 +444,44 @@ export class Agent<
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
 
     return this.dump;
+  }
+
+  private syncSessionMetadata(): void {
+    if (!this.opts.sessionId) {
+      return;
+    }
+
+    SessionStore.ensureSession({
+      sessionId: this.opts.sessionId,
+      platform: this.interface.interfaceType,
+      groupName: this.opts.groupName,
+      groupDescription: this.opts.groupDescription,
+      sdkVersion: this.dump.sdkVersion,
+      modelBriefs: this.dump.modelBriefs,
+      deviceType: this.dump.deviceType,
+    });
+  }
+
+  private persistSessionDump(
+    execution: ExecutionDump,
+    executionIndex: number,
+  ): void {
+    if (!this.opts.sessionId) {
+      return;
+    }
+
+    this.syncSessionMetadata();
+
+    const commandId = this.opts.commandId || uuid();
+    this.opts.commandId = commandId;
+    const executionKey = `${commandId}:${executionIndex}`;
+    const { order } = SessionStore.upsertExecution({
+      sessionId: this.opts.sessionId,
+      executionKey,
+      execution,
+    });
+
+    SessionStore.saveExecutionOrder(this.opts.sessionId, executionKey, order);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {

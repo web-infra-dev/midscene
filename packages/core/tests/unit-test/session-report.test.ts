@@ -1,13 +1,14 @@
-import { readFileSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Agent } from '@/agent/agent';
+import type { AbstractInterface } from '@/device';
 import { parseDumpScript } from '@/dump/html-utils';
 import { ScreenshotItem } from '@/screenshot-item';
 import { exportSessionReport } from '@/session-report';
 import { SessionStore } from '@/session-store';
 import {
   ExecutionDump,
-  GroupedActionDump,
   type IGroupedActionDump,
   type UIContext,
 } from '@/types';
@@ -21,41 +22,45 @@ function fakeScreenshot(label: string): ScreenshotItem {
   );
 }
 
-function createShardDump(options: {
-  groupName: string;
-  modelBrief: string;
+function createExecutionDump(options: {
   executionName: string;
   prompt: string;
-}): GroupedActionDump {
-  return new GroupedActionDump({
-    sdkVersion: '1.0.0-test',
-    groupName: options.groupName,
-    groupDescription: 'session-test',
-    modelBriefs: [options.modelBrief],
-    deviceType: 'web',
-    executions: [
-      new ExecutionDump({
-        logTime: Date.now(),
-        name: options.executionName,
-        tasks: [
-          {
-            type: 'Insight' as const,
-            subType: 'Locate',
-            status: 'finished' as const,
-            param: { prompt: options.prompt },
-            taskId: `${options.executionName}-task`,
-            uiContext: {
-              screenshot: fakeScreenshot(options.executionName),
-              shotSize: { width: 1280, height: 720 },
-              shrunkShotToLogicalRatio: 1,
-            } as unknown as UIContext,
-            executor: async () => undefined,
-            recorder: [],
-          },
-        ],
-      }),
+}): ExecutionDump {
+  return new ExecutionDump({
+    logTime: Date.now(),
+    name: options.executionName,
+    tasks: [
+      {
+        type: 'Insight' as const,
+        subType: 'Locate',
+        status: 'finished' as const,
+        param: { prompt: options.prompt },
+        taskId: `${options.executionName}-task`,
+        uiContext: {
+          screenshot: fakeScreenshot(options.executionName),
+          shotSize: { width: 1280, height: 720 },
+          shrunkShotToLogicalRatio: 1,
+        } as unknown as UIContext,
+        executor: async () => undefined,
+        recorder: [],
+      },
     ],
   });
+}
+
+const mockedModelConfig = {
+  MIDSCENE_MODEL_NAME: 'mock-model',
+  MIDSCENE_MODEL_API_KEY: 'mock-api-key',
+  MIDSCENE_MODEL_BASE_URL: 'mock-base-url',
+};
+
+function createMockInterface(): AbstractInterface {
+  return {
+    interfaceType: 'puppeteer',
+    actionSpace: vi.fn(() => []),
+    size: vi.fn().mockResolvedValue({ width: 1280, height: 720 }),
+    destroy: vi.fn(),
+  } as unknown as AbstractInterface;
 }
 
 describe('SessionStore + exportSessionReport', () => {
@@ -78,14 +83,15 @@ describe('SessionStore + exportSessionReport', () => {
       sessionId,
       platform: 'web',
       groupName: 'Session Upsert',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: ['planner/model-a'],
+      deviceType: 'web',
     });
 
     const first = SessionStore.upsertExecution({
       sessionId,
       executionKey: 'command-1:0',
-      groupedDump: createShardDump({
-        groupName: 'Session Upsert',
-        modelBrief: 'planner/model-a',
+      execution: createExecutionDump({
         executionName: 'first-version',
         prompt: 'first prompt',
       }),
@@ -95,9 +101,7 @@ describe('SessionStore + exportSessionReport', () => {
     const second = SessionStore.upsertExecution({
       sessionId,
       executionKey: 'command-1:0',
-      groupedDump: createShardDump({
-        groupName: 'Session Upsert',
-        modelBrief: 'planner/model-a',
+      execution: createExecutionDump({
         executionName: 'updated-version',
         prompt: 'updated prompt',
       }),
@@ -112,6 +116,24 @@ describe('SessionStore + exportSessionReport', () => {
     expect(dump.executions[0].name).toBe('updated-version');
   });
 
+  it('persists agent metadata when Agent is created with sessionId', () => {
+    const sessionId = 'agent-constructor-session';
+    const agent = new Agent(createMockInterface(), {
+      sessionId,
+      generateReport: false,
+      modelConfig: mockedModelConfig,
+    });
+
+    const persistedSession = SessionStore.load(sessionId);
+
+    expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
+      true,
+    );
+    expect(persistedSession.groupName).toBe('Midscene Report');
+    expect(persistedSession.platform).toBe('puppeteer');
+    expect(agent.opts.commandId).toBeTruthy();
+  });
+
   it('exports a merged report from persisted session shards', () => {
     const sessionId = 'session-export';
 
@@ -120,14 +142,15 @@ describe('SessionStore + exportSessionReport', () => {
       platform: 'web',
       groupName: 'Merged Session',
       groupDescription: 'export test',
+      sdkVersion: '1.0.0-test',
+      modelBriefs: ['planner/model-a', 'action/model-b'],
+      deviceType: 'web',
     });
 
     const first = SessionStore.upsertExecution({
       sessionId,
       executionKey: 'command-1:0',
-      groupedDump: createShardDump({
-        groupName: 'Merged Session',
-        modelBrief: 'planner/model-a',
+      execution: createExecutionDump({
         executionName: 'first execution',
         prompt: 'open page',
       }),
@@ -137,9 +160,7 @@ describe('SessionStore + exportSessionReport', () => {
     const second = SessionStore.upsertExecution({
       sessionId,
       executionKey: 'command-2:0',
-      groupedDump: createShardDump({
-        groupName: 'Merged Session',
-        modelBrief: 'action/model-b',
+      execution: createExecutionDump({
         executionName: 'second execution',
         prompt: 'click button',
       }),
@@ -163,5 +184,10 @@ describe('SessionStore + exportSessionReport', () => {
       ).screenshot?.base64,
     ).toContain('data:image/png;base64,');
     expect(SessionStore.load(sessionId).reportFilePath).toBe(reportPath);
+    expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
+      true,
+    );
+    expect(existsSync(join(runDir, 'session', sessionId, '1.json'))).toBe(true);
+    expect(existsSync(join(runDir, 'session', sessionId, '2.json'))).toBe(true);
   });
 });
