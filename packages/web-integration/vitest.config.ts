@@ -1,7 +1,10 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
-import { hasAiModelConfig, logSkippedAiTests } from '../../scripts/ai-test-config';
+import {
+  hasAiModelConfig,
+  logSkippedAiTests,
+} from '../../scripts/ai-test-config';
 
 /**
  * Read environment variables from file.

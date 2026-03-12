@@ -1,7 +1,10 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
-import { hasAiModelConfig, logSkippedAiTests } from '../../scripts/ai-test-config';
+import {
+  hasAiModelConfig,
+  logSkippedAiTests,
+} from '../../scripts/ai-test-config';
 
 dotenv.config({
   path: path.join(__dirname, '../../.env'),
@@ -17,7 +20,11 @@ if (enableAiTest && !runAiTests) {
 
 export default defineConfig({
   test: {
-    include: enableAiTest ? (runAiTests ? ['tests/ai/**/*.test.ts'] : []) : basicTest,
+    include: enableAiTest
+      ? runAiTests
+        ? ['tests/ai/**/*.test.ts']
+        : []
+      : basicTest,
     passWithNoTests: enableAiTest && !runAiTests,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     retry: process.env.CI ? 1 : 0,

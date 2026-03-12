@@ -1,7 +1,10 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
-import { hasAiModelConfig, logSkippedAiTests } from '../../scripts/ai-test-config';
+import {
+  hasAiModelConfig,
+  logSkippedAiTests,
+} from '../../scripts/ai-test-config';
 import { version } from './package.json';
 
 /**
@@ -15,8 +18,7 @@ dotenv.config({
 const aiTestType = process.env.AI_TEST_TYPE;
 const unitTests = ['tests/unit-test/**/*.test.ts'];
 const aiComputerTests = ['tests/ai/**/*.test.ts'];
-const runAiComputerTests =
-  aiTestType === 'computer' && hasAiModelConfig();
+const runAiComputerTests = aiTestType === 'computer' && hasAiModelConfig();
 
 if (aiTestType === 'computer' && !runAiComputerTests) {
   logSkippedAiTests('computer-vitest');
