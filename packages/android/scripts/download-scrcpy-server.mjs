@@ -3,9 +3,14 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
+import {
+  SCRCPY_SERVER_VERSION_FILENAME,
+  SCRCPY_SERVER_VERSION_TAG,
+  shouldDownloadScrcpyServer,
+} from '../src/scrcpy-version.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const SCRCPY_VERSION = 'v3.3.4';
+const SCRCPY_VERSION = SCRCPY_SERVER_VERSION_TAG;
 
 async function main() {
   const args = process.argv.slice(2);
@@ -13,22 +18,49 @@ async function main() {
 
   let serverBinPath;
   let binDir;
+  let versionFilePath;
 
   if (targetArgIndex !== -1) {
     const targetPath = args[targetArgIndex].split('=')[1];
     serverBinPath = path.resolve(process.cwd(), targetPath);
     binDir = path.dirname(serverBinPath);
+    versionFilePath = path.join(binDir, SCRCPY_SERVER_VERSION_FILENAME);
   } else {
     binDir = path.resolve(__dirname, '../bin');
     serverBinPath = path.resolve(binDir, 'scrcpy-server');
+    versionFilePath = path.join(binDir, SCRCPY_SERVER_VERSION_FILENAME);
   }
 
+  let serverExists = false;
   try {
     await fs.access(serverBinPath);
-    console.log('[scrcpy] Server already exists, skipping download');
-    return;
+    serverExists = true;
   } catch {
-    // file does not exist, continue downloading
+    serverExists = false;
+  }
+
+  let existingVersion = null;
+  try {
+    existingVersion = await fs.readFile(versionFilePath, 'utf8');
+  } catch {
+    existingVersion = null;
+  }
+
+  if (
+    serverExists &&
+    !shouldDownloadScrcpyServer(existingVersion, SCRCPY_VERSION)
+  ) {
+    console.log(
+      `[scrcpy] Server ${SCRCPY_VERSION} already exists, skipping download`,
+    );
+    return;
+  }
+
+  if (serverExists) {
+    console.log(
+      `[scrcpy] Existing server version ${existingVersion?.trim() || 'unknown'} does not match ${SCRCPY_VERSION}, refreshing download`,
+    );
+    await fs.rm(serverBinPath, { force: true });
   }
 
   console.log(
@@ -38,6 +70,9 @@ async function main() {
   await fs.mkdir(binDir, { recursive: true });
 
   const maxRetries = 3;
+  const downloadedFile = path.join(binDir, `scrcpy-server-${SCRCPY_VERSION}`);
+  await fs.rm(downloadedFile, { force: true });
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       await fetchVersion({
@@ -57,8 +92,8 @@ async function main() {
     }
   }
 
-  const downloadedFile = path.join(binDir, `scrcpy-server-${SCRCPY_VERSION}`);
   await fs.rename(downloadedFile, serverBinPath);
+  await fs.writeFile(versionFilePath, `${SCRCPY_VERSION}\n`);
 
   console.log('[scrcpy] Server downloaded successfully');
 }

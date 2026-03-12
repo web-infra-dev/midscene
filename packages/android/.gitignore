@@ -5,4 +5,5 @@ midscene_run/tmp
 
 # Binaries (downloaded during build)
 bin/scrcpy-server
+bin/scrcpy-server.version
 bin/yadb

@@ -44,11 +44,11 @@
   "dependencies": {
     "@midscene/core": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@yume-chan/adb": "^1.1.0",
-    "@yume-chan/adb-scrcpy": "^1.1.0",
-    "@yume-chan/adb-server-node-tcp": "^1.1.0",
-    "@yume-chan/scrcpy": "^1.1.0",
-    "@yume-chan/stream-extra": "^1.0.0",
+    "@yume-chan/adb": "2.5.1",
+    "@yume-chan/adb-scrcpy": "2.3.2",
+    "@yume-chan/adb-server-node-tcp": "2.5.2",
+    "@yume-chan/scrcpy": "2.3.0",
+    "@yume-chan/stream-extra": "2.1.0",
     "appium-adb": "12.12.1",
     "sharp": "^0.34.3"
   },
