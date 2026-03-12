@@ -139,6 +139,41 @@ const toNonEmptyString = (value: unknown): string | undefined => {
   return trimmed || undefined;
 };
 
+export const normalizeCodexLocalImagePath = (
+  imageUrl: string,
+  platform: NodeJS.Platform = process.platform,
+): string => {
+  if (!imageUrl.startsWith('file://')) {
+    return imageUrl;
+  }
+
+  try {
+    const parsed = new URL(imageUrl);
+    const pathname = decodeURIComponent(parsed.pathname);
+    const host = parsed.hostname.toLowerCase();
+
+    if (platform === 'win32') {
+      const windowsPath = pathname
+        .replace(/\//g, '\\')
+        .replace(/^\\([A-Za-z]:)/, '$1');
+
+      if (host && host !== 'localhost') {
+        return `\\\\${parsed.hostname}${windowsPath}`;
+      }
+
+      return windowsPath;
+    }
+
+    if (host && host !== 'localhost') {
+      return `//${parsed.hostname}${pathname}`;
+    }
+
+    return pathname;
+  } catch {
+    return decodeURIComponent(imageUrl.slice('file://'.length));
+  }
+};
+
 const extractTextFromMessage = (
   message: ChatCompletionMessageParam,
 ): string => {
@@ -196,7 +231,7 @@ const extractImageInputs = (
       imageUrl.startsWith('file://')
     ) {
       const path = imageUrl.startsWith('file://')
-        ? decodeURIComponent(imageUrl.slice('file://'.length))
+        ? normalizeCodexLocalImagePath(imageUrl)
         : imageUrl;
 
       inputs.push({
@@ -300,6 +335,7 @@ class CodexAppServerConnection {
   private nextRequestId = 1;
   private closed = false;
   private lastExitCode: number | null = null;
+  private processErrorMessage: string | null = null;
   private stderrBuffer = '';
 
   private constructor(child: any, lineReader: any) {
@@ -619,6 +655,11 @@ class CodexAppServerConnection {
       this.closed = true;
       this.lastExitCode = code;
     });
+
+    this.child.on('error', (error: Error) => {
+      this.closed = true;
+      this.processErrorMessage = error.message;
+    });
   }
 
   /**
@@ -817,11 +858,7 @@ class CodexAppServerConnection {
       }
 
       if (this.closed) {
-        throw new Error(
-          `codex app-server connection closed (exitCode=${
-            this.lastExitCode
-          }). stderr=${this.stderrBuffer.trim()}`,
-        );
+        throw this.createClosedConnectionError();
       }
 
       await new Promise((resolve) => setTimeout(resolve, 20));
@@ -830,7 +867,7 @@ class CodexAppServerConnection {
 
   private async sendMessage(payload: Record<string, unknown>): Promise<void> {
     if (this.closed) {
-      throw new Error('codex app-server connection is closed');
+      throw this.createClosedConnectionError();
     }
 
     const line = JSON.stringify(payload);
@@ -847,6 +884,23 @@ class CodexAppServerConnection {
         resolve();
       });
     });
+  }
+
+  private createClosedConnectionError(): Error {
+    const stderr = this.stderrBuffer.trim();
+    if (this.processErrorMessage) {
+      return new Error(
+        stderr
+          ? `codex app-server process error: ${this.processErrorMessage}. stderr=${stderr}`
+          : `codex app-server process error: ${this.processErrorMessage}`,
+      );
+    }
+
+    return new Error(
+      stderr
+        ? `codex app-server connection closed (exitCode=${this.lastExitCode}). stderr=${stderr}`
+        : `codex app-server connection closed (exitCode=${this.lastExitCode})`,
+    );
   }
 }
 
