@@ -32,6 +32,10 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM, isUITars } from '../auto-glm/util';
+import {
+  callAIWithCodexAppServer,
+  isCodexAppServerProvider,
+} from './codex-app-server';
 
 async function createChatClient({
   modelConfig,
@@ -227,6 +231,10 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
+    return callAIWithCodexAppServer(messages, modelConfig, options);
+  }
+
   const {
     completion,
     modelName,
