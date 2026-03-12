@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
+import { installDownloadedScrcpyServer } from '../src/scrcpy-server-cache.mjs';
 import {
   SCRCPY_SERVER_VERSION_FILENAME,
   SCRCPY_SERVER_VERSION_TAG,
@@ -60,7 +61,6 @@ async function main() {
     console.log(
       `[scrcpy] Existing server version ${existingVersion?.trim() || 'unknown'} does not match ${SCRCPY_VERSION}, refreshing download`,
     );
-    await fs.rm(serverBinPath, { force: true });
   }
 
   console.log(
@@ -92,7 +92,10 @@ async function main() {
     }
   }
 
-  await fs.rename(downloadedFile, serverBinPath);
+  await installDownloadedScrcpyServer({
+    serverBinPath,
+    downloadedFile,
+  });
   await fs.writeFile(versionFilePath, `${SCRCPY_VERSION}\n`);
 
   console.log('[scrcpy] Server downloaded successfully');
