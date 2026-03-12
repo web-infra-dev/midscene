@@ -170,55 +170,63 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         currentRunningIdRef.current = thisRunningId;
         interruptedFlagRef.current[thisRunningId] = false;
 
-        // Set up dump update tracking to transform tasks to progress items
-        if (playgroundSDK.onDumpUpdate) {
+        const handleExecutionProgress = (executionDump?: {
+          tasks?: Array<Record<string, any>>;
+        }) => {
+          if (
+            interruptedFlagRef.current[thisRunningId] ||
+            !executionDump?.tasks?.length
+          ) {
+            return;
+          }
+
+          const progressItems: InfoListItem[] = executionDump.tasks.map(
+            (task, index) => ({
+              id: `progress-${thisRunningId}-task-${index}`,
+              type: 'progress' as const,
+              content: buildProgressContent(task),
+              timestamp: new Date((task.timing?.start as number) || Date.now()),
+              result: task.error
+                ? { error: formatError(task.error), result: null }
+                : undefined,
+            }),
+          );
+
+          setInfoList((prev) => {
+            const systemItemIndex = prev.findIndex(
+              (item) => item.id === `system-${thisRunningId}`,
+            );
+
+            if (systemItemIndex === -1) {
+              return prev;
+            }
+
+            const listWithoutCurrentProgress = prev.filter(
+              (item) =>
+                !(
+                  item.type === 'progress' &&
+                  item.id.startsWith(`progress-${thisRunningId}-`)
+                ),
+            );
+
+            return [
+              ...listWithoutCurrentProgress.slice(0, systemItemIndex + 1),
+              ...progressItems,
+              ...listWithoutCurrentProgress.slice(systemItemIndex + 1),
+            ];
+          });
+        };
+
+        if (playgroundSDK.onExecutionEvent) {
+          playgroundSDK.onExecutionEvent(({ event }) => {
+            if (event.type === 'execution_updated') {
+              handleExecutionProgress(event.executionDump as any);
+            }
+          });
+        } else if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
             (_: string, executionDump?: ExecutionDump) => {
-              if (
-                interruptedFlagRef.current[thisRunningId] ||
-                !executionDump?.tasks?.length
-              ) {
-                return;
-              }
-
-              const progressItems: InfoListItem[] = executionDump.tasks.map(
-                (task, index) => ({
-                  id: `progress-${thisRunningId}-task-${index}`,
-                  type: 'progress' as const,
-                  content: buildProgressContent(task),
-                  timestamp: new Date(task.timing?.start || Date.now()),
-                  result: task.error
-                    ? { error: formatError(task.error), result: null }
-                    : undefined,
-                }),
-              );
-
-              // Replace this session's progress items with new ones
-              setInfoList((prev) => {
-                const systemItemIndex = prev.findIndex(
-                  (item) => item.id === `system-${thisRunningId}`,
-                );
-
-                if (systemItemIndex === -1) {
-                  return prev;
-                }
-
-                // Remove old progress items for this session
-                const listWithoutCurrentProgress = prev.filter(
-                  (item) =>
-                    !(
-                      item.type === 'progress' &&
-                      item.id.startsWith(`progress-${thisRunningId}-`)
-                    ),
-                );
-
-                // Insert new progress items after system item
-                return [
-                  ...listWithoutCurrentProgress.slice(0, systemItemIndex + 1),
-                  ...progressItems,
-                  ...listWithoutCurrentProgress.slice(systemItemIndex + 1),
-                ];
-              });
+              handleExecutionProgress(executionDump as any);
             },
           );
         }
@@ -414,6 +422,12 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         // Clear dump update callback
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(() => {});
+        }
+        if (playgroundSDK.onExecutionEvent) {
+          playgroundSDK.onExecutionEvent(() => {});
+        }
+        if (playgroundSDK.onSnapshotUpdate) {
+          playgroundSDK.onSnapshotUpdate(() => {});
         }
 
         // Update system message to mark as stopped

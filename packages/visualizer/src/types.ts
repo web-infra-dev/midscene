@@ -1,4 +1,9 @@
-import type { DeviceAction, UIContext } from '@midscene/core';
+import type {
+  AgentExecutionEventPayload,
+  DeviceAction,
+  SerializedDumpObject,
+  UIContext,
+} from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -307,6 +312,12 @@ export interface PlaygroundSDKLike {
   onProgressUpdate?: (callback: ProgressCallback) => void;
   onDumpUpdate?: (
     callback: (dump: string, executionDump?: ExecutionDump) => void,
+  ) => void;
+  onExecutionEvent?: (
+    callback: (payload: AgentExecutionEventPayload) => void,
+  ) => void;
+  onSnapshotUpdate?: (
+    callback: (snapshot: SerializedDumpObject) => void,
   ) => void;
   cancelExecution?(requestId: string): Promise<{
     dump: ExecutionDump | null;

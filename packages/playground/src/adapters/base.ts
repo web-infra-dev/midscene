@@ -1,6 +1,12 @@
 import type { DeviceAction } from '@midscene/core';
 import { findAllMidsceneLocatorField } from '@midscene/core/ai-model';
-import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
+import type {
+  ExecutionEventCallback,
+  ExecutionOptions,
+  FormValue,
+  SnapshotUpdateCallback,
+  ValidationResult,
+} from '../types';
 
 export abstract class BasePlaygroundAdapter {
   abstract parseStructuredParams(
@@ -22,6 +28,10 @@ export abstract class BasePlaygroundAdapter {
   async getActionSpace(_context: any): Promise<DeviceAction<unknown>[]> {
     return [];
   }
+
+  onExecutionEvent?(_callback: ExecutionEventCallback): void {}
+
+  onSnapshotUpdate?(_callback: SnapshotUpdateCallback): void {}
 
   // Common validation logic - can be overridden if needed
   validateParams(

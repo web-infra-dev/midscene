@@ -235,6 +235,42 @@ describe('PlaygroundSDK', () => {
     });
   });
 
+  describe('execution event APIs', () => {
+    it('should delegate onExecutionEvent to adapter', () => {
+      const callback = vi.fn();
+      const mockOnExecutionEvent = vi.fn();
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.onExecutionEvent = mockOnExecutionEvent;
+
+      const config: PlaygroundConfig = {
+        type: 'local-execution',
+        agent: {},
+      };
+
+      const sdk = new PlaygroundSDK(config);
+      sdk.onExecutionEvent(callback);
+
+      expect(mockOnExecutionEvent).toHaveBeenCalledWith(callback);
+    });
+
+    it('should delegate onSnapshotUpdate to adapter', () => {
+      const callback = vi.fn();
+      const mockOnSnapshotUpdate = vi.fn();
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.onSnapshotUpdate = mockOnSnapshotUpdate;
+
+      const config: PlaygroundConfig = {
+        type: 'local-execution',
+        agent: {},
+      };
+
+      const sdk = new PlaygroundSDK(config);
+      sdk.onSnapshotUpdate(callback);
+
+      expect(mockOnSnapshotUpdate).toHaveBeenCalledWith(callback);
+    });
+  });
+
   describe('overrideConfig', () => {
     it('should be no-op for LocalExecutionAdapter', async () => {
       const config: PlaygroundConfig = {
