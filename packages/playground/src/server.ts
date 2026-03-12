@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import type {
   AgentExecutionEvent,
   ExecutionDump,
+  IExecutionDump,
   ScreenshotArtifactRef,
   SerializedDumpObject,
 } from '@midscene/core';
@@ -49,6 +50,17 @@ type TaskExecutionState = {
   executionDump?: ExecutionDump | null;
   snapshot?: SerializedDumpObject | null;
 };
+
+function extractExecutionDump(
+  dumpString: string | undefined,
+): ExecutionDump | IExecutionDump | null {
+  if (!dumpString) {
+    return null;
+  }
+
+  const groupedDump = GroupedActionDump.fromSerializedString(dumpString);
+  return groupedDump.executions?.[0] ?? null;
+}
 
 class PlaygroundServer {
   private _app: express.Application;
@@ -484,13 +496,15 @@ class PlaygroundServer {
 
       const response: {
         result: unknown;
-        dump: ExecutionDump | null;
+        dump: ExecutionDump | IExecutionDump | null;
+        snapshot: SerializedDumpObject | null;
         error: string | null;
         reportHTML: string | null;
         requestId?: string;
       } = {
         result: null,
         dump: null,
+        snapshot: null,
         error: null,
         reportHTML: null,
         requestId,
@@ -528,21 +542,12 @@ class PlaygroundServer {
       }
 
       try {
-        const dumpString = this.agent.dumpDataString({
-          inlineScreenshots: true,
-        });
-        if (dumpString) {
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
-          // Extract first execution from grouped dump, matching local execution adapter behavior
-          response.dump = groupedDump.executions?.[0] || null;
-        } else {
-          response.dump = null;
-        }
-        response.reportHTML =
-          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
-
-        this.agent.writeOutActionDumps();
+        response.snapshot = this.agent.getExecutionSnapshot?.() ?? null;
+        response.dump = extractExecutionDump(
+          this.agent.dumpDataString?.({
+            inlineScreenshots: true,
+          }),
+        );
         this.agent.resetDump();
       } catch (error: unknown) {
         const errorMessage =
@@ -601,24 +606,18 @@ class PlaygroundServer {
 
           console.log(`Cancelling task: ${requestId}`);
 
-          // Get current execution data before cancelling (dump and reportHTML)
-          let dump: any = null;
-          let reportHTML: string | null = null;
+          // Capture a compact snapshot for JSON consumers and one inline dump for replay.
+          let dump: ExecutionDump | IExecutionDump | null = null;
+          let snapshot: SerializedDumpObject | null = null;
+          const reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.({
-              inlineScreenshots: true,
-            });
-            if (dumpString) {
-              const groupedDump =
-                GroupedActionDump.fromSerializedString(dumpString);
-              // Extract first execution from grouped dump
-              dump = groupedDump.executions?.[0] || null;
-            }
-
-            reportHTML =
-              this.agent.reportHTMLString?.({ inlineScreenshots: true }) ||
-              null;
+            snapshot = this.agent.getExecutionSnapshot?.() ?? null;
+            dump = extractExecutionDump(
+              this.agent.dumpDataString?.({
+                inlineScreenshots: true,
+              }),
+            );
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }
@@ -638,6 +637,7 @@ class PlaygroundServer {
             status: 'cancelled',
             message: 'Task cancelled successfully',
             dump,
+            snapshot,
             reportHTML,
           });
         } catch (error: unknown) {
