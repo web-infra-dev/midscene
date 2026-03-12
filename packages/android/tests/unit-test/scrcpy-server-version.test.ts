@@ -10,7 +10,7 @@ import {
   shouldDownloadScrcpyServer,
 } from '../../src/scrcpy-version.mjs';
 
-const tempDirs = [];
+const tempDirs: string[] = [];
 
 describe('scrcpy server version helper', () => {
   afterEach(async () => {
@@ -76,7 +76,7 @@ describe('scrcpy server version helper', () => {
     await fs.writeFile(serverBinPath, 'old-server');
     await fs.writeFile(downloadedFile, 'new-server');
 
-    const rename = vi.fn(async (fromPath, toPath) => {
+    const rename = vi.fn(async (fromPath: string, toPath: string) => {
       if (fromPath === downloadedFile && toPath === serverBinPath) {
         throw new Error('rename failed');
       }
