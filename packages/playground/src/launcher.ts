@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import PlaygroundServer from './server';
 import type { AgentFactory } from './types';
 
@@ -54,20 +54,13 @@ export interface LaunchPlaygroundOptions {
    * Hook for configuring the PlaygroundServer before launch
    * Useful for adding custom middleware beyond the built-in CORS option
    */
-  configureServer?: (
-    server: PlaygroundServer,
-  ) => void | Promise<void>;
+  configureServer?: (server: PlaygroundServer) => void | Promise<void>;
 
   /**
    * CORS configuration options
-   * @default { origin: '*', credentials: true } when enableCors is true
+   * @default only allows loopback browser origins when enableCors is true
    */
-  corsOptions?: {
-    origin?: string | boolean | string[];
-    credentials?: boolean;
-    methods?: string[];
-    allowedHeaders?: string[];
-  };
+  corsOptions?: CorsOptions;
 }
 
 export interface LaunchPlaygroundResult {
@@ -93,6 +86,30 @@ export interface LaunchPlaygroundResult {
 }
 
 type LaunchableAgentSource = Agent | AgentFactory;
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+function isLoopbackOrigin(origin?: string) {
+  if (!origin) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    return LOOPBACK_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function createDefaultCorsOptions(): CorsOptions {
+  return {
+    origin(origin, callback) {
+      callback(null, isLoopbackOrigin(origin));
+    },
+    credentials: true,
+  };
+}
 
 /**
  * Create a playground launcher for a specific agent
@@ -138,13 +155,10 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
         enableCors = false,
         staticPath,
         configureServer,
-        corsOptions = { origin: '*', credentials: true },
+        corsOptions = createDefaultCorsOptions(),
       } = options;
 
-      if (
-        typeof agentOrFactory !== 'function' &&
-        !agentOrFactory.interface
-      ) {
+      if (typeof agentOrFactory !== 'function' && !agentOrFactory.interface) {
         throw new Error('Agent must have an interface property');
       }
 
@@ -154,9 +168,7 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
           console.log('📱 Agent: factory');
         } else {
           console.log(`📱 Agent: ${agentOrFactory.constructor.name}`);
-          console.log(
-            `🖥️ Page: ${agentOrFactory.interface.constructor.name}`,
-          );
+          console.log(`🖥️ Page: ${agentOrFactory.interface.constructor.name}`);
         }
         console.log(`🌐 Port: ${port}`);
         if (staticPath) {

@@ -112,12 +112,6 @@ const main = async () => {
         openBrowser: false,
         verbose: false,
         staticPath: staticDir,
-        enableCors: true,
-        corsOptions: {
-          origin: true,
-          credentials: true,
-          methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        },
       }),
       scrcpyServer.launch(availableScrcpyPort),
     ]);

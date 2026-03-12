@@ -2,11 +2,11 @@ import { PlaygroundSDK } from '@midscene/playground';
 import {
   Logo,
   NavActions,
+  type PlaygroundBranding,
   ScreenshotViewer,
   UniversalPlayground,
-  globalThemeConfig,
-  type PlaygroundBranding,
   type UniversalPlaygroundConfig,
+  globalThemeConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout } from 'antd';
 import { useEffect, useMemo, useState } from 'react';

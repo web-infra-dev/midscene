@@ -16,11 +16,6 @@ async function startServer() {
   const { server } = await playgroundForAgent(agent).launch({
     openBrowser: false,
     verbose: false,
-    enableCors: true,
-    corsOptions: {
-      origin: '*',
-      credentials: true,
-    },
   });
   console.log(
     `Midscene playground server is running on http://localhost:${server.port}`,

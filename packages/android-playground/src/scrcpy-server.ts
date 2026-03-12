@@ -16,6 +16,21 @@ export const debugPage = getDebug('android:playground');
 
 const promiseExec = promisify(exec);
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+function isLoopbackOrigin(origin?: string) {
+  if (!origin) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    return LOOPBACK_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export default class ScrcpyServer {
   app: express.Application;
   httpServer: HttpServer;
@@ -32,7 +47,9 @@ export default class ScrcpyServer {
     this.httpServer = createServer(this.app);
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: true,
+        origin(origin, callback) {
+          callback(null, isLoopbackOrigin(origin));
+        },
         methods: ['GET', 'POST'],
         credentials: true,
       },
@@ -40,7 +57,9 @@ export default class ScrcpyServer {
 
     this.app.use(
       cors({
-        origin: '*',
+        origin(origin, callback) {
+          callback(null, isLoopbackOrigin(origin));
+        },
         credentials: true,
       }),
     );
