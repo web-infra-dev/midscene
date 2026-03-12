@@ -3,17 +3,65 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fetchVersion } from 'gh-release-fetch';
-import { installDownloadedScrcpyServer } from '../src/scrcpy-server-cache.mjs';
-import {
-  SCRCPY_SERVER_VERSION_FILENAME,
-  SCRCPY_SERVER_VERSION_TAG,
-  shouldDownloadScrcpyServer,
-} from '../src/scrcpy-version.mjs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const scriptPath = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(scriptPath);
+
+export const SCRCPY_PROTOCOL_VERSION = '3.3.3';
+export const SCRCPY_SERVER_VERSION_TAG = `v${SCRCPY_PROTOCOL_VERSION}`;
+export const SCRCPY_SERVER_VERSION_FILENAME = 'scrcpy-server.version';
+
 const SCRCPY_VERSION = SCRCPY_SERVER_VERSION_TAG;
 
-async function main() {
+export function shouldDownloadScrcpyServer(
+  existingVersion,
+  expectedVersion = SCRCPY_SERVER_VERSION_TAG,
+) {
+  return existingVersion?.trim() !== expectedVersion;
+}
+
+export async function installDownloadedScrcpyServer({
+  fsApi = fs,
+  serverBinPath,
+  downloadedFile,
+}) {
+  const backupFilePath = `${serverBinPath}.bak`;
+  let serverExists = false;
+
+  try {
+    await fsApi.access(serverBinPath);
+    serverExists = true;
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  try {
+    await fsApi.rm(backupFilePath, { force: true });
+  } catch {}
+
+  if (serverExists) {
+    await fsApi.rename(serverBinPath, backupFilePath);
+  }
+
+  try {
+    await fsApi.rename(downloadedFile, serverBinPath);
+    if (serverExists) {
+      await fsApi.rm(backupFilePath, { force: true });
+    }
+  } catch (error) {
+    if (serverExists) {
+      try {
+        await fsApi.rm(serverBinPath, { force: true });
+        await fsApi.rename(backupFilePath, serverBinPath);
+      } catch {}
+    }
+    throw error;
+  }
+}
+
+export async function main() {
   const args = process.argv.slice(2);
   const targetArgIndex = args.findIndex((arg) => arg.startsWith('--target='));
 
@@ -101,7 +149,9 @@ async function main() {
   console.log('[scrcpy] Server downloaded successfully');
 }
 
-main().catch((error) => {
-  console.error('[scrcpy] Failed to download server:', error.message);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === scriptPath) {
+  main().catch((error) => {
+    console.error('[scrcpy] Failed to download server:', error.message);
+    process.exit(1);
+  });
+}

@@ -3,12 +3,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { AdbScrcpyOptions3_3_3 } from '@yume-chan/adb-scrcpy';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { installDownloadedScrcpyServer } from '../../src/scrcpy-server-cache.mjs';
 import {
   SCRCPY_PROTOCOL_VERSION,
   SCRCPY_SERVER_VERSION_TAG,
+  installDownloadedScrcpyServer,
   shouldDownloadScrcpyServer,
-} from '../../src/scrcpy-version.mjs';
+} from '../../scripts/download-scrcpy-server.mjs';
 
 const tempDirs: string[] = [];
 
