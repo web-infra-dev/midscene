@@ -1,10 +1,6 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
-import {
-  hasAiModelConfig,
-  logSkippedAiTests,
-} from '../../scripts/ai-test-config';
 import { version } from './package.json';
 
 /**
@@ -19,20 +15,10 @@ dotenv.config({
 
 const enableAiTest = Boolean(process.env.AITEST);
 const basicTest = ['tests/unit-test/**/*.test.ts'];
-const runAiTests = enableAiTest && hasAiModelConfig();
-
-if (enableAiTest && !runAiTests) {
-  logSkippedAiTests('core-vitest');
-}
 
 export default defineConfig({
   test: {
-    include: enableAiTest
-      ? runAiTests
-        ? ['tests/ai/**/**.test.ts']
-        : []
-      : basicTest,
-    passWithNoTests: enableAiTest && !runAiTests,
+    include: enableAiTest ? ['tests/ai/**/**.test.ts'] : basicTest,
     retry: process.env.CI ? 1 : 0,
   },
   define: {

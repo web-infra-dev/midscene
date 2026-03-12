@@ -1,5 +1,4 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { hasAiModelConfig } from '../../../../scripts/ai-test-config';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import { openBrowserAndNavigate } from './test-utils';
 
@@ -9,7 +8,7 @@ vi.setConfig({
 
 const isCacheEnabled = process.env.MIDSCENE_CACHE;
 
-describe.skipIf(!hasAiModelConfig())('computer todo app automation', () => {
+describe('computer todo app automation', () => {
   let agent: ComputerAgent;
 
   beforeAll(async () => {

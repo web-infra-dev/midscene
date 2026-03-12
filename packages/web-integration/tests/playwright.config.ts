@@ -1,10 +1,6 @@
 import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
-import {
-  hasAiModelConfig,
-  logSkippedAiTests,
-} from '../../../scripts/ai-test-config';
 
 const MIDSCENE_REPORT = process.env.MIDSCENE_REPORT;
 
@@ -17,12 +13,6 @@ process.env.__VERSION__ = '1.0.0';
 dotenv.config({
   path: path.join(__dirname, '../../../.env'),
 });
-
-const runAiPlaywrightTests = hasAiModelConfig();
-
-if (!runAiPlaywrightTests) {
-  logSkippedAiTests('web-playwright');
-}
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -56,17 +46,11 @@ export default defineConfig({
       ? {
           name: 'report',
           testDir: './ai/web/playwright-reporter-test',
-          testMatch: runAiPlaywrightTests
-            ? undefined
-            : /ai-config-guard\.spec\.ts/,
           use: { ...devices['Desktop Chrome'] },
         }
       : {
           name: 'e2e',
           testDir: './ai/web/playwright',
-          testMatch: runAiPlaywrightTests
-            ? undefined
-            : /ai-config-guard\.spec\.ts/,
           use: { ...devices['Desktop Chrome'] },
         },
   ],

@@ -1,10 +1,6 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
-import {
-  hasAiModelConfig,
-  logSkippedAiTests,
-} from '../../scripts/ai-test-config';
 
 /**
  * Read environment variables from file.
@@ -20,16 +16,11 @@ const aiWebTests = [
   'tests/ai/web/**/*.test.ts',
   'tests/ai/bridge/**/*.test.ts',
 ];
-const runAiWebTests = aiTestType === 'web' && hasAiModelConfig();
-
-if (aiTestType === 'web' && !runAiWebTests) {
-  logSkippedAiTests('web-vitest');
-}
 
 const testFiles = (() => {
   switch (aiTestType) {
     case 'web':
-      return runAiWebTests ? [...aiWebTests] : [];
+      return [...aiWebTests];
     default:
       return unitTests;
   }
@@ -43,7 +34,6 @@ export default defineConfig({
   },
   test: {
     include: testFiles,
-    passWithNoTests: aiTestType === 'web' && !runAiWebTests,
     testTimeout: 3 * 60 * 1000, // Global timeout set to 3 minutes
     retry: process.env.CI ? 1 : 0, // Retry failed tests once in CI to handle AI flakiness
     dangerouslyIgnoreUnhandledErrors: !!process.env.CI, // showcase.test.ts is not stable
