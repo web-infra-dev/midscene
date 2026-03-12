@@ -174,13 +174,11 @@ export default class ScrcpyServer {
 
   // start scrcpy
   private async startScrcpy(adb: Adb, options = {}) {
-    const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
+    const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
       '@yume-chan/adb-scrcpy'
     );
     const { ReadableStream } = await import('@yume-chan/stream-extra');
-    const { ScrcpyOptions3_1, DefaultServerPath } = await import(
-      '@yume-chan/scrcpy'
-    );
+    const { DefaultServerPath } = await import('@yume-chan/scrcpy');
     // Use __dirname in a way that works for both ESM and CommonJS
     const currentDir =
       typeof __dirname !== 'undefined'
@@ -196,7 +194,7 @@ export default class ScrcpyServer {
       );
 
       // Start scrcpy service
-      const scrcpyOptions = new ScrcpyOptions3_1({
+      const scrcpyOptions = new AdbScrcpyOptions3_3_3({
         // default options
         audio: false,
         control: true,
@@ -207,11 +205,7 @@ export default class ScrcpyServer {
         ...options,
       });
 
-      return await AdbScrcpyClient.start(
-        adb,
-        DefaultServerPath,
-        new AdbScrcpyOptions2_1(scrcpyOptions),
-      );
+      return await AdbScrcpyClient.start(adb, DefaultServerPath, scrcpyOptions);
     } catch (error) {
       console.error('failed to start scrcpy:', error);
       throw error;
