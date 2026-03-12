@@ -14,7 +14,7 @@ English | [简体中文](./README.zh.md)
 </div>
 
 <p align="center">
-  Driving all platforms UI automation with vision-based model
+  AI-powered, vision-driven UI automation for every platform.
 </p>
 
 <p align="center">
