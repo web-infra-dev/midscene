@@ -29,7 +29,6 @@ jobs:
       MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
       MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
       MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_AI_TESTS_ENABLED: ${{ vars.MIDSCENE_MODEL_NAME != '' && secrets.MIDSCENE_MODEL_API_KEY != '' }}
       MIDSCENE_MODEL_RETRY_COUNT: "2"
       MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
       MIDSCENE_REPORT_QUIET: "true"
@@ -60,20 +59,14 @@ jobs:
       run: |
         cd packages/web-integration
         npx puppeteer browsers install chrome
-
-    - name: Skip AI tests when model config is unavailable
-      if: env.MIDSCENE_AI_TESTS_ENABLED != 'true'
-      run: |
-        echo "::notice::Skipping AI unit tests because MIDSCENE_MODEL_NAME or MIDSCENE_MODEL_API_KEY is unavailable for this workflow run."
     
     - name: Run tests
-      if: env.MIDSCENE_AI_TESTS_ENABLED == 'true'
       run: pnpm run test:ai
       id: test-ai
       continue-on-error: true
 
     - name: Upload test-ai output
-      if: always() && env.MIDSCENE_AI_TESTS_ENABLED == 'true'
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: test-ai-output
