@@ -335,11 +335,6 @@ export class Agent<
             runner,
           );
 
-          this.persistSessionDump(
-            this.dump.executions[executionIndex],
-            executionIndex,
-          );
-
           if (this.opts.onExecutionDumpUpdate) {
             try {
               await this.opts.onExecutionDumpUpdate(
@@ -363,8 +358,6 @@ export class Agent<
               console.error('Error in onDumpUpdate listener', error);
             }
           }
-
-          // Session persistence is handled by persistSessionDump() above.
         },
       },
     });
@@ -467,21 +460,30 @@ export class Agent<
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {
     const currentDump = this.dump;
+    let executionIndex: number;
     if (runner) {
       const existingIndex = this.executionDumpIndexByRunner.get(runner);
       if (existingIndex !== undefined) {
         currentDump.executions[existingIndex] = execution;
-        return existingIndex;
+        executionIndex = existingIndex;
+      } else {
+        currentDump.executions.push(execution);
+        this.executionDumpIndexByRunner.set(
+          runner,
+          currentDump.executions.length - 1,
+        );
+        executionIndex = currentDump.executions.length - 1;
       }
+    } else {
       currentDump.executions.push(execution);
-      this.executionDumpIndexByRunner.set(
-        runner,
-        currentDump.executions.length - 1,
-      );
-      return currentDump.executions.length - 1;
+      executionIndex = currentDump.executions.length - 1;
     }
-    currentDump.executions.push(execution);
-    return currentDump.executions.length - 1;
+
+    this.persistSessionDump(
+      currentDump.executions[executionIndex],
+      executionIndex,
+    );
+    return executionIndex;
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
@@ -1366,14 +1368,8 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     });
-    // 5. append to execution dump
-    const executionIndex = this.appendExecutionDump(executionDump);
-
-    // Persist to session
-    this.persistSessionDump(
-      this.dump.executions[executionIndex],
-      executionIndex,
-    );
+    // 5. append to execution dump (also persists to session)
+    this.appendExecutionDump(executionDump);
 
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
