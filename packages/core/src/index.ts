@@ -66,8 +66,8 @@ export {
 // Execution persistence & report
 export { ExecutionStore, createSessionAgentOptions } from './execution-store';
 export type {
-  ExecutionSession,
-  EnsureExecutionSessionInput,
+  SessionRecord,
+  EnsureSessionRecordInput,
 } from './execution-store';
 export {
   exportSessionReport,
