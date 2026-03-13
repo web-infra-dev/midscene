@@ -1,4 +1,5 @@
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
+import { imageInfoOfBase64 } from '@midscene/shared/img';
 import { WDAManager } from '@midscene/webdriver';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IOSDevice } from '../../src/device';
@@ -8,6 +9,17 @@ import { IOSWebDriverClient } from '../../src/ios-webdriver-client';
 vi.mock('../../src/utils');
 vi.mock('../../src/ios-webdriver-client');
 vi.mock('@midscene/webdriver');
+vi.mock('@midscene/shared/img', async () => {
+  const actual = await vi.importActual<typeof import('@midscene/shared/img')>(
+    '@midscene/shared/img',
+  );
+  return {
+    ...actual,
+    imageInfoOfBase64: vi.fn(),
+  };
+});
+
+const mockedImageInfoOfBase64 = vi.mocked(imageInfoOfBase64);
 
 describe('IOSDevice', () => {
   let device: IOSDevice;
@@ -17,6 +29,8 @@ describe('IOSDevice', () => {
   const MockedWdaManager = vi.mocked(WDAManager);
 
   beforeEach(async () => {
+    mockedImageInfoOfBase64.mockReset();
+
     // Setup mock WDA client
     mockWdaClient = {
       createSession: vi
@@ -189,6 +203,30 @@ describe('IOSDevice', () => {
         height: 812,
       });
       expect(mockWdaClient.getWindowSize).toHaveBeenCalled();
+    });
+
+    it('should derive screen size from screenshot when WDA window size endpoints fail', async () => {
+      mockWdaClient.getWindowSize = vi
+        .fn()
+        .mockRejectedValue(new Error('WebDriver request failed: HTTP 404'));
+      mockWdaClient.getScreenScale = vi.fn().mockResolvedValue(3);
+      mockWdaClient.takeScreenshot = vi
+        .fn()
+        .mockResolvedValue('base64-screenshot');
+      mockedImageInfoOfBase64.mockResolvedValue({
+        width: 1179,
+        height: 2556,
+      });
+
+      await device.connect();
+
+      const size = await device.size();
+      expect(size).toEqual({
+        width: 393,
+        height: 852,
+      });
+      expect(mockWdaClient.takeScreenshot).toHaveBeenCalled();
+      expect(mockedImageInfoOfBase64).toHaveBeenCalledWith('base64-screenshot');
     });
 
     it('should take screenshot after connection', async () => {

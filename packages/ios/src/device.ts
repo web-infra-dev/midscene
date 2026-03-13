@@ -27,7 +27,10 @@ import {
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
 import type { ElementInfo } from '@midscene/shared/extractor';
-import { createImgBase64ByFormat } from '@midscene/shared/img';
+import {
+  createImgBase64ByFormat,
+  imageInfoOfBase64,
+} from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import { normalizeForComparison } from '@midscene/shared/utils';
 import { WDAManager } from '@midscene/webdriver';
@@ -429,13 +432,41 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     // Ensure device pixel ratio is initialized
     await this.initializeDevicePixelRatio();
 
-    const windowSize = await this.wdaBackend.getWindowSize();
+    try {
+      const windowSize = await this.wdaBackend.getWindowSize();
 
-    return {
-      width: windowSize.width,
-      height: windowSize.height,
-      scale: this.devicePixelRatio,
-    };
+      return {
+        width: windowSize.width,
+        height: windowSize.height,
+        scale: this.devicePixelRatio,
+      };
+    } catch (error) {
+      debugDevice(
+        `Failed to get window size from WDA, falling back to screenshot dimensions: ${error}`,
+      );
+
+      const screenshotBase64 = await this.wdaBackend.takeScreenshot();
+      const { width: screenshotWidth, height: screenshotHeight } =
+        await imageInfoOfBase64(screenshotBase64);
+
+      assert(
+        this.devicePixelRatio > 0,
+        'Failed to derive screen size because device pixel ratio is invalid',
+      );
+
+      const width = Math.round(screenshotWidth / this.devicePixelRatio);
+      const height = Math.round(screenshotHeight / this.devicePixelRatio);
+
+      debugDevice(
+        `Derived logical screen size from screenshot: ${width}x${height} (physical: ${screenshotWidth}x${screenshotHeight}, dpr: ${this.devicePixelRatio})`,
+      );
+
+      return {
+        width,
+        height,
+        scale: this.devicePixelRatio,
+      };
+    }
   }
 
   async size(): Promise<Size> {
