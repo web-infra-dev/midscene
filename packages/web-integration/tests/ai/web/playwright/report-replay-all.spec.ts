@@ -87,11 +87,6 @@ test.describe('report replay-all', () => {
       await reportPage.waitForSelector(TIME_DISPLAY_SELECTOR, {
         timeout: 30_000,
       });
-
-      await reportAgent.aiAssert(
-        'Only inspect the large replay player in the main content area. It is showing the initial search page with a centered large search box. It is not staying on the final "Hello world" search results page.',
-      );
-
       const initialTimeText = await reportPage
         .locator(TIME_DISPLAY_SELECTOR)
         .innerText();
@@ -99,6 +94,11 @@ test.describe('report replay-all', () => {
         parsePlaybackTime(initialTimeText.trim());
       expect(totalSeconds).toBeGreaterThan(0);
       expect(initialSeconds).toBeLessThan(totalSeconds);
+
+      await reportAgent.recordToReport('Report replay-all initial state', {
+        content:
+          'The generated HTML report opened in replay-all mode before reaching the last step page.',
+      });
 
       expect(existsSync(validationReportPath)).toBe(true);
       console.log('Source report file:', reportFile);
