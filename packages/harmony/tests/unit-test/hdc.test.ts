@@ -147,6 +147,25 @@ describe('HdcClient', () => {
       expect(info).toEqual({ width: 1260, height: 2720 });
     });
 
+    it('should parse screen size from RenderService output with render resolution', async () => {
+      mockExecFile.mockResolvedValue({
+        stdout: `-------------------------------[ability]-------------------------------
+
+
+----------------------------------RenderService----------------------------------
+-- ScreenInfo
+screen[0]: id=0, powerStatus=POWER_STATUS_ON, backlight=11313, screenType=EXTERNAL_TYPE, render resolution=1216x2688, physical resolution=1216x2688, isVirtual=false, skipFrameInterval=1, expectedRefreshRate=-1, skipFrameStrategy=0
+supportedMode[0]: 1216x2688, refreshRate=120
+activeMode: 1216x2688, refreshRate=60`,
+        stderr: '',
+      });
+
+      const hdc = new HdcClient({});
+      const info = await hdc.getScreenInfo();
+
+      expect(info).toEqual({ width: 1216, height: 2688 });
+    });
+
     it('should throw if screen size cannot be parsed', async () => {
       mockExecFile.mockResolvedValue({
         stdout: 'no size info here',
