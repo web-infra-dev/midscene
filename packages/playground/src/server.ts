@@ -446,8 +446,6 @@ class PlaygroundServer {
         requestId,
       };
 
-      // Pause MJPEG polling during execution to avoid ADB contention
-      this._agentReady = false;
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
@@ -501,8 +499,6 @@ class PlaygroundServer {
           `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
         );
       } finally {
-        // Resume MJPEG polling after execution
-        this._agentReady = true;
       }
 
       res.send(response);
