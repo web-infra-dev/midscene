@@ -323,6 +323,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -333,6 +349,51 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
+- DragAndDrop, Drag an element to another position
+  - type: "DragAndDrop"
+  - param:
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The drop target
+  - sample:
+    <action-type>DragAndDrop</action-type>
+    <action-param-json>
+    {
+      "from": {
+        "prompt": "the \\"report.pdf\\" file icon",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      },
+      "to": {
+        "prompt": "the upload drop zone",
+        "bbox": [
+          300,
+          400,
+          500,
+          500
+        ]
+      }
+    }
+    </action-param-json>
 
 ### Log to give user feedback (preamble message)
 
@@ -353,6 +414,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -569,6 +631,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: { prompt: string /* description of the target element */ } // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field"
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -579,6 +651,33 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: { prompt: string /* description of the target element */ } // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area"
+      }
+    }
+    </action-param-json>
+- DragAndDrop, Drag an element to another position
+  - type: "DragAndDrop"
+  - param:
+    - from: { prompt: string /* description of the target element */ } // The element to drag
+    - to: { prompt: string /* description of the target element */ } // The drop target
+  - sample:
+    <action-type>DragAndDrop</action-type>
+    <action-param-json>
+    {
+      "from": {
+        "prompt": "the \\"report.pdf\\" file icon"
+      },
+      "to": {
+        "prompt": "the upload drop zone"
+      }
+    }
+    </action-param-json>
 
 ### Log to give user feedback (preamble message)
 
@@ -599,6 +698,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -812,6 +912,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -822,6 +938,51 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
+- DragAndDrop, Drag an element to another position
+  - type: "DragAndDrop"
+  - param:
+    - from: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // box_2d bounding box for the target element, should be [ymin, xmin, ymax, xmax] normalized to 0-1000. // The drop target
+  - sample:
+    <action-type>DragAndDrop</action-type>
+    <action-param-json>
+    {
+      "from": {
+        "prompt": "the \\"report.pdf\\" file icon",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      },
+      "to": {
+        "prompt": "the upload drop zone",
+        "bbox": [
+          300,
+          400,
+          500,
+          500
+        ]
+      }
+    }
+    </action-param-json>
 
 ### Log to give user feedback (preamble message)
 
@@ -842,6 +1003,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1114,6 +1276,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: { prompt: string /* description of the target element */ } // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field"
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -1124,6 +1296,33 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: { prompt: string /* description of the target element */ } // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area"
+      }
+    }
+    </action-param-json>
+- DragAndDrop, Drag an element to another position
+  - type: "DragAndDrop"
+  - param:
+    - from: { prompt: string /* description of the target element */ } // The element to drag
+    - to: { prompt: string /* description of the target element */ } // The drop target
+  - sample:
+    <action-type>DragAndDrop</action-type>
+    <action-param-json>
+    {
+      "from": {
+        "prompt": "the \\"report.pdf\\" file icon"
+      },
+      "to": {
+        "prompt": "the upload drop zone"
+      }
+    }
+    </action-param-json>
 
 ### Log to give user feedback (preamble message)
 
@@ -1144,6 +1343,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1415,6 +1615,22 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -1425,6 +1641,51 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      }
+    }
+    </action-param-json>
+- DragAndDrop, Drag an element to another position
+  - type: "DragAndDrop"
+  - param:
+    - from: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The element to drag
+    - to: {bbox: [number, number, number, number], prompt: string } // 2d bounding box as [xmin, ymin, xmax, ymax] // The drop target
+  - sample:
+    <action-type>DragAndDrop</action-type>
+    <action-param-json>
+    {
+      "from": {
+        "prompt": "the \\"report.pdf\\" file icon",
+        "bbox": [
+          50,
+          100,
+          200,
+          200
+        ]
+      },
+      "to": {
+        "prompt": "the upload drop zone",
+        "bbox": [
+          300,
+          400,
+          500,
+          500
+        ]
+      }
+    }
+    </action-param-json>
 
 ### Log to give user feedback (preamble message)
 
@@ -1445,6 +1706,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>
@@ -1661,6 +1923,16 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The value to be input
     - locate?: { prompt: string /* description of the target element */ } // The input field to target
+  - sample:
+    <action-type>Input</action-type>
+    <action-param-json>
+    {
+      "value": "test@example.com",
+      "locate": {
+        "prompt": "the email input field"
+      }
+    }
+    </action-param-json>
 - KeyboardPress, Press a keyboard key
   - type: "KeyboardPress"
   - param:
@@ -1671,6 +1943,33 @@ ONLY if the task is not complete: Think what the next action is according to the
   - param:
     - value: string // The scroll direction or amount
     - locate?: { prompt: string /* description of the target element */ } // The element to scroll
+  - sample:
+    <action-type>Scroll</action-type>
+    <action-param-json>
+    {
+      "value": "down",
+      "locate": {
+        "prompt": "the product list area"
+      }
+    }
+    </action-param-json>
+- DragAndDrop, Drag an element to another position
+  - type: "DragAndDrop"
+  - param:
+    - from: { prompt: string /* description of the target element */ } // The element to drag
+    - to: { prompt: string /* description of the target element */ } // The drop target
+  - sample:
+    <action-type>DragAndDrop</action-type>
+    <action-param-json>
+    {
+      "from": {
+        "prompt": "the \\"report.pdf\\" file icon"
+      },
+      "to": {
+        "prompt": "the upload drop zone"
+      }
+    }
+    </action-param-json>
 
 ### Log to give user feedback (preamble message)
 
@@ -1691,6 +1990,7 @@ The <log> tag is a brief preamble message to the user explaining what you're abo
 
 - Use the <action-type> and <action-param-json> tags to output the action to be executed.
 - The <action-type> MUST be one of the supporting actions. 'complete' is NOT a valid action-type.
+- Parameter names are strict. Use EXACTLY the field names listed for the selected action. Do NOT invent alias fields. If an action has a "sample" in its description, follow that structure.
 For example:
 <action-type>Tap</action-type>
 <action-param-json>

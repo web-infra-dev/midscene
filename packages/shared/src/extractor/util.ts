@@ -396,6 +396,42 @@ export function getNodeAttributes(
   return Object.fromEntries(attributesList);
 }
 
+/** Maximum number of cached node entries to prevent memory leaks */
+const NODE_CACHE_MAX_SIZE = 2000;
+
+/**
+ * Reset the node hash cache. Call at the beginning of each extraction cycle
+ * to prevent stale DOM references from accumulating.
+ */
+export function setNodeHashCacheListOnWindow() {
+  if (typeof window !== 'undefined') {
+    (window as any).midsceneNodeHashCache = new Map<string, globalThis.Node>();
+  }
+}
+
+function getNodeCacheMap(): Map<string, globalThis.Node> | undefined {
+  if (typeof window === 'undefined') return undefined;
+  return (window as any).midsceneNodeHashCache as
+    | Map<string, globalThis.Node>
+    | undefined;
+}
+
+export function setNodeToCacheList(node: globalThis.Node, id: string): void {
+  const cache = getNodeCacheMap();
+  if (!cache) return;
+  if (cache.has(id)) return;
+
+  if (cache.size >= NODE_CACHE_MAX_SIZE) {
+    const firstKey = cache.keys().next().value;
+    if (firstKey !== undefined) cache.delete(firstKey);
+  }
+  cache.set(id, node);
+}
+
+export function getNodeFromCacheList(id: string): globalThis.Node | undefined {
+  return getNodeCacheMap()?.get(id);
+}
+
 export function midsceneGenerateHash(
   node: globalThis.Node | null,
   content: string,
@@ -403,7 +439,13 @@ export function midsceneGenerateHash(
 ): string {
   const slicedHash = generateHashId(rect, content);
 
-  // Returns the first 10 characters as a short hash
+  if (node) {
+    if (typeof window !== 'undefined' && !getNodeCacheMap()) {
+      setNodeHashCacheListOnWindow();
+    }
+    setNodeToCacheList(node, slicedHash);
+  }
+
   return slicedHash;
 }
 

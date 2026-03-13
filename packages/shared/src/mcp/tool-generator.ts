@@ -407,7 +407,7 @@ export function generateCommonTools(
           if (!agent.aiAction) {
             return createErrorResult('act is not supported by this agent');
           }
-          const result = await agent.aiAction(prompt, { deepThink: true });
+          const result = await agent.aiAction(prompt, { deepThink: false });
           const screenshotResult = await captureScreenshotResult(agent, 'act');
           if (result) {
             const message =

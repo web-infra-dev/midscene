@@ -4,11 +4,7 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import {
-  GroupedActionDump,
-  parseImageScripts,
-  restoreImageReferences,
-} from '@midscene/core';
+import { GroupedActionDump, restoreImageReferences } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -29,6 +25,26 @@ import type {
   PlaywrightTasks,
   VisualizerProps,
 } from './types';
+
+// Shared image cache across all test cases — resolved images are cached by id
+const imageCache = new Map<string, string>();
+
+function resolveImageFromDom(id: string): string {
+  const cached = imageCache.get(id);
+  if (cached) return cached;
+
+  const el = document.querySelector(
+    `script[type="midscene-image"][data-id="${CSS.escape(id)}"]`,
+  );
+  if (el?.textContent) {
+    const data = antiEscapeScriptTag(el.textContent);
+    imageCache.set(id, data);
+    return data;
+  }
+
+  // Fallback to directory path
+  return `./screenshots/${id}.png`;
+}
 
 let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
@@ -176,10 +192,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
             const startWidth = sidebarWidth;
             let latestWidth = startWidth;
             const onMouseMove = (ev: MouseEvent) => {
-              latestWidth = Math.max(
-                200,
-                Math.min(500, startWidth + ev.clientX - startX),
-              );
+              latestWidth = Math.max(200, startWidth + ev.clientX - startX);
               setSidebarWidth(latestWidth);
             };
             const onMouseUp = () => {
@@ -337,14 +350,11 @@ export function App() {
                 console.time('parse_dump');
                 const content = antiEscapeScriptTag(el.textContent || '');
 
-                // Build imageMap from <script type="midscene-image"> tags
-                const imageMap = parseImageScripts(
-                  document.documentElement.innerHTML,
-                );
-
-                // Parse dump and restore image references
                 const parsed = JSON.parse(content);
-                const restored = restoreImageReferences(parsed, imageMap);
+                const restored = restoreImageReferences(
+                  parsed,
+                  resolveImageFromDom,
+                );
                 cachedJsonContent = GroupedActionDump.fromJSON(restored);
 
                 console.timeEnd('parse_dump');

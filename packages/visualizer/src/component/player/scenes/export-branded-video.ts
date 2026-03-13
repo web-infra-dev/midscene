@@ -2,6 +2,7 @@ import { mouseLoading, mousePointer } from '../../../utils';
 import { deriveFrameState } from './derive-frame-state';
 import type { InsightOverlay } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
+import { getPlaybackViewport } from './playback-layout';
 
 const W = 960;
 const H = 540;
@@ -158,8 +159,14 @@ function drawSteps(
   const ptrY = lerp(prevCamera.pointerTop, camera.pointerTop, pT);
 
   const zoom = imgW / camW;
-  const tx = -camL * (W / imgW);
-  const ty = -camT2 * (H / imgH);
+  const { offsetX, offsetY, contentWidth, contentHeight } = getPlaybackViewport(
+    W,
+    H,
+    imgW,
+    imgH,
+  );
+  const tx = -camL * (contentWidth / imgW);
+  const ty = -camT2 * (contentHeight / imgH);
 
   const crossAlpha = imageChanged
     ? clamp(fInScript / CROSSFADE_FRAMES, 0, 1)
@@ -176,9 +183,9 @@ function drawSteps(
     ctx.beginPath();
     ctx.rect(0, 0, W, H);
     ctx.clip();
-    ctx.translate(tx * zoom, ty * zoom);
+    ctx.translate(offsetX + tx * zoom, offsetY + ty * zoom);
     ctx.scale(zoom, zoom);
-    ctx.drawImage(imgEl, 0, 0, W, H);
+    ctx.drawImage(imgEl, 0, 0, contentWidth, contentHeight);
     ctx.restore();
   };
 
@@ -188,18 +195,18 @@ function drawSteps(
   drawImg(img, imageChanged ? crossAlpha : 1);
 
   if (insights.length > 0) {
-    drawInsightOverlays(ctx, insights, { zoom, tx, ty }, 0, 0);
+    drawInsightOverlays(ctx, insights, { zoom, tx, ty }, offsetX, offsetY);
   }
 
   const camH = camW * (imgH / imgW);
-  const sX = ((ptrX - camL) / camW) * W;
-  const sY = ((ptrY - camT2) / camH) * H;
+  const sX = offsetX + ((ptrX - camL) / camW) * contentWidth;
+  const sY = offsetY + ((ptrY - camT2) / camH) * contentHeight;
 
   const hasPtrData =
-    Math.abs(camera.pointerLeft - Math.round(baseW / 2)) > 1 ||
-    Math.abs(camera.pointerTop - Math.round(baseH / 2)) > 1 ||
-    Math.abs(prevCamera.pointerLeft - Math.round(baseW / 2)) > 1 ||
-    Math.abs(prevCamera.pointerTop - Math.round(baseH / 2)) > 1;
+    Math.abs(camera.pointerLeft - Math.round(imgW / 2)) > 1 ||
+    Math.abs(camera.pointerTop - Math.round(imgH / 2)) > 1 ||
+    Math.abs(prevCamera.pointerLeft - Math.round(imgW / 2)) > 1 ||
+    Math.abs(prevCamera.pointerTop - Math.round(imgH / 2)) > 1;
 
   if (spinning && spinnerImg) {
     drawSpinningPointer(ctx, spinnerImg, sX, sY, spinningElapsedMs);

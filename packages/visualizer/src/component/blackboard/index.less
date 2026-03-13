@@ -49,7 +49,7 @@
 
 .blackboard-rect {
   position: absolute;
-  box-sizing: border-box;
+  box-sizing: content-box;
   pointer-events: none;
 }
 
@@ -65,9 +65,8 @@
 }
 
 .blackboard-rect-search {
-  background: rgba(2, 131, 145, 0.4);
-  border: 1px solid #028391;
-  box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4);
+  background: rgba(2, 131, 145, 0.15);
+  border: calc(1px * var(--ui-scale, 1)) solid #028391;
 
   .blackboard-rect-label {
     color: #028391;
@@ -75,9 +74,8 @@
 }
 
 .blackboard-rect-highlight {
-  background: rgba(253, 89, 7, 0.4);
-  border: 1px solid #fd5907;
-  box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4);
+  background: rgba(253, 89, 7, 0.15);
+  border: calc(1px * var(--ui-scale, 1)) solid #fd5907;
   animation: blackboard-pulse 1.2s ease-in-out infinite;
 
   .blackboard-rect-label {
@@ -89,14 +87,14 @@
 
 .blackboard-point {
   position: absolute;
-  width: 20px;
-  height: 20px;
-  margin-left: -10px;
-  margin-top: -10px;
+  width: calc(20px * var(--ui-scale, 1));
+  height: calc(20px * var(--ui-scale, 1));
+  margin-left: calc(-10px * var(--ui-scale, 1));
+  margin-top: calc(-10px * var(--ui-scale, 1));
   border-radius: 50%;
   background: rgba(253, 89, 7, 0.4);
-  border: 1px solid #fd5907;
-  box-shadow: 0 0 8px rgba(253, 89, 7, 0.5);
+  border: calc(2px * var(--ui-scale, 1)) solid #fd5907;
+  box-shadow: 0 0 calc(6px * var(--ui-scale, 1)) rgba(253, 89, 7, 0.5);
   pointer-events: none;
   animation: blackboard-pulse 1.2s ease-in-out infinite;
 }
@@ -105,12 +103,10 @@
   0%,
   100% {
     opacity: 0.4;
-    box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4);
   }
   50% {
     opacity: 1;
-    box-shadow: 4px 4px 2px rgba(51, 51, 51, 0.4),
-      0 0 16px rgba(253, 89, 7, 0.5);
+    box-shadow: 0 0 12px rgba(253, 89, 7, 0.5);
   }
 }
 

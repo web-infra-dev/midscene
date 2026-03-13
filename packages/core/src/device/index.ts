@@ -104,6 +104,9 @@ export const defineActionTap = (
     description: 'Tap the element',
     interfaceAlias: 'aiTap',
     paramSchema: actionTapParamSchema,
+    sample: {
+      locate: { prompt: 'the "Submit" button' },
+    },
     call,
   });
 };
@@ -129,6 +132,9 @@ export const defineActionRightClick = (
     description: 'Right click the element',
     interfaceAlias: 'aiRightClick',
     paramSchema: actionRightClickParamSchema,
+    sample: {
+      locate: { prompt: 'the file icon on the desktop' },
+    },
     call,
   });
 };
@@ -154,6 +160,9 @@ export const defineActionDoubleClick = (
     description: 'Double click the element',
     interfaceAlias: 'aiDoubleClick',
     paramSchema: actionDoubleClickParamSchema,
+    sample: {
+      locate: { prompt: 'the folder icon' },
+    },
     call,
   });
 };
@@ -174,6 +183,9 @@ export const defineActionHover = (
     description: 'Move the mouse to the element',
     interfaceAlias: 'aiHover',
     paramSchema: actionHoverParamSchema,
+    sample: {
+      locate: { prompt: 'the navigation menu item "Products"' },
+    },
     call,
   });
 };
@@ -212,6 +224,10 @@ export const defineActionInput = (
     description: 'Input the value into the element',
     interfaceAlias: 'aiInput',
     paramSchema: actionInputParamSchema,
+    sample: {
+      value: 'test@example.com',
+      locate: { prompt: 'the email input field' },
+    },
     call: (param) => {
       // backward compat: convert deprecated 'append' to 'typeOnly'
       if ((param.mode as string) === 'append') {
@@ -250,6 +266,9 @@ export const defineActionKeyboardPress = (
       'Press a key or key combination, like "Enter", "Tab", "Escape", or "Control+A", "Shift+Enter". Do not use this to type text.',
     interfaceAlias: 'aiKeyboardPress',
     paramSchema: actionKeyboardPressParamSchema,
+    sample: {
+      keyName: 'Enter',
+    },
     call,
   });
 };
@@ -295,6 +314,11 @@ export const defineActionScroll = (
       'Scroll the page or a scrollable element to browse content. This is the preferred way to scroll on all platforms, including mobile. Supports scrollToBottom/scrollToTop for boundary navigation. Default: direction `down`, scrollType `singleAction`, distance `null`.',
     interfaceAlias: 'aiScroll',
     paramSchema: actionScrollParamSchema,
+    sample: {
+      direction: 'down',
+      scrollType: 'singleAction',
+      locate: { prompt: 'the center of the product list area' },
+    },
     call,
   });
 };
@@ -321,6 +345,10 @@ export const defineActionDragAndDrop = (
       'Pick up a specific UI element and move it to a new position (e.g., reorder a card, move a file into a folder, sort list items). The element itself moves with your finger/mouse.',
     interfaceAlias: 'aiDragAndDrop',
     paramSchema: actionDragAndDropParamSchema,
+    sample: {
+      from: { prompt: 'the "report.pdf" file icon' },
+      to: { prompt: 'the upload drop zone' },
+    },
     call,
   });
 };
@@ -347,6 +375,9 @@ export const defineActionLongPress = (
     name: 'LongPress',
     description: 'Long press the element',
     paramSchema: ActionLongPressParamSchema,
+    sample: {
+      locate: { prompt: 'the message bubble' },
+    },
     call,
   });
 };
@@ -461,6 +492,10 @@ export const defineActionSwipe = (
     description:
       'Perform a touch gesture for interactions beyond regular scrolling (e.g., flip pages in a carousel, dismiss a notification, swipe-to-delete a list item). For regular content scrolling, use Scroll instead. Use "distance" + "direction" for relative movement, or "end" for precise endpoint.',
     paramSchema: ActionSwipeParamSchema,
+    sample: {
+      start: { prompt: 'center of the notification' },
+      end: { prompt: 'upper edge of the screen' },
+    },
     call,
   });
 };
@@ -486,6 +521,9 @@ export const defineActionClearInput = (
     description: inputLocateDescription,
     interfaceAlias: 'aiClearInput',
     paramSchema: actionClearInputParamSchema,
+    sample: {
+      locate: { prompt: 'the search input field' },
+    },
     call,
   });
 };
@@ -520,6 +558,10 @@ export const defineActionCursorMove = (
     description:
       'Move the text cursor (caret) left or right within an input field or text area. Use this to reposition the cursor without selecting text.',
     paramSchema: actionCursorMoveParamSchema,
+    sample: {
+      direction: 'left',
+      times: 3,
+    },
     call,
   });
 };
@@ -542,6 +584,9 @@ export const defineActionSleep = (): DeviceAction<ActionSleepParam> => {
     description:
       'Wait for a specified duration before continuing. Defaults to 1 second (1000ms) if not specified.',
     paramSchema: ActionSleepParamSchema,
+    sample: {
+      timeMs: 2000,
+    },
     call: async (param) => {
       const duration = param?.timeMs ?? 1000;
       getDebug('device:common-action')(`Sleeping for ${duration}ms`);

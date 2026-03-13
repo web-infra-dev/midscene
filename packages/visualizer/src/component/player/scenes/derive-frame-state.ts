@@ -63,6 +63,19 @@ interface Acc {
   rawProgress: number;
 }
 
+function createDefaultCameraState(
+  imageWidth: number,
+  imageHeight: number,
+): CameraState {
+  return {
+    left: 0,
+    top: 0,
+    width: imageWidth,
+    pointerLeft: Math.round(imageWidth / 2),
+    pointerTop: Math.round(imageHeight / 2),
+  };
+}
+
 // ── Per-type handlers ──
 
 function updateImage(
@@ -76,9 +89,20 @@ function updateImage(
     acc.prevImg = acc.img;
     acc.imageChanged = true;
   }
+  const nextImgW = sf.imageWidth || baseW;
+  const nextImgH = sf.imageHeight || baseH;
+  const dimensionsChanged = acc.imgW !== nextImgW || acc.imgH !== nextImgH;
+
   acc.img = sf.img;
-  acc.imgW = sf.imageWidth || baseW;
-  acc.imgH = sf.imageHeight || baseH;
+  acc.imgW = nextImgW;
+  acc.imgH = nextImgH;
+
+  if (dimensionsChanged) {
+    const resetCamera = createDefaultCameraState(nextImgW, nextImgH);
+    acc.camera = { ...resetCamera };
+    acc.prevCamera = { ...resetCamera };
+    acc.pointerMoved = false;
+  }
 }
 
 function checkPointerMoved(prev: CameraState, cur: CameraState): boolean {
@@ -168,13 +192,7 @@ export function deriveFrameState(
   baseH: number,
   fps: number,
 ): FrameState {
-  const defaultCamera: CameraState = {
-    left: 0,
-    top: 0,
-    width: baseW,
-    pointerLeft: Math.round(baseW / 2),
-    pointerTop: Math.round(baseH / 2),
-  };
+  const defaultCamera = createDefaultCameraState(baseW, baseH);
 
   const acc: Acc = {
     img: '',

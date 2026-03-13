@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { mouseLoading } from '../../../utils';
 import { deriveFrameState } from './derive-frame-state';
 import type { FrameMap } from './frame-calculator';
+import { getPlaybackViewport } from './playback-layout';
 
 const POINTER_PHASE = 0.375;
 const CROSSFADE_FRAMES = 10;
@@ -81,25 +82,29 @@ export const StepsTimeline: React.FC<{
     : imgW;
 
   // ── Layout calculations ──
-  const isPortraitImage = imgH > imgW;
-  const browserW = isPortraitImage
-    ? Math.round(compHeight * (imgW / imgH))
-    : compWidth;
-  const portraitLeft = Math.round((compWidth - browserW) / 2);
+  const { offsetX, offsetY, contentWidth, contentHeight } = getPlaybackViewport(
+    compWidth,
+    compHeight,
+    imgW,
+    imgH,
+  );
 
   const zoom = imgW / cameraWidth;
-  const tx = -cameraLeft * (browserW / imgW);
-  const ty = -cameraTop * (compHeight / imgH);
+  const tx = -cameraLeft * (contentWidth / imgW);
+  const ty = -cameraTop * (contentHeight / imgH);
   const transformStyle = `scale(${zoom}) translate(${tx}px, ${ty}px)`;
 
   const camH = cameraWidth * (imgH / imgW);
-  const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * browserW;
-  const ptrY = ((pointerTop - cameraTop) / camH) * compHeight;
+  const ptrX = ((pointerLeft - cameraLeft) / cameraWidth) * contentWidth;
+  const ptrY = ((pointerTop - cameraTop) / camH) * contentHeight;
   const showCursor =
     camera.pointerLeft !== Math.round(imgW / 2) ||
     camera.pointerTop !== Math.round(imgH / 2) ||
     prevCamera.pointerLeft !== Math.round(imgW / 2) ||
     prevCamera.pointerTop !== Math.round(imgH / 2);
+
+  // Scale overlays proportionally so they stay visible at any resolution
+  const resScale = Math.max(1, Math.sqrt(imgW / 1920));
 
   const crossfadeAlpha = imageChanged
     ? Math.min(frameInScript / CROSSFADE_FRAMES, 1)
@@ -127,8 +132,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(253, 89, 7, 0.4)',
-              border: '1px solid #fd5907',
-              boxShadow: '4px 4px 2px rgba(51, 51, 51, 0.4)',
+              border: `${2 * resScale}px solid #fd5907`,
+              boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
@@ -148,8 +153,8 @@ export const StepsTimeline: React.FC<{
               width: rect.width,
               height: rect.height,
               background: 'rgba(2, 131, 145, 0.4)',
-              border: '1px solid #028391',
-              boxShadow: '4px 4px 2px rgba(51, 51, 51, 0.4)',
+              border: `${2 * resScale}px solid #028391`,
+              boxShadow: `${2 * resScale}px ${2 * resScale}px ${1 * resScale}px rgba(51, 51, 51, 0.3)`,
               opacity: insight.alpha,
               pointerEvents: 'none',
             }}
@@ -235,10 +240,10 @@ export const StepsTimeline: React.FC<{
           src={mouseLoading}
           style={{
             position: 'absolute',
-            left: ptrX - 11,
-            top: ptrY - 14,
-            width: 22,
-            height: 28,
+            left: ptrX - 22 * resScale,
+            top: ptrY - 28 * resScale,
+            width: 44 * resScale,
+            height: 56 * resScale,
             transform: `rotate(${spinRotation}rad)`,
             transformOrigin: 'center center',
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
@@ -252,10 +257,10 @@ export const StepsTimeline: React.FC<{
           src={currentPointerImg}
           style={{
             position: 'absolute',
-            left: ptrX - 3,
-            top: ptrY - 2,
-            width: 22,
-            height: 28,
+            left: ptrX - 6 * resScale,
+            top: ptrY - 4 * resScale,
+            width: 44 * resScale,
+            height: 56 * resScale,
             filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
           }}
         />
@@ -274,22 +279,18 @@ export const StepsTimeline: React.FC<{
         backgroundColor: '#000',
       }}
     >
-      {isPortraitImage ? (
-        <div
-          style={{
-            position: 'absolute',
-            left: portraitLeft,
-            top: 0,
-            width: browserW,
-            height: compHeight,
-            overflow: 'hidden',
-          }}
-        >
-          {renderContentArea(browserW, compHeight)}
-        </div>
-      ) : (
-        renderContentArea(compWidth, compHeight)
-      )}
+      <div
+        style={{
+          position: 'absolute',
+          left: offsetX,
+          top: offsetY,
+          width: contentWidth,
+          height: contentHeight,
+          overflow: 'hidden',
+        }}
+      >
+        {renderContentArea(contentWidth, contentHeight)}
+      </div>
     </div>
   );
 };

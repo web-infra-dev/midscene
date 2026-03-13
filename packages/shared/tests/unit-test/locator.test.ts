@@ -8,6 +8,7 @@ import {
 // Mock DOM environment for testing
 class MockElement {
   nodeName: string;
+  tagName: string;
   nodeType: number;
   namespaceURI?: string;
   parentNode: MockElement | null;
@@ -21,6 +22,7 @@ class MockElement {
     parentNode: MockElement | null = null,
   ) {
     this.nodeName = nodeName;
+    this.tagName = nodeName.toUpperCase();
     this.nodeType = 1; // ELEMENT_NODE
     this.namespaceURI = namespaceURI;
     this.textContent = textContent;
@@ -82,18 +84,17 @@ const setupMockDOM = () => {
         div.parentNode = global.document.body as any;
         return button as any;
       }
-      // Return a text node for text node testing
+      // Return a span element for text-related testing
+      // Note: elementFromPoint always returns an Element, not a text node
       if (x === 150 && y === 250) {
         const div = new MockElement('div', 'Outer Div');
         const span = new MockElement('span', 'Parent Text');
-        const textNode = new MockTextNode('Text Content');
 
         // Set up parent-child relationships
         div.parentNode = global.document.body as any;
         span.parentNode = div;
-        textNode.parentNode = span;
 
-        return textNode as any;
+        return span as any;
       }
       // Return null for out-of-bounds points
       return null;
@@ -210,30 +211,27 @@ describe('locator', () => {
       expect(xpaths?.[0]).toBe('/html/body/button[1]/*[name()="svg"][1]');
     });
 
-    it('should handle text nodes with order-sensitive mode', () => {
+    it('should handle span element with order-sensitive mode', () => {
       const point = { left: 150, top: 250 };
       const xpaths = getXpathsByPoint(point, true);
 
       expect(xpaths).toBeDefined();
       expect(xpaths).toHaveLength(1);
-      // For order-sensitive text node, parent path should use indices
-      expect(xpaths?.[0]).toMatch(
-        /\/html\/body\/div\[1\]\/span\[1\]\/text\(\)\[normalize-space\(\)="Text Content"\]/,
-      );
+      // elementFromPoint returns the span element, xpath uses index in order-sensitive mode
+      expect(xpaths?.[0]).toMatch(/\/html\/body\/div\[1\]\/span\[1\]/);
     });
 
-    it('should handle text nodes with order-insensitive mode', () => {
+    it('should handle span element with order-insensitive mode', () => {
       const point = { left: 150, top: 250 };
       const xpaths = getXpathsByPoint(point, false);
 
       expect(xpaths).toBeDefined();
       expect(xpaths).toHaveLength(1);
-      // For order-insensitive text node, the direct parent (span) should use text matching
-      // but higher ancestors (div) may still use indices since they're not leaf elements
+      // For order-insensitive mode, the span (leaf) uses text matching
       expect(xpaths?.[0]).toMatch(
-        /\/html\/body\/div\[1\]\/span\[normalize-space\(\)="Parent Text"\]\/text\(\)\[normalize-space\(\)="Text Content"\]/,
+        /\/html\/body\/div\[1\]\/span\[normalize-space\(\)="Parent Text"\]/,
       );
-      // Should not contain [number] indices for the direct parent (span)
+      // Should not contain [number] indices for the leaf span
       expect(xpaths?.[0]).not.toMatch(/span\[1\]/);
     });
   });

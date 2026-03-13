@@ -30,6 +30,8 @@ import screenshot from 'screenshot-desktop';
 import type { XvfbInstance } from './xvfb';
 import { checkXvfbInstalled, needsXvfb, startXvfb } from './xvfb';
 
+declare const __VERSION__: string;
+
 // Type definitions
 interface LibNut {
   getScreenSize(): { width: number; height: number };
@@ -52,6 +54,24 @@ interface ScreenshotDisplay {
   name?: string;
   primary?: boolean;
 }
+
+// Input action schema for computer
+const computerInputParamSchema = z.object({
+  value: z.string().describe('The text to input'),
+  mode: z
+    .enum(['replace', 'clear', 'append'])
+    .default('replace')
+    .optional()
+    .describe('Input mode: replace, clear, or append'),
+  locate: getMidsceneLocationSchema()
+    .describe('The input field to be filled')
+    .optional(),
+});
+type ComputerInputParam = {
+  value: string;
+  mode?: 'replace' | 'clear' | 'append';
+  locate?: LocateResultElement;
+};
 
 // Constants
 const SMOOTH_MOVE_STEPS_TAP = 8;
@@ -399,6 +419,7 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 
   private async healthCheck(): Promise<void> {
     console.log('[HealthCheck] Starting health check...');
+    console.log(`[HealthCheck] @midscene/computer v${__VERSION__}`);
 
     // Step 1: Take a screenshot (with timeout to handle screenshot-desktop
     // hanging when xrandr is missing on Linux — its promise never settles)
@@ -630,6 +651,9 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
         description: 'Move the mouse to the element',
         interfaceAlias: 'aiHover',
         paramSchema: actionHoverParamSchema,
+        sample: {
+          locate: { prompt: 'the navigation menu item "Products"' },
+        },
         call: async (param) => {
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement;
@@ -649,21 +673,15 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       }),
 
       // Input
-      defineAction({
+      defineAction<typeof computerInputParamSchema, ComputerInputParam>({
         name: 'Input',
         description: 'Input text into the input field',
         interfaceAlias: 'aiInput',
-        paramSchema: z.object({
-          value: z.string().describe('The text to input'),
-          mode: z
-            .enum(['replace', 'clear', 'append'])
-            .default('replace')
-            .optional()
-            .describe('Input mode: replace, clear, or append'),
-          locate: getMidsceneLocationSchema()
-            .describe('The input field to be filled')
-            .optional(),
-        }),
+        paramSchema: computerInputParamSchema,
+        sample: {
+          value: 'test@example.com',
+          locate: { prompt: 'the email input field' },
+        },
         call: async (param) => {
           assert(libnut, 'libnut not initialized');
           const element = param.locate as LocateResultElement | undefined;
