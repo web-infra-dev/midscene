@@ -42,8 +42,6 @@ export type TestStatus =
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
-import type { IReportGenerator } from '@/report-generator';
-import { ReportGenerator } from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
@@ -54,6 +52,7 @@ import {
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
+import { exportSessionReport } from '@/session-report';
 import { SessionStore } from '@/session-store';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -217,8 +216,6 @@ export class Agent<
 
   private fullActionSpace: DeviceAction[];
 
-  private reportGenerator: IReportGenerator;
-
   // @deprecated use .interface instead
   get page() {
     return this.interface;
@@ -367,8 +364,7 @@ export class Agent<
             }
           }
 
-          // Fire and forget - don't block task execution
-          this.writeOutActionDumps();
+          // Session persistence is handled by persistSessionDump() above.
         },
       },
     });
@@ -377,11 +373,10 @@ export class Agent<
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
-    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
-      generateReport: this.opts.generateReport,
-      outputFormat: this.opts.outputFormat,
-      autoPrintReportMsg: this.opts.autoPrintReportMsg,
-    });
+    // Every agent always has a sessionId - auto-generate from reportFileName if not provided
+    if (!this.opts.sessionId) {
+      this.opts.sessionId = this.reportFileName!;
+    }
 
     this.syncSessionMetadata();
   }
@@ -445,12 +440,8 @@ export class Agent<
   }
 
   private syncSessionMetadata(): void {
-    if (!this.opts.sessionId) {
-      return;
-    }
-
     SessionStore.ensureSession({
-      sessionId: this.opts.sessionId,
+      sessionId: this.opts.sessionId!,
       platform: this.interface.interfaceType,
       groupName: this.opts.groupName,
       groupDescription: this.opts.groupDescription,
@@ -464,18 +455,14 @@ export class Agent<
     execution: ExecutionDump,
     executionIndex: number,
   ): void {
-    if (!this.opts.sessionId) {
-      return;
-    }
-
     let order = this.sessionExecutionOrders[executionIndex];
     if (order === undefined) {
-      order = SessionStore.appendExecution(this.opts.sessionId, execution);
+      order = SessionStore.appendExecution(this.opts.sessionId!, execution);
       this.sessionExecutionOrders[executionIndex] = order;
       return;
     }
 
-    SessionStore.updateExecution(this.opts.sessionId, order, execution);
+    SessionStore.updateExecution(this.opts.sessionId!, order, execution);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {
@@ -514,8 +501,8 @@ export class Agent<
   }
 
   writeOutActionDumps() {
-    this.reportGenerator.onDumpUpdate(this.dump);
-    this.reportFile = this.reportGenerator.getReportPath();
+    // No-op: persistence is handled by SessionStore in persistSessionDump().
+    // Report is generated at destroy() time via exportSessionReport().
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1323,11 +1310,14 @@ export class Agent<
       return;
     }
 
-    // Wait for all queued write operations to complete
-    await this.reportGenerator.flush();
-
-    await this.reportGenerator.finalize(this.dump);
-    this.reportFile = this.reportGenerator.getReportPath();
+    // Generate final report from session data
+    if (this.opts.generateReport !== false) {
+      try {
+        this.reportFile = exportSessionReport(this.opts.sessionId!);
+      } catch (error) {
+        debug('Failed to generate session report:', error);
+      }
+    }
 
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
@@ -1377,7 +1367,13 @@ export class Agent<
       tasks: [task],
     });
     // 5. append to execution dump
-    this.appendExecutionDump(executionDump);
+    const executionIndex = this.appendExecutionDump(executionDump);
+
+    // Persist to session
+    this.persistSessionDump(
+      this.dump.executions[executionIndex],
+      executionIndex,
+    );
 
     // Call all registered dump update listeners
     const dumpString = this.dumpDataString();
@@ -1388,9 +1384,6 @@ export class Agent<
         console.error('Error in onDumpUpdate listener', error);
       }
     }
-
-    this.writeOutActionDumps();
-    await this.reportGenerator.flush();
   }
 
   /**

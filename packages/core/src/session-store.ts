@@ -339,7 +339,6 @@ export function createSessionAgentOptions(input: {
   }
 
   return {
-    generateReport: false,
     sessionId: input.sessionId,
     groupName:
       input.groupName ?? defaultGroupName(input.platform, input.sessionId),

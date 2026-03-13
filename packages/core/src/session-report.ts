@@ -1,4 +1,9 @@
 import { join } from 'node:path';
+import {
+  MIDSCENE_REPORT_QUIET,
+  globalConfigManager,
+} from '@midscene/shared/env';
+import { logMsg } from '@midscene/shared/utils';
 import { z } from 'zod';
 import { SessionStore } from './session-store';
 import { reportHTMLContent } from './utils';
@@ -9,6 +14,10 @@ export function exportSessionReport(sessionId: string): string {
 
   reportHTMLContent(JSON.stringify(dump), reportPath, false);
   SessionStore.markReportGenerated(sessionId, reportPath);
+
+  if (!globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) {
+    logMsg(`Midscene - report generated: ${reportPath}`);
+  }
 
   return reportPath;
 }
