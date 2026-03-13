@@ -289,6 +289,98 @@ export class IOSDevice implements AbstractInterface {
     return await this.wdaBackend.getDeviceInfo();
   }
 
+  private isRecoverableWdaSessionError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('HTTP 404') ||
+      message.includes('fetch failed') ||
+      message.includes('No active WebDriver session')
+    );
+  }
+
+  private async recoverWdaSession(reason: unknown): Promise<void> {
+    debugDevice(`Recovering WDA session after failure: ${reason}`);
+
+    try {
+      await this.wdaBackend.deleteSession();
+    } catch (cleanupError) {
+      debugDevice(
+        `Ignoring WDA session cleanup error during recovery: ${cleanupError}`,
+      );
+    }
+
+    await this.wdaManager.start();
+    await this.wdaBackend.createSession();
+
+    this.devicePixelRatioInitialized = false;
+    await this.initializeDevicePixelRatio();
+
+    debugDevice('WDA session recovery completed');
+  }
+
+  private async withWdaSessionRecovery<T>(
+    operationName: string,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!this.isRecoverableWdaSessionError(error)) {
+        throw error;
+      }
+
+      debugDevice(
+        `${operationName} failed with a recoverable WDA error, recreating session and retrying once: ${error}`,
+      );
+      await this.recoverWdaSession(error);
+      return await operation();
+    }
+  }
+
+  private async readScreenSize(): Promise<{
+    width: number;
+    height: number;
+    scale: number;
+  }> {
+    await this.initializeDevicePixelRatio();
+
+    try {
+      const windowSize = await this.wdaBackend.getWindowSize();
+
+      return {
+        width: windowSize.width,
+        height: windowSize.height,
+        scale: this.devicePixelRatio,
+      };
+    } catch (error) {
+      debugDevice(
+        `Failed to get window size from WDA, falling back to screenshot dimensions: ${error}`,
+      );
+
+      const screenshotBase64 = await this.wdaBackend.takeScreenshot();
+      const { width: screenshotWidth, height: screenshotHeight } =
+        await imageInfoOfBase64(screenshotBase64);
+
+      assert(
+        this.devicePixelRatio > 0,
+        'Failed to derive screen size because device pixel ratio is invalid',
+      );
+
+      const width = Math.round(screenshotWidth / this.devicePixelRatio);
+      const height = Math.round(screenshotHeight / this.devicePixelRatio);
+
+      debugDevice(
+        `Derived logical screen size from screenshot: ${width}x${height} (physical: ${screenshotWidth}x${screenshotHeight}, dpr: ${this.devicePixelRatio})`,
+      );
+
+      return {
+        width,
+        height,
+        scale: this.devicePixelRatio,
+      };
+    }
+  }
+
   public async connect(): Promise<void> {
     assert(
       !this.destroyed,
@@ -429,44 +521,10 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     height: number;
     scale: number;
   }> {
-    // Ensure device pixel ratio is initialized
-    await this.initializeDevicePixelRatio();
-
-    try {
-      const windowSize = await this.wdaBackend.getWindowSize();
-
-      return {
-        width: windowSize.width,
-        height: windowSize.height,
-        scale: this.devicePixelRatio,
-      };
-    } catch (error) {
-      debugDevice(
-        `Failed to get window size from WDA, falling back to screenshot dimensions: ${error}`,
-      );
-
-      const screenshotBase64 = await this.wdaBackend.takeScreenshot();
-      const { width: screenshotWidth, height: screenshotHeight } =
-        await imageInfoOfBase64(screenshotBase64);
-
-      assert(
-        this.devicePixelRatio > 0,
-        'Failed to derive screen size because device pixel ratio is invalid',
-      );
-
-      const width = Math.round(screenshotWidth / this.devicePixelRatio);
-      const height = Math.round(screenshotHeight / this.devicePixelRatio);
-
-      debugDevice(
-        `Derived logical screen size from screenshot: ${width}x${height} (physical: ${screenshotWidth}x${screenshotHeight}, dpr: ${this.devicePixelRatio})`,
-      );
-
-      return {
-        width,
-        height,
-        scale: this.devicePixelRatio,
-      };
-    }
+    return await this.withWdaSessionRecovery(
+      'Failed to get iOS screen size',
+      async () => this.readScreenSize(),
+    );
   }
 
   async size(): Promise<Size> {
@@ -480,15 +538,20 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
 
   async screenshotBase64(): Promise<string> {
     debugDevice('Taking screenshot via WDA');
-    try {
-      const base64Data = await this.wdaBackend.takeScreenshot();
-      const result = createImgBase64ByFormat('png', base64Data);
-      debugDevice('Screenshot taken successfully');
-      return result;
-    } catch (error) {
-      debugDevice(`Screenshot failed: ${error}`);
-      throw new Error(`Failed to take screenshot: ${error}`);
-    }
+    return await this.withWdaSessionRecovery(
+      'Failed to take iOS screenshot',
+      async () => {
+        try {
+          const base64Data = await this.wdaBackend.takeScreenshot();
+          const result = createImgBase64ByFormat('png', base64Data);
+          debugDevice('Screenshot taken successfully');
+          return result;
+        } catch (error) {
+          debugDevice(`Screenshot failed: ${error}`);
+          throw new Error(`Failed to take screenshot: ${error}`);
+        }
+      },
+    );
   }
 
   async clearInput(element?: ElementInfo): Promise<void> {

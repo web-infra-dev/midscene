@@ -229,6 +229,29 @@ describe('IOSDevice', () => {
       expect(mockedImageInfoOfBase64).toHaveBeenCalledWith('base64-screenshot');
     });
 
+    it('should recreate the WDA session when screen size fallback also loses the session', async () => {
+      mockWdaClient.getWindowSize = vi
+        .fn()
+        .mockResolvedValueOnce({ width: 375, height: 812 })
+        .mockRejectedValueOnce(new Error('WebDriver request failed: HTTP 404'))
+        .mockResolvedValueOnce({ width: 393, height: 852 });
+      mockWdaClient.takeScreenshot = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('WebDriver request failed: HTTP 404'));
+      mockWdaClient.getScreenScale = vi.fn().mockResolvedValue(3);
+
+      await device.connect();
+
+      const size = await device.size();
+      expect(size).toEqual({
+        width: 393,
+        height: 852,
+      });
+      expect(mockWdaClient.createSession).toHaveBeenCalledTimes(2);
+      expect(mockWdaClient.deleteSession).toHaveBeenCalledTimes(1);
+      expect(mockWdaClient.getScreenScale).toHaveBeenCalledTimes(2);
+    });
+
     it('should take screenshot after connection', async () => {
       await device.connect();
 
