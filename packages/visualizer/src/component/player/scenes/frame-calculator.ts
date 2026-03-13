@@ -56,16 +56,24 @@ export interface FrameMap {
   imageHeight: number;
 }
 
+interface CalculateFrameMapOptions {
+  imageWidth?: number;
+  imageHeight?: number;
+}
+
 // ── calculateFrameMap ──
 
-export function calculateFrameMap(scripts: AnimationScript[]): FrameMap {
+export function calculateFrameMap(
+  scripts: AnimationScript[],
+  options?: CalculateFrameMapOptions,
+): FrameMap {
   // Determine base image dimensions from first img/insight script
-  let baseImageWidth = 1920;
-  let baseImageHeight = 1080;
+  let baseImageWidth = options?.imageWidth || 1920;
+  let baseImageHeight = options?.imageHeight || 1080;
   for (const s of scripts) {
     if ((s.type === 'img' || s.type === 'insight') && s.img) {
-      baseImageWidth = s.imageWidth || 1920;
-      baseImageHeight = s.imageHeight || 1080;
+      baseImageWidth = s.imageWidth || baseImageWidth;
+      baseImageHeight = s.imageHeight || baseImageHeight;
       break;
     }
   }

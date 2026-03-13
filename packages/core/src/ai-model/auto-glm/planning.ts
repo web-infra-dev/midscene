@@ -20,6 +20,7 @@ export async function autoGLMPlanning(
     context: UIContext;
     modelConfig: IModelConfig;
     actionContext?: string;
+    abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
   const { conversationHistory, context, modelConfig, actionContext } = options;
@@ -49,6 +50,7 @@ export async function autoGLMPlanning(
   const { content: rawResponse, usage } = await callAIWithStringResponse(
     msgs,
     modelConfig,
+    { abortSignal: options.abortSignal },
   );
 
   debug('autoGLMPlanning rawResponse:', rawResponse);

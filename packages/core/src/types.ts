@@ -742,12 +742,12 @@ export class GroupedActionDump implements IGroupedActionDump {
 
   /**
    * Serialize the GroupedActionDump with inline screenshots to a JSON string.
-   * Each ScreenshotItem is replaced with { base64: "..." }.
+   * Each ScreenshotItem is replaced with { base64: "...", capturedAt }.
    */
   serializeWithInlineScreenshots(indents?: number): string {
     const processValue = (obj: unknown): unknown => {
       if (obj instanceof ScreenshotItem) {
-        return { base64: obj.base64 };
+        return { base64: obj.base64, capturedAt: obj.capturedAt };
       }
       if (Array.isArray(obj)) {
         return obj.map(processValue);
@@ -887,7 +887,10 @@ export class GroupedActionDump implements IGroupedActionDump {
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(dumpData, imageMap);
+    const processedData = restoreImageReferences(
+      dumpData,
+      (id) => imageMap[id] ?? '',
+    );
     return JSON.stringify(processedData);
   }
 
@@ -977,6 +980,11 @@ export interface DeviceAction<TParam = any, TReturn = any> {
   paramSchema?: z.ZodType<TParam>;
   call: (param: TParam, context: ExecutorContext) => Promise<TReturn> | TReturn;
   delayAfterRunner?: number;
+  /**
+   * An example param object for this action.
+   * Locate fields with { prompt } will automatically get bbox injected when needed.
+   */
+  sample?: { [K in keyof TParam]?: any };
 }
 
 /**

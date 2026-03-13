@@ -189,9 +189,36 @@ await server.close();
 console.log('Playground 已关闭！');
 ```
 
-### 步骤 4. 测试 MCP 服务
+### 步骤 4. 添加 Skill 支持（可选）
 
-（仍在开发中）
+[Agent Skills](https://github.com/anthropics/skills) 让 AI 编程助手（如 Claude Code、Cline 等）可以通过 CLI 命令驱动你的自定义界面。了解更多请参考 [Skills 文档](./skills)。
+
+在你的 npm 包中添加一个 CLI 入口文件（如 `./src/cli.ts`）：
+
+```ts
+#!/usr/bin/env node
+import { runSkillCLI } from '@midscene/core/skill';
+import { SampleDevice } from './sample-device';
+
+runSkillCLI({
+  DeviceClass: SampleDevice,
+  scriptName: 'my-device',
+});
+```
+
+然后在 `package.json` 中配置 `bin` 字段：
+
+```json
+{
+  "bin": {
+    "my-device": "./dist/cli.js"
+  }
+}
+```
+
+发布后，AI 编程助手即可通过 `npx my-device` 命令来控制你的自定义界面。
+
+关于 Skill 的编写规范和更多示例，请参考 [midscene-skills](https://github.com/web-infra-dev/midscene-skills) 仓库。
 
 ### 步骤 5. 发布 npm 包，让你的用户使用它
 

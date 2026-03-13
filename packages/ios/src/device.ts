@@ -38,6 +38,40 @@ export type { IOSDeviceOpt, IOSDeviceInputOpt } from '@midscene/core/device';
 
 const debugDevice = getDebug('ios:device');
 
+// Input action schema for iOS
+const iosInputParamSchema = z.object({
+  value: z
+    .string()
+    .describe(
+      'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
+    ),
+  autoDismissKeyboard: z
+    .boolean()
+    .optional()
+    .describe(
+      'Whether to dismiss the keyboard after input. Defaults to true if not specified. Set to false to keep the keyboard visible after input.',
+    ),
+  mode: z.preprocess(
+    (val) => (val === 'append' ? 'typeOnly' : val),
+    z
+      .enum(['replace', 'clear', 'typeOnly'])
+      .default('replace')
+      .optional()
+      .describe(
+        'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
+      ),
+  ),
+  locate: getMidsceneLocationSchema()
+    .describe('The input field to be filled')
+    .optional(),
+});
+type IOSInputParam = {
+  value: string;
+  autoDismissKeyboard?: boolean;
+  mode?: 'replace' | 'clear' | 'typeOnly';
+  locate?: LocateResultElement;
+};
+
 /**
  * HTTP methods supported by WebDriverAgent API
  */
@@ -74,36 +108,15 @@ export class IOSDevice implements AbstractInterface {
         assert(element, 'Element not found, cannot double click');
         await this.doubleTap(element.center[0], element.center[1]);
       }),
-      defineAction({
+      defineAction<typeof iosInputParamSchema, IOSInputParam>({
         name: 'Input',
         description: 'Input text into the input field',
         interfaceAlias: 'aiInput',
-        paramSchema: z.object({
-          value: z
-            .string()
-            .describe(
-              'The text to input. Provide the final content for replace/append modes, or an empty string when using clear mode to remove existing text.',
-            ),
-          autoDismissKeyboard: z
-            .boolean()
-            .optional()
-            .describe(
-              'Whether to dismiss the keyboard after input. Defaults to true if not specified. Set to false to keep the keyboard visible after input.',
-            ),
-          mode: z.preprocess(
-            (val) => (val === 'append' ? 'typeOnly' : val),
-            z
-              .enum(['replace', 'clear', 'typeOnly'])
-              .default('replace')
-              .optional()
-              .describe(
-                'Input mode: "replace" (default) - clear the field and input the value; "typeOnly" - type the value directly without clearing the field first; "clear" - clear the field without inputting new text.',
-              ),
-          ),
-          locate: getMidsceneLocationSchema()
-            .describe('The input field to be filled')
-            .optional(),
-        }),
+        paramSchema: iosInputParamSchema,
+        sample: {
+          value: 'test@example.com',
+          locate: { prompt: 'the email input field' },
+        },
         call: async (param) => {
           const element = param.locate;
           if (param.mode !== 'typeOnly') {
@@ -223,6 +236,9 @@ export class IOSDevice implements AbstractInterface {
             'The element to be long pressed',
           ),
         }),
+        sample: {
+          locate: { prompt: 'the message bubble' },
+        },
         call: async (param) => {
           const element = param.locate;
           assert(element, 'LongPress requires an element to be located');
@@ -357,6 +373,22 @@ ScreenSize: ${size.width}x${size.height} (DPR: ${size.scale})
     }
 
     return this;
+  }
+
+  /**
+   * Terminate (close) an iOS app by bundle ID.
+   * Supports app name resolution via setAppNameMapping when provided.
+   */
+  public async terminate(bundleId: string): Promise<void> {
+    const resolved = this.resolveBundleId(bundleId) ?? bundleId;
+    try {
+      debugDevice(`Terminating app: ${resolved}`);
+      await this.wdaBackend.terminateApp(resolved);
+      debugDevice(`Successfully terminated: ${resolved}`);
+    } catch (error: any) {
+      debugDevice(`Error terminating ${resolved}: ${error}`);
+      throw new Error(`Failed to terminate ${resolved}: ${error.message}`);
+    }
   }
 
   async getElementsInfo(): Promise<ElementInfo[]> {
@@ -1005,6 +1037,16 @@ export type DeviceActionRunWdaRequest = DeviceAction<
 >;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
 
+const terminateParamSchema = z
+  .string()
+  .describe(
+    'Bundle ID of the app to terminate (close). Use the exact bundle ID, e.g. com.apple.Preferences.',
+  );
+
+type TerminateParam = z.infer<typeof terminateParamSchema>;
+
+export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
+
 /**
  * Platform-specific action definitions for iOS
  * Single source of truth for both runtime behavior and type definitions
@@ -1020,6 +1062,10 @@ const createPlatformActions = (device: IOSDevice) => {
       description: 'Execute WebDriverAgent API request directly on iOS device',
       interfaceAlias: 'runWdaRequest',
       paramSchema: runWdaRequestParamSchema,
+      sample: {
+        method: 'GET',
+        endpoint: '/status',
+      },
       call: async (param) => {
         return await device.runWdaRequest(
           param.method,
@@ -1035,6 +1081,15 @@ const createPlatformActions = (device: IOSDevice) => {
       paramSchema: launchParamSchema,
       call: async (param) => {
         await device.launch(param);
+      },
+    }),
+    Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
+      name: 'Terminate',
+      description: 'Terminate (close) an iOS app by its bundle ID',
+      interfaceAlias: 'terminate',
+      paramSchema: terminateParamSchema,
+      call: async (param) => {
+        await device.terminate(param);
       },
     }),
     IOSHomeButton: defineAction({
@@ -1055,4 +1110,5 @@ const createPlatformActions = (device: IOSDevice) => {
 };
 
 export type DeviceActionIOSHomeButton = DeviceAction<undefined, void>;
+
 export type DeviceActionIOSAppSwitcher = DeviceAction<undefined, void>;

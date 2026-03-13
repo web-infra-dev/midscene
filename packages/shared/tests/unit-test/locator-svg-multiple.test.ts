@@ -4,6 +4,7 @@ import { getXpathsByPoint } from '../../src/extractor/locator';
 // Mock DOM environment for testing
 class MockElement {
   nodeName: string;
+  tagName: string;
   nodeType: number;
   namespaceURI?: string;
   parentNode: MockElement | null;
@@ -17,6 +18,7 @@ class MockElement {
     parentNode: MockElement | null = null,
   ) {
     this.nodeName = nodeName;
+    this.tagName = nodeName.toUpperCase();
     this.nodeType = 1; // ELEMENT_NODE
     this.namespaceURI = namespaceURI;
     this.textContent = textContent;

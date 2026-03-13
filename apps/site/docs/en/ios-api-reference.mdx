@@ -15,6 +15,7 @@ Use this doc when you need to customize iOS device behavior, wire Midscene into 
 - `LongPress` &mdash; Long-press a target element with optional duration.
 - `ClearInput` &mdash; Clear the contents of an input field.
 - `Launch` &mdash; Open a URL, bundle identifier, or URL scheme.
+- `Terminate` &mdash; Close a running iOS app by its bundle identifier.
 - `RunWdaRequest` &mdash; Call WebDriverAgent REST endpoints directly.
 - `IOSHomeButton` &mdash; Trigger the iOS system Home action.
 - `IOSAppSwitcher` &mdash; Open the iOS multitasking view.
@@ -103,7 +104,7 @@ const agent = new IOSAgent(device, {
 ### iOS-specific options
 
 - `customActions?: DeviceAction<any>[]` &mdash; Extend planning with actions defined via `defineAction`.
-- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to launch `target` as-is. User-provided mappings take precedence over default mappings.
+- `appNameMapping?: Record<string, string>` &mdash; Map friendly app names to bundle identifiers. When you pass an app name to `launch(target)` or `terminate(bundleId)`, the agent will look up the bundle ID in this mapping. If no mapping is found, it will attempt to use `target` as-is. User-provided mappings take precedence over default mappings.
 - All other fields match [API constructors](./api#common-parameters): `generateReport`, `reportFileName`, `aiActionContext`, `modelConfig`, `cacheId`, `createOpenAIClient`, `onTaskStartTip`, and more.
 
 ### Usage notes
@@ -111,7 +112,7 @@ const agent = new IOSAgent(device, {
 :::info
 
 - Use one agent per device connection.
-- iOS-only helpers such as `launch` and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part).
+- iOS-only helpers such as `launch`, `terminate`, and `runWdaRequest` are also exposed in YAML scripts. See [iOS platform-specific actions](./automate-with-scripts-in-yaml#the-ios-part).
 - For shared interaction methods, see [API reference (Common)](./api#interaction-methods).
 
 :::
@@ -133,6 +134,21 @@ await agent.launch('https://www.apple.com');
 await agent.launch('com.apple.Preferences');
 await agent.launch('myapp://profile/user/123');
 await agent.launch('tel:+1234567890');
+```
+
+#### `agent.terminate()`
+
+Terminate (close) a running iOS app by its bundle ID.
+
+```ts
+function terminate(bundleId: string): Promise<void>;
+```
+
+- `bundleId: string` &mdash; The bundle identifier of the app to terminate (e.g. `com.apple.Preferences`). If you pass an app name and it exists in `appNameMapping`, it will be automatically resolved to the mapped Bundle ID.
+
+```ts
+await agent.terminate('com.apple.Preferences');
+await agent.terminate('com.apple.mobilesafari');
 ```
 
 #### `agent.runWdaRequest()`

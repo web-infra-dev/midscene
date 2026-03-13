@@ -60,8 +60,11 @@ class PlaygroundServer {
   // Track current running task
   private currentTaskId: string | null = null;
 
-  // Flag to pause MJPEG polling during agent recreation
+  // Flag to pause MJPEG polling during agent recreation or task execution
   private _agentReady = true;
+
+  // Flag to track if AI config has changed and agent needs recreation
+  private _configDirty = false;
 
   constructor(
     agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
@@ -180,12 +183,6 @@ class PlaygroundServer {
    * Recreate agent instance (for cancellation)
    */
   private async recreateAgent(): Promise<void> {
-    if (!this.agentFactory) {
-      throw new Error(
-        'Cannot recreate agent: factory function not provided. Attempting to destroy existing agent only.',
-      );
-    }
-
     this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
@@ -198,15 +195,22 @@ class PlaygroundServer {
       console.warn('Failed to destroy old agent:', error);
     }
 
-    // Create new agent instance
-    try {
-      this.agent = await this.agentFactory();
+    // Create new agent instance if factory is available
+    if (this.agentFactory) {
+      try {
+        this.agent = await this.agentFactory();
+        this._agentReady = true;
+        console.log('Agent recreated successfully');
+      } catch (error) {
+        this._agentReady = true;
+        console.error('Failed to recreate agent:', error);
+        throw error;
+      }
+    } else {
       this._agentReady = true;
-      console.log('Agent recreated successfully');
-    } catch (error) {
-      this._agentReady = true;
-      console.error('Failed to recreate agent:', error);
-      throw error;
+      console.warn(
+        'Agent destroyed but cannot recreate: no factory function provided. Next /execute call will fail.',
+      );
     }
   }
 
@@ -360,10 +364,11 @@ class PlaygroundServer {
         });
       }
 
-      // Always recreate agent before execution to ensure latest config is applied
-      if (this.agentFactory) {
+      // Recreate agent only when AI config has changed (via /config API)
+      if (this.agentFactory && this._configDirty) {
+        this._configDirty = false;
         this._agentReady = false;
-        console.log('Destroying old agent before execution...');
+        console.log('AI config changed, recreating agent...');
         try {
           if (this.agent && typeof this.agent.destroy === 'function') {
             await this.agent.destroy();
@@ -372,14 +377,13 @@ class PlaygroundServer {
           console.warn('Failed to destroy old agent:', error);
         }
 
-        console.log('Creating new agent with latest config...');
         try {
           this.agent = await this.agentFactory();
           this._agentReady = true;
-          console.log('Agent created successfully');
+          console.log('Agent recreated with new config');
         } catch (error) {
           this._agentReady = true;
-          console.error('Failed to create agent:', error);
+          console.error('Failed to recreate agent:', error);
           return res.status(500).json({
             error: `Failed to create agent: ${error instanceof Error ? error.message : 'Unknown error'}`,
           });
@@ -387,13 +391,12 @@ class PlaygroundServer {
       }
 
       // Update device options if provided
-      if (
-        deviceOptions &&
-        this.agent.interface &&
-        'options' in this.agent.interface
-      ) {
-        this.agent.interface.options = {
-          ...(this.agent.interface.options || {}),
+      if (deviceOptions && this.agent.interface) {
+        const iface = this.agent.interface as unknown as {
+          options?: Record<string, unknown>;
+        };
+        iface.options = {
+          ...(iface.options || {}),
           ...deviceOptions,
         };
       }
@@ -437,6 +440,8 @@ class PlaygroundServer {
         requestId,
       };
 
+      // Pause MJPEG polling during execution to avoid ADB contention
+      this._agentReady = false;
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
@@ -489,6 +494,9 @@ class PlaygroundServer {
         console.error(
           `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
         );
+      } finally {
+        // Resume MJPEG polling after execution
+        this._agentReady = true;
       }
 
       res.send(response);
@@ -558,14 +566,11 @@ class PlaygroundServer {
             console.warn('Failed to get execution data before cancel:', error);
           }
 
-          // Destroy agent to cancel the current task
-          // No need to recreate here — /execute always creates a fresh agent before each run
+          // Destroy and recreate agent to cancel the current task
           try {
-            if (this.agent && typeof this.agent.destroy === 'function') {
-              await this.agent.destroy();
-            }
+            await this.recreateAgent();
           } catch (error) {
-            console.warn('Failed to destroy agent during cancel:', error);
+            console.warn('Failed to recreate agent during cancel:', error);
           }
 
           // Clean up
@@ -677,6 +682,7 @@ class PlaygroundServer {
 
       try {
         overrideAIConfig(aiConfig);
+        this._configDirty = true;
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';

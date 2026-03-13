@@ -10,6 +10,10 @@ const CACHE_TIME_OUT = process.env.MIDSCENE_CACHE;
 test.describe('ai todo describe', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('https://todomvc.com/examples/react/dist/');
+    // Clear localStorage to avoid stale todo items from previous test runs
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.waitForLoadState('networkidle');
   });
 
   test('ai todo', async ({ ai, aiQuery }) => {

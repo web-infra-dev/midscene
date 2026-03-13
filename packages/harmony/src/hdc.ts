@@ -291,7 +291,7 @@ export class HdcClient {
 
     // Fallback: try hidumper DisplayManagerService
     const displayStdout = await this.shell(
-      'hidumper -s DisplayManagerService -a -a',
+      'hidumper -s DisplayManagerService -a',
     );
     const displayMatch = displayStdout.match(
       /activeModes.*?(\d{3,5}),\s*(\d{3,5})/,
