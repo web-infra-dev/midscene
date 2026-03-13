@@ -687,16 +687,18 @@ export function resolveReasoningConfig({
     // reasoningEffort and reasoningBudget are ignored for glm-v
   } else if (modelFamily === 'gpt-5') {
     // reasoningEffort → reasoning.effort
-    if (reasoningEffort) {
-      config.reasoning = { effort: reasoningEffort };
-      debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
-    } else if (reasoningEnabled === true) {
-      config.reasoning = { effort: 'high' };
-      debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
-    } else if (reasoningEnabled === false) {
-      config.reasoning = { effort: 'low' };
-      debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
-    }
+    config.reasoning = undefined;
+    debugMessages.push('reasoning config is ignored for gpt-5');
+    // if (reasoningEffort) {
+    //   config.reasoning = { effort: reasoningEffort };
+    //   debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
+    // } else if (reasoningEnabled === true) {
+    //   config.reasoning = { effort: 'high' };
+    //   debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
+    // } else if (reasoningEnabled === false) {
+    //   config.reasoning = { effort: 'low' };
+    //   debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
+    // }
     // reasoningBudget is ignored for gpt-5
   } else if (!modelFamily) {
     return {
