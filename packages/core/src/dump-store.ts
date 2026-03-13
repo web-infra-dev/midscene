@@ -13,12 +13,12 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { AgentOpt, IExecutionDump, IGroupedActionDump } from './types';
 import { ExecutionDump } from './types';
 
-const sessionLockRetryDelayMs = 20;
-const sessionLockTimeoutMs = 30_000;
-const sessionLockStaleMs = 5 * 60_000;
-const sessionLockSleepArray = new Int32Array(new SharedArrayBuffer(4));
+const lockRetryDelayMs = 20;
+const lockTimeoutMs = 30_000;
+const lockStaleMs = 5 * 60_000;
+const lockSleepArray = new Int32Array(new SharedArrayBuffer(4));
 
-export interface PersistedSession {
+export interface PersistedAgentDump {
   sessionId: string;
   platform: string;
   groupName: string;
@@ -32,7 +32,7 @@ export interface PersistedSession {
   reportFilePath?: string;
 }
 
-export interface EnsureSessionInput {
+export interface EnsureDumpSessionInput {
   sessionId: string;
   platform: string;
   groupName?: string;
@@ -46,12 +46,12 @@ function defaultGroupName(platform: string, sessionId: string): string {
   return `Midscene ${platform} session ${sessionId}`;
 }
 
-function normalizeSessionRecord(
-  session: Partial<PersistedSession> & {
+function normalizeDumpRecord(
+  session: Partial<PersistedAgentDump> & {
     sessionId: string;
     platform: string;
   },
-): PersistedSession {
+): PersistedAgentDump {
   return {
     sessionId: session.sessionId,
     platform: session.platform,
@@ -82,7 +82,7 @@ function orderedRootExecutionFiles(dir: string): string[] {
 }
 
 function sleepSync(ms: number): void {
-  Atomics.wait(sessionLockSleepArray, 0, 0, ms);
+  Atomics.wait(lockSleepArray, 0, 0, ms);
 }
 
 function validateSessionId(sessionId: string): void {
@@ -114,10 +114,10 @@ function isAlreadyExistsError(error: unknown): error is NodeJS.ErrnoException {
   );
 }
 
-function withSessionLock<T>(sessionId: string, fn: () => T): T {
+function withLock<T>(sessionId: string, fn: () => T): T {
   const dir = sessionDirPath(sessionId);
   const lockDir = sessionLockDir(sessionId);
-  const lockDeadline = Date.now() + sessionLockTimeoutMs;
+  const lockDeadline = Date.now() + lockTimeoutMs;
 
   mkdirSync(dir, { recursive: true });
 
@@ -131,7 +131,7 @@ function withSessionLock<T>(sessionId: string, fn: () => T): T {
       }
 
       try {
-        if (Date.now() - statSync(lockDir).mtimeMs > sessionLockStaleMs) {
+        if (Date.now() - statSync(lockDir).mtimeMs > lockStaleMs) {
           rmSync(lockDir, { recursive: true, force: true });
           continue;
         }
@@ -143,7 +143,7 @@ function withSessionLock<T>(sessionId: string, fn: () => T): T {
         throw new Error(`Timed out waiting for session lock: ${sessionId}`);
       }
 
-      sleepSync(sessionLockRetryDelayMs);
+      sleepSync(lockRetryDelayMs);
     }
   }
 
@@ -160,7 +160,11 @@ function writeTextFileAtomic(filePath: string, content: string): void {
   renameSync(tempFilePath, filePath);
 }
 
-export class SessionStore {
+/**
+ * Persists agent execution dumps to the filesystem, grouped by session ID.
+ * Each agent should own its own instance.
+ */
+export class AgentDumpStore {
   rootDir(): string {
     return getMidsceneRunSubDir('session');
   }
@@ -183,21 +187,21 @@ export class SessionStore {
     return dir;
   }
 
-  load(sessionId: string): PersistedSession {
+  load(sessionId: string): PersistedAgentDump {
     const filePath = this.agentFilePath(sessionId);
 
     if (!existsSync(filePath)) {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
-    return normalizeSessionRecord(
-      JSON.parse(readFileSync(filePath, 'utf-8')) as PersistedSession,
+    return normalizeDumpRecord(
+      JSON.parse(readFileSync(filePath, 'utf-8')) as PersistedAgentDump,
     );
   }
 
-  save(session: PersistedSession): PersistedSession {
+  save(session: PersistedAgentDump): PersistedAgentDump {
     mkdirSync(this.sessionDir(session.sessionId), { recursive: true });
-    const normalized = normalizeSessionRecord(session);
+    const normalized = normalizeDumpRecord(session);
     writeTextFileAtomic(
       this.agentFilePath(normalized.sessionId),
       JSON.stringify(normalized, null, 2),
@@ -205,8 +209,8 @@ export class SessionStore {
     return normalized;
   }
 
-  ensureSession(input: EnsureSessionInput): PersistedSession {
-    return withSessionLock(input.sessionId, () => {
+  ensureSession(input: EnsureDumpSessionInput): PersistedAgentDump {
+    return withLock(input.sessionId, () => {
       const now = Date.now();
       const filePath = this.agentFilePath(input.sessionId);
 
@@ -214,7 +218,7 @@ export class SessionStore {
         const existing = this.load(input.sessionId);
         const mergedModelBriefs = new Set(existing.modelBriefs);
         input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
-        const next: PersistedSession = {
+        const next: PersistedAgentDump = {
           ...existing,
           platform: input.platform ?? existing.platform,
           groupName:
@@ -250,8 +254,8 @@ export class SessionStore {
   markReportGenerated(
     sessionId: string,
     reportFilePath: string,
-  ): PersistedSession {
-    return withSessionLock(sessionId, () => {
+  ): PersistedAgentDump {
+    return withLock(sessionId, () => {
       const session = this.load(sessionId);
       return this.save({
         ...session,
@@ -262,7 +266,7 @@ export class SessionStore {
   }
 
   appendExecution(sessionId: string, execution: ExecutionDump): number {
-    return withSessionLock(sessionId, () => {
+    return withLock(sessionId, () => {
       const session = this.load(sessionId);
       const order = session.executionCount + 1;
       const basePath = this.executionBasePath(sessionId, order);
@@ -284,7 +288,7 @@ export class SessionStore {
     order: number,
     execution: ExecutionDump,
   ): void {
-    withSessionLock(sessionId, () => {
+    withLock(sessionId, () => {
       const session = this.load(sessionId);
       const basePath = this.executionBasePath(sessionId, order);
 
@@ -298,8 +302,8 @@ export class SessionStore {
     });
   }
 
-  buildSessionDump(sessionId: string): IGroupedActionDump {
-    return withSessionLock(sessionId, () => {
+  buildDump(sessionId: string): IGroupedActionDump {
+    return withLock(sessionId, () => {
       const session = this.load(sessionId);
       const rootExecutionFiles = orderedRootExecutionFiles(
         this.sessionDir(sessionId),
@@ -327,9 +331,6 @@ export class SessionStore {
     });
   }
 }
-
-/** Default shared instance for convenience. */
-export const sessionStore = new SessionStore();
 
 export function createSessionAgentOptions(input: {
   sessionId?: string;

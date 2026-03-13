@@ -3,10 +3,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import type { AbstractInterface } from '@/device';
+import { exportSessionReport } from '@/dump-report';
+import { AgentDumpStore } from '@/dump-store';
 import { parseDumpScript } from '@/dump/html-utils';
 import { ScreenshotItem } from '@/screenshot-item';
-import { exportSessionReport } from '@/session-report';
-import { sessionStore } from '@/session-store';
 import {
   ExecutionDump,
   type IGroupedActionDump,
@@ -63,12 +63,14 @@ function createMockInterface(): AbstractInterface {
   } as unknown as AbstractInterface;
 }
 
-describe('SessionStore + exportSessionReport', () => {
+describe('AgentDumpStore + exportSessionReport', () => {
   let runDir: string;
+  let store: AgentDumpStore;
 
   beforeEach(() => {
     runDir = join(tmpdir(), `midscene-session-test-${Date.now()}`);
     vi.stubEnv(MIDSCENE_RUN_DIR, runDir);
+    store = new AgentDumpStore();
   });
 
   afterEach(() => {
@@ -79,7 +81,7 @@ describe('SessionStore + exportSessionReport', () => {
   it('overwrites the same order slot without growing execution count', () => {
     const sessionId = 'session-upsert';
 
-    sessionStore.ensureSession({
+    store.ensureSession({
       sessionId,
       platform: 'web',
       groupName: 'Session Upsert',
@@ -88,7 +90,7 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    const order = sessionStore.appendExecution(
+    const order = store.appendExecution(
       sessionId,
       createExecutionDump({
         executionName: 'first-version',
@@ -97,7 +99,7 @@ describe('SessionStore + exportSessionReport', () => {
     );
 
     // Overwrite same order slot with updated execution
-    sessionStore.updateExecution(
+    store.updateExecution(
       sessionId,
       order,
       createExecutionDump({
@@ -106,8 +108,8 @@ describe('SessionStore + exportSessionReport', () => {
       }),
     );
 
-    const session = sessionStore.load(sessionId);
-    const dump = sessionStore.buildSessionDump(sessionId);
+    const session = store.load(sessionId);
+    const dump = store.buildDump(sessionId);
 
     expect(session.executionCount).toBe(1);
     expect(dump.executions).toHaveLength(1);
@@ -122,7 +124,7 @@ describe('SessionStore + exportSessionReport', () => {
       modelConfig: mockedModelConfig,
     });
 
-    const persistedSession = sessionStore.load(sessionId);
+    const persistedSession = store.load(sessionId);
 
     expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
       true,
@@ -134,7 +136,7 @@ describe('SessionStore + exportSessionReport', () => {
   it('exports a merged report from persisted session shards', () => {
     const sessionId = 'session-export';
 
-    sessionStore.ensureSession({
+    store.ensureSession({
       sessionId,
       platform: 'web',
       groupName: 'Merged Session',
@@ -144,7 +146,7 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    sessionStore.appendExecution(
+    store.appendExecution(
       sessionId,
       createExecutionDump({
         executionName: 'first execution',
@@ -152,7 +154,7 @@ describe('SessionStore + exportSessionReport', () => {
       }),
     );
 
-    sessionStore.appendExecution(
+    store.appendExecution(
       sessionId,
       createExecutionDump({
         executionName: 'second execution',
@@ -160,7 +162,7 @@ describe('SessionStore + exportSessionReport', () => {
       }),
     );
 
-    const reportPath = exportSessionReport(sessionId);
+    const reportPath = exportSessionReport(sessionId, store);
     const html = readFileSync(reportPath, 'utf-8');
     const dump = JSON.parse(parseDumpScript(html)) as IGroupedActionDump;
 
@@ -176,7 +178,7 @@ describe('SessionStore + exportSessionReport', () => {
         }
       ).screenshot?.base64,
     ).toContain('data:image/png;base64,');
-    expect(sessionStore.load(sessionId).reportFilePath).toBe(reportPath);
+    expect(store.load(sessionId).reportFilePath).toBe(reportPath);
     expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
       true,
     );
