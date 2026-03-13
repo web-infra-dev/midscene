@@ -335,20 +335,6 @@ export class Agent<
             runner,
           );
 
-          if (this.opts.onExecutionDumpUpdate) {
-            try {
-              await this.opts.onExecutionDumpUpdate(
-                this.dump.executions[executionIndex],
-                {
-                  executionIndex,
-                  groupedDump: this.dump,
-                },
-              );
-            } catch (error) {
-              console.error('Error in onExecutionDumpUpdate hook', error);
-            }
-          }
-
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
           for (const listener of this.dumpUpdateListeners) {
