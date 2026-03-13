@@ -2,10 +2,12 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { PlaywrightAgent } from '@/playwright';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { expect, test } from '@playwright/test';
+import { type Page, expect, test } from '@playwright/test';
 
 const REPLAY_ALL_SELECTOR = '.replay-all-mode-wrapper';
 const TIME_DISPLAY_SELECTOR = `${REPLAY_ALL_SELECTOR} .time-display`;
+const TASK_ROW_SELECTOR = '.task-row[data-task-id]';
+const PLAYING_TASK_ROW_SELECTOR = `${TASK_ROW_SELECTOR}.playing`;
 const TEST_TIMEOUT = 15 * 60 * 1000;
 
 function parseTimeText(text: string): number {
@@ -34,6 +36,40 @@ function parsePlaybackTime(timeText: string): {
 
 function getReportPath(reportFileName: string): string {
   return join(getMidsceneRunSubDir('report'), `${reportFileName}.html`);
+}
+
+async function readReplayState(page: Page) {
+  const timeText = (
+    await page.locator(TIME_DISPLAY_SELECTOR).innerText()
+  ).trim();
+  const { currentSeconds, totalSeconds } = parsePlaybackTime(timeText);
+
+  const taskState = await page
+    .locator(TASK_ROW_SELECTOR)
+    .evaluateAll((rows) => {
+      const taskRows = rows as HTMLDivElement[];
+      const playingRow =
+        taskRows.find((row) => row.classList.contains('playing')) ?? null;
+      const lastRow = taskRows.at(-1) ?? null;
+
+      const normalizeText = (row: HTMLDivElement | null) =>
+        row?.textContent?.replace(/\s+/g, ' ').trim() ?? null;
+
+      return {
+        taskRowCount: taskRows.length,
+        playingTaskId: playingRow?.dataset.taskId ?? null,
+        playingTaskText: normalizeText(playingRow),
+        lastTaskId: lastRow?.dataset.taskId ?? null,
+        lastTaskText: normalizeText(lastRow),
+      };
+    });
+
+  return {
+    timeText,
+    currentSeconds,
+    totalSeconds,
+    ...taskState,
+  };
 }
 
 test.describe('report replay-all', () => {
@@ -87,17 +123,75 @@ test.describe('report replay-all', () => {
       await reportPage.waitForSelector(TIME_DISPLAY_SELECTOR, {
         timeout: 30_000,
       });
-      const initialTimeText = await reportPage
-        .locator(TIME_DISPLAY_SELECTOR)
-        .innerText();
-      const { currentSeconds: initialSeconds, totalSeconds } =
-        parsePlaybackTime(initialTimeText.trim());
-      expect(totalSeconds).toBeGreaterThan(0);
-      expect(initialSeconds).toBeLessThan(totalSeconds);
+      await reportPage.waitForSelector(PLAYING_TASK_ROW_SELECTOR, {
+        timeout: 30_000,
+      });
+
+      const initialState = await readReplayState(reportPage);
+      expect(initialState.taskRowCount).toBeGreaterThan(1);
+      expect(initialState.totalSeconds).toBeGreaterThan(0);
+      expect(initialState.currentSeconds).toBeLessThan(
+        initialState.totalSeconds,
+      );
+      expect(initialState.lastTaskId).toBeTruthy();
+      expect(initialState.playingTaskId).toBeTruthy();
+      expect(initialState.playingTaskId).not.toBe(initialState.lastTaskId);
 
       await reportAgent.recordToReport('Report replay-all initial state', {
-        content:
-          'The generated HTML report opened in replay-all mode before reaching the last step page.',
+        content: `The generated HTML report opened in replay-all mode on "${initialState.playingTaskText}" at ${initialState.timeText}, before the final task "${initialState.lastTaskText}".`,
+      });
+
+      await reportPage.waitForFunction(
+        ({ taskRowSelector, timeDisplaySelector }) => {
+          const taskRows = [
+            ...document.querySelectorAll<HTMLDivElement>(taskRowSelector),
+          ];
+          const playingRow =
+            taskRows.find((row) => row.classList.contains('playing')) ?? null;
+          const lastRow = taskRows.at(-1) ?? null;
+          const timeText =
+            document
+              .querySelector<HTMLElement>(timeDisplaySelector)
+              ?.textContent?.trim() ?? '';
+
+          const [currentTimeText = '', totalTimeText = ''] =
+            timeText.split('/');
+          const parseTime = (value: string) => {
+            const [minuteText = '', secondText = ''] = value.trim().split(':');
+            const minutes = Number(minuteText);
+            const seconds = Number(secondText);
+            if (!Number.isFinite(minutes) || !Number.isFinite(seconds)) {
+              return null;
+            }
+            return minutes * 60 + seconds;
+          };
+
+          const currentSeconds = parseTime(currentTimeText);
+          const totalSeconds = parseTime(totalTimeText);
+
+          return (
+            Boolean(lastRow?.dataset.taskId) &&
+            playingRow?.dataset.taskId === lastRow?.dataset.taskId &&
+            currentSeconds !== null &&
+            totalSeconds !== null &&
+            currentSeconds >= totalSeconds - 1
+          );
+        },
+        {
+          taskRowSelector: TASK_ROW_SELECTOR,
+          timeDisplaySelector: TIME_DISPLAY_SELECTOR,
+        },
+        { timeout: 120_000 },
+      );
+
+      const finalState = await readReplayState(reportPage);
+      expect(finalState.playingTaskId).toBe(finalState.lastTaskId);
+      expect(finalState.currentSeconds).toBeGreaterThanOrEqual(
+        finalState.totalSeconds - 1,
+      );
+
+      await reportAgent.recordToReport('Report replay-all final state', {
+        content: `The generated HTML report kept playing until "${finalState.lastTaskText}" was the active task at ${finalState.timeText}.`,
       });
 
       expect(existsSync(validationReportPath)).toBe(true);
