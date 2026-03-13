@@ -69,6 +69,37 @@ describe('codex app-server provider helper', () => {
         },
       }),
     ).toBeUndefined();
+
+    expect(
+      resolveCodexReasoningEffort({
+        deepThink: 'unset',
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEnabled: true,
+        },
+      }),
+    ).toBe('high');
+
+    expect(
+      resolveCodexReasoningEffort({
+        deepThink: 'unset',
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEnabled: false,
+        },
+      }),
+    ).toBe('low');
+
+    expect(
+      resolveCodexReasoningEffort({
+        deepThink: 'unset',
+        modelConfig: {
+          ...baseModelConfig,
+          reasoningEnabled: false,
+          reasoningEffort: 'medium',
+        },
+      }),
+    ).toBe('medium');
   });
 
   it('converts chat messages into codex turn payload', () => {
@@ -118,6 +149,34 @@ describe('codex app-server provider helper', () => {
       type: 'localImage',
       path: '/tmp/local-shot.png',
     });
+  });
+
+  it('keeps the newest transcript context when truncating long turns', () => {
+    const oldContent = `old-prefix-${'a'.repeat(270_000)}`;
+    const latestRequest = 'latest user request should survive truncation';
+    const payload = buildCodexTurnPayloadFromMessages([
+      {
+        role: 'user',
+        content: oldContent,
+      },
+      {
+        role: 'assistant',
+        content: 'intermediate assistant response',
+      },
+      {
+        role: 'user',
+        content: latestRequest,
+      },
+    ]);
+
+    expect(payload.input[0]).toMatchObject({
+      type: 'text',
+      text: expect.stringContaining(latestRequest),
+    });
+    expect((payload.input[0] as any).text).not.toContain('old-prefix-');
+    expect((payload.input[0] as any).text.length).toBeLessThanOrEqual(
+      256 * 1024,
+    );
   });
 
   it('normalizes file urls into platform-safe local image paths', () => {

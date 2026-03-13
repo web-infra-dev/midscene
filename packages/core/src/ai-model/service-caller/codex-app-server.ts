@@ -270,6 +270,9 @@ export const resolveCodexReasoningEffort = ({
     return normalized;
   }
 
+  if (modelConfig.reasoningEnabled === true) return 'high';
+  if (modelConfig.reasoningEnabled === false) return 'low';
+
   return undefined;
 };
 
@@ -304,9 +307,11 @@ export const buildCodexTurnPayloadFromMessages = (
     }
   }
 
+  const fullTranscript = transcriptParts.join('\n\n');
   const transcriptText =
-    transcriptParts.join('\n\n').slice(0, CODEX_TEXT_INPUT_MAX_LENGTH) ||
-    'Please answer the latest user request.';
+    (fullTranscript.length > CODEX_TEXT_INPUT_MAX_LENGTH
+      ? fullTranscript.slice(-CODEX_TEXT_INPUT_MAX_LENGTH)
+      : fullTranscript) || 'Please answer the latest user request.';
 
   const input: CodexTurnInput[] = [
     {
