@@ -164,6 +164,8 @@ export class Agent<
 
   opts: AgentOpt;
 
+  sessionId: string;
+
   /**
    * If true, the agent will not perform any actions
    */
@@ -356,9 +358,7 @@ export class Agent<
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
     // Every agent always has a sessionId - auto-generate from reportFileName if not provided
-    if (!this.opts.sessionId) {
-      this.opts.sessionId = this.reportFileName!;
-    }
+    this.sessionId = this.opts.sessionId || this.reportFileName!;
 
     this.syncSessionMetadata();
   }
@@ -423,7 +423,7 @@ export class Agent<
 
   private syncSessionMetadata(): void {
     this.executionStore.ensureSession({
-      sessionId: this.opts.sessionId!,
+      sessionId: this.sessionId,
       platform: this.interface.interfaceType,
       groupName: this.opts.groupName,
       groupDescription: this.opts.groupDescription,
@@ -439,15 +439,12 @@ export class Agent<
   ): void {
     let order = this.sessionExecutionOrders[executionIndex];
     if (order === undefined) {
-      order = this.executionStore.appendExecution(
-        this.opts.sessionId!,
-        execution,
-      );
+      order = this.executionStore.appendExecution(this.sessionId, execution);
       this.sessionExecutionOrders[executionIndex] = order;
       return;
     }
 
-    this.executionStore.updateExecution(this.opts.sessionId!, order, execution);
+    this.executionStore.updateExecution(this.sessionId, order, execution);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {
@@ -1308,7 +1305,7 @@ export class Agent<
     if (this.opts.generateReport !== false) {
       try {
         this.reportFile = exportSessionReport(
-          this.opts.sessionId!,
+          this.sessionId,
           this.executionStore,
         );
       } catch (error) {
