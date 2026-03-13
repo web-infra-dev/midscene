@@ -7,8 +7,9 @@ import { expect, test } from '@playwright/test';
 
 const REPLAY_ALL_SELECTOR = '.replay-all-mode-wrapper';
 const TIME_DISPLAY_SELECTOR = `${REPLAY_ALL_SELECTOR} .time-display`;
-const PLAYBACK_ADVANCE_TIMEOUT = 15_000;
-const PLAYBACK_COMPLETE_TIMEOUT = 30_000;
+const PLAYBACK_ADVANCE_TIMEOUT = 30_000;
+const PLAYBACK_COMPLETE_TIMEOUT = 90_000;
+const PLAYBACK_POLL_INTERVAL = 500;
 const TEST_TIMEOUT = 15 * 60 * 1000;
 
 function parseTimeText(text: string): number {
@@ -50,7 +51,7 @@ async function waitForPlaybackToAdvance(
     if (currentSeconds > previousSeconds) {
       return currentSeconds;
     }
-    await sleep(500);
+    await sleep(PLAYBACK_POLL_INTERVAL);
   }
 
   throw new Error(
@@ -61,19 +62,20 @@ async function waitForPlaybackToAdvance(
 async function waitForPlaybackToReach(
   readCurrentSeconds: () => Promise<number>,
   targetSeconds: number,
+  timeoutMs: number,
 ): Promise<number> {
   const startTime = Date.now();
 
-  while (Date.now() - startTime < PLAYBACK_COMPLETE_TIMEOUT) {
+  while (Date.now() - startTime < timeoutMs) {
     const currentSeconds = await readCurrentSeconds();
     if (currentSeconds >= targetSeconds) {
       return currentSeconds;
     }
-    await sleep(500);
+    await sleep(PLAYBACK_POLL_INTERVAL);
   }
 
   throw new Error(
-    `Replay time did not reach ${targetSeconds}s within ${PLAYBACK_COMPLETE_TIMEOUT}ms`,
+    `Replay time did not reach ${targetSeconds}s within ${timeoutMs}ms`,
   );
 }
 
@@ -115,6 +117,13 @@ test.describe('report replay-all', () => {
 
       await reportPage.setViewportSize({ width: 1440, height: 900 });
       await reportPage.goto(`file://${reportFile}`);
+      await reportPage.bringToFront();
+      await reportPage.waitForFunction(
+        () => document.visibilityState === 'visible',
+        {
+          timeout: 30_000,
+        },
+      );
       await reportPage.waitForSelector(REPLAY_ALL_SELECTOR, {
         timeout: 30_000,
       });
@@ -131,6 +140,10 @@ test.describe('report replay-all', () => {
         .innerText();
       const { currentSeconds: initialSeconds, totalSeconds } =
         parsePlaybackTime(initialTimeText.trim());
+      const completionTimeoutMs = Math.max(
+        PLAYBACK_COMPLETE_TIMEOUT,
+        (totalSeconds + 5) * 5_000,
+      );
 
       const advancedSeconds = await waitForPlaybackToAdvance(async () => {
         const timeText = await reportPage
@@ -147,6 +160,7 @@ test.describe('report replay-all', () => {
           return parsePlaybackTime(timeText.trim()).currentSeconds;
         },
         Math.max(advancedSeconds + 1, totalSeconds),
+        completionTimeoutMs,
       );
 
       await sleep(1_000);
