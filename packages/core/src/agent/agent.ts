@@ -470,11 +470,12 @@ export class Agent<
 
     let order = this.sessionExecutionOrders[executionIndex];
     if (order === undefined) {
-      order = SessionStore.nextOrder(this.opts.sessionId);
+      order = SessionStore.appendExecution(this.opts.sessionId, execution);
       this.sessionExecutionOrders[executionIndex] = order;
+      return;
     }
 
-    SessionStore.persistExecution(this.opts.sessionId, order, execution);
+    SessionStore.updateExecution(this.opts.sessionId, order, execution);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {

@@ -26,16 +26,19 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
   protected mcpServer?: McpServer;
   protected agent?: TAgent;
   protected toolDefinitions: ToolDefinition[] = [];
-  private invocationContext?: Record<string, unknown>;
 
   /**
    * Ensure agent is initialized and ready for use.
    * Must be implemented by subclasses to create platform-specific agent.
    * @param initParam Optional initialization parameter (platform-specific, e.g., URL, device ID)
+   * @param sessionId Optional persistent session ID for cross-process report stitching
    * @returns Promise resolving to initialized agent instance
    * @throws Error if agent initialization fails
    */
-  protected abstract ensureAgent(initParam?: string): Promise<TAgent>;
+  protected abstract ensureAgent(
+    initParam?: string,
+    options?: { sessionId?: string } & Record<string, unknown>,
+  ): Promise<TAgent>;
 
   /**
    * Optional: prepare platform-specific tools (e.g., device connection)
@@ -50,23 +53,30 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    */
   protected abstract createTemporaryDevice(): BaseDevice;
 
-  protected async runWithInvocationContext<TResult>(
+  protected getStringArg(
     args: Record<string, unknown> | undefined,
-    fn: () => Promise<TResult>,
-  ): Promise<TResult> {
-    const previousContext = this.invocationContext;
-    this.invocationContext = args ?? {};
-
-    try {
-      return await fn();
-    } finally {
-      this.invocationContext = previousContext;
-    }
+    name: string,
+  ): string | undefined {
+    const value = args?.[name];
+    return typeof value === 'string' && value ? value : undefined;
   }
 
-  protected getInvocationStringArg(name: string): string | undefined {
-    const value = this.invocationContext?.[name];
-    return typeof value === 'string' && value ? value : undefined;
+  protected getSessionIdArg(
+    args?: Record<string, unknown>,
+  ): string | undefined {
+    return this.getStringArg(args, 'sessionId');
+  }
+
+  protected getAgentOptions(args?: Record<string, unknown>): {
+    sessionId?: string;
+  } {
+    return {
+      sessionId: this.getSessionIdArg(args),
+    };
+  }
+
+  protected shouldResetAgentForSession(sessionId?: string): boolean {
+    return !!this.agent && this.agent.opts?.sessionId !== sessionId;
   }
 
   private withSharedCliSchema(tool: ToolDefinition): ToolDefinition {
@@ -126,12 +136,12 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
 
     // 3. Generate tools from action space (core innovation)
     const actionTools = generateToolsFromActionSpace(actionSpace, (args) =>
-      this.runWithInvocationContext(args, () => this.ensureAgent()),
+      this.ensureAgent(undefined, this.getAgentOptions(args)),
     );
 
     // 4. Add common tools (screenshot, waitFor)
     const commonTools = generateCommonTools((args) =>
-      this.runWithInvocationContext(args, () => this.ensureAgent()),
+      this.ensureAgent(undefined, this.getAgentOptions(args)),
     );
 
     this.toolDefinitions.push(

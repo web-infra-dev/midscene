@@ -151,9 +151,16 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     });
   }
 
-  protected async ensureAgent(navigateToUrl?: string): Promise<PuppeteerAgent> {
-    // Re-init if URL provided
-    if (this.agent && navigateToUrl) {
+  protected async ensureAgent(
+    navigateToUrl?: string,
+    options?: { sessionId?: string },
+  ): Promise<PuppeteerAgent> {
+    const sessionId = options?.sessionId;
+    // Re-init if URL or session changes
+    if (
+      this.agent &&
+      (navigateToUrl || this.shouldResetAgentForSession(sessionId))
+    ) {
       try {
         await this.agent?.destroy?.();
       } catch {}
@@ -188,7 +195,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     }
 
     const sessionOptions = createSessionAgentOptions({
-      sessionId: this.getInvocationStringArg('sessionId'),
+      sessionId,
       platform: 'web',
     });
     this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
@@ -215,35 +222,30 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
             .optional()
             .describe('URL to open in new tab (omit to use current page)'),
         },
-        handler: async (args) =>
-          this.runWithInvocationContext(
-            args as Record<string, unknown>,
-            async () => {
-              const { url } = args as { url?: string };
+        handler: async (args) => {
+          const { url } = args as { url?: string };
+          const options = this.getAgentOptions(args as Record<string, unknown>);
 
-              // Destroy existing agent
-              if (this.agent) {
-                try {
-                  await this.agent.destroy?.();
-                } catch {}
-                this.agent = undefined;
-              }
+          // Destroy existing agent
+          if (this.agent) {
+            try {
+              await this.agent.destroy?.();
+            } catch {}
+            this.agent = undefined;
+          }
 
-              this.agent = await this.ensureAgent(url);
+          this.agent = await this.ensureAgent(url, options);
 
-              const screenshot = await this.agent.page?.screenshotBase64();
-              const label = url ?? 'current page';
+          const screenshot = await this.agent.page?.screenshotBase64();
+          const label = url ?? 'current page';
 
-              return {
-                content: [
-                  { type: 'text', text: `Connected to: ${label}` },
-                  ...(screenshot
-                    ? this.buildScreenshotContent(screenshot)
-                    : []),
-                ],
-              };
-            },
-          ),
+          return {
+            content: [
+              { type: 'text', text: `Connected to: ${label}` },
+              ...(screenshot ? this.buildScreenshotContent(screenshot) : []),
+            ],
+          };
+        },
       },
       {
         name: 'web_disconnect',

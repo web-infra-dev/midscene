@@ -3,12 +3,20 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import type { AgentOpt, IExecutionDump, IGroupedActionDump } from './types';
 import { ExecutionDump } from './types';
+
+const sessionLockRetryDelayMs = 20;
+const sessionLockTimeoutMs = 30_000;
+const sessionLockStaleMs = 5 * 60_000;
+const sessionLockSleepArray = new Int32Array(new SharedArrayBuffer(4));
 
 export interface PersistedSession {
   sessionId: string;
@@ -73,13 +81,81 @@ function orderedRootExecutionFiles(dir: string): string[] {
     );
 }
 
+function sleepSync(ms: number): void {
+  Atomics.wait(sessionLockSleepArray, 0, 0, ms);
+}
+
+function sessionDirPath(sessionId: string): string {
+  return join(getMidsceneRunSubDir('session'), sessionId);
+}
+
+function sessionLockDir(sessionId: string): string {
+  return join(sessionDirPath(sessionId), '.lock');
+}
+
+function isAlreadyExistsError(error: unknown): error is NodeJS.ErrnoException {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'EEXIST'
+  );
+}
+
+function withSessionLock<T>(sessionId: string, fn: () => T): T {
+  const dir = sessionDirPath(sessionId);
+  const lockDir = sessionLockDir(sessionId);
+  const lockDeadline = Date.now() + sessionLockTimeoutMs;
+
+  mkdirSync(dir, { recursive: true });
+
+  while (true) {
+    try {
+      mkdirSync(lockDir);
+      break;
+    } catch (error) {
+      if (!isAlreadyExistsError(error)) {
+        throw error;
+      }
+
+      try {
+        if (Date.now() - statSync(lockDir).mtimeMs > sessionLockStaleMs) {
+          rmSync(lockDir, { recursive: true, force: true });
+          continue;
+        }
+      } catch {
+        // Ignore stale-lock cleanup races and retry.
+      }
+
+      if (Date.now() >= lockDeadline) {
+        throw new Error(`Timed out waiting for session lock: ${sessionId}`);
+      }
+
+      sleepSync(sessionLockRetryDelayMs);
+    }
+  }
+
+  try {
+    return fn();
+  } finally {
+    rmSync(lockDir, { recursive: true, force: true });
+  }
+}
+
+function writeTextFileAtomic(filePath: string, content: string): void {
+  const tempFilePath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
+  writeFileSync(tempFilePath, content, 'utf-8');
+  rmSync(filePath, { force: true });
+  renameSync(tempFilePath, filePath);
+}
+
 export const SessionStore = {
   rootDir(): string {
     return getMidsceneRunSubDir('session');
   },
 
   sessionDir(sessionId: string): string {
-    return join(SessionStore.rootDir(), sessionId);
+    return sessionDirPath(sessionId);
   },
 
   agentFilePath(sessionId: string): string {
@@ -111,51 +187,52 @@ export const SessionStore = {
   save(session: PersistedSession): PersistedSession {
     mkdirSync(SessionStore.sessionDir(session.sessionId), { recursive: true });
     const normalized = normalizeSessionRecord(session);
-    writeFileSync(
+    writeTextFileAtomic(
       SessionStore.agentFilePath(normalized.sessionId),
       JSON.stringify(normalized, null, 2),
-      'utf-8',
     );
     return normalized;
   },
 
   ensureSession(input: EnsureSessionInput): PersistedSession {
-    const now = Date.now();
-    const filePath = SessionStore.agentFilePath(input.sessionId);
+    return withSessionLock(input.sessionId, () => {
+      const now = Date.now();
+      const filePath = SessionStore.agentFilePath(input.sessionId);
 
-    if (existsSync(filePath)) {
-      const existing = SessionStore.load(input.sessionId);
-      const mergedModelBriefs = new Set(existing.modelBriefs);
-      input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
-      const next: PersistedSession = {
-        ...existing,
-        platform: input.platform ?? existing.platform,
+      if (existsSync(filePath)) {
+        const existing = SessionStore.load(input.sessionId);
+        const mergedModelBriefs = new Set(existing.modelBriefs);
+        input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
+        const next: PersistedSession = {
+          ...existing,
+          platform: input.platform ?? existing.platform,
+          groupName:
+            input.groupName ??
+            existing.groupName ??
+            defaultGroupName(input.platform, input.sessionId),
+          groupDescription: input.groupDescription ?? existing.groupDescription,
+          sdkVersion: input.sdkVersion ?? existing.sdkVersion,
+          modelBriefs: [...mergedModelBriefs],
+          deviceType:
+            input.deviceType ?? existing.deviceType ?? existing.platform,
+          updatedAt: now,
+        };
+        return SessionStore.save(next);
+      }
+
+      return SessionStore.save({
+        sessionId: input.sessionId,
+        platform: input.platform,
         groupName:
-          input.groupName ??
-          existing.groupName ??
-          defaultGroupName(input.platform, input.sessionId),
-        groupDescription: input.groupDescription ?? existing.groupDescription,
-        sdkVersion: input.sdkVersion ?? existing.sdkVersion,
-        modelBriefs: [...mergedModelBriefs],
-        deviceType:
-          input.deviceType ?? existing.deviceType ?? existing.platform,
+          input.groupName ?? defaultGroupName(input.platform, input.sessionId),
+        groupDescription: input.groupDescription,
+        sdkVersion: input.sdkVersion ?? '',
+        modelBriefs: input.modelBriefs ?? [],
+        deviceType: input.deviceType ?? input.platform,
+        createdAt: now,
         updatedAt: now,
-      };
-      return SessionStore.save(next);
-    }
-
-    return SessionStore.save({
-      sessionId: input.sessionId,
-      platform: input.platform,
-      groupName:
-        input.groupName ?? defaultGroupName(input.platform, input.sessionId),
-      groupDescription: input.groupDescription,
-      sdkVersion: input.sdkVersion ?? '',
-      modelBriefs: input.modelBriefs ?? [],
-      deviceType: input.deviceType ?? input.platform,
-      createdAt: now,
-      updatedAt: now,
-      executionCount: 0,
+        executionCount: 0,
+      });
     });
   },
 
@@ -163,67 +240,80 @@ export const SessionStore = {
     sessionId: string,
     reportFilePath: string,
   ): PersistedSession {
-    const session = SessionStore.load(sessionId);
-    return SessionStore.save({
-      ...session,
-      reportFilePath,
-      updatedAt: Date.now(),
+    return withSessionLock(sessionId, () => {
+      const session = SessionStore.load(sessionId);
+      return SessionStore.save({
+        ...session,
+        reportFilePath,
+        updatedAt: Date.now(),
+      });
     });
   },
 
-  /**
-   * Allocate the next execution order number.
-   * Note: not safe under concurrent writes from multiple processes.
-   */
-  nextOrder(sessionId: string): number {
-    const session = SessionStore.load(sessionId);
-    const next = session.executionCount + 1;
-    SessionStore.save({
-      ...session,
-      executionCount: next,
-      updatedAt: Date.now(),
+  appendExecution(sessionId: string, execution: ExecutionDump): number {
+    return withSessionLock(sessionId, () => {
+      const session = SessionStore.load(sessionId);
+      const order = session.executionCount + 1;
+      const basePath = SessionStore.executionBasePath(sessionId, order);
+
+      ExecutionDump.cleanupFiles(basePath);
+      execution.serializeToFiles(basePath);
+      SessionStore.save({
+        ...session,
+        executionCount: order,
+        updatedAt: Date.now(),
+      });
+
+      return order;
     });
-    return next;
   },
 
-  /**
-   * Write (or overwrite) an execution at the given order slot.
-   */
-  persistExecution(
+  updateExecution(
     sessionId: string,
     order: number,
     execution: ExecutionDump,
   ): void {
-    const basePath = SessionStore.executionBasePath(sessionId, order);
-    ExecutionDump.cleanupFiles(basePath);
-    execution.serializeToFiles(basePath);
+    withSessionLock(sessionId, () => {
+      const session = SessionStore.load(sessionId);
+      const basePath = SessionStore.executionBasePath(sessionId, order);
+
+      ExecutionDump.cleanupFiles(basePath);
+      execution.serializeToFiles(basePath);
+      SessionStore.save({
+        ...session,
+        executionCount: Math.max(session.executionCount, order),
+        updatedAt: Date.now(),
+      });
+    });
   },
 
   buildSessionDump(sessionId: string): IGroupedActionDump {
-    const session = SessionStore.load(sessionId);
-    const rootExecutionFiles = orderedRootExecutionFiles(
-      SessionStore.sessionDir(sessionId),
-    );
+    return withSessionLock(sessionId, () => {
+      const session = SessionStore.load(sessionId);
+      const rootExecutionFiles = orderedRootExecutionFiles(
+        SessionStore.sessionDir(sessionId),
+      );
 
-    if (!rootExecutionFiles.length) {
-      throw new Error(`Session ${sessionId} has no persisted executions`);
-    }
+      if (!rootExecutionFiles.length) {
+        throw new Error(`Session ${sessionId} has no persisted executions`);
+      }
 
-    const executions: IExecutionDump[] = [];
-    for (const fileName of rootExecutionFiles) {
-      const basePath = join(SessionStore.sessionDir(sessionId), fileName);
-      const inlineJson = ExecutionDump.fromFilesAsInlineJson(basePath);
-      executions.push(JSON.parse(inlineJson) as IExecutionDump);
-    }
+      const executions: IExecutionDump[] = [];
+      for (const fileName of rootExecutionFiles) {
+        const basePath = join(SessionStore.sessionDir(sessionId), fileName);
+        const inlineJson = ExecutionDump.fromFilesAsInlineJson(basePath);
+        executions.push(JSON.parse(inlineJson) as IExecutionDump);
+      }
 
-    return {
-      sdkVersion: session.sdkVersion,
-      groupName: session.groupName,
-      groupDescription: session.groupDescription,
-      modelBriefs: session.modelBriefs,
-      executions,
-      deviceType: session.deviceType ?? session.platform,
-    };
+      return {
+        sdkVersion: session.sdkVersion,
+        groupName: session.groupName,
+        groupDescription: session.groupDescription,
+        modelBriefs: session.modelBriefs,
+        executions,
+        deviceType: session.deviceType ?? session.platform,
+      };
+    });
   },
 };
 

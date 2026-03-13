@@ -15,8 +15,15 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
     return new HarmonyDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(deviceId?: string): Promise<HarmonyAgent> {
-    if (this.agent && deviceId) {
+  protected async ensureAgent(
+    deviceId?: string,
+    options?: { sessionId?: string },
+  ): Promise<HarmonyAgent> {
+    const sessionId = options?.sessionId;
+    if (
+      this.agent &&
+      (deviceId || this.shouldResetAgentForSession(sessionId))
+    ) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -31,7 +38,7 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
 
     debug('Creating Harmony agent with deviceId:', deviceId || 'auto-detect');
     const sessionOptions = createSessionAgentOptions({
-      sessionId: this.getInvocationStringArg('sessionId'),
+      sessionId,
       platform: 'harmony',
     });
     const agent = await agentFromHdcDevice(deviceId, {
@@ -54,25 +61,24 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
             .optional()
             .describe('HarmonyOS device ID (from hdc list targets)'),
         },
-        handler: async (args: { deviceId?: string; sessionId?: string }) =>
-          this.runWithInvocationContext(
-            args as Record<string, unknown>,
-            async () => {
-              const agent = await this.ensureAgent(args.deviceId);
-              const screenshot = await agent.page.screenshotBase64();
+        handler: async (args: { deviceId?: string; sessionId?: string }) => {
+          const agent = await this.ensureAgent(
+            args.deviceId,
+            this.getAgentOptions(args as Record<string, unknown>),
+          );
+          const screenshot = await agent.page.screenshotBase64();
 
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `Connected to HarmonyOS device${args.deviceId ? `: ${args.deviceId}` : ' (auto-detected)'}`,
-                  },
-                  ...this.buildScreenshotContent(screenshot),
-                ],
-                isError: false,
-              };
-            },
-          ),
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Connected to HarmonyOS device${args.deviceId ? `: ${args.deviceId}` : ' (auto-detected)'}`,
+              },
+              ...this.buildScreenshotContent(screenshot),
+            ],
+            isError: false,
+          };
+        },
       },
       {
         name: 'harmony_disconnect',

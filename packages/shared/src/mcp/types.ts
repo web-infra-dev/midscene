@@ -81,6 +81,9 @@ export interface ActionSpaceItem {
 export interface BaseAgent {
   getActionSpace(): Promise<ActionSpaceItem[]>;
   destroy?(): Promise<void>;
+  opts?: {
+    sessionId?: string;
+  };
   page?: {
     screenshotBase64(): Promise<string>;
   };

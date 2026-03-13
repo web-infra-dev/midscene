@@ -22,9 +22,14 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
 
   protected async ensureAgent(
     displayId?: string,
-    headless?: boolean,
+    options?: { sessionId?: string; headless?: boolean },
   ): Promise<ComputerAgent> {
-    if (this.agent && displayId) {
+    const sessionId = options?.sessionId;
+    const headless = options?.headless;
+    if (
+      this.agent &&
+      (displayId || this.shouldResetAgentForSession(sessionId))
+    ) {
       // If a specific displayId is requested and we have an agent,
       // destroy it to create a new one with the new display
       try {
@@ -41,7 +46,7 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
     const sessionOptions = createSessionAgentOptions({
-      sessionId: this.getInvocationStringArg('sessionId'),
+      sessionId,
       platform: 'computer',
     });
     const opts = {
@@ -79,27 +84,23 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
           displayId?: string;
           headless?: boolean;
           sessionId?: string;
-        }) =>
-          this.runWithInvocationContext(
-            args as Record<string, unknown>,
-            async () => {
-              const agent = await this.ensureAgent(
-                args.displayId,
-                args.headless,
-              );
-              const screenshot = await agent.interface.screenshotBase64();
+        }) => {
+          const agent = await this.ensureAgent(args.displayId, {
+            ...this.getAgentOptions(args as Record<string, unknown>),
+            headless: args.headless,
+          });
+          const screenshot = await agent.interface.screenshotBase64();
 
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: `Connected to computer${args.displayId ? ` (Display: ${args.displayId})` : ' (Primary display)'}`,
-                  },
-                  ...this.buildScreenshotContent(screenshot),
-                ],
-              };
-            },
-          ),
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Connected to computer${args.displayId ? ` (Display: ${args.displayId})` : ' (Primary display)'}`,
+              },
+              ...this.buildScreenshotContent(screenshot),
+            ],
+          };
+        },
       },
       {
         name: 'computer_disconnect',

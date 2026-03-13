@@ -20,14 +20,28 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
     return new IOSDevice({});
   }
 
-  protected async ensureAgent(): Promise<IOSAgent> {
+  protected async ensureAgent(
+    _unused?: string,
+    options?: { sessionId?: string },
+  ): Promise<IOSAgent> {
+    const sessionId = options?.sessionId;
+
+    if (this.agent && this.shouldResetAgentForSession(sessionId)) {
+      try {
+        await this.agent.destroy?.();
+      } catch (error) {
+        debug('Failed to destroy agent during cleanup:', error);
+      }
+      this.agent = undefined;
+    }
+
     if (this.agent) {
       return this.agent;
     }
 
     debug('Creating iOS agent with WebDriverAgent');
     const sessionOptions = createSessionAgentOptions({
-      sessionId: this.getInvocationStringArg('sessionId'),
+      sessionId,
       platform: 'ios',
     });
     this.agent = await agentFromWebDriverAgent({
@@ -46,25 +60,24 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
         name: 'ios_connect',
         description: 'Connect to iOS device or simulator via WebDriverAgent',
         schema: {},
-        handler: async (args: { sessionId?: string }) =>
-          this.runWithInvocationContext(
-            args as Record<string, unknown>,
-            async () => {
-              const agent = await this.ensureAgent();
-              const screenshot = await agent.page.screenshotBase64();
+        handler: async (args: { sessionId?: string }) => {
+          const agent = await this.ensureAgent(
+            undefined,
+            this.getAgentOptions(args as Record<string, unknown>),
+          );
+          const screenshot = await agent.page.screenshotBase64();
 
-              return {
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Connected to iOS device',
-                  },
-                  ...this.buildScreenshotContent(screenshot),
-                ],
-                isError: false,
-              };
-            },
-          ),
+          return {
+            content: [
+              {
+                type: 'text',
+                text: 'Connected to iOS device',
+              },
+              ...this.buildScreenshotContent(screenshot),
+            ],
+            isError: false,
+          };
+        },
       },
       {
         name: 'ios_disconnect',

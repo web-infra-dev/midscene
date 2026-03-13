@@ -36,7 +36,7 @@ function resolveToolName(commandName: string): string {
     case 'disconnect':
       return 'web_disconnect';
     case 'export_session_report':
-      return 'web_export_session_report';
+      return 'export_session_report';
     case 'close':
       return 'web_close';
     default:

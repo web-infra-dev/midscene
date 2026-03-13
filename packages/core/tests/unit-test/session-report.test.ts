@@ -88,10 +88,8 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    const order = SessionStore.nextOrder(sessionId);
-    SessionStore.persistExecution(
+    const order = SessionStore.appendExecution(
       sessionId,
-      order,
       createExecutionDump({
         executionName: 'first-version',
         prompt: 'first prompt',
@@ -99,7 +97,7 @@ describe('SessionStore + exportSessionReport', () => {
     );
 
     // Overwrite same order slot with updated execution
-    SessionStore.persistExecution(
+    SessionStore.updateExecution(
       sessionId,
       order,
       createExecutionDump({
@@ -146,20 +144,16 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    const order1 = SessionStore.nextOrder(sessionId);
-    SessionStore.persistExecution(
+    SessionStore.appendExecution(
       sessionId,
-      order1,
       createExecutionDump({
         executionName: 'first execution',
         prompt: 'open page',
       }),
     );
 
-    const order2 = SessionStore.nextOrder(sessionId);
-    SessionStore.persistExecution(
+    SessionStore.appendExecution(
       sessionId,
-      order2,
       createExecutionDump({
         executionName: 'second execution',
         prompt: 'click button',
