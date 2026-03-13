@@ -1235,19 +1235,6 @@ export interface AgentOpt {
    * ```
    */
   createOpenAIClient?: CreateOpenAIClientFn;
-
-  /**
-   * Persist the latest snapshot of an execution whenever it updates.
-   * This is primarily used by stateless CLI flows that need to stitch
-   * together executions across separate processes.
-   */
-  onExecutionDumpUpdate?: (
-    execution: ExecutionDump,
-    metadata: {
-      executionIndex: number;
-      groupedDump: GroupedActionDump;
-    },
-  ) => Promise<void> | void;
 }
 
 export type TestStatus =
