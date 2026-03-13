@@ -6,7 +6,7 @@ import type { AbstractInterface } from '@/device';
 import { parseDumpScript } from '@/dump/html-utils';
 import { ScreenshotItem } from '@/screenshot-item';
 import { exportSessionReport } from '@/session-report';
-import { SessionStore } from '@/session-store';
+import { sessionStore } from '@/session-store';
 import {
   ExecutionDump,
   type IGroupedActionDump,
@@ -79,7 +79,7 @@ describe('SessionStore + exportSessionReport', () => {
   it('overwrites the same order slot without growing execution count', () => {
     const sessionId = 'session-upsert';
 
-    SessionStore.ensureSession({
+    sessionStore.ensureSession({
       sessionId,
       platform: 'web',
       groupName: 'Session Upsert',
@@ -88,7 +88,7 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    const order = SessionStore.appendExecution(
+    const order = sessionStore.appendExecution(
       sessionId,
       createExecutionDump({
         executionName: 'first-version',
@@ -97,7 +97,7 @@ describe('SessionStore + exportSessionReport', () => {
     );
 
     // Overwrite same order slot with updated execution
-    SessionStore.updateExecution(
+    sessionStore.updateExecution(
       sessionId,
       order,
       createExecutionDump({
@@ -106,8 +106,8 @@ describe('SessionStore + exportSessionReport', () => {
       }),
     );
 
-    const session = SessionStore.load(sessionId);
-    const dump = SessionStore.buildSessionDump(sessionId);
+    const session = sessionStore.load(sessionId);
+    const dump = sessionStore.buildSessionDump(sessionId);
 
     expect(session.executionCount).toBe(1);
     expect(dump.executions).toHaveLength(1);
@@ -122,7 +122,7 @@ describe('SessionStore + exportSessionReport', () => {
       modelConfig: mockedModelConfig,
     });
 
-    const persistedSession = SessionStore.load(sessionId);
+    const persistedSession = sessionStore.load(sessionId);
 
     expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
       true,
@@ -134,7 +134,7 @@ describe('SessionStore + exportSessionReport', () => {
   it('exports a merged report from persisted session shards', () => {
     const sessionId = 'session-export';
 
-    SessionStore.ensureSession({
+    sessionStore.ensureSession({
       sessionId,
       platform: 'web',
       groupName: 'Merged Session',
@@ -144,7 +144,7 @@ describe('SessionStore + exportSessionReport', () => {
       deviceType: 'web',
     });
 
-    SessionStore.appendExecution(
+    sessionStore.appendExecution(
       sessionId,
       createExecutionDump({
         executionName: 'first execution',
@@ -152,7 +152,7 @@ describe('SessionStore + exportSessionReport', () => {
       }),
     );
 
-    SessionStore.appendExecution(
+    sessionStore.appendExecution(
       sessionId,
       createExecutionDump({
         executionName: 'second execution',
@@ -176,7 +176,7 @@ describe('SessionStore + exportSessionReport', () => {
         }
       ).screenshot?.base64,
     ).toContain('data:image/png;base64,');
-    expect(SessionStore.load(sessionId).reportFilePath).toBe(reportPath);
+    expect(sessionStore.load(sessionId).reportFilePath).toBe(reportPath);
     expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
       true,
     );

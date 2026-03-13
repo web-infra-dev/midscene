@@ -53,7 +53,7 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
 import { exportSessionReport } from '@/session-report';
-import { SessionStore } from '@/session-store';
+import { sessionStore } from '@/session-store';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -419,7 +419,7 @@ export class Agent<
   }
 
   private syncSessionMetadata(): void {
-    SessionStore.ensureSession({
+    sessionStore.ensureSession({
       sessionId: this.opts.sessionId!,
       platform: this.interface.interfaceType,
       groupName: this.opts.groupName,
@@ -436,12 +436,12 @@ export class Agent<
   ): void {
     let order = this.sessionExecutionOrders[executionIndex];
     if (order === undefined) {
-      order = SessionStore.appendExecution(this.opts.sessionId!, execution);
+      order = sessionStore.appendExecution(this.opts.sessionId!, execution);
       this.sessionExecutionOrders[executionIndex] = order;
       return;
     }
 
-    SessionStore.updateExecution(this.opts.sessionId!, order, execution);
+    sessionStore.updateExecution(this.opts.sessionId!, order, execution);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {

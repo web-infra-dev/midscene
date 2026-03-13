@@ -32,7 +32,7 @@ export interface PersistedSession {
   reportFilePath?: string;
 }
 
-interface EnsureSessionInput {
+export interface EnsureSessionInput {
   sessionId: string;
   platform: string;
   groupName?: string;
@@ -160,31 +160,31 @@ function writeTextFileAtomic(filePath: string, content: string): void {
   renameSync(tempFilePath, filePath);
 }
 
-export const SessionStore = {
+export class SessionStore {
   rootDir(): string {
     return getMidsceneRunSubDir('session');
-  },
+  }
 
   sessionDir(sessionId: string): string {
     return sessionDirPath(sessionId);
-  },
+  }
 
   agentFilePath(sessionId: string): string {
-    return join(SessionStore.sessionDir(sessionId), 'agent.json');
-  },
+    return join(this.sessionDir(sessionId), 'agent.json');
+  }
 
   executionBasePath(sessionId: string, order: number): string {
-    return join(SessionStore.sessionDir(sessionId), `${order}.json`);
-  },
+    return join(this.sessionDir(sessionId), `${order}.json`);
+  }
 
   reportDir(sessionId: string): string {
-    const dir = join(SessionStore.sessionDir(sessionId), 'report');
+    const dir = join(this.sessionDir(sessionId), 'report');
     mkdirSync(dir, { recursive: true });
     return dir;
-  },
+  }
 
   load(sessionId: string): PersistedSession {
-    const filePath = SessionStore.agentFilePath(sessionId);
+    const filePath = this.agentFilePath(sessionId);
 
     if (!existsSync(filePath)) {
       throw new Error(`Session not found: ${sessionId}`);
@@ -193,25 +193,25 @@ export const SessionStore = {
     return normalizeSessionRecord(
       JSON.parse(readFileSync(filePath, 'utf-8')) as PersistedSession,
     );
-  },
+  }
 
   save(session: PersistedSession): PersistedSession {
-    mkdirSync(SessionStore.sessionDir(session.sessionId), { recursive: true });
+    mkdirSync(this.sessionDir(session.sessionId), { recursive: true });
     const normalized = normalizeSessionRecord(session);
     writeTextFileAtomic(
-      SessionStore.agentFilePath(normalized.sessionId),
+      this.agentFilePath(normalized.sessionId),
       JSON.stringify(normalized, null, 2),
     );
     return normalized;
-  },
+  }
 
   ensureSession(input: EnsureSessionInput): PersistedSession {
     return withSessionLock(input.sessionId, () => {
       const now = Date.now();
-      const filePath = SessionStore.agentFilePath(input.sessionId);
+      const filePath = this.agentFilePath(input.sessionId);
 
       if (existsSync(filePath)) {
-        const existing = SessionStore.load(input.sessionId);
+        const existing = this.load(input.sessionId);
         const mergedModelBriefs = new Set(existing.modelBriefs);
         input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
         const next: PersistedSession = {
@@ -228,10 +228,10 @@ export const SessionStore = {
             input.deviceType ?? existing.deviceType ?? existing.platform,
           updatedAt: now,
         };
-        return SessionStore.save(next);
+        return this.save(next);
       }
 
-      return SessionStore.save({
+      return this.save({
         sessionId: input.sessionId,
         platform: input.platform,
         groupName:
@@ -245,31 +245,31 @@ export const SessionStore = {
         executionCount: 0,
       });
     });
-  },
+  }
 
   markReportGenerated(
     sessionId: string,
     reportFilePath: string,
   ): PersistedSession {
     return withSessionLock(sessionId, () => {
-      const session = SessionStore.load(sessionId);
-      return SessionStore.save({
+      const session = this.load(sessionId);
+      return this.save({
         ...session,
         reportFilePath,
         updatedAt: Date.now(),
       });
     });
-  },
+  }
 
   appendExecution(sessionId: string, execution: ExecutionDump): number {
     return withSessionLock(sessionId, () => {
-      const session = SessionStore.load(sessionId);
+      const session = this.load(sessionId);
       const order = session.executionCount + 1;
-      const basePath = SessionStore.executionBasePath(sessionId, order);
+      const basePath = this.executionBasePath(sessionId, order);
 
       ExecutionDump.cleanupFiles(basePath);
       execution.serializeToFiles(basePath);
-      SessionStore.save({
+      this.save({
         ...session,
         executionCount: order,
         updatedAt: Date.now(),
@@ -277,7 +277,7 @@ export const SessionStore = {
 
       return order;
     });
-  },
+  }
 
   updateExecution(
     sessionId: string,
@@ -285,24 +285,24 @@ export const SessionStore = {
     execution: ExecutionDump,
   ): void {
     withSessionLock(sessionId, () => {
-      const session = SessionStore.load(sessionId);
-      const basePath = SessionStore.executionBasePath(sessionId, order);
+      const session = this.load(sessionId);
+      const basePath = this.executionBasePath(sessionId, order);
 
       ExecutionDump.cleanupFiles(basePath);
       execution.serializeToFiles(basePath);
-      SessionStore.save({
+      this.save({
         ...session,
         executionCount: Math.max(session.executionCount, order),
         updatedAt: Date.now(),
       });
     });
-  },
+  }
 
   buildSessionDump(sessionId: string): IGroupedActionDump {
     return withSessionLock(sessionId, () => {
-      const session = SessionStore.load(sessionId);
+      const session = this.load(sessionId);
       const rootExecutionFiles = orderedRootExecutionFiles(
-        SessionStore.sessionDir(sessionId),
+        this.sessionDir(sessionId),
       );
 
       if (!rootExecutionFiles.length) {
@@ -311,7 +311,7 @@ export const SessionStore = {
 
       const executions: IExecutionDump[] = [];
       for (const fileName of rootExecutionFiles) {
-        const basePath = join(SessionStore.sessionDir(sessionId), fileName);
+        const basePath = join(this.sessionDir(sessionId), fileName);
         const inlineJson = ExecutionDump.fromFilesAsInlineJson(basePath);
         executions.push(JSON.parse(inlineJson) as IExecutionDump);
       }
@@ -325,8 +325,11 @@ export const SessionStore = {
         deviceType: session.deviceType ?? session.platform,
       };
     });
-  },
-};
+  }
+}
+
+/** Default shared instance for convenience. */
+export const sessionStore = new SessionStore();
 
 export function createSessionAgentOptions(input: {
   sessionId?: string;

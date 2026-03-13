@@ -64,7 +64,12 @@ export {
 } from './dump';
 
 // Session persistence & report
-export { SessionStore, createSessionAgentOptions } from './session-store';
+export {
+  SessionStore,
+  sessionStore,
+  createSessionAgentOptions,
+} from './session-store';
+export type { EnsureSessionInput } from './session-store';
 export {
   exportSessionReport,
   createExportSessionReportTool,
