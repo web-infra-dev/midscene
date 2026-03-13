@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
+import type { Agent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import cors, { type CorsOptions } from 'cors';
 import PlaygroundServer from './server';
@@ -179,11 +179,7 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
         }
       }
 
-      const server = new PlaygroundServer(
-        agentOrFactory as PageAgent | AgentFactory,
-        staticPath,
-        id,
-      );
+      const server = new PlaygroundServer(agentOrFactory, staticPath, id);
 
       if (enableCors) {
         server.app.use(cors(corsOptions));
@@ -193,7 +189,7 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
         await configureServer(server);
       }
 
-      const launchedServer = (await server.launch(port)) as PlaygroundServer;
+      const launchedServer = await server.launch(port);
 
       if (verbose) {
         console.log(`✅ Playground server started on port ${port}`);

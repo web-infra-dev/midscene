@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ServerOfflineBackground from './icons/server-offline-background.svg';
 import ServerOfflineForeground from './icons/server-offline-foreground.svg';
+import { useServerStatus } from './useServerStatus';
 import './PlaygroundApp.less';
 
 const { Content } = Layout;
@@ -44,66 +45,20 @@ export function PlaygroundApp({
   offlineStatusText = 'Server offline...',
   pollIntervalMs = 5000,
 }: PlaygroundAppProps) {
-  const [serverOnline, setServerOnline] = useState(false);
-  const [isUserOperating, setIsUserOperating] = useState(false);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
-  const [deviceType, setDeviceType] = useState<DeviceType>(defaultDeviceType);
 
   const playgroundSDK = useMemo(() => {
-    const sdk = new PlaygroundSDK({
+    return new PlaygroundSDK({
       type: 'remote-execution',
       serverUrl,
     });
-
-    sdk.onProgressUpdate((tip: string) => {
-      setIsUserOperating(Boolean(tip));
-    });
-
-    return sdk;
   }, [serverUrl]);
 
-  useEffect(() => {
-    let active = true;
-
-    const checkServer = async () => {
-      try {
-        const online = await playgroundSDK.checkStatus();
-        if (!active) return;
-        setServerOnline(online);
-
-        if (!online) return;
-
-        try {
-          const interfaceInfo = await playgroundSDK.getInterfaceInfo();
-          if (!active || !interfaceInfo?.type) return;
-
-          const type = interfaceInfo.type.toLowerCase();
-          if (
-            type === 'android' ||
-            type === 'ios' ||
-            type === 'web' ||
-            type === 'harmony'
-          ) {
-            setDeviceType(type);
-          }
-        } catch (error) {
-          console.warn('Failed to get interface info:', error);
-        }
-      } catch (error) {
-        if (!active) return;
-        console.error('Failed to check server status:', error);
-        setServerOnline(false);
-      }
-    };
-
-    checkServer();
-    const interval = window.setInterval(checkServer, pollIntervalMs);
-
-    return () => {
-      active = false;
-      window.clearInterval(interval);
-    };
-  }, [playgroundSDK, pollIntervalMs]);
+  const { serverOnline, isUserOperating, deviceType } = useServerStatus(
+    playgroundSDK,
+    defaultDeviceType,
+    pollIntervalMs,
+  );
 
   useEffect(() => {
     const handleResize = () => {

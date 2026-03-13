@@ -112,14 +112,14 @@ const main = async () => {
         openBrowser: false,
         verbose: false,
         staticPath: staticDir,
+        configureServer(server) {
+          server.scrcpyPort = availableScrcpyPort;
+        },
       }),
       scrcpyServer.launch(availableScrcpyPort),
     ]);
 
     const playgroundServer = playgroundResult.server;
-
-    // Store scrcpy server port in global for playground server to access
-    (global as any).scrcpyServerPort = availableScrcpyPort;
 
     console.log('');
     console.log('✨ Midscene Android Playground is ready!');

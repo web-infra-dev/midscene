@@ -16,5 +16,3 @@ declare module '*.svg?react' {
   >;
   export default ReactComponent;
 }
-
-declare const __VERSION__: string;

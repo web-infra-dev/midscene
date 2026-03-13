@@ -9,6 +9,7 @@ import { playgroundForAgentFactory } from '@midscene/playground';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
 import puppeteer from 'puppeteer';
+import { BrowserWindowController } from './browser-window-controller';
 
 const staticDir = path.join(__dirname, '../../static');
 
@@ -34,16 +35,10 @@ const main = async () => {
       }
     }
 
-    // Store window control handles (will be initialized after browser launch)
-    let windowController: {
-      session: any;
-      page: any;
-      windowId: number;
-    } | null = null;
+    let windowController: BrowserWindowController | null = null;
 
     console.log('🚀 Starting server...');
 
-    // Find available port
     const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
 
     if (availablePort !== PLAYGROUND_SERVER_PORT) {
@@ -69,36 +64,12 @@ const main = async () => {
             return;
           }
 
-          const { session, page, windowId } = windowController;
-
           await new Promise((resolve) => setTimeout(resolve, 1500));
-
-          try {
-            await session.send('Browser.setWindowBounds', {
-              windowId,
-              bounds: { windowState: 'minimized' },
-            });
-            console.log('🔽 Window minimized, starting task execution...');
-          } catch (error) {
-            console.warn('⚠️  Failed to minimize window:', error);
-          }
+          await windowController.minimize();
 
           const originalSend = res.send.bind(res);
           res.send = (body: any) => {
-            Promise.all([
-              session.send('Browser.setWindowBounds', {
-                windowId,
-                bounds: { windowState: 'normal' },
-              }),
-              page.bringToFront(),
-            ])
-              .then(() => {
-                console.log('🔼 Window restored');
-              })
-              .catch((error) => {
-                console.warn('⚠️  Failed to restore window:', error);
-              });
-
+            windowController?.restore();
             return originalSend(body);
           };
 
@@ -159,12 +130,14 @@ const main = async () => {
     const page = pages[0];
     const session = await page.createCDPSession();
     const windowInfo = await session.send('Browser.getWindowForTarget');
-    const windowId = windowInfo.windowId;
 
-    console.log(`🪟 Window ID: ${windowId}`);
+    console.log(`🪟 Window ID: ${windowInfo.windowId}`);
 
-    // Initialize window controller
-    windowController = { session, page, windowId };
+    windowController = new BrowserWindowController(
+      session,
+      page,
+      windowInfo.windowId,
+    );
     console.log('✅ Window controller initialized');
 
     // Handle cleanup on process exit

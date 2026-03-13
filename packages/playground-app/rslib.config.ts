@@ -3,8 +3,6 @@ import { pluginNodePolyfill } from '@rsbuild/plugin-node-polyfill';
 import { pluginReact } from '@rsbuild/plugin-react';
 import { pluginSvgr } from '@rsbuild/plugin-svgr';
 import { defineConfig } from '@rslib/core';
-import { version } from './package.json';
-
 export default defineConfig({
   lib: [
     {
@@ -34,9 +32,6 @@ export default defineConfig({
   source: {
     entry: {
       index: ['./src/**'],
-    },
-    define: {
-      __VERSION__: JSON.stringify(version),
     },
   },
   output: {
