@@ -5,15 +5,18 @@ import {
 } from '@midscene/shared/env';
 import { logMsg } from '@midscene/shared/utils';
 import { z } from 'zod';
-import { SessionStore } from './session-store';
+import { ExecutionStore } from './execution-store';
 import { reportHTMLContent } from './utils';
 
-export function exportSessionReport(sessionId: string): string {
-  const dump = SessionStore.buildSessionDump(sessionId);
-  const reportPath = join(SessionStore.reportDir(sessionId), 'index.html');
+export function exportSessionReport(
+  sessionId: string,
+  store: ExecutionStore = new ExecutionStore(),
+): string {
+  const dump = store.buildGroupedDump(sessionId);
+  const reportPath = join(store.reportDir(sessionId), 'index.html');
 
   reportHTMLContent(JSON.stringify(dump), reportPath, false);
-  SessionStore.markReportGenerated(sessionId, reportPath);
+  store.markReportGenerated(sessionId, reportPath);
 
   if (!globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) {
     logMsg(`Midscene - report generated: ${reportPath}`);
