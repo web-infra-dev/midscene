@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { input, select } from '@inquirer/prompts';
-import { PlaygroundServer } from '@midscene/playground';
+import { playgroundForAgentFactory } from '@midscene/playground';
 import {
   DEFAULT_WDA_PORT,
   PLAYGROUND_SERVER_PORT,
@@ -144,9 +144,6 @@ const main = async () => {
       return new IOSAgent(newDevice);
     };
 
-    // Create PlaygroundServer with agent factory
-    const playgroundServer = new PlaygroundServer(agentFactory, staticDir);
-
     console.log('🚀 Starting server...');
 
     // Find available port
@@ -160,7 +157,14 @@ const main = async () => {
       );
     }
 
-    await playgroundServer.launch(availablePlaygroundPort);
+    const { server: playgroundServer } = await playgroundForAgentFactory(
+      agentFactory,
+    ).launch({
+      port: availablePlaygroundPort,
+      openBrowser: false,
+      verbose: false,
+      staticPath: staticDir,
+    });
 
     console.log('');
     console.log('✨ Midscene iOS Playground is ready!');

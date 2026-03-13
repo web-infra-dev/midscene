@@ -49,6 +49,12 @@ class PlaygroundServer {
   taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
 
+  /**
+   * Port for scrcpy server (used by Android playground for screen mirroring)
+   * When set, this port is injected into the HTML page as window.SCRCPY_PORT
+   */
+  scrcpyPort?: number;
+
   private _initialized = false;
 
   // Native MJPEG stream probe: null = not tested, true/false = result
@@ -440,8 +446,6 @@ class PlaygroundServer {
         requestId,
       };
 
-      // Pause MJPEG polling during execution to avoid ADB contention
-      this._agentReady = false;
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
@@ -495,8 +499,6 @@ class PlaygroundServer {
           `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
         );
       } finally {
-        // Resume MJPEG polling after execution
-        this._agentReady = true;
       }
 
       res.send(response);
@@ -855,8 +857,7 @@ class PlaygroundServer {
       const htmlPath = join(this.staticPath, 'index.html');
       let html = readFileSync(htmlPath, 'utf8');
 
-      // Get scrcpy server port from global
-      const scrcpyPort = (global as any).scrcpyServerPort || this.port! + 1;
+      const scrcpyPort = this.scrcpyPort ?? this.port! + 1;
 
       // Inject scrcpy port configuration script into HTML head
       const configScript = `

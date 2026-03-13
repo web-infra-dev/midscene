@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process';
-import type { Agent, Agent as PageAgent } from '@midscene/core/agent';
+import type { Agent } from '@midscene/core/agent';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
 import PlaygroundServer from './server';
+import type { AgentFactory } from './types';
 
 export interface LaunchPlaygroundOptions {
   /**
@@ -44,15 +45,22 @@ export interface LaunchPlaygroundOptions {
   enableCors?: boolean;
 
   /**
-   * CORS configuration options
-   * @default { origin: '*', credentials: true } when enableCors is true
+   * Custom static assets directory for the playground frontend
+   * @default bundled static assets from @midscene/playground
    */
-  corsOptions?: {
-    origin?: string | boolean | string[];
-    credentials?: boolean;
-    methods?: string[];
-    allowedHeaders?: string[];
-  };
+  staticPath?: string;
+
+  /**
+   * Hook for configuring the PlaygroundServer before launch
+   * Useful for adding custom middleware beyond the built-in CORS option
+   */
+  configureServer?: (server: PlaygroundServer) => void | Promise<void>;
+
+  /**
+   * CORS configuration options
+   * @default only allows loopback browser origins when enableCors is true
+   */
+  corsOptions?: CorsOptions;
 }
 
 export interface LaunchPlaygroundResult {
@@ -75,6 +83,32 @@ export interface LaunchPlaygroundResult {
    * Function to gracefully shutdown the playground
    */
   close: () => Promise<void>;
+}
+
+type LaunchableAgentSource = Agent | AgentFactory;
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+function isLoopbackOrigin(origin?: string) {
+  if (!origin) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    return LOOPBACK_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function createDefaultCorsOptions(): CorsOptions {
+  return {
+    origin(origin, callback) {
+      callback(null, isLoopbackOrigin(origin));
+    },
+    credentials: true,
+  };
 }
 
 /**
@@ -104,7 +138,7 @@ export interface LaunchPlaygroundResult {
  * server.close();
  * ```
  */
-export function playgroundForAgent(agent: Agent) {
+function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
   return {
     /**
      * Launch the playground server with optional configuration
@@ -119,38 +153,43 @@ export function playgroundForAgent(agent: Agent) {
         verbose = true,
         id,
         enableCors = false,
-        corsOptions = { origin: '*', credentials: true },
+        staticPath,
+        configureServer,
+        corsOptions = createDefaultCorsOptions(),
       } = options;
 
-      // Extract agent components - Agent has interface property
-      const webPage = agent.interface;
-      if (!webPage) {
+      if (typeof agentOrFactory !== 'function' && !agentOrFactory.interface) {
         throw new Error('Agent must have an interface property');
       }
 
       if (verbose) {
         console.log('🚀 Starting Midscene Playground...');
-        console.log(`📱 Agent: ${agent.constructor.name}`);
-        console.log(`🖥️ Page: ${webPage.constructor.name}`);
+        if (typeof agentOrFactory === 'function') {
+          console.log('📱 Agent: factory');
+        } else {
+          console.log(`📱 Agent: ${agentOrFactory.constructor.name}`);
+          console.log(`🖥️ Page: ${agentOrFactory.interface.constructor.name}`);
+        }
         console.log(`🌐 Port: ${port}`);
+        if (staticPath) {
+          console.log(`📁 Static path: ${staticPath}`);
+        }
         if (enableCors) {
           console.log('🔓 CORS enabled');
         }
       }
 
-      // Create and launch the server with agent instance
-      const server = new PlaygroundServer(
-        agent as unknown as PageAgent,
-        undefined, // staticPath - use default
-        id, // Optional override ID (usually not needed now)
-      );
+      const server = new PlaygroundServer(agentOrFactory, staticPath, id);
 
-      // Register CORS middleware if enabled
       if (enableCors) {
         server.app.use(cors(corsOptions));
       }
 
-      const launchedServer = (await server.launch(port)) as PlaygroundServer;
+      if (configureServer) {
+        await configureServer(server);
+      }
+
+      const launchedServer = await server.launch(port);
 
       if (verbose) {
         console.log(`✅ Playground server started on port ${port}`);
@@ -187,6 +226,21 @@ export function playgroundForAgent(agent: Agent) {
       };
     },
   };
+}
+
+/**
+ * Create a playground launcher from an already initialized agent instance
+ */
+export function playgroundForAgent(agent: Agent) {
+  return createPlaygroundLauncher(agent);
+}
+
+/**
+ * Create a playground launcher from an agent factory
+ * Useful for device-backed agents that need to be recreated after cancellation
+ */
+export function playgroundForAgentFactory(agentFactory: AgentFactory) {
+  return createPlaygroundLauncher(agentFactory);
 }
 
 /**
