@@ -42,6 +42,16 @@ export type TestStatus =
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
+import type {
+  AgentExecutionEvent,
+  AgentExecutionEventPayload,
+  ExecutionUpdatedEvent,
+  ReportFlushedEvent,
+  ScreenshotArtifactRef,
+  SerializedDumpObject,
+  SerializedExecutionDumpObject,
+} from '@/dump/runtime-artifact-store';
+import { RuntimeArtifactStore } from '@/dump/runtime-artifact-store';
 import type { IReportGenerator } from '@/report-generator';
 import { ReportGenerator } from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
@@ -175,6 +185,10 @@ export class Agent<
     (dump: string, executionDump?: ExecutionDump) => void
   > = [];
 
+  private executionEventListeners: Array<
+    (payload: AgentExecutionEventPayload) => void
+  > = [];
+
   get onDumpUpdate():
     | ((dump: string, executionDump?: ExecutionDump) => void)
     | undefined {
@@ -215,6 +229,10 @@ export class Agent<
   private fullActionSpace: DeviceAction[];
 
   private reportGenerator: IReportGenerator;
+
+  private runtimeArtifactStore: RuntimeArtifactStore | null = null;
+
+  private executionEventVersion = 0;
 
   // @deprecated use .interface instead
   get page() {
@@ -331,19 +349,7 @@ export class Agent<
         onTaskUpdate: (runner) => {
           const executionDump = runner.dump();
           this.appendExecutionDump(executionDump, runner);
-
-          // Call all registered dump update listeners
-          const dumpString = this.dumpDataString();
-          for (const listener of this.dumpUpdateListeners) {
-            try {
-              listener(dumpString, executionDump);
-            } catch (error) {
-              console.error('Error in onDumpUpdate listener', error);
-            }
-          }
-
-          // Fire and forget - don't block task execution
-          this.writeOutActionDumps();
+          this.syncRuntimeArtifactsAndNotify(executionDump);
         },
       },
     });
@@ -351,6 +357,10 @@ export class Agent<
     this.reportFileName =
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
+
+    this.runtimeArtifactStore = ifInBrowser
+      ? null
+      : new RuntimeArtifactStore(this.reportFileName!);
 
     this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
       generateReport: this.opts.generateReport,
@@ -404,6 +414,13 @@ export class Agent<
   }
 
   resetDump() {
+    if (this.runtimeArtifactStore) {
+      this.runtimeArtifactStore.cleanup();
+      this.runtimeArtifactStore = this.reportFileName
+        ? new RuntimeArtifactStore(this.reportFileName)
+        : null;
+    }
+
     this.dump = new GroupedActionDump({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
@@ -413,6 +430,7 @@ export class Agent<
       deviceType: this.interface.interfaceType,
     });
     this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+    this.executionEventVersion = 0;
 
     return this.dump;
   }
@@ -433,6 +451,115 @@ export class Agent<
       return;
     }
     currentDump.executions.push(execution);
+  }
+
+  private fallbackSnapshot(): SerializedDumpObject {
+    return JSON.parse(
+      this.dump.serializeWithInlineScreenshots(),
+    ) as SerializedDumpObject;
+  }
+
+  private fallbackExecutionDumpSnapshot(
+    executionDump: ExecutionDump,
+  ): SerializedExecutionDumpObject {
+    const groupedDump = new GroupedActionDump({
+      sdkVersion: this.dump.sdkVersion,
+      groupName: this.dump.groupName,
+      groupDescription: this.dump.groupDescription,
+      modelBriefs: this.dump.modelBriefs,
+      executions: [executionDump],
+      deviceType: this.dump.deviceType,
+    });
+    const snapshot = JSON.parse(
+      groupedDump.serializeWithInlineScreenshots(),
+    ) as SerializedDumpObject;
+    const executions = snapshot.executions as unknown[] | undefined;
+    return (executions?.[0] ?? {}) as SerializedExecutionDumpObject;
+  }
+
+  private getSerializedSnapshot(): SerializedDumpObject {
+    return this.runtimeArtifactStore?.getSnapshot() ?? this.fallbackSnapshot();
+  }
+
+  private emitExecutionEvent(
+    event: AgentExecutionEvent,
+    snapshot: SerializedDumpObject,
+  ): void {
+    if (this.executionEventListeners.length === 0) {
+      return;
+    }
+
+    const payload: AgentExecutionEventPayload = {
+      event,
+      getSnapshot: () => snapshot,
+      hydrateImage: async (ref: ScreenshotArtifactRef) => {
+        return this.hydrateExecutionArtifact(ref);
+      },
+    };
+
+    for (const listener of this.executionEventListeners) {
+      try {
+        listener(payload);
+      } catch (error) {
+        console.error('Error in onExecutionEvent listener', error);
+      }
+    }
+  }
+
+  private emitLegacyDumpUpdate(
+    snapshot: SerializedDumpObject,
+    executionDump?: ExecutionDump,
+  ): void {
+    if (this.dumpUpdateListeners.length === 0) {
+      return;
+    }
+
+    const dumpString = JSON.stringify(snapshot);
+    for (const listener of this.dumpUpdateListeners) {
+      try {
+        listener(dumpString, executionDump);
+      } catch (error) {
+        console.error('Error in onDumpUpdate listener', error);
+      }
+    }
+  }
+
+  private syncRuntimeArtifactsAndNotify(executionDump?: ExecutionDump): void {
+    const snapshot =
+      this.runtimeArtifactStore?.writeSnapshot(this.dump) ??
+      this.fallbackSnapshot();
+
+    if (executionDump) {
+      const executionDumpSnapshot =
+        this.runtimeArtifactStore?.serializeExecutionDump(executionDump) ??
+        this.fallbackExecutionDumpSnapshot(executionDump);
+
+      const event: ExecutionUpdatedEvent = {
+        type: 'execution_updated',
+        version: ++this.executionEventVersion,
+        timestamp: Date.now(),
+        executionDump: executionDumpSnapshot,
+      };
+
+      this.runtimeArtifactStore?.appendEvent(event);
+      this.emitExecutionEvent(event, snapshot);
+    }
+
+    this.emitLegacyDumpUpdate(snapshot, executionDump);
+  }
+
+  getExecutionSnapshot(): SerializedDumpObject {
+    return this.getSerializedSnapshot();
+  }
+
+  async hydrateExecutionArtifact(ref: ScreenshotArtifactRef): Promise<string> {
+    if (this.runtimeArtifactStore) {
+      return this.runtimeArtifactStore.resolveImage(ref);
+    }
+
+    throw new Error(
+      `Cannot hydrate execution artifact ${ref.id} without a runtime artifact store`,
+    );
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
@@ -1235,6 +1362,16 @@ export class Agent<
     };
   }
 
+  addExecutionEventListener(
+    listener: (payload: AgentExecutionEventPayload) => void,
+  ): () => void {
+    this.executionEventListeners.push(listener);
+
+    return () => {
+      this.removeExecutionEventListener(listener);
+    };
+  }
+
   /**
    * Remove a dump update listener
    * @param listener The listener function to remove
@@ -1248,11 +1385,24 @@ export class Agent<
     }
   }
 
+  removeExecutionEventListener(
+    listener: (payload: AgentExecutionEventPayload) => void,
+  ): void {
+    const index = this.executionEventListeners.indexOf(listener);
+    if (index > -1) {
+      this.executionEventListeners.splice(index, 1);
+    }
+  }
+
   /**
    * Clear all dump update listeners
    */
   clearDumpUpdateListeners(): void {
     this.dumpUpdateListeners = [];
+  }
+
+  clearExecutionEventListeners(): void {
+    this.executionEventListeners = [];
   }
 
   async destroy() {
@@ -1261,13 +1411,24 @@ export class Agent<
       return;
     }
 
-    // Wait for all queued write operations to complete
-    await this.reportGenerator.flush();
-
     await this.reportGenerator.finalize(this.dump);
     this.reportFile = this.reportGenerator.getReportPath();
 
+    const snapshot = this.getSerializedSnapshot();
+    const event: ReportFlushedEvent = {
+      type: 'report_flushed',
+      version: ++this.executionEventVersion,
+      timestamp: Date.now(),
+      reportFile: this.reportFile,
+    };
+    this.runtimeArtifactStore?.appendEvent(event);
+    this.emitExecutionEvent(event, snapshot);
+
     await this.interface.destroy?.();
+    this.runtimeArtifactStore?.cleanup();
+    this.runtimeArtifactStore = null;
+    this.clearDumpUpdateListeners();
+    this.clearExecutionEventListeners();
     this.resetDump(); // reset dump to release memory
     this.destroyed = true;
   }
@@ -1316,17 +1477,7 @@ export class Agent<
     });
     // 5. append to execution dump
     this.appendExecutionDump(executionDump);
-
-    // Call all registered dump update listeners
-    const dumpString = this.dumpDataString();
-    for (const listener of this.dumpUpdateListeners) {
-      try {
-        listener(dumpString);
-      } catch (error) {
-        console.error('Error in onDumpUpdate listener', error);
-      }
-    }
-
+    this.syncRuntimeArtifactsAndNotify(executionDump);
     this.writeOutActionDumps();
     await this.reportGenerator.flush();
   }
@@ -1344,11 +1495,13 @@ export class Agent<
   }
 
   _unstableLogContent() {
-    const { groupName, groupDescription, executions } = this.dump;
+    const snapshot = this.getSerializedSnapshot();
     return {
-      groupName,
-      groupDescription,
-      executions: executions || [],
+      groupName: snapshot.groupName ?? this.dump.groupName,
+      groupDescription: snapshot.groupDescription ?? this.dump.groupDescription,
+      executions:
+        (snapshot.executions as SerializedExecutionDumpObject[] | undefined) ||
+        [],
     };
   }
 

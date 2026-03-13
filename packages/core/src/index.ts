@@ -61,6 +61,18 @@ export {
   parseDumpScriptAttributes,
   generateImageScriptTag,
   generateDumpScriptTag,
+  RuntimeArtifactStore,
+  isScreenshotArtifactRef,
+  screenshotArtifactRefFromPath,
+} from './dump';
+export type {
+  AgentExecutionEvent,
+  AgentExecutionEventPayload,
+  ExecutionUpdatedEvent,
+  ReportFlushedEvent,
+  ScreenshotArtifactRef,
+  SerializedDumpObject,
+  SerializedExecutionDumpObject,
 } from './dump';
 
 // Report generator

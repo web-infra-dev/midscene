@@ -3,8 +3,10 @@ import type {
   ExecutionDump,
   IExecutionDump,
   IGroupedActionDump,
+  SerializedDumpObject,
 } from '@midscene/core';
 import { paramStr, typeStr } from '@midscene/core/agent';
+import type { ExecutionData } from '@midscene/playground';
 import { useCallback } from 'react';
 import { useEnvConfig } from '../store/store';
 import type {
@@ -170,55 +172,63 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         currentRunningIdRef.current = thisRunningId;
         interruptedFlagRef.current[thisRunningId] = false;
 
-        // Set up dump update tracking to transform tasks to progress items
-        if (playgroundSDK.onDumpUpdate) {
+        const handleExecutionProgress = (executionDump?: {
+          tasks?: Array<Record<string, any>>;
+        }) => {
+          if (
+            interruptedFlagRef.current[thisRunningId] ||
+            !executionDump?.tasks?.length
+          ) {
+            return;
+          }
+
+          const progressItems: InfoListItem[] = executionDump.tasks.map(
+            (task, index) => ({
+              id: `progress-${thisRunningId}-task-${index}`,
+              type: 'progress' as const,
+              content: buildProgressContent(task),
+              timestamp: new Date((task.timing?.start as number) || Date.now()),
+              result: task.error
+                ? { error: formatError(task.error), result: null }
+                : undefined,
+            }),
+          );
+
+          setInfoList((prev) => {
+            const systemItemIndex = prev.findIndex(
+              (item) => item.id === `system-${thisRunningId}`,
+            );
+
+            if (systemItemIndex === -1) {
+              return prev;
+            }
+
+            const listWithoutCurrentProgress = prev.filter(
+              (item) =>
+                !(
+                  item.type === 'progress' &&
+                  item.id.startsWith(`progress-${thisRunningId}-`)
+                ),
+            );
+
+            return [
+              ...listWithoutCurrentProgress.slice(0, systemItemIndex + 1),
+              ...progressItems,
+              ...listWithoutCurrentProgress.slice(systemItemIndex + 1),
+            ];
+          });
+        };
+
+        if (playgroundSDK.onExecutionEvent) {
+          playgroundSDK.onExecutionEvent(({ event }) => {
+            if (event.type === 'execution_updated') {
+              handleExecutionProgress(event.executionDump as any);
+            }
+          });
+        } else if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(
             (_: string, executionDump?: ExecutionDump) => {
-              if (
-                interruptedFlagRef.current[thisRunningId] ||
-                !executionDump?.tasks?.length
-              ) {
-                return;
-              }
-
-              const progressItems: InfoListItem[] = executionDump.tasks.map(
-                (task, index) => ({
-                  id: `progress-${thisRunningId}-task-${index}`,
-                  type: 'progress' as const,
-                  content: buildProgressContent(task),
-                  timestamp: new Date(task.timing?.start || Date.now()),
-                  result: task.error
-                    ? { error: formatError(task.error), result: null }
-                    : undefined,
-                }),
-              );
-
-              // Replace this session's progress items with new ones
-              setInfoList((prev) => {
-                const systemItemIndex = prev.findIndex(
-                  (item) => item.id === `system-${thisRunningId}`,
-                );
-
-                if (systemItemIndex === -1) {
-                  return prev;
-                }
-
-                // Remove old progress items for this session
-                const listWithoutCurrentProgress = prev.filter(
-                  (item) =>
-                    !(
-                      item.type === 'progress' &&
-                      item.id.startsWith(`progress-${thisRunningId}-`)
-                    ),
-                );
-
-                // Insert new progress items after system item
-                return [
-                  ...listWithoutCurrentProgress.slice(0, systemItemIndex + 1),
-                  ...progressItems,
-                  ...listWithoutCurrentProgress.slice(systemItemIndex + 1),
-                ];
-              });
+              handleExecutionProgress(executionDump as any);
             },
           );
         }
@@ -259,6 +269,9 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
           if (resultObj.dump) {
             result.dump = resultObj.dump;
           }
+          if (resultObj.snapshot) {
+            result.snapshot = resultObj.snapshot;
+          }
           if (resultObj.reportHTML) result.reportHTML = resultObj.reportHTML;
           if (resultObj.error) result.error = formatError(resultObj.error);
 
@@ -276,6 +289,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         // The adapter may attach these even on error
         if (typeof e === 'object' && e !== null) {
           if (e.dump) result.dump = e.dump;
+          if (e.snapshot) result.snapshot = e.snapshot;
           if (e.reportHTML) result.reportHTML = e.reportHTML;
         }
       }
@@ -388,10 +402,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         );
 
         // If cancelExecution didn't return data, try getCurrentExecutionData as fallback
-        let executionData: {
-          dump: ExecutionDump | null;
-          reportHTML: string | null;
-        } | null = null;
+        let executionData: ExecutionData | null = null;
 
         if (cancelResult) {
           executionData = cancelResult;
@@ -414,6 +425,12 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
         // Clear dump update callback
         if (playgroundSDK.onDumpUpdate) {
           playgroundSDK.onDumpUpdate(() => {});
+        }
+        if (playgroundSDK.onExecutionEvent) {
+          playgroundSDK.onExecutionEvent(() => {});
+        }
+        if (playgroundSDK.onSnapshotUpdate) {
+          playgroundSDK.onSnapshotUpdate(() => {});
         }
 
         // Update system message to mark as stopped
@@ -457,6 +474,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             result: {
               result: null,
               dump: executionData.dump,
+              snapshot: executionData.snapshot,
               reportHTML: executionData.reportHTML,
               error: null,
             },

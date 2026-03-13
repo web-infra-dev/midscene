@@ -25,14 +25,26 @@ vi.mock('../../src/common', async (importOriginal) => {
 describe('LocalExecutionAdapter', () => {
   let mockAgent: PlaygroundAgent;
   let adapter: LocalExecutionAdapter;
+  let liveExecutionDump: ExecutionDump;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    liveExecutionDump = new ExecutionDump({
+      logTime: Date.now(),
+      name: 'live-dump',
+      tasks: [],
+    });
     mockAgent = {
       getActionSpace: vi.fn(),
       callActionInActionSpace: vi.fn(),
       onTaskStartTip: vi.fn(),
       destroy: vi.fn(),
+      dump: {
+        executions: [liveExecutionDump],
+      },
+      getExecutionSnapshot: vi.fn(() => ({
+        executions: [{ name: 'compact-dump', tasks: [] }],
+      })),
       dumpDataString: vi
         .fn()
         .mockReturnValue(JSON.stringify({ executions: [{}] })),
@@ -40,6 +52,7 @@ describe('LocalExecutionAdapter', () => {
       writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
       addDumpUpdateListener: vi.fn(() => vi.fn()), // Returns a remove function
+      addExecutionEventListener: vi.fn(() => vi.fn()),
       removeDumpUpdateListener: vi.fn(),
     } as unknown as PlaygroundAgent;
     adapter = new LocalExecutionAdapter(mockAgent);
@@ -206,10 +219,15 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         result: 'test result',
-        dump: expect.any(ExecutionDump),
+        dump: liveExecutionDump,
+        snapshot: {
+          executions: [{ name: 'compact-dump', tasks: [] }],
+        },
         reportHTML: null,
         error: null,
       });
+      expect(mockAgent.reportHTMLString).not.toHaveBeenCalled();
+      expect(mockAgent.writeOutActionDumps).not.toHaveBeenCalled();
       expect(common.executeAction).toHaveBeenCalledWith(
         mockAgent,
         'click',
@@ -221,6 +239,10 @@ describe('LocalExecutionAdapter', () => {
 
     it('should use empty actionSpace when agent has no getActionSpace', async () => {
       const agentWithoutActionSpace: PlaygroundAgent = {
+        dump: {
+          executions: [],
+        },
+        getExecutionSnapshot: () => ({ executions: [] }),
         dumpDataString: () => '{}',
         reportHTMLString: () => '',
         writeOutActionDumps: () => {},
@@ -253,6 +275,53 @@ describe('LocalExecutionAdapter', () => {
 
       expect(mockAgent.onTaskStartTip).toBeDefined();
     });
+
+    it('should forward execution events and snapshot updates when requestId provided', async () => {
+      const mockActionSpace: DeviceAction<unknown>[] = [];
+      vi.mocked(mockAgent.getActionSpace!).mockResolvedValue(mockActionSpace);
+
+      let eventListener:
+        | ((payload: {
+            event: { type: string; executionDump?: Record<string, unknown> };
+            getSnapshot: () => Record<string, unknown>;
+            hydrateImage: () => Promise<string>;
+          }) => void)
+        | undefined;
+
+      vi.mocked(mockAgent.addExecutionEventListener!).mockImplementation(((
+        listener: typeof eventListener,
+      ) => {
+        eventListener = listener;
+        return vi.fn();
+      }) as any);
+
+      const executionEventCallback = vi.fn();
+      const snapshotUpdateCallback = vi.fn();
+      adapter.onExecutionEvent(executionEventCallback);
+      adapter.onSnapshotUpdate(snapshotUpdateCallback);
+
+      vi.mocked(common.executeAction).mockImplementationOnce(async () => {
+        eventListener?.({
+          event: {
+            type: 'execution_updated',
+            executionDump: { tasks: [{ type: 'Planning', param: {} }] },
+          },
+          getSnapshot: () => ({ executions: [{ tasks: [] }] }),
+          hydrateImage: async () => 'data:image/png;base64,AAAA',
+        });
+        return 'test result';
+      });
+
+      const value: FormValue = { type: 'click', prompt: 'click button' };
+      const options: ExecutionOptions = { requestId: 'request-123' };
+
+      await adapter.executeAction('click', value, options);
+
+      expect(executionEventCallback).toHaveBeenCalledTimes(1);
+      expect(snapshotUpdateCallback).toHaveBeenCalledWith({
+        executions: [{ tasks: [] }],
+      });
+    });
   });
 
   describe('cancelTask', () => {
@@ -263,7 +332,10 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         success: true,
-        dump: expect.any(ExecutionDump),
+        dump: liveExecutionDump,
+        snapshot: {
+          executions: [{ name: 'compact-dump', tasks: [] }],
+        },
         reportHTML: null,
       });
       expect(mockAgent.destroy).toHaveBeenCalled();
@@ -292,7 +364,10 @@ describe('LocalExecutionAdapter', () => {
 
       expect(result).toEqual({
         error: 'Failed to cancel: Destroy failed',
-        dump: expect.any(ExecutionDump),
+        dump: liveExecutionDump,
+        snapshot: {
+          executions: [{ name: 'compact-dump', tasks: [] }],
+        },
         reportHTML: null,
       });
       expect(consoleSpy).toHaveBeenCalledWith(

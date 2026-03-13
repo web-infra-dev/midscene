@@ -5,10 +5,13 @@ import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
   AgentFactory,
+  ExecutionData,
+  ExecutionEventCallback,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
   PlaygroundConfig,
+  SnapshotUpdateCallback,
   ValidationResult,
 } from '../types';
 
@@ -119,7 +122,11 @@ export class PlaygroundSDK {
   }
 
   // Get task progress (for remote execution)
-  async getTaskProgress(requestId: string): Promise<{ executionDump?: any }> {
+  async getTaskProgress(requestId: string): Promise<{
+    event?: unknown;
+    executionDump?: any;
+    snapshot?: unknown;
+  }> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getTaskProgress(requestId);
     }
@@ -144,6 +151,14 @@ export class PlaygroundSDK {
     }
   }
 
+  onExecutionEvent(callback: ExecutionEventCallback): void {
+    this.adapter.onExecutionEvent?.(callback);
+  }
+
+  onSnapshotUpdate(callback: SnapshotUpdateCallback): void {
+    this.adapter.onSnapshotUpdate?.(callback);
+  }
+
   // Progress update callback management
   onProgressUpdate(callback: (tip: string) => void): void {
     if (this.adapter instanceof LocalExecutionAdapter) {
@@ -153,25 +168,22 @@ export class PlaygroundSDK {
   }
 
   // Cancel execution - supports both remote and local
-  async cancelExecution(requestId: string): Promise<{
-    dump: any | null;
-    reportHTML: string | null;
-  } | null> {
+  async cancelExecution(requestId: string): Promise<ExecutionData | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
       const result = await this.adapter.cancelTask(requestId);
-      // Return dump and reportHTML if available from cancellation
       if (result.success) {
         return {
           dump: (result as any).dump || null,
+          snapshot: (result as any).snapshot || null,
           reportHTML: (result as any).reportHTML || null,
         };
       }
     } else if (this.adapter instanceof LocalExecutionAdapter) {
-      // Invoke adapter cancellation to destroy the agent and block further actions
       const result = await this.adapter.cancelTask(requestId);
       if (result.success) {
         return {
           dump: (result as any).dump || null,
+          snapshot: (result as any).snapshot || null,
           reportHTML: (result as any).reportHTML || null,
         };
       }
@@ -179,19 +191,15 @@ export class PlaygroundSDK {
     return null;
   }
 
-  // Get current execution data (dump and report)
-  async getCurrentExecutionData(): Promise<{
-    dump: any | null;
-    reportHTML: string | null;
-  }> {
+  // Get current execution data (live dump + compact snapshot)
+  async getCurrentExecutionData(): Promise<ExecutionData> {
     if (
       this.adapter instanceof LocalExecutionAdapter &&
       this.adapter.getCurrentExecutionData
     ) {
       return await this.adapter.getCurrentExecutionData();
     }
-    // For remote execution or if method not available, return empty data
-    return { dump: null, reportHTML: null };
+    return { dump: null, snapshot: null, reportHTML: null };
   }
 
   // Screenshot method for remote execution

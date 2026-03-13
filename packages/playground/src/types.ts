@@ -1,4 +1,10 @@
-import type { DeviceAction } from '@midscene/core';
+import type {
+  AgentExecutionEventPayload,
+  DeviceAction,
+  ExecutionDump,
+  IExecutionDump,
+  SerializedDumpObject,
+} from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 
 export interface PlaygroundAgent extends Agent {
@@ -18,9 +24,16 @@ export interface ValidationResult {
 
 export interface ServerResponse {
   result?: unknown;
-  dump?: any;
-  reportHTML?: string;
+  dump?: ExecutionData['dump'];
+  snapshot?: SerializedDumpObject | null;
+  reportHTML?: string | null;
   error?: string;
+}
+
+export interface ExecutionData {
+  dump: ExecutionDump | IExecutionDump | null;
+  snapshot: SerializedDumpObject | null;
+  reportHTML: string | null;
 }
 
 export interface DeviceOptions {
@@ -76,6 +89,12 @@ export interface ProgressMessage {
   /** Unix timestamp when this message was generated */
   timestamp: number;
 }
+
+export type ExecutionEventCallback = (
+  payload: AgentExecutionEventPayload,
+) => void;
+
+export type SnapshotUpdateCallback = (snapshot: SerializedDumpObject) => void;
 
 export interface PlaygroundAdapter {
   parseStructuredParams(

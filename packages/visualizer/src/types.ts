@@ -1,4 +1,11 @@
-import type { DeviceAction, UIContext } from '@midscene/core';
+import type {
+  AgentExecutionEventPayload,
+  DeviceAction,
+  ExecutionDump,
+  IExecutionDump,
+  SerializedDumpObject,
+  UIContext,
+} from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -222,13 +229,17 @@ export const extractDefaultValue = (field: ZodType): unknown => {
   return undefined;
 };
 
-import type { ExecutionDump, IExecutionDump } from '@midscene/core';
-import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
+import type {
+  ExecutionData,
+  ExecutionOptions,
+  PlaygroundAgent,
+} from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {
   result: any;
   dump?: ExecutionDump | IExecutionDump | null;
+  snapshot?: SerializedDumpObject | null;
   reportHTML?: string | null;
   error: string | null;
 }
@@ -308,14 +319,14 @@ export interface PlaygroundSDKLike {
   onDumpUpdate?: (
     callback: (dump: string, executionDump?: ExecutionDump) => void,
   ) => void;
-  cancelExecution?(requestId: string): Promise<{
-    dump: ExecutionDump | null;
-    reportHTML: string | null;
-  } | null>;
-  getCurrentExecutionData?(): Promise<{
-    dump: ExecutionDump | null;
-    reportHTML: string | null;
-  }>;
+  onExecutionEvent?: (
+    callback: (payload: AgentExecutionEventPayload) => void,
+  ) => void;
+  onSnapshotUpdate?: (
+    callback: (snapshot: SerializedDumpObject) => void,
+  ) => void;
+  cancelExecution?(requestId: string): Promise<ExecutionData | null>;
+  getCurrentExecutionData?(): Promise<ExecutionData>;
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';

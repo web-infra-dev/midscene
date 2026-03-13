@@ -76,6 +76,7 @@ export const WELCOME_MESSAGE_TEMPLATE: Omit<InfoListItem, 'id' | 'timestamp'> =
 export const BLANK_RESULT: PlaygroundResult = {
   result: undefined,
   dump: null,
+  snapshot: null,
   reportHTML: null,
   error: null,
 };

@@ -3,7 +3,13 @@ import http from 'node:http';
 import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ExecutionDump } from '@midscene/core';
+import type {
+  AgentExecutionEvent,
+  ExecutionDump,
+  IExecutionDump,
+  ScreenshotArtifactRef,
+  SerializedDumpObject,
+} from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
@@ -39,6 +45,23 @@ const errorHandler = (
   });
 };
 
+type TaskExecutionState = {
+  event?: AgentExecutionEvent | null;
+  executionDump?: ExecutionDump | null;
+  snapshot?: SerializedDumpObject | null;
+};
+
+function extractExecutionDump(
+  dumpString: string | undefined,
+): ExecutionDump | IExecutionDump | null {
+  if (!dumpString) {
+    return null;
+  }
+
+  const groupedDump = GroupedActionDump.fromSerializedString(dumpString);
+  return groupedDump.executions?.[0] ?? null;
+}
+
 class PlaygroundServer {
   private _app: express.Application;
   tmpDir: string;
@@ -46,7 +69,7 @@ class PlaygroundServer {
   port?: number | null;
   agent: PageAgent;
   staticPath: string;
-  taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
+  taskExecutionState: Record<string, TaskExecutionState>;
   id: string; // Unique identifier for this server instance
 
   private _initialized = false;
@@ -74,7 +97,7 @@ class PlaygroundServer {
     this._app = express();
     this.tmpDir = getTmpDir()!;
     this.staticPath = staticPath;
-    this.taskExecutionDumps = {}; // Initialize as empty object
+    this.taskExecutionState = {};
     // Use provided ID, or generate random UUID for each startup
     this.id = id || uuid();
 
@@ -252,11 +275,46 @@ class PlaygroundServer {
       '/task-progress/:requestId',
       async (req: Request, res: Response) => {
         const { requestId } = req.params;
-        const executionDump = this.taskExecutionDumps[requestId] || null;
+        const state = this.taskExecutionState[requestId] || {};
 
         res.json({
-          executionDump,
+          event: state.event || null,
+          executionDump: state.executionDump || null,
+          snapshot: state.snapshot || null,
         });
+      },
+    );
+
+    this._app.post(
+      '/task-artifact-image/:requestId',
+      async (req: Request, res: Response) => {
+        const { requestId } = req.params;
+        const ref = req.body?.ref as ScreenshotArtifactRef | undefined;
+
+        if (!requestId) {
+          return res.status(400).json({
+            error: 'requestId is required',
+          });
+        }
+
+        if (!ref?.id || !ref?.format) {
+          return res.status(400).json({
+            error: 'valid screenshot ref is required',
+          });
+        }
+
+        try {
+          const base64 = await this.agent.hydrateExecutionArtifact?.(ref);
+          return res.json({
+            base64,
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          return res.status(404).json({
+            error: errorMessage,
+          });
+        }
       },
     );
 
@@ -410,31 +468,43 @@ class PlaygroundServer {
       }
 
       // Lock this task
+      let removeExecutionEventListener: (() => void) | undefined;
       if (requestId) {
         this.currentTaskId = requestId;
-        this.taskExecutionDumps[requestId] = null;
-
-        // Use onDumpUpdate to receive and store executionDump directly
-        this.agent.onDumpUpdate = (
-          _dump: string,
-          executionDump?: ExecutionDump,
-        ) => {
-          if (executionDump) {
-            // Store the execution dump directly without transformation
-            this.taskExecutionDumps[requestId] = executionDump;
-          }
+        this.taskExecutionState[requestId] = {
+          event: null,
+          executionDump: null,
+          snapshot: null,
         };
+
+        removeExecutionEventListener = this.agent.addExecutionEventListener?.(
+          (payload) => {
+            const state = this.taskExecutionState[requestId];
+            if (!state) {
+              return;
+            }
+
+            state.event = payload.event;
+            state.snapshot = payload.getSnapshot();
+            if (payload.event.type === 'execution_updated') {
+              state.executionDump = payload.event
+                .executionDump as unknown as ExecutionDump;
+            }
+          },
+        );
       }
 
       const response: {
         result: unknown;
-        dump: ExecutionDump | null;
+        dump: ExecutionDump | IExecutionDump | null;
+        snapshot: SerializedDumpObject | null;
         error: string | null;
         reportHTML: string | null;
         requestId?: string;
       } = {
         result: null,
         dump: null,
+        snapshot: null,
         error: null,
         reportHTML: null,
         requestId,
@@ -472,21 +542,12 @@ class PlaygroundServer {
       }
 
       try {
-        const dumpString = this.agent.dumpDataString({
-          inlineScreenshots: true,
-        });
-        if (dumpString) {
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
-          // Extract first execution from grouped dump, matching local execution adapter behavior
-          response.dump = groupedDump.executions?.[0] || null;
-        } else {
-          response.dump = null;
-        }
-        response.reportHTML =
-          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
-
-        this.agent.writeOutActionDumps();
+        response.snapshot = this.agent.getExecutionSnapshot?.() ?? null;
+        response.dump = extractExecutionDump(
+          this.agent.dumpDataString?.({
+            inlineScreenshots: true,
+          }),
+        );
         this.agent.resetDump();
       } catch (error: unknown) {
         const errorMessage =
@@ -495,6 +556,7 @@ class PlaygroundServer {
           `write out dump failed: requestId: ${requestId}, ${errorMessage}`,
         );
       } finally {
+        removeExecutionEventListener?.();
         // Resume MJPEG polling after execution
         this._agentReady = true;
       }
@@ -514,7 +576,7 @@ class PlaygroundServer {
 
       // Clean up task execution dumps and unlock after execution completes
       if (requestId) {
-        delete this.taskExecutionDumps[requestId];
+        delete this.taskExecutionState[requestId];
         // Release the lock
         if (this.currentTaskId === requestId) {
           this.currentTaskId = null;
@@ -544,24 +606,18 @@ class PlaygroundServer {
 
           console.log(`Cancelling task: ${requestId}`);
 
-          // Get current execution data before cancelling (dump and reportHTML)
-          let dump: any = null;
-          let reportHTML: string | null = null;
+          // Capture a compact snapshot for JSON consumers and one inline dump for replay.
+          let dump: ExecutionDump | IExecutionDump | null = null;
+          let snapshot: SerializedDumpObject | null = null;
+          const reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.({
-              inlineScreenshots: true,
-            });
-            if (dumpString) {
-              const groupedDump =
-                GroupedActionDump.fromSerializedString(dumpString);
-              // Extract first execution from grouped dump
-              dump = groupedDump.executions?.[0] || null;
-            }
-
-            reportHTML =
-              this.agent.reportHTMLString?.({ inlineScreenshots: true }) ||
-              null;
+            snapshot = this.agent.getExecutionSnapshot?.() ?? null;
+            dump = extractExecutionDump(
+              this.agent.dumpDataString?.({
+                inlineScreenshots: true,
+              }),
+            );
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }
@@ -574,13 +630,14 @@ class PlaygroundServer {
           }
 
           // Clean up
-          delete this.taskExecutionDumps[requestId];
+          delete this.taskExecutionState[requestId];
           this.currentTaskId = null;
 
           res.json({
             status: 'cancelled',
             message: 'Task cancelled successfully',
             dump,
+            snapshot,
             reportHTML,
           });
         } catch (error: unknown) {
@@ -912,7 +969,7 @@ class PlaygroundServer {
         } catch (error) {
           console.warn('Failed to destroy agent:', error);
         }
-        this.taskExecutionDumps = {};
+        this.taskExecutionState = {};
 
         // Close the server
         this.server.close((error) => {

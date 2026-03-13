@@ -24,6 +24,7 @@ export type {
   ExecutionType,
   PlaygroundAdapter,
   ServerResponse,
+  ExecutionData,
   AgentFactory,
 } from './types';
 export type {
