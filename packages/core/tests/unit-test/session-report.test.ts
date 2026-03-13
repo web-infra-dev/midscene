@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import type { AbstractInterface } from '@/device';
-import { parseDumpScript } from '@/dump/html-utils';
+import { parseDumpScript, parseImageScripts } from '@/dump/html-utils';
 import { exportSessionReport } from '@/execution-report';
 import { ExecutionStore } from '@/execution-store';
 import { ScreenshotItem } from '@/screenshot-item';
@@ -171,13 +171,23 @@ describe('ExecutionStore + exportSessionReport', () => {
     expect(dump.modelBriefs).toEqual(
       expect.arrayContaining(['planner/model-a', 'action/model-b']),
     );
-    expect(
-      (
-        dump.executions[0].tasks[0].uiContext as {
-          screenshot?: { base64: string };
-        }
-      ).screenshot?.base64,
-    ).toContain('data:image/png;base64,');
+
+    // Dump JSON uses { $screenshot: id } references (no inline base64)
+    const screenshotRef = (
+      dump.executions[0].tasks[0].uiContext as {
+        screenshot?: { $screenshot: string };
+      }
+    ).screenshot;
+    expect(screenshotRef).toBeDefined();
+    expect(screenshotRef!.$screenshot).toBeDefined();
+
+    // Image data is in separate <script type="midscene-image"> tags
+    const imageMap = parseImageScripts(html);
+    expect(Object.keys(imageMap).length).toBeGreaterThan(0);
+    expect(imageMap[screenshotRef!.$screenshot]).toContain(
+      'data:image/png;base64,',
+    );
+
     expect(store.load(sessionId).reportFilePath).toBe(reportPath);
     expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
       true,

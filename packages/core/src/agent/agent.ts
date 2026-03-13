@@ -337,6 +337,9 @@ export class Agent<
             runner,
           );
 
+          // Update report from persisted session data
+          this.writeOutActionDumps();
+
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
           for (const listener of this.dumpUpdateListeners) {
@@ -495,8 +498,16 @@ export class Agent<
   }
 
   writeOutActionDumps() {
-    // No-op: persistence is handled by ExecutionStore in persistSessionDump().
-    // Report is generated at destroy() time via exportSessionReport().
+    if (this.opts.generateReport === false) return;
+
+    try {
+      this.reportFile = exportSessionReport(
+        this.opts.sessionId!,
+        this.executionStore,
+      );
+    } catch (error) {
+      debug('Failed to update session report:', error);
+    }
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {

@@ -1,4 +1,5 @@
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -10,6 +11,8 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
+import { escapeScriptTag } from '@midscene/shared/utils';
+import { generateImageScriptTag } from './dump/html-utils';
 import type { AgentOpt, IExecutionDump, IGroupedActionDump } from './types';
 import { ExecutionDump } from './types';
 
@@ -271,7 +274,7 @@ export class ExecutionStore {
       const order = session.executionCount + 1;
       const basePath = this.executionBasePath(sessionId, order);
 
-      ExecutionDump.cleanupFiles(basePath);
+      ExecutionDump.cleanupMetadata(basePath);
       execution.serializeToFiles(basePath);
       this.save({
         ...session,
@@ -292,13 +295,99 @@ export class ExecutionStore {
       const session = this.load(sessionId);
       const basePath = this.executionBasePath(sessionId, order);
 
-      ExecutionDump.cleanupFiles(basePath);
+      ExecutionDump.cleanupMetadata(basePath);
       execution.serializeToFiles(basePath);
       this.save({
         ...session,
         executionCount: Math.max(session.executionCount, order),
         updatedAt: Date.now(),
       });
+    });
+  }
+
+  /**
+   * Stream-assemble an HTML report from persisted session data.
+   * Memory: O(1) per screenshot — reads one image at a time, writes to HTML, then frees.
+   * The dump JSON uses { $screenshot: id } references; images are written as
+   * separate <script type="midscene-image"> tags that the viewer resolves.
+   *
+   * @param sessionId - Session to export
+   * @param reportPath - Destination HTML file path
+   * @param reportTpl - HTML template string (from getReportTpl())
+   */
+  streamReportToFile(
+    sessionId: string,
+    reportPath: string,
+    reportTpl: string,
+  ): void {
+    withLock(sessionId, () => {
+      const session = this.load(sessionId);
+      const rootExecutionFiles = orderedRootExecutionFiles(
+        this.sessionDir(sessionId),
+      );
+
+      if (!rootExecutionFiles.length) {
+        throw new Error(`Session ${sessionId} has no persisted executions`);
+      }
+
+      // Write template (without closing </html>)
+      const htmlCloseTag = '</html>';
+      const tplCloseIdx = reportTpl.lastIndexOf(htmlCloseTag);
+      const tplWithoutClose =
+        tplCloseIdx !== -1 ? reportTpl.slice(0, tplCloseIdx) : reportTpl;
+      writeFileSync(reportPath, tplWithoutClose, 'utf-8');
+
+      // Stream image script tags — one screenshot at a time
+      const writtenImages = new Set<string>();
+      for (const fileName of rootExecutionFiles) {
+        const basePath = join(this.sessionDir(sessionId), fileName);
+        const screenshotsMapPath = `${basePath}.screenshots.json`;
+
+        if (!existsSync(screenshotsMapPath)) continue;
+
+        const screenshotMap: Record<string, string> = JSON.parse(
+          readFileSync(screenshotsMapPath, 'utf-8'),
+        );
+
+        for (const [id, filePath] of Object.entries(screenshotMap)) {
+          if (writtenImages.has(id)) continue;
+          if (!existsSync(filePath)) continue;
+
+          // Read one screenshot, write to HTML, free immediately
+          const data = readFileSync(filePath);
+          const mime =
+            filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
+              ? 'jpeg'
+              : 'png';
+          const base64 = `data:image/${mime};base64,${data.toString('base64')}`;
+          appendFileSync(reportPath, `\n${generateImageScriptTag(id, base64)}`);
+          writtenImages.add(id);
+        }
+      }
+
+      // Build the dump JSON with $screenshot references (no image data)
+      const executions: IExecutionDump[] = [];
+      for (const fileName of rootExecutionFiles) {
+        const basePath = join(this.sessionDir(sessionId), fileName);
+        const dumpString = readFileSync(basePath, 'utf-8');
+        executions.push(JSON.parse(dumpString) as IExecutionDump);
+      }
+
+      const groupedDump: IGroupedActionDump = {
+        sdkVersion: session.sdkVersion,
+        groupName: session.groupName,
+        groupDescription: session.groupDescription,
+        modelBriefs: session.modelBriefs,
+        executions,
+        deviceType: session.deviceType ?? session.platform,
+      };
+
+      const dumpJson = JSON.stringify(groupedDump);
+      const dumpScript = `\n<script type="midscene_web_dump" type="application/json">\n${escapeScriptTag(dumpJson)}\n</script>`;
+      appendFileSync(reportPath, dumpScript);
+
+      // Close HTML
+      appendFileSync(reportPath, `\n${htmlCloseTag}\n`);
     });
   }
 

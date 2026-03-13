@@ -103,6 +103,11 @@ export class ScreenshotItem {
     return this._base64 !== null;
   }
 
+  /** Get the absolute path where this screenshot was persisted (directory mode), or null */
+  get persistedAbsolutePath(): string | null {
+    return this._persistedPath;
+  }
+
   /**
    * Mark as persisted to HTML (inline mode).
    * Releases base64 memory, but keeps HTML path for lazy loading recovery.

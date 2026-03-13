@@ -580,6 +580,9 @@ export class ExecutionDump implements IExecutionDump {
 
   /**
    * Serialize the execution to files with screenshots as separate PNG files.
+   * Incremental: only writes new screenshots (those still in memory),
+   * then releases their memory via markPersistedToPath.
+   * Already-persisted screenshots are preserved in the map without re-writing.
    *
    * Creates:
    * - {basePath} - execution JSON with { $screenshot: id } references
@@ -592,11 +595,19 @@ export class ExecutionDump implements IExecutionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
+    // Serialize dump JSON first, while screenshots still use { $screenshot: id } format
+    const dumpJson = this.serialize();
+
     const screenshotMap: Record<string, string> = {};
     const screenshots = this.collectScreenshots();
+    const toRelease: {
+      screenshot: ScreenshotItem;
+      imagePath: string;
+    }[] = [];
 
     for (const screenshot of screenshots) {
       if (screenshot.hasBase64()) {
+        // New screenshot: write to disk
         const imagePath = join(
           screenshotsDir,
           `${screenshot.id}.${screenshot.extension}`,
@@ -604,6 +615,10 @@ export class ExecutionDump implements IExecutionDump {
         const rawBase64 = screenshot.rawBase64;
         writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
         screenshotMap[screenshot.id] = imagePath;
+        toRelease.push({ screenshot, imagePath });
+      } else if (screenshot.persistedAbsolutePath) {
+        // Already persisted: just record in map
+        screenshotMap[screenshot.id] = screenshot.persistedAbsolutePath;
       }
     }
 
@@ -613,7 +628,15 @@ export class ExecutionDump implements IExecutionDump {
       'utf-8',
     );
 
-    writeFileSync(basePath, this.serialize(), 'utf-8');
+    writeFileSync(basePath, dumpJson, 'utf-8');
+
+    // Release memory after all files are written
+    for (const { screenshot, imagePath } of toRelease) {
+      screenshot.markPersistedToPath(
+        `./screenshots/${screenshot.id}.${screenshot.extension}`,
+        imagePath,
+      );
+    }
   }
 
   /**
@@ -652,7 +675,25 @@ export class ExecutionDump implements IExecutionDump {
   }
 
   /**
-   * Clean up all files associated with a serialized execution.
+   * Clean up metadata files associated with a serialized execution.
+   * Preserves screenshot files on disk so that released ScreenshotItems
+   * can still lazy-load from their persisted paths.
+   */
+  static cleanupMetadata(basePath: string): void {
+    const filesToClean = [basePath, `${basePath}.screenshots.json`];
+
+    for (const filePath of filesToClean) {
+      try {
+        rmSync(filePath, { force: true });
+      } catch {
+        // Ignore cleanup failures
+      }
+    }
+  }
+
+  /**
+   * Clean up all files associated with a serialized execution,
+   * including screenshot files. Use only when the data is no longer needed.
    */
   static cleanupFiles(basePath: string): void {
     const filesToClean = [
@@ -913,6 +954,10 @@ export class GroupedActionDump implements IGroupedActionDump {
 
   /**
    * Serialize the dump to files with screenshots as separate PNG files.
+   * Incremental: only writes new screenshots (those still in memory),
+   * then releases their memory via markPersistedToPath.
+   * Already-persisted screenshots are preserved in the map without re-writing.
+   *
    * Creates:
    * - {basePath} - dump JSON with { $screenshot: id } references
    * - {basePath}.screenshots/ - PNG files
@@ -926,12 +971,20 @@ export class GroupedActionDump implements IGroupedActionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
+    // Serialize dump JSON first, while screenshots still use { $screenshot: id } format
+    const dumpJson = this.serialize();
+
     // Write screenshots to separate files
     const screenshotMap: Record<string, string> = {};
     const screenshots = this.collectAllScreenshots();
+    const toRelease: {
+      screenshot: ScreenshotItem;
+      imagePath: string;
+    }[] = [];
 
     for (const screenshot of screenshots) {
       if (screenshot.hasBase64()) {
+        // New screenshot: write to disk
         const imagePath = join(
           screenshotsDir,
           `${screenshot.id}.${screenshot.extension}`,
@@ -939,6 +992,10 @@ export class GroupedActionDump implements IGroupedActionDump {
         const rawBase64 = screenshot.rawBase64;
         writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
         screenshotMap[screenshot.id] = imagePath;
+        toRelease.push({ screenshot, imagePath });
+      } else if (screenshot.persistedAbsolutePath) {
+        // Already persisted: just record in map
+        screenshotMap[screenshot.id] = screenshot.persistedAbsolutePath;
       }
     }
 
@@ -950,7 +1007,15 @@ export class GroupedActionDump implements IGroupedActionDump {
     );
 
     // Write dump JSON with references
-    writeFileSync(basePath, this.serialize(), 'utf-8');
+    writeFileSync(basePath, dumpJson, 'utf-8');
+
+    // Release memory after all files are written
+    for (const { screenshot, imagePath } of toRelease) {
+      screenshot.markPersistedToPath(
+        `./screenshots/${screenshot.id}.${screenshot.extension}`,
+        imagePath,
+      );
+    }
   }
 
   /**
@@ -995,7 +1060,27 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Clean up all files associated with a serialized dump.
+   * Clean up metadata files associated with a serialized dump.
+   * Preserves screenshot files on disk so that released ScreenshotItems
+   * can still lazy-load from their persisted paths.
+   *
+   * @param basePath - Base path for the dump file
+   */
+  static cleanupMetadata(basePath: string): void {
+    const filesToClean = [basePath, `${basePath}.screenshots.json`];
+
+    for (const filePath of filesToClean) {
+      try {
+        rmSync(filePath, { force: true });
+      } catch {
+        // Ignore cleanup failures
+      }
+    }
+  }
+
+  /**
+   * Clean up all files associated with a serialized dump,
+   * including screenshot files. Use only when the data is no longer needed.
    *
    * @param basePath - Base path for the dump file
    */

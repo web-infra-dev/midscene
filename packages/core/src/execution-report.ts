@@ -6,16 +6,21 @@ import {
 import { logMsg } from '@midscene/shared/utils';
 import { z } from 'zod';
 import { ExecutionStore } from './execution-store';
-import { reportHTMLContent } from './utils';
+import { getReportTpl } from './utils';
 
 export function exportSessionReport(
   sessionId: string,
   store: ExecutionStore = new ExecutionStore(),
 ): string {
-  const dump = store.buildGroupedDump(sessionId);
   const reportPath = join(store.reportDir(sessionId), 'index.html');
+  const tpl = getReportTpl();
 
-  reportHTMLContent(JSON.stringify(dump), reportPath, false);
+  if (!tpl) {
+    console.warn('reportTpl is not set, will not write report');
+    return '';
+  }
+
+  store.streamReportToFile(sessionId, reportPath, tpl);
   store.markReportGenerated(sessionId, reportPath);
 
   if (!globalConfigManager.getEnvConfigInBoolean(MIDSCENE_REPORT_QUIET)) {
