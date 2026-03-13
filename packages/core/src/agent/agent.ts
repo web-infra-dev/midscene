@@ -502,11 +502,6 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString(opt));
   }
 
-  writeOutActionDumps() {
-    // No-op: persistence is handled by SessionStore in persistSessionDump().
-    // Report is generated at destroy() time via exportSessionReport().
-  }
-
   private async callbackOnTaskStartTip(task: ExecutionTask) {
     const param = paramStr(task);
     const tip = param ? `${typeStr(task)} - ${param}` : typeStr(task);

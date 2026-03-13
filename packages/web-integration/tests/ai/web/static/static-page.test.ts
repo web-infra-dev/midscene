@@ -34,7 +34,6 @@ describe(
       const content = await agent.aiQuery('tell me the content of the page');
       expect(content).toBeDefined();
 
-      agent.writeOutActionDumps();
     });
 
     it('server should work', async () => {

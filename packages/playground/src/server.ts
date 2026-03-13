@@ -486,7 +486,6 @@ class PlaygroundServer {
         response.reportHTML =
           this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
 
-        this.agent.writeOutActionDumps();
         this.agent.resetDump();
       } catch (error: unknown) {
         const errorMessage =

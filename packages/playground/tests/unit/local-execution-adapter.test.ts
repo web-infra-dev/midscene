@@ -37,7 +37,6 @@ describe('LocalExecutionAdapter', () => {
         .fn()
         .mockReturnValue(JSON.stringify({ executions: [{}] })),
       reportHTMLString: vi.fn().mockReturnValue(''),
-      writeOutActionDumps: vi.fn(),
       resetDump: vi.fn(),
       addDumpUpdateListener: vi.fn(() => vi.fn()), // Returns a remove function
       removeDumpUpdateListener: vi.fn(),
@@ -223,7 +222,6 @@ describe('LocalExecutionAdapter', () => {
       const agentWithoutActionSpace: PlaygroundAgent = {
         dumpDataString: () => '{}',
         reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
         resetDump: () => {},
       };
       const localAdapter = new LocalExecutionAdapter(agentWithoutActionSpace);

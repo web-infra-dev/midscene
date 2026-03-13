@@ -24,7 +24,6 @@ describe('LocalExecutionAdapter - Config Recreation', () => {
         destroy: vi.fn(async () => {}),
         dumpDataString: vi.fn(() => '{"executions":[]}'),
         reportHTMLString: vi.fn(() => '<html></html>'),
-        writeOutActionDumps: vi.fn(),
         resetDump: vi.fn(),
         addDumpUpdateListener: vi.fn(() => () => {}),
       }) as any;

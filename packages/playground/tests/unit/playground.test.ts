@@ -59,7 +59,6 @@ describe('Playground Integration Tests', () => {
         },
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
         resetDump: () => {},
       } as unknown as PlaygroundAgent;
 
@@ -216,7 +215,6 @@ describe('Playground Integration Tests', () => {
         },
         dumpDataString: () => JSON.stringify({ executions: [{}] }),
         reportHTMLString: () => '',
-        writeOutActionDumps: () => {},
         resetDump: () => {},
       } as unknown as PlaygroundAgent;
 

@@ -255,15 +255,6 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
         // This is expected in chrome-extension, continue without reportHTML
       }
 
-      // Write out action dumps - may also fail in browser environment
-      try {
-        if (agent.writeOutActionDumps) {
-          agent.writeOutActionDumps();
-        }
-      } catch (error: unknown) {
-        // writeOutActionDumps may fail in browser environment
-      }
-
       // Don't throw the error - return it in response so caller can access dump/reportHTML
       // The caller (usePlaygroundExecution) will check response.error to determine success
       return response;
