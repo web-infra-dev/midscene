@@ -38,6 +38,15 @@ function getReportPath(reportFileName: string): string {
   return join(getMidsceneRunSubDir('report'), `${reportFileName}.html`);
 }
 
+function formatAssertionReport(heading: string, checks: string[]): string {
+  return [
+    heading,
+    '',
+    'Assertions passed:',
+    ...checks.map((check) => `- ${check}`),
+  ].join('\n');
+}
+
 async function readReplayState(page: Page) {
   const timeText = (
     await page.locator(TIME_DISPLAY_SELECTOR).innerText()
@@ -138,7 +147,18 @@ test.describe('report replay-all', () => {
       expect(initialState.playingTaskId).not.toBe(initialState.lastTaskId);
 
       await reportAgent.recordToReport('Report replay-all initial state', {
-        content: `The generated HTML report opened in replay-all mode on "${initialState.playingTaskText}" at ${initialState.timeText}, before the final task "${initialState.lastTaskText}".`,
+        content: formatAssertionReport(
+          'Replay-all initial-state assertions passed.',
+          [
+            `expect(taskRowCount).toBeGreaterThan(1) // ${initialState.taskRowCount}`,
+            `expect(totalSeconds).toBeGreaterThan(0) // ${initialState.totalSeconds}`,
+            `expect(currentSeconds).toBeLessThan(totalSeconds) // ${initialState.currentSeconds} < ${initialState.totalSeconds}`,
+            `expect(playingTaskId).not.toBe(lastTaskId) // ${initialState.playingTaskId} !== ${initialState.lastTaskId}`,
+            `active task at open: "${initialState.playingTaskText}"`,
+            `final task in report: "${initialState.lastTaskText}"`,
+            `time display at open: ${initialState.timeText}`,
+          ],
+        ),
       });
 
       await reportPage.waitForFunction(
@@ -191,7 +211,16 @@ test.describe('report replay-all', () => {
       );
 
       await reportAgent.recordToReport('Report replay-all final state', {
-        content: `The generated HTML report kept playing until "${finalState.lastTaskText}" was the active task at ${finalState.timeText}.`,
+        content: formatAssertionReport(
+          'Replay-all final-state assertions passed.',
+          [
+            'waitForFunction resolved when the playing row matched the last task row and the time display reached the end.',
+            `expect(playingTaskId).toBe(lastTaskId) // ${finalState.playingTaskId} === ${finalState.lastTaskId}`,
+            `expect(currentSeconds).toBeGreaterThanOrEqual(totalSeconds - 1) // ${finalState.currentSeconds} >= ${finalState.totalSeconds - 1}`,
+            `final active task: "${finalState.lastTaskText}"`,
+            `final time display: ${finalState.timeText}`,
+          ],
+        ),
       });
 
       expect(existsSync(validationReportPath)).toBe(true);
