@@ -63,9 +63,7 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
-// Report generator
-export type { IReportGenerator } from './report-generator';
-export { ReportGenerator, nullReportGenerator } from './report-generator';
+// Session persistence & report
 export { SessionStore, createSessionAgentOptions } from './session-store';
 export {
   exportSessionReport,

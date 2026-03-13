@@ -1,7 +1,7 @@
 /**
  * Test that simulates the browser's parsing logic for merged directory-mode reports.
  * Verifies the complete data roundtrip:
- * ReportGenerator → directory mode HTML → mergeReports → extract dump → parse dump → verify executions
+ * write directory report → mergeReports → extract dump → parse dump → verify executions
  */
 import {
   existsSync,
@@ -9,14 +9,16 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { extractLastDumpScriptSync } from '@/dump/html-utils';
+import { generateDumpScriptTag, getBaseUrlFixScript } from '@/dump/html-utils';
 import { ReportMergingTool } from '@/report';
-import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import { ExecutionDump, GroupedActionDump, type UIContext } from '@/types';
+import { getReportTpl, reportHTMLContent } from '@/utils';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -53,6 +55,43 @@ function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
   });
 }
 
+/**
+ * Write a directory-mode report: screenshots as separate PNG files,
+ * HTML with dump JSON referencing them via relative paths.
+ */
+function writeDirectoryReport(
+  reportDir: string,
+  dump: GroupedActionDump,
+): string {
+  const reportPath = join(reportDir, 'index.html');
+  mkdirSync(reportDir, { recursive: true });
+
+  // Write screenshots to a subdirectory
+  const screenshotsDir = join(reportDir, 'screenshots');
+  mkdirSync(screenshotsDir, { recursive: true });
+
+  const screenshots = dump.collectAllScreenshots();
+  for (const screenshot of screenshots) {
+    const ext = screenshot.extension;
+    const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
+    const buffer = Buffer.from(screenshot.rawBase64, 'base64');
+    writeFileSync(absolutePath, buffer);
+    screenshot.markPersistedToPath(
+      `./screenshots/${screenshot.id}.${ext}`,
+      absolutePath,
+    );
+  }
+
+  // Write HTML with dump JSON (compact $screenshot references)
+  const serialized = dump.serialize();
+  writeFileSync(
+    reportPath,
+    `${getReportTpl()}${getBaseUrlFixScript()}${generateDumpScriptTag(serialized)}`,
+  );
+
+  return reportPath;
+}
+
 describe('browser parse simulation for merged directory-mode reports', () => {
   let tmpDir: string;
 
@@ -69,16 +108,9 @@ describe('browser parse simulation for merged directory-mode reports', () => {
 
   it('step 1: verify directory mode report dump can be extracted', async () => {
     const reportDir = join(tmpDir, 'step1-report');
-    const reportPath = join(reportDir, 'index.html');
-    const generator = new ReportGenerator({
-      reportPath,
-      screenshotMode: 'directory',
-      autoPrint: false,
-    });
-
     const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
     const dump = createDump([screenshot]);
-    await generator.finalize(dump);
+    const reportPath = writeDirectoryReport(reportDir, dump);
 
     // Read the HTML and extract dump the same way mergeReports does
     const dumpString = extractLastDumpScriptSync(reportPath);
@@ -100,18 +132,11 @@ describe('browser parse simulation for merged directory-mode reports', () => {
     // Create 2 directory mode reports
     for (let r = 0; r < numReports; r++) {
       const reportDir = join(tmpDir, `step2-report-${r}`);
-      const reportPath = join(reportDir, 'index.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'directory',
-        autoPrint: false,
-      });
-
       const screenshots = [
         ScreenshotItem.create(fakeBase64(400 + r * 50), Date.now()),
       ];
       const dump = createDump(screenshots);
-      await generator.finalize(dump);
+      const reportPath = writeDirectoryReport(reportDir, dump);
 
       tool.append({
         reportFilePath: reportPath,
@@ -177,16 +202,9 @@ describe('browser parse simulation for merged directory-mode reports', () => {
 
   it('step 3: verify extractLastDumpScriptSync + escapeScriptTag roundtrip', async () => {
     const reportDir = join(tmpDir, 'step3-report');
-    const reportPath = join(reportDir, 'index.html');
-    const generator = new ReportGenerator({
-      reportPath,
-      screenshotMode: 'directory',
-      autoPrint: false,
-    });
-
     const screenshot = ScreenshotItem.create(fakeBase64(300), Date.now());
     const dump = createDump([screenshot]);
-    await generator.finalize(dump);
+    const reportPath = writeDirectoryReport(reportDir, dump);
 
     // Step 1: extract (what mergeReports does)
     const extracted = extractLastDumpScriptSync(reportPath);
