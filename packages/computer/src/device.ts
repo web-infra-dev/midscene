@@ -485,6 +485,21 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       `[HealthCheck] Mouse restored to (${startPos.x}, ${startPos.y})`,
     );
 
+    // Step 3: List available monitors
+    console.log('[HealthCheck] Listing monitors...');
+    const displays = await ComputerDevice.listDisplays();
+    if (displays.length > 0) {
+      console.log(`[HealthCheck] Found ${displays.length} monitor(s):`);
+      for (const display of displays) {
+        const primaryTag = display.primary ? ' (primary)' : '';
+        console.log(
+          `[HealthCheck]   - id=${display.id}, name=${display.name}${primaryTag}`,
+        );
+      }
+    } else {
+      console.log('[HealthCheck] No monitors detected');
+    }
+
     console.log('[HealthCheck] Health check passed');
   }
 
