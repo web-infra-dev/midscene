@@ -18,7 +18,7 @@ const lockTimeoutMs = 30_000;
 const lockStaleMs = 5 * 60_000;
 const lockSleepArray = new Int32Array(new SharedArrayBuffer(4));
 
-export interface ExecutionSession {
+export interface SessionRecord {
   sessionId: string;
   platform: string;
   groupName: string;
@@ -32,7 +32,7 @@ export interface ExecutionSession {
   reportFilePath?: string;
 }
 
-export interface EnsureExecutionSessionInput {
+export interface EnsureSessionRecordInput {
   sessionId: string;
   platform: string;
   groupName?: string;
@@ -47,11 +47,11 @@ function defaultGroupName(platform: string, sessionId: string): string {
 }
 
 function normalizeSessionRecord(
-  session: Partial<ExecutionSession> & {
+  session: Partial<SessionRecord> & {
     sessionId: string;
     platform: string;
   },
-): ExecutionSession {
+): SessionRecord {
   return {
     sessionId: session.sessionId,
     platform: session.platform,
@@ -187,7 +187,7 @@ export class ExecutionStore {
     return dir;
   }
 
-  load(sessionId: string): ExecutionSession {
+  load(sessionId: string): SessionRecord {
     const filePath = this.agentFilePath(sessionId);
 
     if (!existsSync(filePath)) {
@@ -195,11 +195,11 @@ export class ExecutionStore {
     }
 
     return normalizeSessionRecord(
-      JSON.parse(readFileSync(filePath, 'utf-8')) as ExecutionSession,
+      JSON.parse(readFileSync(filePath, 'utf-8')) as SessionRecord,
     );
   }
 
-  save(session: ExecutionSession): ExecutionSession {
+  save(session: SessionRecord): SessionRecord {
     mkdirSync(this.sessionDir(session.sessionId), { recursive: true });
     const normalized = normalizeSessionRecord(session);
     writeTextFileAtomic(
@@ -209,7 +209,7 @@ export class ExecutionStore {
     return normalized;
   }
 
-  ensureSession(input: EnsureExecutionSessionInput): ExecutionSession {
+  ensureSession(input: EnsureSessionRecordInput): SessionRecord {
     return withLock(input.sessionId, () => {
       const now = Date.now();
       const filePath = this.agentFilePath(input.sessionId);
@@ -218,7 +218,7 @@ export class ExecutionStore {
         const existing = this.load(input.sessionId);
         const mergedModelBriefs = new Set(existing.modelBriefs);
         input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
-        const next: ExecutionSession = {
+        const next: SessionRecord = {
           ...existing,
           platform: input.platform ?? existing.platform,
           groupName:
@@ -254,7 +254,7 @@ export class ExecutionStore {
   markReportGenerated(
     sessionId: string,
     reportFilePath: string,
-  ): ExecutionSession {
+  ): SessionRecord {
     return withLock(sessionId, () => {
       const session = this.load(sessionId);
       return this.save({
