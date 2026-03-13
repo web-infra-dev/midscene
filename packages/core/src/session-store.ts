@@ -85,7 +85,19 @@ function sleepSync(ms: number): void {
   Atomics.wait(sessionLockSleepArray, 0, 0, ms);
 }
 
+function validateSessionId(sessionId: string): void {
+  if (
+    !sessionId ||
+    /[/\\]/.test(sessionId) ||
+    sessionId === '.' ||
+    sessionId === '..'
+  ) {
+    throw new Error(`Invalid sessionId: ${sessionId}`);
+  }
+}
+
 function sessionDirPath(sessionId: string): string {
+  validateSessionId(sessionId);
   return join(getMidsceneRunSubDir('session'), sessionId);
 }
 
@@ -145,7 +157,6 @@ function withSessionLock<T>(sessionId: string, fn: () => T): T {
 function writeTextFileAtomic(filePath: string, content: string): void {
   const tempFilePath = `${filePath}.tmp-${process.pid}-${Date.now()}`;
   writeFileSync(tempFilePath, content, 'utf-8');
-  rmSync(filePath, { force: true });
   renameSync(tempFilePath, filePath);
 }
 
