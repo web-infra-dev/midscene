@@ -18,7 +18,7 @@ const lockTimeoutMs = 30_000;
 const lockStaleMs = 5 * 60_000;
 const lockSleepArray = new Int32Array(new SharedArrayBuffer(4));
 
-export interface PersistedAgentDump {
+export interface ExecutionSession {
   sessionId: string;
   platform: string;
   groupName: string;
@@ -32,7 +32,7 @@ export interface PersistedAgentDump {
   reportFilePath?: string;
 }
 
-export interface EnsureDumpSessionInput {
+export interface EnsureExecutionSessionInput {
   sessionId: string;
   platform: string;
   groupName?: string;
@@ -46,12 +46,12 @@ function defaultGroupName(platform: string, sessionId: string): string {
   return `Midscene ${platform} session ${sessionId}`;
 }
 
-function normalizeDumpRecord(
-  session: Partial<PersistedAgentDump> & {
+function normalizeSessionRecord(
+  session: Partial<ExecutionSession> & {
     sessionId: string;
     platform: string;
   },
-): PersistedAgentDump {
+): ExecutionSession {
   return {
     sessionId: session.sessionId,
     platform: session.platform,
@@ -164,7 +164,7 @@ function writeTextFileAtomic(filePath: string, content: string): void {
  * Persists agent execution dumps to the filesystem, grouped by session ID.
  * Each agent should own its own instance.
  */
-export class AgentDumpStore {
+export class ExecutionStore {
   rootDir(): string {
     return getMidsceneRunSubDir('session');
   }
@@ -187,21 +187,21 @@ export class AgentDumpStore {
     return dir;
   }
 
-  load(sessionId: string): PersistedAgentDump {
+  load(sessionId: string): ExecutionSession {
     const filePath = this.agentFilePath(sessionId);
 
     if (!existsSync(filePath)) {
       throw new Error(`Session not found: ${sessionId}`);
     }
 
-    return normalizeDumpRecord(
-      JSON.parse(readFileSync(filePath, 'utf-8')) as PersistedAgentDump,
+    return normalizeSessionRecord(
+      JSON.parse(readFileSync(filePath, 'utf-8')) as ExecutionSession,
     );
   }
 
-  save(session: PersistedAgentDump): PersistedAgentDump {
+  save(session: ExecutionSession): ExecutionSession {
     mkdirSync(this.sessionDir(session.sessionId), { recursive: true });
-    const normalized = normalizeDumpRecord(session);
+    const normalized = normalizeSessionRecord(session);
     writeTextFileAtomic(
       this.agentFilePath(normalized.sessionId),
       JSON.stringify(normalized, null, 2),
@@ -209,7 +209,7 @@ export class AgentDumpStore {
     return normalized;
   }
 
-  ensureSession(input: EnsureDumpSessionInput): PersistedAgentDump {
+  ensureSession(input: EnsureExecutionSessionInput): ExecutionSession {
     return withLock(input.sessionId, () => {
       const now = Date.now();
       const filePath = this.agentFilePath(input.sessionId);
@@ -218,7 +218,7 @@ export class AgentDumpStore {
         const existing = this.load(input.sessionId);
         const mergedModelBriefs = new Set(existing.modelBriefs);
         input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
-        const next: PersistedAgentDump = {
+        const next: ExecutionSession = {
           ...existing,
           platform: input.platform ?? existing.platform,
           groupName:
@@ -254,7 +254,7 @@ export class AgentDumpStore {
   markReportGenerated(
     sessionId: string,
     reportFilePath: string,
-  ): PersistedAgentDump {
+  ): ExecutionSession {
     return withLock(sessionId, () => {
       const session = this.load(sessionId);
       return this.save({
@@ -302,7 +302,7 @@ export class AgentDumpStore {
     });
   }
 
-  buildDump(sessionId: string): IGroupedActionDump {
+  buildGroupedDump(sessionId: string): IGroupedActionDump {
     return withLock(sessionId, () => {
       const session = this.load(sessionId);
       const rootExecutionFiles = orderedRootExecutionFiles(

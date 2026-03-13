@@ -5,14 +5,14 @@ import {
 } from '@midscene/shared/env';
 import { logMsg } from '@midscene/shared/utils';
 import { z } from 'zod';
-import { AgentDumpStore } from './dump-store';
+import { ExecutionStore } from './execution-store';
 import { reportHTMLContent } from './utils';
 
 export function exportSessionReport(
   sessionId: string,
-  store: AgentDumpStore = new AgentDumpStore(),
+  store: ExecutionStore = new ExecutionStore(),
 ): string {
-  const dump = store.buildDump(sessionId);
+  const dump = store.buildGroupedDump(sessionId);
   const reportPath = join(store.reportDir(sessionId), 'index.html');
 
   reportHTMLContent(JSON.stringify(dump), reportPath, false);

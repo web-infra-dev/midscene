@@ -52,8 +52,8 @@ import {
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
-import { exportSessionReport } from '@/dump-report';
-import { AgentDumpStore } from '@/dump-store';
+import { exportSessionReport } from '@/execution-report';
+import { ExecutionStore } from '@/execution-store';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -152,7 +152,7 @@ export class Agent<
 
   service: Service;
 
-  dumpStore: AgentDumpStore;
+  executionStore: ExecutionStore;
 
   dump: GroupedActionDump;
 
@@ -349,7 +349,7 @@ export class Agent<
         },
       },
     });
-    this.dumpStore = new AgentDumpStore();
+    this.executionStore = new ExecutionStore();
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
@@ -422,7 +422,7 @@ export class Agent<
   }
 
   private syncSessionMetadata(): void {
-    this.dumpStore.ensureSession({
+    this.executionStore.ensureSession({
       sessionId: this.opts.sessionId!,
       platform: this.interface.interfaceType,
       groupName: this.opts.groupName,
@@ -439,12 +439,15 @@ export class Agent<
   ): void {
     let order = this.sessionExecutionOrders[executionIndex];
     if (order === undefined) {
-      order = this.dumpStore.appendExecution(this.opts.sessionId!, execution);
+      order = this.executionStore.appendExecution(
+        this.opts.sessionId!,
+        execution,
+      );
       this.sessionExecutionOrders[executionIndex] = order;
       return;
     }
 
-    this.dumpStore.updateExecution(this.opts.sessionId!, order, execution);
+    this.executionStore.updateExecution(this.opts.sessionId!, order, execution);
   }
 
   appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {
@@ -492,7 +495,7 @@ export class Agent<
   }
 
   writeOutActionDumps() {
-    // No-op: persistence is handled by AgentDumpStore in persistSessionDump().
+    // No-op: persistence is handled by ExecutionStore in persistSessionDump().
     // Report is generated at destroy() time via exportSessionReport().
   }
 
@@ -1306,7 +1309,7 @@ export class Agent<
       try {
         this.reportFile = exportSessionReport(
           this.opts.sessionId!,
-          this.dumpStore,
+          this.executionStore,
         );
       } catch (error) {
         debug('Failed to generate session report:', error);

@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import type { AbstractInterface } from '@/device';
-import { exportSessionReport } from '@/dump-report';
-import { AgentDumpStore } from '@/dump-store';
 import { parseDumpScript } from '@/dump/html-utils';
+import { exportSessionReport } from '@/execution-report';
+import { ExecutionStore } from '@/execution-store';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
@@ -63,14 +63,14 @@ function createMockInterface(): AbstractInterface {
   } as unknown as AbstractInterface;
 }
 
-describe('AgentDumpStore + exportSessionReport', () => {
+describe('ExecutionStore + exportSessionReport', () => {
   let runDir: string;
-  let store: AgentDumpStore;
+  let store: ExecutionStore;
 
   beforeEach(() => {
     runDir = join(tmpdir(), `midscene-session-test-${Date.now()}`);
     vi.stubEnv(MIDSCENE_RUN_DIR, runDir);
-    store = new AgentDumpStore();
+    store = new ExecutionStore();
   });
 
   afterEach(() => {
@@ -109,7 +109,7 @@ describe('AgentDumpStore + exportSessionReport', () => {
     );
 
     const session = store.load(sessionId);
-    const dump = store.buildDump(sessionId);
+    const dump = store.buildGroupedDump(sessionId);
 
     expect(session.executionCount).toBe(1);
     expect(dump.executions).toHaveLength(1);

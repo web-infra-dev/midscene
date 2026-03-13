@@ -63,16 +63,16 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
-// Agent dump persistence & report
-export { AgentDumpStore, createSessionAgentOptions } from './dump-store';
+// Execution persistence & report
+export { ExecutionStore, createSessionAgentOptions } from './execution-store';
 export type {
-  PersistedAgentDump,
-  EnsureDumpSessionInput,
-} from './dump-store';
+  ExecutionSession,
+  EnsureExecutionSessionInput,
+} from './execution-store';
 export {
   exportSessionReport,
   createExportSessionReportTool,
-} from './dump-report';
+} from './execution-report';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
