@@ -11,6 +11,10 @@ function getReportPath(reportFileName: string): string {
 }
 
 test.describe('report replay-all', () => {
+  test.skip(
+    process.env.MIDSCENE_CACHE === 'true',
+    'replay-all validation only needs one non-cache report run',
+  );
   test.setTimeout(TEST_TIMEOUT);
 
   test('should autoplay from the beginning instead of staying on the last step page', async ({
