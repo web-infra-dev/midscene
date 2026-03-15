@@ -1,4 +1,10 @@
-import { closeSync, openSync, readSync, statSync } from 'node:fs';
+import {
+  appendFileSync,
+  closeSync,
+  openSync,
+  readSync,
+  statSync,
+} from 'node:fs';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 
 export const escapeContent = escapeScriptTag;
@@ -127,15 +133,43 @@ export function streamImageScriptsToFile(
   srcFilePath: string,
   destFilePath: string,
 ): void {
-  const { appendFileSync } = require('node:fs');
-  const openTag = '<script type="midscene-image"';
-  const closeTag = '</script>';
-
-  streamScanTags(srcFilePath, openTag, closeTag, (content) => {
-    // Write complete tag immediately to destination, don't accumulate
-    appendFileSync(destFilePath, `${openTag}${content}${closeTag}\n`);
-    return false; // Continue scanning for more tags
+  streamInlineReportArtifactsSync(srcFilePath, (tag) => {
+    appendFileSync(destFilePath, tag);
   });
+}
+
+/**
+ * Stream inline report image tags and capture the LAST dump script content
+ * in a single scan. This avoids rescanning large report files during merge.
+ *
+ * @param filePath - Absolute path to the HTML file
+ * @param onImageScript - Called for each complete image script tag
+ * @returns The dump script content (trimmed), or empty string if not found
+ */
+export function streamInlineReportArtifactsSync(
+  filePath: string,
+  onImageScript?: (imageScriptTag: string) => void,
+): string {
+  const openTagPrefix = '<script type="midscene';
+  const closeTag = '</script>';
+  let lastContent = '';
+  streamScanTags(filePath, openTagPrefix, closeTag, (content) => {
+    if (content.startsWith('-image"')) {
+      onImageScript?.(`${openTagPrefix}${content}${closeTag}\n`);
+      return false;
+    }
+
+    if (content.startsWith('_web_dump"')) {
+      const tagEndIdx = content.indexOf('>');
+      if (tagEndIdx !== -1) {
+        lastContent = content.slice(tagEndIdx + 1).trim();
+      }
+    }
+
+    return false;
+  });
+
+  return lastContent;
 }
 
 /**
@@ -146,78 +180,7 @@ export function streamImageScriptsToFile(
  * @returns The dump script content (trimmed), or empty string if not found
  */
 export function extractLastDumpScriptSync(filePath: string): string {
-  const openTagPrefix = '<script type="midscene_web_dump"';
-  const closeTag = '</script>';
-
-  let lastContent = '';
-
-  // Custom streaming to handle the special case where open tag has variable attributes
-  const fd = openSync(filePath, 'r');
-  const fileSize = statSync(filePath).size;
-  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
-
-  let position = 0;
-  let leftover = '';
-  let capturing = false;
-  let currentContent = '';
-
-  try {
-    while (position < fileSize) {
-      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
-      position += bytesRead;
-
-      let searchStart = 0;
-
-      while (searchStart < chunk.length) {
-        if (!capturing) {
-          const startIdx = chunk.indexOf(openTagPrefix, searchStart);
-          if (startIdx !== -1) {
-            // Find the end of the opening tag (the '>' character)
-            const tagEndIdx = chunk.indexOf('>', startIdx);
-            if (tagEndIdx !== -1) {
-              capturing = true;
-              currentContent = chunk.slice(tagEndIdx + 1);
-              const endIdx = currentContent.indexOf(closeTag);
-              if (endIdx !== -1) {
-                lastContent = currentContent.slice(0, endIdx).trim();
-                capturing = false;
-                currentContent = '';
-                searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
-              } else {
-                leftover = currentContent.slice(-closeTag.length);
-                currentContent = currentContent.slice(0, -closeTag.length);
-                break;
-              }
-            } else {
-              leftover = chunk.slice(startIdx);
-              break;
-            }
-          } else {
-            leftover = chunk.slice(-openTagPrefix.length);
-            break;
-          }
-        } else {
-          const endIdx = chunk.indexOf(closeTag, searchStart);
-          if (endIdx !== -1) {
-            currentContent += chunk.slice(searchStart, endIdx);
-            lastContent = currentContent.trim();
-            capturing = false;
-            currentContent = '';
-            searchStart = endIdx + closeTag.length;
-          } else {
-            currentContent += chunk.slice(searchStart, -closeTag.length);
-            leftover = chunk.slice(-closeTag.length);
-            break;
-          }
-        }
-      }
-    }
-  } finally {
-    closeSync(fd);
-  }
-
-  return lastContent;
+  return streamInlineReportArtifactsSync(filePath);
 }
 
 export function parseImageScripts(html: string): Record<string, string> {

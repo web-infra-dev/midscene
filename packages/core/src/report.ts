@@ -1,11 +1,13 @@
 import {
-  appendFileSync,
+  closeSync,
   copyFileSync,
   existsSync,
   mkdirSync,
+  openSync,
   readdirSync,
   rmSync,
   unlinkSync,
+  writeSync,
 } from 'node:fs';
 import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -14,7 +16,7 @@ import { getReportFileName } from './agent';
 import {
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
-  streamImageScriptsToFile,
+  streamInlineReportArtifactsSync,
 } from './dump/html-utils';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
@@ -84,21 +86,22 @@ export class ReportMergingTool {
       }
     }
 
-    if (hasDirectoryModeReport) {
-      mkdirSync(path.dirname(outputFilePath), { recursive: true });
-    }
-
     logMsg(
       `Start merging ${this.reportInfos.length} reports...\nCreating template file...`,
     );
 
+    let outputFd: number | null = null;
+
     try {
+      mkdirSync(path.dirname(outputFilePath), { recursive: true });
+      outputFd = openSync(outputFilePath, 'w');
+
       // Write template
-      appendFileSync(outputFilePath, getReportTpl());
+      writeSync(outputFd, getReportTpl());
 
       // For directory-mode output, inject base URL fix script
       if (hasDirectoryModeReport) {
-        appendFileSync(outputFilePath, getBaseUrlFixScript());
+        writeSync(outputFd, getBaseUrlFixScript());
       }
 
       // Process all reports one by one
@@ -106,6 +109,7 @@ export class ReportMergingTool {
         const reportInfo = this.reportInfos[i];
         logMsg(`Processing report ${i + 1}/${this.reportInfos.length}`);
 
+        let dumpString = '';
         if (this.isDirectoryModeReport(reportInfo.reportFilePath)) {
           // Directory mode: copy external screenshot files
           const reportDir = path.dirname(reportInfo.reportFilePath);
@@ -120,12 +124,17 @@ export class ReportMergingTool {
             const dest = path.join(mergedScreenshotsDir, file);
             copyFileSync(src, dest);
           }
+          dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
         } else {
-          // Inline mode: stream image scripts to output file
-          streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
+          // Inline mode: copy image scripts and extract dump in a single scan
+          dumpString = streamInlineReportArtifactsSync(
+            reportInfo.reportFilePath,
+            (imageScriptTag) => {
+              writeSync(outputFd!, imageScriptTag);
+            },
+          );
         }
 
-        const dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
         const { reportAttributes } = reportInfo;
 
         const reportHtmlStr = `${reportHTMLContent(
@@ -144,7 +153,7 @@ export class ReportMergingTool {
           false,
         )}\n`;
 
-        appendFileSync(outputFilePath, reportHtmlStr);
+        writeSync(outputFd!, reportHtmlStr);
       }
 
       logMsg(`Successfully merged new report: ${outputFilePath}`);
@@ -170,6 +179,10 @@ export class ReportMergingTool {
     } catch (error) {
       logMsg(`Error in mergeReports: ${error}`);
       throw error;
+    } finally {
+      if (outputFd !== null) {
+        closeSync(outputFd);
+      }
     }
   }
 }
