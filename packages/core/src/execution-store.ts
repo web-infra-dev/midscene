@@ -10,7 +10,7 @@ import {
 } from 'node:fs';
 import { join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import type { AgentOpt, IExecutionDump, IGroupedActionDump } from './types';
+import type { IExecutionDump, IGroupedActionDump } from './types';
 import { ExecutionDump } from './types';
 
 const lockRetryDelayMs = 20;
@@ -18,8 +18,8 @@ const lockTimeoutMs = 30_000;
 const lockStaleMs = 5 * 60_000;
 const lockSleepArray = new Int32Array(new SharedArrayBuffer(4));
 
-export interface SessionRecord {
-  sessionId: string;
+export interface ExecutionRecord {
+  executionId: string;
   platform: string;
   groupName: string;
   groupDescription?: string;
@@ -32,8 +32,8 @@ export interface SessionRecord {
   reportFilePath?: string;
 }
 
-export interface EnsureSessionRecordInput {
-  sessionId: string;
+export interface EnsureExecutionRecordInput {
+  executionId: string;
   platform: string;
   groupName?: string;
   groupDescription?: string;
@@ -42,30 +42,29 @@ export interface EnsureSessionRecordInput {
   deviceType?: string;
 }
 
-function defaultGroupName(platform: string, sessionId: string): string {
-  return `Midscene ${platform} session ${sessionId}`;
+function defaultGroupName(platform: string, executionId: string): string {
+  return `Midscene ${platform} execution ${executionId}`;
 }
 
-function normalizeSessionRecord(
-  session: Partial<SessionRecord> & {
-    sessionId: string;
+function normalizeExecutionRecord(
+  record: Partial<ExecutionRecord> & {
+    executionId: string;
     platform: string;
   },
-): SessionRecord {
+): ExecutionRecord {
   return {
-    sessionId: session.sessionId,
-    platform: session.platform,
+    executionId: record.executionId,
+    platform: record.platform,
     groupName:
-      session.groupName ??
-      defaultGroupName(session.platform, session.sessionId),
-    groupDescription: session.groupDescription,
-    sdkVersion: session.sdkVersion ?? '',
-    modelBriefs: session.modelBriefs ?? [],
-    deviceType: session.deviceType ?? session.platform,
-    createdAt: session.createdAt ?? Date.now(),
-    updatedAt: session.updatedAt ?? Date.now(),
-    executionCount: session.executionCount ?? 0,
-    reportFilePath: session.reportFilePath,
+      record.groupName ?? defaultGroupName(record.platform, record.executionId),
+    groupDescription: record.groupDescription,
+    sdkVersion: record.sdkVersion ?? '',
+    modelBriefs: record.modelBriefs ?? [],
+    deviceType: record.deviceType ?? record.platform,
+    createdAt: record.createdAt ?? Date.now(),
+    updatedAt: record.updatedAt ?? Date.now(),
+    executionCount: record.executionCount ?? 0,
+    reportFilePath: record.reportFilePath,
   };
 }
 
@@ -85,24 +84,24 @@ function sleepSync(ms: number): void {
   Atomics.wait(lockSleepArray, 0, 0, ms);
 }
 
-function validateSessionId(sessionId: string): void {
+function validateExecutionId(executionId: string): void {
   if (
-    !sessionId ||
-    /[/\\]/.test(sessionId) ||
-    sessionId === '.' ||
-    sessionId === '..'
+    !executionId ||
+    /[/\\]/.test(executionId) ||
+    executionId === '.' ||
+    executionId === '..'
   ) {
-    throw new Error(`Invalid sessionId: ${sessionId}`);
+    throw new Error(`Invalid executionId: ${executionId}`);
   }
 }
 
-function sessionDirPath(sessionId: string): string {
-  validateSessionId(sessionId);
-  return join(getMidsceneRunSubDir('session'), sessionId);
+function executionDirPath(executionId: string): string {
+  validateExecutionId(executionId);
+  return join(getMidsceneRunSubDir('execution'), executionId);
 }
 
-function sessionLockDir(sessionId: string): string {
-  return join(sessionDirPath(sessionId), '.lock');
+function executionLockDir(executionId: string): string {
+  return join(executionDirPath(executionId), '.lock');
 }
 
 function isAlreadyExistsError(error: unknown): error is NodeJS.ErrnoException {
@@ -114,9 +113,9 @@ function isAlreadyExistsError(error: unknown): error is NodeJS.ErrnoException {
   );
 }
 
-function withLock<T>(sessionId: string, fn: () => T): T {
-  const dir = sessionDirPath(sessionId);
-  const lockDir = sessionLockDir(sessionId);
+function withLock<T>(executionId: string, fn: () => T): T {
+  const dir = executionDirPath(executionId);
+  const lockDir = executionLockDir(executionId);
   const lockDeadline = Date.now() + lockTimeoutMs;
 
   mkdirSync(dir, { recursive: true });
@@ -140,7 +139,7 @@ function withLock<T>(sessionId: string, fn: () => T): T {
       }
 
       if (Date.now() >= lockDeadline) {
-        throw new Error(`Timed out waiting for session lock: ${sessionId}`);
+        throw new Error(`Timed out waiting for execution lock: ${executionId}`);
       }
 
       sleepSync(lockRetryDelayMs);
@@ -161,70 +160,70 @@ function writeTextFileAtomic(filePath: string, content: string): void {
 }
 
 /**
- * Persists agent execution dumps to the filesystem, grouped by session ID.
+ * Persists agent execution dumps to the filesystem, grouped by execution ID.
  * Each agent should own its own instance.
  */
 export class ExecutionStore {
   rootDir(): string {
-    return getMidsceneRunSubDir('session');
+    return getMidsceneRunSubDir('execution');
   }
 
-  sessionDir(sessionId: string): string {
-    return sessionDirPath(sessionId);
+  executionDir(executionId: string): string {
+    return executionDirPath(executionId);
   }
 
-  agentFilePath(sessionId: string): string {
-    return join(this.sessionDir(sessionId), 'agent.json');
+  agentFilePath(executionId: string): string {
+    return join(this.executionDir(executionId), 'agent.json');
   }
 
-  executionBasePath(sessionId: string, order: number): string {
-    return join(this.sessionDir(sessionId), `${order}.json`);
+  executionBasePath(executionId: string, order: number): string {
+    return join(this.executionDir(executionId), `${order}.json`);
   }
 
-  reportDir(sessionId: string): string {
-    const dir = join(this.sessionDir(sessionId), 'report');
+  reportDir(executionId: string): string {
+    const dir = join(this.executionDir(executionId), 'report');
     mkdirSync(dir, { recursive: true });
     return dir;
   }
 
-  load(sessionId: string): SessionRecord {
-    const filePath = this.agentFilePath(sessionId);
+  load(executionId: string): ExecutionRecord {
+    const filePath = this.agentFilePath(executionId);
 
     if (!existsSync(filePath)) {
-      throw new Error(`Session not found: ${sessionId}`);
+      throw new Error(`Execution not found: ${executionId}`);
     }
 
-    return normalizeSessionRecord(
-      JSON.parse(readFileSync(filePath, 'utf-8')) as SessionRecord,
+    return normalizeExecutionRecord(
+      JSON.parse(readFileSync(filePath, 'utf-8')) as ExecutionRecord,
     );
   }
 
-  save(session: SessionRecord): SessionRecord {
-    mkdirSync(this.sessionDir(session.sessionId), { recursive: true });
-    const normalized = normalizeSessionRecord(session);
+  save(record: ExecutionRecord): ExecutionRecord {
+    mkdirSync(this.executionDir(record.executionId), { recursive: true });
+    const normalized = normalizeExecutionRecord(record);
     writeTextFileAtomic(
-      this.agentFilePath(normalized.sessionId),
+      this.agentFilePath(normalized.executionId),
       JSON.stringify(normalized, null, 2),
     );
     return normalized;
   }
 
-  ensureSession(input: EnsureSessionRecordInput): SessionRecord {
-    return withLock(input.sessionId, () => {
+  ensureExecution(input: EnsureExecutionRecordInput): ExecutionRecord {
+    return withLock(input.executionId, () => {
       const now = Date.now();
-      const filePath = this.agentFilePath(input.sessionId);
+      const filePath = this.agentFilePath(input.executionId);
 
       if (existsSync(filePath)) {
-        const existing = this.load(input.sessionId);
+        const existing = this.load(input.executionId);
         const mergedModelBriefs = new Set(existing.modelBriefs);
         input.modelBriefs?.forEach((brief) => mergedModelBriefs.add(brief));
-        const next: SessionRecord = {
+        const next: ExecutionRecord = {
           ...existing,
           platform: input.platform ?? existing.platform,
           groupName:
             input.groupName ??
             existing.groupName ??
-            defaultGroupName(input.platform, input.sessionId),
+            defaultGroupName(input.platform, input.executionId),
           groupDescription: input.groupDescription ?? existing.groupDescription,
           sdkVersion: input.sdkVersion ?? existing.sdkVersion,
           modelBriefs: [...mergedModelBriefs],
@@ -236,10 +235,11 @@ export class ExecutionStore {
       }
 
       return this.save({
-        sessionId: input.sessionId,
+        executionId: input.executionId,
         platform: input.platform,
         groupName:
-          input.groupName ?? defaultGroupName(input.platform, input.sessionId),
+          input.groupName ??
+          defaultGroupName(input.platform, input.executionId),
         groupDescription: input.groupDescription,
         sdkVersion: input.sdkVersion ?? '',
         modelBriefs: input.modelBriefs ?? [],
@@ -252,29 +252,29 @@ export class ExecutionStore {
   }
 
   markReportGenerated(
-    sessionId: string,
+    executionId: string,
     reportFilePath: string,
-  ): SessionRecord {
-    return withLock(sessionId, () => {
-      const session = this.load(sessionId);
+  ): ExecutionRecord {
+    return withLock(executionId, () => {
+      const record = this.load(executionId);
       return this.save({
-        ...session,
+        ...record,
         reportFilePath,
         updatedAt: Date.now(),
       });
     });
   }
 
-  appendExecution(sessionId: string, execution: ExecutionDump): number {
-    return withLock(sessionId, () => {
-      const session = this.load(sessionId);
-      const order = session.executionCount + 1;
-      const basePath = this.executionBasePath(sessionId, order);
+  appendExecution(executionId: string, execution: ExecutionDump): number {
+    return withLock(executionId, () => {
+      const record = this.load(executionId);
+      const order = record.executionCount + 1;
+      const basePath = this.executionBasePath(executionId, order);
 
       ExecutionDump.cleanupFiles(basePath);
       execution.serializeToFiles(basePath);
       this.save({
-        ...session,
+        ...record,
         executionCount: order,
         updatedAt: Date.now(),
       });
@@ -284,68 +284,50 @@ export class ExecutionStore {
   }
 
   updateExecution(
-    sessionId: string,
+    executionId: string,
     order: number,
     execution: ExecutionDump,
   ): void {
-    withLock(sessionId, () => {
-      const session = this.load(sessionId);
-      const basePath = this.executionBasePath(sessionId, order);
+    withLock(executionId, () => {
+      const record = this.load(executionId);
+      const basePath = this.executionBasePath(executionId, order);
 
       ExecutionDump.cleanupFiles(basePath);
       execution.serializeToFiles(basePath);
       this.save({
-        ...session,
-        executionCount: Math.max(session.executionCount, order),
+        ...record,
+        executionCount: Math.max(record.executionCount, order),
         updatedAt: Date.now(),
       });
     });
   }
 
-  buildGroupedDump(sessionId: string): IGroupedActionDump {
-    return withLock(sessionId, () => {
-      const session = this.load(sessionId);
+  buildGroupedDump(executionId: string): IGroupedActionDump {
+    return withLock(executionId, () => {
+      const record = this.load(executionId);
       const rootExecutionFiles = orderedRootExecutionFiles(
-        this.sessionDir(sessionId),
+        this.executionDir(executionId),
       );
 
       if (!rootExecutionFiles.length) {
-        throw new Error(`Session ${sessionId} has no persisted executions`);
+        throw new Error(`Execution ${executionId} has no persisted executions`);
       }
 
       const executions: IExecutionDump[] = [];
       for (const fileName of rootExecutionFiles) {
-        const basePath = join(this.sessionDir(sessionId), fileName);
+        const basePath = join(this.executionDir(executionId), fileName);
         const inlineJson = ExecutionDump.fromFilesAsInlineJson(basePath);
         executions.push(JSON.parse(inlineJson) as IExecutionDump);
       }
 
       return {
-        sdkVersion: session.sdkVersion,
-        groupName: session.groupName,
-        groupDescription: session.groupDescription,
-        modelBriefs: session.modelBriefs,
+        sdkVersion: record.sdkVersion,
+        groupName: record.groupName,
+        groupDescription: record.groupDescription,
+        modelBriefs: record.modelBriefs,
         executions,
-        deviceType: session.deviceType ?? session.platform,
+        deviceType: record.deviceType ?? record.platform,
       };
     });
   }
-}
-
-export function createSessionAgentOptions(input: {
-  sessionId?: string;
-  platform: string;
-  groupName?: string;
-  groupDescription?: string;
-}): Partial<AgentOpt> {
-  if (!input.sessionId) {
-    return {};
-  }
-
-  return {
-    sessionId: input.sessionId,
-    groupName:
-      input.groupName ?? defaultGroupName(input.platform, input.sessionId),
-    groupDescription: input.groupDescription,
-  };
 }

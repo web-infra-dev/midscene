@@ -1133,7 +1133,7 @@ export interface AgentOpt {
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
   /**
-   * Persistent session ID used to stitch together executions across
+   * Persistent execution ID used to stitch together executions across
    * separate Agent instances and CLI processes.
    */
   sessionId?: string;

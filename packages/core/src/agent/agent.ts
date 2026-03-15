@@ -52,7 +52,7 @@ import {
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
-import { exportSessionReport } from '@/execution-report';
+import { exportExecutionReport } from '@/execution-report';
 import { ExecutionStore } from '@/execution-store';
 import type { TaskRunner } from '@/task-runner';
 import {
@@ -214,9 +214,9 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
-  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+  private executionDumpIndexByRunnerId = new Map<number, number>();
 
-  private sessionExecutionOrders: number[] = [];
+  private executionOrders: number[] = [];
 
   private fullActionSpace: DeviceAction[];
 
@@ -360,7 +360,7 @@ export class Agent<
     // Every agent always has a sessionId - auto-generate from reportFileName if not provided
     this.sessionId = this.opts.sessionId || this.reportFileName!;
 
-    this.syncSessionMetadata();
+    this.syncExecutionMetadata();
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -416,14 +416,14 @@ export class Agent<
       modelBriefs: [],
       deviceType: this.interface.interfaceType,
     });
-    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+    this.executionDumpIndexByRunnerId = new Map<number, number>();
 
     return this.dump;
   }
 
-  private syncSessionMetadata(): void {
-    this.executionStore.ensureSession({
-      sessionId: this.sessionId,
+  private syncExecutionMetadata(): void {
+    this.executionStore.ensureExecution({
+      executionId: this.sessionId,
       platform: this.interface.interfaceType,
       groupName: this.opts.groupName,
       groupDescription: this.opts.groupDescription,
@@ -433,14 +433,14 @@ export class Agent<
     });
   }
 
-  private persistSessionDump(
+  private persistExecutionDump(
     execution: ExecutionDump,
     executionIndex: number,
   ): void {
-    let order = this.sessionExecutionOrders[executionIndex];
+    let order = this.executionOrders[executionIndex];
     if (order === undefined) {
       order = this.executionStore.appendExecution(this.sessionId, execution);
-      this.sessionExecutionOrders[executionIndex] = order;
+      this.executionOrders[executionIndex] = order;
       return;
     }
 
@@ -451,24 +451,23 @@ export class Agent<
     const currentDump = this.dump;
     let executionIndex: number;
     if (runner) {
-      const existingIndex = this.executionDumpIndexByRunner.get(runner);
+      const existingIndex = this.executionDumpIndexByRunnerId.get(
+        runner.runnerId,
+      );
       if (existingIndex !== undefined) {
         currentDump.executions[existingIndex] = execution;
         executionIndex = existingIndex;
       } else {
         currentDump.executions.push(execution);
-        this.executionDumpIndexByRunner.set(
-          runner,
-          currentDump.executions.length - 1,
-        );
         executionIndex = currentDump.executions.length - 1;
+        this.executionDumpIndexByRunnerId.set(runner.runnerId, executionIndex);
       }
     } else {
       currentDump.executions.push(execution);
       executionIndex = currentDump.executions.length - 1;
     }
 
-    this.persistSessionDump(
+    this.persistExecutionDump(
       currentDump.executions[executionIndex],
       executionIndex,
     );
@@ -492,8 +491,8 @@ export class Agent<
   }
 
   writeOutActionDumps() {
-    // No-op: persistence is handled by ExecutionStore in persistSessionDump().
-    // Report is generated at destroy() time via exportSessionReport().
+    // No-op: persistence is handled by ExecutionStore in persistExecutionDump().
+    // Report is generated at destroy() time via exportExecutionReport().
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1301,15 +1300,15 @@ export class Agent<
       return;
     }
 
-    // Generate final report from session data
+    // Generate final report from execution data
     if (this.opts.generateReport !== false) {
       try {
-        this.reportFile = exportSessionReport(
+        this.reportFile = exportExecutionReport(
           this.sessionId,
           this.executionStore,
         );
       } catch (error) {
-        debug('Failed to generate session report:', error);
+        debug('Failed to generate execution report:', error);
       }
     }
 
@@ -1360,7 +1359,7 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     });
-    // 5. append to execution dump (also persists to session)
+    // 5. append to execution dump (also persists to execution store)
     this.appendExecutionDump(executionDump);
 
     // Call all registered dump update listeners
