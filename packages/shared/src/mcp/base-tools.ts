@@ -1,7 +1,6 @@
 import { parseBase64 } from '@midscene/shared/img';
 import { getDebug } from '@midscene/shared/logger';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { z } from 'zod';
 import {
   generateCommonTools,
   generateToolsFromActionSpace,
@@ -31,14 +30,10 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    * Ensure agent is initialized and ready for use.
    * Must be implemented by subclasses to create platform-specific agent.
    * @param initParam Optional initialization parameter (platform-specific, e.g., URL, device ID)
-   * @param sessionId Optional persistent session ID for cross-process report stitching
    * @returns Promise resolving to initialized agent instance
    * @throws Error if agent initialization fails
    */
-  protected abstract ensureAgent(
-    initParam?: string,
-    options?: { sessionId?: string } & Record<string, unknown>,
-  ): Promise<TAgent>;
+  protected abstract ensureAgent(initParam?: string): Promise<TAgent>;
 
   /**
    * Optional: prepare platform-specific tools (e.g., device connection)
@@ -53,51 +48,6 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
    */
   protected abstract createTemporaryDevice(): BaseDevice;
 
-  protected getStringArg(
-    args: Record<string, unknown> | undefined,
-    name: string,
-  ): string | undefined {
-    const value = args?.[name];
-    return typeof value === 'string' && value ? value : undefined;
-  }
-
-  protected getSessionIdArg(
-    args?: Record<string, unknown>,
-  ): string | undefined {
-    return this.getStringArg(args, 'sessionId');
-  }
-
-  protected getAgentOptions(args?: Record<string, unknown>): {
-    sessionId?: string;
-  } {
-    return {
-      sessionId: this.getSessionIdArg(args),
-    };
-  }
-
-  protected shouldResetAgentForSession(sessionId?: string): boolean {
-    return !!this.agent && this.agent.opts?.sessionId !== sessionId;
-  }
-
-  private withSharedCliSchema(tool: ToolDefinition): ToolDefinition {
-    if (tool.schema.sessionId) {
-      return tool;
-    }
-
-    return {
-      ...tool,
-      schema: {
-        ...tool.schema,
-        sessionId: z
-          .string()
-          .optional()
-          .describe(
-            'Persistent session ID used to group executions across separate CLI processes',
-          ),
-      },
-    };
-  }
-
   /**
    * Initialize all tools by querying actionSpace
    * Uses two-layer fallback strategy:
@@ -110,9 +60,7 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     // 1. Add platform-specific tools first (device connection, etc.)
     // These don't require an agent and should always be available
     const platformTools = this.preparePlatformTools();
-    this.toolDefinitions.push(
-      ...platformTools.map((tool) => this.withSharedCliSchema(tool)),
-    );
+    this.toolDefinitions.push(...platformTools);
 
     // 2. Get action space: use pre-set agent if available, otherwise temp device.
     //    When called via mcpKitForAgent(), agent is set before initTools().
@@ -135,19 +83,14 @@ export abstract class BaseMidsceneTools<TAgent extends BaseAgent = BaseAgent>
     }
 
     // 3. Generate tools from action space (core innovation)
-    const actionTools = generateToolsFromActionSpace(actionSpace, (args) =>
-      this.ensureAgent(undefined, this.getAgentOptions(args)),
+    const actionTools = generateToolsFromActionSpace(actionSpace, () =>
+      this.ensureAgent(),
     );
 
     // 4. Add common tools (screenshot, waitFor)
-    const commonTools = generateCommonTools((args) =>
-      this.ensureAgent(undefined, this.getAgentOptions(args)),
-    );
+    const commonTools = generateCommonTools(() => this.ensureAgent());
 
-    this.toolDefinitions.push(
-      ...actionTools.map((tool) => this.withSharedCliSchema(tool)),
-      ...commonTools.map((tool) => this.withSharedCliSchema(tool)),
-    );
+    this.toolDefinitions.push(...actionTools, ...commonTools);
 
     debug('Total tools prepared:', this.toolDefinitions.length);
   }

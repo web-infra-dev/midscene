@@ -1,7 +1,3 @@
-import {
-  createExportSessionReportTool,
-  createSessionAgentOptions,
-} from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { type IOSAgent, agentFromWebDriverAgent } from './agent';
@@ -20,33 +16,14 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
     return new IOSDevice({});
   }
 
-  protected async ensureAgent(
-    _unused?: string,
-    options?: { sessionId?: string },
-  ): Promise<IOSAgent> {
-    const sessionId = options?.sessionId;
-
-    if (this.agent && this.shouldResetAgentForSession(sessionId)) {
-      try {
-        await this.agent.destroy?.();
-      } catch (error) {
-        debug('Failed to destroy agent during cleanup:', error);
-      }
-      this.agent = undefined;
-    }
-
+  protected async ensureAgent(): Promise<IOSAgent> {
     if (this.agent) {
       return this.agent;
     }
 
     debug('Creating iOS agent with WebDriverAgent');
-    const sessionOptions = createSessionAgentOptions({
-      sessionId,
-      platform: 'ios',
-    });
     this.agent = await agentFromWebDriverAgent({
       autoDismissKeyboard: false,
-      ...sessionOptions,
     });
     return this.agent;
   }
@@ -60,11 +37,8 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
         name: 'ios_connect',
         description: 'Connect to iOS device or simulator via WebDriverAgent',
         schema: {},
-        handler: async (args: { sessionId?: string }) => {
-          const agent = await this.ensureAgent(
-            undefined,
-            this.getAgentOptions(args as Record<string, unknown>),
-          );
+        handler: async () => {
+          const agent = await this.ensureAgent();
           const screenshot = await agent.page.screenshotBase64();
 
           return {
@@ -86,7 +60,6 @@ export class IOSMidsceneTools extends BaseMidsceneTools<IOSAgent> {
         schema: {},
         handler: this.createDisconnectHandler('iOS device'),
       },
-      createExportSessionReportTool(),
     ];
   }
 }

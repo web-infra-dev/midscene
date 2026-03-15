@@ -1,8 +1,4 @@
-import {
-  createExportSessionReportTool,
-  createSessionAgentOptions,
-  z,
-} from '@midscene/core';
+import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { type HarmonyAgent, agentFromHdcDevice } from './agent';
@@ -15,15 +11,8 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
     return new HarmonyDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(
-    deviceId?: string,
-    options?: { sessionId?: string },
-  ): Promise<HarmonyAgent> {
-    const sessionId = options?.sessionId;
-    if (
-      this.agent &&
-      (deviceId || this.shouldResetAgentForSession(sessionId))
-    ) {
+  protected async ensureAgent(deviceId?: string): Promise<HarmonyAgent> {
+    if (this.agent && deviceId) {
       try {
         await this.agent.destroy?.();
       } catch (error) {
@@ -37,13 +26,8 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
     }
 
     debug('Creating Harmony agent with deviceId:', deviceId || 'auto-detect');
-    const sessionOptions = createSessionAgentOptions({
-      sessionId,
-      platform: 'harmony',
-    });
     const agent = await agentFromHdcDevice(deviceId, {
       autoDismissKeyboard: false,
-      ...sessionOptions,
     });
     this.agent = agent;
     return agent;
@@ -61,18 +45,15 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
             .optional()
             .describe('HarmonyOS device ID (from hdc list targets)'),
         },
-        handler: async (args: { deviceId?: string; sessionId?: string }) => {
-          const agent = await this.ensureAgent(
-            args.deviceId,
-            this.getAgentOptions(args as Record<string, unknown>),
-          );
+        handler: async ({ deviceId }: { deviceId?: string }) => {
+          const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Connected to HarmonyOS device${args.deviceId ? `: ${args.deviceId}` : ' (auto-detected)'}`,
+                text: `Connected to HarmonyOS device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}`,
               },
               ...this.buildScreenshotContent(screenshot),
             ],
@@ -87,7 +68,6 @@ export class HarmonyMidsceneTools extends BaseMidsceneTools<HarmonyAgent> {
         schema: {},
         handler: this.createDisconnectHandler('HarmonyOS device'),
       },
-      createExportSessionReportTool(),
     ];
   }
 }
