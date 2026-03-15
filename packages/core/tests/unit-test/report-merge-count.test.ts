@@ -14,6 +14,7 @@ import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
+  type GroupMeta,
   GroupedActionDump,
   type TestStatus,
   type UIContext,
@@ -28,6 +29,26 @@ function fakeScreenshot(size = 200): ScreenshotItem {
     `data:image/png;base64,${'A'.repeat(size)}`,
     Date.now(),
   );
+}
+
+/**
+ * Helper: write a dump to a ReportGenerator using the new per-execution API.
+ */
+async function writeAndFinalize(
+  gen: ReportGenerator,
+  dump: GroupedActionDump,
+): Promise<void> {
+  const groupMeta: GroupMeta = {
+    groupName: dump.groupName,
+    groupDescription: dump.groupDescription,
+    sdkVersion: dump.sdkVersion,
+    modelBriefs: dump.modelBriefs,
+    deviceType: dump.deviceType,
+  };
+  for (const exec of dump.executions) {
+    gen.onExecutionUpdate(exec, groupMeta);
+  }
+  await gen.finalize();
 }
 
 function createDump(groupName: string, taskCount: number): GroupedActionDump {
@@ -147,7 +168,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         }) as ReportGenerator;
 
         const dump = createDump(`group-${i}`, 2);
-        await gen.finalize(dump);
+        await writeAndFinalize(gen, dump);
 
         tool.append({
           reportFilePath: gen.getReportPath()!,
@@ -201,7 +222,7 @@ describe('ReportMergingTool merged dump count verification', () => {
       }) as ReportGenerator;
 
       const dump = createDump(`dir-group-${i}`, 2);
-      await gen.finalize(dump);
+      await writeAndFinalize(gen, dump);
 
       tool.append({
         reportFilePath: gen.getReportPath()!,
@@ -251,7 +272,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'single-html',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`inline-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`inline-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {
@@ -271,7 +292,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'html-and-external-assets',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`dir-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`dir-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {
@@ -326,7 +347,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'single-html',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`status-group-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`status-group-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {
@@ -370,7 +391,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'single-html',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`last-group-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`last-group-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {

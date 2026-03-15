@@ -305,78 +305,175 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 }
 
 export function App() {
+  /**
+   * Parse attributes from a dump script element.
+   */
+  function parseAttributesFromElement(el: Element): PlaywrightTaskAttributes {
+    const attributes: Partial<PlaywrightTaskAttributes> & Record<string, any> =
+      {
+        playwright_test_description: '',
+        playwright_test_id: '',
+        playwright_test_title: '',
+        playwright_test_status: undefined,
+        playwright_test_duration: 0,
+      };
+    Array.from(el.attributes).forEach((attr) => {
+      const { name, value } = attr;
+      const valueDecoded = decodeURIComponent(value);
+      if (name.startsWith('playwright_')) {
+        if (name === 'playwright_test_duration') {
+          attributes[name] = Number(valueDecoded) || 0;
+        } else {
+          attributes[name] = valueDecoded;
+        }
+      }
+    });
+    return attributes as PlaywrightTaskAttributes;
+  }
+
+  /**
+   * Build a PlaywrightTasks entry from a single dump element (original behavior).
+   */
+  function buildPlaywrightTaskFromElement(el: Element): PlaywrightTasks {
+    const attributes = parseAttributesFromElement(el);
+    let cachedJsonContent: GroupedActionDump | null = null;
+    let isParsed = false;
+
+    return {
+      get: () => {
+        if (!isParsed) {
+          try {
+            console.time('parse_dump');
+            const content = antiEscapeScriptTag(el.textContent || '');
+            const parsed = JSON.parse(content);
+            const restored = restoreImageReferences(
+              parsed,
+              resolveImageFromDom,
+            );
+            cachedJsonContent = GroupedActionDump.fromJSON(restored);
+            console.timeEnd('parse_dump');
+            (cachedJsonContent as any).attributes = attributes;
+            isParsed = true;
+          } catch (e) {
+            console.error(el);
+            console.error('failed to parse json content', e);
+            cachedJsonContent = new GroupedActionDump({
+              sdkVersion: '',
+              groupName: '',
+              modelBriefs: [],
+              executions: [],
+            });
+            (cachedJsonContent as any).attributes = attributes;
+            (cachedJsonContent as any).error = 'Failed to parse JSON content';
+            isParsed = true;
+          }
+        }
+        return cachedJsonContent!;
+      },
+      attributes,
+    };
+  }
+
   function getDumpElements(): PlaywrightTasks[] {
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
     );
-    const reportDump: PlaywrightTasks[] = [];
-    Array.from(dumpElements)
-      .filter((el) => {
-        const textContent = el.textContent;
-        if (!textContent) {
-          console.warn('empty content in script tag', el);
+    const validElements = Array.from(dumpElements).filter((el) => {
+      const textContent = el.textContent;
+      if (!textContent) {
+        console.warn('empty content in script tag', el);
+      }
+      return !!textContent;
+    });
+
+    // Group elements by data-group-id
+    const groupMap = new Map<string, Element[]>();
+    const ungrouped: Element[] = [];
+
+    for (const el of validElements) {
+      const groupId = el.getAttribute('data-group-id');
+      if (groupId) {
+        const decodedGroupId = decodeURIComponent(groupId);
+        if (!groupMap.has(decodedGroupId)) {
+          groupMap.set(decodedGroupId, []);
         }
-        return !!textContent;
-      })
-      .forEach((el) => {
-        const attributes: Partial<PlaywrightTaskAttributes> &
-          Record<string, any> = {
-          playwright_test_description: '',
-          playwright_test_id: '',
-          playwright_test_title: '',
-          playwright_test_status: undefined,
-          playwright_test_duration: 0,
-        };
-        Array.from(el.attributes).forEach((attr) => {
-          const { name, value } = attr;
-          const valueDecoded = decodeURIComponent(value);
-          if (name.startsWith('playwright_')) {
-            if (name === 'playwright_test_duration') {
-              attributes[name] = Number(valueDecoded) || 0;
-            } else {
-              attributes[name] = valueDecoded;
-            }
-          }
-        });
+        groupMap.get(decodedGroupId)!.push(el);
+      } else {
+        ungrouped.push(el);
+      }
+    }
 
-        // Lazy loading: Store raw content and parse only when get() is called
-        let cachedJsonContent: GroupedActionDump | null = null;
-        let isParsed = false;
+    const result: PlaywrightTasks[] = [];
 
-        reportDump.push({
-          get: () => {
-            if (!isParsed) {
-              try {
-                console.time('parse_dump');
+    // Process grouped dump tags — merge into one PlaywrightTasks per group
+    for (const [, elements] of groupMap) {
+      const attributes = parseAttributesFromElement(elements[0]);
+      let cachedJsonContent: GroupedActionDump | null = null;
+      let isParsed = false;
+
+      result.push({
+        get: () => {
+          if (!isParsed) {
+            try {
+              console.time('parse_grouped_dump');
+              const allExecutions: any[] = [];
+              let baseDump: GroupedActionDump | null = null;
+
+              for (const el of elements) {
                 const content = antiEscapeScriptTag(el.textContent || '');
-
                 const parsed = JSON.parse(content);
                 const restored = restoreImageReferences(
                   parsed,
                   resolveImageFromDom,
                 );
-                cachedJsonContent = GroupedActionDump.fromJSON(restored);
-
-                console.timeEnd('parse_dump');
-                (cachedJsonContent as any).attributes = attributes;
-                isParsed = true;
-              } catch (e) {
-                console.error(el);
-                console.error('failed to parse json content', e);
-                // Return a fallback object to prevent crashes
-                cachedJsonContent = {
-                  attributes,
-                  error: 'Failed to parse JSON content',
-                } as any;
-                isParsed = true;
+                const dump = GroupedActionDump.fromJSON(restored);
+                if (!baseDump) {
+                  baseDump = dump;
+                }
+                allExecutions.push(...dump.executions);
               }
+
+              if (baseDump) {
+                baseDump.executions = allExecutions;
+                cachedJsonContent = baseDump;
+              } else {
+                cachedJsonContent = new GroupedActionDump({
+                  sdkVersion: '',
+                  groupName: '',
+                  modelBriefs: [],
+                  executions: [],
+                });
+              }
+
+              console.timeEnd('parse_grouped_dump');
+              (cachedJsonContent as any).attributes = attributes;
+              isParsed = true;
+            } catch (e) {
+              console.error('failed to parse grouped dump content', e);
+              cachedJsonContent = new GroupedActionDump({
+                sdkVersion: '',
+                groupName: '',
+                modelBriefs: [],
+                executions: [],
+              });
+              (cachedJsonContent as any).attributes = attributes;
+              (cachedJsonContent as any).error =
+                'Failed to parse grouped JSON content';
+              isParsed = true;
             }
-            return cachedJsonContent;
-          },
-          attributes: attributes as PlaywrightTaskAttributes,
-        });
+          }
+          return cachedJsonContent!;
+        },
+        attributes,
       });
-    return reportDump;
+    }
+
+    // Process ungrouped dump tags — original behavior (backward compatible)
+    for (const el of ungrouped) {
+      result.push(buildPlaywrightTaskFromElement(el));
+    }
+
+    return result;
   }
 
   const [reportDump, setReportDump] = useState<PlaywrightTasks[]>([]);

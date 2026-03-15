@@ -699,6 +699,17 @@ export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
+Group metadata - extracted from GroupedActionDump for per-execution writes
+*/
+export interface GroupMeta {
+  groupName: string;
+  groupDescription?: string;
+  sdkVersion: string;
+  modelBriefs: string[];
+  deviceType?: string;
+}
+
+/*
 Grouped dump
 */
 export interface IGroupedActionDump {
