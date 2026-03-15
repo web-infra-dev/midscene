@@ -15,6 +15,7 @@ import { getDebug } from '@midscene/shared/logger';
 import semver from 'semver';
 import {
   BROWSER_NAVIGATION_ERROR_PATTERN,
+  autoSwitchToNewTab,
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
 } from '../puppeteer/base-page';
@@ -57,6 +58,8 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
 
     if (forceSameTabNavigation) {
       forceClosePopup(page, debug);
+    } else {
+      autoSwitchToNewTab(page, webPage, debug);
     }
 
     if (forceChromeSelectRendering) {
