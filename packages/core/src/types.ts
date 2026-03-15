@@ -577,6 +577,106 @@ export class ExecutionDump implements IExecutionDump {
 
     return screenshots;
   }
+
+  /**
+   * Serialize the execution to files with screenshots as separate PNG files.
+   *
+   * Creates:
+   * - {basePath} - execution JSON with { $screenshot: id } references
+   * - {basePath}.screenshots/ - PNG files
+   * - {basePath}.screenshots.json - ID to path mapping
+   */
+  serializeToFiles(basePath: string): void {
+    const screenshotsDir = `${basePath}.screenshots`;
+    if (!existsSync(screenshotsDir)) {
+      mkdirSync(screenshotsDir, { recursive: true });
+    }
+
+    const screenshotMap: Record<string, string> = {};
+    const screenshots = this.collectScreenshots();
+
+    for (const screenshot of screenshots) {
+      if (screenshot.hasBase64()) {
+        const imagePath = join(
+          screenshotsDir,
+          `${screenshot.id}.${screenshot.extension}`,
+        );
+        const rawBase64 = screenshot.rawBase64;
+        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+        screenshotMap[screenshot.id] = imagePath;
+      }
+    }
+
+    writeFileSync(
+      `${basePath}.screenshots.json`,
+      JSON.stringify(screenshotMap),
+      'utf-8',
+    );
+
+    writeFileSync(basePath, this.serialize(), 'utf-8');
+  }
+
+  /**
+   * Read execution from files and return JSON string with inline screenshots.
+   */
+  static fromFilesAsInlineJson(basePath: string): string {
+    const dumpString = readFileSync(basePath, 'utf-8');
+    const screenshotsMapPath = `${basePath}.screenshots.json`;
+
+    if (!existsSync(screenshotsMapPath)) {
+      return dumpString;
+    }
+
+    const screenshotMap: Record<string, string> = JSON.parse(
+      readFileSync(screenshotsMapPath, 'utf-8'),
+    );
+
+    const imageMap: Record<string, string> = {};
+    for (const [id, filePath] of Object.entries(screenshotMap)) {
+      if (existsSync(filePath)) {
+        const data = readFileSync(filePath);
+        const mime =
+          filePath.endsWith('.jpeg') || filePath.endsWith('.jpg')
+            ? 'jpeg'
+            : 'png';
+        imageMap[id] = `data:image/${mime};base64,${data.toString('base64')}`;
+      }
+    }
+
+    const dumpData = JSON.parse(dumpString);
+    const processedData = restoreImageReferences(
+      dumpData,
+      (id) => imageMap[id] ?? '',
+    );
+    return JSON.stringify(processedData);
+  }
+
+  /**
+   * Clean up all files associated with a serialized execution.
+   */
+  static cleanupFiles(basePath: string): void {
+    const filesToClean = [
+      basePath,
+      `${basePath}.screenshots.json`,
+      `${basePath}.screenshots`,
+    ];
+
+    for (const filePath of filesToClean) {
+      try {
+        rmSync(filePath, { force: true, recursive: true });
+      } catch {
+        // Ignore cleanup failures
+      }
+    }
+  }
+
+  static getFilePaths(basePath: string): string[] {
+    return [
+      basePath,
+      `${basePath}.screenshots.json`,
+      `${basePath}.screenshots`,
+    ];
+  }
 }
 
 /*
@@ -1032,6 +1132,11 @@ export interface AgentOpt {
   testId?: string;
   // @deprecated
   cacheId?: string; // Keep backward compatibility, but marked as deprecated
+  /**
+   * Persistent execution ID used to stitch together executions across
+   * separate Agent instances and CLI processes.
+   */
+  sessionId?: string;
   groupName?: string;
   groupDescription?: string;
   /* if auto generate report, default true */

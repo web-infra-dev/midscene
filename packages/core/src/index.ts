@@ -63,9 +63,13 @@ export {
   generateDumpScriptTag,
 } from './dump';
 
-// Report generator
-export type { IReportGenerator } from './report-generator';
-export { ReportGenerator, nullReportGenerator } from './report-generator';
+// Execution persistence & report
+export { ExecutionStore } from './execution-store';
+export type {
+  ExecutionRecord,
+  EnsureExecutionRecordInput,
+} from './execution-store';
+export { exportExecutionReport } from './execution-report';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';

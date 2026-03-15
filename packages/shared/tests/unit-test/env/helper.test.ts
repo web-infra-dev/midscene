@@ -1,10 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { maskConfig } from '../../../src/env/helper';
-import type { IModelConfig } from '../../../src/env/model-config';
 
 describe('maskConfig', () => {
   it('key will be masked', () => {
-    const config: IModelConfig = {
+    const config: Record<string, unknown> = {
       modelName: 'test-model',
       from: 'env',
       openaiApiKey: 'sk-thisisafakekeythatislongenough',
