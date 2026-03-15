@@ -33,11 +33,6 @@ export interface IReportGenerator {
   onExecutionUpdate(execution: ExecutionDump, groupMeta: GroupMeta): void;
 
   /**
-   * @deprecated Use onExecutionUpdate instead. Kept for backward compatibility.
-   */
-  onDumpUpdate?(dump: GroupedActionDump): void;
-
-  /**
    * Wait for all queued write operations to complete.
    */
   flush(): Promise<void>;
