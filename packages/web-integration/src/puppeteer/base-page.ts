@@ -781,6 +781,55 @@ export function forceClosePopup(
 }
 
 /**
+ * When forceSameTabNavigation is false, automatically switch the agent's
+ * underlying page reference to newly opened tabs so that subsequent actions
+ * operate on the new tab instead of the original one.
+ */
+export function autoSwitchToNewTab(
+  page: PuppeteerPage | PlaywrightPage,
+  webPage: Page<any, any>,
+  debugProfile: DebugFunction,
+) {
+  page.on('popup', async (popup) => {
+    if (!popup) {
+      console.warn(
+        '[midscene] got a popup event, but the popup is not ready yet, skip',
+      );
+      return;
+    }
+
+    try {
+      const popupPage = popup as PuppeteerPage;
+      if (popupPage.isClosed()) {
+        debugProfile('popup is already closed, skip switching');
+        return;
+      }
+
+      const url = popupPage.url();
+      debugProfile(`New tab detected: ${url}, switching to it`);
+
+      // Update the underlying page reference to the new tab
+      webPage.underlyingPage = popup as any;
+
+      // Bring the new tab to the front
+      await popupPage.bringToFront();
+
+      // Recursively listen for popups on the new tab as well
+      autoSwitchToNewTab(
+        popup as PuppeteerPage | PlaywrightPage,
+        webPage,
+        debugProfile,
+      );
+    } catch (error) {
+      debugProfile(`failed to switch to new tab: ${error}`);
+      console.warn(
+        `[midscene:warning] Failed to switch to newly opened tab: ${error}`,
+      );
+    }
+  });
+}
+
+/**
  * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.
  * This makes select elements visible in screenshots captured by Playwright/Puppeteer.
  *

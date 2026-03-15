@@ -11,6 +11,7 @@ import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import semver from 'semver';
 import {
+  autoSwitchToNewTab,
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
 } from '../puppeteer/base-page';
@@ -46,6 +47,8 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
 
     if (forceSameTabNavigation) {
       forceClosePopup(page, debug);
+    } else {
+      autoSwitchToNewTab(page, webPage, debug);
     }
 
     if (forceChromeSelectRendering) {
