@@ -4,7 +4,6 @@ import {
   globalConfigManager,
 } from '@midscene/shared/env';
 import { logMsg } from '@midscene/shared/utils';
-import { z } from 'zod';
 import { ExecutionStore } from './execution-store';
 import { reportHTMLContent } from './utils';
 
@@ -23,41 +22,4 @@ export function exportSessionReport(
   }
 
   return reportPath;
-}
-
-/**
- * Create a platform-agnostic MCP tool definition for exporting session reports.
- * Eliminates the need for each platform to duplicate the same handler.
- */
-export function createExportSessionReportTool() {
-  return {
-    name: 'export_session_report',
-    description: 'Generate a merged HTML report from a persisted session',
-    schema: {
-      sessionId: z.string().describe('Persistent session ID to export'),
-    },
-    handler: async (args: { sessionId?: string }) => {
-      const { sessionId } = args;
-      if (typeof sessionId !== 'string' || !sessionId) {
-        return {
-          content: [
-            {
-              type: 'text' as const,
-              text: 'sessionId is required to export a session report',
-            },
-          ],
-          isError: true,
-        };
-      }
-      const reportPath = exportSessionReport(sessionId);
-      return {
-        content: [
-          {
-            type: 'text' as const,
-            text: `Session report generated: ${reportPath}`,
-          },
-        ],
-      };
-    },
-  };
 }

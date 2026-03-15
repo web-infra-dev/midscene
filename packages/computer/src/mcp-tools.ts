@@ -1,8 +1,4 @@
-import {
-  createExportSessionReportTool,
-  createSessionAgentOptions,
-  z,
-} from '@midscene/core';
+import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { type ComputerAgent, agentFromComputer } from './agent';
@@ -22,14 +18,9 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
 
   protected async ensureAgent(
     displayId?: string,
-    options?: { sessionId?: string; headless?: boolean },
+    headless?: boolean,
   ): Promise<ComputerAgent> {
-    const sessionId = options?.sessionId;
-    const headless = options?.headless;
-    if (
-      this.agent &&
-      (displayId || this.shouldResetAgentForSession(sessionId))
-    ) {
+    if (this.agent && displayId) {
       // If a specific displayId is requested and we have an agent,
       // destroy it to create a new one with the new display
       try {
@@ -45,14 +36,9 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
     }
 
     debug('Creating Computer agent with displayId:', displayId || 'primary');
-    const sessionOptions = createSessionAgentOptions({
-      sessionId,
-      platform: 'computer',
-    });
     const opts = {
       ...(displayId ? { displayId } : {}),
       ...(headless !== undefined ? { headless } : {}),
-      ...sessionOptions,
     };
     const agent = await agentFromComputer(
       Object.keys(opts).length > 0 ? opts : undefined,
@@ -80,22 +66,18 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
             .optional()
             .describe('Start virtual display via Xvfb (Linux only)'),
         },
-        handler: async (args: {
-          displayId?: string;
-          headless?: boolean;
-          sessionId?: string;
-        }) => {
-          const agent = await this.ensureAgent(args.displayId, {
-            ...this.getAgentOptions(args as Record<string, unknown>),
-            headless: args.headless,
-          });
+        handler: async ({
+          displayId,
+          headless,
+        }: { displayId?: string; headless?: boolean }) => {
+          const agent = await this.ensureAgent(displayId, headless);
           const screenshot = await agent.interface.screenshotBase64();
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Connected to computer${args.displayId ? ` (Display: ${args.displayId})` : ' (Primary display)'}`,
+                text: `Connected to computer${displayId ? ` (Display: ${displayId})` : ' (Primary display)'}`,
               },
               ...this.buildScreenshotContent(screenshot),
             ],
@@ -108,7 +90,6 @@ export class ComputerMidsceneTools extends BaseMidsceneTools<ComputerAgent> {
         schema: {},
         handler: this.createDisconnectHandler('computer'),
       },
-      createExportSessionReportTool(),
       {
         name: 'computer_list_displays',
         description: 'List all available displays/monitors',

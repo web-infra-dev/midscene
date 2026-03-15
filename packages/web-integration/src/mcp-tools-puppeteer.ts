@@ -3,12 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import {
-  ScreenshotItem,
-  createExportSessionReportTool,
-  createSessionAgentOptions,
-  z,
-} from '@midscene/core';
+import { ScreenshotItem, z } from '@midscene/core';
 import {
   BaseMidsceneTools,
   type ToolDefinition,
@@ -151,16 +146,9 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
     });
   }
 
-  protected async ensureAgent(
-    navigateToUrl?: string,
-    options?: { sessionId?: string },
-  ): Promise<PuppeteerAgent> {
-    const sessionId = options?.sessionId;
-    // Re-init if URL or session changes
-    if (
-      this.agent &&
-      (navigateToUrl || this.shouldResetAgentForSession(sessionId))
-    ) {
+  protected async ensureAgent(navigateToUrl?: string): Promise<PuppeteerAgent> {
+    // Re-init if URL provided
+    if (this.agent && navigateToUrl) {
       try {
         await this.agent?.destroy?.();
       } catch {}
@@ -194,13 +182,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
       }
     }
 
-    const sessionOptions = createSessionAgentOptions({
-      sessionId,
-      platform: 'web',
-    });
-    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage, {
-      ...sessionOptions,
-    });
+    this.agent = new PuppeteerAgent(page as unknown as PuppeteerPage);
     return this.agent;
   }
 
@@ -224,7 +206,6 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
         },
         handler: async (args) => {
           const { url } = args as { url?: string };
-          const options = this.getAgentOptions(args as Record<string, unknown>);
 
           // Destroy existing agent
           if (this.agent) {
@@ -234,7 +215,7 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
             this.agent = undefined;
           }
 
-          this.agent = await this.ensureAgent(url, options);
+          this.agent = await this.ensureAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current page';
@@ -265,7 +246,6 @@ export class WebPuppeteerMidsceneTools extends BaseMidsceneTools<PuppeteerAgent>
           );
         },
       },
-      createExportSessionReportTool(),
       {
         name: 'web_close',
         description: 'Close the browser completely and release all resources.',

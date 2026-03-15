@@ -1,8 +1,4 @@
-import {
-  createExportSessionReportTool,
-  createSessionAgentOptions,
-  z,
-} from '@midscene/core';
+import { z } from '@midscene/core';
 import { getDebug } from '@midscene/shared/logger';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { type AndroidAgent, agentFromAdbDevice } from './agent';
@@ -21,15 +17,8 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
     return new AndroidDevice('temp-for-action-space', {});
   }
 
-  protected async ensureAgent(
-    deviceId?: string,
-    options?: { sessionId?: string },
-  ): Promise<AndroidAgent> {
-    const sessionId = options?.sessionId;
-    if (
-      this.agent &&
-      (deviceId || this.shouldResetAgentForSession(sessionId))
-    ) {
+  protected async ensureAgent(deviceId?: string): Promise<AndroidAgent> {
+    if (this.agent && deviceId) {
       // If a specific deviceId is requested and we have an agent,
       // destroy it to create a new one with the new device
       try {
@@ -45,13 +34,8 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
     }
 
     debug('Creating Android agent with deviceId:', deviceId || 'auto-detect');
-    const sessionOptions = createSessionAgentOptions({
-      sessionId,
-      platform: 'android',
-    });
     const agent = await agentFromAdbDevice(deviceId, {
       autoDismissKeyboard: false,
-      ...sessionOptions,
     });
     this.agent = agent;
     return agent;
@@ -72,18 +56,15 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
             .optional()
             .describe('Android device ID (from adb devices)'),
         },
-        handler: async (args: { deviceId?: string; sessionId?: string }) => {
-          const agent = await this.ensureAgent(
-            args.deviceId,
-            this.getAgentOptions(args as Record<string, unknown>),
-          );
+        handler: async ({ deviceId }: { deviceId?: string }) => {
+          const agent = await this.ensureAgent(deviceId);
           const screenshot = await agent.page.screenshotBase64();
 
           return {
             content: [
               {
                 type: 'text',
-                text: `Connected to Android device${args.deviceId ? `: ${args.deviceId}` : ' (auto-detected)'}`,
+                text: `Connected to Android device${deviceId ? `: ${deviceId}` : ' (auto-detected)'}`,
               },
               ...this.buildScreenshotContent(screenshot),
             ],
@@ -98,7 +79,6 @@ export class AndroidMidsceneTools extends BaseMidsceneTools<AndroidAgent> {
         schema: {},
         handler: this.createDisconnectHandler('Android device'),
       },
-      createExportSessionReportTool(),
     ];
   }
 }

@@ -1,9 +1,4 @@
-import {
-  ScreenshotItem,
-  createExportSessionReportTool,
-  createSessionAgentOptions,
-  z,
-} from '@midscene/core';
+import { ScreenshotItem, z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import { AgentOverChromeBridge } from './bridge-mode';
 import { StaticPage } from './static';
@@ -25,14 +20,9 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
 
   protected async ensureAgent(
     openNewTabWithUrl?: string,
-    options?: { sessionId?: string },
   ): Promise<AgentOverChromeBridge> {
-    const sessionId = options?.sessionId;
-    // Re-init if URL or session changes
-    if (
-      this.agent &&
-      (openNewTabWithUrl || this.shouldResetAgentForSession(sessionId))
-    ) {
+    // Re-init if URL provided
+    if (this.agent && openNewTabWithUrl) {
       try {
         await this.agent?.destroy?.();
       } catch (error) {
@@ -44,23 +34,15 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
     if (this.agent) return this.agent;
 
     // Connect to current tab when no URL provided (handles CLI stateless calls)
-    this.agent = await this.initBridgeModeAgent(openNewTabWithUrl, sessionId);
+    this.agent = await this.initBridgeModeAgent(openNewTabWithUrl);
 
     return this.agent;
   }
 
   private async initBridgeModeAgent(
     url?: string,
-    sessionId?: string,
   ): Promise<AgentOverChromeBridge> {
-    const sessionOptions = createSessionAgentOptions({
-      sessionId,
-      platform: 'web',
-    });
-    const agent = new AgentOverChromeBridge({
-      closeConflictServer: true,
-      ...sessionOptions,
-    });
+    const agent = new AgentOverChromeBridge({ closeConflictServer: true });
 
     if (!url) {
       await agent.connectCurrentTab();
@@ -86,7 +68,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         },
         handler: async (args) => {
           const { url } = args as { url?: string };
-          const options = this.getAgentOptions(args as Record<string, unknown>);
 
           // Bypass ensureAgent's URL check — directly init bridge agent
           if (this.agent) {
@@ -95,7 +76,7 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
             } catch {}
             this.agent = undefined;
           }
-          this.agent = await this.initBridgeModeAgent(url, options.sessionId);
+          this.agent = await this.initBridgeModeAgent(url);
 
           const screenshot = await this.agent.page?.screenshotBase64();
           const label = url ?? 'current tab';
@@ -115,7 +96,6 @@ export class WebMidsceneTools extends BaseMidsceneTools<AgentOverChromeBridge> {
         schema: {},
         handler: this.createDisconnectHandler('web page'),
       },
-      createExportSessionReportTool(),
     ];
   }
 }

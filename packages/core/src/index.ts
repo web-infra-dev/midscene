@@ -64,15 +64,12 @@ export {
 } from './dump';
 
 // Execution persistence & report
-export { ExecutionStore, createSessionAgentOptions } from './execution-store';
+export { ExecutionStore } from './execution-store';
 export type {
   SessionRecord,
   EnsureSessionRecordInput,
 } from './execution-store';
-export {
-  exportSessionReport,
-  createExportSessionReportTool,
-} from './execution-report';
+export { exportSessionReport } from './execution-report';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';
