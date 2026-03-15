@@ -150,15 +150,18 @@ interface IReportGenerator {
 interface IReportGenerator {
   /**
    * 写入或更新一个 execution。
-   * - 新 executionId → append 新 dump tag（frozen 之前的、append 新的）
-   * - 已有 executionId → truncate 并重写该 execution 的 dump tag（只限最后一个 active tag）
+   * ReportGenerator 内部自动判断"是新 execution 还是更新现有 execution"：
+   * 比较 execution.name 是否与上一次相同即可（TaskRunner.name 在其生命周期内不变）。
    *
-   * @param executionId  唯一标识，用于判断是 "新 execution" 还是 "更新现有 execution"
+   * 不需要额外的 executionId 参数。原因：
+   * - Agent 已有 executionDumpIndexByRunner (WeakMap<TaskRunner, number>) 做 runner→index 映射
+   * - execution.name 来自 TaskRunner.name，在同一个 runner 生命周期内不变
+   * - ReportGenerator 只需关心"跟上次是不是同一个"，用 name 比较足够
+   *
    * @param execution    当前 execution 的完整数据
    * @param groupMeta    组级元数据（groupName, sdkVersion, ...），不随 execution 变化
    */
   onExecutionUpdate(
-    executionId: string,
     execution: ExecutionDump,
     groupMeta: GroupMeta,
   ): void;
@@ -204,9 +207,8 @@ class ReportGenerator {
   // private imageEndOffset = 0;
 
   // 新增
-  private activeExecId?: string;
-  private activeExecStartOffset = 0;  // active exec 的截图区域开始位置
-  private activeExecDumpOffset = 0;   // active exec 的 dump tag 开始位置
+  private activeExecName?: string;            // 来自 execution.name (= TaskRunner.name)
+  private activeExecStartOffset = 0;          // active exec 的截图区域开始位置
 
   // 保留
   private writtenScreenshots = new Set<string>();
@@ -221,7 +223,6 @@ class ReportGenerator {
 
 ```typescript
 private writeInlineExecution(
-  executionId: string,
   execution: ExecutionDump,
   groupMeta: GroupMeta,
 ): void {
@@ -233,11 +234,11 @@ private writeInlineExecution(
   }
 
   // 1. 判断是新 execution 还是更新现有 execution
-  if (this.activeExecId !== executionId) {
+  if (this.activeExecName !== execution.name) {
     // 新 execution 开始 → 之前的 active 变 frozen
     // 当前文件末尾（含旧 active 的全部内容）成为新的 frozen 基线
     this.activeExecStartOffset = statSync(this.reportPath).size;
-    this.activeExecId = executionId;
+    this.activeExecName = execution.name;
   }
 
   // 2. truncate：移除 active exec 的截图和 dump tag，保留 frozen 区域
@@ -276,10 +277,10 @@ private writeInlineExecution(
 
 **关于 `markPersistedInline` 的处理：**
 
-当一个 execution 从 active 变为 frozen 时（新 execution 到来），需要把前一个 active execution 的截图标记为已持久化并释放内存。在 `this.activeExecId !== executionId` 分支中处理：
+当一个 execution 从 active 变为 frozen 时（新 execution 到来），需要把前一个 active execution 的截图标记为已持久化并释放内存。在 `this.activeExecName !== execution.name` 分支中处理：
 
 ```typescript
-if (this.activeExecId !== executionId) {
+if (this.activeExecName !== execution.name) {
   // 前一个 active execution 的截图现在在 frozen 区域，可以安全释放
   // 把前一个 active 的截图加入 writtenScreenshots
   // （实际上它们已经在 Set 里了，因为 append 时就加了）
@@ -287,7 +288,7 @@ if (this.activeExecId !== executionId) {
   this.markActiveScreenshotsAsPersisted();
 
   this.activeExecStartOffset = statSync(this.reportPath).size;
-  this.activeExecId = executionId;
+  this.activeExecName = execution.name;
 }
 ```
 
@@ -315,12 +316,10 @@ private activeScreenshotIds: string[] = [];
    }
 
    // 新
-   writeOutActionDumps(executionDump?: ExecutionDump, runner?: TaskRunner) {
+   writeOutActionDumps(executionDump?: ExecutionDump) {
      if (!executionDump) return;
-     const executionId = this.getExecutionId(runner);
      this.reportGenerator.onExecutionUpdate(
-       executionId,
-       executionDump,
+       executionDump,           // execution.name 来自 TaskRunner.name，足以标识
        this.getGroupMeta(),
      );
      this.reportFile = this.reportGenerator.getReportPath();
@@ -334,7 +333,7 @@ private activeScreenshotIds: string[] = [];
      const executionDump = runner.dump();
      this.appendExecutionDump(executionDump, runner);
      // ...listener callbacks...
-     this.writeOutActionDumps(executionDump, runner);
+     this.writeOutActionDumps(executionDump);
    },
    ```
 
@@ -366,24 +365,7 @@ private activeScreenshotIds: string[] = [];
    }
    ```
 
-5. **`getExecutionId(runner)` 辅助方法** — 为每个 runner 生成稳定 ID
-
-   ```typescript
-   private executionIdByRunner = new WeakMap<TaskRunner, string>();
-   private executionCounter = 0;
-
-   private getExecutionId(runner?: TaskRunner): string {
-     if (!runner) return `exec-${this.executionCounter++}`;
-     let id = this.executionIdByRunner.get(runner);
-     if (!id) {
-       id = `exec-${this.executionCounter++}`;
-       this.executionIdByRunner.set(runner, id);
-     }
-     return id;
-   }
-   ```
-
-6. **`recordToReport()`**（~1310 行）— 同样改为传递单个 execution
+5. **`recordToReport()`**（~1310 行）— 同样改为传递单个 execution
 
    ```typescript
    this.appendExecutionDump(executionDump);
@@ -391,12 +373,13 @@ private activeScreenshotIds: string[] = [];
    this.writeOutActionDumps(executionDump);  // 传递当前 execution
    ```
 
-7. **外部调用方兼容** — 以下文件直接调用 `agent.writeOutActionDumps()`：
-   - `packages/playground/src/server.ts:493` — 改为传递当前 execution
-   - `packages/playground/src/adapters/local-execution.ts:260` — 同上
-   - `packages/web-integration/tests/ai/web/static/static-page.test.ts:37` — 同上
+6. **外部调用方兼容** — 以下文件直接调用 `agent.writeOutActionDumps()`：
+   - `packages/playground/src/server.ts:493`
+   - `packages/playground/src/adapters/local-execution.ts:260`
+   - `packages/web-integration/tests/ai/web/static/static-page.test.ts:37`
 
-   这些调用方需要能拿到 "当前 execution"。可以在 Agent 上加一个 `lastExecutionDump` 属性，或者让 `writeOutActionDumps()` 无参时使用最后一次的 execution。
+   这些调用方不传 executionDump 参数。Agent 内部记录 `lastExecutionDump` 属性，
+   `writeOutActionDumps()` 无参时使用它即可。
 
 #### 2.4 `nullReportGenerator` 适配
 
