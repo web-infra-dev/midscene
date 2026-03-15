@@ -66,10 +66,10 @@ export {
 // Execution persistence & report
 export { ExecutionStore } from './execution-store';
 export type {
-  SessionRecord,
-  EnsureSessionRecordInput,
+  ExecutionRecord,
+  EnsureExecutionRecordInput,
 } from './execution-store';
-export { exportSessionReport } from './execution-report';
+export { exportExecutionReport } from './execution-report';
 
 // ScreenshotItem
 export { ScreenshotItem } from './screenshot-item';

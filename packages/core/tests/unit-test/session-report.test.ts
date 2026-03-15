@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { Agent } from '@/agent/agent';
 import type { AbstractInterface } from '@/device';
 import { parseDumpScript } from '@/dump/html-utils';
-import { exportSessionReport } from '@/execution-report';
+import { exportExecutionReport } from '@/execution-report';
 import { ExecutionStore } from '@/execution-store';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
@@ -63,12 +63,12 @@ function createMockInterface(): AbstractInterface {
   } as unknown as AbstractInterface;
 }
 
-describe('ExecutionStore + exportSessionReport', () => {
+describe('ExecutionStore + exportExecutionReport', () => {
   let runDir: string;
   let store: ExecutionStore;
 
   beforeEach(() => {
-    runDir = join(tmpdir(), `midscene-session-test-${Date.now()}`);
+    runDir = join(tmpdir(), `midscene-execution-test-${Date.now()}`);
     vi.stubEnv(MIDSCENE_RUN_DIR, runDir);
     store = new ExecutionStore();
   });
@@ -79,19 +79,19 @@ describe('ExecutionStore + exportSessionReport', () => {
   });
 
   it('overwrites the same order slot without growing execution count', () => {
-    const sessionId = 'session-upsert';
+    const executionId = 'execution-upsert';
 
-    store.ensureSession({
-      sessionId,
+    store.ensureExecution({
+      executionId,
       platform: 'web',
-      groupName: 'Session Upsert',
+      groupName: 'Execution Upsert',
       sdkVersion: '1.0.0-test',
       modelBriefs: ['planner/model-a'],
       deviceType: 'web',
     });
 
     const order = store.appendExecution(
-      sessionId,
+      executionId,
       createExecutionDump({
         executionName: 'first-version',
         prompt: 'first prompt',
@@ -100,7 +100,7 @@ describe('ExecutionStore + exportSessionReport', () => {
 
     // Overwrite same order slot with updated execution
     store.updateExecution(
-      sessionId,
+      executionId,
       order,
       createExecutionDump({
         executionName: 'updated-version',
@@ -108,38 +108,38 @@ describe('ExecutionStore + exportSessionReport', () => {
       }),
     );
 
-    const session = store.load(sessionId);
-    const dump = store.buildGroupedDump(sessionId);
+    const record = store.load(executionId);
+    const dump = store.buildGroupedDump(executionId);
 
-    expect(session.executionCount).toBe(1);
+    expect(record.executionCount).toBe(1);
     expect(dump.executions).toHaveLength(1);
     expect(dump.executions[0].name).toBe('updated-version');
   });
 
   it('persists agent metadata when Agent is created with sessionId', () => {
-    const sessionId = 'agent-constructor-session';
+    const sessionId = 'agent-constructor-execution';
     new Agent(createMockInterface(), {
       sessionId,
       generateReport: false,
       modelConfig: mockedModelConfig,
     });
 
-    const persistedSession = store.load(sessionId);
+    const persistedRecord = store.load(sessionId);
 
-    expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
+    expect(existsSync(join(runDir, 'execution', sessionId, 'agent.json'))).toBe(
       true,
     );
-    expect(persistedSession.groupName).toBe('Midscene Report');
-    expect(persistedSession.platform).toBe('puppeteer');
+    expect(persistedRecord.groupName).toBe('Midscene Report');
+    expect(persistedRecord.platform).toBe('puppeteer');
   });
 
-  it('exports a merged report from persisted session shards', () => {
-    const sessionId = 'session-export';
+  it('exports a merged report from persisted execution shards', () => {
+    const executionId = 'execution-export';
 
-    store.ensureSession({
-      sessionId,
+    store.ensureExecution({
+      executionId,
       platform: 'web',
-      groupName: 'Merged Session',
+      groupName: 'Merged Execution',
       groupDescription: 'export test',
       sdkVersion: '1.0.0-test',
       modelBriefs: ['planner/model-a', 'action/model-b'],
@@ -147,7 +147,7 @@ describe('ExecutionStore + exportSessionReport', () => {
     });
 
     store.appendExecution(
-      sessionId,
+      executionId,
       createExecutionDump({
         executionName: 'first execution',
         prompt: 'open page',
@@ -155,18 +155,18 @@ describe('ExecutionStore + exportSessionReport', () => {
     );
 
     store.appendExecution(
-      sessionId,
+      executionId,
       createExecutionDump({
         executionName: 'second execution',
         prompt: 'click button',
       }),
     );
 
-    const reportPath = exportSessionReport(sessionId, store);
+    const reportPath = exportExecutionReport(executionId, store);
     const html = readFileSync(reportPath, 'utf-8');
     const dump = JSON.parse(parseDumpScript(html)) as IGroupedActionDump;
 
-    expect(dump.groupName).toBe('Merged Session');
+    expect(dump.groupName).toBe('Merged Execution');
     expect(dump.executions).toHaveLength(2);
     expect(dump.modelBriefs).toEqual(
       expect.arrayContaining(['planner/model-a', 'action/model-b']),
@@ -178,11 +178,15 @@ describe('ExecutionStore + exportSessionReport', () => {
         }
       ).screenshot?.base64,
     ).toContain('data:image/png;base64,');
-    expect(store.load(sessionId).reportFilePath).toBe(reportPath);
-    expect(existsSync(join(runDir, 'session', sessionId, 'agent.json'))).toBe(
+    expect(store.load(executionId).reportFilePath).toBe(reportPath);
+    expect(
+      existsSync(join(runDir, 'execution', executionId, 'agent.json')),
+    ).toBe(true);
+    expect(existsSync(join(runDir, 'execution', executionId, '1.json'))).toBe(
       true,
     );
-    expect(existsSync(join(runDir, 'session', sessionId, '1.json'))).toBe(true);
-    expect(existsSync(join(runDir, 'session', sessionId, '2.json'))).toBe(true);
+    expect(existsSync(join(runDir, 'execution', executionId, '2.json'))).toBe(
+      true,
+    );
   });
 });
