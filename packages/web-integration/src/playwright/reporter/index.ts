@@ -192,19 +192,28 @@ class MidsceneReporter implements Reporter {
       }
 
       // Parse the dump string and generate dump script tag
-      let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
+      // Build attributes array — always include data-group-id for per-execution model alignment
+      const allAttributes: string[] = [];
 
-      // Add attributes to the dump script if this is merged report
-      if (this.mode === 'merged' && testData.attributes) {
-        const attributesArr = Object.keys(testData.attributes).map((key) => {
-          return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
-        });
-        // Add attributes to the script tag
-        dumpScript = dumpScript.replace(
-          '<script type="midscene_web_dump"',
-          `<script type="midscene_web_dump" ${attributesArr.join(' ')}`,
+      // Add data-group-id for viewer merging support
+      if (testData.attributes?.playwright_test_title) {
+        allAttributes.push(
+          `data-group-id="${encodeURIComponent(testData.attributes.playwright_test_title)}"`,
         );
       }
+
+      // Add playwright attributes for merged report
+      if (this.mode === 'merged' && testData.attributes) {
+        for (const key of Object.keys(testData.attributes)) {
+          allAttributes.push(
+            `${key}="${encodeURIComponent(testData.attributes[key])}"`,
+          );
+        }
+      }
+
+      const attrString =
+        allAttributes.length > 0 ? ` ${allAttributes.join(' ')}` : '';
+      const dumpScript = `<script type="midscene_web_dump"${attrString}>\n${escapeScriptTag(testData.dumpString)}\n</script>`;
 
       // Write or append to file
       if (this.mode === 'merged') {
