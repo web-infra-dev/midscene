@@ -13,7 +13,7 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it('not tracking active tab', async () => {
+    it('auto switch to new tab', async () => {
       const htmlPath = getFixturePath('tab-navigation.html');
       const { originPage, reset } = await launchPage(`file://${htmlPath}`);
       ctx.resetFn = reset;
@@ -25,11 +25,9 @@ describe(
       });
       await sleep(3000);
 
-      // When forceSameTabNavigation is false, the agent should NOT follow the new tab
-      // So the weather forecast (which appears in the new tab) should NOT be visible
-      await expect(async () => {
-        await ctx.agent!.aiAssert('There is a weather forecast in the page');
-      }).rejects.toThrowError();
+      // When forceSameTabNavigation is false, the agent should automatically
+      // switch to the newly opened tab so subsequent actions operate on it
+      await ctx.agent.aiWaitFor('There is a weather forecast in the page');
     });
 
     it('tracking active tab', async () => {
