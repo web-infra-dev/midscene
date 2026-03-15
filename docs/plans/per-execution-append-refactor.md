@@ -44,9 +44,11 @@
 
 ## 改造计划
 
-### PR 1：Viewer — 支持按 `data-group-id` 合并 dump tag
+### PR 1：Viewer + ReportGenerator + Agent — per-execution append 模型
 
-**目的：** 为后续 ReportGenerator 的 per-execution 写入做好前端准备。此 PR 独立可发布，向后兼容。
+**目的：** 一次性完成核心改造：Viewer 支持按 `data-group-id` 合并 dump tag + ReportGenerator 按单 execution 粒度写入 + Agent 调用方适配。三者必须同时到位，否则报告会坏（生产者写了 N 个 dump tag，但消费者不会合并它们）。
+
+#### 1.1 Viewer — `getDumpElements()` 支持按 `data-group-id` 合并
 
 **改动文件：**
 
@@ -113,27 +115,7 @@
 
    已经支持 `attributes` 参数。确认 `data-group-id` 能通过现有接口传入即可，无需改动。
 
-**测试要点：**
-- 手动构造包含多个同 `data-group-id` dump tag 的 HTML，验证 viewer 能正确合并并展示
-- 无 `data-group-id` 的旧格式报告继续正常工作
-- Playwright merged 报告（多个 dump tag，无 `data-group-id`）继续正常工作
-
-**验证命令：**
-```bash
-pnpm run lint
-npx nx build report
-npx nx test report  # 如果有 viewer 单元测试
-```
-
----
-
-### PR 2：ReportGenerator + Agent — per-execution 写入模型
-
-**目的：** 把 ReportGenerator 的写入粒度从 "整个 GroupedActionDump" 改为 "单个 execution"。这是核心改动。
-
-**依赖：** PR 1 已合入（viewer 能合并同组 dump tag）。
-
-#### 2.1 改 `IReportGenerator` 接口
+#### 1.2 改 `IReportGenerator` 接口
 
 **文件：** `packages/core/src/report-generator.ts`（~23-39 行）
 
@@ -180,7 +162,7 @@ interface GroupMeta {
 }
 ```
 
-#### 2.2 改 `ReportGenerator` 内部写入逻辑
+#### 1.3 改 `ReportGenerator` 内部写入逻辑
 
 **文件：** `packages/core/src/report-generator.ts`
 
@@ -300,7 +282,7 @@ private activeScreenshotIds: string[] = [];
 
 **directory 模式类似处理，更简单**（截图写文件天然是 append-only，dump tag 覆盖写就行）。
 
-#### 2.3 改 `Agent` 调用方
+#### 1.4 改 `Agent` 调用方
 
 **文件：** `packages/core/src/agent/agent.ts`
 
@@ -381,7 +363,7 @@ private activeScreenshotIds: string[] = [];
    这些调用方不传 executionDump 参数。Agent 内部记录 `lastExecutionDump` 属性，
    `writeOutActionDumps()` 无参时使用它即可。
 
-#### 2.4 `nullReportGenerator` 适配
+#### 1.5 `nullReportGenerator` 适配
 
 ```typescript
 export const nullReportGenerator: IReportGenerator = {
@@ -393,29 +375,33 @@ export const nullReportGenerator: IReportGenerator = {
 ```
 
 **测试要点：**
-- 单 Agent 运行多个 execution，报告文件包含多个 dump tag，各自有 `data-group-id`
-- Execution 内部的 task 更新不影响 frozen 区域
-- 截图在 frozen 后释放内存（用 `markPersistedInline` 机制验证）
-- directory 模式同样正确
-- Playground 场景正常
+- Viewer：手动构造包含多个同 `data-group-id` dump tag 的 HTML，验证 viewer 能正确合并并展示
+- Viewer：无 `data-group-id` 的旧格式报告继续正常工作
+- Viewer：Playwright merged 报告（多个 dump tag，各有不同 `playwright_test_id`，无 `data-group-id`）继续正常工作
+- ReportGenerator：单 Agent 运行多个 execution，报告文件包含多个 dump tag，各自有 `data-group-id`
+- ReportGenerator：execution 内部的 task 更新只 truncate active 区域，不影响 frozen 区域
+- ReportGenerator：截图在 frozen 后释放内存（用 `markPersistedInline` 机制验证）
+- ReportGenerator：directory 模式同样正确
+- Agent：Playground 场景正常（`writeOutActionDumps()` 无参调用使用 `lastExecutionDump`）
 
 **验证命令：**
 ```bash
 pnpm run lint
 npx nx test core
 npx nx build core
+npx nx build report
 npx nx test web-integration  # 如果不依赖 AI
 ```
 
 ---
 
-### PR 3：Playwright fixture + reporter — 对齐 per-execution 模型
+### PR 2：Playwright fixture + reporter — 对齐 per-execution 模型
 
 **目的：** 让 Playwright 管线也走统一的 per-execution 路径。
 
-**依赖：** PR 2 已合入。
+**依赖：** PR 1 已合入。
 
-#### 3.1 Playwright ai-fixture
+#### 2.1 Playwright ai-fixture
 
 **文件：** `packages/web-integration/src/playwright/ai-fixture.ts`（~191-252 行）
 
@@ -430,7 +416,7 @@ npx nx test web-integration  # 如果不依赖 AI
 
 **建议：暂时不改。** Playwright 的 fixture → 临时文件 → reporter 是跨进程通信通道，和最终报告格式无关。reporter 读到数据后再按 per-execution 写入。
 
-#### 3.2 Playwright reporter
+#### 2.2 Playwright reporter
 
 **文件：** `packages/web-integration/src/playwright/reporter/index.ts`
 
@@ -473,7 +459,7 @@ npx nx build web-integration
 
 ---
 
-### PR 4：ReportMergingTool — 对齐 per-execution 模型
+### PR 3：ReportMergingTool — 对齐 per-execution 模型
 
 **目的：** 让报告合并也走统一的 append 逻辑。
 
@@ -520,11 +506,11 @@ npx nx build core
 
 ---
 
-### PR 5：清理和对齐
+### PR 4：清理和对齐
 
 **目的：** 清理不再需要的旧代码路径。
 
-**依赖：** PR 2-4 已合入。
+**依赖：** PR 1-3 已合入。
 
 **改动：**
 
@@ -598,7 +584,7 @@ Viewer 加载时：
    用 `groupName` 作为 `data-group-id`。需要确保同一个 Agent 的所有 execution 用相同的 `groupName`，不同 Agent（或不同 test）用不同的 `groupName`。当前 Agent 的 `groupName` 在构造时确定，整个生命周期不变，满足要求。
 
 3. **向后兼容**
-   旧格式的报告（无 `data-group-id`）必须继续能被新 viewer 读取。PR 1 的合并逻辑只对有 `data-group-id` 的 tag 生效。
+   旧格式的报告（无 `data-group-id`）必须继续能被新 viewer 读取。合并逻辑只对有 `data-group-id` 的 tag 生效。
 
 4. **GroupedActionDump 元数据冗余**
    每个 dump tag 都包含 `groupName`、`sdkVersion` 等元数据，有冗余。但这些字段很小（几十字节），不值得为此引入新的 tag type。选项 A 的取舍。
@@ -614,17 +600,14 @@ Viewer 加载时：
 ## PR 依赖关系
 
 ```
-PR 1 (Viewer)
+PR 1 (Viewer + ReportGenerator + Agent)  ← 核心改动
     │
-    ├─── PR 2 (ReportGenerator + Agent)  ← 核心改动
-    │         │
-    │         └─── PR 3 (Playwright)
+    ├─── PR 2 (Playwright)
     │
-    └─── PR 4 (ReportMergingTool)
+    └─── PR 3 (ReportMergingTool)
 
-              PR 5 (清理) ← 依赖 PR 2-4 全部完成
+         PR 4 (清理) ← 依赖 PR 1-3 全部完成
 ```
 
-PR 1 和 PR 4 可以并行开发（PR 4 的合并逻辑和 viewer 的合并逻辑相互独立）。
-PR 3 依赖 PR 2（接口变化）。
-PR 5 在所有功能 PR 完成后执行。
+PR 2 和 PR 3 可以并行开发（Playwright 和 ReportMergingTool 相互独立）。
+PR 4 在所有功能 PR 完成后执行。
