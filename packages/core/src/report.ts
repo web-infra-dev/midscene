@@ -12,12 +12,13 @@ import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import { logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
-  extractLastDumpScriptSync,
+  extractAllDumpScriptsSync,
+  generateDumpScriptTag,
   getBaseUrlFixScript,
   streamImageScriptsToFile,
 } from './dump/html-utils';
 import type { ReportFileWithAttributes } from './types';
-import { getReportTpl, reportHTMLContent } from './utils';
+import { getReportTpl } from './utils';
 
 export class ReportMergingTool {
   private reportInfos: ReportFileWithAttributes[] = [];
@@ -125,26 +126,52 @@ export class ReportMergingTool {
           streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
         }
 
-        const dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
         const { reportAttributes } = reportInfo;
+        const mergeAttributes: Record<string, string> = {
+          playwright_test_duration: String(reportAttributes.testDuration),
+          playwright_test_status: reportAttributes.testStatus,
+          playwright_test_title: reportAttributes.testTitle,
+          playwright_test_id: reportAttributes.testId,
+          playwright_test_description: reportAttributes.testDescription,
+        };
 
-        const reportHtmlStr = `${reportHTMLContent(
-          {
-            dumpString,
-            attributes: {
-              playwright_test_duration: reportAttributes.testDuration,
-              playwright_test_status: reportAttributes.testStatus,
-              playwright_test_title: reportAttributes.testTitle,
-              playwright_test_id: reportAttributes.testId,
-              playwright_test_description: reportAttributes.testDescription,
-            },
-          },
-          undefined,
-          undefined,
-          false,
-        )}\n`;
-
-        appendFileSync(outputFilePath, reportHtmlStr);
+        // Extract ALL dump tags from the source report (supports per-execution format)
+        // Filter out template artifacts: the report template's bundled JS may
+        // contain the literal '<script type="midscene_web_dump"' pattern,
+        // producing false matches with very large JS code as "content".
+        // Real dump content is either empty, a short string, or JSON starting with '{'.
+        // Template artifacts are large (>100KB) fragments of bundled JS code.
+        const dumpEntries = extractAllDumpScriptsSync(
+          reportInfo.reportFilePath,
+        ).filter((entry) => {
+          if (entry.content.length === 0) return false;
+          // Template JS artifact is typically very large (100KB+); real dumps are smaller
+          // and start with valid characters (JSON or escaped content)
+          if (entry.content.length > 100_000) {
+            // Could be a very large dump, but check if it starts with JS patterns
+            const trimmed = entry.content.trimStart();
+            if (
+              trimmed.startsWith('\\') ||
+              trimmed.startsWith("'") ||
+              trimmed.startsWith('+')
+            ) {
+              return false; // This is bundled JS code, not dump content
+            }
+          }
+          return true;
+        });
+        for (const entry of dumpEntries) {
+          // Merge source attributes with report attributes
+          const combinedAttributes = {
+            ...entry.attributes,
+            ...mergeAttributes,
+          };
+          const dumpTag = generateDumpScriptTag(
+            entry.content,
+            combinedAttributes,
+          );
+          appendFileSync(outputFilePath, `${dumpTag}\n`);
+        }
       }
 
       logMsg(`Successfully merged new report: ${outputFilePath}`);
