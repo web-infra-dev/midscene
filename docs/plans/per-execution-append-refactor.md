@@ -6,6 +6,77 @@
 
 统一单 Agent 运行时、Playwright reporter、磁盘聚合三条代码路径，共用同一套 append 逻辑。
 
+## 关键文件索引
+
+开始之前，先熟悉以下文件。它们构成了报告生成的完整链路。
+
+### 数据类型定义
+
+| 文件 | 关键内容 |
+|---|---|
+| `packages/core/src/types.ts` | `ExecutionDump` 类（~497 行）：单次执行记录，包含 `name`、`logTime`、`tasks[]`。`name` 来自 `TaskRunner.name`，在 runner 生命周期内不变。 |
+| `packages/core/src/types.ts` | `GroupedActionDump` 类（~716 行）：聚合容器，包含 `groupName`、`sdkVersion`、`executions: ExecutionDump[]`。当前每个报告文件的 dump tag 里存的就是这个结构的 JSON。 |
+| `packages/core/src/types.ts` | `IExecutionDump` / `IGroupedActionDump` 接口（~438、~704 行）：上述两个类的 plain object 接口。 |
+| `packages/core/src/types.ts` | `ScreenshotItem` 类（在同文件更上方）：截图封装，支持 lazy 加载和内存释放（`markPersistedInline`、`markPersistedToPath`）。 |
+
+### 报告生成（写入侧）
+
+| 文件 | 关键内容 |
+|---|---|
+| `packages/core/src/report-generator.ts` | `ReportGenerator` 类（全文 ~230 行）：**本次重构的核心目标**。接收 `GroupedActionDump`，写入 HTML 报告。两种模式：`inline`（截图嵌 base64）和 `directory`（截图存 PNG 文件）。关键方法：`onDumpUpdate()`→`doWrite()`→`writeInlineReport()` / `writeDirectoryReport()`。 |
+| `packages/core/src/report-generator.ts` | `IReportGenerator` 接口（~23 行）：`onDumpUpdate`、`flush`、`finalize` 三个方法。Agent 通过此接口与 ReportGenerator 交互。 |
+| `packages/core/src/utils.ts` | `reportHTMLContent()` 函数（~126 行）：生成 dump script tag 的 HTML 片段。被 `ReportMergingTool` 和 `writeDumpReport` 使用。`getReportTpl()` 函数（~83 行）：读取报告 HTML 模板。 |
+| `packages/core/src/dump/html-utils.ts` | HTML 标签生成/解析工具（全文 ~372 行）：`generateImageScriptTag()`（~289 行）、`generateDumpScriptTag()`（~346 行）、`extractLastDumpScriptSync()`（~148 行）、`streamImageScriptsToFile()`（~126 行）、`extractImageByIdSync()`（~102 行）。 |
+| `packages/core/src/dump/image-restoration.ts` | `restoreImageReferences()` 函数：将 `{ $screenshot: id }` 占位符替换为 lazy getter，在首次访问 `.base64` 时才加载真实数据。Viewer 和 Server 端都用。 |
+
+### Agent（数据生产侧）
+
+| 文件 | 关键内容 |
+|---|---|
+| `packages/core/src/agent/agent.ts` | `Agent` 类（全文 ~1330 行）：拥有 `this.dump: GroupedActionDump`（内存中的聚合数据）和 `this.reportGenerator: IReportGenerator`。 |
+| `packages/core/src/agent/agent.ts:420` | `appendExecutionDump(execution, runner?)`：用 `executionDumpIndexByRunner: WeakMap<TaskRunner, number>` 做同 runner 的原地替换。 |
+| `packages/core/src/agent/agent.ts:454` | `writeOutActionDumps()`：调用 `this.reportGenerator.onDumpUpdate(this.dump)` — **当前传的是整个 GroupedActionDump**。 |
+| `packages/core/src/agent/agent.ts:331` | `onTaskUpdate` hook（在构造函数中设置）：每个 task 完成时触发，调用 `appendExecutionDump` + `writeOutActionDumps`。 |
+| `packages/core/src/agent/agent.ts:1258` | `destroy()`：调用 `reportGenerator.finalize(this.dump)`，等待写入完成。 |
+| `packages/core/src/agent/agent.ts:1295` | `recordToReport()`：手动添加一个 ExecutionDump（如日志条目），然后调用 `writeOutActionDumps`。 |
+| `packages/core/src/task-runner.ts:34` | `TaskRunner` 类：`name` 属性（构造时设定，不变）、`dump()` 方法（~381 行）返回 `ExecutionDump`。 |
+
+### Viewer（读取/展示侧）
+
+| 文件 | 关键内容 |
+|---|---|
+| `apps/report/src/App.tsx:308` | `getDumpElements()` 函数：`querySelectorAll('script[type="midscene_web_dump"]')` 收集所有 dump tag，每个包装为 `PlaywrightTasks`（含 lazy `get()` + `attributes`）。 |
+| `apps/report/src/App.tsx:53` | `Visualizer` 组件：接收 `dumps: PlaywrightTasks[]`，初始化时加载 `dumps[0]`。 |
+| `apps/report/src/App.tsx:32` | `resolveImageFromDom(id)` 函数：根据 `data-id` 从 DOM 中查找 `<script type="midscene-image">` 标签，返回 base64 数据。有全局缓存。 |
+| `apps/report/src/components/store/index.tsx:145` | `setGroupedDump()` store action：将解析后的 `GroupedActionDump` 设入 Zustand store，Sidebar/DetailPanel 等组件从 store 读取。 |
+| `apps/report/src/components/playwright-case-selector/index.tsx:27` | `PlaywrightCaseSelector` 组件：当 `dumps.length > 1` 时显示下拉选择器，点击切换调用 `setGroupedDump(dump.get())`。 |
+| `apps/report/src/components/sidebar/index.tsx:67` | Sidebar 组件：遍历 `groupedDump.executions`，为每个 execution 显示 group header 和 task 列表。 |
+| `apps/report/src/types.ts:17` | `PlaywrightTasks` 类型：`{ get: () => GroupedActionDump; attributes: PlaywrightTaskAttributes }`。 |
+
+### Playwright 集成
+
+| 文件 | 关键内容 |
+|---|---|
+| `packages/web-integration/src/playwright/ai-fixture.ts:191` | `updateDumpAnnotation()` 函数：Agent 每次 dump 更新时调用。将 `agent.dump`（整个 GroupedActionDump）序列化到临时文件（`serializeToFiles(tempFilePath)`），通过 Playwright annotation 把路径传给 reporter。 |
+| `packages/web-integration/src/playwright/ai-fixture.ts:95` | Agent 创建：`generateReport: false`（Agent 自己不生成报告），由 reporter 负责。 |
+| `packages/web-integration/src/playwright/reporter/index.ts` | `MidsceneReporter` 类（全文 ~377 行）：`onTestEnd()` 读取临时文件，`updateReport()` 将每个 test 的 dump 作为独立 `<script type="midscene_web_dump">` tag 追加到报告 HTML。merged 模式下多个 test 共用一个报告文件。 |
+
+### 报告合并
+
+| 文件 | 关键内容 |
+|---|---|
+| `packages/core/src/report.ts:22` | `ReportMergingTool` 类：从多个报告文件中提取 dump 和截图，合并为一个报告。当前用 `extractLastDumpScriptSync()` 只提取每个源文件的最后一个 dump tag。 |
+
+### 外部调用方（需适配接口变化）
+
+| 文件 | 调用方式 |
+|---|---|
+| `packages/playground/src/server.ts:493` | 直接调用 `agent.writeOutActionDumps()` |
+| `packages/playground/src/adapters/local-execution.ts:260` | 守卫式调用 `if (agent.writeOutActionDumps) agent.writeOutActionDumps()` |
+| `packages/web-integration/tests/ai/web/static/static-page.test.ts:37` | 测试中手动调用 `agent.writeOutActionDumps()` |
+
+---
+
 ## 现状分析
 
 ### 当前报告 HTML 结构
