@@ -223,6 +223,18 @@ export class ServiceError extends Error {
   }
 }
 
+/**
+ * Thrown when a browser operation fails due to page navigation or redirection.
+ * The web-integration layer catches browser-specific errors and wraps them
+ * in this class so that core can handle retries without depending on error message text.
+ */
+export class NavigationError extends Error {
+  constructor(message: string, options?: { cause?: Error }) {
+    super(message, options);
+    this.name = 'NavigationError';
+  }
+}
+
 // intermediate variables to optimize the return value by AI
 export interface LiteUISection {
   name: string;

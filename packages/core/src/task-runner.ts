@@ -10,6 +10,7 @@ import {
   type ExecutionTaskProgressOptions,
   type ExecutionTaskReturn,
   type ExecutorContext,
+  NavigationError,
   type PlanningActionParamError,
   type UIContext,
 } from '@/types';
@@ -20,14 +21,6 @@ const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
 const UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS = 1500;
 const UI_CONTEXT_NAVIGATION_MAX_RETRIES = 3;
-
-const NAVIGATION_ERROR_PATTERN =
-  /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
-
-function isNavigationError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
-  return NAVIGATION_ERROR_PATTERN.test(message);
-}
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
@@ -121,11 +114,9 @@ export class TaskRunner {
         this.lastUiContext = undefined;
 
         const isLastAttempt = attempt >= UI_CONTEXT_NAVIGATION_MAX_RETRIES;
-        if (!isLastAttempt && isNavigationError(error)) {
-          const errorMsg =
-            error instanceof Error ? error.message : String(error);
+        if (!isLastAttempt && error instanceof NavigationError) {
           debug(
-            `navigation error on attempt ${attempt + 1}/${UI_CONTEXT_NAVIGATION_MAX_RETRIES}, retrying in ${UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS}ms: ${errorMsg}`,
+            `navigation error on attempt ${attempt + 1}/${UI_CONTEXT_NAVIGATION_MAX_RETRIES}, retrying in ${UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS}ms: ${error.message}`,
           );
           await new Promise((resolve) =>
             setTimeout(resolve, UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS),

@@ -1,4 +1,4 @@
-import { ScreenshotItem, TaskRunner } from '@/index';
+import { NavigationError, ScreenshotItem, TaskRunner } from '@/index';
 import type {
   ExecutionTaskActionApply,
   ExecutionTaskApply,
@@ -258,12 +258,12 @@ describe(
       executor: vi.fn(),
     });
 
-    it('retries on navigation error (execution context was destroyed)', async () => {
+    it('retries on NavigationError', async () => {
       let callCount = 0;
       const navigationErrorBuilder = async () => {
         callCount++;
         if (callCount <= 2) {
-          throw new Error(
+          throw new NavigationError(
             'Execution context was destroyed, most likely because of a navigation',
           );
         }
@@ -280,12 +280,12 @@ describe(
       expect(callCount).toBeGreaterThanOrEqual(3);
     });
 
-    it('retries on "frame was detached" navigation error', async () => {
+    it('retries on NavigationError with different message', async () => {
       let callCount = 0;
       const frameDetachedBuilder = async () => {
         callCount++;
         if (callCount === 1) {
-          throw new Error('frame was detached');
+          throw new NavigationError('frame was detached');
         }
         return fakeUIContextBuilder();
       };
@@ -298,9 +298,9 @@ describe(
       expect(callCount).toBeGreaterThanOrEqual(2);
     });
 
-    it('throws after max retries on persistent navigation error', async () => {
+    it('throws after max retries on persistent NavigationError', async () => {
       const alwaysFailBuilder = async () => {
-        throw new Error(
+        throw new NavigationError(
           'Execution context was destroyed, most likely because of a navigation',
         );
       };
@@ -314,7 +314,7 @@ describe(
       expect(runner.isInErrorState()).toBeTruthy();
     });
 
-    it('does not retry on non-navigation errors', async () => {
+    it('does not retry on non-NavigationError errors', async () => {
       let callCount = 0;
       const regularErrorBuilder = async () => {
         callCount++;
