@@ -19,6 +19,14 @@ interface WorkerRequestGetContext {
 // console-browserify won't work in worker, so we need to use globalThis.console
 const console = globalThis.console;
 
+// Global error handlers to prevent Service Worker crash from uncaught errors
+self.addEventListener('error', (event) => {
+  console.error('[ServiceWorker] Uncaught error:', event.error);
+});
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('[ServiceWorker] Unhandled promise rejection:', event.reason);
+});
+
 // Background Bridge for MCP connection
 const BRIDGE_PERMISSION_KEY = 'midscene_bridge_permission';
 let backgroundBridge: BridgeConnector | null = null;
@@ -376,7 +384,9 @@ chrome.sidePanel
   .catch((error) => console.error(error));
 
 // cache data between sidepanel and fullscreen playground
+const MAX_CACHE_SIZE = 50;
 const cacheMap = new Map<string, WebUIContext>();
+const cacheKeyOrder: string[] = [];
 
 // Store connected ports for message forwarding
 const connectedPorts = new Set<chrome.runtime.Port>();
@@ -436,7 +446,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // Forward recording events to connected extension pages
-  if (request.action === 'events' || request.action === 'event') {
+  if (
+    request.action === 'events' ||
+    request.action === 'event' ||
+    request.action === 'event-update'
+  ) {
     if (connectedPorts.size === 0) {
       console.warn(
         '[ServiceWorker] No connected ports to forward recording events to',
@@ -463,7 +477,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const payload: WorkerRequestSaveContext = request.payload;
       const { context } = payload;
       const id = uuid();
+      // Evict oldest entries when cache is full
+      if (cacheMap.size >= MAX_CACHE_SIZE && cacheKeyOrder.length > 0) {
+        const oldestKey = cacheKeyOrder.shift();
+        if (oldestKey) {
+          cacheMap.delete(oldestKey);
+        }
+      }
       cacheMap.set(id, context);
+      cacheKeyOrder.push(id);
       sendResponse({ id });
       break;
     }

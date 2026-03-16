@@ -450,10 +450,11 @@ export const useRecordingControl = (
               setEvents(eventsData);
             }
           } else if (
-            message.action === 'event' &&
+            (message.action === 'event' || message.action === 'event-update') &&
             message.data &&
             !Array.isArray(message.data)
           ) {
+            // Handle both legacy 'event' and new incremental 'event-update' messages
             const optimizedEvent = await processEventData(message.data);
 
             if (isConnected) {
