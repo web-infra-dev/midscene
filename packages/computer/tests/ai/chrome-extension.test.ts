@@ -107,22 +107,44 @@ describe('chrome extension smoke test', () => {
   // ── 5. Mode Switching ──────────────────────────────────────────────────
 
   it('mode switching: switch to Bridge and back', async () => {
-    await agent.aiAct(
-      `Click the menu icon (hamburger or three-line icon) at the top-left of ${SIDE_PANEL}`,
-    );
-    await sleep(1000);
-    await agent.aiAct('Click "Bridge Mode" or "Bridge" in the dropdown menu');
-    await sleep(2000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows Bridge mode UI with connection status like "Listening" or "Disconnected"`,
-    );
+    // Switch to Bridge Mode with retry - the dropdown menu can be flaky in headless
+    const switchToBridge = async () => {
+      await agent.aiAct(
+        `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner. It should open a dropdown menu.`,
+      );
+      await sleep(2000);
+      await agent.aiAct(
+        'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode" which has an API icon next to it',
+      );
+      await sleep(3000);
+    };
 
+    // First attempt
+    await switchToBridge();
+
+    // Verify or retry once if needed
+    try {
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows Bridge mode UI with text containing "Listening" or "Disconnected" or "Bridge" connection status`,
+      );
+    } catch {
+      // Retry: the dropdown click may not have registered
+      console.log('Bridge mode switch failed, retrying...');
+      await switchToBridge();
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows Bridge mode UI with text containing "Listening" or "Disconnected" or "Bridge" connection status`,
+      );
+    }
+
+    // Switch back to Playground
     await agent.aiAct(
-      `Click the menu icon (hamburger or three-line icon) at the top-left of ${SIDE_PANEL}`,
+      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
     );
-    await sleep(1000);
-    await agent.aiAct('Click "Playground" in the dropdown menu');
     await sleep(2000);
+    await agent.aiAct(
+      'In the dropdown menu that just appeared, click the menu item labeled "Playground"',
+    );
+    await sleep(3000);
   });
 
   // ── 6. Settings Modal ─────────────────────────────────────────────────

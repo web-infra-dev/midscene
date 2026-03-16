@@ -3,6 +3,7 @@
 import {
   type ChromeRecordedEvent,
   type RecordedEvent,
+  convertToChromeEvent,
   convertToChromeEvents,
 } from '@midscene/recorder';
 
@@ -36,12 +37,15 @@ interface ChromeMessage {
   action:
     | 'captureScreenshot'
     | 'events'
+    | 'event-update'
     | 'ping'
     | 'start'
     | 'stop'
     | 'getEvents'
     | 'clearEvents';
-  data?: ChromeRecordedEvent[];
+  data?: ChromeRecordedEvent[] | ChromeRecordedEvent;
+  eventIndex?: number;
+  totalEvents?: number;
   sessionId?: string;
 }
 
@@ -216,7 +220,7 @@ async function sendEventsToExtension(
     clearTimeout(debounceTimer);
   }
 
-  const sendEventsToExtension = async () => {
+  const doSend = async () => {
     const latestEvent = optimizedEvent[optimizedEvent.length - 1];
     const previousEvent = optimizedEvent[optimizedEvent.length - 2];
 
@@ -309,15 +313,20 @@ async function sendEventsToExtension(
 
     if (!pendingEvents) return;
 
-    console.log('[EventRecorder Bridge] Sending events to extension:', {
-      optimizedEvent: pendingEvents,
-      eventsCount: pendingEvents.length,
-      eventTypes: pendingEvents.map((e) => e.type),
+    console.log('[EventRecorder Bridge] Sending event-update to extension:', {
+      eventIndex: pendingEvents.length - 1,
+      totalEvents: pendingEvents.length,
+      eventType: latestEvent.type,
       immediate,
       isPageUnloading,
     });
 
-    await sendEvents(pendingEvents);
+    // Send only the latest event incrementally instead of the full array
+    await sendSingleEvent(
+      latestEvent,
+      pendingEvents.length - 1,
+      pendingEvents.length,
+    );
 
     // Clear the pending events after sending
     pendingEvents = null;
@@ -326,13 +335,42 @@ async function sendEventsToExtension(
 
   // Set new timer - bypass debounce if page is unloading
   if (immediate || isPageUnloading) {
-    await sendEventsToExtension();
+    await doSend();
   } else {
-    debounceTimer = setTimeout(sendEventsToExtension, 200);
+    debounceTimer = setTimeout(doSend, 200);
   }
 }
 
-// Send events to extension
+// Send a single event incrementally to the extension (O(1) per event instead of O(n))
+async function sendSingleEvent(
+  event: ChromeRecordedEvent,
+  eventIndex: number,
+  totalEvents: number,
+): Promise<void> {
+  const message: ChromeMessage = {
+    action: 'event-update',
+    data: convertToChromeEvent(event),
+    eventIndex,
+    totalEvents,
+  };
+
+  try {
+    await chrome.runtime.sendMessage(message);
+    eventSendStats.sent += 1;
+    console.log(
+      `[EventRecorder Bridge] Successfully sent event-update #${eventIndex}`,
+    );
+  } catch (error) {
+    const errorMsg = (error as Error).message;
+    eventSendStats.failed += 1;
+    console.warn(
+      '[EventRecorder Bridge] Failed to send event-update:',
+      errorMsg,
+    );
+  }
+}
+
+// Send full events array to extension (used only for getEvents requests)
 async function sendEvents(events: ChromeRecordedEvent[]): Promise<void> {
   const message = {
     action: 'events',
