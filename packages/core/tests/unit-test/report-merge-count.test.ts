@@ -379,6 +379,90 @@ describe('ReportMergingTool merged dump count verification', () => {
   });
 
   /**
+   * Merging source reports that contain multiple executions (per-execution append model)
+   * should preserve all executions from each source.
+   */
+  it('merging source reports with multiple executions preserves all', async () => {
+    const tool = new ReportMergingTool();
+    const n = 3;
+    const execsPerReport = 2;
+
+    for (let i = 0; i < n; i++) {
+      const gen = ReportGenerator.create(`merge-multi-exec-${i}`, {
+        generateReport: true,
+        outputFormat: 'single-html',
+        autoPrintReportMsg: false,
+      }) as ReportGenerator;
+
+      // Write multiple executions to the same report
+      const groupMeta: GroupMeta = {
+        groupName: `multi-group-${i}`,
+        sdkVersion: '1.0.0-test',
+        modelBriefs: ['test-model'],
+      };
+      for (let e = 0; e < execsPerReport; e++) {
+        const exec = new ExecutionDump({
+          id: `report-${i}-exec-${e}`,
+          logTime: Date.now(),
+          name: `exec-${e}`,
+          tasks: [
+            {
+              type: 'Insight' as const,
+              subType: 'Locate',
+              param: { prompt: `task-${i}-${e}` },
+              taskId: `task-${i}-${e}`,
+              uiContext: {
+                screenshot: fakeScreenshot(),
+                shotSize: { width: 1920, height: 1080 },
+                shrunkShotToLogicalRatio: 1,
+              } as unknown as UIContext,
+              executor: async () => undefined,
+              recorder: [],
+              status: 'finished' as const,
+            } as any,
+          ],
+        });
+        gen.onExecutionUpdate(exec, groupMeta);
+      }
+      await gen.finalize();
+
+      tool.append({
+        reportFilePath: gen.getReportPath()!,
+        reportAttributes: {
+          testDescription: `Multi-exec test ${i}`,
+          testDuration: 1000 + i,
+          testId: `multi-exec-${i}`,
+          testStatus: 'passed' as TestStatus,
+          testTitle: `Multi-exec Test ${i}`,
+        },
+      });
+    }
+
+    const mergedPath = tool.mergeReports('merge-multi-exec-merged', {
+      overwrite: true,
+    });
+    expect(mergedPath).toBeTruthy();
+
+    const html = readFileSync(mergedPath!, 'utf-8');
+    const dumps = extractAllDumps(html);
+
+    // Each source report's dump should be merged into one dump script
+    expect(dumps.length).toBe(n);
+
+    // Each merged dump should contain all executions from the source report
+    for (let i = 0; i < n; i++) {
+      const content = html.match(
+        new RegExp(
+          `<script type="midscene_web_dump"[^>]*playwright_test_id="${encodeURIComponent(`multi-exec-${i}`)}"[^>]*>([\\s\\S]*?)</script>`,
+        ),
+      );
+      expect(content).toBeTruthy();
+      const parsed = JSON.parse(antiEscapeScriptTag(content![1]));
+      expect(parsed.executions).toHaveLength(execsPerReport);
+    }
+  });
+
+  /**
    * extractLastDumpScriptSync should return the last dump from a merged file.
    */
   it('extractLastDumpScriptSync returns the last dump from merged file', async () => {

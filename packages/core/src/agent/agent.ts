@@ -1326,6 +1326,7 @@ export class Agent<
     };
     // 4. build ExecutionDump
     const executionDump = new ExecutionDump({
+      id: uuid(),
       logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',

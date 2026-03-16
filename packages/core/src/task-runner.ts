@@ -32,6 +32,7 @@ type TaskRunnerOperationOptions = {
 };
 
 export class TaskRunner {
+  readonly id: string;
   name: string;
 
   tasks: ExecutionTask[];
@@ -52,6 +53,7 @@ export class TaskRunner {
     uiContextBuilder: () => Promise<UIContext>,
     options?: TaskRunnerInitOptions,
   ) {
+    this.id = uuid();
     this.status =
       options?.tasks && options.tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
@@ -380,6 +382,7 @@ export class TaskRunner {
 
   dump(): ExecutionDump {
     return new ExecutionDump({
+      id: this.id,
       logTime: Date.now(),
       name: this.name,
       tasks: this.tasks,

@@ -41,9 +41,12 @@ const defaultGroupMeta: GroupMeta = {
 /**
  * Create an ExecutionDump with the given screenshots in uiContext.
  */
+let execCounter = 0;
+
 function createExecution(
   screenshots: ScreenshotItem[],
   name = 'test-execution',
+  id?: string,
 ): ExecutionDump {
   const tasks = screenshots.map((s, i) => ({
     taskId: `task-${i}`,
@@ -61,6 +64,7 @@ function createExecution(
   }));
 
   return new ExecutionDump({
+    id: id ?? `exec-id-${++execCounter}`,
     logTime: Date.now(),
     name,
     tasks,
@@ -241,11 +245,16 @@ describe('ReportGenerator — per-execution append model', () => {
       const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
 
       // Round 1: one screenshot
-      const exec1 = createExecution([screenshot1]);
+      const sharedId = 'same-exec-id';
+      const exec1 = createExecution([screenshot1], 'test-execution', sharedId);
       generator.onExecutionUpdate(exec1, defaultGroupMeta);
 
-      // Round 2: two screenshots (same execution name = update)
-      const exec2 = createExecution([screenshot1, screenshot2]);
+      // Round 2: two screenshots (same execution id = update)
+      const exec2 = createExecution(
+        [screenshot1, screenshot2],
+        'test-execution',
+        sharedId,
+      );
       generator.onExecutionUpdate(exec2, defaultGroupMeta);
       await generator.flush();
 
@@ -309,6 +318,33 @@ describe('ReportGenerator — per-execution append model', () => {
         const parsed = JSON.parse(dumpJson);
         expect(parsed.executions).toHaveLength(1);
       }
+    });
+
+    it('should preserve separate dump tags for executions with same name but different ids', async () => {
+      const reportPath = join(tmpDir, 'same-name-exec-test.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const s1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
+
+      // Two executions with the same name but different ids (simulating
+      // repeated aiAct calls with the same prompt)
+      const exec1 = createExecution([s1], 'Act - click login', 'unique-id-1');
+      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      await generator.flush();
+
+      const exec2 = createExecution([s2], 'Act - click login', 'unique-id-2');
+      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      await generator.flush();
+
+      const html = readFileSync(reportPath, 'utf-8');
+
+      // Should have 2 separate dump tags despite same execution name
+      expect(countUserDumpTags(html)).toBe(2);
     });
   });
 
@@ -543,6 +579,30 @@ describe('ReportGenerator — per-execution append model', () => {
       await generator.flush();
 
       const exec2 = createExecution([s2], 'exec-2');
+      generator.onExecutionUpdate(exec2, defaultGroupMeta);
+      await generator.flush();
+
+      const html = readFileSync(reportPath, 'utf-8');
+      expect(countUserDumpTags(html)).toBe(2);
+    });
+
+    it('should preserve separate dump tags for same-name executions in directory mode', async () => {
+      const reportDir = join(tmpDir, 'dir-same-name-test');
+      const reportPath = join(reportDir, 'index.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'directory',
+        autoPrint: false,
+      });
+
+      const s1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
+
+      const exec1 = createExecution([s1], 'Act - click login', 'dir-id-1');
+      generator.onExecutionUpdate(exec1, defaultGroupMeta);
+      await generator.flush();
+
+      const exec2 = createExecution([s2], 'Act - click login', 'dir-id-2');
       generator.onExecutionUpdate(exec2, defaultGroupMeta);
       await generator.flush();
 
