@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  mkdirSync,
-  statSync,
-  truncateSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
 import {
@@ -17,15 +11,14 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
-import type { ScreenshotItem } from './screenshot-item';
 import { type ExecutionDump, type GroupMeta, GroupedActionDump } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
 export interface IReportGenerator {
   /**
    * Write or update a single execution.
-   * ReportGenerator internally tracks whether this is a new execution or
-   * an update to the current active execution by comparing execution.name.
+   * Each call appends a new dump script tag. The frontend deduplicates
+   * executions with the same id/name, keeping only the last one.
    *
    * @param execution  Current execution's full data
    * @param groupMeta  Group-level metadata (groupName, sdkVersion, etc.)
@@ -63,25 +56,13 @@ export class ReportGenerator implements IReportGenerator {
   private autoPrint: boolean;
   private firstWriteDone = false;
 
-  // Tracks screenshots in the FROZEN region (already written and won't be truncated)
-  private frozenScreenshots = new Set<string>();
-
-  // per-execution tracking for inline mode (keyed by execution.id or execution.name)
-  private activeExecKey?: string;
-  private activeExecStartOffset = 0;
-  // ScreenshotItem references for active execution (needed for markPersistedInline on freeze)
-  private activeScreenshotRefs: ScreenshotItem[] = [];
+  // Tracks screenshots already written to disk (by id) to avoid duplicates
+  private writtenScreenshots = new Set<string>();
   private initialized = false;
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
   private destroyed = false;
-
-  // Cache for directory mode to track all executions' serialized data
-  private directoryDumpCache?: Map<
-    string,
-    { serialized: string; attributes: Record<string, string> }
-  >;
 
   constructor(options: {
     reportPath: string;
@@ -196,19 +177,10 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   /**
-   * Transition the active execution's screenshots to frozen state.
-   * Called when a new execution starts, making the previous active region immutable.
+   * Append-only inline mode: write new screenshots and a dump tag on every call.
+   * The frontend deduplicates executions with the same id/name (keeps last).
+   * Duplicate dump JSON is acceptable; only screenshots are deduplicated.
    */
-  private freezeActiveExecution(): void {
-    // Move active screenshots to frozen set
-    for (const screenshot of this.activeScreenshotRefs) {
-      this.frozenScreenshots.add(screenshot.id);
-      // Now safe to release memory — the screenshot is in the frozen region
-      screenshot.markPersistedInline(this.reportPath);
-    }
-    this.activeScreenshotRefs = [];
-  }
-
   private writeInlineExecution(
     execution: ExecutionDump,
     groupMeta: GroupMeta,
@@ -218,47 +190,27 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(dir, { recursive: true });
     }
 
-    // 0. Initialize: write HTML template
+    // Initialize: write HTML template once
     if (!this.initialized) {
       writeFileSync(this.reportPath, getReportTpl());
-      this.activeExecStartOffset = statSync(this.reportPath).size;
       this.initialized = true;
     }
 
-    // 1. Check if this is a new execution or an update to the active one
-    const execKey = execution.id || execution.name;
-    if (this.activeExecKey !== execKey) {
-      if (this.activeExecKey !== undefined) {
-        // Freeze previous active execution's screenshots (move to frozen set)
-        this.freezeActiveExecution();
-      }
-
-      // The current file end becomes the new frozen baseline
-      this.activeExecStartOffset = statSync(this.reportPath).size;
-      this.activeExecKey = execKey;
-    }
-
-    // 2. Truncate: remove active exec's screenshots and dump tag, keep frozen region
-    truncateSync(this.reportPath, this.activeExecStartOffset);
-    // Reset active screenshot refs — they will be re-collected below
-    this.activeScreenshotRefs = [];
-
-    // 3. Append active exec's screenshots
-    // Only skip screenshots that are in the FROZEN region (already persisted)
+    // Append new screenshots (skip already-written ones)
     const screenshots = execution.collectScreenshots();
     for (const screenshot of screenshots) {
-      if (!this.frozenScreenshots.has(screenshot.id)) {
+      if (!this.writtenScreenshots.has(screenshot.id)) {
         appendFileSync(
           this.reportPath,
           `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
         );
-        // Track this screenshot as part of the active region
-        // Do NOT markPersistedInline — active region may be truncated
-        this.activeScreenshotRefs.push(screenshot);
+        this.writtenScreenshots.add(screenshot.id);
+        // Safe to release memory — the image tag is permanent (never truncated)
+        screenshot.markPersistedInline(this.reportPath);
       }
     }
 
-    // 4. Append dump tag (GroupedActionDump with single execution + data-group-id)
+    // Append dump tag (always — frontend keeps only last per execution id)
     const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
     const serialized = singleDump.serialize();
     const attributes: Record<string, string> = {
@@ -286,15 +238,14 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // 1. Write new screenshots and release memory immediately
-    // In directory mode, screenshots are separate files (never truncated), so safe to persist
     const screenshots = execution.collectScreenshots();
     for (const screenshot of screenshots) {
-      if (!this.frozenScreenshots.has(screenshot.id)) {
+      if (!this.writtenScreenshots.has(screenshot.id)) {
         const ext = screenshot.extension;
         const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
         const buffer = Buffer.from(screenshot.rawBase64, 'base64');
         writeFileSync(absolutePath, buffer);
-        this.frozenScreenshots.add(screenshot.id);
+        this.writtenScreenshots.add(screenshot.id);
         screenshot.markPersistedToPath(
           `./screenshots/${screenshot.id}.${ext}`,
           absolutePath,
@@ -302,36 +253,24 @@ export class ReportGenerator implements IReportGenerator {
       }
     }
 
-    // 2. Track execution key
-    const execKey = execution.id || execution.name;
-    if (this.activeExecKey !== execKey) {
-      this.activeExecKey = execKey;
-    }
-
-    if (!this.initialized) {
-      this.initialized = true;
-    }
-
-    // 3. Update the serialized dump for this execution
+    // 2. Append dump tag (always — frontend keeps only last per execution id)
     const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
     const serialized = singleDump.serialize();
     const dumpAttributes: Record<string, string> = {
       'data-group-id': groupMeta.groupName,
     };
 
-    if (!this.directoryDumpCache) {
-      this.directoryDumpCache = new Map();
+    if (!this.initialized) {
+      writeFileSync(
+        this.reportPath,
+        `${getReportTpl()}${getBaseUrlFixScript()}`,
+      );
+      this.initialized = true;
     }
-    this.directoryDumpCache.set(execKey, {
-      serialized,
-      attributes: dumpAttributes,
-    });
 
-    // 4. Write the full HTML file with all dump tags
-    let content = `${getReportTpl()}${getBaseUrlFixScript()}`;
-    for (const entry of this.directoryDumpCache.values()) {
-      content += `\n${generateDumpScriptTag(entry.serialized, entry.attributes)}`;
-    }
-    writeFileSync(this.reportPath, content);
+    appendFileSync(
+      this.reportPath,
+      `\n${generateDumpScriptTag(serialized, dumpAttributes)}`,
+    );
   }
 }

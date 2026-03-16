@@ -389,7 +389,14 @@ export function App() {
               allExecutions.push(...dump.executions);
             }
 
-            baseDump!.executions = allExecutions;
+            // Deduplicate executions by id/name — keep only the last one
+            // (append-only writes may produce multiple entries for the same execution)
+            const deduped = new Map<string, any>();
+            for (const exec of allExecutions) {
+              const key = exec.id || exec.name;
+              deduped.set(key, exec);
+            }
+            baseDump!.executions = Array.from(deduped.values());
             cachedJsonContent = baseDump!;
 
             console.timeEnd('parse_grouped_dump');
