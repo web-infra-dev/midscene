@@ -97,7 +97,7 @@ function getTmpDir(prefix: string): string {
   return dir;
 }
 
-describe('ReportGenerator — per-execution append model', () => {
+describe('ReportGenerator — append-only model', () => {
   let tmpDir: string;
 
   beforeEach(() => {
@@ -110,7 +110,7 @@ describe('ReportGenerator — per-execution append model', () => {
     }
   });
 
-  describe('inline mode — truncate+append strategy', () => {
+  describe('inline mode — append-only strategy', () => {
     it('should write each screenshot image tag exactly once across multiple updates', async () => {
       const reportPath = join(tmpDir, 'inline-test.html');
       const generator = new ReportGenerator({
@@ -168,8 +168,8 @@ describe('ReportGenerator — per-execution append model', () => {
       expect(imageMap[screenshot.id]).toContain('AAAA');
     });
 
-    it('should replace dump JSON on each update, not accumulate', async () => {
-      const reportPath = join(tmpDir, 'truncate-test.html');
+    it('should append dump tags on each update (frontend deduplicates)', async () => {
+      const reportPath = join(tmpDir, 'append-test.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
@@ -181,56 +181,16 @@ describe('ReportGenerator — per-execution append model', () => {
 
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
-      const sizeAfterFirst = statSync(reportPath).size;
 
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
-      const sizeAfterSecond = statSync(reportPath).size;
 
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
-      const sizeAfterThird = statSync(reportPath).size;
 
-      // File size should remain stable (truncate + re-write same content)
-      expect(sizeAfterSecond).toBe(sizeAfterFirst);
-      expect(sizeAfterThird).toBe(sizeAfterFirst);
-    });
-
-    it('should grow file size linearly with new screenshots, not quadratically', async () => {
-      const reportPath = join(tmpDir, 'linear-growth-test.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        autoPrint: false,
-      });
-
-      const allScreenshots: ScreenshotItem[] = [];
-      const screenshotSize = 2000;
-      const rounds = 10;
-      const sizes: number[] = [];
-
-      for (let i = 0; i < rounds; i++) {
-        const newScreenshot = ScreenshotItem.create(
-          fakeBase64(screenshotSize),
-          Date.now(),
-        );
-        const execution = buildIncrementalExecution(
-          allScreenshots,
-          newScreenshot,
-        );
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
-        await generator.flush();
-        sizes.push(statSync(reportPath).size);
-      }
-
-      const increments = [];
-      for (let i = 1; i < sizes.length; i++) {
-        increments.push(sizes[i] - sizes[i - 1]);
-      }
-
-      const minIncrement = Math.min(...increments);
-      const maxIncrement = Math.max(...increments);
-      expect(maxIncrement).toBeLessThan(minIncrement * 3);
+      const html = readFileSync(reportPath, 'utf-8');
+      // Should have 3 dump tags (one per update), frontend keeps only last
+      expect(countUserDumpTags(html)).toBe(3);
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
@@ -269,23 +229,21 @@ describe('ReportGenerator — per-execution append model', () => {
       expect(imageMap[screenshot1.id]).toBeDefined();
       expect(imageMap[screenshot2.id]).toBeDefined();
 
-      // Should have exactly 1 user dump tag with data-group-id
-      expect(countUserDumpTags(html)).toBe(1);
+      // Should have 2 dump tags (one per update), last one has the final state
+      expect(countUserDumpTags(html)).toBe(2);
 
-      // Parse the user dump tag
+      // Parse the last dump tag — it should have the complete execution
       const dumpRegex =
         /<script type="midscene_web_dump"[^>]*data-group-id[^>]*>([\s\S]*?)<\/script>/g;
       const dumpMatches = [...html.matchAll(dumpRegex)];
-      expect(dumpMatches.length).toBe(1);
-
-      const dumpJson = unescapeContent(dumpMatches[0][1]);
-      const parsed = JSON.parse(dumpJson);
+      const lastDump = unescapeContent(dumpMatches[dumpMatches.length - 1][1]);
+      const parsed = JSON.parse(lastDump);
       expect(parsed.groupName).toBe('test-group');
       expect(parsed.executions).toHaveLength(1);
       expect(parsed.executions[0].tasks).toHaveLength(2);
     });
 
-    it('should produce multiple dump tags for multiple executions with data-group-id', async () => {
+    it('should produce dump tags for multiple distinct executions', async () => {
       const reportPath = join(tmpDir, 'multi-exec-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -307,7 +265,7 @@ describe('ReportGenerator — per-execution append model', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
 
-      // Should have 2 user dump tags with data-group-id
+      // Should have 2 dump tags
       expect(countUserDumpTags(html)).toBe(2);
 
       // Each dump tag should contain exactly 1 execution
@@ -320,7 +278,7 @@ describe('ReportGenerator — per-execution append model', () => {
       }
     });
 
-    it('should preserve separate dump tags for executions with same name but different ids', async () => {
+    it('should produce separate dump tags for executions with same name but different ids', async () => {
       const reportPath = join(tmpDir, 'same-name-exec-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -331,8 +289,6 @@ describe('ReportGenerator — per-execution append model', () => {
       const s1 = ScreenshotItem.create(fakeBase64(100), Date.now());
       const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
 
-      // Two executions with the same name but different ids (simulating
-      // repeated aiAct calls with the same prompt)
       const exec1 = createExecution([s1], 'Act - click login', 'unique-id-1');
       generator.onExecutionUpdate(exec1, defaultGroupMeta);
       await generator.flush();
@@ -342,9 +298,30 @@ describe('ReportGenerator — per-execution append model', () => {
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
-
-      // Should have 2 separate dump tags despite same execution name
       expect(countUserDumpTags(html)).toBe(2);
+    });
+
+    it('should release screenshot memory immediately after writing', async () => {
+      const reportPath = join(tmpDir, 'inline-memory.html');
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const screenshot = ScreenshotItem.create(fakeBase64(10000), Date.now());
+      const execution = createExecution([screenshot]);
+
+      generator.onExecutionUpdate(execution, defaultGroupMeta);
+      await generator.flush();
+
+      // Screenshot memory should be released immediately (no truncation risk)
+      expect(screenshot.hasBase64()).toBe(false);
+
+      // But it should be recoverable via lazy loading from HTML
+      expect(() => screenshot.base64).not.toThrow();
+      expect(screenshot.base64).toContain('data:image/png;base64,');
+      expect(screenshot.base64).toContain('AAAA');
     });
   });
 
@@ -448,8 +425,8 @@ describe('ReportGenerator — per-execution append model', () => {
       expect(mtimeSecond).toBe(mtimeFirst);
     });
 
-    it('should overwrite HTML file on each update (not append)', async () => {
-      const reportDir = join(tmpDir, 'html-overwrite-test');
+    it('should append dump tags on each update in directory mode', async () => {
+      const reportDir = join(tmpDir, 'html-append-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -462,15 +439,15 @@ describe('ReportGenerator — per-execution append model', () => {
 
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
-      const sizeAfterFirst = statSync(reportPath).size;
 
       for (let i = 0; i < 4; i++) {
         generator.onExecutionUpdate(execution, defaultGroupMeta);
       }
       await generator.flush();
-      const sizeAfterFifth = statSync(reportPath).size;
 
-      expect(sizeAfterFifth).toBe(sizeAfterFirst);
+      const html = readFileSync(reportPath, 'utf-8');
+      // Should have 5 dump tags total (1 + 4 updates)
+      expect(countUserDumpTags(html)).toBe(5);
     });
 
     it('should produce valid HTML structure in directory mode', async () => {
@@ -562,7 +539,7 @@ describe('ReportGenerator — per-execution append model', () => {
       );
     });
 
-    it('should produce multiple dump tags for multiple executions in directory mode', async () => {
+    it('should produce dump tags for multiple executions in directory mode', async () => {
       const reportDir = join(tmpDir, 'dir-multi-exec-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -586,7 +563,7 @@ describe('ReportGenerator — per-execution append model', () => {
       expect(countUserDumpTags(html)).toBe(2);
     });
 
-    it('should preserve separate dump tags for same-name executions in directory mode', async () => {
+    it('should produce separate dump tags for same-name executions in directory mode', async () => {
       const reportDir = join(tmpDir, 'dir-same-name-test');
       const reportPath = join(reportDir, 'index.html');
       const generator = new ReportGenerator({
@@ -651,12 +628,8 @@ describe('ReportGenerator — per-execution append model', () => {
   });
 
   describe('lazy loading — memory release behavior', () => {
-    it('should release memory immediately in inline mode for active execution screenshots', async () => {
-      // Note: In the per-execution model, active execution screenshots are NOT released
-      // because the active region may be truncated and re-written.
-      // Screenshots are only released when the execution transitions to frozen
-      // (i.e., when a new execution starts).
-      const reportPath = join(tmpDir, 'inline-active-memory.html');
+    it('should release memory and recover via lazy loading in inline mode', async () => {
+      const reportPath = join(tmpDir, 'inline-lazy.html');
       const generator = new ReportGenerator({
         reportPath,
         screenshotMode: 'inline',
@@ -669,26 +642,17 @@ describe('ReportGenerator — per-execution append model', () => {
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
 
-      // Active execution screenshots remain in memory (not released)
-      expect(screenshot.hasBase64()).toBe(true);
-
-      // Start a new execution to freeze the first one
-      const s2 = ScreenshotItem.create(fakeBase64(100), Date.now());
-      const exec2 = createExecution([s2], 'exec-2');
-      generator.onExecutionUpdate(exec2, defaultGroupMeta);
-      await generator.flush();
-
-      // Now the first execution is frozen, screenshot memory should be released
+      // Screenshot memory released immediately after writing
       expect(screenshot.hasBase64()).toBe(false);
 
-      // But it should be recoverable via lazy loading
+      // Recoverable via lazy loading
       expect(() => screenshot.base64).not.toThrow();
       const recoveredBase64 = screenshot.base64;
       expect(recoveredBase64).toContain('data:image/png;base64,');
       expect(recoveredBase64).toContain('AAAA');
     });
 
-    it('should release all screenshots when multiple executions transition to frozen', async () => {
+    it('should release all screenshots across multiple executions', async () => {
       const reportPath = join(tmpDir, 'multi-exec-release.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -711,26 +675,19 @@ describe('ReportGenerator — per-execution append model', () => {
         await generator.flush();
       }
 
-      // Only the last (active) execution's screenshots should still be in memory
-      // Frozen executions (0 and 1) should be released
-      for (const s of screenshots[0]) {
-        expect(s.hasBase64()).toBe(false);
-      }
-      for (const s of screenshots[1]) {
-        expect(s.hasBase64()).toBe(false);
-      }
-      // Active execution screenshots stay in memory
-      for (const s of screenshots[2]) {
-        expect(s.hasBase64()).toBe(true);
+      // All screenshots should be released (append-only, no truncation risk)
+      for (const group of screenshots) {
+        for (const s of group) {
+          expect(s.hasBase64()).toBe(false);
+        }
       }
 
-      // All frozen screenshots should be recoverable
-      for (const s of screenshots[0]) {
-        expect(() => s.base64).not.toThrow();
-        expect(s.base64).toContain('data:image/png;base64,');
-      }
-      for (const s of screenshots[1]) {
-        expect(() => s.base64).not.toThrow();
+      // All should be recoverable
+      for (const group of screenshots) {
+        for (const s of group) {
+          expect(() => s.base64).not.toThrow();
+          expect(s.base64).toContain('data:image/png;base64,');
+        }
       }
     });
 
@@ -753,9 +710,9 @@ describe('ReportGenerator — per-execution append model', () => {
       generator.onExecutionUpdate(exec2, defaultGroupMeta);
       await generator.flush();
 
-      // s1 is frozen (released), s2 is active (in memory)
+      // Both released
       expect(s1.hasBase64()).toBe(false);
-      expect(s2.hasBase64()).toBe(true);
+      expect(s2.hasBase64()).toBe(false);
 
       // After finalize: both should be recoverable
       await generator.finalize();
@@ -811,7 +768,6 @@ describe('ReportGenerator — per-execution append model', () => {
       const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
       const screenshot3 = ScreenshotItem.create(fakeBase64(300), Date.now());
 
-      // Write as first execution, then start a new one to freeze
       const execution = createExecution(
         [screenshot1, screenshot2, screenshot3],
         'exec-1',
@@ -819,12 +775,7 @@ describe('ReportGenerator — per-execution append model', () => {
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
 
-      // Start new execution to freeze the first one
-      const dummyExec = createExecution([], 'exec-2');
-      generator.onExecutionUpdate(dummyExec, defaultGroupMeta);
-      await generator.flush();
-
-      // All released (frozen)
+      // All released immediately
       expect(screenshot1.hasBase64()).toBe(false);
       expect(screenshot2.hasBase64()).toBe(false);
       expect(screenshot3.hasBase64()).toBe(false);
@@ -839,8 +790,8 @@ describe('ReportGenerator — per-execution append model', () => {
     });
   });
 
-  describe('memory efficiency — frozenScreenshots tracking', () => {
-    it('frozenScreenshots Set should contain only IDs, not base64 data', async () => {
+  describe('memory efficiency — writtenScreenshots tracking', () => {
+    it('writtenScreenshots Set should contain only IDs, not base64 data', async () => {
       const reportPath = join(tmpDir, 'tracking-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -856,51 +807,13 @@ describe('ReportGenerator — per-execution append model', () => {
       generator.onExecutionUpdate(execution, defaultGroupMeta);
       await generator.flush();
 
-      // Freeze by starting new execution
-      const dummyExec = createExecution([], 'exec-2');
-      generator.onExecutionUpdate(dummyExec, defaultGroupMeta);
-      await generator.flush();
+      const writtenScreenshots = (generator as any)
+        .writtenScreenshots as Set<string>;
+      expect(writtenScreenshots.size).toBe(1);
 
-      const frozenScreenshots = (generator as any)
-        .frozenScreenshots as Set<string>;
-      expect(frozenScreenshots.size).toBe(1);
-
-      const storedValue = [...frozenScreenshots][0];
+      const storedValue = [...writtenScreenshots][0];
       expect(storedValue).toBe(largeScreenshot.id);
       expect(storedValue.length).toBeLessThan(100);
-    });
-
-    it('should handle many screenshots without unbounded internal state growth', async () => {
-      const reportPath = join(tmpDir, 'many-screenshots-test.html');
-      const generator = new ReportGenerator({
-        reportPath,
-        screenshotMode: 'inline',
-        autoPrint: false,
-      });
-
-      const allScreenshots: ScreenshotItem[] = [];
-      const totalScreenshots = 50;
-
-      for (let i = 0; i < totalScreenshots; i++) {
-        const newScreenshot = ScreenshotItem.create(
-          fakeBase64(1000),
-          Date.now(),
-        );
-        const execution = buildIncrementalExecution(
-          allScreenshots,
-          newScreenshot,
-        );
-        generator.onExecutionUpdate(execution, defaultGroupMeta);
-      }
-      await generator.flush();
-
-      // activeExecStartOffset should be tracked correctly
-      const activeExecStartOffset = (generator as any)
-        .activeExecStartOffset as number;
-      const fileSize = statSync(reportPath).size;
-
-      expect(activeExecStartOffset).toBeLessThan(fileSize);
-      expect(activeExecStartOffset).toBeGreaterThan(0);
     });
   });
 });
