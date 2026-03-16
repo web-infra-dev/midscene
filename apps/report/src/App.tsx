@@ -371,53 +371,30 @@ export function App() {
       result.push({
         get: () => {
           if (!isParsed) {
-            try {
-              console.time('parse_grouped_dump');
-              const allExecutions: any[] = [];
-              let baseDump: GroupedActionDump | null = null;
+            console.time('parse_grouped_dump');
+            const allExecutions: any[] = [];
+            let baseDump: GroupedActionDump | null = null;
 
-              for (const el of elements) {
-                const content = antiEscapeScriptTag(el.textContent || '');
-                const parsed = JSON.parse(content);
-                const restored = restoreImageReferences(
-                  parsed,
-                  resolveImageFromDom,
-                );
-                const dump = GroupedActionDump.fromJSON(restored);
-                if (!baseDump) {
-                  baseDump = dump;
-                }
-                allExecutions.push(...dump.executions);
+            for (const el of elements) {
+              const content = antiEscapeScriptTag(el.textContent || '');
+              const parsed = JSON.parse(content);
+              const restored = restoreImageReferences(
+                parsed,
+                resolveImageFromDom,
+              );
+              const dump = GroupedActionDump.fromJSON(restored);
+              if (!baseDump) {
+                baseDump = dump;
               }
-
-              if (baseDump) {
-                baseDump.executions = allExecutions;
-                cachedJsonContent = baseDump;
-              } else {
-                cachedJsonContent = new GroupedActionDump({
-                  sdkVersion: '',
-                  groupName: '',
-                  modelBriefs: [],
-                  executions: [],
-                });
-              }
-
-              console.timeEnd('parse_grouped_dump');
-              (cachedJsonContent as any).attributes = attributes;
-              isParsed = true;
-            } catch (e) {
-              console.error('failed to parse grouped dump content', e);
-              cachedJsonContent = new GroupedActionDump({
-                sdkVersion: '',
-                groupName: '',
-                modelBriefs: [],
-                executions: [],
-              });
-              (cachedJsonContent as any).attributes = attributes;
-              (cachedJsonContent as any).error =
-                'Failed to parse grouped JSON content';
-              isParsed = true;
+              allExecutions.push(...dump.executions);
             }
+
+            baseDump!.executions = allExecutions;
+            cachedJsonContent = baseDump!;
+
+            console.timeEnd('parse_grouped_dump');
+            (cachedJsonContent as any).attributes = attributes;
+            isParsed = true;
           }
           return cachedJsonContent!;
         },
