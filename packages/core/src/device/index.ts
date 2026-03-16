@@ -565,6 +565,48 @@ export const defineActionCursorMove = (
     call,
   });
 };
+// Pinch
+export const ActionPinchParamSchema = z.object({
+  locate: getMidsceneLocationSchema()
+    .optional()
+    .describe(
+      'The element to pinch on. If not specified, the center of the screen will be used',
+    ),
+  scale: z
+    .number()
+    .describe(
+      'Scale factor. >1 means zoom in (spread fingers apart), <1 means zoom out (pinch fingers together). e.g. 2 means zoom in to 200%, 0.5 means zoom out to 50%',
+    ),
+  duration: z
+    .number()
+    .default(500)
+    .optional()
+    .describe('Duration of the pinch gesture in milliseconds'),
+});
+
+export type ActionPinchParam = {
+  locate?: LocateResultElement;
+  scale: number;
+  duration?: number;
+};
+
+export const defineActionPinch = (
+  call: (param: ActionPinchParam) => Promise<void>,
+): DeviceAction<ActionPinchParam> => {
+  return defineAction<typeof ActionPinchParamSchema, ActionPinchParam>({
+    name: 'Pinch',
+    description:
+      'Perform a two-finger pinch gesture to zoom in or zoom out. Use scale > 1 to zoom in (spread fingers apart), scale < 1 to zoom out (pinch fingers together). For example, scale=2 zooms in to 200%, scale=0.5 zooms out to 50%.',
+    interfaceAlias: 'aiPinch',
+    paramSchema: ActionPinchParamSchema,
+    sample: {
+      locate: { prompt: 'the map area' },
+      scale: 2,
+    },
+    call,
+  });
+};
+
 // Sleep
 export const ActionSleepParamSchema = z.object({
   timeMs: z

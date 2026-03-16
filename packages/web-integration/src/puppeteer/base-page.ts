@@ -651,6 +651,80 @@ export class Page<
     }
   }
 
+  async pinch(
+    centerX: number,
+    centerY: number,
+    startDistance: number,
+    endDistance: number,
+    duration = 500,
+  ): Promise<void> {
+    const steps = 30;
+    const delay = duration / steps;
+    const halfStart = startDistance / 2;
+    const halfEnd = endDistance / 2;
+
+    const dispatchPinchViaCDP = async (client: any) => {
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [
+          {
+            x: Math.round(centerX),
+            y: Math.round(centerY - halfStart),
+            id: 0,
+          },
+          {
+            x: Math.round(centerX),
+            y: Math.round(centerY + halfStart),
+            id: 1,
+          },
+        ],
+      });
+
+      for (let i = 1; i <= steps; i++) {
+        const currentHalf = halfStart + (halfEnd - halfStart) * (i / steps);
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [
+            {
+              x: Math.round(centerX),
+              y: Math.round(centerY - currentHalf),
+              id: 0,
+            },
+            {
+              x: Math.round(centerX),
+              y: Math.round(centerY + currentHalf),
+              id: 1,
+            },
+          ],
+        });
+        await new Promise((res) => setTimeout(res, delay));
+      }
+
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    };
+
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      const client = await page.target().createCDPSession();
+      try {
+        await dispatchPinchViaCDP(client);
+      } finally {
+        await client.detach();
+      }
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      const client = await page.context().newCDPSession(page);
+      try {
+        await dispatchPinchViaCDP(client);
+      } finally {
+        await client.detach();
+      }
+    }
+  }
+
   private async ensurePuppeteerFileChooserSession(
     page: PuppeteerPage,
   ): Promise<CDPSession> {

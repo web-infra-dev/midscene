@@ -780,6 +780,21 @@ export class Agent<
     });
   }
 
+  async aiPinch(
+    locatePrompt: TUserPrompt | undefined,
+    opt: LocateOption & { scale: number; duration?: number },
+  ) {
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt || '',
+      opt,
+    );
+
+    return this.callActionInActionSpace('Pinch', {
+      ...opt,
+      locate: detailedLocateParam,
+    });
+  }
+
   async aiAct(
     taskPrompt: string,
     opt?: AiActOptions,

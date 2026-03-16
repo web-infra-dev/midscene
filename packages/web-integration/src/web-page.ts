@@ -13,6 +13,7 @@ import {
   defineActionInput,
   defineActionKeyboardPress,
   defineActionLongPress,
+  defineActionPinch,
   defineActionRightClick,
   defineActionScroll,
   defineActionSwipe,
@@ -429,6 +430,13 @@ export abstract class AbstractWebPage extends AbstractInterface {
     to: { x: number; y: number },
     duration?: number,
   ): Promise<void>;
+  abstract pinch(
+    centerX: number,
+    centerY: number,
+    startDistance: number,
+    endDistance: number,
+    duration?: number,
+  ): Promise<void>;
 }
 
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
@@ -572,6 +580,29 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
 
   ...(includeTouchEvents
     ? [
+        defineActionPinch(async (param) => {
+          const { width, height } = await page.size();
+          const element = param.locate;
+          const centerX = element
+            ? Math.round(element.center[0])
+            : Math.round(width / 2);
+          const centerY = element
+            ? Math.round(element.center[1])
+            : Math.round(height / 2);
+          const duration = param.duration ?? 500;
+
+          const BASE_DISTANCE = Math.round(Math.min(width, height) / 4);
+          const startDistance = BASE_DISTANCE;
+          const endDistance = Math.round(BASE_DISTANCE * param.scale);
+
+          await page.pinch(
+            centerX,
+            centerY,
+            startDistance,
+            endDistance,
+            duration,
+          );
+        }),
         defineActionSwipe(async (param) => {
           const { width, height } = await page.size();
           const { start, end } = param;
