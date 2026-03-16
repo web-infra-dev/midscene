@@ -151,6 +151,66 @@ describe('codex app-server provider helper', () => {
     });
   });
 
+  it('passes detail override to image inputs when provided', () => {
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Check this image.' },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/shot.png' },
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'file:///tmp/local.png' },
+          },
+        ],
+      },
+    ];
+
+    const payload = buildCodexTurnPayloadFromMessages(messages, {
+      imageDetailOverride: 'original',
+    });
+
+    expect(payload.input).toContainEqual({
+      type: 'image',
+      url: 'https://example.com/shot.png',
+      detail: 'original',
+    });
+    expect(payload.input).toContainEqual({
+      type: 'localImage',
+      path: '/tmp/local.png',
+      detail: 'original',
+    });
+  });
+
+  it('preserves detail from original message part when no override', () => {
+    const messages: ChatCompletionMessageParam[] = [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Check this.' },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'https://example.com/img.png',
+              detail: 'high',
+            },
+          },
+        ],
+      },
+    ];
+
+    const payload = buildCodexTurnPayloadFromMessages(messages);
+
+    expect(payload.input).toContainEqual({
+      type: 'image',
+      url: 'https://example.com/img.png',
+      detail: 'high',
+    });
+  });
+
   it('keeps the newest transcript context when truncating long turns', () => {
     const oldContent = `old-prefix-${'a'.repeat(270_000)}`;
     const latestRequest = 'latest user request should survive truncation';
