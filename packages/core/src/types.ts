@@ -60,7 +60,8 @@ export type AISingleElementResponseByPosition = {
 };
 
 export interface AIElementCoordinatesResponse {
-  bbox: [number, number, number, number];
+  bbox?: [number, number, number, number];
+  point?: [number, number];
   errors?: string[];
 }
 

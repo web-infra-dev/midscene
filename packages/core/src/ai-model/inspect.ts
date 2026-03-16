@@ -38,6 +38,8 @@ import {
 import {
   findElementPrompt,
   systemPromptToLocateElement,
+  usePixelCoordinates,
+  usePointMode,
 } from './prompt/llm-locator';
 import {
   sectionLocatorInstruction,
@@ -314,6 +316,49 @@ export async function AiLocateElement(options: {
     'errors' in res.content ? res.content.errors : [];
   try {
     if (
+      usePointMode(modelFamily) &&
+      'point' in res.content &&
+      Array.isArray(res.content.point) &&
+      res.content.point.length === 2
+    ) {
+      // Point mode: model returns center point [x, y]
+      let pointX = res.content.point[0];
+      let pointY = res.content.point[1];
+
+      debugInspect('point response (raw)', { pointX, pointY });
+
+      // Convert from 0-1000 normalized to pixel coordinates if needed
+      if (!usePixelCoordinates(modelFamily)) {
+        pointX = Math.round((pointX * imageWidth) / 1000);
+        pointY = Math.round((pointY * imageHeight) / 1000);
+        debugInspect('point after 0-1000 normalization', { pointX, pointY });
+      }
+
+      // Apply scale if searching in a cropped/scaled area
+      if (options.searchConfig?.scale && options.searchConfig.scale !== 1) {
+        pointX = Math.round(pointX / options.searchConfig.scale);
+        pointY = Math.round(pointY / options.searchConfig.scale);
+      }
+
+      // Apply offset if searching in a cropped area
+      if (options.searchConfig?.rect) {
+        pointX += options.searchConfig.rect.left;
+        pointY += options.searchConfig.rect.top;
+      }
+
+      debugInspect('point after offset/scale', { pointX, pointY });
+
+      const element: LocateResultElement = generateElementByPoint(
+        [pointX, pointY],
+        targetElementDescriptionText as string,
+      );
+      resRect = element.rect;
+      errors = [];
+
+      if (element) {
+        matchedElements = [element];
+      }
+    } else if (
       'bbox' in res.content &&
       Array.isArray(res.content.bbox) &&
       res.content.bbox.length >= 1
