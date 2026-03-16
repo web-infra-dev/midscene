@@ -3,12 +3,12 @@ import { mousePointer } from '@/utils';
 import { paramStr, typeStr } from '@midscene/core/agent';
 
 import type {
+  ActionReport,
   ExecutionDump,
   ExecutionTask,
   ExecutionTaskPlanning,
-  GroupedActionDump,
+  IActionReport,
   IExecutionDump,
-  IGroupedActionDump,
   LocateResultElement,
   Rect,
   UIContext,
@@ -148,16 +148,16 @@ const capitalizeFirstLetter = (str: string) => {
 };
 
 type DumpInput =
-  | GroupedActionDump
-  | IGroupedActionDump
+  | ActionReport
+  | IActionReport
   | ExecutionDump
   | null
   | undefined;
 
-const normalizeDump = (dump: DumpInput): IGroupedActionDump | null => {
+const normalizeDump = (dump: DumpInput): IActionReport | null => {
   if (!dump) return null;
-  return Array.isArray((dump as GroupedActionDump).executions)
-    ? (dump as GroupedActionDump)
+  return Array.isArray((dump as ActionReport).executions)
+    ? (dump as ActionReport)
     : {
         sdkVersion: '',
         groupName: 'Execution',
@@ -178,7 +178,7 @@ export interface DumpMetaInfo {
  * Extract lightweight metadata from a normalized dump without reading any .base64 fields.
  */
 const extractMetaFromNormalized = (
-  normalizedDump: IGroupedActionDump,
+  normalizedDump: IActionReport,
 ): DumpMetaInfo | null => {
   let firstWidth: number | undefined;
   let firstHeight: number | undefined;
@@ -239,7 +239,7 @@ const extractMetaFromNormalized = (
     height: firstHeight,
     sdkVersion,
     modelBriefs,
-    deviceType: (normalizedDump as IGroupedActionDump).deviceType,
+    deviceType: (normalizedDump as IActionReport).deviceType,
   };
 };
 

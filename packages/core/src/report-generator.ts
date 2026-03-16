@@ -18,7 +18,7 @@ import {
   getBaseUrlFixScript,
 } from './dump/html-utils';
 import type { ScreenshotItem } from './screenshot-item';
-import { type ExecutionDump, type GroupMeta, GroupedActionDump } from './types';
+import { ActionReport, type ExecutionDump, type GroupMeta } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
 export interface IReportGenerator {
@@ -31,11 +31,6 @@ export interface IReportGenerator {
    * @param groupMeta  Group-level metadata (groupName, sdkVersion, etc.)
    */
   onExecutionUpdate(execution: ExecutionDump, groupMeta: GroupMeta): void;
-
-  /**
-   * @deprecated Use onExecutionUpdate instead. Kept for backward compatibility.
-   */
-  onDumpUpdate?(dump: GroupedActionDump): void;
 
   /**
    * Wait for all queued write operations to complete.
@@ -78,7 +73,7 @@ export class ReportGenerator implements IReportGenerator {
   private destroyed = false;
 
   // Cache for directory mode to track all executions' serialized data
-  private directoryDumpCache?: Map<
+  private directoryReportCache?: Map<
     string,
     { serialized: string; attributes: Record<string, string> }
   >;
@@ -179,13 +174,13 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   /**
-   * Wrap an ExecutionDump + GroupMeta into a single-execution GroupedActionDump.
+   * Wrap an ExecutionDump + GroupMeta into a single-execution ActionReport
    */
-  private wrapAsGroupedDump(
+  private wrapAsActionReport(
     execution: ExecutionDump,
     groupMeta: GroupMeta,
-  ): GroupedActionDump {
-    return new GroupedActionDump({
+  ): ActionReport {
+    return new ActionReport({
       sdkVersion: groupMeta.sdkVersion,
       groupName: groupMeta.groupName,
       groupDescription: groupMeta.groupDescription,
@@ -257,9 +252,9 @@ export class ReportGenerator implements IReportGenerator {
       }
     }
 
-    // 4. Append dump tag (GroupedActionDump with single execution + data-group-id)
-    const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
-    const serialized = singleDump.serialize();
+    // 4. Append dump tag (ActionReport with single execution + data-group-id)
+    const singleReport = this.wrapAsActionReport(execution, groupMeta);
+    const serialized = singleReport.serialize();
     const attributes: Record<string, string> = {
       'data-group-id': groupMeta.groupName,
     };
@@ -311,23 +306,23 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // 3. Update the serialized dump for this execution
-    const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
-    const serialized = singleDump.serialize();
+    const singleReport = this.wrapAsActionReport(execution, groupMeta);
+    const serialized = singleReport.serialize();
     const dumpAttributes: Record<string, string> = {
       'data-group-id': groupMeta.groupName,
     };
 
-    if (!this.directoryDumpCache) {
-      this.directoryDumpCache = new Map();
+    if (!this.directoryReportCache) {
+      this.directoryReportCache = new Map();
     }
-    this.directoryDumpCache.set(execution.name, {
+    this.directoryReportCache.set(execution.name, {
       serialized,
       attributes: dumpAttributes,
     });
 
     // 4. Write the full HTML file with all dump tags
     let content = `${getReportTpl()}${getBaseUrlFixScript()}`;
-    for (const entry of this.directoryDumpCache.values()) {
+    for (const entry of this.directoryReportCache.values()) {
       content += `\n${generateDumpScriptTag(entry.serialized, entry.attributes)}`;
     }
     writeFileSync(this.reportPath, content);

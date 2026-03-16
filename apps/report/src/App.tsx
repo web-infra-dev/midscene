@@ -4,7 +4,7 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import { GroupedActionDump, restoreImageReferences } from '@midscene/core';
+import { ActionReport, restoreImageReferences } from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -336,7 +336,7 @@ export function App() {
    */
   function buildPlaywrightTaskFromElement(el: Element): PlaywrightTasks {
     const attributes = parseAttributesFromElement(el);
-    let cachedJsonContent: GroupedActionDump | null = null;
+    let cachedJsonContent: ActionReport | null = null;
     let isParsed = false;
 
     return {
@@ -350,14 +350,14 @@ export function App() {
               parsed,
               resolveImageFromDom,
             );
-            cachedJsonContent = GroupedActionDump.fromJSON(restored);
+            cachedJsonContent = ActionReport.fromJSON(restored);
             console.timeEnd('parse_dump');
             (cachedJsonContent as any).attributes = attributes;
             isParsed = true;
           } catch (e) {
             console.error(el);
             console.error('failed to parse json content', e);
-            cachedJsonContent = new GroupedActionDump({
+            cachedJsonContent = new ActionReport({
               sdkVersion: '',
               groupName: '',
               modelBriefs: [],
@@ -408,7 +408,7 @@ export function App() {
     // Process grouped dump tags — merge into one PlaywrightTasks per group
     for (const [, elements] of groupMap) {
       const attributes = parseAttributesFromElement(elements[0]);
-      let cachedJsonContent: GroupedActionDump | null = null;
+      let cachedJsonContent: ActionReport | null = null;
       let isParsed = false;
 
       result.push({
@@ -417,7 +417,7 @@ export function App() {
             try {
               console.time('parse_grouped_dump');
               const allExecutions: any[] = [];
-              let baseDump: GroupedActionDump | null = null;
+              let baseDump: ActionReport | null = null;
 
               for (const el of elements) {
                 const content = antiEscapeScriptTag(el.textContent || '');
@@ -426,7 +426,7 @@ export function App() {
                   parsed,
                   resolveImageFromDom,
                 );
-                const dump = GroupedActionDump.fromJSON(restored);
+                const dump = ActionReport.fromJSON(restored);
                 if (!baseDump) {
                   baseDump = dump;
                 }
@@ -437,7 +437,7 @@ export function App() {
                 baseDump.executions = allExecutions;
                 cachedJsonContent = baseDump;
               } else {
-                cachedJsonContent = new GroupedActionDump({
+                cachedJsonContent = new ActionReport({
                   sdkVersion: '',
                   groupName: '',
                   modelBriefs: [],
@@ -450,7 +450,7 @@ export function App() {
               isParsed = true;
             } catch (e) {
               console.error('failed to parse grouped dump content', e);
-              cachedJsonContent = new GroupedActionDump({
+              cachedJsonContent = new ActionReport({
                 sdkVersion: '',
                 groupName: '',
                 modelBriefs: [],

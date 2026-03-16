@@ -16,9 +16,9 @@ import {
 import { ReportGenerator, nullReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
+  ActionReport,
   ExecutionDump,
   type GroupMeta,
-  GroupedActionDump,
   type UIContext,
 } from '@/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';

@@ -1,10 +1,10 @@
 // import { createStore } from 'zustand/vanilla';
 import type { PlaywrightTaskAttributes } from '@/types';
 import type {
+  ActionReport,
   ExecutionDump,
   ExecutionTask,
   ExecutionTaskPlanningLocate,
-  GroupedActionDump,
   LocateResultElement,
   ServiceDump,
 } from '@midscene/core';
@@ -46,10 +46,10 @@ export interface HistoryItem {
 }
 
 export interface DumpStoreType {
-  dump: GroupedActionDump | null;
+  dump: ActionReport | null;
   playwrightAttributes: PlaywrightTaskAttributes | null;
   setGroupedDump: (
-    dump: GroupedActionDump,
+    dump: ActionReport,
     playwrightAttributes?: PlaywrightTaskAttributes,
   ) => Promise<void>;
   _executionDumpLoadId: number;
@@ -143,7 +143,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
       }
     },
     setGroupedDump: async (
-      dump: GroupedActionDump,
+      dump: ActionReport,
       playwrightAttributes?: PlaywrightTaskAttributes,
     ) => {
       console.log('will set ExecutionDump', dump);

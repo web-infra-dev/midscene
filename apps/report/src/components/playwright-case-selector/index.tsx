@@ -1,5 +1,5 @@
 import { DownOutlined, SearchOutlined, UpOutlined } from '@ant-design/icons';
-import type { GroupedActionDump } from '@midscene/core';
+import type { ActionReport } from '@midscene/core';
 import { iconForStatus, timeCostStrElement } from '@midscene/visualizer';
 import { Input, Select } from 'antd';
 import type React from 'react';
@@ -20,8 +20,8 @@ const TEST_STATUS_OPTIONS = [
 
 interface PlaywrightCaseSelectorProps {
   dumps?: PlaywrightTasks[];
-  selected?: GroupedActionDump | null;
-  onSelect?: (dump: GroupedActionDump) => void;
+  selected?: ActionReport | null;
+  onSelect?: (dump: ActionReport) => void;
 }
 
 export function PlaywrightCaseSelector({

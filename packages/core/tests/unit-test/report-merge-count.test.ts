@@ -13,9 +13,9 @@ import { ReportMergingTool } from '@/report';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
+  ActionReport,
   ExecutionDump,
   type GroupMeta,
-  GroupedActionDump,
   type TestStatus,
   type UIContext,
 } from '@/types';
@@ -36,7 +36,7 @@ function fakeScreenshot(size = 200): ScreenshotItem {
  */
 async function writeAndFinalize(
   gen: ReportGenerator,
-  dump: GroupedActionDump,
+  dump: ActionReport,
 ): Promise<void> {
   const groupMeta: GroupMeta = {
     groupName: dump.groupName,
@@ -51,7 +51,7 @@ async function writeAndFinalize(
   await gen.finalize();
 }
 
-function createDump(groupName: string, taskCount: number): GroupedActionDump {
+function createDump(groupName: string, taskCount: number): ActionReport {
   const tasks = Array.from({ length: taskCount }, (_, i) => ({
     type: 'Insight' as const,
     subType: 'Locate',
@@ -67,7 +67,7 @@ function createDump(groupName: string, taskCount: number): GroupedActionDump {
     status: 'finished' as const,
   }));
 
-  return new GroupedActionDump({
+  return new ActionReport({
     sdkVersion: '1.0.0-test',
     groupName,
     groupDescription: `desc of ${groupName}`,

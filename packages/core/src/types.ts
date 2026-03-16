@@ -699,7 +699,7 @@ export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
-Group metadata - extracted from GroupedActionDump for per-execution writes
+Group metadata - extracted from ActionReport for per-execution writes
 */
 export interface GroupMeta {
   groupName: string;
@@ -710,9 +710,9 @@ export interface GroupMeta {
 }
 
 /*
-Grouped dump
+Action report — groups multiple executions with shared metadata
 */
-export interface IGroupedActionDump {
+export interface IActionReport {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -722,9 +722,9 @@ export interface IGroupedActionDump {
 }
 
 /**
- * GroupedActionDump class for serializing and deserializing grouped action dumps
+ * ActionReport class for serializing and deserializing grouped action dumps
  */
-export class GroupedActionDump implements IGroupedActionDump {
+export class ActionReport implements IActionReport {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -732,7 +732,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   executions: ExecutionDump[];
   deviceType?: string;
 
-  constructor(data: IGroupedActionDump) {
+  constructor(data: IActionReport) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -744,7 +744,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Serialize the GroupedActionDump to a JSON string
+   * Serialize the ActionReport to a JSON string
    * Uses compact { $screenshot: id } format
    */
   serialize(indents?: number): string {
@@ -752,7 +752,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Serialize the GroupedActionDump with inline screenshots to a JSON string.
+   * Serialize the ActionReport with inline screenshots to a JSON string.
    * Each ScreenshotItem is replaced with { base64: "...", capturedAt }.
    */
   serializeWithInlineScreenshots(indents?: number): string {
@@ -780,7 +780,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   /**
    * Convert to a plain object for JSON serialization
    */
-  toJSON(): IGroupedActionDump {
+  toJSON(): IActionReport {
     return {
       sdkVersion: this.sdkVersion,
       groupName: this.groupName,
@@ -792,21 +792,21 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Create a GroupedActionDump instance from a serialized JSON string
+   * Create a ActionReport instance from a serialized JSON string
    */
-  static fromSerializedString(serialized: string): GroupedActionDump {
+  static fromSerializedString(serialized: string): ActionReport {
     const parsed = JSON.parse(
       serialized,
       reviverForDumpDeserialization,
-    ) as IGroupedActionDump;
-    return new GroupedActionDump(parsed);
+    ) as IActionReport;
+    return new ActionReport(parsed);
   }
 
   /**
-   * Create a GroupedActionDump instance from a plain object
+   * Create a ActionReport instance from a plain object
    */
-  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
-    return new GroupedActionDump(data);
+  static fromJSON(data: IActionReport): ActionReport {
+    return new ActionReport(data);
   }
 
   /**

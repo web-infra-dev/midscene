@@ -6,6 +6,7 @@ import Service from '../service/index';
 // index.ts -> agent/index.ts -> agent/agent.ts -> index.ts
 import {
   type ActionParam,
+  ActionReport,
   type ActionReturn,
   type AgentAssertOpt,
   type AgentDescribeElementAtPointResult,
@@ -19,7 +20,6 @@ import {
   type ExecutionTask,
   type ExecutionTaskLog,
   type GroupMeta,
-  GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -153,7 +153,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDump;
+  dump: ActionReport;
 
   reportFile?: string | null;
 
@@ -405,7 +405,7 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
+    this.dump = new ActionReport({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,

@@ -4,7 +4,7 @@ import type { Server } from 'node:http';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
-import { GroupedActionDump } from '@midscene/core';
+import { ActionReport } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -480,8 +480,7 @@ class PlaygroundServer {
           inlineScreenshots: true,
         });
         if (dumpString) {
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ActionReport.fromSerializedString(dumpString);
           // Extract first execution from grouped dump, matching local execution adapter behavior
           response.dump = groupedDump.executions?.[0] || null;
         } else {
@@ -555,8 +554,7 @@ class PlaygroundServer {
               inlineScreenshots: true,
             });
             if (dumpString) {
-              const groupedDump =
-                GroupedActionDump.fromSerializedString(dumpString);
+              const groupedDump = ActionReport.fromSerializedString(dumpString);
               // Extract first execution from grouped dump
               dump = groupedDump.executions?.[0] || null;
             }

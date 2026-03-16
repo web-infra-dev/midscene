@@ -6,10 +6,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
-import {
-  GroupedActionDump,
-  type ReportDumpWithAttributes,
-} from '@midscene/core';
+import { ActionReport, type ReportDumpWithAttributes } from '@midscene/core';
 import { getReportFileName, printReportMsg } from '@midscene/core/agent';
 import { getReportTpl } from '@midscene/core/utils';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
@@ -245,7 +242,7 @@ class MidsceneReporter implements Reporter {
     const tempFilePath = dumpAnnotation.description;
 
     // Track temp files for potential cleanup in onEnd
-    for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+    for (const filePath of ActionReport.getFilePaths(tempFilePath)) {
       this.tempFiles.add(filePath);
     }
 
@@ -269,7 +266,7 @@ class MidsceneReporter implements Reporter {
         this.copyScreenshotsToReport(tempFilePath, reportPath);
       } else {
         // Inline mode: convert screenshots to base64
-        dumpString = GroupedActionDump.fromFilesAsInlineJson(tempFilePath);
+        dumpString = ActionReport.fromFilesAsInlineJson(tempFilePath);
       }
     } catch (error) {
       console.error(
@@ -313,8 +310,8 @@ class MidsceneReporter implements Reporter {
 
     // Always try to clean up temp files
     try {
-      GroupedActionDump.cleanupFiles(tempFilePath);
-      for (const filePath of GroupedActionDump.getFilePaths(tempFilePath)) {
+      ActionReport.cleanupFiles(tempFilePath);
+      for (const filePath of ActionReport.getFilePaths(tempFilePath)) {
         this.tempFiles.delete(filePath);
       }
     } catch {

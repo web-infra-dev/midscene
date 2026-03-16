@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { AbstractWebPage } from '@/web-page';
-import type { GroupedActionDump } from '@midscene/core';
+import type { ActionReport } from '@midscene/core';
 import { Agent as PageAgent } from '@midscene/core/agent';
 import { globalConfigManager } from '@midscene/shared/env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -147,13 +147,13 @@ describe('PageAgent logContent', () => {
     const dumpPath = path.join(__dirname, 'fixtures', 'dump.json');
     agent.dump = JSON.parse(
       fs.readFileSync(dumpPath, 'utf-8'),
-    ) as unknown as GroupedActionDump;
+    ) as unknown as ActionReport;
   });
 
   it('should return correct content', async () => {
     expect(agent.dump.executions[0].tasks[0].uiContext).toBeDefined();
     expect(agent.dump.executions[0].tasks[0].log).toBeDefined();
-    const content = agent._unstableLogContent() as GroupedActionDump;
+    const content = agent._unstableLogContent() as ActionReport;
     expect(content).matchSnapshot();
     // _unstableLogContent() now returns all fields including uiContext and log
     // These are no longer stripped out as the method behavior has changed

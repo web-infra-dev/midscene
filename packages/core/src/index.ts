@@ -25,9 +25,9 @@ export type * from './types';
 export {
   ServiceError,
   ExecutionDump,
-  GroupedActionDump,
+  ActionReport,
   type IExecutionDump,
-  type IGroupedActionDump,
+  type IActionReport,
   type GroupMeta,
 } from './types';
 

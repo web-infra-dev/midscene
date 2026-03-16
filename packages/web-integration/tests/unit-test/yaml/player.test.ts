@@ -5,8 +5,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import type { PageAgent } from '@/index';
 import { puppeteerAgentForTarget } from '@/puppeteer/agent-launcher';
 import type {
+  ActionReport,
   DeviceAction,
-  GroupedActionDump,
   MidsceneYamlScriptWebEnv,
 } from '@midscene/core';
 import { actionTapParamSchema } from '@midscene/core/device';
@@ -48,7 +48,7 @@ const getMockAgent = async () => {
   const dumpPath = path.join(__dirname, '../fixtures', 'dump.json');
   const dump = JSON.parse(
     readFileSync(dumpPath, 'utf-8'),
-  ) as unknown as GroupedActionDump;
+  ) as unknown as ActionReport;
 
   const actionSpace: DeviceAction[] = [
     {
