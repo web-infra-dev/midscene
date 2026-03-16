@@ -165,11 +165,24 @@ export abstract class BaseMCPServer {
       throw new Error(`Failed to initialize MCP stdio transport: ${message}`);
     }
 
+    // Setup signal handlers for graceful shutdown
+    let isShuttingDown = false;
+    const cleanup = () => {
+      if (isShuttingDown) return;
+      isShuttingDown = true;
+      console.error(`${this.config.name} shutting down...`);
+      this.performCleanup().finally(() => process.exit(0));
+    };
+
     // Setup process-level error handlers to prevent crashes
-    process.on('uncaughtException', (error: Error) => {
+    process.on('uncaughtException', (error: Error & { code?: string }) => {
+      // Exit on pipe errors — parent process is gone
+      if (error.code === 'EPIPE' || error.code === 'ERR_STREAM_DESTROYED') {
+        cleanup();
+        return;
+      }
       console.error(`[${this.config.name}] Uncaught Exception:`, error);
       console.error('Stack:', error.stack);
-      // Don't exit - try to recover
     });
 
     process.on('unhandledRejection', (reason: unknown) => {
@@ -177,22 +190,18 @@ export abstract class BaseMCPServer {
       if (reason instanceof Error) {
         console.error('Stack:', reason.stack);
       }
-      // Don't exit - try to recover
     });
 
-    // Setup cleanup handlers
-    process.stdin.on('close', () => {
-      this.performCleanup().finally(() => process.exit(0));
-    });
+    // Exit when stdin closes (parent process gone) or reaches EOF
+    process.stdin.on('close', cleanup);
+    process.stdin.on('end', cleanup);
 
-    // Setup signal handlers for graceful shutdown
-    const cleanup = () => {
-      console.error(`${this.config.name} shutting down...`);
-      this.performCleanup().finally(() => process.exit(0));
-    };
+    // Exit when stdout/stderr pipe breaks (parent process gone)
+    process.stdout.on('error', cleanup);
 
     process.once('SIGINT', cleanup);
     process.once('SIGTERM', cleanup);
+    process.once('SIGHUP', cleanup);
 
     return {
       close: async () => {
