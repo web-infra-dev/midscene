@@ -565,6 +565,7 @@ export const defineActionCursorMove = (
     call,
   });
 };
+
 // Pinch
 export const ActionPinchParamSchema = z.object({
   locate: getMidsceneLocationSchema()
@@ -574,6 +575,7 @@ export const ActionPinchParamSchema = z.object({
     ),
   scale: z
     .number()
+    .positive('scale must be greater than 0')
     .describe(
       'Scale factor. >1 means zoom in (spread fingers apart), <1 means zoom out (pinch fingers together). e.g. 2 means zoom in to 200%, 0.5 means zoom out to 50%',
     ),
@@ -606,6 +608,33 @@ export const defineActionPinch = (
     call,
   });
 };
+
+export function normalizePinchParam(
+  param: ActionPinchParam,
+  screenSize: { width: number; height: number },
+): {
+  centerX: number;
+  centerY: number;
+  startDistance: number;
+  endDistance: number;
+  duration: number;
+} {
+  const { width, height } = screenSize;
+  const element = param.locate;
+  const centerX = element
+    ? Math.round(element.center[0])
+    : Math.round(width / 2);
+  const centerY = element
+    ? Math.round(element.center[1])
+    : Math.round(height / 2);
+  const duration = param.duration ?? 500;
+
+  const baseDistance = Math.round(Math.min(width, height) / 4);
+  const startDistance = baseDistance;
+  const endDistance = Math.round(baseDistance * param.scale);
+
+  return { centerX, centerY, startDistance, endDistance, duration };
+}
 
 // Sleep
 export const ActionSleepParamSchema = z.object({

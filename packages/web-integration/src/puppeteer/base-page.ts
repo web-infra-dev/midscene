@@ -663,20 +663,24 @@ export class Page<
     const halfStart = startDistance / 2;
     const halfEnd = endDistance / 2;
 
-    const dispatchPinchViaCDP = async (client: any) => {
+    // biome-ignore lint: CDP session types differ between Puppeteer and Playwright
+    let client: any;
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      client = await page.target().createCDPSession();
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      client = await page.context().newCDPSession(page);
+    } else {
+      return;
+    }
+
+    try {
       await client.send('Input.dispatchTouchEvent', {
         type: 'touchStart',
         touchPoints: [
-          {
-            x: Math.round(centerX),
-            y: Math.round(centerY - halfStart),
-            id: 0,
-          },
-          {
-            x: Math.round(centerX),
-            y: Math.round(centerY + halfStart),
-            id: 1,
-          },
+          { x: Math.round(centerX), y: Math.round(centerY - halfStart), id: 0 },
+          { x: Math.round(centerX), y: Math.round(centerY + halfStart), id: 1 },
         ],
       });
 
@@ -704,24 +708,8 @@ export class Page<
         type: 'touchEnd',
         touchPoints: [],
       });
-    };
-
-    if (this.interfaceType === 'puppeteer') {
-      const page = this.underlyingPage as PuppeteerPage;
-      const client = await page.target().createCDPSession();
-      try {
-        await dispatchPinchViaCDP(client);
-      } finally {
-        await client.detach();
-      }
-    } else if (this.interfaceType === 'playwright') {
-      const page = this.underlyingPage as PlaywrightPage;
-      const client = await page.context().newCDPSession(page);
-      try {
-        await dispatchPinchViaCDP(client);
-      } finally {
-        await client.detach();
-      }
+    } finally {
+      await client.detach();
     }
   }
 

@@ -28,6 +28,7 @@ import {
   defineActionSwipe,
   defineActionTap,
   normalizeMobileSwipeParam,
+  normalizePinchParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -338,15 +339,8 @@ export class AndroidDevice implements AbstractInterface {
         },
       }),
       defineActionPinch(async (param) => {
-        const element = param.locate;
-        const { width, height } = await this.size();
-        const centerX = element ? element.center[0] : Math.round(width / 2);
-        const centerY = element ? element.center[1] : Math.round(height / 2);
-        const duration = param.duration ?? 500;
-
-        const BASE_DISTANCE = Math.round(Math.min(width, height) / 4);
-        const startDistance = BASE_DISTANCE;
-        const endDistance = Math.round(BASE_DISTANCE * param.scale);
+        const { centerX, centerY, startDistance, endDistance, duration } =
+          normalizePinchParam(param, await this.size());
 
         const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
           centerX,

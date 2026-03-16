@@ -1,5 +1,9 @@
 import { parseActionParam } from '@/ai-model';
-import { ActionPinchParamSchema, defineActionPinch } from '@/device';
+import {
+  ActionPinchParamSchema,
+  defineActionPinch,
+  normalizePinchParam,
+} from '@/device';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('Pinch Action Parameter Validation', () => {
@@ -79,6 +83,16 @@ describe('Pinch Action Parameter Validation', () => {
       ).toThrow();
     });
 
+    it('should reject scale <= 0', () => {
+      expect(() =>
+        parseActionParam({ scale: 0 }, ActionPinchParamSchema),
+      ).toThrow();
+
+      expect(() =>
+        parseActionParam({ scale: -1 }, ActionPinchParamSchema),
+      ).toThrow();
+    });
+
     it('should transform locate coordinates with shrunkShotToLogicalRatio', () => {
       const rawParam = {
         scale: 2,
@@ -122,6 +136,58 @@ describe('Pinch Action Parameter Validation', () => {
 
       expect(callFn).toHaveBeenCalledTimes(1);
       expect(callFn.mock.calls[0][0]).toEqual({ scale: 2, duration: 500 });
+    });
+  });
+
+  describe('normalizePinchParam', () => {
+    const screenSize = { width: 400, height: 800 };
+
+    it('should compute center from screen size when no locate', () => {
+      const result = normalizePinchParam({ scale: 2 }, screenSize);
+
+      expect(result.centerX).toBe(200);
+      expect(result.centerY).toBe(400);
+    });
+
+    it('should use element center when locate is provided', () => {
+      const result = normalizePinchParam(
+        {
+          scale: 2,
+          locate: { center: [100, 300] } as any,
+        },
+        screenSize,
+      );
+
+      expect(result.centerX).toBe(100);
+      expect(result.centerY).toBe(300);
+    });
+
+    it('should compute distances based on scale', () => {
+      const result = normalizePinchParam({ scale: 2 }, screenSize);
+
+      // baseDistance = Math.round(Math.min(400, 800) / 4) = 100
+      expect(result.startDistance).toBe(100);
+      expect(result.endDistance).toBe(200); // 100 * 2
+    });
+
+    it('should handle scale < 1 (zoom out)', () => {
+      const result = normalizePinchParam({ scale: 0.5 }, screenSize);
+
+      expect(result.startDistance).toBe(100);
+      expect(result.endDistance).toBe(50); // 100 * 0.5
+    });
+
+    it('should default duration to 500ms', () => {
+      const result = normalizePinchParam({ scale: 2 }, screenSize);
+      expect(result.duration).toBe(500);
+    });
+
+    it('should use custom duration', () => {
+      const result = normalizePinchParam(
+        { scale: 2, duration: 1000 },
+        screenSize,
+      );
+      expect(result.duration).toBe(1000);
     });
   });
 });

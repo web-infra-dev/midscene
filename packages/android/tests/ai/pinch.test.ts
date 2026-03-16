@@ -8,7 +8,7 @@ vi.setConfig({
 describe(
   'Pinch zoom gesture',
   () => {
-    it('Pinch: zoom in on a map', async () => {
+    it('Pinch: zoom in via aiAct', async () => {
       const devices = await getConnectedDevices();
       const agent = await agentFromAdbDevice(devices[0].udid, {
         aiActionContext:
@@ -21,7 +21,7 @@ describe(
       await agent.aiAct('pinch to zoom in on the screen');
     });
 
-    it('Pinch: zoom out on a map', async () => {
+    it('Pinch: zoom out via aiAct', async () => {
       const devices = await getConnectedDevices();
       const agent = await agentFromAdbDevice(devices[0].udid, {
         aiActionContext:

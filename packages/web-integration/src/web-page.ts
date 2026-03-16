@@ -18,6 +18,7 @@ import {
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
+  normalizePinchParam,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -581,19 +582,8 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
   ...(includeTouchEvents
     ? [
         defineActionPinch(async (param) => {
-          const { width, height } = await page.size();
-          const element = param.locate;
-          const centerX = element
-            ? Math.round(element.center[0])
-            : Math.round(width / 2);
-          const centerY = element
-            ? Math.round(element.center[1])
-            : Math.round(height / 2);
-          const duration = param.duration ?? 500;
-
-          const BASE_DISTANCE = Math.round(Math.min(width, height) / 4);
-          const startDistance = BASE_DISTANCE;
-          const endDistance = Math.round(BASE_DISTANCE * param.scale);
+          const { centerX, centerY, startDistance, endDistance, duration } =
+            normalizePinchParam(param, await page.size());
 
           await page.pinch(
             centerX,
