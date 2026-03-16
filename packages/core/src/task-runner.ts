@@ -18,6 +18,16 @@ import { assert, uuid } from '@midscene/shared/utils';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
+const UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS = 1500;
+const UI_CONTEXT_NAVIGATION_MAX_RETRIES = 3;
+
+const NAVIGATION_ERROR_PATTERN =
+  /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
+
+function isNavigationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return NAVIGATION_ERROR_PATTERN.test(message);
+}
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
@@ -91,21 +101,44 @@ export class TaskRunner {
       return this.lastUiContext?.context;
     }
 
-    try {
-      const uiContext = await this.uiContextBuilder();
-      if (uiContext) {
-        this.lastUiContext = {
-          context: uiContext,
-          capturedAt: Date.now(),
-        };
-      } else {
+    for (
+      let attempt = 0;
+      attempt <= UI_CONTEXT_NAVIGATION_MAX_RETRIES;
+      attempt++
+    ) {
+      try {
+        const uiContext = await this.uiContextBuilder();
+        if (uiContext) {
+          this.lastUiContext = {
+            context: uiContext,
+            capturedAt: Date.now(),
+          };
+        } else {
+          this.lastUiContext = undefined;
+        }
+        return uiContext;
+      } catch (error) {
         this.lastUiContext = undefined;
+
+        const isLastAttempt = attempt >= UI_CONTEXT_NAVIGATION_MAX_RETRIES;
+        if (!isLastAttempt && isNavigationError(error)) {
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          debug(
+            `navigation error on attempt ${attempt + 1}/${UI_CONTEXT_NAVIGATION_MAX_RETRIES}, retrying in ${UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS}ms: ${errorMsg}`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS),
+          );
+          continue;
+        }
+
+        throw error;
       }
-      return uiContext;
-    } catch (error) {
-      this.lastUiContext = undefined;
-      throw error;
     }
+
+    // Unreachable: loop always returns or throws
+    throw new Error('getUiContext: unexpected end of retry loop');
   }
 
   private async captureScreenshot(): Promise<ScreenshotItem | undefined> {

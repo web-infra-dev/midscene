@@ -252,6 +252,83 @@ describe(
       expect(flushResult?.output).toBe('recovered');
     });
 
+    const createSimpleActionTask = (): ExecutionTaskActionApply => ({
+      type: 'Action Space',
+      param: { action: 'tap' },
+      executor: vi.fn(),
+    });
+
+    it('retries on navigation error (execution context was destroyed)', async () => {
+      let callCount = 0;
+      const navigationErrorBuilder = async () => {
+        callCount++;
+        if (callCount <= 2) {
+          throw new Error(
+            'Execution context was destroyed, most likely because of a navigation',
+          );
+        }
+        return fakeUIContextBuilder();
+      };
+
+      const runner = new TaskRunner('nav-retry', navigationErrorBuilder, {
+        tasks: [createSimpleActionTask()],
+      });
+      await runner.flush();
+      expect(runner.isInErrorState()).toBeFalsy();
+      expect(runner.tasks[0].status).toBe('finished');
+      // First call for task uiContext + 2 retries = at least 3 calls
+      expect(callCount).toBeGreaterThanOrEqual(3);
+    });
+
+    it('retries on "frame was detached" navigation error', async () => {
+      let callCount = 0;
+      const frameDetachedBuilder = async () => {
+        callCount++;
+        if (callCount === 1) {
+          throw new Error('frame was detached');
+        }
+        return fakeUIContextBuilder();
+      };
+
+      const runner = new TaskRunner('frame-detach', frameDetachedBuilder, {
+        tasks: [createSimpleActionTask()],
+      });
+      await runner.flush();
+      expect(runner.isInErrorState()).toBeFalsy();
+      expect(callCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('throws after max retries on persistent navigation error', async () => {
+      const alwaysFailBuilder = async () => {
+        throw new Error(
+          'Execution context was destroyed, most likely because of a navigation',
+        );
+      };
+
+      const runner = new TaskRunner('nav-max-retry', alwaysFailBuilder, {
+        tasks: [createSimpleActionTask()],
+      });
+      await expect(runner.flush()).rejects.toThrowError(
+        'Execution context was destroyed',
+      );
+      expect(runner.isInErrorState()).toBeTruthy();
+    });
+
+    it('does not retry on non-navigation errors', async () => {
+      let callCount = 0;
+      const regularErrorBuilder = async () => {
+        callCount++;
+        throw new Error('some random error');
+      };
+
+      const runner = new TaskRunner('no-retry', regularErrorBuilder, {
+        tasks: [createSimpleActionTask()],
+      });
+      await expect(runner.flush()).rejects.toThrowError('some random error');
+      // Should NOT retry - only called once
+      expect(callCount).toBe(1);
+    });
+
     it('error message should be from the last failed task when using allowWhenError', async () => {
       const runner = new TaskRunner('error-message-test', fakeUIContextBuilder);
 
