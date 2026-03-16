@@ -331,49 +331,6 @@ export function App() {
     return attributes as PlaywrightTaskAttributes;
   }
 
-  /**
-   * Build a PlaywrightTasks entry from a single dump element (original behavior).
-   */
-  function buildPlaywrightTaskFromElement(el: Element): PlaywrightTasks {
-    const attributes = parseAttributesFromElement(el);
-    let cachedJsonContent: GroupedActionDump | null = null;
-    let isParsed = false;
-
-    return {
-      get: () => {
-        if (!isParsed) {
-          try {
-            console.time('parse_dump');
-            const content = antiEscapeScriptTag(el.textContent || '');
-            const parsed = JSON.parse(content);
-            const restored = restoreImageReferences(
-              parsed,
-              resolveImageFromDom,
-            );
-            cachedJsonContent = GroupedActionDump.fromJSON(restored);
-            console.timeEnd('parse_dump');
-            (cachedJsonContent as any).attributes = attributes;
-            isParsed = true;
-          } catch (e) {
-            console.error(el);
-            console.error('failed to parse json content', e);
-            cachedJsonContent = new GroupedActionDump({
-              sdkVersion: '',
-              groupName: '',
-              modelBriefs: [],
-              executions: [],
-            });
-            (cachedJsonContent as any).attributes = attributes;
-            (cachedJsonContent as any).error = 'Failed to parse JSON content';
-            isParsed = true;
-          }
-        }
-        return cachedJsonContent!;
-      },
-      attributes,
-    };
-  }
-
   function getDumpElements(): PlaywrightTasks[] {
     const dumpElements = document.querySelectorAll(
       'script[type="midscene_web_dump"]',
@@ -386,21 +343,21 @@ export function App() {
       return !!textContent;
     });
 
-    // Group elements by data-group-id
+    // Group elements by data-group-id (required attribute)
     const groupMap = new Map<string, Element[]>();
-    const ungrouped: Element[] = [];
 
     for (const el of validElements) {
       const groupId = el.getAttribute('data-group-id');
-      if (groupId) {
-        const decodedGroupId = decodeURIComponent(groupId);
-        if (!groupMap.has(decodedGroupId)) {
-          groupMap.set(decodedGroupId, []);
-        }
-        groupMap.get(decodedGroupId)!.push(el);
-      } else {
-        ungrouped.push(el);
+      if (!groupId) {
+        throw new Error(
+          'Missing required attribute "data-group-id" on <script type="midscene_web_dump"> element',
+        );
       }
+      const decodedGroupId = decodeURIComponent(groupId);
+      if (!groupMap.has(decodedGroupId)) {
+        groupMap.set(decodedGroupId, []);
+      }
+      groupMap.get(decodedGroupId)!.push(el);
     }
 
     const result: PlaywrightTasks[] = [];
@@ -466,11 +423,6 @@ export function App() {
         },
         attributes,
       });
-    }
-
-    // Process ungrouped dump tags — original behavior (backward compatible)
-    for (const el of ungrouped) {
-      result.push(buildPlaywrightTaskFromElement(el));
     }
 
     return result;
