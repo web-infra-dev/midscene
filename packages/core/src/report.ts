@@ -9,13 +9,15 @@ import {
 } from 'node:fs';
 import * as path from 'node:path';
 import { getMidsceneRunSubDir } from '@midscene/shared/common';
-import { logMsg } from '@midscene/shared/utils';
+import { antiEscapeScriptTag, logMsg } from '@midscene/shared/utils';
 import { getReportFileName } from './agent';
 import {
+  extractAllDumpScriptsSync,
   extractLastDumpScriptSync,
   getBaseUrlFixScript,
   streamImageScriptsToFile,
 } from './dump/html-utils';
+import { GroupedActionDump } from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
@@ -38,6 +40,28 @@ export class ReportMergingTool {
       path.basename(reportFilePath) === 'index.html' &&
       existsSync(path.join(reportDir, 'screenshots'))
     );
+  }
+
+  /**
+   * Merge multiple dump script contents (from the same source report)
+   * into a single serialized GroupedActionDump string.
+   * If there's only one dump, return it as-is. If multiple, merge
+   * all executions into the first dump's group structure.
+   */
+  private mergeDumpScripts(contents: string[]): string {
+    const unescaped = contents
+      .map((c) => antiEscapeScriptTag(c))
+      .filter((c) => c.length > 0);
+    if (unescaped.length === 0) return '';
+    if (unescaped.length === 1) return unescaped[0];
+
+    // Parse the first dump as base, then merge executions from the rest
+    const base = GroupedActionDump.fromSerializedString(unescaped[0]);
+    for (let i = 1; i < unescaped.length; i++) {
+      const other = GroupedActionDump.fromSerializedString(unescaped[i]);
+      base.executions.push(...other.executions);
+    }
+    return base.serialize();
   }
 
   public mergeReports(
@@ -125,7 +149,19 @@ export class ReportMergingTool {
           streamImageScriptsToFile(reportInfo.reportFilePath, outputFilePath);
         }
 
-        const dumpString = extractLastDumpScriptSync(reportInfo.reportFilePath);
+        // Extract all dump scripts from the source report.
+        // After the per-execution append refactor, a single source report
+        // may contain multiple <script type="midscene_web_dump"> tags
+        // (one per execution). We merge them into a single GroupedActionDump.
+        // Filter by data-group-id to exclude false matches from the template's
+        // bundled JS code, which also references the midscene_web_dump type string.
+        const allDumps = extractAllDumpScriptsSync(
+          reportInfo.reportFilePath,
+        ).filter((d) => d.openTag.includes('data-group-id'));
+        const dumpString =
+          allDumps.length > 0
+            ? this.mergeDumpScripts(allDumps.map((d) => d.content))
+            : extractLastDumpScriptSync(reportInfo.reportFilePath);
         const { reportAttributes } = reportInfo;
 
         const reportHtmlStr = `${reportHTMLContent(

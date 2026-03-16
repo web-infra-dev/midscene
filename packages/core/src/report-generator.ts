@@ -66,8 +66,8 @@ export class ReportGenerator implements IReportGenerator {
   // Tracks screenshots in the FROZEN region (already written and won't be truncated)
   private frozenScreenshots = new Set<string>();
 
-  // per-execution tracking for inline mode
-  private activeExecName?: string;
+  // per-execution tracking for inline mode (keyed by execution.id or execution.name)
+  private activeExecKey?: string;
   private activeExecStartOffset = 0;
   // ScreenshotItem references for active execution (needed for markPersistedInline on freeze)
   private activeScreenshotRefs: ScreenshotItem[] = [];
@@ -226,15 +226,16 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // 1. Check if this is a new execution or an update to the active one
-    if (this.activeExecName !== execution.name) {
-      if (this.activeExecName !== undefined) {
+    const execKey = execution.id || execution.name;
+    if (this.activeExecKey !== execKey) {
+      if (this.activeExecKey !== undefined) {
         // Freeze previous active execution's screenshots (move to frozen set)
         this.freezeActiveExecution();
       }
 
       // The current file end becomes the new frozen baseline
       this.activeExecStartOffset = statSync(this.reportPath).size;
-      this.activeExecName = execution.name;
+      this.activeExecKey = execKey;
     }
 
     // 2. Truncate: remove active exec's screenshots and dump tag, keep frozen region
@@ -301,9 +302,10 @@ export class ReportGenerator implements IReportGenerator {
       }
     }
 
-    // 2. Track execution name
-    if (this.activeExecName !== execution.name) {
-      this.activeExecName = execution.name;
+    // 2. Track execution key
+    const execKey = execution.id || execution.name;
+    if (this.activeExecKey !== execKey) {
+      this.activeExecKey = execKey;
     }
 
     if (!this.initialized) {
@@ -320,7 +322,7 @@ export class ReportGenerator implements IReportGenerator {
     if (!this.directoryDumpCache) {
       this.directoryDumpCache = new Map();
     }
-    this.directoryDumpCache.set(execution.name, {
+    this.directoryDumpCache.set(execKey, {
       serialized,
       attributes: dumpAttributes,
     });
