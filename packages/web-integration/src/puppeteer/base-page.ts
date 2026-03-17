@@ -670,6 +670,13 @@ export class Page<
       client = await page.target().createCDPSession();
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
+      // CDP is Chromium-only; Firefox/WebKit do not support it
+      const browserName = page.context().browser()?.browserType().name();
+      if (browserName && browserName !== 'chromium') {
+        throw new Error(
+          `Pinch gesture requires Chromium-based browser, but current browser is "${browserName}". CDP touch events are not supported in Firefox/WebKit.`,
+        );
+      }
       client = await page.context().newCDPSession(page);
     } else {
       return;

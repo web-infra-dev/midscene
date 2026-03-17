@@ -65,7 +65,8 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
   }
 
   actionSpace(): DeviceAction[] {
-    return commonWebActionsForWebPage(this);
+    // Chrome extension always has CDP access, so touch events (Swipe/Pinch) are always available
+    return commonWebActionsForWebPage(this, true);
   }
 
   public async setActiveTabId(tabId: number) {
