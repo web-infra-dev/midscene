@@ -48,7 +48,13 @@ export default defineConfig({
     tsconfigPath: 'tsconfig.build.json',
   },
   output: {
-    externals: ['node:buffer'],
+    // Keep optional ffmpeg packages as external so they're loaded at runtime
+    // This allows try-catch to properly handle missing optional dependency
+    externals: [
+      'node:buffer',
+      '@ffmpeg-installer/ffmpeg',
+      '@ffprobe-installer/ffprobe',
+    ],
     sourceMap: true,
   },
 });

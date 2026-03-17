@@ -13,6 +13,15 @@ export {
   generateYamlTest,
   generateYamlTestStream,
 } from './prompt/yaml-generator';
+export {
+  generateYamlFromVideoFrames,
+  generatePlaywrightFromVideoFrames,
+} from './prompt/video-to-yaml';
+export type {
+  VideoFrame,
+  VideoToScriptOptions,
+  VideoScriptFormat,
+} from './prompt/video-to-yaml';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';
 

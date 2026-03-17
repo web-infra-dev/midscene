@@ -29,6 +29,10 @@
     "lodash.merge": "4.6.2",
     "puppeteer": "24.6.0"
   },
+  "optionalDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@ffprobe-installer/ffprobe": "^2.1.2"
+  },
   "devDependencies": {
     "@rslib/core": "^0.18.3",
     "@types/js-yaml": "4.0.9",
