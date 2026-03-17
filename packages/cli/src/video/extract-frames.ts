@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process';
+import { chmodSync } from 'node:fs';
 import {
   existsSync,
   mkdirSync,
@@ -28,39 +29,50 @@ export interface ExtractFramesOptions {
 }
 
 /**
- * Get ffmpeg executable path.
- * Priority: @ffmpeg-installer/ffmpeg npm package > system ffmpeg
+ * Try to resolve an executable from an npm installer package.
+ * Ensures the binary has execute permission, falls back to system command.
  */
-function getFfmpegPath(): string {
+function resolveExecutable(npmPackage: string, systemFallback: string): string {
   try {
     const dynamicRequire = createRequire(__filename);
-    const ffmpegInstaller = dynamicRequire('@ffmpeg-installer/ffmpeg');
-    debug(`Using ffmpeg from npm package: ${ffmpegInstaller.path}`);
-    return ffmpegInstaller.path;
+    const installer = dynamicRequire(npmPackage);
+    const binPath: string = installer.path;
+
+    // Ensure execute permission (npm packages sometimes lack +x)
+    try {
+      chmodSync(binPath, 0o755);
+    } catch {
+      // chmod may fail on read-only filesystems, proceed anyway
+    }
+
+    // Verify the binary is actually executable
+    const check = spawnSync(binPath, ['-version'], {
+      stdio: 'pipe',
+      timeout: 5000,
+    });
+    if (check.error || check.status !== 0) {
+      debug(
+        `npm ${npmPackage} binary not executable (${check.error?.message ?? `status ${check.status}`}), falling back to system ${systemFallback}`,
+      );
+      return systemFallback;
+    }
+
+    debug(`Using ${systemFallback} from npm package: ${binPath}`);
+    return binPath;
   } catch (error) {
     debug(
-      `npm ffmpeg package not found (${error}), falling back to system ffmpeg`,
+      `npm ${npmPackage} not found (${error}), falling back to system ${systemFallback}`,
     );
-    return 'ffmpeg';
+    return systemFallback;
   }
 }
 
-/**
- * Get ffprobe executable path.
- * Priority: @ffprobe-installer/ffprobe npm package > system ffprobe
- */
+function getFfmpegPath(): string {
+  return resolveExecutable('@ffmpeg-installer/ffmpeg', 'ffmpeg');
+}
+
 function getFfprobePath(): string {
-  try {
-    const dynamicRequire = createRequire(__filename);
-    const ffprobeInstaller = dynamicRequire('@ffprobe-installer/ffprobe');
-    debug(`Using ffprobe from npm package: ${ffprobeInstaller.path}`);
-    return ffprobeInstaller.path;
-  } catch (error) {
-    debug(
-      `npm ffprobe package not found (${error}), falling back to system ffprobe`,
-    );
-    return 'ffprobe';
-  }
+  return resolveExecutable('@ffprobe-installer/ffprobe', 'ffprobe');
 }
 
 /**
@@ -99,6 +111,10 @@ function getVideoDuration(videoPath: string): number {
     ],
     { stdio: 'pipe', timeout: 10000 },
   );
+
+  if (result.error) {
+    throw new Error(`Failed to run ffprobe: ${result.error.message}`);
+  }
 
   if (result.status !== 0) {
     throw new Error(
@@ -175,6 +191,10 @@ export function extractFrames(
       stdio: 'pipe',
       timeout: 120000, // 2 minutes timeout
     });
+
+    if (result.error) {
+      throw new Error(`ffmpeg execution error: ${result.error.message}`);
+    }
 
     if (result.status !== 0) {
       throw new Error(
