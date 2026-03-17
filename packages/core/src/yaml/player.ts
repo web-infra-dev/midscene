@@ -588,6 +588,8 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
               );
               stringParamToCall = actionParamForMatchedAction;
             }
+          } else {
+            stringParamToCall = actionParamForMatchedAction;
           }
 
           if (stringParamToCall !== undefined) {

@@ -871,7 +871,11 @@ export class Agent<
       );
 
       // update cache
-      if (this.taskCache && actionOutput?.yamlFlow && cacheable !== false) {
+      if (
+        this.taskCache &&
+        actionOutput?.yamlFlow?.length &&
+        cacheable !== false
+      ) {
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
