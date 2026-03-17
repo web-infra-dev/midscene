@@ -189,21 +189,25 @@ export class TaskCache {
       | MatchCacheResult<PlanningCache>
       | undefined;
     if (!result) return undefined;
-    // Check whether flow is not empty after parsing by yamlWorkflow
+    // Guard against stale cache files written before the write-side fix
     const yamlWorkflow = result.cacheContent.yamlWorkflow;
-    if (yamlWorkflow?.trim()) {
-      try {
-        const parsed = yaml.load(yamlWorkflow) as any;
-        const hasNonEmptyFlow = parsed?.tasks?.some(
-          (task: any) => Array.isArray(task.flow) && task.flow.length > 0,
-        );
-        if (!hasNonEmptyFlow) {
-          debug('plan cache matched but flow is empty, treat as cache miss');
-          return undefined;
-        }
-      } catch {
+    if (!yamlWorkflow?.trim()) {
+      debug(
+        'plan cache matched but yamlWorkflow is empty, treat as cache miss',
+      );
+      return undefined;
+    }
+    try {
+      const parsed = yaml.load(yamlWorkflow) as any;
+      const hasNonEmptyFlow = parsed?.tasks?.some(
+        (task: any) => Array.isArray(task.flow) && task.flow.length > 0,
+      );
+      if (!hasNonEmptyFlow) {
+        debug('plan cache matched but flow is empty, treat as cache miss');
         return undefined;
       }
+    } catch {
+      return undefined;
     }
     return result;
   }
