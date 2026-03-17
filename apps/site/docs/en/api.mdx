@@ -117,7 +117,7 @@ Below are the main APIs available for the various Agents in Midscene.
 In Midscene, you can choose to use either auto planning or instant action.
 
 - `agent.ai()` is for Auto Planning: Midscene will automatically plan the steps and execute them. It's more smart and looks like more fashionable style for AI agents. But it may be slower and heavily rely on the quality of the AI model.
-- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiPinch()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` are for Instant Action: Midscene will directly perform the specified action, while the AI model is responsible for basic tasks such as locating elements. It's faster and more reliable if you are certain about the action you want to perform.
 
 :::
 
@@ -471,6 +471,61 @@ await agent.aiScroll(
 :::note Signature Update
 
 We recently updated the `aiScroll` API signature to put the locate prompt as the first parameter, making the parameter order more intuitive. The legacy signature `aiScroll(scrollParam, locate, options)` is still fully compatible, but new code should use the recommended signature.
+
+:::
+
+### `agent.aiPinch()`
+
+Perform a two-finger pinch gesture to zoom in or zoom out. Supported on Android, iOS, and Web (Chromium-based browsers).
+
+- Type
+
+```typescript
+function aiPinch(
+  locate: string | Object | undefined,
+  opt: {
+    scale: number;
+    duration?: number;
+    deepLocate?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+```
+
+- Parameters:
+
+  - `locate: string | Object | undefined` - A natural language description of the element to pinch on, or [prompting with images](#prompting-with-images). If not provided, pinch will be performed at the center of the screen.
+  - `opt: Object` - Configuration object containing:
+    - `scale: number` - **Required.** Scale factor. Use `scale > 1` to zoom in (spread fingers apart), `scale < 1` to zoom out (pinch fingers together). For example, `2` zooms in to 200%, `0.5` zooms out to 50%.
+    - `duration?: number` - Duration of the pinch gesture in milliseconds. Defaults to `500`.
+    - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
+    - `xpath?: string` - The xpath of the element to operate. Empty by default.
+    - `cacheable?: boolean` - Whether cacheable when enabling [caching feature](./caching.mdx). True by default.
+
+- Return Value:
+
+  - Returns a `Promise<void>`
+
+- Examples:
+
+```typescript
+// Zoom in on the map to 300%
+await agent.aiPinch('the map area', { scale: 3 });
+
+// Zoom out at screen center
+await agent.aiPinch(undefined, { scale: 0.5 });
+
+// Zoom in with custom duration
+await agent.aiPinch('the image', { scale: 2, duration: 1000 });
+```
+
+:::info Platform Support
+
+- **Android** &mdash; Implemented via [YADB](https://github.com/ysbing/YADB) `-pinch` command.
+- **iOS** &mdash; Implemented via W3C Actions API with dual touch pointers.
+- **Web** &mdash; Implemented via CDP touch events. For Puppeteer/Playwright, requires `enableTouchEventsInActionSpace: true`. Playwright only supports Chromium-based browsers.
+- **HarmonyOS** &mdash; Not supported. The `uitest` framework does not provide multi-touch APIs.
 
 :::
 

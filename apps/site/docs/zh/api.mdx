@@ -119,7 +119,7 @@ const agent = new PuppeteerAgent(page, {
 在 Midscene 中，你可以选择使用自动规划（Auto Planning）或即时操作（Instant Action）。
 
 - `agent.ai()` 是自动规划（Auto Planning）：Midscene 会自动规划操作步骤并执行。它更智能，更像流行的 AI Agent 风格，但可能较慢，且效果依赖于 AI 模型的质量。
-- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
+- `agent.aiTap()`, `agent.aiHover()`, `agent.aiInput()`, `agent.aiKeyboardPress()`, `agent.aiScroll()`, `agent.aiPinch()`, `agent.aiDoubleClick()`, `agent.aiRightClick()` 是即时操作（Instant Action）：Midscene 会直接执行指定的操作，而 AI 模型只负责底层任务，如定位元素等。这种接口形式更快、更可靠。当你完全确定自己想要执行的操作时，推荐使用这种接口形式。
 
 :::
 
@@ -464,6 +464,61 @@ await agent.aiScroll(
 :::note 关于签名变更
 
 我们最近更新了 `aiScroll` 的 API 签名，将定位提示作为第一个参数，使得参数顺序更直观。旧的签名 `aiScroll(scrollParam, locate, options)` 仍然完全兼容，但建议新代码使用推荐的签名。
+
+:::
+
+### `agent.aiPinch()`
+
+执行双指缩放手势，用于放大或缩小。支持 Android、iOS 和 Web（基于 Chromium 的浏览器）。
+
+- 类型
+
+```typescript
+function aiPinch(
+  locate: string | Object | undefined,
+  opt: {
+    scale: number;
+    duration?: number;
+    deepLocate?: boolean;
+    xpath?: string;
+    cacheable?: boolean;
+  },
+): Promise<void>;
+```
+
+- 参数：
+
+  - `locate: string | Object | undefined` - 用自然语言描述的缩放目标元素，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，缩放将在屏幕中心执行。
+  - `opt: Object` - 配置对象，包含：
+    - `scale: number` - **必填。** 缩放比例。`scale > 1` 表示放大（双指张开），`scale < 1` 表示缩小（双指收拢）。例如 `2` 表示放大到 200%，`0.5` 表示缩小到 50%。
+    - `duration?: number` - 缩放手势持续时间（毫秒），默认值为 `500`。
+    - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
+    - `xpath?: string` - 目标元素的 xpath 路径。默认值为空。
+    - `cacheable?: boolean` - 当启用[缓存功能](./caching.mdx)时，是否允许缓存。默认值为 true。
+
+- 返回值：
+
+  - `Promise<void>`
+
+- 示例：
+
+```typescript
+// 在地图上放大到 300%
+await agent.aiPinch('地图区域', { scale: 3 });
+
+// 在屏幕中心缩小
+await agent.aiPinch(undefined, { scale: 0.5 });
+
+// 自定义持续时间放大
+await agent.aiPinch('图片', { scale: 2, duration: 1000 });
+```
+
+:::info 平台支持
+
+- **Android** —— 通过 [YADB](https://github.com/ysbing/YADB) 的 `-pinch` 命令实现。
+- **iOS** —— 通过 W3C Actions API 双触摸指针实现。
+- **Web** —— 通过 CDP 触摸事件实现。Puppeteer/Playwright 需设置 `enableTouchEventsInActionSpace: true`。Playwright 仅支持 Chromium 内核浏览器。
+- **HarmonyOS** —— 不支持。`uitest` 框架未提供多触点 API。
 
 :::
 
