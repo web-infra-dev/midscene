@@ -373,15 +373,14 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    // because of context will be reused between planning and locate, so all all snapshots should be shrunk when locate model is gpt-5
-    const useGpt5 =
-      this.modelConfigManager.getModelConfig('default').modelFamily === 'gpt-5';
+    // because of context will be reused between planning and locate, so all snapshots should be shrunk when the model family requires it
+    const { modelFamily } = this.modelConfigManager.getModelConfig('default');
 
     // Get original context
     const context = await commonContextParser(this.interface, {
       uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
       screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
-      useGpt5,
+      modelFamily,
     });
 
     return context;

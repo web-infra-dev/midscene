@@ -9,6 +9,7 @@ import type {
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
+import type { TModelFamily } from '@midscene/shared/env';
 import {
   MIDSCENE_REPORT_QUIET,
   MIDSCENE_REPORT_TAG_NAME,
@@ -28,7 +29,7 @@ export async function commonContextParser(
   _opt: {
     uploadServerUrl?: string;
     screenshotShrinkFactor?: number;
-    useGpt5?: boolean;
+    modelFamily?: TModelFamily;
   },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
@@ -109,7 +110,7 @@ export async function commonContextParser(
 
   // Validate user-specified shrink factor
   const userShrinkFactor = (() => {
-    if (_opt.useGpt5) {
+    if (_opt.modelFamily === 'gpt-5') {
       const longestSide = Math.max(imgWidth, imgHeight);
       // high allows up to 2,500 patches or a 2048-pixel maximum dimension
       const gpt5MaxEdgeSizeWhenDetailIsHigh = 32 * 50;
