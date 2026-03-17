@@ -1,6 +1,6 @@
 {
   "name": "@midscene/computer-mcp",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "Midscene MCP Server for Computer desktop automation",
   "bin": "dist/index.js",
   "files": ["dist"],
