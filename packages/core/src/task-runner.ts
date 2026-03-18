@@ -10,7 +10,6 @@ import {
   type ExecutionTaskProgressOptions,
   type ExecutionTaskReturn,
   type ExecutorContext,
-  NavigationError,
   type PlanningActionParamError,
   type UIContext,
 } from '@/types';
@@ -19,8 +18,6 @@ import { assert, uuid } from '@midscene/shared/utils';
 
 const debug = getDebug('task-runner');
 const UI_CONTEXT_CACHE_TTL_MS = 300;
-const UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS = 1500;
-const UI_CONTEXT_NAVIGATION_MAX_RETRIES = 3;
 
 type TaskRunnerInitOptions = ExecutionTaskProgressOptions & {
   tasks?: ExecutionTaskApply[];
@@ -94,42 +91,21 @@ export class TaskRunner {
       return this.lastUiContext?.context;
     }
 
-    for (
-      let attempt = 0;
-      attempt <= UI_CONTEXT_NAVIGATION_MAX_RETRIES;
-      attempt++
-    ) {
-      try {
-        const uiContext = await this.uiContextBuilder();
-        if (uiContext) {
-          this.lastUiContext = {
-            context: uiContext,
-            capturedAt: Date.now(),
-          };
-        } else {
-          this.lastUiContext = undefined;
-        }
-        return uiContext;
-      } catch (error) {
+    try {
+      const uiContext = await this.uiContextBuilder();
+      if (uiContext) {
+        this.lastUiContext = {
+          context: uiContext,
+          capturedAt: Date.now(),
+        };
+      } else {
         this.lastUiContext = undefined;
-
-        const isLastAttempt = attempt >= UI_CONTEXT_NAVIGATION_MAX_RETRIES;
-        if (!isLastAttempt && error instanceof NavigationError) {
-          debug(
-            `navigation error on attempt ${attempt + 1}/${UI_CONTEXT_NAVIGATION_MAX_RETRIES}, retrying in ${UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS}ms: ${error.message}`,
-          );
-          await new Promise((resolve) =>
-            setTimeout(resolve, UI_CONTEXT_NAVIGATION_RETRY_DELAY_MS),
-          );
-          continue;
-        }
-
-        throw error;
       }
+      return uiContext;
+    } catch (error) {
+      this.lastUiContext = undefined;
+      throw error;
     }
-
-    // Unreachable: loop always returns or throws
-    throw new Error('getUiContext: unexpected end of retry loop');
   }
 
   private async captureScreenshot(): Promise<ScreenshotItem | undefined> {

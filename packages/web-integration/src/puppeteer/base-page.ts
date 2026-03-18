@@ -1,12 +1,11 @@
 import type { WebPageAgentOpt } from '@/web-element';
-import {
-  type DeviceAction,
-  type ElementCacheFeature,
-  type ElementTreeNode,
-  NavigationError,
-  type Point,
-  type Rect,
-  type Size,
+import type {
+  DeviceAction,
+  ElementCacheFeature,
+  ElementTreeNode,
+  Point,
+  Rect,
+  Size,
 } from '@midscene/core';
 import type { AbstractInterface } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
@@ -41,18 +40,8 @@ import {
 
 export const debugPage = getDebug('web:page');
 
-const BROWSER_NAVIGATION_ERROR_PATTERN =
+export const BROWSER_NAVIGATION_ERROR_PATTERN =
   /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
-
-function wrapNavigationError(error: unknown): never {
-  if (
-    error instanceof Error &&
-    BROWSER_NAVIGATION_ERROR_PATTERN.test(error.message)
-  ) {
-    throw new NavigationError(error.message, { cause: error });
-  }
-  throw error;
-}
 
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
@@ -288,18 +277,14 @@ export class Page<
 
   async size(): Promise<Size> {
     if (this.viewportSize) return this.viewportSize;
-    try {
-      const sizeInfo: Size = await this.evaluate(() => {
-        return {
-          width: window.innerWidth,
-          height: window.innerHeight,
-        };
-      });
-      this.viewportSize = sizeInfo;
-      return sizeInfo;
-    } catch (error) {
-      wrapNavigationError(error);
-    }
+    const sizeInfo: Size = await this.evaluate(() => {
+      return {
+        width: window.innerWidth,
+        height: window.innerHeight,
+      };
+    });
+    this.viewportSize = sizeInfo;
+    return sizeInfo;
   }
 
   async screenshotBase64(): Promise<string> {
@@ -308,33 +293,27 @@ export class Page<
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
 
-    try {
-      let base64: string;
-      if (this.interfaceType === 'puppeteer') {
-        const result = await (this.underlyingPage as PuppeteerPage).screenshot({
-          type: imgType,
-          quality,
-          encoding: 'base64',
-        });
-        base64 = createImgBase64ByFormat(imgType, result);
-      } else if (this.interfaceType === 'playwright') {
-        const buffer = await (this.underlyingPage as PlaywrightPage).screenshot(
-          {
-            type: imgType,
-            quality,
-            timeout: 10 * 1000,
-          },
-        );
-        base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
-      } else {
-        throw new Error('Unsupported page type for screenshot');
-      }
-      const endTime = Date.now();
-      debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
-      return base64;
-    } catch (error) {
-      wrapNavigationError(error);
+    let base64: string;
+    if (this.interfaceType === 'puppeteer') {
+      const result = await (this.underlyingPage as PuppeteerPage).screenshot({
+        type: imgType,
+        quality,
+        encoding: 'base64',
+      });
+      base64 = createImgBase64ByFormat(imgType, result);
+    } else if (this.interfaceType === 'playwright') {
+      const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
+        type: imgType,
+        quality,
+        timeout: 10 * 1000,
+      });
+      base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+    } else {
+      throw new Error('Unsupported page type for screenshot');
     }
+    const endTime = Date.now();
+    debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
+    return base64;
   }
 
   async url(): Promise<string> {

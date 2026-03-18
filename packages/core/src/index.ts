@@ -24,7 +24,6 @@ export {
 export type * from './types';
 export {
   ServiceError,
-  NavigationError,
   ExecutionDump,
   GroupedActionDump,
   type IExecutionDump,

@@ -363,6 +363,18 @@ export class Agent<
     return this.fullActionSpace;
   }
 
+  private static readonly CONTEXT_RETRY_MAX = 3;
+  private static readonly CONTEXT_RETRY_DELAY_MS = 1500;
+
+  /**
+   * Override in subclasses to indicate which errors are transient and should
+   * trigger an automatic retry when building the UI context.
+   * Returns `false` by default (no retry).
+   */
+  protected isRetryableContextError(_error: unknown): boolean {
+    return false;
+  }
+
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
     // Check VL model configuration when UI context is first needed
     this.ensureVLModelWarning();
@@ -373,13 +385,26 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    // Get original context
-    const context = await commonContextParser(this.interface, {
-      uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
-      screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
-    });
-
-    return context;
+    const maxRetries = Agent.CONTEXT_RETRY_MAX;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await commonContextParser(this.interface, {
+          uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+          screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+        });
+      } catch (error) {
+        if (attempt < maxRetries && this.isRetryableContextError(error)) {
+          debug(
+            `retryable context error (attempt ${attempt + 1}/${maxRetries}), retrying in ${Agent.CONTEXT_RETRY_DELAY_MS}ms: ${error}`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, Agent.CONTEXT_RETRY_DELAY_MS),
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
   }
 
   async _snapshotContext(): Promise<UIContext> {
