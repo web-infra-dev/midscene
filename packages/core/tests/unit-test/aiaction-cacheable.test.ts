@@ -322,6 +322,7 @@ describe('aiAction cacheable option propagation', () => {
           prompt: 'test prompt',
           yamlWorkflow: undefined as any,
         },
+        cacheUsable: false,
         updateFn: vi.fn(),
       });
 
@@ -380,6 +381,7 @@ describe('aiAction cacheable option propagation', () => {
           prompt: 'test prompt',
           yamlWorkflow: '',
         },
+        cacheUsable: false,
         updateFn: vi.fn(),
       });
 
@@ -438,6 +440,7 @@ describe('aiAction cacheable option propagation', () => {
           prompt: 'test prompt',
           yamlWorkflow: '   \n\t  ',
         },
+        cacheUsable: false,
         updateFn: vi.fn(),
       });
 
@@ -498,6 +501,7 @@ describe('aiAction cacheable option propagation', () => {
           prompt: 'test prompt',
           yamlWorkflow: validYaml,
         },
+        cacheUsable: true,
         updateFn: vi.fn(),
       });
 
