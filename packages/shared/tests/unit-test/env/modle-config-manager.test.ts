@@ -4,6 +4,7 @@ import { ModelConfigManager } from '../../../src/env/model-config-manager';
 import {
   MIDSCENE_INSIGHT_MODEL_API_KEY,
   MIDSCENE_INSIGHT_MODEL_BASE_URL,
+  MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_INSIGHT_MODEL_NAME,
   MIDSCENE_INSIGHT_MODEL_REASONING_BUDGET,
   MIDSCENE_INSIGHT_MODEL_REASONING_EFFORT,
@@ -11,6 +12,7 @@ import {
   MIDSCENE_INSIGHT_MODEL_TIMEOUT,
   MIDSCENE_MODEL_API_KEY,
   MIDSCENE_MODEL_BASE_URL,
+  MIDSCENE_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_MODEL_FAMILY,
   MIDSCENE_MODEL_INIT_CONFIG_JSON,
   MIDSCENE_MODEL_NAME,
@@ -20,6 +22,7 @@ import {
   MIDSCENE_MODEL_TIMEOUT,
   MIDSCENE_PLANNING_MODEL_API_KEY,
   MIDSCENE_PLANNING_MODEL_BASE_URL,
+  MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON,
   MIDSCENE_PLANNING_MODEL_NAME,
   MIDSCENE_PLANNING_MODEL_REASONING_BUDGET,
   MIDSCENE_PLANNING_MODEL_REASONING_EFFORT,
@@ -274,6 +277,58 @@ describe('ModelConfigManager', () => {
       // insight and planning fall back to default config which has the timeout
       expect(manager.getModelConfig('insight').timeout).toBeUndefined();
       expect(manager.getModelConfig('planning').timeout).toBeUndefined();
+    });
+  });
+
+  describe('extraBody configuration', () => {
+    it('parses extraBody from MIDSCENE_MODEL_EXTRA_BODY_JSON', () => {
+      const extraBody = { chat_template_kwargs: { enable_thinking: true } };
+      const manager = new ModelConfigManager({
+        ...baseMap,
+        [MIDSCENE_MODEL_EXTRA_BODY_JSON]: JSON.stringify(extraBody),
+      });
+
+      const config = manager.getModelConfig('default');
+      expect(config.extraBody).toEqual(extraBody);
+    });
+
+    it('extraBody is undefined when not set', () => {
+      const manager = new ModelConfigManager(baseMap);
+
+      const config = manager.getModelConfig('default');
+      expect(config.extraBody).toBeUndefined();
+    });
+
+    it('uses per-intent extraBody configs from modelConfig', () => {
+      const defaultExtra = { custom_param: 'default' };
+      const insightExtra = { custom_param: 'insight' };
+      const planningExtra = { custom_param: 'planning' };
+      const manager = new ModelConfigManager({
+        ...baseMap,
+        [MIDSCENE_MODEL_EXTRA_BODY_JSON]: JSON.stringify(defaultExtra),
+        [MIDSCENE_INSIGHT_MODEL_EXTRA_BODY_JSON]: JSON.stringify(insightExtra),
+        [MIDSCENE_PLANNING_MODEL_EXTRA_BODY_JSON]:
+          JSON.stringify(planningExtra),
+      });
+
+      expect(manager.getModelConfig('default').extraBody).toEqual(defaultExtra);
+      expect(manager.getModelConfig('insight').extraBody).toEqual(insightExtra);
+      expect(manager.getModelConfig('planning').extraBody).toEqual(
+        planningExtra,
+      );
+    });
+
+    it('insight and planning extraBody are independent from default', () => {
+      const defaultExtra = { custom_param: 'default' };
+      const manager = new ModelConfigManager({
+        ...baseMap,
+        [MIDSCENE_MODEL_EXTRA_BODY_JSON]: JSON.stringify(defaultExtra),
+      });
+
+      expect(manager.getModelConfig('default').extraBody).toEqual(defaultExtra);
+      // insight and planning have no extraBody configured
+      expect(manager.getModelConfig('insight').extraBody).toBeUndefined();
+      expect(manager.getModelConfig('planning').extraBody).toBeUndefined();
     });
   });
 
