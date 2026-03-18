@@ -87,6 +87,39 @@ export function parseVideo2YamlArgs(args: string[]): Video2YamlOptions {
     process.exit(1);
   }
 
+  // Validate numeric parameters
+  if (
+    options.fps !== undefined &&
+    (Number.isNaN(options.fps) || options.fps <= 0)
+  ) {
+    console.error('Error: --fps must be a positive number');
+    process.exit(1);
+  }
+  if (
+    options.maxFrames !== undefined &&
+    (Number.isNaN(options.maxFrames) || options.maxFrames < 1)
+  ) {
+    console.error('Error: --max-frames must be at least 1');
+    process.exit(1);
+  }
+  if (
+    options.maxFramesPerSegment !== undefined &&
+    (Number.isNaN(options.maxFramesPerSegment) ||
+      options.maxFramesPerSegment < 1)
+  ) {
+    console.error('Error: --max-frames-per-segment must be at least 1');
+    process.exit(1);
+  }
+  if (
+    options.sceneThreshold !== undefined &&
+    (Number.isNaN(options.sceneThreshold) ||
+      options.sceneThreshold < 0 ||
+      options.sceneThreshold > 1)
+  ) {
+    console.error('Error: --scene-threshold must be between 0 and 1');
+    process.exit(1);
+  }
+
   return options;
 }
 

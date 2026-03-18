@@ -81,14 +81,19 @@ export async function video2yaml(options: Video2YamlOptions): Promise<string> {
   // Determine if we need segmented processing
   const duration = getVideoDuration(inputPath);
   const estimatedFrames = Math.ceil(duration * fps);
-  const needsSegmentation = estimatedFrames > SEGMENT_THRESHOLD;
+  // maxFrames is the global budget; cap by MAX_TOTAL_FRAMES for safety
+  const effectiveMaxFrames = Math.min(maxFrames, MAX_TOTAL_FRAMES);
+  const needsSegmentation = estimatedFrames > effectiveMaxFrames;
 
   if (!needsSegmentation) {
     // --- Short video: single VLM call ---
     console.log(
-      `\n   Extracting frames from video (fps=${fps}, max=${maxFrames})...`,
+      `\n   Extracting frames from video (fps=${fps}, max=${effectiveMaxFrames})...`,
     );
-    const frames = extractFrames(inputPath, { fps, maxFrames });
+    const frames = extractFrames(inputPath, {
+      fps,
+      maxFrames: effectiveMaxFrames,
+    });
     console.log(`   Extracted ${frames.length} frames`);
 
     if (frames.length === 0) {
@@ -117,10 +122,10 @@ export async function video2yaml(options: Video2YamlOptions): Promise<string> {
   console.log(
     `\n   Long video detected (${duration.toFixed(1)}s, ~${estimatedFrames} frames at ${fps} FPS)`,
   );
-  const cappedFrames = Math.min(estimatedFrames, MAX_TOTAL_FRAMES);
-  if (estimatedFrames > MAX_TOTAL_FRAMES) {
+  const cappedFrames = Math.min(estimatedFrames, effectiveMaxFrames);
+  if (estimatedFrames > effectiveMaxFrames) {
     console.log(
-      `   Warning: Video too long (~${estimatedFrames} frames), capping at ${MAX_TOTAL_FRAMES} frames`,
+      `   Capping at ${effectiveMaxFrames} frames (video has ~${estimatedFrames})`,
     );
   }
   console.log(`   Extracting frames (fps=${fps}, max=${cappedFrames})...`);

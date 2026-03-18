@@ -82,4 +82,41 @@ describe('parseVideo2YamlArgs', () => {
     expect(() => parseVideo2YamlArgs(['--help'])).toThrow('process.exit(0)');
     expect(() => parseVideo2YamlArgs(['-h'])).toThrow('process.exit(0)');
   });
+
+  // Numeric validation tests
+  test('exits with error for fps <= 0', () => {
+    expect(() => parseVideo2YamlArgs(['video.mp4', '--fps', '0'])).toThrow(
+      'process.exit(1)',
+    );
+    expect(() => parseVideo2YamlArgs(['video.mp4', '--fps', '-1'])).toThrow(
+      'process.exit(1)',
+    );
+  });
+
+  test('exits with error for max-frames < 1', () => {
+    expect(() =>
+      parseVideo2YamlArgs(['video.mp4', '--max-frames', '0']),
+    ).toThrow('process.exit(1)');
+  });
+
+  test('exits with error for max-frames-per-segment < 1', () => {
+    expect(() =>
+      parseVideo2YamlArgs(['video.mp4', '--max-frames-per-segment', '0']),
+    ).toThrow('process.exit(1)');
+  });
+
+  test('exits with error for scene-threshold out of range', () => {
+    expect(() =>
+      parseVideo2YamlArgs(['video.mp4', '--scene-threshold', '-0.1']),
+    ).toThrow('process.exit(1)');
+    expect(() =>
+      parseVideo2YamlArgs(['video.mp4', '--scene-threshold', '1.5']),
+    ).toThrow('process.exit(1)');
+  });
+
+  test('exits with error for NaN numeric values', () => {
+    expect(() => parseVideo2YamlArgs(['video.mp4', '--fps', 'abc'])).toThrow(
+      'process.exit(1)',
+    );
+  });
 });
