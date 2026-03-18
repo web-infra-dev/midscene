@@ -1,6 +1,9 @@
 import assert from 'node:assert';
-import { execSync } from 'node:child_process';
+import { execFile, execSync } from 'node:child_process';
+import { promises as fs } from 'node:fs';
 import { createRequire } from 'node:module';
+import { tmpdir } from 'node:os';
+import { join as pathJoin } from 'node:path';
 import {
   type DeviceAction,
   type InterfaceType,
@@ -543,10 +546,101 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
       debugDevice('Screenshot options', options);
       const buffer: Buffer = await screenshot(options);
       return createImgBase64ByFormat('png', buffer.toString('base64'));
-    } catch (error) {
-      debugDevice(`Screenshot failed: ${error}`);
-      throw new Error(`Failed to take screenshot: ${error}`);
+    } catch (primaryError) {
+      debugDevice(`Screenshot failed: ${primaryError}`);
+
+      // On Windows, fall back to PowerShell-based screenshot.
+      // The default screenshot-desktop approach compiles a .NET exe on-the-fly
+      // and places it in the system temp directory. In environments like
+      // Claude Code, security policies (AppLocker/WDAC) or code-page
+      // configuration may prevent that exe from being found or executed.
+      // PowerShell is a signed Microsoft application and avoids that issue.
+      if (process.platform === 'win32') {
+        debugDevice('Trying PowerShell fallback for screenshot...');
+        try {
+          const buffer = await this.screenshotViaWindowsPowerShell();
+          return createImgBase64ByFormat('png', buffer.toString('base64'));
+        } catch (fallbackError) {
+          debugDevice(`PowerShell fallback also failed: ${fallbackError}`);
+          throw new Error(
+            `Failed to take screenshot. Primary error: ${primaryError}. Fallback error: ${fallbackError}`,
+          );
+        }
+      }
+
+      throw new Error(`Failed to take screenshot: ${primaryError}`);
     }
+  }
+
+  /**
+   * Windows-specific screenshot fallback using PowerShell and System.Drawing.
+   * Used when screenshot-desktop's screenCapture.exe cannot be executed
+   * (e.g. blocked by security policies in environments like Claude Code).
+   */
+  private async screenshotViaWindowsPowerShell(): Promise<Buffer> {
+    // Include process.pid and a random suffix to avoid collisions when
+    // multiple screenshots are taken in rapid succession.
+    const tmpFile = pathJoin(
+      tmpdir(),
+      `midscene-screenshot-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`,
+    );
+
+    // Sanitize displayId to only allow characters valid in a Windows device
+    // name (e.g. "\\.\DISPLAY1"). This prevents PowerShell injection when
+    // the value is interpolated into a double-quoted string.
+    const safeDisplayId = this.displayId
+      ? this.displayId.replace(/[^a-zA-Z0-9\\.\-_:]/g, '')
+      : undefined;
+
+    // Build the screen-selector snippet: prefer displayId if provided
+    const screenSelector = safeDisplayId
+      ? `$screen = [System.Windows.Forms.Screen]::AllScreens | Where-Object { $_.DeviceName -eq "${safeDisplayId}" }
+if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }`
+      : '$screen = [System.Windows.Forms.Screen]::PrimaryScreen';
+
+    const psScript = [
+      'Add-Type -AssemblyName System.Windows.Forms',
+      'Add-Type -AssemblyName System.Drawing',
+      screenSelector,
+      '$bounds = $screen.Bounds',
+      '$bmp = New-Object System.Drawing.Bitmap($bounds.Width, $bounds.Height)',
+      '$g = [System.Drawing.Graphics]::FromImage($bmp)',
+      '$g.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)',
+      `$bmp.Save("${tmpFile}", [System.Drawing.Imaging.ImageFormat]::Png)`,
+      '$g.Dispose()',
+      '$bmp.Dispose()',
+    ].join('\n');
+
+    // Encode the script as UTF-16LE base64 for PowerShell -EncodedCommand.
+    // This avoids any shell-quoting or code-page issues with -Command.
+    const encodedScript = Buffer.from(psScript, 'utf16le').toString('base64');
+
+    await new Promise<void>((resolve, reject) => {
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-EncodedCommand', encodedScript],
+        { windowsHide: true, timeout: 30_000 },
+        (err, _stdout, stderr) => {
+          if (err) {
+            reject(
+              new Error(
+                `PowerShell screenshot failed: ${stderr || err.message}`,
+              ),
+            );
+          } else {
+            resolve();
+          }
+        },
+      );
+    });
+
+    const buffer = await fs.readFile(tmpFile);
+    await fs
+      .unlink(tmpFile)
+      .catch((err) =>
+        debugDevice(`Failed to delete temp screenshot file: ${err}`),
+      );
+    return buffer;
   }
 
   async size(): Promise<Size> {
