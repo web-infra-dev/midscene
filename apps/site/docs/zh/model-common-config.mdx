@@ -186,6 +186,21 @@ MIDSCENE_MODEL_NAME="gpt-5.4"
 MIDSCENE_MODEL_FAMILY="gpt-5"
 ```
 
+### Codex App Server（OAuth，无需 API Key） {#codex-app-server}
+
+如果你已经通过 Codex CLI 登录（`codex login`），并希望 Midscene 直接复用该 OAuth 会话，可设置：
+
+```bash
+MIDSCENE_MODEL_BASE_URL="codex://app-server"
+MIDSCENE_MODEL_NAME="gpt-5.4" # 或者使用 Codex model/list 可见的其他模型
+MIDSCENE_MODEL_FAMILY="gpt-5"
+```
+
+说明：
+- 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
+- Midscene 会通过 stdio 调用 `codex app-server`。
+- 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
+
 ### UI-TARS {#ui-tars}
 
 你可以在 [火山引擎](https://volcengine.com) 上使用已部署的 `doubao-1.5-ui-tars`。

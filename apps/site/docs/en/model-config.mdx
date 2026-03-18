@@ -14,25 +14,10 @@ You need to set a default model for Midscene; see [Model strategy](./model-strat
 
 | Name | Description |
 |------|-------------|
-| `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when `MIDSCENE_MODEL_BASE_URL="codex://app-server"` |
+| `MIDSCENE_MODEL_API_KEY` | Model API key for OpenAI-compatible HTTP providers, e.g., `"sk-abcd..."`. Not required when using [Codex App Server](./model-common-config#codex-app-server) |
 | `MIDSCENE_MODEL_BASE_URL` | API endpoint URL, usually ending with a version (e.g., `/v1`); do not append `/chat/completion` here since the underlying sdk will add it automatically |
 | `MIDSCENE_MODEL_NAME` | Model name |
 | `MIDSCENE_MODEL_FAMILY` | Model family, determine the way of dealing with the coordinates |
-
-### Use Codex App Server (OAuth, no API Key)
-
-If you already signed in with Codex CLI (`codex login`) and want Midscene to use that OAuth session directly, set:
-
-```bash
-export MIDSCENE_MODEL_BASE_URL="codex://app-server"
-export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-5"
-```
-
-Notes:
-- `MIDSCENE_MODEL_API_KEY` is not required in this mode.
-- Midscene will call `codex app-server` through stdio.
-- Make sure `codex` is available in your PATH and verify auth with `codex login status`.
 
 ## Advanced settings (optional)
 
