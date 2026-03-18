@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import { PuppeteerAgent } from '@/puppeteer';
+import { TaskCache } from '@midscene/core/agent';
 import { sleep } from '@midscene/core/utils';
+import { uuid } from '@midscene/shared/utils';
+import yaml from 'js-yaml';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { launchPage } from './utils';
 
@@ -223,6 +226,7 @@ describe('Cache Operation Tests', () => {
   let agent: PuppeteerAgent;
   let agent1: PuppeteerAgent;
   let agent2: PuppeteerAgent;
+  let cacheFilePathToCleanup: string | undefined;
   afterEach(async () => {
     if (agent) {
       try {
@@ -247,6 +251,10 @@ describe('Cache Operation Tests', () => {
     }
     if (resetFn) {
       await resetFn();
+    }
+    if (cacheFilePathToCleanup && fs.existsSync(cacheFilePathToCleanup)) {
+      fs.unlinkSync(cacheFilePathToCleanup);
+      cacheFilePathToCleanup = undefined;
     }
   });
 
@@ -338,6 +346,78 @@ describe('Cache Operation Tests', () => {
         expect(cacheContent).toContain('caches:');
       }
     }
+  });
+
+  it('should overwrite stale empty-flow planning cache and reuse the refreshed cache', async () => {
+    const { originPage, reset } = await launchPage('https://example.com/');
+    resetFn = reset;
+
+    const prompt = 'click the title';
+    const cacheId = `stale-plan-cache-${uuid()}`;
+    const staleCache = new TaskCache(cacheId, true);
+    cacheFilePathToCleanup = staleCache.cacheFilePath;
+    staleCache.appendCache({
+      type: 'plan',
+      prompt,
+      yamlWorkflow: `tasks:
+  - name: click the title
+    flow: []
+`,
+    });
+
+    agent1 = new PuppeteerAgent(originPage, {
+      cache: { id: cacheId },
+    });
+    const firstActionSpy = vi.spyOn((agent1 as any).taskExecutor, 'action');
+    const firstLoadPlanningSpy = vi.spyOn(
+      (agent1 as any).taskExecutor,
+      'loadYamlFlowAsPlanning',
+    );
+
+    await agent1.aiAct(prompt);
+    await sleep(1000);
+
+    expect(firstActionSpy).toHaveBeenCalled();
+    expect(firstLoadPlanningSpy).not.toHaveBeenCalled();
+
+    const cacheContent = yaml.load(
+      fs.readFileSync(cacheFilePathToCleanup!, 'utf-8'),
+    ) as {
+      caches: Array<{
+        type: string;
+        prompt: string;
+        yamlWorkflow?: string;
+      }>;
+    };
+
+    const planCaches = cacheContent.caches.filter(
+      (cache) => cache.type === 'plan' && cache.prompt === prompt,
+    );
+    expect(planCaches).toHaveLength(1);
+    expect(planCaches[0].yamlWorkflow).toBeTruthy();
+
+    const refreshedWorkflow = yaml.load(planCaches[0].yamlWorkflow!) as {
+      tasks?: Array<{ flow?: unknown[] }>;
+    };
+    expect(
+      refreshedWorkflow.tasks?.some(
+        (task) => Array.isArray(task.flow) && task.flow.length > 0,
+      ),
+    ).toBe(true);
+
+    agent2 = new PuppeteerAgent(originPage, {
+      cache: { id: cacheId },
+    });
+    const secondActionSpy = vi.spyOn((agent2 as any).taskExecutor, 'action');
+    const secondLoadPlanningSpy = vi.spyOn(
+      (agent2 as any).taskExecutor,
+      'loadYamlFlowAsPlanning',
+    );
+
+    await agent2.aiAct(prompt);
+
+    expect(secondLoadPlanningSpy).toHaveBeenCalled();
+    expect(secondActionSpy).not.toHaveBeenCalled();
   });
 
   it('should handle cache with cacheable: false option', async () => {
