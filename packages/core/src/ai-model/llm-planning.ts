@@ -72,7 +72,9 @@ export function parseXMLPlanningResponse(
   // Parse action
   let action: any = null;
   if (actionType && actionType.toLowerCase() !== 'null') {
-    const type = actionType.trim();
+    // Strip any trailing XML tags that LLM might have leaked into the action type
+    // e.g. "KeyboardPress</action-type>\n<action-param-json>" -> "KeyboardPress"
+    const type = actionType.split('<')[0].trim();
     let param: any = undefined;
 
     if (actionParamStr) {
