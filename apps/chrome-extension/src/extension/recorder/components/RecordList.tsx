@@ -265,7 +265,7 @@ export const RecordList: React.FC<RecordListProps> = ({
               placeholder="https://example.com/api/events"
               value={transferEndpoint}
               onChange={(e) => setTransferEndpoint(e.target.value)}
-              onPressEnter={handleTransfer}
+              onPressEnter={() => !isTransferring && handleTransfer()}
             />
           </div>
           <div>
