@@ -28,8 +28,6 @@ export const generateYamlTest = async (
 
     recordLogger.info('Starting AI-powered YAML test generation', {
       eventsCount: events.length,
-      events,
-      navigationInfo,
     });
 
     // Merge navigation and viewport info into options
@@ -46,8 +44,6 @@ export const generateYamlTest = async (
 
     recordLogger.success('AI-powered YAML test generated successfully', {
       eventsCount: events.length,
-      events,
-      yamlContent,
     });
 
     return yamlContent;
@@ -117,8 +113,6 @@ export const generateYamlTestStream = async (
       'Starting AI-powered YAML test generation with streaming',
       {
         eventsCount: events.length,
-        events,
-        navigationInfo,
       },
     );
 
@@ -138,8 +132,6 @@ export const generateYamlTestStream = async (
       'AI-powered YAML test generated successfully with streaming',
       {
         eventsCount: events.length,
-        events,
-        yamlContent: result.content,
       },
     );
 

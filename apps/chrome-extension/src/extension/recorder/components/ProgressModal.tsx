@@ -42,6 +42,9 @@ export interface ProgressStep {
   details?: string;
 }
 
+// Max concurrent AI description calls to limit peak memory usage
+const MAX_DESCRIPTION_CONCURRENCY = 3;
+
 export type CodeGenerationType = 'yaml' | 'playwright' | 'none';
 
 interface ProgressModalProps {
@@ -285,21 +288,22 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
     });
 
     let completedCount = 0;
-    // const finalEvents = [...events];
 
     recordLogger.info('eventsNeedingDescriptions', {
-      eventsNeedingDescriptions,
-      events,
+      needingCount: eventsNeedingDescriptions.length,
+      totalCount: events.length,
     });
 
-    // Process events in parallel with progress tracking
-    const optimizePromises = events.map(async (event, index) => {
+    // Mark navigation/scroll events upfront (no AI call needed)
+    for (const event of events) {
       if (event.type === 'navigation' || event.type === 'scroll') {
         event.elementDescription = 'navigation or scroll';
         event.descriptionLoading = false;
-        return;
       }
+    }
 
+    // Process only events that need AI descriptions, with limited concurrency
+    const processEvent = async (event: ChromeRecordedEvent) => {
       try {
         let description = '';
         if (event.elementDescription && event.descriptionLoading === false) {
@@ -327,9 +331,20 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
         event.descriptionLoading = false;
         completedCount++;
       }
-    });
+    };
 
-    await Promise.all(optimizePromises);
+    // Process in batches to limit peak memory usage
+    for (
+      let i = 0;
+      i < eventsNeedingDescriptions.length;
+      i += MAX_DESCRIPTION_CONCURRENCY
+    ) {
+      const batch = eventsNeedingDescriptions.slice(
+        i,
+        i + MAX_DESCRIPTION_CONCURRENCY,
+      );
+      await Promise.all(batch.map(processEvent));
+    }
 
     // Update session with new event descriptions if sessionId exists
     if (sessionId) {
@@ -455,7 +470,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       // After stopping recording, get the latest events from session
       let finalEvents = getCurrentEvents();
       recordLogger.info('start generating code', {
-        finalEvents,
+        eventsCount: finalEvents.length,
         sessionId,
       });
 
@@ -463,7 +478,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       updateProgressStep(0, { status: 'loading' });
       finalEvents = await generateElementDescriptions(finalEvents, 0);
       recordLogger.info('Generated element descriptions', {
-        finalEvents,
+        eventsCount: finalEvents.length,
         sessionId,
       });
 
@@ -481,7 +496,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       recordLogger.info('Generated session title and description', {
-        finalEvents,
+        eventsCount: finalEvents.length,
         sessionId,
         currentSessionName,
       });
