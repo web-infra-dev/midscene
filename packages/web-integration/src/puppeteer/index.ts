@@ -5,6 +5,7 @@ import type { Page as PuppeteerPage } from 'puppeteer';
 import semver from 'semver';
 import { getWebpackRequire } from '../utils';
 import {
+  autoSwitchToNewTab,
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
 } from './base-page';
@@ -43,6 +44,8 @@ export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
 
     if (forceSameTabNavigation) {
       forceClosePopup(page, debug);
+    } else {
+      autoSwitchToNewTab(page, webPage, debug);
     }
 
     if (forceChromeSelectRendering) {
