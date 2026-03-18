@@ -143,12 +143,35 @@ export const useRecordingSessionStore = create<{
   },
   updateSession: async (sessionId, updates) => {
     try {
-      recordLogger.info('Updating session', { sessionId, updates });
+      recordLogger.info('Updating session', {
+        sessionId,
+        updateKeys: Object.keys(updates),
+        eventsCount: updates.events?.length,
+      });
       await dbManager.updateSession(sessionId, updates);
-      const sessions = await dbManager.getAllSessions();
-      set({ sessions });
+      // Update in-memory state directly instead of reloading all sessions
+      // from IndexedDB, which would deserialize all screenshots again.
+      const { sessions } = get();
+      const sessionIndex = sessions.findIndex((s) => s.id === sessionId);
+      if (sessionIndex >= 0) {
+        const updatedSession = {
+          ...sessions[sessionIndex],
+          ...updates,
+          updatedAt: Date.now(),
+        };
+        const newSessions = [...sessions];
+        newSessions[sessionIndex] = updatedSession;
+        set({ sessions: newSessions });
+      } else {
+        // Session not found in memory, reload from DB
+        const allSessions = await dbManager.getAllSessions();
+        set({ sessions: allSessions });
+      }
     } catch (error) {
-      console.error('Failed to update session:', error);
+      console.warn(
+        'Failed to persist session to IndexedDB, updating in-memory only (data may be lost on reload):',
+        error,
+      );
       // Try to recover by ensuring the session exists in memory
       const { sessions } = get();
       const sessionInMemory = sessions.find((s) => s.id === sessionId);
@@ -224,22 +247,54 @@ function mergeEvents(
   return mergedArray;
 }
 
-const saveEventsToStorage = async (events: ChromeRecordedEvent[]) => {
-  try {
-    const existingEvents = await dbManager.getRecordingEvents();
-    const combinedEvents = mergeEvents(existingEvents, events);
-    await dbManager.setRecordingEvents(combinedEvents);
-  } catch (error) {
-    console.error('Failed to save events to IndexedDB:', error);
-  }
-};
-
 const clearEventsFromStorage = async () => {
   try {
     await dbManager.clearRecordingEvents();
   } catch (error) {
     console.error('Failed to clear events from IndexedDB:', error);
   }
+};
+
+// Debounced session persistence to avoid O(n²) IndexedDB writes.
+// Each addEvent updates in-memory state immediately but batches DB writes.
+const SESSION_PERSIST_DELAY_MS = 2000;
+let sessionPersistTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSessionPersist: {
+  sessionId: string;
+  events: ChromeRecordedEvent[];
+} | null = null;
+
+const flushSessionPersist = async () => {
+  if (sessionPersistTimer) {
+    clearTimeout(sessionPersistTimer);
+    sessionPersistTimer = null;
+  }
+  if (pendingSessionPersist) {
+    const { sessionId, events } = pendingSessionPersist;
+    pendingSessionPersist = null;
+    try {
+      await dbManager.updateSession(sessionId, {
+        events,
+        updatedAt: Date.now(),
+      });
+    } catch (error) {
+      console.error('Failed to persist events to session:', error);
+    }
+  }
+};
+
+const scheduleSessionPersist = (
+  sessionId: string,
+  events: ChromeRecordedEvent[],
+) => {
+  pendingSessionPersist = { sessionId, events };
+  if (sessionPersistTimer) {
+    clearTimeout(sessionPersistTimer);
+  }
+  sessionPersistTimer = setTimeout(
+    flushSessionPersist,
+    SESSION_PERSIST_DELAY_MS,
+  );
 };
 
 export const useRecordStore = create<{
@@ -277,6 +332,10 @@ export const useRecordStore = create<{
   },
   setIsRecording: async (recording: boolean) => {
     try {
+      // Flush any pending debounced writes before stopping
+      if (!recording) {
+        await flushSessionPersist();
+      }
       await saveRecordingStateToStorage(recording);
       set({ isRecording: recording });
       // Clear events from storage when stopping recording
@@ -292,14 +351,12 @@ export const useRecordStore = create<{
     const newEvents = [...state.events, event];
     set({ events: newEvents });
     if (state.isRecording) {
+      // Debounce IndexedDB writes to avoid O(n²) IO.
+      // In-memory state is updated immediately; DB write is batched.
       const sessionId = useRecordingSessionStore.getState().currentSessionId;
       if (sessionId) {
-        await dbManager.updateSession(sessionId, {
-          events: newEvents,
-          updatedAt: Date.now(),
-        });
+        scheduleSessionPersist(sessionId, newEvents);
       }
-      await saveEventsToStorage(newEvents);
     }
   },
   updateEvent: async (event: ChromeRecordedEvent) => {
@@ -321,8 +378,6 @@ export const useRecordStore = create<{
     const newEvents = mergeEvents(state.events, events);
     set({ events: newEvents });
     recordLogger.info('Setting events', {
-      events: newEvents,
-      newEvents,
       eventsCount: newEvents.length,
     });
     if (state.isRecording) {
@@ -353,6 +408,8 @@ export const useRecordStore = create<{
     set({ events: [] });
   },
   emergencySaveEvents: async (events?: ChromeRecordedEvent[]) => {
+    // Flush any pending debounced session writes first
+    await flushSessionPersist();
     const state = get();
     const eventsToSave = events || state.events;
     if (eventsToSave.length > 0) {

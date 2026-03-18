@@ -45,38 +45,16 @@ export const useRecordingControl = (
   const isExtensionMode = isChromeExtension();
   const recordContainerRef = useRef<HTMLDivElement>(null);
 
-  // Real-time event persistence during recording
-  const persistEventToSession = useCallback(
-    async (event: ChromeRecordedEvent) => {
-      if (!currentSessionId || !isRecording) return;
-
-      try {
-        const session = getCurrentSession();
-        if (session) {
-          const updatedEvents = [...session.events, event];
-          updateSession(currentSessionId, {
-            events: updatedEvents,
-            updatedAt: Date.now(),
-          });
-        }
-      } catch (error) {
-        recordLogger.error(
-          'Failed to persist event to session',
-          undefined,
-          error,
-        );
-      }
-    },
-    [currentSessionId, isRecording, getCurrentSession, updateSession],
-  );
+  // Note: persistEventToSession was removed because addEvent already persists
+  // events to both the session and IndexedDB storage. The duplicate persistence
+  // was causing O(n²) memory/IO growth during recording.
 
   // Define stopRecording early using useCallback
   const stopRecording = useCallback(async () => {
     recordLogger.info('Stopping recording', {
       sessionId: currentSessionId || undefined,
       tabId: currentTab?.id,
-      events,
-      session: getCurrentSession(),
+      eventsCount: events.length,
     });
 
     if (!isExtensionMode) {
@@ -459,8 +437,6 @@ export const useRecordingControl = (
 
             if (isConnected) {
               addEvent(optimizedEvent);
-              // Real-time persistence during recording
-              await persistEventToSession(optimizedEvent);
             } else {
               // Buffer events if not connected
               recordLogger.info('Buffering event due to disconnected port');
@@ -512,14 +488,7 @@ export const useRecordingControl = (
         eventBuffer.forEach((event) => addEvent(event));
       }
     };
-  }, [
-    addEvent,
-    setEvents,
-    updateEvent,
-    currentSessionId,
-    isRecording,
-    persistEventToSession,
-  ]);
+  }, [addEvent, setEvents, updateEvent, currentSessionId, isRecording]);
 
   return {
     // State
