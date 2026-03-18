@@ -67,7 +67,7 @@ function resolveExecutable(npmPackage: string, systemFallback: string): string {
   }
 }
 
-function getFfmpegPath(): string {
+export function getFfmpegPath(): string {
   return resolveExecutable('@ffmpeg-installer/ffmpeg', 'ffmpeg');
 }
 
@@ -96,7 +96,7 @@ export function checkFfmpeg(): boolean {
 /**
  * Get video duration in seconds using ffprobe
  */
-function getVideoDuration(videoPath: string): number {
+export function getVideoDuration(videoPath: string): number {
   const ffprobePath = getFfprobePath();
   const result = spawnSync(
     ffprobePath,

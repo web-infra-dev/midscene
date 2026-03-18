@@ -62,6 +62,12 @@ export function parseVideo2YamlArgs(args: string[]): Video2YamlOptions {
     } else if (arg === '--viewport-height') {
       options.viewportHeight = Number(consumeArg(args, i, arg));
       i++;
+    } else if (arg === '--max-frames-per-segment') {
+      options.maxFramesPerSegment = Number(consumeArg(args, i, arg));
+      i++;
+    } else if (arg === '--scene-threshold') {
+      options.sceneThreshold = Number(consumeArg(args, i, arg));
+      i++;
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -102,7 +108,12 @@ Options:
   --max-frames <number>   Maximum number of frames to analyze (default: 20)
   --viewport-width <px>   Viewport width of the recorded page
   --viewport-height <px>  Viewport height of the recorded page
+  --max-frames-per-segment <n>  Max frames per segment for long videos (default: 15)
+  --scene-threshold <0-1> Scene change sensitivity, lower=more splits (default: 0.3)
   -h, --help              Show this help message
+
+Note: Short videos (≤20 frames) are processed in a single VLM call.
+      Long videos are automatically split into segments and merged.
 
 Examples:
   # Generate YAML script (default)
@@ -115,5 +126,8 @@ Examples:
 
   # Custom frame extraction
   midscene video2yaml demo.webm --fps 2 --max-frames 30 --description "Login flow test"
+
+  # Long video with custom segmentation
+  midscene video2yaml long-demo.mp4 --scene-threshold 0.2 --max-frames-per-segment 20
 `);
 }

@@ -16,11 +16,14 @@ export {
 export {
   generateYamlFromVideoFrames,
   generatePlaywrightFromVideoFrames,
+  generateFromVideoSegment,
+  mergeSegmentResults,
 } from './prompt/video-to-yaml';
 export type {
   VideoFrame,
   VideoToScriptOptions,
   VideoScriptFormat,
+  VideoSegmentInfo,
 } from './prompt/video-to-yaml';
 
 export type { ChatCompletionMessageParam } from 'openai/resources/index';

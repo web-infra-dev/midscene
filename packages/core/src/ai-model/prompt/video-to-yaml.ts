@@ -26,6 +26,12 @@ export interface VideoToScriptOptions {
 
 export type VideoScriptFormat = 'yaml' | 'playwright';
 
+export interface VideoSegmentInfo {
+  index: number;
+  total: number;
+  timeRange: [number, number];
+}
+
 function ensureDataUri(base64: string): string {
   if (base64.startsWith('data:')) {
     return base64;
@@ -185,6 +191,27 @@ function buildMultimodalMessages(
   ];
 }
 
+function prependWebConfigIfMissing(
+  content: string,
+  options: VideoToScriptOptions,
+): string {
+  if (!options.url || content.includes('url:')) {
+    return content;
+  }
+  const webConfig = [
+    'web:',
+    `  url: "${options.url}"`,
+    options.viewportWidth ? `  viewportWidth: ${options.viewportWidth}` : null,
+    options.viewportHeight
+      ? `  viewportHeight: ${options.viewportHeight}`
+      : null,
+    '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return `${webConfig}\n${content}`;
+}
+
 function stripCodeFences(content: string, format: VideoScriptFormat): string {
   let result = content;
   if (format === 'yaml') {
@@ -211,25 +238,10 @@ export async function generateYamlFromVideoFrames(
   const messages = buildMultimodalMessages(frames, options, 'yaml');
   const response = await callAIWithStringResponse(messages, modelConfig);
 
-  let content = stripCodeFences(response.content, 'yaml');
-
-  // If a URL was provided but not in the generated YAML, prepend web config
-  if (options.url && !content.includes('url:')) {
-    const webConfig = [
-      'web:',
-      `  url: "${options.url}"`,
-      options.viewportWidth
-        ? `  viewportWidth: ${options.viewportWidth}`
-        : null,
-      options.viewportHeight
-        ? `  viewportHeight: ${options.viewportHeight}`
-        : null,
-      '',
-    ]
-      .filter(Boolean)
-      .join('\n');
-    content = `${webConfig}\n${content}`;
-  }
+  const content = prependWebConfigIfMissing(
+    stripCodeFences(response.content, 'yaml'),
+    options,
+  );
 
   return { content };
 }
@@ -249,6 +261,173 @@ export async function generatePlaywrightFromVideoFrames(
   const messages = buildMultimodalMessages(frames, options, 'playwright');
   const response = await callAIWithStringResponse(messages, modelConfig);
   const content = stripCodeFences(response.content, 'playwright');
+
+  return { content };
+}
+
+// --- Segmented video processing ---
+
+function buildSegmentSystemPrompt(): string {
+  return `You are an expert in UI test automation. You are analyzing ONE SEGMENT of a longer screen recording video.
+
+Your task: identify all user actions in this segment and output them as an ordered action list.
+${MIDSCENE_CONSTRAINTS}
+${ACTION_DETECTION_GUIDE}
+## Output Rules
+
+- Output ONLY a numbered list of actions, one per line. No code fences, no YAML/TS boilerplate, no web.url, no imports.
+- Each action should be a single line describing: action type + target element + value (if any).
+- Format: \`<N>. <actionType>: <description>\`
+- Action types: tap, input, keyboardPress, scroll, assert, waitFor, navigate
+- For "input" actions, include the value: \`input: "hello world" in the search field\`
+- For "navigate" actions, include the URL: \`navigate: https://example.com\`
+- The first frame may overlap with the previous segment — use it for context but don't duplicate actions from it.
+- If nothing meaningful happens in this segment, output: \`NO_ACTIONS\`
+`;
+}
+
+function buildSegmentUserPrompt(
+  frames: VideoFrame[],
+  options: VideoToScriptOptions,
+  segmentInfo: VideoSegmentInfo,
+): string {
+  const parts: string[] = [];
+  parts.push(
+    `This is segment ${segmentInfo.index + 1} of ${segmentInfo.total}, covering timestamps ${segmentInfo.timeRange[0].toFixed(1)}s to ${segmentInfo.timeRange[1].toFixed(1)}s of the screen recording.`,
+  );
+  if (options.url) {
+    parts.push(`\nThe page URL is: ${options.url}`);
+  }
+  if (options.description) {
+    parts.push(`\nVideo description: ${options.description}`);
+  }
+  parts.push(
+    `\nThere are ${frames.length} frames in this segment. Identify all user actions.`,
+  );
+  parts.push(
+    '\nOutput ONLY the numbered action list. No code, no explanation.',
+  );
+  return parts.join('');
+}
+
+/**
+ * Analyze a single video segment and return an action list.
+ */
+export async function generateFromVideoSegment(
+  frames: VideoFrame[],
+  options: VideoToScriptOptions,
+  segmentInfo: VideoSegmentInfo,
+  format: VideoScriptFormat,
+  modelConfig: IModelConfig,
+): Promise<{ content: string }> {
+  const systemPrompt = buildSegmentSystemPrompt();
+  const userText = buildSegmentUserPrompt(frames, options, segmentInfo);
+
+  const userContent: Array<
+    | { type: 'text'; text: string }
+    | { type: 'image_url'; image_url: { url: string; detail?: string } }
+  > = [];
+
+  userContent.push({ type: 'text', text: userText });
+  for (const frame of frames) {
+    userContent.push({
+      type: 'text',
+      text: `\n[Frame at ${frame.timestamp.toFixed(1)}s]:`,
+    });
+    userContent.push({
+      type: 'image_url',
+      image_url: { url: ensureDataUri(frame.base64), detail: 'high' },
+    });
+  }
+
+  const messages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userContent as any },
+  ];
+
+  const response = await callAIWithStringResponse(messages, modelConfig);
+  return { content: response.content.trim() };
+}
+
+function buildMergeSystemPrompt(format: VideoScriptFormat): string {
+  const formatRef =
+    format === 'yaml'
+      ? `## YAML Format Reference\n${YAML_EXAMPLE_CODE}`
+      : `## Playwright + Midscene Code Reference\n${PLAYWRIGHT_EXAMPLE_CODE}`;
+
+  const outputInstr =
+    format === 'yaml'
+      ? 'Output ONLY valid Midscene YAML — no markdown code fences, no explanation. Include web.url, tasks, and flow.'
+      : 'Output ONLY the raw TypeScript Playwright test code — no markdown code fences, no explanation. Include imports, test setup, and test body.';
+
+  return `You are an expert in UI test automation with Midscene.js. You are given action lists from sequential segments of a screen recording video. Your task is to merge them into a single coherent, runnable test script.
+${MIDSCENE_CONSTRAINTS}
+## Merge Rules
+
+1. Combine all segment actions into one chronological sequence.
+2. Remove duplicate actions at segment boundaries (overlapping frames may cause the same action to appear in two consecutive segments).
+3. Group related actions into logical tasks with descriptive names.
+4. Add aiWaitFor/aiAssert where appropriate for page load and state verification.
+5. ${outputInstr}
+
+${formatRef}`;
+}
+
+function buildMergeUserPrompt(
+  segmentResults: string[],
+  options: VideoToScriptOptions,
+  format: VideoScriptFormat,
+): string {
+  const parts: string[] = [];
+  parts.push(
+    `Below are action lists from ${segmentResults.length} sequential segments of a screen recording. Merge them into a single runnable ${format === 'yaml' ? 'Midscene YAML' : 'Playwright test'} script.`,
+  );
+
+  if (options.url) {
+    parts.push(`\nThe starting URL is: ${options.url}`);
+  } else {
+    parts.push(
+      '\nDetermine the page URL from the navigate actions in the segments.',
+    );
+  }
+  if (options.description) {
+    parts.push(`\nVideo description: ${options.description}`);
+  }
+
+  for (let i = 0; i < segmentResults.length; i++) {
+    parts.push(`\n--- Segment ${i + 1} ---\n${segmentResults[i]}`);
+  }
+
+  parts.push(
+    '\n\nIMPORTANT: Return ONLY the raw code content. Do NOT wrap in markdown code blocks.',
+  );
+  return parts.join('');
+}
+
+/**
+ * Merge action lists from multiple video segments into a single script.
+ * This is a text-only call (no images) so it's fast and cheap.
+ */
+export async function mergeSegmentResults(
+  segmentResults: string[],
+  options: VideoToScriptOptions,
+  format: VideoScriptFormat,
+  modelConfig: IModelConfig,
+): Promise<{ content: string }> {
+  const systemPrompt = buildMergeSystemPrompt(format);
+  const userText = buildMergeUserPrompt(segmentResults, options, format);
+
+  const messages: ChatCompletionMessageParam[] = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userText },
+  ];
+
+  const response = await callAIWithStringResponse(messages, modelConfig);
+  let content = stripCodeFences(response.content, format);
+
+  if (format === 'yaml') {
+    content = prependWebConfigIfMissing(content, options);
+  }
 
   return { content };
 }
