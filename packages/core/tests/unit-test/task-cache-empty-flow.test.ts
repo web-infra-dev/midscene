@@ -25,35 +25,39 @@ describe('matchPlanCache empty flow guard', () => {
     return cache;
   }
 
-  it('should return undefined when yamlWorkflow has tasks with empty flow', () => {
+  it('should mark cache as unusable when yamlWorkflow has tasks with empty flow', () => {
     const yamlWorkflow = `tasks:
   - name: test prompt
     flow: []
 `;
     const cache = createCacheWithPlan(yamlWorkflow);
     const result = cache.matchPlanCache('test prompt');
-    expect(result).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result?.cacheUsable).toBe(false);
   });
 
-  it('should return undefined when yamlWorkflow is empty string', () => {
+  it('should mark cache as unusable when yamlWorkflow is empty string', () => {
     const cache = createCacheWithPlan('');
     const result = cache.matchPlanCache('test prompt');
-    expect(result).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result?.cacheUsable).toBe(false);
   });
 
-  it('should return undefined when yamlWorkflow is whitespace only', () => {
+  it('should mark cache as unusable when yamlWorkflow is whitespace only', () => {
     const cache = createCacheWithPlan('   \n\t  ');
     const result = cache.matchPlanCache('test prompt');
-    expect(result).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result?.cacheUsable).toBe(false);
   });
 
-  it('should return undefined when yamlWorkflow has no flow field', () => {
+  it('should mark cache as unusable when yamlWorkflow has no flow field', () => {
     const yamlWorkflow = `tasks:
   - name: test prompt
 `;
     const cache = createCacheWithPlan(yamlWorkflow);
     const result = cache.matchPlanCache('test prompt');
-    expect(result).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result?.cacheUsable).toBe(false);
   });
 
   it('should return cache when yamlWorkflow has non-empty flow', () => {
@@ -61,16 +65,45 @@ describe('matchPlanCache empty flow guard', () => {
   - name: test prompt
     flow:
       - aiTap: submit button
-`;
+  `;
     const cache = createCacheWithPlan(yamlWorkflow);
     const result = cache.matchPlanCache('test prompt');
     expect(result).toBeDefined();
+    expect(result?.cacheUsable).toBe(true);
     expect(result?.cacheContent.yamlWorkflow).toBe(yamlWorkflow);
   });
 
-  it('should return undefined when yamlWorkflow is invalid YAML', () => {
+  it('should mark cache as unusable when yamlWorkflow is invalid YAML', () => {
     const cache = createCacheWithPlan(': : : invalid yaml [[[');
     const result = cache.matchPlanCache('test prompt');
-    expect(result).toBeUndefined();
+    expect(result).toBeDefined();
+    expect(result?.cacheUsable).toBe(false);
+  });
+
+  it('should update the matched invalid cache record instead of appending a new one', () => {
+    const cache = createCacheWithPlan(`tasks:
+  - name: test prompt
+    flow: []
+`);
+    const matched = cache.matchPlanCache('test prompt');
+
+    cache.updateOrAppendCacheRecord(
+      {
+        type: 'plan',
+        prompt: 'test prompt',
+        yamlWorkflow: `tasks:
+  - name: test prompt
+    flow:
+      - aiTap: submit button
+`,
+      },
+      matched,
+    );
+
+    const internal = getTaskCacheInternal(cache);
+    expect(internal.cache.caches).toHaveLength(1);
+    expect((internal.cache.caches[0] as any).yamlWorkflow).toContain(
+      'aiTap: submit button',
+    );
   });
 });

@@ -837,7 +837,7 @@ export class Agent<
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
-        matchedCache &&
+        matchedCache?.cacheUsable &&
         this.taskCache?.isCacheResultUsed &&
         matchedCache.cacheContent?.yamlWorkflow?.trim()
       ) {
@@ -853,7 +853,7 @@ export class Agent<
         return;
       }
 
-      // If cache matched but yamlWorkflow is empty, fall through to normal execution
+      // If cache matched but is not executable, fall through to normal execution
       const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,

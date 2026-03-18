@@ -82,6 +82,49 @@ describe('TaskCache', { timeout: 20000 }, () => {
     expect(cache.cache.caches).toMatchSnapshot();
   });
 
+  it('should overwrite a matched unusable plan cache instead of appending a duplicate', () => {
+    const cacheFilePath = prepareCache([
+      {
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: `tasks:
+  - name: test-prompt
+    flow: []
+`,
+      },
+    ]);
+
+    const cache = new TaskCache(uuid(), true, cacheFilePath);
+    const matched = cache.matchPlanCache('test-prompt');
+
+    expect(matched).toBeDefined();
+    expect(matched?.cacheUsable).toBe(false);
+
+    cache.updateOrAppendCacheRecord(
+      {
+        type: 'plan',
+        prompt: 'test-prompt',
+        yamlWorkflow: `tasks:
+  - name: test-prompt
+    flow:
+      - aiTap: submit button
+`,
+      },
+      matched,
+    );
+
+    expect(cache.cache.caches).toHaveLength(1);
+
+    const reloadedCache = new TaskCache(uuid(), true, cacheFilePath);
+    const reloadedMatch = reloadedCache.matchPlanCache('test-prompt');
+
+    expect(reloadedMatch).toBeDefined();
+    expect(reloadedMatch?.cacheUsable).toBe(true);
+    expect(reloadedMatch?.cacheContent.yamlWorkflow).toContain(
+      'aiTap: submit button',
+    );
+  });
+
   it('one cache record can only be matched once - when loaded from file', () => {
     const cacheFilePath = prepareCache([
       {

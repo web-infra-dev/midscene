@@ -37,6 +37,7 @@ export interface LocateCache {
 
 export interface MatchCacheResult<T extends PlanningCache | LocateCache> {
   cacheContent: T;
+  cacheUsable: boolean;
   updateFn: (cb: (cache: T) => void) => void;
 }
 
@@ -153,6 +154,7 @@ export class TaskCache {
         );
         return {
           cacheContent: item,
+          cacheUsable: true,
           updateFn: (cb: (cache: PlanningCache | LocateCache) => void) => {
             debug(
               'will call updateFn to update cache, type: %s, prompt: %s, index: %d',
@@ -195,7 +197,10 @@ export class TaskCache {
       debug(
         'plan cache matched but yamlWorkflow is empty, treat as cache miss',
       );
-      return undefined;
+      return {
+        ...result,
+        cacheUsable: false,
+      };
     }
     try {
       const parsed = yaml.load(yamlWorkflow) as any;
@@ -204,10 +209,19 @@ export class TaskCache {
       );
       if (!hasNonEmptyFlow) {
         debug('plan cache matched but flow is empty, treat as cache miss');
-        return undefined;
+        return {
+          ...result,
+          cacheUsable: false,
+        };
       }
     } catch {
-      return undefined;
+      debug(
+        'plan cache matched but yamlWorkflow is invalid, treat as cache miss',
+      );
+      return {
+        ...result,
+        cacheUsable: false,
+      };
     }
     return result;
   }
