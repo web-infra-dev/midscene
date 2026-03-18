@@ -184,6 +184,8 @@ export const parseOpenaiSdkConfig = ({
     keys.openaiExtraConfig,
     openaiExtraConfigStr || legacyOpenaiExtraConfig,
   );
+  const extraBodyStr: string | undefined = provider[keys.extraBody];
+  const extraBody = parseJson(keys.extraBody, extraBodyStr);
   const temperature = provider[keys.temperature]
     ? Number(provider[keys.temperature])
     : 0;
@@ -200,6 +202,7 @@ export const parseOpenaiSdkConfig = ({
     openaiBaseURL,
     openaiApiKey,
     openaiExtraConfig,
+    extraBody,
     modelFamily,
     uiTarsModelVersion,
     modelName: modelName!,
