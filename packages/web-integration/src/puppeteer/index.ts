@@ -5,6 +5,7 @@ import type { Page as PuppeteerPage } from 'puppeteer';
 import semver from 'semver';
 import { getWebpackRequire } from '../utils';
 import {
+  BROWSER_NAVIGATION_ERROR_PATTERN,
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
 } from './base-page';
@@ -29,6 +30,13 @@ export { PuppeteerWebPage } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
+  protected isRetryableContextError(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      BROWSER_NAVIGATION_ERROR_PATTERN.test(error.message)
+    );
+  }
+
   constructor(page: PuppeteerPage, opts?: WebPageAgentOpt) {
     if (!page) {
       throw new Error(

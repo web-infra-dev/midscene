@@ -11,6 +11,7 @@ import type { WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import semver from 'semver';
 import {
+  BROWSER_NAVIGATION_ERROR_PATTERN,
   forceChromeSelectRendering as applyChromeSelectRendering,
   forceClosePopup,
 } from '../puppeteer/base-page';
@@ -32,6 +33,13 @@ function getPlaywrightVersion(): string | null {
 }
 
 export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
+  protected isRetryableContextError(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      BROWSER_NAVIGATION_ERROR_PATTERN.test(error.message)
+    );
+  }
+
   constructor(page: PlaywrightPage, opts?: WebPageAgentOpt) {
     if (!page) {
       throw new Error(
