@@ -100,7 +100,7 @@ const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
   }
 };
 
-const buildSpecialStringActionParam = (
+const buildLaunchOrAdbShellParam = (
   actionName: string,
   interfaceAlias: string | undefined,
   value: string,
@@ -555,7 +555,7 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
         let stringParamToCall: string | undefined;
         const specialActionParamToCall =
           typeof actionParamForMatchedAction === 'string'
-            ? buildSpecialStringActionParam(
+            ? buildLaunchOrAdbShellParam(
                 matchedAction.name,
                 matchedAction.interfaceAlias,
                 actionParamForMatchedAction,
