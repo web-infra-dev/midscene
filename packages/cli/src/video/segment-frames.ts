@@ -54,7 +54,7 @@ export function detectSceneChanges(
   debug(
     `Detected ${timestamps.length} scene changes at: ${timestamps.map((t) => t.toFixed(1)).join(', ')}`,
   );
-  return timestamps.sort((a, b) => a - b);
+  return timestamps;
 }
 
 /**

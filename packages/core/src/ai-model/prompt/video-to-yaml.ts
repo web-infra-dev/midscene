@@ -317,7 +317,6 @@ export async function generateFromVideoSegment(
   frames: VideoFrame[],
   options: VideoToScriptOptions,
   segmentInfo: VideoSegmentInfo,
-  format: VideoScriptFormat,
   modelConfig: IModelConfig,
 ): Promise<{ content: string }> {
   const systemPrompt = buildSegmentSystemPrompt();

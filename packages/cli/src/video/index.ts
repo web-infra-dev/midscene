@@ -167,7 +167,6 @@ export async function video2yaml(options: Video2YamlOptions): Promise<string> {
         total: segments.length,
         timeRange: [segment.startTimestamp, segment.endTimestamp],
       },
-      format,
       modelConfig,
     );
     // Skip empty segments
