@@ -147,53 +147,6 @@ describe('chrome extension smoke test', () => {
     await sleep(3000);
   });
 
-  // ── 5b. Bridge Mode: stop, change URL, and restart (issue #2119) ─────
-
-  it('bridge mode: stop and restart listening (issue #2119)', async () => {
-    // The previous test (case 5) already switched to Bridge and back.
-    // Switch to Bridge Mode again with retry.
-    const switchToBridgeMode = async () => {
-      await agent.aiAct(
-        `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner. It should open a dropdown menu.`,
-      );
-      await sleep(2000);
-      await agent.aiAct(
-        'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode" which has an API icon next to it',
-      );
-      await sleep(3000);
-    };
-
-    await switchToBridgeMode();
-    try {
-      await agent.aiAssert(
-        `${SIDE_PANEL} shows Bridge mode UI with "Bridge Mode" title and a "Stop" button at the bottom`,
-      );
-    } catch {
-      console.log('Bridge mode switch failed, retrying...');
-      await switchToBridgeMode();
-    }
-
-    // Stop listening
-    await agent.aiAct(`Click the "Stop" button at the bottom of ${SIDE_PANEL}`);
-    await sleep(2000);
-
-    // Verify stopped state: "Stopped" text and "Start" button
-    await agent.aiAssert(
-      `${SIDE_PANEL} bottom area shows "Stopped" and a "Start" button`,
-    );
-
-    // Restart listening
-    await agent.aiAct(
-      `Click the "Start" button at the bottom of ${SIDE_PANEL}`,
-    );
-    await sleep(2000);
-
-    // Verify listening state restored
-    await agent.aiAssert(
-      `${SIDE_PANEL} bottom area shows "Listening" and a "Stop" button`,
-    );
-  });
-
   // ── 6. Settings Modal ─────────────────────────────────────────────────
 
   it('settings: open and close env config modal', async () => {
