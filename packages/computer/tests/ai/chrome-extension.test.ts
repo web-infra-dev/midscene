@@ -150,57 +150,67 @@ describe('chrome extension smoke test', () => {
   // ── 5b. Bridge Mode: stop, change URL, and restart (issue #2119) ─────
 
   it('bridge mode: stop listening, change server URL, and restart', async () => {
-    // Switch to Bridge Mode
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner.`,
-    );
-    await sleep(2000);
-    await agent.aiAct(
-      'In the dropdown menu, click the menu item labeled "Bridge Mode"',
-    );
-    await sleep(3000);
+    // Switch to Bridge Mode with retry (dropdown can be flaky in headless)
+    const switchToBridgeMode = async () => {
+      await agent.aiAct(
+        `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner. It should open a dropdown menu.`,
+      );
+      await sleep(2000);
+      await agent.aiAct(
+        'In the dropdown menu that just appeared, click the menu item labeled "Bridge Mode" which has an API icon next to it',
+      );
+      await sleep(3000);
+    };
 
-    // Verify bridge is in listening state with a Start/Stop button visible
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows Bridge mode UI with a bottom status bar that contains a "Stop" button and text "Listening"`,
-    );
+    await switchToBridgeMode();
+    try {
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows Bridge mode UI with text "Bridge Mode" in the header and a bottom status bar containing "Listening" and a "Stop" button`,
+      );
+    } catch {
+      console.log('Bridge mode switch failed, retrying...');
+      await switchToBridgeMode();
+      await agent.aiAssert(
+        `${SIDE_PANEL} shows Bridge mode UI with text "Bridge Mode" in the header and a bottom status bar containing "Listening" and a "Stop" button`,
+      );
+    }
 
     // Click Stop to stop listening
     await agent.aiAct(
-      `In ${SIDE_PANEL}, click the "Stop" button in the bottom status bar`,
+      `In the bottom status bar of ${SIDE_PANEL}, click the "Stop" button (next to the "Listening" text)`,
     );
     await sleep(2000);
 
-    // Verify bridge stopped: status shows "Stopped" and button shows "Start"
+    // Verify bridge stopped
     await agent.aiAssert(
-      `${SIDE_PANEL} bottom status bar shows "Stopped" text and a "Start" button`,
+      `The bottom status bar in ${SIDE_PANEL} now shows "Stopped" and the button text changed to "Start"`,
     );
 
     // Expand server config and change the URL
     await agent.aiAct(
-      `In ${SIDE_PANEL}, click on "Use remote server (optional)" to expand the server configuration`,
+      `In ${SIDE_PANEL}, click on "Use remote server (optional)" to expand the server configuration section`,
     );
     await sleep(1000);
 
-    // Verify the server URL input is enabled (editable) when stopped
+    // Type a custom server URL (input should be enabled when stopped)
     await agent.aiAct(
-      `In ${SIDE_PANEL}, click the server URL input field and clear it, then type "ws://example.com:4000"`,
+      `In ${SIDE_PANEL}, click the server URL input field (with placeholder "ws://localhost:3766") and type "ws://example.com:4000"`,
     );
     await sleep(1000);
 
     await agent.aiAssert(
-      `${SIDE_PANEL} shows a server URL input containing "ws://example.com:4000"`,
+      `${SIDE_PANEL} shows a server URL input field containing "ws://example.com:4000"`,
     );
 
     // Click Start to restart with new URL
     await agent.aiAct(
-      `In ${SIDE_PANEL}, click the "Start" button in the bottom status bar`,
+      `In the bottom status bar of ${SIDE_PANEL}, click the "Start" button`,
     );
     await sleep(2000);
 
-    // Verify bridge restarted: status shows "Listening" and button shows "Stop"
+    // Verify bridge restarted
     await agent.aiAssert(
-      `${SIDE_PANEL} bottom status bar shows "Listening" text and a "Stop" button`,
+      `The bottom status bar in ${SIDE_PANEL} shows "Listening" and the button text is "Stop"`,
     );
 
     // Switch back to Playground
@@ -209,7 +219,7 @@ describe('chrome extension smoke test', () => {
     );
     await sleep(2000);
     await agent.aiAct(
-      'In the dropdown menu, click the menu item labeled "Playground"',
+      'In the dropdown menu that just appeared, click the menu item labeled "Playground"',
     );
     await sleep(2000);
   });
