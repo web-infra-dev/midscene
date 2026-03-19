@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
+  injectBridgePermission,
   injectExtensionConfig,
   launchChromeWithExtension,
   readExtensionId,
@@ -134,8 +135,9 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
       'The browser shows a side panel on the right side containing Midscene or Playground UI',
     );
 
-    // Inject env config
+    // Inject env config and bridge permission (auto-allow connections)
     await injectExtensionConfig(extId);
+    await injectBridgePermission(extId);
     const target = await findExtensionPageTarget(extId);
     if (target?.webSocketDebuggerUrl) {
       await reloadViaWebSocket(target.webSocketDebuggerUrl);

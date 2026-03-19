@@ -313,6 +313,43 @@ export async function injectExtensionConfig(
   await injectViaWebSocket(target.webSocketDebuggerUrl!, configString);
 }
 
+/**
+ * Set bridge permission to "always allow" via CDP, so the confirm dialog
+ * does not appear when a bridge server connects.
+ */
+export async function injectBridgePermission(
+  extensionId: string,
+): Promise<void> {
+  const target = await findExtensionPageTarget(extensionId);
+  if (!target?.webSocketDebuggerUrl) {
+    console.log('No extension page target for bridge permission injection');
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(target.webSocketDebuggerUrl!);
+    ws.onopen = () => {
+      cdpSend(ws, 1, 'Runtime.evaluate', {
+        expression:
+          'chrome.storage.local.set({ midscene_bridge_permission: { alwaysAllow: true } })',
+      });
+    };
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id === 1) {
+        console.log('Bridge permission (alwaysAllow) injected via CDP');
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('Bridge permission injection timed out'));
+    }, CDP_INJECTION_TIMEOUT);
+  });
+}
+
 export async function reloadViaWebSocket(wsUrl: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(wsUrl);
