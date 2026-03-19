@@ -225,7 +225,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
         // During deepThink -> deepLocate migration:
         // keep deepThink only for aiAct, and avoid passing it to non-aiAct actions.
-        if (actionType !== 'aiAct' && deepThink) {
+        if (actionType !== 'aiAct' && deepThink === true) {
           console.warn(
             '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct.',
             {
@@ -234,10 +234,15 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             },
           );
         }
+        // Only pass deepThink when it's explicitly set (true/false), not when 'unset'
+        // so that model-level reasoningEnabled from env config is respected
+        const resolvedDeepThink = deepThink === 'unset' ? undefined : deepThink;
         const executionOptions = {
           requestId: thisRunningId.toString(),
           deepLocate,
-          ...(actionType === 'aiAct' ? { deepThink } : {}),
+          ...(actionType === 'aiAct' && resolvedDeepThink !== undefined
+            ? { deepThink: resolvedDeepThink }
+            : {}),
           screenshotIncluded,
           domIncluded,
           deviceOptions: {
