@@ -2,16 +2,18 @@
  * E2E test for Chrome extension Bridge Mode start/stop controls.
  *
  * Verifies the fix for https://github.com/web-infra-dev/midscene/issues/2119:
- * - Bridge mode shows a Stop button when listening
- * - Clicking Stop changes status to "Stopped" and button to "Start"
- * - Server URL input becomes editable after stopping
- * - Clicking Start restarts bridge with "Listening" status
+ * - Bridge mode can connect to a real BridgeServer → UI shows "Connected"
+ * - Clicking Stop disconnects → UI shows "Stopped"
+ * - After stopping, a new BridgeServer gets no connection
+ * - Clicking Start re-enables listening and can connect again
  *
- * This test launches its own Chrome instance with the extension loaded.
+ * This test launches Chrome with the extension and starts real bridge
+ * servers (via child process) to verify actual WebSocket connections.
  */
+import { type ChildProcess, spawn } from 'node:child_process';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
-import { beforeAll, describe, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ComputerAgent, agentFromComputer } from '../../src';
 import {
   findExtensionPageTarget,
@@ -25,6 +27,76 @@ vi.setConfig({ testTimeout: 360 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
+const BRIDGE_PORT = 3766;
+const SERVER_SCRIPT = path.resolve(
+  __dirname,
+  '../../../web-integration/tests/bridge-test-server.mjs',
+);
+const WEB_INTEGRATION_DIR = path.resolve(__dirname, '../../../web-integration');
+
+/**
+ * Start a bridge test server as a child process.
+ * Returns the process and a promise-based API for waiting on events.
+ */
+function startBridgeServer(port = BRIDGE_PORT): {
+  proc: ChildProcess;
+  waitForConnected: (timeoutMs?: number) => Promise<boolean>;
+  waitForDisconnected: (timeoutMs?: number) => Promise<boolean>;
+  kill: () => void;
+} {
+  const proc = spawn('node', [SERVER_SCRIPT, String(port)], {
+    cwd: WEB_INTEGRATION_DIR,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  const events: string[] = [];
+
+  proc.stdout?.on('data', (data: Buffer) => {
+    const line = data.toString().trim();
+    console.log(`[BridgeServer] ${line}`);
+    events.push(line);
+  });
+
+  proc.stderr?.on('data', (data: Buffer) => {
+    console.error(`[BridgeServer stderr] ${data.toString().trim()}`);
+  });
+
+  const waitForEvent = (event: string, timeoutMs = 15000): Promise<boolean> => {
+    return new Promise((resolve) => {
+      // Check if already received
+      if (events.includes(event)) {
+        resolve(true);
+        return;
+      }
+
+      const onData = (data: Buffer) => {
+        if (data.toString().includes(event)) {
+          clearTimeout(timer);
+          proc.stdout?.off('data', onData);
+          resolve(true);
+        }
+      };
+
+      const timer = setTimeout(() => {
+        proc.stdout?.off('data', onData);
+        resolve(false);
+      }, timeoutMs);
+
+      proc.stdout?.on('data', onData);
+    });
+  };
+
+  return {
+    proc,
+    waitForConnected: (timeoutMs?: number) =>
+      waitForEvent('CONNECTED', timeoutMs),
+    waitForDisconnected: (timeoutMs?: number) =>
+      waitForEvent('DISCONNECTED', timeoutMs),
+    kill: () => {
+      proc.kill('SIGTERM');
+    },
+  };
+}
 
 describe('chrome extension bridge mode start/stop (#2119)', () => {
   let agent: ComputerAgent;
@@ -47,10 +119,9 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     console.log('Extension ID:', extId);
   });
 
-  // ── Setup: open side panel ──────────────────────────────────────────
+  // ── Setup: open side panel and switch to Bridge Mode ─────────────────
 
   it('open side panel and switch to Bridge Mode', async () => {
-    // Open side panel
     await agent.aiAct(
       'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
     );
@@ -97,9 +168,27 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     }
   });
 
-  // ── Test: stop listening ──────────────────────────────────────────────
+  // ── Test: bridge connects to a real server ────────────────────────────
 
-  it('stop bridge listening', async () => {
+  it('bridge connects to a real server and shows Connected', async () => {
+    // Extension auto-starts listening, retries every 3s on ws://localhost:3766
+    // Start a bridge server — extension should connect within ~15s
+    const server = startBridgeServer();
+
+    const connected = await server.waitForConnected(15000);
+    expect(connected).toBe(true);
+
+    // Verify the UI shows "Connected"
+    await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
+
+    // Kill the server so we can test stop behavior
+    server.kill();
+    await sleep(2000);
+  });
+
+  // ── Test: stop bridge ─────────────────────────────────────────────────
+
+  it('stop bridge and verify Stopped status', async () => {
     await agent.aiAct(`Click the "Stop" button at the bottom of ${SIDE_PANEL}`);
     await sleep(2000);
 
@@ -108,34 +197,45 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     );
   });
 
-  // ── Test: server URL editable when stopped ────────────────────────────
+  // ── Test: after stop, server gets no connection ───────────────────────
 
-  it('server URL input is editable when bridge is stopped', async () => {
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, click on "Use remote server (optional)" to expand the server configuration section`,
-    );
+  it('after stop, a new server gets no connection', async () => {
+    const server = startBridgeServer();
+
+    // Wait 10s — extension should NOT connect because bridge is stopped
+    const connected = await server.waitForConnected(10000);
+    expect(connected).toBe(false);
+
+    console.log('[Test] Confirmed: no connection while bridge is stopped');
+    server.kill();
     await sleep(1000);
-
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, click the server URL input field (with placeholder "ws://localhost:3766") and type "ws://example.com:4000"`,
-    );
-    await sleep(1000);
-
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a server URL input field containing "ws://example.com:4000"`,
-    );
   });
 
-  // ── Test: restart listening ───────────────────────────────────────────
+  // ── Test: restart and connect again ───────────────────────────────────
 
-  it('restart bridge listening', async () => {
+  it('restart bridge and connect to server again', async () => {
+    // Start a new server before clicking Start
+    const server = startBridgeServer();
+    await sleep(1000);
+
+    // Click Start in the UI
     await agent.aiAct(
       `Click the "Start" button at the bottom of ${SIDE_PANEL}`,
     );
     await sleep(2000);
 
+    // Verify UI shows "Listening"
     await agent.aiAssert(
-      `${SIDE_PANEL} bottom area shows "Listening" and a "Stop" button`,
+      `${SIDE_PANEL} bottom area shows "Listening" or "Connected"`,
     );
+
+    // Wait for actual connection
+    const connected = await server.waitForConnected(15000);
+    expect(connected).toBe(true);
+
+    // Verify UI shows "Connected"
+    await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
+
+    server.kill();
   });
 });
