@@ -57,8 +57,8 @@ export function useFramePlayer(options: UseFramePlayerOptions): FramePlayer {
               frameRef.current = 0;
               setCurrentFrame(0);
             } else {
-              frameRef.current = durationRef.current - 1;
-              setCurrentFrame(durationRef.current - 1);
+              frameRef.current = 0;
+              setCurrentFrame(0);
               setPlaying(false);
               return;
             }

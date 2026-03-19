@@ -124,15 +124,22 @@ export function Player(props?: {
     playbackRate: playbackSpeed,
   });
 
-  // Track frame for taskId callback
+  // Track frame for taskId callback (only while playing)
   useEffect(() => {
     if (!frameMap || !props?.onTaskChange) return;
+    if (!player.playing) {
+      if (lastTaskIdRef.current !== null) {
+        lastTaskIdRef.current = null;
+        props.onTaskChange(null);
+      }
+      return;
+    }
     const taskId = deriveTaskId(frameMap.scriptFrames, player.currentFrame);
     if (taskId !== lastTaskIdRef.current) {
       lastTaskIdRef.current = taskId;
       props.onTaskChange(taskId);
     }
-  }, [frameMap, props?.onTaskChange, player.currentFrame]);
+  }, [frameMap, props?.onTaskChange, player.currentFrame, player.playing]);
 
   const currentFrameState = useMemo(() => {
     if (!frameMap) return null;
