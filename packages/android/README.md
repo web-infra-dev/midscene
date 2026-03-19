@@ -1,9 +1,5 @@
-## Documentation
+# @midscene/android
 
-Automate UI actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.
+Android automation library for Midscene, providing AI-powered testing and automation capabilities for Android devices.
 
-See https://midscenejs.com/ for details.
-
-## License
-
-Midscene is MIT licensed.
+See <https://midscenejs.com/android-introduction.html>.

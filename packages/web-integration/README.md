@@ -1,9 +1,7 @@
-## Documentation
+# @midscene/web
 
-Automate UI actions, extract data, and perform assertions using AI. It offers JavaScript SDK, Chrome extension, and support for scripting in YAML.
+Automate UI actions, extract data, and perform assertions using AI for web browsers.
 
-See https://midscenejs.com/ for details.
-
-## License
-
-Midscene is MIT licensed.
+- **Playwright integration**: <https://midscenejs.com/integrate-with-playwright.html>
+- **Puppeteer integration**: <https://midscenejs.com/integrate-with-puppeteer.html>
+- **Bridge mode**: <https://midscenejs.com/bridge-mode.html>
