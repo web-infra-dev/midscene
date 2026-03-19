@@ -8,7 +8,8 @@
     "dev:rsdoctor": "RSDOCTOR=true rsbuild dev",
     "build:rsdoctor": "RSDOCTOR=true rsbuild build",
     "preview": "rsbuild preview",
-    "e2e": "node ../../packages/cli/bin/midscene ./e2e/"
+    "generate-demo": "npx tsx scripts/generate-demo-report.ts",
+    "e2e": "npx tsx scripts/generate-demo-report.ts && node ../../packages/cli/bin/midscene ./e2e/"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",

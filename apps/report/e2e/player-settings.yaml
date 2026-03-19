@@ -1,0 +1,44 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: subtitle toggle works
+    flow:
+      - sleep: 2000
+      - aiAssert: There is a subtitle text overlay at the bottom of the player area
+      - ai: Click the settings gear icon on the player controls bar
+      - sleep: 500
+      - ai: Toggle off the subtitle switch
+      - sleep: 500
+      - ai: Click on the player area to dismiss the settings popup
+      - sleep: 500
+      - aiAssert: There is no subtitle text overlay at the bottom of the player area
+
+  - name: focus on cursor toggle works
+    flow:
+      - ai: Click the settings gear icon on the player controls bar
+      - sleep: 500
+      - ai: Toggle off the 'Focus on cursor' switch
+      - sleep: 500
+      - ai: Click on the player area to dismiss the settings popup
+      - sleep: 500
+      - aiAssert: The player is showing the full page screenshot without any zoomed-in view
+
+  - name: playback speed can be changed
+    flow:
+      - ai: Click the settings gear icon on the player controls bar
+      - sleep: 500
+      - ai: Select '0.5x' playback speed option
+      - sleep: 500
+      - ai: Click on the player area to dismiss the settings popup
+      - sleep: 1000
+      - aiAssert: The player is still playing content at a slower speed
+
+  - name: case selector works when multiple cases exist
+    flow:
+      - ai: Click on the case selector dropdown at the top of the sidebar
+      - sleep: 500
+      - aiAssert: A dropdown list is visible showing multiple test case options
+      - ai: Click on the second test case option in the dropdown
+      - sleep: 2000
+      - aiAssert: The sidebar content has changed to show tasks from a different test case

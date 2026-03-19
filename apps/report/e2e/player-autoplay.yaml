@@ -1,0 +1,18 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: player autoplay starts automatically
+    flow:
+      - sleep: 2000
+      - aiAssert: There is a video player area with a progress bar showing playback time
+      - aiAssert: There is a pause button (not play button) visible, indicating the player is currently playing
+
+  - name: player controls work
+    flow:
+      - ai: Click the pause button on the player controls bar
+      - sleep: 500
+      - aiAssert: There is a play button (triangle icon) visible, indicating the player is paused
+      - ai: Click the play button on the player controls bar
+      - sleep: 1000
+      - aiAssert: There is a pause button visible, indicating the player is playing again

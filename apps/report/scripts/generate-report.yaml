@@ -1,0 +1,21 @@
+# This YAML is used to generate a real report for e2e testing.
+# It runs a simple test against a public website to produce a report with
+# multiple tasks, screenshots, and assertions.
+web:
+  url: https://www.saucedemo.com/
+
+tasks:
+  - name: login to sauce demo
+    flow:
+      - ai: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
+
+  - name: verify inventory page
+    flow:
+      - aiAssert: The page shows a list of products with prices
+      - aiQuery: '{name: string, price: string}[]'
+        name: products
+
+  - name: add item to cart
+    flow:
+      - ai: Click the 'Add to cart' button on the first product
+      - aiAssert: The cart badge shows 1 item
