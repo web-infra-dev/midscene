@@ -170,8 +170,18 @@ jobs:
       run: pnpm run build:skip-cache
 
     - name: Run Chrome extension unit tests (bridge start/stop)
-      run: npx nx test chrome-extension -- --run tests/bridge-start-stop.test.ts
+      run: npx nx test chrome-extension -- --run tests/bridge-start-stop.test.ts --reporter=default --reporter=junit --outputFile=test-results/bridge-unit.xml
       timeout-minutes: 5
+      id: test-unit
+      continue-on-error: true
+
+    - name: Upload bridge unit test report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: bridge-unit-test-report
+        path: apps/chrome-extension/test-results/bridge-unit.xml
+        if-no-files-found: ignore
 
     - name: Run Chrome extension test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
@@ -179,7 +189,7 @@ jobs:
       id: test-ext
       continue-on-error: true
 
-    - name: Upload test report
+    - name: Upload AI e2e test report
       if: always()
       uses: actions/upload-artifact@v4
       with:
@@ -187,6 +197,9 @@ jobs:
         path: packages/computer/midscene_run/report
         if-no-files-found: ignore
 
-    - name: Check test result
-      if: steps.test-ext.outcome == 'failure'
-      run: exit 1
+    - name: Check test results
+      if: steps.test-unit.outcome == 'failure' || steps.test-ext.outcome == 'failure'
+      run: |
+        echo "Unit test: ${{ steps.test-unit.outcome }}"
+        echo "E2E test: ${{ steps.test-ext.outcome }}"
+        exit 1
