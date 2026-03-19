@@ -573,11 +573,17 @@ export const ActionPinchParamSchema = z.object({
     .describe(
       'The element to pinch on. If not specified, the center of the screen will be used',
     ),
-  scale: z
-    .number()
-    .positive('scale must be greater than 0')
+  direction: z
+    .enum(['in', 'out'])
     .describe(
-      'Scale factor. >1 means zoom in (spread fingers apart), <1 means zoom out (pinch fingers together). e.g. 2 means zoom in to 200%, 0.5 means zoom out to 50%',
+      'Pinch direction. "in" = pinch fingers together (zoom out / shrink), "out" = spread fingers apart (zoom in / enlarge).',
+    ),
+  distance: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      'How far each finger moves in pixels. Defaults to a quarter of the shorter screen dimension.',
     ),
   duration: z
     .number()
@@ -588,7 +594,8 @@ export const ActionPinchParamSchema = z.object({
 
 export type ActionPinchParam = {
   locate?: LocateResultElement;
-  scale: number;
+  direction: 'in' | 'out';
+  distance?: number;
   duration?: number;
 };
 
@@ -598,12 +605,13 @@ export const defineActionPinch = (
   return defineAction<typeof ActionPinchParamSchema, ActionPinchParam>({
     name: 'Pinch',
     description:
-      'Perform a two-finger pinch gesture to zoom in or zoom out. Use scale > 1 to zoom in (spread fingers apart), scale < 1 to zoom out (pinch fingers together). For example, scale=2 zooms in to 200%, scale=0.5 zooms out to 50%.',
+      'Perform a two-finger pinch gesture. Use direction "in" to pinch fingers together (zoom out), or "out" to spread fingers apart (zoom in). Optionally specify distance for how far each finger moves.',
     interfaceAlias: 'aiPinch',
     paramSchema: ActionPinchParamSchema,
     sample: {
       locate: { prompt: 'the map area' },
-      scale: 2,
+      direction: 'out',
+      distance: 200,
     },
     call,
   });
@@ -630,8 +638,13 @@ export function normalizePinchParam(
   const duration = param.duration ?? 500;
 
   const baseDistance = Math.round(Math.min(width, height) / 4);
+  const fingerDistance = param.distance ?? baseDistance;
+
   const startDistance = baseDistance;
-  const endDistance = Math.round(baseDistance * param.scale);
+  const endDistance =
+    param.direction === 'out'
+      ? baseDistance + fingerDistance
+      : Math.max(10, baseDistance - fingerDistance);
 
   return { centerX, centerY, startDistance, endDistance, duration };
 }

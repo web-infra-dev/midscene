@@ -782,7 +782,11 @@ export class Agent<
 
   async aiPinch(
     locatePrompt: TUserPrompt | undefined,
-    opt: LocateOption & { scale: number; duration?: number },
+    opt: LocateOption & {
+      direction: 'in' | 'out';
+      distance?: number;
+      duration?: number;
+    },
   ) {
     const detailedLocateParam = buildDetailedLocateParam(
       locatePrompt || '',

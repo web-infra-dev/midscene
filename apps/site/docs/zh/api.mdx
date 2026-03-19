@@ -477,7 +477,8 @@ await agent.aiScroll(
 function aiPinch(
   locate: string | Object | undefined,
   opt: {
-    scale: number;
+    direction: 'in' | 'out';
+    distance?: number;
     duration?: number;
     deepLocate?: boolean;
     xpath?: string;
@@ -490,7 +491,8 @@ function aiPinch(
 
   - `locate: string | Object | undefined` - 用自然语言描述的缩放目标元素，或[使用图片作为提示词](#使用图片作为提示词)。如果未传入，缩放将在屏幕中心执行。
   - `opt: Object` - 配置对象，包含：
-    - `scale: number` - **必填。** 缩放比例。`scale > 1` 表示放大（双指张开），`scale < 1` 表示缩小（双指收拢）。例如 `2` 表示放大到 200%，`0.5` 表示缩小到 50%。
+    - `direction: 'in' | 'out'` - **必填。** `"in"` = 双指收拢（缩小），`"out"` = 双指张开（放大）。
+    - `distance?: number` - 每根手指移动的距离（像素）。默认值为屏幕较短边的四分之一。
     - `duration?: number` - 缩放手势持续时间（毫秒），默认值为 `500`。
     - `deepLocate?: boolean` - 是否开启[深度定位](#深度定位deeplocate)。默认值为 false。
     - `xpath?: string` - 目标元素的 xpath 路径。默认值为空。
@@ -503,14 +505,14 @@ function aiPinch(
 - 示例：
 
 ```typescript
-// 在地图上放大到 300%
-await agent.aiPinch('地图区域', { scale: 3 });
+// 在地图上放大（双指张开）
+await agent.aiPinch('地图区域', { direction: 'out', distance: 200 });
 
-// 在屏幕中心缩小
-await agent.aiPinch(undefined, { scale: 0.5 });
+// 在屏幕中心缩小（双指收拢）
+await agent.aiPinch(undefined, { direction: 'in' });
 
 // 自定义持续时间放大
-await agent.aiPinch('图片', { scale: 2, duration: 1000 });
+await agent.aiPinch('图片', { direction: 'out', distance: 300, duration: 1000 });
 ```
 
 :::info 平台支持

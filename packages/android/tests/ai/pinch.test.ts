@@ -17,7 +17,6 @@ describe(
 
       await agent.launch('com.android.settings/.Settings');
 
-      // Use aiAct to test that AI can plan and execute a pinch action
       await agent.aiAct('pinch to zoom in on the screen');
     });
 
@@ -30,7 +29,6 @@ describe(
 
       await agent.launch('com.android.settings/.Settings');
 
-      // Use aiAct to test that AI can plan and execute a pinch action
       await agent.aiAct('pinch to zoom out on the screen');
     });
 
@@ -43,9 +41,9 @@ describe(
 
       await agent.launch('com.android.settings/.Settings');
 
-      // Test the direct aiPinch API
-      await agent.aiPinch(undefined, { scale: 2 });
-      await agent.aiPinch(undefined, { scale: 0.5 });
+      // pinch out = zoom in, pinch in = zoom out
+      await agent.aiPinch(undefined, { direction: 'out' });
+      await agent.aiPinch(undefined, { direction: 'in', distance: 200 });
     });
   },
   360 * 1000,

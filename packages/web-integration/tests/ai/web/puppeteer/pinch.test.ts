@@ -28,7 +28,6 @@ describe(
           enableTouchEventsInActionSpace: true,
         });
 
-        // Use aiAct to test that AI can plan and execute a pinch action
         await ctx.agent.aiAct('pinch to zoom in on the map');
       },
     );
@@ -51,9 +50,9 @@ describe(
         enableTouchEventsInActionSpace: true,
       });
 
-      // Test the direct aiPinch API - zoom in then zoom out
-      await ctx.agent.aiPinch(undefined, { scale: 2 });
-      await ctx.agent.aiPinch(undefined, { scale: 0.5 });
+      // pinch out = zoom in, pinch in = zoom out
+      await ctx.agent.aiPinch(undefined, { direction: 'out', distance: 200 });
+      await ctx.agent.aiPinch(undefined, { direction: 'in', distance: 200 });
     });
 
     it('Pinch action is not available without enableTouchEventsInActionSpace', async () => {
@@ -61,7 +60,6 @@ describe(
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
 
-      // Pinch should not be in the action space
       const actionSpace = await ctx.agent.getActionSpace();
       const pinchAction = actionSpace.find((a) => a.name === 'Pinch');
       expect(pinchAction).toBeUndefined();
@@ -85,7 +83,6 @@ describe(
         enableTouchEventsInActionSpace: true,
       });
 
-      // Pinch should be in the action space
       const actionSpace = await ctx.agent.getActionSpace();
       const pinchAction = actionSpace.find((a) => a.name === 'Pinch');
       expect(pinchAction).toBeDefined();

@@ -484,7 +484,8 @@ Perform a two-finger pinch gesture to zoom in or zoom out. Supported on Android,
 function aiPinch(
   locate: string | Object | undefined,
   opt: {
-    scale: number;
+    direction: 'in' | 'out';
+    distance?: number;
     duration?: number;
     deepLocate?: boolean;
     xpath?: string;
@@ -497,7 +498,8 @@ function aiPinch(
 
   - `locate: string | Object | undefined` - A natural language description of the element to pinch on, or [prompting with images](#prompting-with-images). If not provided, pinch will be performed at the center of the screen.
   - `opt: Object` - Configuration object containing:
-    - `scale: number` - **Required.** Scale factor. Use `scale > 1` to zoom in (spread fingers apart), `scale < 1` to zoom out (pinch fingers together). For example, `2` zooms in to 200%, `0.5` zooms out to 50%.
+    - `direction: 'in' | 'out'` - **Required.** `"in"` = pinch fingers together (zoom out), `"out"` = spread fingers apart (zoom in).
+    - `distance?: number` - How far each finger moves in pixels. Defaults to a quarter of the shorter screen dimension.
     - `duration?: number` - Duration of the pinch gesture in milliseconds. Defaults to `500`.
     - `deepLocate?: boolean` - Whether to enable [Deep Locate](#deep-locate-deeplocate). False by default.
     - `xpath?: string` - The xpath of the element to operate. Empty by default.
@@ -510,14 +512,14 @@ function aiPinch(
 - Examples:
 
 ```typescript
-// Zoom in on the map to 300%
-await agent.aiPinch('the map area', { scale: 3 });
+// Zoom in on the map (spread fingers apart)
+await agent.aiPinch('the map area', { direction: 'out', distance: 200 });
 
-// Zoom out at screen center
-await agent.aiPinch(undefined, { scale: 0.5 });
+// Zoom out at screen center (pinch fingers together)
+await agent.aiPinch(undefined, { direction: 'in' });
 
 // Zoom in with custom duration
-await agent.aiPinch('the image', { scale: 2, duration: 1000 });
+await agent.aiPinch('the image', { direction: 'out', distance: 300, duration: 1000 });
 ```
 
 :::info Platform Support

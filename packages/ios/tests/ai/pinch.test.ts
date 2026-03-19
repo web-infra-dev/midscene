@@ -21,7 +21,6 @@ describe(
 
       await agent.launch('com.apple.Maps');
 
-      // Use aiAct to test that AI can plan and execute a pinch action
       await agent.aiAct('pinch to zoom in on the map');
     });
 
@@ -38,7 +37,6 @@ describe(
 
       await agent.launch('com.apple.Maps');
 
-      // Use aiAct to test that AI can plan and execute a pinch action
       await agent.aiAct('pinch to zoom out on the map');
     });
 
@@ -55,9 +53,9 @@ describe(
 
       await agent.launch('com.apple.Maps');
 
-      // Test the direct aiPinch API
-      await agent.aiPinch('the map', { scale: 2 });
-      await agent.aiPinch('the map', { scale: 0.5 });
+      // pinch out = zoom in, pinch in = zoom out
+      await agent.aiPinch('the map', { direction: 'out', distance: 200 });
+      await agent.aiPinch('the map', { direction: 'in', distance: 200 });
     });
   },
   360 * 1000,
