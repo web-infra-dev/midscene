@@ -112,35 +112,44 @@ For more model selection suggestions, please refer to [Model Strategy](./model-s
 
 Verify that the `MIDSCENE_MODEL_FAMILY` parameter is set correctly in your model configuration. Incorrect `MIDSCENE_MODEL_FAMILY` configuration will affect Midscene's adaptation logic for the model. See [Model Configuration](./model-config) for details.
 
-### 4. Analyze the Cause of Positioning Offset
+### 4. Optimize prompts with visual features and position information
 
-Positioning offset typically occurs in two scenarios:
+If the positioning result randomly lands on unrelated elements and varies significantly between runs, the model usually cannot understand the semantics behind the icon button.
 
-**Scenario 1: The model cannot understand semantics**
-- Symptoms: Positioning results randomly fall on unrelated elements, with significant variation in results each time.
-- Cause: The model may not understand the semantics behind icon buttons. For example, `aiTap('profile center')` is a functional description, and the model may not know the specific style of a profile center icon; whereas `aiTap('person avatar icon')` is a visual description, and the model can locate the element based on its visual characteristics.
-- Solution: Optimize prompts by combining visual features and position information to describe the element.
-  ```typescript
-  // ❌ Using only functional description
-  await agent.aiTap('profile center');
+For example, `aiTap('profile center')` is a functional description, and the model may not know the specific appearance of a profile icon. In contrast, `aiTap('person avatar icon')` is a visual description, so the model can locate the element based on its visual characteristics.
 
-  // ✅ Using visual description
-  await agent.aiTap('person avatar icon');
+Solution: optimize prompts by combining visual features and position information to describe the element.
 
-  // ✅ Combining visual features and position information
-  await agent.aiTap('person avatar icon in the top right corner of the page');
-  ```
+```typescript
+// ❌ Using only a functional description
+await agent.aiTap('profile center');
 
-**Scenario 2: The model recognizes accurately but the positioning has deviation**
-- Symptoms: Positioning results fall near the target element but with a few pixels offset.
-- Solution: Enabling `deepThink` will significantly improve positioning effectiveness.
-  ```typescript
-  await agent.aiTap('Login button', {
-    deepThink: true
-  });
-  ```
+// ✅ Using a visual description
+await agent.aiTap('person avatar icon');
 
-For more information about `deepThink`, please refer to the [API documentation](/api).
+// ✅ Combining visual features and position information
+await agent.aiTap('person avatar icon in the top right corner of the page');
+```
+
+### 5. Enable `deepLocate`
+
+If the positioning result lands near the target element but is still off by a few pixels, the model has probably identified the right target but still has some positioning deviation.
+
+Solution: enabling `deepLocate` can significantly improve positioning accuracy.
+
+```typescript
+await agent.aiTap('Login button', {
+  deepLocate: true
+});
+```
+
+For more information about `deepLocate`, please refer to the [API documentation](/api).
+
+### 6. Increase the browser DPR to 2 on web
+
+If you are running Midscene in a web browser, you can try increasing the DPR to `2`. In CI environments, the default DPR is often `1`. Raising it to `2` makes the page clearer, which usually improves positioning for small elements.
+
+Keep in mind that this will consume more tokens.
 
 ## Does the Doubao phone use Midscene under the hood?
 
