@@ -170,7 +170,7 @@ jobs:
       run: pnpm run build:skip-cache
 
     - name: Run Chrome extension unit tests (bridge start/stop)
-      run: npx nx test chrome-extension -- --run --testPathPattern='bridge-start-stop'
+      run: npx nx test chrome-extension -- --run tests/bridge-start-stop.test.ts
       timeout-minutes: 5
 
     - name: Run Chrome extension test
