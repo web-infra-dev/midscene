@@ -594,6 +594,7 @@ export class TaskExecutor {
             [keyOfResult]: booleanPrompt,
           };
         } else if (ifTypeRestricted) {
+          keyOfResult = type;
           demandInput = {
             [keyOfResult]: `${type}, ${demand}`,
           };
