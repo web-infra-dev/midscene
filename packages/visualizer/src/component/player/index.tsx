@@ -124,7 +124,21 @@ export function Player(props?: {
     playbackRate: playbackSpeed,
   });
 
-  // Track frame for taskId callback (only while playing)
+  // When playback stops, seek to the last frame with a taskId (skip the End card)
+  useEffect(() => {
+    if (!frameMap || player.playing) return;
+    const { scriptFrames, totalDurationInFrames } = frameMap;
+    if (player.currentFrame < totalDurationInFrames - 1) return;
+    for (let i = scriptFrames.length - 1; i >= 0; i--) {
+      const sf = scriptFrames[i];
+      if (sf.taskId) {
+        player.seekTo(sf.startFrame + sf.durationInFrames - 1);
+        break;
+      }
+    }
+  }, [frameMap, player.playing]);
+
+  // Sync taskId to parent: report current task while playing, clear on stop
   useEffect(() => {
     if (!frameMap || !props?.onTaskChange) return;
     if (!player.playing) {
@@ -357,7 +371,7 @@ export function Player(props?: {
                   >
                     <StepsTimeline
                       frameMap={frameMap}
-                      autoZoom={autoZoom}
+                      autoZoom={autoZoom && player.playing}
                       frame={player.currentFrame}
                       width={compositionWidth}
                       height={compositionHeight}
