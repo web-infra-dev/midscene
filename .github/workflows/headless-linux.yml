@@ -169,6 +169,10 @@ jobs:
     - name: Build project
       run: pnpm run build:skip-cache
 
+    - name: Run Chrome extension unit tests (bridge start/stop)
+      run: npx nx test chrome-extension -- --run
+      timeout-minutes: 5
+
     - name: Run Chrome extension test
       run: AI_TEST_TYPE=computer npx nx test @midscene/computer -- tests/ai/chrome-extension.test.ts
       timeout-minutes: 40
