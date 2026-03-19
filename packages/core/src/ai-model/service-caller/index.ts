@@ -256,8 +256,8 @@ export async function callAI(
   const startTime = Date.now();
 
   const temperature = (() => {
-    if (modelFamily === 'gpt-5') {
-      debugCall('temperature is ignored for gpt-5');
+    if (modelFamily === 'gpt-5' || modelFamily === 'gpt-5.4') {
+      debugCall('temperature is ignored for gpt-5 or gpt-5.4');
       return undefined;
     }
     return modelConfig.temperature ?? 0;
@@ -337,9 +337,11 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
-  // For GPT-5, add "detail": "original" to image inputs to get original resolution images in reasoning content
+  // For GPT-5.4, add "detail": "original" to image inputs to get original resolution images in reasoning content
+  // Only GPT-5.4 supports original resolution
+  // https://developers.openai.com/api/docs/guides/images-vision#model-sizing-behavior
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
-    if (modelFamily !== 'gpt-5') {
+    if (modelFamily !== 'gpt-5.4') {
       return messages;
     }
 
@@ -709,10 +711,10 @@ export function resolveReasoningConfig({
       );
     }
     // reasoningEffort and reasoningBudget are ignored for glm-v
-  } else if (modelFamily === 'gpt-5') {
+  } else if (modelFamily === 'gpt-5' || modelFamily === 'gpt-5.4') {
     // reasoningEffort → reasoning.effort
     config.reasoning = undefined;
-    debugMessages.push('reasoning config is ignored for gpt-5');
+    debugMessages.push('reasoning config is ignored for gpt-5 or gpt-5.4');
     // if (reasoningEffort) {
     //   config.reasoning = { effort: reasoningEffort };
     //   debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
@@ -723,7 +725,7 @@ export function resolveReasoningConfig({
     //   config.reasoning = { effort: 'low' };
     //   debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
     // }
-    // reasoningBudget is ignored for gpt-5
+    // reasoningBudget is ignored for gpt-5 or gpt-5.4
   } else if (!modelFamily) {
     return {
       config: {},

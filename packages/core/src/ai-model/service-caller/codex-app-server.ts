@@ -418,9 +418,9 @@ class CodexAppServerConnection {
     const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
 
-    // For GPT-5 models, use "detail": "original" for image inputs to get original resolution
+    // For GPT-5.4 models, use "detail": "original" for image inputs to get original resolution
     const imageDetailOverride =
-      modelConfig.modelFamily === 'gpt-5' ? 'original' : undefined;
+      modelConfig.modelFamily === 'gpt-5.4' ? 'original' : undefined;
     const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
       messages,
       { imageDetailOverride },

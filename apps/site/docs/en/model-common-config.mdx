@@ -182,8 +182,10 @@ When using GPT-5.4 on OpenAI or an OpenAI-compatible provider, use this configur
 MIDSCENE_MODEL_BASE_URL="https://api.openai.com/v1" # Or your compatible endpoint
 MIDSCENE_MODEL_API_KEY="sk-..."
 MIDSCENE_MODEL_NAME="gpt-5.4"
-MIDSCENE_MODEL_FAMILY="gpt-5"
+MIDSCENE_MODEL_FAMILY="gpt-5.4"
 ```
+
+`MIDSCENE_MODEL_FAMILY="gpt-5"` is still compatible, but it cannot use original resolution. See [model sizing behavior](https://developers.openai.com/api/docs/guides/images-vision#model-sizing-behavior)
 
 ### UI-TARS {#ui-tars}
 
