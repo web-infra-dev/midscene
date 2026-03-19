@@ -2,12 +2,14 @@
  * Run a real Midscene YAML test to generate a report, then copy it as demo.html.
  * This ensures the e2e tests validate against a genuinely generated report.
  *
- * Usage: npx tsx scripts/generate-demo-report.ts
+ * Usage: node scripts/generate-demo-report.mjs
  */
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
 const repoRoot = path.join(rootDir, '..', '..');
 const reportDir = path.join(repoRoot, 'midscene_run', 'report');
