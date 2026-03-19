@@ -147,6 +147,73 @@ describe('chrome extension smoke test', () => {
     await sleep(3000);
   });
 
+  // ── 5b. Bridge Mode: stop, change URL, and restart (issue #2119) ─────
+
+  it('bridge mode: stop listening, change server URL, and restart', async () => {
+    // Switch to Bridge Mode
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner.`,
+    );
+    await sleep(2000);
+    await agent.aiAct(
+      'In the dropdown menu, click the menu item labeled "Bridge Mode"',
+    );
+    await sleep(3000);
+
+    // Verify bridge is in listening state with a Start/Stop button visible
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows Bridge mode UI with a bottom status bar that contains a "Stop" button and text "Listening"`,
+    );
+
+    // Click Stop to stop listening
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, click the "Stop" button in the bottom status bar`,
+    );
+    await sleep(2000);
+
+    // Verify bridge stopped: status shows "Stopped" and button shows "Start"
+    await agent.aiAssert(
+      `${SIDE_PANEL} bottom status bar shows "Stopped" text and a "Start" button`,
+    );
+
+    // Expand server config and change the URL
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, click on "Use remote server (optional)" to expand the server configuration`,
+    );
+    await sleep(1000);
+
+    // Verify the server URL input is enabled (editable) when stopped
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, click the server URL input field and clear it, then type "ws://example.com:4000"`,
+    );
+    await sleep(1000);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows a server URL input containing "ws://example.com:4000"`,
+    );
+
+    // Click Start to restart with new URL
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, click the "Start" button in the bottom status bar`,
+    );
+    await sleep(2000);
+
+    // Verify bridge restarted: status shows "Listening" and button shows "Stop"
+    await agent.aiAssert(
+      `${SIDE_PANEL} bottom status bar shows "Listening" text and a "Stop" button`,
+    );
+
+    // Switch back to Playground
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
+    );
+    await sleep(2000);
+    await agent.aiAct(
+      'In the dropdown menu, click the menu item labeled "Playground"',
+    );
+    await sleep(2000);
+  });
+
   // ── 6. Settings Modal ─────────────────────────────────────────────────
 
   it('settings: open and close env config modal', async () => {
