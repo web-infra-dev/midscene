@@ -245,6 +245,8 @@ export async function callAI(
     modelConfig,
   });
 
+  const extraBody = modelConfig.extraBody;
+
   const maxTokens =
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
@@ -382,6 +384,7 @@ export async function callAI(
           messages: messagesWithImageDetail,
           ...commonConfig,
           ...reasoningEffortConfig,
+          ...extraBody,
         },
         {
           stream: true,
@@ -466,6 +469,7 @@ export async function callAI(
               messages: messagesWithImageDetail,
               ...commonConfig,
               ...reasoningEffortConfig,
+              ...extraBody,
             } as any,
             options?.abortSignal ? { signal: options.abortSignal } : undefined,
           );

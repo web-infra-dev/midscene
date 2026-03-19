@@ -99,6 +99,22 @@ const isStringParamSchema = (schema?: ZodTypeAny): boolean => {
       return false;
   }
 };
+
+const buildLaunchOrAdbShellParam = (
+  actionName: string,
+  interfaceAlias: string | undefined,
+  value: string,
+) => {
+  if (actionName === 'Launch' || interfaceAlias === 'launch') {
+    return { uri: value };
+  }
+
+  if (actionName === 'RunAdbShell' || interfaceAlias === 'runAdbShell') {
+    return { command: value };
+  }
+
+  return undefined;
+};
 export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
   public currentTaskIndex?: number;
   public taskStatusList: ScriptPlayerTaskStatus[] = [];
@@ -537,44 +553,15 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           matchedAction.paramSchema,
         );
         let stringParamToCall: string | undefined;
+        const specialActionParamToCall =
+          typeof actionParamForMatchedAction === 'string'
+            ? buildLaunchOrAdbShellParam(
+                matchedAction.name,
+                matchedAction.interfaceAlias,
+                actionParamForMatchedAction,
+              )
+            : undefined;
         if (
-          typeof actionParamForMatchedAction === 'string' &&
-          schemaIsStringParam
-        ) {
-          if (matchedAction.paramSchema) {
-            const parseResult = matchedAction.paramSchema.safeParse(
-              actionParamForMatchedAction,
-            );
-            if (parseResult.success && typeof parseResult.data === 'string') {
-              stringParamToCall = parseResult.data;
-            } else if (!parseResult.success) {
-              debug(
-                `parse failed for action ${matchedAction.name} with string param`,
-                parseResult.error,
-              );
-              stringParamToCall = actionParamForMatchedAction;
-            }
-          } else {
-            stringParamToCall = actionParamForMatchedAction;
-          }
-        }
-
-        if (stringParamToCall !== undefined) {
-          debug(
-            `matchedAction: ${matchedAction.name}`,
-            `flowParams: ${JSON.stringify(stringParamToCall)}`,
-          );
-          const result = await agent.callActionInActionSpace(
-            matchedAction.name,
-            stringParamToCall,
-          );
-
-          // Store result if there's a name property in flowItem
-          const resultName = (flowItem as any).name;
-          if (result !== undefined) {
-            this.setResult(resultName, result);
-          }
-        } else if (
           typeof actionParamForMatchedAction === 'string' &&
           (matchedAction.name === 'Launch' ||
             matchedAction.interfaceAlias === 'launch') &&
@@ -607,6 +594,57 @@ export class ScriptPlayer<T extends MidsceneYamlScriptEnv> {
           const resultName = (flowItem as any).name;
           if (result !== undefined) {
             this.setResult(resultName, result);
+          }
+        } else if (specialActionParamToCall) {
+          debug(
+            `matchedAction: ${matchedAction.name}`,
+            `flowParams: ${JSON.stringify(specialActionParamToCall)}`,
+          );
+          const result = await agent.callActionInActionSpace(
+            matchedAction.name,
+            specialActionParamToCall,
+          );
+
+          const resultName = (flowItem as any).name;
+          if (result !== undefined) {
+            this.setResult(resultName, result);
+          }
+        } else if (
+          typeof actionParamForMatchedAction === 'string' &&
+          schemaIsStringParam
+        ) {
+          if (matchedAction.paramSchema) {
+            const parseResult = matchedAction.paramSchema.safeParse(
+              actionParamForMatchedAction,
+            );
+            if (parseResult.success && typeof parseResult.data === 'string') {
+              stringParamToCall = parseResult.data;
+            } else if (!parseResult.success) {
+              debug(
+                `parse failed for action ${matchedAction.name} with string param`,
+                parseResult.error,
+              );
+              stringParamToCall = actionParamForMatchedAction;
+            }
+          } else {
+            stringParamToCall = actionParamForMatchedAction;
+          }
+
+          if (stringParamToCall !== undefined) {
+            debug(
+              `matchedAction: ${matchedAction.name}`,
+              `flowParams: ${JSON.stringify(stringParamToCall)}`,
+            );
+            const result = await agent.callActionInActionSpace(
+              matchedAction.name,
+              stringParamToCall,
+            );
+
+            // Store result if there's a name property in flowItem
+            const resultName = (flowItem as any).name;
+            if (result !== undefined) {
+              this.setResult(resultName, result);
+            }
           }
         } else {
           // Determine the source for parameter extraction:

@@ -7,6 +7,10 @@ import { ScriptPlayer } from '@midscene/core/yaml';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+const runAdbShellParamSchema = z.object({
+  command: z.string().describe('ADB shell command to execute'),
+});
+
 describe('YAML runAdbShell support via ActionSpace', () => {
   it('should execute runAdbShell command via actionSpace', async () => {
     const mockResult = 'pm clear output';
@@ -15,8 +19,8 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       name: 'RunAdbShell',
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.string().describe('ADB shell command to execute'),
-      call: vi.fn(async (param: string) => mockResult),
+      paramSchema: runAdbShellParamSchema,
+      call: vi.fn(async (param: { command: string }) => mockResult),
     };
 
     const mockAgent = {
@@ -59,7 +63,60 @@ describe('YAML runAdbShell support via ActionSpace', () => {
 
     expect(mockAgent.callActionInActionSpace).toHaveBeenCalledWith(
       'RunAdbShell',
-      'pm clear com.example.app',
+      {
+        command: 'pm clear com.example.app',
+      },
+    );
+    expect(player.status).toBe('done');
+  });
+
+  it('should wrap string params for runAdbShell when helper is unavailable', async () => {
+    const mockResult = 'pm clear output';
+
+    const runAdbShellAction: DeviceAction = {
+      name: 'RunAdbShell',
+      description: 'Execute ADB shell command',
+      interfaceAlias: 'runAdbShell',
+      paramSchema: runAdbShellParamSchema,
+      call: vi.fn(async (param: { command: string }) => mockResult),
+    };
+
+    const mockAgent = {
+      reportFile: null,
+      onTaskStartTip: undefined,
+      _unstableLogContent: vi.fn(async () => ({})),
+      getActionSpace: vi.fn(async () => [runAdbShellAction]),
+      callActionInActionSpace: vi.fn(async () => mockResult),
+    };
+
+    const script: MidsceneYamlScript = {
+      android: {
+        deviceId: 'test-device',
+      },
+      tasks: [
+        {
+          name: 'Clear app data',
+          flow: [
+            {
+              runAdbShell: 'pm clear com.example.app',
+            },
+          ],
+        },
+      ],
+    };
+
+    const player = new ScriptPlayer<MidsceneYamlScriptEnv>(
+      script,
+      async () => ({ agent: mockAgent as any, freeFn: [] }),
+    );
+
+    await player.run();
+
+    expect(mockAgent.callActionInActionSpace).toHaveBeenCalledWith(
+      'RunAdbShell',
+      {
+        command: 'pm clear com.example.app',
+      },
     );
     expect(player.status).toBe('done');
   });
@@ -109,8 +166,8 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       name: 'RunAdbShell',
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.string().describe('ADB shell command to execute'),
-      call: vi.fn(async (param: string) => mockResult),
+      paramSchema: runAdbShellParamSchema,
+      call: vi.fn(async (param: { command: string }) => mockResult),
     };
 
     const mockAgent = {
@@ -152,7 +209,9 @@ describe('YAML runAdbShell support via ActionSpace', () => {
 
     expect(mockAgent.callActionInActionSpace).toHaveBeenCalledWith(
       'RunAdbShell',
-      'ls -la',
+      {
+        command: 'ls -la',
+      },
     );
     expect(player.status).toBe('done');
   });
@@ -164,9 +223,9 @@ describe('YAML runAdbShell support via ActionSpace', () => {
       name: 'RunAdbShell',
       description: 'Execute ADB shell command',
       interfaceAlias: 'runAdbShell',
-      paramSchema: z.string().describe('ADB shell command to execute'),
-      call: vi.fn(async (param: string) => {
-        if (!param) {
+      paramSchema: runAdbShellParamSchema,
+      call: vi.fn(async (param: { command: string }) => {
+        if (!param.command) {
           throw new Error('Command is required for runAdbShell');
         }
         return mockResult;

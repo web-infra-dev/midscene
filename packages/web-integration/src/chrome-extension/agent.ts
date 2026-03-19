@@ -1,9 +1,12 @@
 import { type AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
+import { BROWSER_NAVIGATION_ERROR_PATTERN } from '../puppeteer/base-page';
 import type ChromeExtensionProxyPage from './page';
 
 export class ChromeExtensionProxyPageAgent extends PageAgent {
-  // biome-ignore lint/complexity/noUselessConstructor: <explanation>
-  constructor(page: ChromeExtensionProxyPage, opts?: AgentOpt) {
-    super(page, opts);
+  protected isRetryableContextError(error: unknown): boolean {
+    return (
+      error instanceof Error &&
+      BROWSER_NAVIGATION_ERROR_PATTERN.test(error.message)
+    );
   }
 }

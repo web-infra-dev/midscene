@@ -363,6 +363,18 @@ export class Agent<
     return this.fullActionSpace;
   }
 
+  private static readonly CONTEXT_RETRY_MAX = 3;
+  private static readonly CONTEXT_RETRY_DELAY_MS = 1500;
+
+  /**
+   * Override in subclasses to indicate which errors are transient and should
+   * trigger an automatic retry when building the UI context.
+   * Returns `false` by default (no retry).
+   */
+  protected isRetryableContextError(_error: unknown): boolean {
+    return false;
+  }
+
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
     // Check VL model configuration when UI context is first needed
     this.ensureVLModelWarning();
@@ -376,14 +388,27 @@ export class Agent<
     // because of context will be reused between planning and locate, so all snapshots should be shrunk when the model family requires it
     const { modelFamily } = this.modelConfigManager.getModelConfig('default');
 
-    // Get original context
-    const context = await commonContextParser(this.interface, {
-      uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
-      screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
-      modelFamily,
-    });
-
-    return context;
+    const maxRetries = Agent.CONTEXT_RETRY_MAX;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await commonContextParser(this.interface, {
+          uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+          screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+          modelFamily,
+        });
+      } catch (error) {
+        if (attempt < maxRetries && this.isRetryableContextError(error)) {
+          debug(
+            `retryable context error (attempt ${attempt + 1}/${maxRetries}), retrying in ${Agent.CONTEXT_RETRY_DELAY_MS}ms: ${error}`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, Agent.CONTEXT_RETRY_DELAY_MS),
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -841,7 +866,7 @@ export class Agent<
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
-        matchedCache &&
+        matchedCache?.cacheUsable &&
         this.taskCache?.isCacheResultUsed &&
         matchedCache.cacheContent?.yamlWorkflow?.trim()
       ) {
@@ -857,7 +882,7 @@ export class Agent<
         return;
       }
 
-      // If cache matched but yamlWorkflow is empty, fall through to normal execution
+      // If cache matched but is not executable, fall through to normal execution
       const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
@@ -875,7 +900,11 @@ export class Agent<
       );
 
       // update cache
-      if (this.taskCache && actionOutput?.yamlFlow && cacheable !== false) {
+      if (
+        this.taskCache &&
+        actionOutput?.yamlFlow?.length &&
+        cacheable !== false
+      ) {
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {

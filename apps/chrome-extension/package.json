@@ -8,7 +8,8 @@
     "dev": "rimraf dist && concurrently -k -n build,run \"rsbuild dev\" \"node scripts/wait-for-build.js && web-ext run --config web-ext-config.cjs --source-dir dist --target chromium\"",
     "dev:simple": "rsbuild dev --open",
     "preview": "rsbuild preview",
-    "pack-extension": "node scripts/pack-extension.js"
+    "pack-extension": "node scripts/pack-extension.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.1",
@@ -50,6 +51,7 @@
     "rsbuild-plugin-workspace-dev": "0.0.1",
     "tailwindcss": "4.1.11",
     "typescript": "^5.8.3",
+    "vitest": "3.0.5",
     "web-ext": "9.0.0"
   }
 }

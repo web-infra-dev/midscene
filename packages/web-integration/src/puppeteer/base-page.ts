@@ -40,6 +40,9 @@ import {
 
 export const debugPage = getDebug('web:page');
 
+export const BROWSER_NAVIGATION_ERROR_PATTERN =
+  /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
+
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
   InterfaceType extends PuppeteerPage | PlaywrightPage,
