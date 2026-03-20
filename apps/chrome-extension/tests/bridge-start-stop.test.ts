@@ -187,12 +187,17 @@ describe('Bridge UI state logic', () => {
   });
 
   it('should determine correct button label based on status', () => {
-    // The toggle button should show "Stop" when listening/connected,
-    // and "Start Listening" when closed
+    // The toggle button should show "Stop" when the bridge loop is running
+    // (listening, connected, or disconnected/reconnecting),
+    // and "Start Listening" only when fully closed
     function getButtonLabel(
       status: 'listening' | 'connected' | 'disconnected' | 'closed',
     ): string {
-      if (status === 'listening' || status === 'connected') {
+      if (
+        status === 'listening' ||
+        status === 'connected' ||
+        status === 'disconnected'
+      ) {
         return 'Stop';
       }
       return 'Start Listening';
@@ -201,18 +206,22 @@ describe('Bridge UI state logic', () => {
     expect(getButtonLabel('closed')).toBe('Start Listening');
     expect(getButtonLabel('listening')).toBe('Stop');
     expect(getButtonLabel('connected')).toBe('Stop');
-    expect(getButtonLabel('disconnected')).toBe('Start Listening');
+    expect(getButtonLabel('disconnected')).toBe('Stop');
   });
 
   it('should determine if bridge is active for toggle state', () => {
     function isBridgeActive(
       status: 'listening' | 'connected' | 'disconnected' | 'closed',
     ): boolean {
-      return status === 'listening' || status === 'connected';
+      return (
+        status === 'listening' ||
+        status === 'connected' ||
+        status === 'disconnected'
+      );
     }
 
     expect(isBridgeActive('closed')).toBe(false);
-    expect(isBridgeActive('disconnected')).toBe(false);
+    expect(isBridgeActive('disconnected')).toBe(true);
     expect(isBridgeActive('listening')).toBe(true);
     expect(isBridgeActive('connected')).toBe(true);
   });

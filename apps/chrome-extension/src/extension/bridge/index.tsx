@@ -226,7 +226,9 @@ export default function Bridge() {
   };
 
   const isBridgeActive =
-    bridgeStatus === 'listening' || bridgeStatus === 'connected';
+    bridgeStatus === 'listening' ||
+    bridgeStatus === 'connected' ||
+    bridgeStatus === 'disconnected';
 
   const handleToggleBridge = () => {
     if (isBridgeActive) {
