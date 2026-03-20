@@ -402,14 +402,16 @@ export function App() {
               const key = exec.id || `__no_id_${noIdCounter++}`;
               deduped.set(key, exec);
             }
-            baseDump!.executions = Array.from(deduped.values());
-            cachedJsonContent = baseDump!;
+            if (baseDump) {
+              baseDump.executions = Array.from(deduped.values());
+              cachedJsonContent = baseDump;
+              (cachedJsonContent as any).attributes = attributes;
+            }
 
             console.timeEnd('parse_grouped_dump');
-            (cachedJsonContent as any).attributes = attributes;
             isParsed = true;
           }
-          return cachedJsonContent!;
+          return cachedJsonContent;
         },
         attributes,
       });

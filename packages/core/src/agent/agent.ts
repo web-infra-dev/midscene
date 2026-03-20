@@ -1281,8 +1281,8 @@ export class Agent<
     // Wait for all queued write operations to complete
     await this.reportGenerator.flush();
 
-    await this.reportGenerator.finalize();
-    this.reportFile = this.reportGenerator.getReportPath();
+    const finalPath = await this.reportGenerator.finalize();
+    this.reportFile = finalPath;
 
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
