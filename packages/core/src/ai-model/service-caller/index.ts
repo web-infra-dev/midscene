@@ -36,6 +36,7 @@ import {
   callAIWithCodexAppServer,
   isCodexAppServerProvider,
 } from './codex-app-server';
+import { shouldForceOriginalImageDetail } from './image-detail';
 
 async function createChatClient({
   modelConfig,
@@ -339,9 +340,13 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
-  // For GPT-5, add "detail": "original" to image inputs to get original resolution images in reasoning content
+  const shouldUseOriginalImageDetail =
+    shouldForceOriginalImageDetail(modelConfig);
+
+  // For default-intent GPT-5 calls, request original image detail to preserve
+  // screenshot resolution for localization-sensitive tasks.
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
-    if (modelFamily !== 'gpt-5') {
+    if (!shouldUseOriginalImageDetail) {
       return messages;
     }
 

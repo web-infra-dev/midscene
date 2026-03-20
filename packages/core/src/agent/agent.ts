@@ -385,12 +385,15 @@ export class Agent<
       return this.frozenUIContext;
     }
 
+    const { modelFamily } = this.modelConfigManager.getModelConfig('default');
+
     const maxRetries = Agent.CONTEXT_RETRY_MAX;
     for (let attempt = 0; ; attempt++) {
       try {
         return await commonContextParser(this.interface, {
           uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
           screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+          modelFamily,
         });
       } catch (error) {
         if (attempt < maxRetries && this.isRetryableContextError(error)) {

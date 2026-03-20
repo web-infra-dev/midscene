@@ -52,13 +52,11 @@ type CodexTextInput = {
 type CodexImageInput = {
   type: 'image';
   url: string;
-  detail?: string;
 };
 
 type CodexLocalImageInput = {
   type: 'localImage';
   path: string;
-  detail?: string;
 };
 
 type CodexTurnInput = CodexTextInput | CodexImageInput | CodexLocalImageInput;
@@ -208,7 +206,6 @@ const extractTextFromMessage = (
 
 const extractImageInputs = (
   message: ChatCompletionMessageParam,
-  imageDetailOverride?: string,
 ): Array<CodexImageInput | CodexLocalImageInput> => {
   const content = (message as any).content;
   if (!Array.isArray(content)) return [];
@@ -227,12 +224,6 @@ const extractImageInputs = (
 
     if (!imageUrl) continue;
 
-    // Resolve detail: use override if provided, otherwise extract from the original message part
-    const detail =
-      imageDetailOverride ||
-      toNonEmptyString(part.image_url?.detail) ||
-      toNonEmptyString(part.detail);
-
     if (
       imageUrl.startsWith('/') ||
       imageUrl.startsWith('./') ||
@@ -246,7 +237,6 @@ const extractImageInputs = (
       inputs.push({
         type: 'localImage',
         path,
-        ...(detail ? { detail } : {}),
       });
       continue;
     }
@@ -254,7 +244,6 @@ const extractImageInputs = (
     inputs.push({
       type: 'image',
       url: imageUrl,
-      ...(detail ? { detail } : {}),
     });
   }
 
@@ -289,7 +278,6 @@ export const resolveCodexReasoningEffort = ({
 
 export const buildCodexTurnPayloadFromMessages = (
   messages: ChatCompletionMessageParam[],
-  options?: { imageDetailOverride?: string },
 ): {
   developerInstructions?: string;
   input: CodexTurnInput[];
@@ -315,9 +303,7 @@ export const buildCodexTurnPayloadFromMessages = (
     }
 
     if (role === 'user') {
-      imageInputs.push(
-        ...extractImageInputs(message, options?.imageDetailOverride),
-      );
+      imageInputs.push(...extractImageInputs(message));
     }
   }
 
@@ -418,13 +404,8 @@ class CodexAppServerConnection {
     const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
 
-    // For GPT-5 models, use "detail": "original" for image inputs to get original resolution
-    const imageDetailOverride =
-      modelConfig.modelFamily === 'gpt-5' ? 'original' : undefined;
-    const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
-      messages,
-      { imageDetailOverride },
-    );
+    const { developerInstructions, input } =
+      buildCodexTurnPayloadFromMessages(messages);
     const effort = resolveCodexReasoningEffort({ deepThink, modelConfig });
 
     let threadId: string | undefined;
