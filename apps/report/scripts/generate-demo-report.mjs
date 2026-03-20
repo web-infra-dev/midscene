@@ -4,7 +4,7 @@
  *
  * Usage: node scripts/generate-demo-report.mjs
  */
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,8 +12,11 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.join(__dirname, '..');
 const repoRoot = path.join(rootDir, '..', '..');
-const reportDir = path.join(repoRoot, 'midscene_run', 'report');
 const distDir = path.join(rootDir, 'dist');
+
+// Resolve report directory the same way the runtime does (respects MIDSCENE_RUN_DIR)
+const runDir = process.env.MIDSCENE_RUN_DIR || 'midscene_run';
+const reportDir = path.resolve(repoRoot, runDir, 'report');
 
 // Record the latest report file before running
 const reportsBefore = new Set(
@@ -28,7 +31,7 @@ const cliPath = path.join(repoRoot, 'packages', 'cli', 'bin', 'midscene');
 
 console.log('Running Midscene test to generate report...');
 try {
-  execSync(`node ${cliPath} ${yamlPath}`, {
+  execFileSync('node', [cliPath, yamlPath], {
     cwd: repoRoot,
     stdio: 'inherit',
     env: { ...process.env },
