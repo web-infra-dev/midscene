@@ -14,6 +14,10 @@
     "evaluate:planning": "npx vitest --run tests/llm-planning.test.ts",
     "evaluate:assertion": "npx vitest --run tests/assertion.test.ts",
     "evaluate:section-locator": "npx vitest --run tests/llm-section-locator.test.ts",
+    "evaluate:webvoyager": "npx tsx web-voyager/runner-midscene.ts --subset 30",
+    "evaluate:webvoyager:75": "npx tsx web-voyager/runner-midscene.ts --subset 75",
+    "evaluate:webvoyager:headed": "npx tsx web-voyager/runner-midscene.ts --subset 30 --headed",
+    "evaluate:webvoyager:compare": "npx tsx web-voyager/compare.ts --auto",
     "format": "cd ../.. && npm run lint"
   },
   "files": ["dist", "README.md"],
@@ -26,8 +30,12 @@
     "@playwright/test": "^1.45.0",
     "cli-progress": "3.12.0",
     "dotenv": "^16.4.5",
+    "openai": "6.3.0",
     "playwright": "^1.45.0",
+    "puppeteer-extra": "3.3.6",
+    "puppeteer-extra-plugin-stealth": "2.11.2",
     "sharp": "^0.34.3",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "vitest": "3.0.5"
   },
