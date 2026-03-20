@@ -1,0 +1,31 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: sidebar task list is rendered
+    flow:
+      - sleep: 2000
+      - aiAssert: The left sidebar shows a list of task rows with type, time, and intent columns
+
+  - name: click a task row to view details
+    flow:
+      - ai: Click on the first task row in the left sidebar task list
+      - sleep: 2000
+      - aiAssert: The right detail panel shows task information including Param or Element or Output section
+
+  - name: navigate between tasks
+    flow:
+      - ai: Click on the second task row in the left sidebar task list
+      - sleep: 1000
+      - aiAssert: The detail panel content has updated to show different task information
+      - ai: Click on the third task row in the left sidebar
+      - sleep: 1000
+      - aiAssert: The detail panel shows information for the selected task
+
+  - name: toggle model call details
+    flow:
+      - ai: Click the "Model Call Details" checkbox or toggle in the sidebar
+      - sleep: 1000
+      - aiAssert: The sidebar shows additional columns like Model, Prompt Tokens, or Completion Tokens
+      - ai: Click the "Model Call Details" checkbox again to turn it off
+      - sleep: 1000
