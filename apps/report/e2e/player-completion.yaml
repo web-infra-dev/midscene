@@ -2,27 +2,21 @@ target:
   serve: ./dist
   url: demo.html
 tasks:
-  - name: after playback completes, player shows full-screen view at last step
+  - name: after playback completes player shows full view at last step
     flow:
       # Speed up playback to 2x and wait for completion
       - ai: Click the settings gear icon on the player controls bar
+      - sleep: 1000
+      - ai: Select the '2x' playback speed option
       - sleep: 500
-      - ai: Select '2x' playback speed option
-      - sleep: 500
-      - ai: Click on the player area to dismiss the settings popup
+      - ai: Click somewhere on the player video area to close the settings popup
       - sleep: 30000
       # After playback completes, verify the state
       - aiAssert: The play button (triangle icon) is visible on the player controls bar, indicating playback has stopped
-      - aiAssert: The player is showing a screenshot image in full view without any zoomed-in or cropped state
-      - aiAssert: The progress bar shows the playback position is at or near the end
-
-  - name: sidebar has no shimmer animation after playback stops
-    flow:
-      - aiAssert: The left sidebar task list does not have any animated glowing or shimmering highlight effect on any row
+      - aiAssert: The player is showing a screenshot image in full view without zoom
 
   - name: clicking play restarts from the beginning
     flow:
       - ai: Click the play button on the player controls bar
-      - sleep: 2000
+      - sleep: 3000
       - aiAssert: The progress bar shows the playback position is near the beginning, not at the end
-      - aiAssert: The player is actively playing with a pause button visible

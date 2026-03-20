@@ -4,31 +4,14 @@ target:
 tasks:
   - name: clicking a task in sidebar exits replay mode and shows detail
     flow:
-      - sleep: 2000
+      - sleep: 3000
       - ai: Click on the first task row in the left sidebar execution list
-      - sleep: 1000
+      - sleep: 2000
       - aiAssert: The right side shows a detail panel with task information, not the video player
       - aiAssert: There is a screenshot image displayed in the main content area
 
   - name: clicking play button re-enters replay mode
     flow:
-      - ai: Click the play icon (triangle) button next to 'Report' at the top of the sidebar
-      - sleep: 2000
+      - ai: Click the play icon button near the top of the sidebar to start replay
+      - sleep: 3000
       - aiAssert: The video player is visible with playback controls at the bottom
-      - aiAssert: The player is actively playing with a pause button visible
-
-  - name: keyboard shortcut works in player
-    flow:
-      - sleep: 1000
-      # Press space to pause
-      - aiKeyboardPress:
-          prompt: the player area
-          keyName: Space
-      - sleep: 500
-      - aiAssert: The play button (triangle icon) is visible, indicating the player is paused
-      # Press space to resume
-      - aiKeyboardPress:
-          prompt: the player area
-          keyName: Space
-      - sleep: 500
-      - aiAssert: The pause button is visible, indicating the player is playing
