@@ -23,10 +23,12 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionPinch,
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
   normalizeMobileSwipeParam,
+  normalizePinchParam,
 } from '@midscene/core/device';
 import { getTmpFile, sleep } from '@midscene/core/utils';
 import {
@@ -335,6 +337,25 @@ export class AndroidDevice implements AbstractInterface {
             throw new Error(`Unknown pull direction: ${param.direction}`);
           }
         },
+      }),
+      defineActionPinch(async (param) => {
+        const { centerX, centerY, startDistance, endDistance, duration } =
+          normalizePinchParam(param, await this.size());
+
+        const { x: adjCenterX, y: adjCenterY } = await this.adjustCoordinates(
+          centerX,
+          centerY,
+        );
+        const ratio =
+          adjCenterX !== 0 && centerX !== 0 ? adjCenterX / centerX : 1;
+        const adjStartDist = Math.round(startDistance * ratio);
+        const adjEndDist = Math.round(endDistance * ratio);
+
+        await this.ensureYadb();
+        const adb = await this.getAdb();
+        await adb.shell(
+          `app_process${this.getDisplayArg()} -Djava.class.path=/data/local/tmp/yadb /data/local/tmp com.ysbing.yadb.Main -pinch ${adjCenterX} ${adjCenterY} ${adjStartDist} ${adjEndDist} ${duration}`,
+        );
       }),
       defineActionClearInput(async (param) => {
         await this.clearInput(param.locate as ElementInfo | undefined);

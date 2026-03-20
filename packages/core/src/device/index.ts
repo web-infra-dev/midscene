@@ -565,6 +565,90 @@ export const defineActionCursorMove = (
     call,
   });
 };
+
+// Pinch
+export const ActionPinchParamSchema = z.object({
+  locate: getMidsceneLocationSchema()
+    .optional()
+    .describe(
+      'The element to pinch on. If not specified, the center of the screen will be used',
+    ),
+  direction: z
+    .enum(['in', 'out'])
+    .describe(
+      'Pinch direction. "in" = pinch fingers together (zoom out / shrink), "out" = spread fingers apart (zoom in / enlarge).',
+    ),
+  distance: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      'How far each finger moves in pixels. Defaults to a quarter of the shorter screen dimension.',
+    ),
+  duration: z
+    .number()
+    .default(500)
+    .optional()
+    .describe('Duration of the pinch gesture in milliseconds'),
+});
+
+export type ActionPinchParam = {
+  locate?: LocateResultElement;
+  direction: 'in' | 'out';
+  distance?: number;
+  duration?: number;
+};
+
+export const defineActionPinch = (
+  call: (param: ActionPinchParam) => Promise<void>,
+): DeviceAction<ActionPinchParam> => {
+  return defineAction<typeof ActionPinchParamSchema, ActionPinchParam>({
+    name: 'Pinch',
+    description:
+      'Perform a two-finger pinch gesture. Use direction "in" to pinch fingers together (zoom out), or "out" to spread fingers apart (zoom in). Optionally specify distance for how far each finger moves.',
+    interfaceAlias: 'aiPinch',
+    paramSchema: ActionPinchParamSchema,
+    sample: {
+      locate: { prompt: 'the map area' },
+      direction: 'out',
+      distance: 200,
+    },
+    call,
+  });
+};
+
+export function normalizePinchParam(
+  param: ActionPinchParam,
+  screenSize: { width: number; height: number },
+): {
+  centerX: number;
+  centerY: number;
+  startDistance: number;
+  endDistance: number;
+  duration: number;
+} {
+  const { width, height } = screenSize;
+  const element = param.locate;
+  const centerX = element
+    ? Math.round(element.center[0])
+    : Math.round(width / 2);
+  const centerY = element
+    ? Math.round(element.center[1])
+    : Math.round(height / 2);
+  const duration = param.duration ?? 500;
+
+  const baseDistance = Math.round(Math.min(width, height) / 4);
+  const fingerDistance = param.distance ?? baseDistance;
+
+  const startDistance = baseDistance;
+  const endDistance =
+    param.direction === 'out'
+      ? baseDistance + fingerDistance
+      : Math.max(10, baseDistance - fingerDistance);
+
+  return { centerX, centerY, startDistance, endDistance, duration };
+}
+
 // Sleep
 export const ActionSleepParamSchema = z.object({
   timeMs: z

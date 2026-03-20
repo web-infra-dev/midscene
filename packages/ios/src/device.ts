@@ -19,10 +19,12 @@ import {
   defineActionDoubleClick,
   defineActionDragAndDrop,
   defineActionKeyboardPress,
+  defineActionPinch,
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
   normalizeMobileSwipeParam,
+  normalizePinchParam,
 } from '@midscene/core/device';
 import { sleep } from '@midscene/core/utils';
 import { DEFAULT_WDA_PORT } from '@midscene/shared/constants';
@@ -245,6 +247,18 @@ export class IOSDevice implements AbstractInterface {
           const [x, y] = element.center;
           await this.longPress(x, y, param?.duration);
         },
+      }),
+      defineActionPinch(async (param) => {
+        const { centerX, centerY, startDistance, endDistance, duration } =
+          normalizePinchParam(param, await this.size());
+
+        await this.wdaBackend.pinch(
+          centerX,
+          centerY,
+          startDistance,
+          endDistance,
+          duration,
+        );
       }),
       defineActionClearInput(async (param) => {
         await this.clearInput(param.locate as ElementInfo | undefined);
