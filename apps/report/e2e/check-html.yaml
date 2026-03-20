@@ -2,8 +2,8 @@ target:
   serve: ./dist
   url: demo.html
 tasks:
-  - name: check console html
+  - name: check report loads and displays tasks
     flow:
-      - ai: Click the 'Insight / Locate' on Left
       - sleep: 3000
-      - aiAssert: There is a 'Open in Playground' button on the page
+      - aiAssert: There is a sidebar on the left showing a task execution list with task names and time costs
+      - aiAssert: There is a 'Record' timeline section with screenshot thumbnails

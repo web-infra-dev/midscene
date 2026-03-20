@@ -1,0 +1,16 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: after playback completes player shows full view at last step
+    flow:
+      # Speed up playback to 2x and wait for completion
+      - ai: Click the settings gear icon on the player controls bar
+      - sleep: 1000
+      - ai: Select the '2x' playback speed option
+      - sleep: 500
+      - ai: Click somewhere on the player video area to close the settings popup
+      - sleep: 30000
+      # After playback completes, verify the state
+      - aiAssert: The play button (triangle icon) is visible on the player controls bar, indicating playback has stopped
+      - aiAssert: The player is showing a screenshot image of a web page

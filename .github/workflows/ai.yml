@@ -113,11 +113,27 @@ jobs:
         path: ${{ github.workspace }}/packages/web-integration/midscene_run/report
         if-no-files-found: ignore
 
+    - name: Run apps/report e2e tests
+      run: cd apps/report && pnpm run e2e
+      id: e2e-tests-app-report
+      continue-on-error: true
+
+    - name: Upload apps/report e2e report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-app-report-output
+        path: |
+          ${{ github.workspace }}/midscene_run/report
+          ${{ github.workspace }}/apps/report/midscene_run/report
+        if-no-files-found: ignore
+
     - name: Check if tests failed
-      if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure'
+      if: steps.e2e-tests.outcome == 'failure' || steps.e2e-tests-cache.outcome == 'failure' || steps.e2e-tests-report.outcome == 'failure' || steps.e2e-tests-app-report.outcome == 'failure'
       run: |
         echo "::error::The following e2e tests failed:"
         if [ "${{ steps.e2e-tests.outcome }}" == "failure" ]; then echo "  - e2e (basic)"; fi
         if [ "${{ steps.e2e-tests-cache.outcome }}" == "failure" ]; then echo "  - e2e:cache"; fi
         if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
+        if [ "${{ steps.e2e-tests-app-report.outcome }}" == "failure" ]; then echo "  - e2e:app-report"; fi
         exit 1
