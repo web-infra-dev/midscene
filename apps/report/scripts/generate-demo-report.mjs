@@ -27,11 +27,18 @@ const yamlPath = path.join(rootDir, 'scripts', 'generate-report.yaml');
 const cliPath = path.join(repoRoot, 'packages', 'cli', 'bin', 'midscene');
 
 console.log('Running Midscene test to generate report...');
-execSync(`node ${cliPath} ${yamlPath}`, {
-  cwd: repoRoot,
-  stdio: 'inherit',
-  env: { ...process.env },
-});
+try {
+  execSync(`node ${cliPath} ${yamlPath}`, {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: { ...process.env },
+  });
+} catch {
+  // Report is still generated even if some assertions fail
+  console.log(
+    'Test exited with errors, but report may still have been generated.',
+  );
+}
 
 // Find the newly generated report
 const reportsAfter = fs
