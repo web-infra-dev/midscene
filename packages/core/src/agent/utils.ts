@@ -108,23 +108,7 @@ export async function commonContextParser(
     finalLogicalHeight = logicalWidth;
   }
 
-  // Validate user-specified shrink factor
-  const userShrinkFactor = (() => {
-    if (_opt.modelFamily === 'gpt-5') {
-      const longestSide = Math.max(imgWidth, imgHeight);
-      // high allows up to 2,500 patches or a 2048-pixel maximum dimension
-      const gpt5MaxEdgeSizeWhenDetailIsHigh = 32 * 50;
-      if (longestSide > gpt5MaxEdgeSizeWhenDetailIsHigh) {
-        const calculatedShrink = longestSide / gpt5MaxEdgeSizeWhenDetailIsHigh;
-        console.warn(
-          `Midscene - GPT-5 models may perform worse at element localization on overly high-resolution images, so screenshot compression is enabled by default. To disable this behavior, set screenshotShrinkFactor manually when initializing the agent. Auto shrink factor: ${calculatedShrink.toFixed(2)}.`,
-        );
-        return calculatedShrink;
-      }
-      return 1;
-    }
-    return _opt.screenshotShrinkFactor ?? 1;
-  })();
+  const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
 
   if (!Number.isFinite(userShrinkFactor) || userShrinkFactor < 1) {
     throw new Error(

@@ -385,7 +385,6 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    // because of context will be reused between planning and locate, so all snapshots should be shrunk when the model family requires it
     const { modelFamily } = this.modelConfigManager.getModelConfig('default');
 
     const maxRetries = Agent.CONTEXT_RETRY_MAX;

@@ -8,6 +8,7 @@ import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
 import { ifInBrowser } from '@midscene/shared/utils';
 import type { ChatCompletionMessageParam } from 'openai/resources/index';
+import { shouldForceOriginalImageDetail } from './image-detail';
 
 const CODEX_PROVIDER_SCHEME = 'codex://';
 const CODEX_DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
@@ -418,9 +419,9 @@ class CodexAppServerConnection {
     const deadlineAt = Date.now() + timeoutMs;
     const isStreaming = !!(stream && onChunk);
 
-    // For GPT-5 models, use "detail": "original" for image inputs to get original resolution
-    const imageDetailOverride =
-      modelConfig.modelFamily === 'gpt-5' ? 'original' : undefined;
+    const imageDetailOverride = shouldForceOriginalImageDetail(modelConfig)
+      ? 'original'
+      : undefined;
     const { developerInstructions, input } = buildCodexTurnPayloadFromMessages(
       messages,
       { imageDetailOverride },
