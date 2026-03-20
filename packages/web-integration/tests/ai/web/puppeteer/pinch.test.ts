@@ -1,6 +1,11 @@
 import { PuppeteerAgent } from '@/puppeteer';
+import { sleep } from '@midscene/core/utils';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_TEST_TIMEOUT, createTestContext } from './test-utils';
+import {
+  DEFAULT_TEST_TIMEOUT,
+  createTestContext,
+  getFixturePath,
+} from './test-utils';
 import { launchPage } from './utils';
 
 describe(
@@ -8,85 +13,94 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it.skipIf(!!process.env.CI)(
-      'Pinch: zoom in on Google Maps via aiAct',
-      async () => {
-        const { originPage, reset } = await launchPage(
-          'https://www.google.com/maps',
-          {
-            viewport: {
-              width: 375,
-              height: 812,
-              isMobile: true,
-              hasTouch: true,
-              deviceScaleFactor: 3,
-            },
-          },
-        );
-        ctx.resetFn = reset;
-        ctx.agent = new PuppeteerAgent(originPage, {
-          enableTouchEventsInActionSpace: true,
-        });
-
-        await ctx.agent.aiAct('pinch to zoom in on the map');
-      },
-    );
-
-    it.skipIf(!!process.env.CI)('Pinch: use aiPinch API directly', async () => {
-      const { originPage, reset } = await launchPage(
-        'https://www.google.com/maps',
-        {
-          viewport: {
-            width: 375,
-            height: 812,
-            isMobile: true,
-            hasTouch: true,
-            deviceScaleFactor: 3,
-          },
-        },
-      );
-      ctx.resetFn = reset;
-      ctx.agent = new PuppeteerAgent(originPage, {
-        enableTouchEventsInActionSpace: true,
-      });
-
-      // pinch out = zoom in, pinch in = zoom out
-      await ctx.agent.aiPinch(undefined, { direction: 'out', distance: 200 });
-      await ctx.agent.aiPinch(undefined, { direction: 'in', distance: 200 });
-    });
-
-    it('Pinch action is not available without enableTouchEventsInActionSpace', async () => {
+    it('Pinch action is always available in action space', async () => {
       const { originPage, reset } = await launchPage('https://www.example.com');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
 
       const actionSpace = await ctx.agent.getActionSpace();
       const pinchAction = actionSpace.find((a) => a.name === 'Pinch');
-      expect(pinchAction).toBeUndefined();
-    });
-
-    it('Pinch action is available with enableTouchEventsInActionSpace', async () => {
-      const { originPage, reset } = await launchPage(
-        'https://www.example.com',
-        {
-          viewport: {
-            width: 375,
-            height: 812,
-            isMobile: true,
-            hasTouch: true,
-            deviceScaleFactor: 3,
-          },
-        },
-      );
-      ctx.resetFn = reset;
-      ctx.agent = new PuppeteerAgent(originPage, {
-        enableTouchEventsInActionSpace: true,
-      });
-
-      const actionSpace = await ctx.agent.getActionSpace();
-      const pinchAction = actionSpace.find((a) => a.name === 'Pinch');
       expect(pinchAction).toBeDefined();
       expect(pinchAction!.interfaceAlias).toBe('aiPinch');
+    });
+
+    it('Swipe action is NOT available without enableTouchEventsInActionSpace', async () => {
+      const { originPage, reset } = await launchPage('https://www.example.com');
+      ctx.resetFn = reset;
+      ctx.agent = new PuppeteerAgent(originPage);
+
+      const actionSpace = await ctx.agent.getActionSpace();
+      const swipeAction = actionSpace.find((a) => a.name === 'Swipe');
+      expect(swipeAction).toBeUndefined();
+    });
+
+    it('Pinch and Scroll do not conflict', async () => {
+      const htmlPath = getFixturePath('pinch-scroll.html');
+      const { originPage, reset } = await launchPage(`file://${htmlPath}`, {
+        viewport: {
+          width: 375,
+          height: 700,
+          isMobile: true,
+          hasTouch: true,
+          deviceScaleFactor: 2,
+        },
+      });
+      ctx.resetFn = reset;
+      ctx.agent = new PuppeteerAgent(originPage);
+
+      // Step 1: Verify initial state
+      await ctx.agent.aiAssert(
+        'the scale display shows "1.00x" and "Item 1 - Top" is visible',
+      );
+
+      // Step 2: Pinch out (zoom in) on the zoom area
+      await ctx.agent.aiPinch('the Pinch Zone area', {
+        direction: 'out',
+        distance: 200,
+      });
+      await sleep(1000);
+
+      // Step 3: Verify pinch worked — scale changed
+      await ctx.agent.aiAssert(
+        'the scale display no longer shows "1.00x", it shows a larger number',
+      );
+
+      // Step 4: Scroll down in the scroll area — this should still work after pinch
+      await ctx.agent.aiScroll('the scroll area with items', {
+        direction: 'down',
+        scrollType: 'scrollToBottom',
+      });
+      await sleep(1000);
+
+      // Step 5: Verify scroll worked — bottom items are visible
+      await ctx.agent.aiAssert('"Item 10 - Bottom" is visible on the page');
+
+      // Step 6: Scroll back up — confirm scroll is not broken
+      await ctx.agent.aiScroll('the scroll area with items', {
+        direction: 'up',
+        scrollType: 'scrollToTop',
+      });
+      await sleep(1000);
+
+      // Step 7: Verify scroll up worked
+      await ctx.agent.aiAssert('"Item 1 - Top" is visible on the page');
+
+      // Step 8: Pinch in (zoom out) — confirm pinch still works after scrolling
+      await ctx.agent.aiPinch('the Pinch Zone area', {
+        direction: 'in',
+        distance: 200,
+      });
+      await sleep(1000);
+
+      // Step 9: Final scroll to confirm no residual conflict
+      await ctx.agent.aiScroll('the scroll area with items', {
+        direction: 'down',
+      });
+      await sleep(500);
+
+      await ctx.agent.aiAssert(
+        '"Item 1 - Top" is no longer visible, items below it are shown',
+      );
     });
   },
   DEFAULT_TEST_TIMEOUT,

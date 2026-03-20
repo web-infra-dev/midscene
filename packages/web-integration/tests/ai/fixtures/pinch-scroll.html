@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes">
+  <title>Pinch and Scroll Demo</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; touch-action: manipulation; }
+
+    .zoom-container {
+      width: 100%;
+      height: 400px;
+      overflow: hidden;
+      position: relative;
+      background: #f0f0f0;
+      border-bottom: 2px solid #333;
+    }
+
+    .zoom-content {
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+      transition: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .zoom-label {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    #scale-display {
+      font-size: 48px;
+      font-weight: bold;
+      color: #0066cc;
+    }
+
+    .scroll-container {
+      width: 100%;
+      height: 300px;
+      overflow-y: scroll;
+      background: #e8e8e8;
+    }
+
+    .scroll-item {
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
+    }
+
+    .scroll-item:nth-child(odd) { background: #d0d0ff; }
+    .scroll-item:nth-child(even) { background: #d0ffd0; }
+  </style>
+</head>
+
+<body>
+  <div class="zoom-container" id="zoom-area">
+    <div class="zoom-content" id="zoom-content">
+      <div class="zoom-label">Pinch Zone</div>
+      <div id="scale-display">1.00x</div>
+      <div class="zoom-label" id="pinch-status">No pinch detected</div>
+    </div>
+  </div>
+
+  <div class="scroll-container" id="scroll-area">
+    <div class="scroll-item">Item 1 - Top</div>
+    <div class="scroll-item">Item 2</div>
+    <div class="scroll-item">Item 3</div>
+    <div class="scroll-item">Item 4</div>
+    <div class="scroll-item">Item 5</div>
+    <div class="scroll-item">Item 6</div>
+    <div class="scroll-item">Item 7</div>
+    <div class="scroll-item">Item 8</div>
+    <div class="scroll-item">Item 9</div>
+    <div class="scroll-item">Item 10 - Bottom</div>
+  </div>
+
+  <script>
+    const zoomArea = document.getElementById('zoom-area');
+    const zoomContent = document.getElementById('zoom-content');
+    const scaleDisplay = document.getElementById('scale-display');
+    const pinchStatus = document.getElementById('pinch-status');
+
+    let currentScale = 1.0;
+    let initialDistance = null;
+    let initialScale = 1.0;
+
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    zoomArea.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        initialDistance = getDistance(e.touches);
+        initialScale = currentScale;
+        pinchStatus.textContent = 'Pinching...';
+      }
+    }, { passive: false });
+
+    zoomArea.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialDistance !== null) {
+        e.preventDefault();
+        const currentDistance = getDistance(e.touches);
+        const ratio = currentDistance / initialDistance;
+        currentScale = Math.max(0.1, Math.min(10, initialScale * ratio));
+        zoomContent.style.transform = `scale(${currentScale})`;
+        scaleDisplay.textContent = `${currentScale.toFixed(2)}x`;
+      }
+    }, { passive: false });
+
+    zoomArea.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialDistance = null;
+        if (currentScale !== 1.0) {
+          pinchStatus.textContent = `Pinch complete: ${currentScale.toFixed(2)}x`;
+        }
+      }
+    });
+  </script>
+</body>
+
+</html>
