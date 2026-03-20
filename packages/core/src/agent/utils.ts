@@ -110,7 +110,7 @@ export async function commonContextParser(
 
   // Validate user-specified shrink factor
   const userShrinkFactor = (() => {
-    if (_opt.modelFamily === 'gpt-5' || _opt.modelFamily === 'gpt-5.4') {
+    if (_opt.modelFamily === 'gpt-5') {
       const longestSide = Math.max(imgWidth, imgHeight);
       // high allows up to 2,500 patches or a 2048-pixel maximum dimension
       const gpt5MaxEdgeSizeWhenDetailIsHigh = 32 * 50;

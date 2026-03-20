@@ -231,7 +231,7 @@ export function adaptBbox(
     result = adaptGeminiBbox(normalizedBbox as number[], width, height);
   } else if (modelFamily === 'qwen2.5-vl') {
     result = adaptQwen2_5Bbox(normalizedBbox as number[]);
-  } else if (modelFamily === 'gpt-5' || modelFamily === 'gpt-5.4') {
+  } else if (modelFamily === 'gpt-5') {
     result = adaptGpt5Bbox(normalizedBbox);
   } else {
     // Default: normalized 0-1000 coordinate system

@@ -26,14 +26,13 @@ If you already signed in with Codex CLI (`codex login`) and want Midscene to use
 ```bash
 export MIDSCENE_MODEL_BASE_URL="codex://app-server"
 export MIDSCENE_MODEL_NAME="gpt-5.4" # or another model shown by Codex model/list
-export MIDSCENE_MODEL_FAMILY="gpt-5.4"
+export MIDSCENE_MODEL_FAMILY="gpt-5"
 ```
 
 Notes:
 - `MIDSCENE_MODEL_API_KEY` is not required in this mode.
 - Midscene will call `codex app-server` through stdio.
 - Make sure `codex` is available in your PATH and verify auth with `codex login status`.
-- `MIDSCENE_MODEL_FAMILY="gpt-5"` is still compatible, but it cannot use original resolution. See [model sizing behavior](https://developers.openai.com/api/docs/guides/images-vision#model-sizing-behavior)
 
 ## Advanced settings (optional)
 
