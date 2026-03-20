@@ -343,17 +343,17 @@ export function App() {
       return !!textContent;
     });
 
-    // Group elements by data-group-id.
-    // Old-format reports and merged reports may not have this attribute —
-    // fall back to treating each element as its own group.
-    let legacyCounter = 0;
+    // Group elements by data-group-id (required attribute)
     const groupMap = new Map<string, Element[]>();
 
     for (const el of validElements) {
       const groupId = el.getAttribute('data-group-id');
-      const decodedGroupId = groupId
-        ? decodeURIComponent(groupId)
-        : `__legacy_${legacyCounter++}`;
+      if (!groupId) {
+        throw new Error(
+          'Missing required attribute "data-group-id" on <script type="midscene_web_dump"> element',
+        );
+      }
+      const decodedGroupId = decodeURIComponent(groupId);
       if (!groupMap.has(decodedGroupId)) {
         groupMap.set(decodedGroupId, []);
       }
@@ -376,21 +376,17 @@ export function App() {
             let baseDump: GroupedActionDump | null = null;
 
             for (const el of elements) {
-              try {
-                const content = antiEscapeScriptTag(el.textContent || '');
-                const parsed = JSON.parse(content);
-                const restored = restoreImageReferences(
-                  parsed,
-                  resolveImageFromDom,
-                );
-                const dump = GroupedActionDump.fromJSON(restored);
-                if (!baseDump) {
-                  baseDump = dump;
-                }
-                allExecutions.push(...dump.executions);
-              } catch (e) {
-                console.error('failed to parse dump script element', el, e);
+              const content = antiEscapeScriptTag(el.textContent || '');
+              const parsed = JSON.parse(content);
+              const restored = restoreImageReferences(
+                parsed,
+                resolveImageFromDom,
+              );
+              const dump = GroupedActionDump.fromJSON(restored);
+              if (!baseDump) {
+                baseDump = dump;
               }
+              allExecutions.push(...dump.executions);
             }
 
             // Deduplicate executions by id — keep only the last one.
@@ -402,16 +398,14 @@ export function App() {
               const key = exec.id || `__no_id_${noIdCounter++}`;
               deduped.set(key, exec);
             }
-            if (baseDump) {
-              baseDump.executions = Array.from(deduped.values());
-              cachedJsonContent = baseDump;
-              (cachedJsonContent as any).attributes = attributes;
-            }
+            baseDump!.executions = Array.from(deduped.values());
+            cachedJsonContent = baseDump!;
 
             console.timeEnd('parse_grouped_dump');
+            (cachedJsonContent as any).attributes = attributes;
             isParsed = true;
           }
-          return cachedJsonContent;
+          return cachedJsonContent!;
         },
         attributes,
       });
