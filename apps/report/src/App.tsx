@@ -1,7 +1,7 @@
 import './App.less';
 
 import { Alert, ConfigProvider, Empty, theme } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
 import { GroupedActionDump, restoreImageReferences } from '@midscene/core';
@@ -92,8 +92,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   }, [isDarkMode]);
 
   useEffect(() => {
-    if (dumps?.[0]) {
-      setGroupedDump(dumps[0].get(), dumps[0].attributes);
+    if (dumps && dumps.length > 0) {
+      const first = dumps[0];
+      setGroupedDump(first.get(), first.attributes);
     }
     return () => {
       reset();
@@ -119,13 +120,60 @@ function Visualizer(props: VisualizerProps): JSX.Element {
     };
   }, []);
 
+  const allSkipped = useMemo(
+    () =>
+      dumps &&
+      dumps.length > 0 &&
+      dumps.every((d) => d.attributes?.playwright_test_status === 'skipped'),
+    [dumps],
+  );
+
+  const renderContent = () => {
+    if (dump && dump.executions.length === 0) {
+      return (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description="There is no task info in this dump file."
+        />
+      );
+    }
+    if (replayAllMode) {
+      return (
+        <div className="replay-all-mode-wrapper">
+          <Player
+            key={`${executionDumpLoadId}`}
+            replayScripts={replayAllScripts!}
+            imageWidth={insightWidth!}
+            imageHeight={insightHeight!}
+            onTaskChange={setPlayingTaskId}
+          />
+        </div>
+      );
+    }
+    return (
+      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
+        <Panel defaultSize={75} maxSize={95}>
+          <div className="main-content-container">
+            <DetailPanel />
+          </div>
+        </Panel>
+        <PanelResizeHandle className="resize-handle" />
+        <Panel maxSize={95}>
+          <div className="main-side">
+            <DetailSide />
+          </div>
+        </Panel>
+      </PanelGroup>
+    );
+  };
+
   let mainContent: JSX.Element;
-  if (dump && dump.executions.length === 0) {
+  if (allSkipped && !dump) {
     mainContent = (
       <div className="main-right">
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description="There is no task info in this dump file."
+          description="All test cases were skipped. No report data to display."
         />
       </div>
     );
@@ -147,31 +195,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
       </div>
     );
   } else {
-    const content = replayAllMode ? (
-      <div className="replay-all-mode-wrapper">
-        <Player
-          key={`${executionDumpLoadId}`}
-          replayScripts={replayAllScripts!}
-          imageWidth={insightWidth!}
-          imageHeight={insightHeight!}
-          onTaskChange={setPlayingTaskId}
-        />
-      </div>
-    ) : (
-      <PanelGroup autoSaveId="page-detail-layout-v2" direction="horizontal">
-        <Panel defaultSize={75} maxSize={95}>
-          <div className="main-content-container">
-            <DetailPanel />
-          </div>
-        </Panel>
-        <PanelResizeHandle className="resize-handle" />
-        <Panel maxSize={95}>
-          <div className="main-side">
-            <DetailSide />
-          </div>
-        </Panel>
-      </PanelGroup>
-    );
+    const content = renderContent();
 
     mainContent = (
       <div className="main-layout">
@@ -336,6 +360,8 @@ export function App() {
             } else {
               attributes[name] = valueDecoded;
             }
+          } else if (name === 'is_merged') {
+            attributes[name] = valueDecoded === 'true';
           }
         });
 
@@ -363,15 +389,19 @@ export function App() {
               } catch (e) {
                 console.error(el);
                 console.error('failed to parse json content', e);
-                // Return a fallback object to prevent crashes
-                cachedJsonContent = {
-                  attributes,
-                  error: 'Failed to parse JSON content',
-                } as any;
+                cachedJsonContent = GroupedActionDump.fromJSON({
+                  sdkVersion: '',
+                  modelBriefs: [],
+                  groupName: attributes.playwright_test_title || 'unknown',
+                  groupDescription:
+                    attributes.playwright_test_description || '',
+                  executions: [],
+                });
+                (cachedJsonContent as any).attributes = attributes;
                 isParsed = true;
               }
             }
-            return cachedJsonContent;
+            return cachedJsonContent!;
           },
           attributes: attributes as PlaywrightTaskAttributes,
         });
