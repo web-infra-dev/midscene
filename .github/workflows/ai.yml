@@ -123,7 +123,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: e2e-app-report-output
-        path: ${{ github.workspace }}/midscene_run/report
+        path: |
+          ${{ github.workspace }}/midscene_run/report
+          ${{ github.workspace }}/apps/report/midscene_run/report
         if-no-files-found: ignore
 
     - name: Check if tests failed
