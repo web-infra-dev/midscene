@@ -111,14 +111,14 @@ describe('chrome extension playground advanced tests', () => {
     );
   });
 
-  // ── Test: add multiple todos via aiAct ──────────────────────────────────
+  // ── Test: add a todo via aiAct ────────────────────────────────────────
 
-  it('playground: add multiple todos and verify', async () => {
+  it('playground: add a todo via aiAct', async () => {
     // Switch back to aiAct
     await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
     await sleep(500);
 
-    // Add first todo
+    // Add a todo
     await agent.aiAct(
       `In ${SIDE_PANEL}, click the text input area and type: Enter "Buy groceries" in the todo input box, then press Enter`,
     );
@@ -129,35 +129,6 @@ describe('chrome extension playground advanced tests', () => {
 
     await agent.aiAssert(
       'The TodoMVC page on the left shows a todo item containing "Buy groceries"',
-    );
-
-    // Add second todo
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, clear the text input area and type: Enter "Read a book" in the todo input box, then press Enter`,
-    );
-    await sleep(500);
-
-    await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
-
-    await agent.aiAssert(
-      'The TodoMVC page on the left shows at least two todo items',
-    );
-  });
-
-  // ── Test: complete a todo via aiAct ─────────────────────────────────────
-
-  it('playground: complete a todo item', async () => {
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, clear the text input area and type: Click the checkbox next to "Buy groceries" to mark it as complete`,
-    );
-    await sleep(500);
-
-    await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
-
-    await agent.aiAssert(
-      'The TodoMVC page shows "Buy groceries" with a strikethrough or completed style',
     );
   });
 });

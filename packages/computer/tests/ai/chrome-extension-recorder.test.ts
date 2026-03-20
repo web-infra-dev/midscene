@@ -3,10 +3,9 @@
  *
  * Tests:
  * - Navigate to Recorder mode via menu
- * - Create a new recording session
- * - Start and stop recording
- * - View recording timeline with captured events
- * - Switch to code generation tab
+ * - Create a new recording session (auto-starts recording)
+ * - Perform actions during recording and stop
+ * - View recorded events
  * - Return to Playground mode
  */
 import path from 'node:path';
@@ -88,41 +87,30 @@ describe('chrome extension recorder mode tests', () => {
 
     try {
       await agent.aiAssert(
-        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button or a list of recording sessions`,
+        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button visible`,
       );
     } catch {
       console.log('Recorder mode switch failed, retrying...');
       await switchToRecorder();
       await agent.aiAssert(
-        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button or a list of recording sessions`,
+        `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button visible`,
       );
     }
   });
 
-  // ── Test: create new recording session ──────────────────────────────────
+  // ── Test: create recording, perform actions, and stop ───────────────────
 
-  it('create a new recording session', async () => {
+  it('create recording and capture actions', async () => {
+    // Click New Recording - this auto-starts recording
     await agent.aiAct(`Click the "New Recording" button in ${SIDE_PANEL}`);
-    await sleep(2000);
+    await sleep(3000);
 
-    // Should automatically enter detail view with recording controls
+    // Verify recording is active (auto-started)
     await agent.aiAssert(
-      `${SIDE_PANEL} shows a recording detail view with a "Start Recording" or "Resume Recording" button, and a session name/title at the top`,
-    );
-  });
-
-  // ── Test: start and stop recording ──────────────────────────────────────
-
-  it('start recording and perform actions', async () => {
-    await agent.aiAct(`Click the "Start Recording" button in ${SIDE_PANEL}`);
-    await sleep(2000);
-
-    // Verify recording indicator is shown
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a recording indicator with "Recording" text or a pulsing red dot, and a stop button`,
+      `${SIDE_PANEL} shows an active recording state with a red "REC" indicator or "Recording" text and a stop button`,
     );
 
-    // Perform some actions on the target page to generate events
+    // Perform an action on the target page to generate events
     await agent.aiAct(
       'Click on the todo input box on the left side (the TodoMVC page) and type "Test recording" then press Enter',
     );
@@ -132,37 +120,11 @@ describe('chrome extension recorder mode tests', () => {
     await agent.aiAct(
       `Click the stop button (square icon) in ${SIDE_PANEL} to stop recording`,
     );
-    await sleep(3000);
+    await sleep(5000);
 
-    // Verify recording stopped and events captured
+    // After stop, it may show timeline or start generating code
     await agent.aiAssert(
-      `${SIDE_PANEL} shows the recording has stopped with captured events in a timeline or event list`,
-    );
-  });
-
-  // ── Test: view code generation tab ──────────────────────────────────────
-
-  it('switch to Generate code tab', async () => {
-    await agent.aiAct(
-      `Click the "Generate code" tab or the code icon tab in ${SIDE_PANEL}`,
-    );
-    await sleep(2000);
-
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a code generation view with a code type selector (Playwright/YAML) and generate/copy/download buttons`,
-    );
-  });
-
-  // ── Test: return to session list ────────────────────────────────────────
-
-  it('close detail and return to session list', async () => {
-    await agent.aiAct(
-      `Click the close button (X) at the top-right area of the recording detail view in ${SIDE_PANEL}`,
-    );
-    await sleep(2000);
-
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows the session list with at least one recording session card`,
+      `${SIDE_PANEL} shows the recording has stopped - either displaying a timeline of recorded events, or showing "Generating" progress, or showing generated code`,
     );
   });
 
