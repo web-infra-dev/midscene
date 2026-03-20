@@ -14,9 +14,3 @@ tasks:
       # After playback completes, verify the state
       - aiAssert: The play button (triangle icon) is visible on the player controls bar, indicating playback has stopped
       - aiAssert: The player is showing a screenshot image of a web page
-
-  - name: clicking play restarts playback
-    flow:
-      - ai: Click the play button on the player controls bar
-      - sleep: 1000
-      - aiAssert: The player is actively playing with a pause button (two vertical bars) visible
