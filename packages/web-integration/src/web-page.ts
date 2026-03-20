@@ -579,20 +579,15 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     await page.longPress(element.center[0], element.center[1], duration);
   }),
 
+  defineActionPinch(async (param) => {
+    const { centerX, centerY, startDistance, endDistance, duration } =
+      normalizePinchParam(param, await page.size());
+
+    await page.pinch(centerX, centerY, startDistance, endDistance, duration);
+  }),
+
   ...(includeTouchEvents
     ? [
-        defineActionPinch(async (param) => {
-          const { centerX, centerY, startDistance, endDistance, duration } =
-            normalizePinchParam(param, await page.size());
-
-          await page.pinch(
-            centerX,
-            centerY,
-            startDistance,
-            endDistance,
-            duration,
-          );
-        }),
         defineActionSwipe(async (param) => {
           const { width, height } = await page.size();
           const { start, end } = param;

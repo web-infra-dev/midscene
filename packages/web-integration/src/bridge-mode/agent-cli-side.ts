@@ -69,8 +69,7 @@ export const getBridgePageInCliSide = (options?: {
       }
 
       if (prop === 'actionSpace') {
-        // Bridge mode connects to real Chrome via extension, CDP touch events are always available
-        return () => commonWebActionsForWebPage(proxyPage, true);
+        return () => commonWebActionsForWebPage(proxyPage);
       }
 
       if (Object.keys(page).includes(prop)) {
