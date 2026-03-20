@@ -201,17 +201,18 @@ describe('Issue 1: Viewer backward compatibility with old report format', () => 
     // The merged report should have dump tags
     expect(allDumpTags.length).toBeGreaterThan(0);
 
-    // Check if any merged dump tag has data-group-id
-    // reportHTMLContent() does NOT add data-group-id → this will be a problem
-    // for the Viewer which now requires it
-    const tagsWithGroupId = allDumpTags.filter((m) =>
-      m[0].includes('data-group-id'),
-    );
-
-    // Merged reports should either have data-group-id on their dump tags,
-    // or the Viewer should gracefully handle missing data-group-id.
-    // Currently merged tags DON'T have data-group-id → Viewer will throw.
-    expect(tagsWithGroupId.length).toBeGreaterThan(0);
+    // Merged reports from reportHTMLContent() may lack data-group-id.
+    // The Viewer must handle this gracefully (fallback to per-element groups).
+    // Filter to real dump tags (content starts with '{') and verify parseability.
+    const realDumpTags = allDumpTags.filter((m) => {
+      const content = antiEscapeScriptTag(m[1].trim());
+      return content.length > 0 && content.startsWith('{');
+    });
+    expect(realDumpTags.length).toBe(2); // one per source report
+    for (const match of realDumpTags) {
+      const content = antiEscapeScriptTag(match[1].trim());
+      expect(() => JSON.parse(content)).not.toThrow();
+    }
   });
 });
 
@@ -364,10 +365,11 @@ describe('Issue 3: dedup key merges old executions without id', () => {
     // We started with 2 executions
     expect(allExecutions.length).toBe(2);
 
-    // Apply the dedup logic from App.tsx: exec.id || exec.name
+    // Apply the dedup logic from App.tsx: only dedup by id, no-id entries kept
+    let noIdCounter = 0;
     const deduped = new Map<string, any>();
     for (const exec of allExecutions) {
-      const key = exec.id || exec.name;
+      const key = exec.id || `__no_id_${noIdCounter++}`;
       deduped.set(key, exec);
     }
 

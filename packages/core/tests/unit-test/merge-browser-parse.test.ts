@@ -22,6 +22,7 @@ import {
   GroupedActionDump,
   type UIContext,
 } from '@/types';
+import { uuid } from '@midscene/shared/utils';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -50,6 +51,7 @@ function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
     modelBriefs: ['test-model'],
     executions: [
       new ExecutionDump({
+        id: uuid(),
         logTime: Date.now(),
         name: 'test-execution',
         tasks,

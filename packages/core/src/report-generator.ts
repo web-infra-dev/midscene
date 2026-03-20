@@ -5,7 +5,7 @@ import {
   MIDSCENE_REPORT_QUIET,
   globalConfigManager,
 } from '@midscene/shared/env';
-import { ifInBrowser, logMsg } from '@midscene/shared/utils';
+import { ifInBrowser, logMsg, uuid } from '@midscene/shared/utils';
 import {
   generateDumpScriptTag,
   generateImageScriptTag,
@@ -56,9 +56,16 @@ export class ReportGenerator implements IReportGenerator {
   private autoPrint: boolean;
   private firstWriteDone = false;
 
+  // Unique identifier for this report stream — used as data-group-id
+  private readonly reportStreamId: string;
+
   // Tracks screenshots already written to disk (by id) to avoid duplicates
   private writtenScreenshots = new Set<string>();
   private initialized = false;
+
+  // Tracks the last execution + groupMeta for re-writing on finalize
+  private lastExecution?: ExecutionDump;
+  private lastGroupMeta?: GroupMeta;
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
@@ -72,6 +79,7 @@ export class ReportGenerator implements IReportGenerator {
     this.reportPath = options.reportPath;
     this.screenshotMode = options.screenshotMode;
     this.autoPrint = options.autoPrint ?? true;
+    this.reportStreamId = uuid();
     this.printReportPath('will be generated at');
   }
 
@@ -108,6 +116,8 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   onExecutionUpdate(execution: ExecutionDump, groupMeta: GroupMeta): void {
+    this.lastExecution = execution;
+    this.lastGroupMeta = groupMeta;
     this.writeQueue = this.writeQueue.then(() => {
       if (this.destroyed) return;
       this.doWriteExecution(execution, groupMeta);
@@ -119,10 +129,19 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   async finalize(): Promise<string | undefined> {
+    // Re-write the last execution to capture any final state changes
+    if (this.lastExecution && this.lastGroupMeta) {
+      this.onExecutionUpdate(this.lastExecution, this.lastGroupMeta);
+    }
     await this.flush();
     this.destroyed = true;
-    this.printReportPath('finalized');
 
+    if (!this.initialized) {
+      // No executions were ever written — no file exists
+      return undefined;
+    }
+
+    this.printReportPath('finalized');
     return this.reportPath;
   }
 
@@ -214,7 +233,7 @@ export class ReportGenerator implements IReportGenerator {
     const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
     const serialized = singleDump.serialize();
     const attributes: Record<string, string> = {
-      'data-group-id': groupMeta.groupName,
+      'data-group-id': this.reportStreamId,
     };
     appendFileSync(
       this.reportPath,
@@ -257,7 +276,7 @@ export class ReportGenerator implements IReportGenerator {
     const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
     const serialized = singleDump.serialize();
     const dumpAttributes: Record<string, string> = {
-      'data-group-id': groupMeta.groupName,
+      'data-group-id': this.reportStreamId,
     };
 
     if (!this.initialized) {

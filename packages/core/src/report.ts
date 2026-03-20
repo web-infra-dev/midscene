@@ -55,16 +55,19 @@ export class ReportMergingTool {
     if (unescaped.length === 0) return '';
     if (unescaped.length === 1) return unescaped[0];
 
-    // Parse all dumps and collect executions, deduplicating by id/name (keep last)
+    // Parse all dumps and collect executions, deduplicating by id (keep last).
+    // Only executions with a stable id are deduped; old-format entries without
+    // id are always kept (they may be distinct despite sharing the same name).
     const base = GroupedActionDump.fromSerializedString(unescaped[0]);
     const allExecutions = [...base.executions];
     for (let i = 1; i < unescaped.length; i++) {
       const other = GroupedActionDump.fromSerializedString(unescaped[i]);
       allExecutions.push(...other.executions);
     }
+    let noIdCounter = 0;
     const deduped = new Map<string, (typeof allExecutions)[0]>();
     for (const exec of allExecutions) {
-      const key = exec.id || exec.name;
+      const key = exec.id || `__no_id_${noIdCounter++}`;
       deduped.set(key, exec);
     }
     base.executions = Array.from(deduped.values());
