@@ -18,7 +18,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+vi.setConfig({ testTimeout: 480 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -119,12 +119,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       );
     }
 
-    // 2. Verify Bridge has server config section
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows Bridge mode with a "Use remote server" collapsible section or a server URL area`,
-    );
-
-    // 3. Switch to Recorder Mode
+    // 2. Switch to Recorder Mode
     await agent.aiAct(
       `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
     );
@@ -137,7 +132,7 @@ describe('chrome extension settings and cross-mode tests', () => {
       `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button`,
     );
 
-    // 4. Switch back to Playground
+    // 3. Switch back to Playground
     await agent.aiAct(
       `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
     );

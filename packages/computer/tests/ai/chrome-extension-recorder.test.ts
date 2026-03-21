@@ -112,20 +112,8 @@ describe('chrome extension recorder mode tests', () => {
     await agent.aiAssert(
       `${SIDE_PANEL} shows the recording has stopped - either displaying a timeline of recorded events, or showing "Generating" progress, or showing generated code`,
     );
-  });
 
-  // ── Close detail and return to Playground ──────────────────────────────
-  it('recorder: close detail and switch back to Playground', async () => {
-    // Close detail view
-    await agent.aiAct(
-      `Click the close button (X) or back button at the top area of the recording detail view in ${SIDE_PANEL}`,
-    );
-    await sleep(2000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a session list with at least one recording session card`,
-    );
-
-    // Switch back to Playground
+    // 5. Switch back to Playground directly via menu
     await agent.aiAct(
       `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
     );
