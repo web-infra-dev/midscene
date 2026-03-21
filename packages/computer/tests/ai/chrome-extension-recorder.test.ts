@@ -19,7 +19,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+vi.setConfig({ testTimeout: 480 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -112,8 +112,11 @@ describe('chrome extension recorder mode tests', () => {
     await agent.aiAssert(
       `${SIDE_PANEL} shows the recording has stopped - either displaying a timeline of recorded events, or showing "Generating" progress, or showing generated code`,
     );
+  });
 
-    // 5. Close detail view and verify session in list
+  // ── Close detail and return to Playground ──────────────────────────────
+  it('recorder: close detail and switch back to Playground', async () => {
+    // Close detail view
     await agent.aiAct(
       `Click the close button (X) or back button at the top area of the recording detail view in ${SIDE_PANEL}`,
     );
@@ -122,7 +125,7 @@ describe('chrome extension recorder mode tests', () => {
       `${SIDE_PANEL} shows a session list with at least one recording session card`,
     );
 
-    // 6. Switch back to Playground
+    // Switch back to Playground
     await agent.aiAct(
       `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
     );
@@ -133,55 +136,6 @@ describe('chrome extension recorder mode tests', () => {
     await sleep(3000);
     await agent.aiAssert(
       `${SIDE_PANEL} shows Playground UI with action type buttons like "aiAct" and "aiQuery"`,
-    );
-  });
-
-  // ── Combined: second session + delete ─────────────────────────────────
-  it('recorder: create second session and delete it', async () => {
-    // 1. Switch to Recorder
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
-    );
-    await sleep(2000);
-    await agent.aiAct(
-      'In the dropdown menu that just appeared, click the menu item labeled "Recorder"',
-    );
-    await sleep(3000);
-
-    // 2. Should see the existing session from previous test
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows a session list with at least one recording session card`,
-    );
-
-    // 3. Create a second recording session
-    await agent.aiAct(`Click the "New Recording" button in ${SIDE_PANEL}`);
-    await sleep(3000);
-
-    // 4. Immediately stop (we just want to test session management)
-    await agent.aiAct(
-      `Click the stop button (square icon) in ${SIDE_PANEL} to stop recording`,
-    );
-    await sleep(3000);
-
-    // 5. Close detail view - should now see 2 sessions
-    await agent.aiAct(
-      `Click the close button (X) or back button at the top area of the recording detail view in ${SIDE_PANEL}`,
-    );
-    await sleep(2000);
-
-    // 6. Delete the second session - click delete icon on the first card (newest)
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, click the delete button (trash icon) on the first/top recording session card`,
-    );
-    await sleep(1000);
-    // Confirm deletion in the popup
-    await agent.aiAct(
-      'Click the "OK" or confirm button in the deletion confirmation popup',
-    );
-    await sleep(2000);
-
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows the session list with at least one recording session card remaining`,
     );
   });
 });

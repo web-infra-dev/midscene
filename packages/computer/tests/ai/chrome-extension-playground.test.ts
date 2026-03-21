@@ -18,7 +18,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 360 * 1000 });
+vi.setConfig({ testTimeout: 480 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';

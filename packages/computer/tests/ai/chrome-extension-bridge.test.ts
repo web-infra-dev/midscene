@@ -268,6 +268,9 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     const connected = await server.waitForConnected(15000);
     expect(connected).toBe(true);
 
+    // Wait for UI to update after WebSocket connection
+    await sleep(3000);
+
     // Verify UI shows "Connected"
     await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
 
