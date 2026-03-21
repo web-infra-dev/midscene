@@ -1,6 +1,7 @@
 /**
- * Run a real Midscene YAML test to generate a report, then copy it as demo.html.
- * This ensures the e2e tests validate against a genuinely generated report.
+ * Run real Midscene YAML tests to generate reports, then create demo files:
+ * - demo.html: single report (passed case)
+ * - demo-merged.html: merged report with both passed and failed cases
  *
  * Usage: node scripts/generate-demo-report.mjs
  */
@@ -18,53 +19,115 @@ const distDir = path.join(rootDir, 'dist');
 const runDir = process.env.MIDSCENE_RUN_DIR || 'midscene_run';
 const reportDir = path.resolve(repoRoot, runDir, 'report');
 
-// Record the latest report file before running
-const reportsBefore = new Set(
-  fs.existsSync(reportDir)
-    ? fs.readdirSync(reportDir).filter((f) => f.endsWith('.html'))
-    : [],
-);
-
-// Run the generation YAML which produces a real report
-const yamlPath = path.join(rootDir, 'scripts', 'generate-report.yaml');
 const cliPath = path.join(repoRoot, 'packages', 'cli', 'bin', 'midscene');
 
-console.log('Running Midscene test to generate report...');
-try {
-  execFileSync('node', [cliPath, yamlPath], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    env: { ...process.env },
-  });
-} catch {
-  // Report is still generated even if some assertions fail
-  console.log(
-    'Test exited with errors, but report may still have been generated.',
+/**
+ * Run a YAML file and return the path to the newly generated report.
+ * The CLI exits non-zero on any assertion failure or AI timeout, but
+ * the report is still generated. We catch and check for the report file.
+ */
+function runYamlAndFindReport(yamlPath) {
+  const before = new Set(
+    fs.existsSync(reportDir)
+      ? fs.readdirSync(reportDir).filter((f) => f.endsWith('.html'))
+      : [],
   );
+
+  try {
+    execFileSync('node', [cliPath, yamlPath], {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: { ...process.env },
+    });
+  } catch {
+    console.log(
+      'Test exited with errors, but report may still have been generated.',
+    );
+  }
+
+  const after = fs.readdirSync(reportDir).filter((f) => f.endsWith('.html'));
+  const newReports = after.filter((f) => !before.has(f));
+
+  if (newReports.length === 0) {
+    console.error(`No new report generated for ${path.basename(yamlPath)}.`);
+    return null;
+  }
+
+  const latest = newReports
+    .map((f) => ({
+      name: f,
+      mtime: fs.statSync(path.join(reportDir, f)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime)[0].name;
+
+  return path.join(reportDir, latest);
 }
 
-// Find the newly generated report
-const reportsAfter = fs
-  .readdirSync(reportDir)
-  .filter((f) => f.endsWith('.html'));
-const newReports = reportsAfter.filter((f) => !reportsBefore.has(f));
+// --- Generate reports ---
 
-if (newReports.length === 0) {
-  console.error('No new report generated. Check if the test ran successfully.');
+console.log('=== Generating passed report ===');
+const passedYaml = path.join(rootDir, 'scripts', 'generate-report.yaml');
+const passedReport = runYamlAndFindReport(passedYaml);
+if (!passedReport) {
+  console.error('Failed to generate passed report.');
   process.exit(1);
 }
 
-// Pick the most recent one
-const latestReport = newReports
-  .map((f) => ({
-    name: f,
-    mtime: fs.statSync(path.join(reportDir, f)).mtimeMs,
-  }))
-  .sort((a, b) => b.mtime - a.mtime)[0].name;
+console.log('=== Generating failed report ===');
+const failedYaml = path.join(rootDir, 'scripts', 'generate-report-failed.yaml');
+const failedReport = runYamlAndFindReport(failedYaml);
+if (!failedReport) {
+  console.error('Failed to generate failed report.');
+  process.exit(1);
+}
 
-const reportPath = path.join(reportDir, latestReport);
-const demoPath = path.join(distDir, 'demo.html');
-
+// --- Copy single report as demo.html ---
 fs.mkdirSync(distDir, { recursive: true });
-fs.copyFileSync(reportPath, demoPath);
-console.log(`Copied ${latestReport} -> dist/demo.html`);
+const demoPath = path.join(distDir, 'demo.html');
+fs.copyFileSync(passedReport, demoPath);
+console.log(`Copied ${path.basename(passedReport)} -> dist/demo.html`);
+
+// --- Merge reports into demo-merged.html ---
+// Import ReportMergingTool dynamically (it's CJS from @midscene/core dist)
+const corePath = path.join(
+  repoRoot,
+  'packages',
+  'core',
+  'dist',
+  'lib',
+  'report.js',
+);
+const { ReportMergingTool } = await import(corePath);
+
+const merger = new ReportMergingTool();
+merger.append({
+  reportFilePath: passedReport,
+  reportAttributes: {
+    testDuration: 30000,
+    testStatus: 'passed',
+    testTitle: 'Login and verify inventory',
+    testId: 'test-passed',
+    testDescription: 'Login to saucedemo and verify products page',
+  },
+});
+merger.append({
+  reportFilePath: failedReport,
+  reportAttributes: {
+    testDuration: 25000,
+    testStatus: 'failed',
+    testTitle: 'Login with intentional failure',
+    testId: 'test-failed',
+    testDescription: 'Login to saucedemo with a failing assertion',
+  },
+});
+
+const mergedPath = merger.mergeReports('demo-merged', { overwrite: true });
+if (!mergedPath) {
+  console.error('Failed to merge reports.');
+  process.exit(1);
+}
+
+// Copy merged report to dist
+const demoMergedPath = path.join(distDir, 'demo-merged.html');
+fs.copyFileSync(mergedPath, demoMergedPath);
+console.log('Copied merged report -> dist/demo-merged.html');
