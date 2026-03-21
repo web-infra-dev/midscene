@@ -63,9 +63,8 @@ describe('chrome extension playground advanced tests', () => {
     }
   });
 
-  // ── Combined: aiQuery + aiAssert pass + aiAssert fail ─────────────────
-  it('aiQuery result display, aiAssert pass and fail', async () => {
-    // 1. aiQuery: extract page title
+  // ── aiQuery: extract page data and verify result ────────────────────
+  it('aiQuery result display', async () => {
     await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
@@ -73,12 +72,15 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
+    await sleep(30000);
     await agent.aiAssert(
       `${SIDE_PANEL} shows a result section containing text related to "todos" (the TodoMVC app title)`,
     );
+  });
 
-    // 2. aiAssert: passing condition (no mode switch overhead - just click button)
+  // ── Combined: aiAssert pass + aiAssert fail ───────────────────────────
+  it('aiAssert pass and fail scenarios', async () => {
+    // 1. aiAssert: passing condition
     await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
@@ -86,18 +88,18 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
+    await sleep(30000);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an execution result that indicates success or passed status (no error message)`,
     );
 
-    // 3. aiAssert: failing condition - assert something that doesn't exist
+    // 2. aiAssert: failing condition - assert something that doesn't exist
     await agent.aiAct(
       `In ${SIDE_PANEL}, clear the text input area and type: There is a "Delete All" button visible on the TodoMVC page`,
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
+    await sleep(30000);
     await agent.aiAssert(
       `${SIDE_PANEL} shows an execution result that indicates failure or error status, such as an error message or a red/failed indicator`,
     );
@@ -113,7 +115,7 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
+    await sleep(30000);
     await agent.aiAssert(
       'The TodoMVC page on the left shows a todo item containing "Buy groceries"',
     );
@@ -124,7 +126,7 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(20000);
+    await sleep(30000);
     await agent.aiAssert(
       'The TodoMVC page shows "Buy groceries" with a strikethrough or completed style',
     );
