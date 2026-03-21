@@ -636,6 +636,17 @@ export const generateAnimationScripts = (
     }
   });
 
+  if (insightOnTop) {
+    scripts.push({
+      type: 'clear-insight',
+      duration: clearInsightDuration,
+      title: '',
+      subTitle: '',
+      taskId: undefined,
+    });
+    insightOnTop = false;
+  }
+
   scripts.push({
     title: 'End',
     subTitle: initSubTitle,
