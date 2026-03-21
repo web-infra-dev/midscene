@@ -216,8 +216,13 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     const connected = await server.waitForConnected(15000);
     expect(connected).toBe(true);
 
+    // Wait for UI to reflect the connection state
+    await sleep(5000);
+
     // Verify the UI shows "Connected"
-    await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
+    await agent.aiAssert(
+      `${SIDE_PANEL} bottom area shows "Connected" status text`,
+    );
 
     // Kill the server so we can test stop behavior
     await server.kill();
