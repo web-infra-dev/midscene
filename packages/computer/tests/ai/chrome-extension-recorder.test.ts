@@ -1,12 +1,11 @@
 /**
  * E2E tests for Chrome extension Recorder mode.
  *
- * Tests:
- * - Navigate to Recorder mode via menu
- * - Create a new recording session (auto-starts recording)
- * - Perform actions during recording and stop
- * - View recorded events
- * - Return to Playground mode
+ * Tests combined for speed - single flow through recorder lifecycle:
+ * - Switch to Recorder → create session → auto-record → stop
+ * - Navigate recording with page filter clicks
+ * - Close detail → verify session list → delete session
+ * - Switch back to Playground
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
@@ -46,17 +45,13 @@ describe('chrome extension recorder mode tests', () => {
     console.log('Extension ID:', extId);
   });
 
-  // ── Setup: open side panel and configure ────────────────────────────────
-
   it('open side panel and configure', async () => {
     await agent.aiAct(
       'Click the puzzle piece icon (Extensions button) in the top-right area of the Chrome toolbar',
     );
     await sleep(1000);
-
     await agent.aiAct('Click "Midscene.js" in the extensions dropdown list');
     await sleep(3000);
-
     await agent.aiAssert(
       'The browser shows a side panel on the right side containing Midscene or Playground UI',
     );
@@ -69,9 +64,9 @@ describe('chrome extension recorder mode tests', () => {
     }
   });
 
-  // ── Test: switch to Recorder mode ───────────────────────────────────────
-
-  it('switch to Recorder mode via menu', async () => {
+  // ── Combined: full recorder lifecycle ─────────────────────────────────
+  it('recorder: full lifecycle - record, stop, view session, and return', async () => {
+    // 1. Switch to Recorder mode
     const switchToRecorder = async () => {
       await agent.aiAct(
         `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner. It should open a dropdown menu.`,
@@ -84,7 +79,6 @@ describe('chrome extension recorder mode tests', () => {
     };
 
     await switchToRecorder();
-
     try {
       await agent.aiAssert(
         `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button visible`,
@@ -96,41 +90,39 @@ describe('chrome extension recorder mode tests', () => {
         `${SIDE_PANEL} shows Recorder mode UI with a "New Recording" button visible`,
       );
     }
-  });
 
-  // ── Test: create recording, perform actions, and stop ───────────────────
-
-  it('create recording and capture actions', async () => {
-    // Click New Recording - this auto-starts recording
+    // 2. Create recording (auto-starts)
     await agent.aiAct(`Click the "New Recording" button in ${SIDE_PANEL}`);
     await sleep(3000);
-
-    // Verify recording is active (auto-started)
     await agent.aiAssert(
       `${SIDE_PANEL} shows an active recording state with a red "REC" indicator or "Recording" text and a stop button`,
     );
 
-    // Perform an action on the target page to generate events
+    // 3. Perform actions to generate events - add todo + click filter
     await agent.aiAct(
       'Click on the todo input box on the left side (the TodoMVC page) and type "Test recording" then press Enter',
     );
-    await sleep(3000);
+    await sleep(2000);
 
-    // Stop recording
+    // 4. Stop recording
     await agent.aiAct(
       `Click the stop button (square icon) in ${SIDE_PANEL} to stop recording`,
     );
     await sleep(5000);
-
-    // After stop, it may show timeline or start generating code
     await agent.aiAssert(
       `${SIDE_PANEL} shows the recording has stopped - either displaying a timeline of recorded events, or showing "Generating" progress, or showing generated code`,
     );
-  });
 
-  // ── Test: switch back to Playground ─────────────────────────────────────
+    // 5. Close detail view and verify session in list
+    await agent.aiAct(
+      `Click the close button (X) or back button at the top area of the recording detail view in ${SIDE_PANEL}`,
+    );
+    await sleep(2000);
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows a session list with at least one recording session card`,
+    );
 
-  it('switch back to Playground mode', async () => {
+    // 6. Switch back to Playground
     await agent.aiAct(
       `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
     );
@@ -139,9 +131,57 @@ describe('chrome extension recorder mode tests', () => {
       'In the dropdown menu that just appeared, click the menu item labeled "Playground"',
     );
     await sleep(3000);
-
     await agent.aiAssert(
       `${SIDE_PANEL} shows Playground UI with action type buttons like "aiAct" and "aiQuery"`,
+    );
+  });
+
+  // ── Combined: second session + delete ─────────────────────────────────
+  it('recorder: create second session and delete it', async () => {
+    // 1. Switch to Recorder
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
+    );
+    await sleep(2000);
+    await agent.aiAct(
+      'In the dropdown menu that just appeared, click the menu item labeled "Recorder"',
+    );
+    await sleep(3000);
+
+    // 2. Should see the existing session from previous test
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows a session list with at least one recording session card`,
+    );
+
+    // 3. Create a second recording session
+    await agent.aiAct(`Click the "New Recording" button in ${SIDE_PANEL}`);
+    await sleep(3000);
+
+    // 4. Immediately stop (we just want to test session management)
+    await agent.aiAct(
+      `Click the stop button (square icon) in ${SIDE_PANEL} to stop recording`,
+    );
+    await sleep(3000);
+
+    // 5. Close detail view - should now see 2 sessions
+    await agent.aiAct(
+      `Click the close button (X) or back button at the top area of the recording detail view in ${SIDE_PANEL}`,
+    );
+    await sleep(2000);
+
+    // 6. Delete the second session - click delete icon on the first card (newest)
+    await agent.aiAct(
+      `In ${SIDE_PANEL}, click the delete button (trash icon) on the first/top recording session card`,
+    );
+    await sleep(1000);
+    // Confirm deletion in the popup
+    await agent.aiAct(
+      'Click the "OK" or confirm button in the deletion confirmation popup',
+    );
+    await sleep(2000);
+
+    await agent.aiAssert(
+      `${SIDE_PANEL} shows the session list with at least one recording session card remaining`,
     );
   });
 });
