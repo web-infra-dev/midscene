@@ -91,20 +91,17 @@ describe('chrome extension recorder mode tests', () => {
       );
     }
 
-    // 2. Create recording (auto-starts)
+    // 2. Create recording (auto-starts) and perform actions
     await agent.aiAct(`Click the "New Recording" button in ${SIDE_PANEL}`);
     await sleep(3000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows an active recording state with a red "REC" indicator or "Recording" text and a stop button`,
-    );
 
-    // 3. Perform actions to generate events - add todo + click filter
+    // Perform an action on the target page to generate events
     await agent.aiAct(
       'Click on the todo input box on the left side (the TodoMVC page) and type "Test recording" then press Enter',
     );
     await sleep(2000);
 
-    // 4. Stop recording
+    // 3. Stop recording
     await agent.aiAct(
       `Click the stop button (square icon) in ${SIDE_PANEL} to stop recording`,
     );

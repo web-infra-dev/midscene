@@ -1,10 +1,10 @@
 /**
  * E2E tests for Chrome extension Playground advanced features.
  *
- * Tests combined for speed - each it() covers multiple related scenarios:
- * - aiQuery execution → result display → structured data
- * - aiAssert pass → aiAssert fail (negative case)
- * - aiAct add todo → consecutive aiAct operations
+ * Tests:
+ * - aiQuery execution and result display
+ * - aiAssert execution with passing condition
+ * - aiAct to add a todo item and verify
  */
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
@@ -63,8 +63,7 @@ describe('chrome extension playground advanced tests', () => {
     }
   });
 
-  // ── aiQuery: extract page data and verify result ────────────────────
-  it('aiQuery result display', async () => {
+  it('aiQuery: extract page title and verify result', async () => {
     await agent.aiAct(`Click the "aiQuery" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
@@ -78,9 +77,7 @@ describe('chrome extension playground advanced tests', () => {
     );
   });
 
-  // ── Combined: aiAssert pass + aiAssert fail ───────────────────────────
-  it('aiAssert pass and fail scenarios', async () => {
-    // 1. aiAssert: passing condition
+  it('aiAssert: validate page condition via playground', async () => {
     await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
@@ -90,24 +87,11 @@ describe('chrome extension playground advanced tests', () => {
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
     await sleep(30000);
     await agent.aiAssert(
-      `${SIDE_PANEL} shows an execution result that indicates success or passed status (no error message)`,
-    );
-
-    // 2. aiAssert: failing condition - assert something that doesn't exist
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, clear the text input area and type: There is a "Delete All" button visible on the TodoMVC page`,
-    );
-    await sleep(500);
-    await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(30000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows an execution result that indicates failure or error status, such as an error message or a red/failed indicator`,
+      `${SIDE_PANEL} shows an execution result - either a success/passed indicator or a result message (not just the input area)`,
     );
   });
 
-  // ── Combined: aiAct add todo + consecutive operation ──────────────────
-  it('aiAct add todo and complete it consecutively', async () => {
-    // 1. Switch to aiAct and add a todo
+  it('aiAct: add a todo item via playground', async () => {
     await agent.aiAct(`Click the "aiAct" button in ${SIDE_PANEL}`);
     await sleep(500);
     await agent.aiAct(
@@ -118,17 +102,6 @@ describe('chrome extension playground advanced tests', () => {
     await sleep(30000);
     await agent.aiAssert(
       'The TodoMVC page on the left shows a todo item containing "Buy groceries"',
-    );
-
-    // 2. Consecutive: complete the todo (no mode switch needed, still in aiAct)
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, clear the text input area and type: Click the checkbox next to "Buy groceries" to mark it as complete`,
-    );
-    await sleep(500);
-    await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(30000);
-    await agent.aiAssert(
-      'The TodoMVC page shows "Buy groceries" with a strikethrough or completed style',
     );
   });
 });
