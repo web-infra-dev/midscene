@@ -110,11 +110,19 @@ export class BridgeServer {
       // Now create Socket.IO Server attached to the already-listening HTTP server
       this.io = new Server(httpServer, {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
+        // Increase pingTimeout to tolerate Chrome MV3 Service Worker suspension.
+        // The SW keepalive alarm fires every ~24s; default pingTimeout (20s) may
+        // be too short if the SW is suspended between alarm pings.
+        pingTimeout: 60000,
       });
 
       this.io.use((socket, next) => {
+        // Always allow kill signal connections through
+        if (socket.handshake.url.includes(BridgeSignalKill)) {
+          return next();
+        }
         if (this.socket) {
-          next(new Error('server already connected by another client'));
+          return next(new Error('server already connected by another client'));
         }
         next();
       });

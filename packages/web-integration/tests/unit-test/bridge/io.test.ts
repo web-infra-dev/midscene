@@ -269,6 +269,158 @@ describe('bridge-io', () => {
     await expect(callPromise).rejects.toThrow(/Connection lost/);
   });
 
+  it('reproduces race condition: calls bypass confirmation when gate set after connect', async () => {
+    // This test demonstrates the OLD buggy behavior where confirmationPromise
+    // was set AFTER connect(), allowing queued calls to bypass the check.
+    const port = testPort++;
+    const server = new BridgeServer(DEFAULT_HOST, port);
+    await server.listen();
+
+    const callOrder: string[] = [];
+
+    // Simulate OLD behavior: no gate before connect
+    let confirmationPromise: Promise<boolean> | null = null;
+    let resolveConfirmation!: (allowed: boolean) => void;
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      async (method, args) => {
+        // Same check as page-browser-side.ts
+        if (confirmationPromise) {
+          const allowed = await confirmationPromise;
+          if (!allowed) throw new Error('Connection denied by user');
+        }
+        callOrder.push(`processed:${method}`);
+        return 'ok';
+      },
+    );
+
+    // Queue call before connect (CLI does this)
+    const queuedCall = server.call('connectNewTabWithUrl', [
+      'https://example.com',
+    ]);
+
+    // OLD: connect first, THEN set gate — too late!
+    await client.connect();
+
+    // Gate set after connect — queued call already arrived and bypassed the check
+    confirmationPromise = new Promise<boolean>((resolve) => {
+      resolveConfirmation = resolve;
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // BUG: call was processed without waiting for confirmation!
+    expect(callOrder).toEqual(['processed:connectNewTabWithUrl']);
+
+    resolveConfirmation(true);
+    await queuedCall;
+
+    await server.close();
+    client.disconnect();
+  });
+
+  it('queued calls should be blocked by confirmation gate', async () => {
+    // Reproduces the race condition: server queues a call before client connects.
+    // After connection, the queued call arrives at the client immediately.
+    // Without a confirmation gate, the call executes before the caller can
+    // set up a confirmation promise (simulating `onConnectionRequest` in the
+    // Chrome extension's bridge page).
+    //
+    // This simulates the flow in page-browser-side.ts:
+    //   1. Set confirmationPromise (deferred) BEFORE connect()
+    //   2. connect() → server sends queued calls → onBridgeCall blocks on promise
+    //   3. Confirmation resolves → calls proceed
+    const port = testPort++;
+    const server = new BridgeServer(DEFAULT_HOST, port);
+    await server.listen();
+
+    const callOrder: string[] = [];
+
+    // Simulate the confirmation gate pattern used in page-browser-side.ts
+    let resolveConfirmation!: (allowed: boolean) => void;
+    const confirmationPromise = new Promise<boolean>((resolve) => {
+      resolveConfirmation = resolve;
+    });
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      async (method, args) => {
+        // Block on confirmation before processing, just like page-browser-side.ts
+        const allowed = await confirmationPromise;
+        if (!allowed) {
+          throw new Error('Connection denied by user');
+        }
+        callOrder.push(`processed:${method}`);
+        return 'ok';
+      },
+    );
+
+    // Queue a call on the server BEFORE client connects (this is what
+    // the CLI does: agent.connectNewTabWithUrl() queues a bridge call)
+    const queuedCall = server.call('connectNewTabWithUrl', [
+      'https://example.com',
+    ]);
+
+    // Client connects - server will immediately send the queued call
+    await client.connect();
+
+    // Give time for the queued call to arrive at the client
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // The call should NOT have been processed yet (blocked by confirmation)
+    expect(callOrder).toEqual([]);
+
+    // Now simulate user clicking "Allow"
+    resolveConfirmation(true);
+
+    // The queued call should now complete
+    const response = await queuedCall;
+    expect(response).toEqual('ok');
+    expect(callOrder).toEqual(['processed:connectNewTabWithUrl']);
+
+    await server.close();
+    client.disconnect();
+  });
+
+  it('queued calls should be rejected when confirmation denied', async () => {
+    const port = testPort++;
+    const server = new BridgeServer(DEFAULT_HOST, port);
+    await server.listen();
+
+    let resolveConfirmation!: (allowed: boolean) => void;
+    const confirmationPromise = new Promise<boolean>((resolve) => {
+      resolveConfirmation = resolve;
+    });
+
+    const client = new BridgeClient(
+      `ws://localhost:${port}`,
+      async (method, args) => {
+        const allowed = await confirmationPromise;
+        if (!allowed) {
+          throw new Error('Connection denied by user');
+        }
+        return 'ok';
+      },
+    );
+
+    const queuedCall = server.call('connectNewTabWithUrl', [
+      'https://example.com',
+    ]);
+
+    await client.connect();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    // User clicks "Deny"
+    resolveConfirmation(false);
+
+    // The queued call should be rejected
+    await expect(queuedCall).rejects.toThrow(/denied/i);
+
+    await server.close();
+    client.disconnect();
+  });
+
   it('server restart on same port', async () => {
     const commonPort = testPort++;
     const server1 = new BridgeServer(DEFAULT_HOST, commonPort);

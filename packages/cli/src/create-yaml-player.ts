@@ -201,6 +201,7 @@ export async function createYamlPlayer(
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
+          closeConflictServer: true,
           ...buildAgentOptions(
             clonedYamlScript.agent,
             preference.testId,
