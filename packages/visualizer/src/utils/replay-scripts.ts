@@ -421,8 +421,10 @@ export const generateAnimationScripts = (
   let insightOnTop = false;
   let initSubTitle = '';
   let errorStateFlag = false;
+  let lastTaskId: string | undefined;
   tasksIncluded.forEach((task, index) => {
     const currentTaskId = getTaskId(index);
+    lastTaskId = currentTaskId;
     // if (errorStateFlag) return;
 
     if (index === 0) {
@@ -642,7 +644,7 @@ export const generateAnimationScripts = (
       duration: clearInsightDuration,
       title: '',
       subTitle: '',
-      taskId: undefined,
+      taskId: lastTaskId,
     });
     insightOnTop = false;
   }
