@@ -1,0 +1,38 @@
+target:
+  serve: ./dist
+  url: demo-merged.html
+tasks:
+  # --- Status display ---
+  - name: status summary cards show correct counts
+    flow:
+      - sleep: 3000
+      - aiAssert: There are test status summary cards showing Total, Passed, and Failed counts
+      - aiAssert: The Total count is 2
+      - aiAssert: The Passed count is 1
+      - aiAssert: The Failed count is 1
+
+  # --- Failed status indicator ---
+  - name: merged report shows failed status indicator
+    flow:
+      - aiAssert: There is a red colored number or failure indicator visible on the page, showing that some tests failed
+
+  # --- Case selector ---
+  - name: case selector shows multiple test cases
+    flow:
+      - ai: Click the case selector dropdown at the top of the sidebar
+      - sleep: 1000
+      - aiAssert: A dropdown list is visible showing at least 2 test case options
+
+  - name: switch between test cases
+    flow:
+      - ai: Click on the second test case in the dropdown list
+      - sleep: 2000
+      - aiAssert: The sidebar task list has been updated to show tasks from the selected test case
+
+  - name: filter by status
+    flow:
+      - ai: Click the case selector dropdown at the top of the sidebar
+      - sleep: 1000
+      - ai: Click the status filter dropdown and select 'Failed'
+      - sleep: 1000
+      - aiAssert: Only the failed test case is visible in the dropdown list
