@@ -55,6 +55,20 @@ export class PlaygroundSDK {
     }
   }
 
+  private runtimeMetadataAdapter():
+    | LocalExecutionAdapter
+    | RemoteExecutionAdapter
+    | null {
+    if (
+      this.adapter instanceof LocalExecutionAdapter ||
+      this.adapter instanceof RemoteExecutionAdapter
+    ) {
+      return this.adapter;
+    }
+
+    return null;
+  }
+
   async executeAction(
     actionType: string,
     value: FormValue,
@@ -211,23 +225,11 @@ export class PlaygroundSDK {
     type: string;
     description?: string;
   } | null> {
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getInterfaceInfo();
-    }
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getInterfaceInfo();
-    }
-    return null;
+    return this.runtimeMetadataAdapter()?.getInterfaceInfo() || null;
   }
 
   async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getRuntimeInfo();
-    }
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getRuntimeInfo();
-    }
-    return null;
+    return this.runtimeMetadataAdapter()?.getRuntimeInfo() || null;
   }
   // Get service mode based on adapter type
   getServiceMode(): 'In-Browser-Extension' | 'Server' {
