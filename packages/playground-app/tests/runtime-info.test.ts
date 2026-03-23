@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
-  normalizeExecutionUxHints,
+  buildFallbackRuntimeInfo,
+  filterValidExecutionUxHints,
   normalizeRuntimeDeviceType,
   resolvePreviewConnectionInfo,
 } from '../src/runtime-info';
@@ -23,13 +24,32 @@ describe('playground app runtime info helpers', () => {
 
   test('filters unsupported execution ux hints', () => {
     expect(
-      normalizeExecutionUxHints({
+      filterValidExecutionUxHints({
         interface: { type: 'computer' },
         preview: { kind: 'screenshot', capabilities: [] },
         executionUxHints: ['countdown-before-run', 'unknown-hint'],
         metadata: {},
       }),
     ).toEqual(['countdown-before-run']);
+  });
+
+  test('builds fallback runtime info from the latest known runtime snapshot', () => {
+    expect(
+      buildFallbackRuntimeInfo(
+        {
+          interface: { type: 'web' },
+          preview: { kind: 'mjpeg', capabilities: [] },
+          executionUxHints: ['countdown-before-run'],
+          metadata: { source: 'previous' },
+        },
+        { type: 'computer', description: 'Fallback interface' },
+      ),
+    ).toMatchObject({
+      interface: { type: 'computer', description: 'Fallback interface' },
+      preview: { kind: 'mjpeg' },
+      executionUxHints: ['countdown-before-run'],
+      metadata: { source: 'previous' },
+    });
   });
 
   test('resolves preview connection information from runtime metadata', () => {

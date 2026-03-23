@@ -3,9 +3,10 @@ import type {
   PlaygroundSDK,
 } from '@midscene/playground';
 import type { DeviceType, ExecutionUxHint } from '@midscene/visualizer';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  normalizeExecutionUxHints,
+  buildFallbackRuntimeInfo,
+  filterValidExecutionUxHints,
   normalizeRuntimeDeviceType,
 } from './runtime-info';
 
@@ -31,6 +32,11 @@ export function useServerStatus(
   const [executionUxHints, setExecutionUxHints] = useState<ExecutionUxHint[]>(
     [],
   );
+  const runtimeInfoRef = useRef<PlaygroundRuntimeInfo | null>(null);
+
+  useEffect(() => {
+    runtimeInfoRef.current = runtimeInfo;
+  }, [runtimeInfo]);
 
   useEffect(() => {
     playgroundSDK.onProgressUpdate((tip: string) => {
@@ -48,6 +54,7 @@ export function useServerStatus(
         setServerOnline(online);
 
         if (!online) {
+          runtimeInfoRef.current = null;
           setRuntimeInfo(null);
           setExecutionUxHints([]);
           return;
@@ -62,7 +69,7 @@ export function useServerStatus(
             setDeviceType(
               normalizeRuntimeDeviceType(nextRuntimeInfo, defaultDeviceType),
             );
-            setExecutionUxHints(normalizeExecutionUxHints(nextRuntimeInfo));
+            setExecutionUxHints(filterValidExecutionUxHints(nextRuntimeInfo));
             return;
           }
         } catch (error) {
@@ -73,24 +80,17 @@ export function useServerStatus(
           const interfaceInfo = await playgroundSDK.getInterfaceInfo();
           if (!active || !interfaceInfo?.type) return;
 
-          setRuntimeInfo((previous) => ({
-            ...previous,
-            interface: interfaceInfo,
-            preview: previous?.preview || { kind: 'none', capabilities: [] },
-            executionUxHints: previous?.executionUxHints || [],
-            metadata: previous?.metadata || {},
-          }));
-          setDeviceType(
-            normalizeRuntimeDeviceType(
-              {
-                interface: interfaceInfo,
-                preview: { kind: 'none', capabilities: [] },
-                executionUxHints: [],
-                metadata: {},
-              },
-              defaultDeviceType,
-            ),
+          const fallbackRuntimeInfo = buildFallbackRuntimeInfo(
+            runtimeInfoRef.current,
+            interfaceInfo,
           );
+
+          runtimeInfoRef.current = fallbackRuntimeInfo;
+          setRuntimeInfo(fallbackRuntimeInfo);
+          setDeviceType(
+            normalizeRuntimeDeviceType(fallbackRuntimeInfo, defaultDeviceType),
+          );
+          setExecutionUxHints(filterValidExecutionUxHints(fallbackRuntimeInfo));
         } catch (error) {
           console.warn('Failed to get interface info:', error);
         }

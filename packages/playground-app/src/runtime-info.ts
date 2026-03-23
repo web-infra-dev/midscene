@@ -42,7 +42,25 @@ export function normalizeRuntimeDeviceType(
   return fallback;
 }
 
-export function normalizeExecutionUxHints(
+export function buildFallbackRuntimeInfo(
+  previousRuntimeInfo: PlaygroundRuntimeInfo | null,
+  interfaceInfo: RuntimeInterfaceInfo,
+): PlaygroundRuntimeInfo {
+  return {
+    ...previousRuntimeInfo,
+    interface: interfaceInfo,
+    preview: previousRuntimeInfo?.preview || { kind: 'none', capabilities: [] },
+    executionUxHints: previousRuntimeInfo?.executionUxHints || [],
+    metadata: previousRuntimeInfo?.metadata || {},
+  };
+}
+
+export interface RuntimeInterfaceInfo {
+  type: string;
+  description?: string;
+}
+
+export function filterValidExecutionUxHints(
   runtimeInfo: PlaygroundRuntimeInfo | null,
 ): ExecutionUxHint[] {
   return (runtimeInfo?.executionUxHints || []).filter(
