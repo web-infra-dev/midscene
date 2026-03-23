@@ -177,6 +177,7 @@ export function ScrcpyPanel({
         },
       });
 
+      let cleanupListeners: (() => void) | undefined;
       const readable = new ReadableStream({
         start(controller) {
           const handleVideoData = (data: any) => {
@@ -190,15 +191,18 @@ export function ScrcpyPanel({
           const handleDisconnect = () => controller.close();
           const handleError = (error: Error) => controller.error(error);
 
-          socketRef.current?.on('video-data', handleVideoData);
-          socketRef.current?.on('disconnect', handleDisconnect);
-          socketRef.current?.on('error', handleError);
-
-          return () => {
+          cleanupListeners = () => {
             socketRef.current?.off('video-data', handleVideoData);
             socketRef.current?.off('disconnect', handleDisconnect);
             socketRef.current?.off('error', handleError);
           };
+
+          socketRef.current?.on('video-data', handleVideoData);
+          socketRef.current?.on('disconnect', handleDisconnect);
+          socketRef.current?.on('error', handleError);
+        },
+        cancel() {
+          cleanupListeners?.();
         },
       });
 

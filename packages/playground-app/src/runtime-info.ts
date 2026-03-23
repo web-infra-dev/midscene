@@ -97,6 +97,9 @@ export function resolvePreviewConnectionInfo(
       ? (() => {
           const url = new URL(serverUrl);
           url.port = String(resolvedScrcpyPort);
+          url.pathname = '/';
+          url.search = '';
+          url.hash = '';
           return url.toString();
         })()
       : undefined;

@@ -106,12 +106,12 @@ describe('playground app runtime info helpers', () => {
           executionUxHints: [],
           metadata: {},
         },
-        'https://midscene.example.com:5800/playground',
+        'https://midscene.example.com:5800/playground?mode=debug#preview',
       ),
     ).toMatchObject({
       type: 'scrcpy',
       scrcpyPort: 7700,
-      scrcpyUrl: 'https://midscene.example.com:7700/playground',
+      scrcpyUrl: 'https://midscene.example.com:7700/',
     });
   });
 });
