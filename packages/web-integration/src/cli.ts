@@ -1,7 +1,16 @@
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { CLIError, runToolsCLI } from '@midscene/shared/cli';
+import dotenv from 'dotenv';
 import { WebMidsceneTools } from './mcp-tools';
 import { WebCdpMidsceneTools } from './mcp-tools-cdp';
 import { WebPuppeteerMidsceneTools } from './mcp-tools-puppeteer';
+
+// Load .env early so MIDSCENE_CDP_ENDPOINT is available during arg parsing
+const envFile = join(process.cwd(), '.env');
+if (existsSync(envFile)) {
+  dotenv.config({ path: envFile });
+}
 
 declare const __VERSION__: string;
 const isBridge = process.argv.includes('--bridge');
