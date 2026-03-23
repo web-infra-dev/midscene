@@ -14,8 +14,8 @@ const main = async () => {
     });
     const { server: playgroundServer } =
       await launchPreparedPlaygroundPlatform(prepared);
-    const wdaHost = String(prepared.metadata?.wdaHost || 'localhost');
-    const wdaPort = String(prepared.metadata?.wdaPort || '');
+    const wdaHost = String(prepared.metadata?.wdaHost ?? 'localhost');
+    const wdaPort = String(prepared.metadata?.wdaPort ?? '');
 
     console.log('');
     console.log('✨ Midscene iOS Playground is ready!');
