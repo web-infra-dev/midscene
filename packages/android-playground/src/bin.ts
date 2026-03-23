@@ -12,7 +12,12 @@ const main = async () => {
     const prepared = await androidPlaygroundPlatform.prepare({
       staticDir,
     });
-    const selectedDeviceId = String(prepared.metadata?.deviceId || '');
+    const selectedDeviceId = prepared.metadata?.deviceId;
+    if (typeof selectedDeviceId !== 'string' || !selectedDeviceId) {
+      throw new Error(
+        'Android playground prepared metadata is missing a deviceId',
+      );
+    }
     console.log(`✅ Selected device: ${selectedDeviceId}`);
 
     const scrcpyServer = new ScrcpyServer();

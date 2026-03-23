@@ -25,6 +25,7 @@ export {
 export const PlaygroundServer = undefined;
 export const playgroundForAgent = undefined;
 export const playgroundForAgentFactory = undefined;
+export const launchPreparedPlaygroundPlatform = undefined;
 
 export type {
   ExecutionOptions,
