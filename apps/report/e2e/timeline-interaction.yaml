@@ -5,7 +5,7 @@ tasks:
   - name: timeline is visible
     flow:
       - sleep: 2000
-      - aiAssert: A timeline or "Record" section is visible at the bottom of the page with screenshot thumbnails or a time axis
+      - aiAssert: A timeline or "Record" section is visible on the page with screenshot thumbnails or a time axis
 
   - name: collapse and expand timeline
     flow:
