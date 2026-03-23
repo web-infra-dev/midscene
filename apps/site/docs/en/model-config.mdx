@@ -33,6 +33,7 @@ Notes:
 - `MIDSCENE_MODEL_API_KEY` is not required in this mode.
 - Midscene will call `codex app-server` through stdio.
 - Make sure `codex` is available in your PATH and verify auth with `codex login status`.
+- In this mode, Midscene cannot set `"detail": "original"` when sending images, so it cannot achieve the best localization quality. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
 
 ## Advanced settings (optional)
 
