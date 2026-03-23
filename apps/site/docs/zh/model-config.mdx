@@ -31,6 +31,7 @@ export MIDSCENE_MODEL_FAMILY="gpt-5"
 - 该模式下不需要 `MIDSCENE_MODEL_API_KEY`。
 - Midscene 会通过 stdio 调用 `codex app-server`。
 - 请确保 `codex` 在 PATH 中可用，并通过 `codex login status` 确认登录状态。
+- 使用该模式时，无法在发送图片时指定 `"detail": "original"`** 参数，因此无法获得最佳的定位效果。详情请参考 **[Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) 和 [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use)。
 
 ## 高阶配置（可选）
 

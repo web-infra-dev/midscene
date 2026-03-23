@@ -186,9 +186,11 @@ MIDSCENE_MODEL_FAMILY="gpt-5"
 ```
 
 :::warning GPT-5.4 notes
+
 - For UI localization with GPT, Midscene currently supports `gpt-5.4` only. To get the best localization quality, image requests need `"detail": "original"`. According to OpenAI, this option is available on `gpt-5.4` and future models, while smaller GPT-5 variants such as `gpt-5.4-mini` and `gpt-5.4-nano`, as well as older models, do not support `original` and will fail if you send it. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision) and the [Computer use guide](https://developers.openai.com/api/docs/guides/tools-computer-use).
 - According to OpenAI, GPT-5.4 may still struggle with non-Latin text and with text that is too small in the image. See the [Images and Vision guide](https://developers.openai.com/api/docs/guides/images-vision).
 - In the computer use guide, OpenAI says they observe good performance around `1440x900` and `1600x900`. We recommend adjusting screenshot sizes accordingly. In Midscene, you can control screenshot compression with `screenshotShrinkFactor` in the agent options. For browser automation, you can also control the page size and scale through the browser `viewport`.
+
 :::
 
 ### UI-TARS {#ui-tars}
