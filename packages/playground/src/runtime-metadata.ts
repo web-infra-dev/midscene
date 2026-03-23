@@ -5,16 +5,14 @@ import {
   createScreenshotPreviewDescriptor,
 } from './platform';
 
-export interface PlaygroundInterfaceInfo {
-  type: string;
-  description?: string;
-}
-
 export interface PlaygroundRuntimeInfo {
   platformId?: string;
   title?: string;
   platformDescription?: string;
-  interface: PlaygroundInterfaceInfo;
+  interface: {
+    type: string;
+    description?: string;
+  };
   preview: PlaygroundPreviewDescriptor;
   executionUxHints: string[];
   metadata: Record<string, unknown>;
