@@ -1,0 +1,125 @@
+@header-border: rgba(255, 255, 255, 0.08);
+@panel-background: #0f1724;
+@panel-elevated: #141d2b;
+@panel-border: rgba(255, 255, 255, 0.06);
+@text-secondary: rgba(255, 255, 255, 0.65);
+
+body {
+  margin: 0;
+  background: #0b111a;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.console-shell {
+  min-height: 100vh;
+  background: #0b111a;
+  color: #fff;
+}
+
+.console-sider {
+  background: @panel-background !important;
+  border-right: 1px solid @header-border;
+  overflow: auto;
+}
+
+.console-sider-inner {
+  padding: 20px;
+}
+
+.console-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.console-brand p,
+.console-session-meta,
+.console-empty-text {
+  color: @text-secondary;
+}
+
+.console-card {
+  background: @panel-elevated;
+  border: 1px solid @panel-border;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+}
+
+.console-card .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+.console-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.console-session-item {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.console-session-item:hover,
+.console-session-item.active {
+  border-color: rgba(22, 119, 255, 0.65);
+  background: rgba(22, 119, 255, 0.12);
+}
+
+.console-session-item-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.console-session-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.console-content {
+  background: #0b111a;
+  padding: 20px;
+}
+
+.console-empty-state {
+  height: calc(100vh - 40px);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(20, 29, 43, 0.9), rgba(12, 18, 28, 0.96));
+  padding: 24px;
+}
+
+.console-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.console-footer-note {
+  margin-top: 12px;
+  color: @text-secondary;
+  font-size: 12px;
+}
+
+.console-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}

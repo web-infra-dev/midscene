@@ -1,0 +1,82 @@
+name: Console Package
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'apps/console/**'
+      - '.github/workflows/console-package.yml'
+      - 'packages/playground-app/**'
+      - 'packages/playground/**'
+      - 'packages/android/**'
+      - 'packages/computer/**'
+      - 'packages/harmony/**'
+      - 'packages/ios/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/console/**'
+      - '.github/workflows/console-package.yml'
+      - 'packages/playground-app/**'
+      - 'packages/playground/**'
+      - 'packages/android/**'
+      - 'packages/computer/**'
+      - 'packages/harmony/**'
+      - 'packages/ios/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-linux:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9.3.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.13.0'
+          cache: 'pnpm'
+
+      - name: Install Linux packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libgtk-3-0 \
+            libnotify4 \
+            libnss3 \
+            libxss1 \
+            libxtst6 \
+            xauth \
+            xvfb \
+            libatspi2.0-0 \
+            libdrm2 \
+            libgbm1 \
+            libasound2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Package Midscene Console (Linux)
+        run: pnpm --filter console run package:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: midscene-console-linux
+          path: apps/console/release/*
+          if-no-files-found: error
