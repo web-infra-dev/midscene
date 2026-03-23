@@ -10,7 +10,7 @@
  * This test launches Chrome with the extension and starts real bridge
  * servers (via child process) to verify actual WebSocket connections.
  */
-import { type ChildProcess, spawn } from 'node:child_process';
+import { type ChildProcess, execSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { sleep } from '@midscene/core/utils';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -39,12 +39,33 @@ const WEB_INTEGRATION_DIR = path.resolve(__dirname, '../../../web-integration');
  * Start a bridge test server as a child process.
  * Returns the process and a promise-based API for waiting on events.
  */
-function startBridgeServer(port = BRIDGE_PORT): {
+/**
+ * Kill any process occupying the given port before starting a new server.
+ */
+function killPortProcess(port: number): void {
+  try {
+    execSync(`lsof -ti:${port} | xargs kill -9 2>/dev/null || true`, {
+      stdio: 'ignore',
+    });
+  } catch {
+    // Ignore - no process on port
+  }
+}
+
+/**
+ * Start a bridge test server as a child process.
+ * Cleans up the port first, waits for LISTENING before returning.
+ */
+async function startBridgeServer(port = BRIDGE_PORT): Promise<{
   proc: ChildProcess;
   waitForConnected: (timeoutMs?: number) => Promise<boolean>;
   waitForDisconnected: (timeoutMs?: number) => Promise<boolean>;
-  kill: () => void;
-} {
+  kill: () => Promise<void>;
+}> {
+  // Clean up any leftover process on the port
+  killPortProcess(port);
+  await sleep(500);
+
   const proc = spawn('node', [SERVER_SCRIPT, String(port)], {
     cwd: WEB_INTEGRATION_DIR,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -64,8 +85,7 @@ function startBridgeServer(port = BRIDGE_PORT): {
 
   const waitForEvent = (event: string, timeoutMs = 15000): Promise<boolean> => {
     return new Promise((resolve) => {
-      // Check if already received
-      if (events.includes(event)) {
+      if (events.some((e) => e.includes(event))) {
         resolve(true);
         return;
       }
@@ -87,14 +107,30 @@ function startBridgeServer(port = BRIDGE_PORT): {
     });
   };
 
+  // Wait for server to be ready before returning
+  const listening = await waitForEvent('LISTENING', 10000);
+  if (!listening) {
+    proc.kill('SIGKILL');
+    throw new Error(`Bridge server failed to start on port ${port}`);
+  }
+
   return {
     proc,
     waitForConnected: (timeoutMs?: number) =>
       waitForEvent('CONNECTED', timeoutMs),
     waitForDisconnected: (timeoutMs?: number) =>
       waitForEvent('DISCONNECTED', timeoutMs),
-    kill: () => {
+    kill: async () => {
       proc.kill('SIGTERM');
+      // Wait for process to exit and port to be released
+      await new Promise<void>((resolve) => {
+        proc.on('exit', () => resolve());
+        setTimeout(() => {
+          proc.kill('SIGKILL');
+          resolve();
+        }, 3000);
+      });
+      await sleep(500);
     },
   };
 }
@@ -175,17 +211,21 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
   it('bridge connects to a real server and shows Connected', async () => {
     // Extension auto-starts listening, retries every 3s on ws://localhost:3766
     // Start a bridge server — extension should connect within ~15s
-    const server = startBridgeServer();
+    const server = await startBridgeServer();
 
     const connected = await server.waitForConnected(15000);
     expect(connected).toBe(true);
 
+    // Wait for UI to reflect the connection state
+    await sleep(5000);
+
     // Verify the UI shows "Connected"
-    await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
+    await agent.aiAssert(
+      `${SIDE_PANEL} bottom area shows "Connected" status text`,
+    );
 
     // Kill the server so we can test stop behavior
-    server.kill();
-    await sleep(2000);
+    await server.kill();
   });
 
   // ── Test: stop bridge ─────────────────────────────────────────────────
@@ -202,23 +242,21 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
   // ── Test: after stop, server gets no connection ───────────────────────
 
   it('after stop, a new server gets no connection', async () => {
-    const server = startBridgeServer();
+    const server = await startBridgeServer();
 
     // Wait 10s — extension should NOT connect because bridge is stopped
     const connected = await server.waitForConnected(10000);
     expect(connected).toBe(false);
 
     console.log('[Test] Confirmed: no connection while bridge is stopped');
-    server.kill();
-    await sleep(1000);
+    await server.kill();
   });
 
   // ── Test: restart and connect again ───────────────────────────────────
 
   it('restart bridge and connect to server again', async () => {
     // Start a new server before clicking Start
-    const server = startBridgeServer();
-    await sleep(1000);
+    const server = await startBridgeServer();
 
     // Click Start in the UI
     await agent.aiAct(
@@ -235,9 +273,12 @@ describe('chrome extension bridge mode start/stop (#2119)', () => {
     const connected = await server.waitForConnected(15000);
     expect(connected).toBe(true);
 
+    // Wait for UI to update after WebSocket connection
+    await sleep(3000);
+
     // Verify UI shows "Connected"
     await agent.aiAssert(`${SIDE_PANEL} bottom area shows "Connected"`);
 
-    server.kill();
+    await server.kill();
   });
 });

@@ -1,0 +1,33 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: view screenshots tab
+    flow:
+      - sleep: 2000
+      - ai: Click on the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
+      - sleep: 2000
+      - ai: Click the "Screenshots" tab or view in the detail panel if not already selected
+      - sleep: 1000
+      - aiAssert: The detail panel shows screenshot images of the UI context or execution screenshots
+
+  - name: view JSON data tab
+    flow:
+      - ai: Click the "JSON View" tab in the detail panel
+      - sleep: 1000
+      - aiAssert: The detail panel shows JSON formatted data with curly braces and key-value pairs
+
+  - name: expand detail side sections
+    flow:
+      - ai: Click on the "Param" section header in the right detail side panel to expand it
+      - sleep: 1000
+      - aiAssert: The Param section is expanded showing task parameters or input data
+      - ai: Click on the "Meta" section header in the right detail side panel to expand it
+      - sleep: 1000
+      - aiAssert: The Meta section shows execution metadata like Type, Status, Start time, End time, or Total time
+
+  - name: open in playground button
+    flow:
+      - ai: Click on a task row in the sidebar that shows "Planning" type
+      - sleep: 2000
+      - aiAssert: There is a "Open in Playground" button visible on the page

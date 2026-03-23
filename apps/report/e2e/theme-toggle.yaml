@@ -1,0 +1,20 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: toggle to dark mode
+    flow:
+      - sleep: 2000
+      - ai: Click the theme toggle button (sun/moon icon) in the top header area
+      - sleep: 1000
+      - aiAssert: The page has switched to dark mode with a dark background color
+
+  - name: toggle back to light mode
+    flow:
+      - ai: Click the theme toggle button (sun/moon icon) again in the top header area
+      - sleep: 1000
+      - aiAssert: The page has switched back to light mode with a light/white background color
+
+  - name: version info displayed
+    flow:
+      - aiAssert: The top header area shows version information with a version number like "v" followed by digits
