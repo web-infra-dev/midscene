@@ -229,16 +229,6 @@ export class PlaygroundSDK {
     }
     return null;
   }
-
-  async getPreviewInfo(): Promise<PlaygroundRuntimeInfo['preview'] | null> {
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getPreviewInfo();
-    }
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getPreviewInfo();
-    }
-    return null;
-  }
   // Get service mode based on adapter type
   getServiceMode(): 'In-Browser-Extension' | 'Server' {
     if (this.adapter instanceof LocalExecutionAdapter) {

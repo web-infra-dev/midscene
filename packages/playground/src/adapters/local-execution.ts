@@ -446,9 +446,4 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       return null;
     }
   }
-
-  async getPreviewInfo(): Promise<PlaygroundRuntimeInfo['preview'] | null> {
-    const runtimeInfo = await this.getRuntimeInfo();
-    return runtimeInfo?.preview || null;
-  }
 }

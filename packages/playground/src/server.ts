@@ -736,19 +736,6 @@ class PlaygroundServer {
       }
     });
 
-    this._app.get('/preview-info', async (_req: Request, res: Response) => {
-      try {
-        res.json(this.getRuntimeInfo().preview);
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Failed to get preview info: ${errorMessage}`);
-        res.status(500).json({
-          error: `Failed to get preview info: ${errorMessage}`,
-        });
-      }
-    });
-
     this.app.post('/config', async (req: Request, res: Response) => {
       const { aiConfig } = req.body;
 

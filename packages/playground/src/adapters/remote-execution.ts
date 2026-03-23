@@ -473,24 +473,4 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       return null;
     }
   }
-
-  async getPreviewInfo(): Promise<PlaygroundRuntimeInfo['preview'] | null> {
-    if (!this.serverUrl) {
-      return null;
-    }
-
-    try {
-      const response = await fetch(`${this.serverUrl}/preview-info`);
-
-      if (!response.ok) {
-        console.warn(`Preview info request failed: ${response.statusText}`);
-        return null;
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to get preview info:', error);
-      return null;
-    }
-  }
 }
