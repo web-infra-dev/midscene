@@ -398,11 +398,7 @@ describe('auto-glm actions transformation', () => {
 
     const harmonyActionSpace = [
       { name: 'HarmonyBackButton', description: 'Back', call: async () => {} },
-      {
-        name: 'HarmonyHomeButton',
-        description: 'Home',
-        call: async () => {},
-      },
+      { name: 'HarmonyHomeButton', description: 'Home', call: async () => {} },
     ];
 
     const result = transformAutoGLMAction(
@@ -412,6 +408,38 @@ describe('auto-glm actions transformation', () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('HarmonyBackButton');
+  });
+
+  it('should fall back to AndroidBackButton when actionSpace is empty', () => {
+    const backAction: BackAction = {
+      _metadata: 'do',
+      action: 'Back',
+      think: 'Go back',
+    };
+
+    const result = transformAutoGLMAction(backAction, defaultSize, []);
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('AndroidBackButton');
+  });
+
+  it('should fall back to AndroidBackButton when actionSpace has no matching action', () => {
+    const backAction: BackAction = {
+      _metadata: 'do',
+      action: 'Back',
+      think: 'Go back',
+    };
+
+    const unrelatedActionSpace = [
+      { name: 'Tap', description: 'Tap', call: async () => {} },
+    ];
+
+    const result = transformAutoGLMAction(
+      backAction,
+      defaultSize,
+      unrelatedActionSpace,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('AndroidBackButton');
   });
 
   it('should transform Home action to AndroidHomeButton PlanningAction', () => {
@@ -433,11 +461,7 @@ describe('auto-glm actions transformation', () => {
 
     const harmonyActionSpace = [
       { name: 'HarmonyBackButton', description: 'Back', call: async () => {} },
-      {
-        name: 'HarmonyHomeButton',
-        description: 'Home',
-        call: async () => {},
-      },
+      { name: 'HarmonyHomeButton', description: 'Home', call: async () => {} },
     ];
 
     const result = transformAutoGLMAction(

@@ -125,17 +125,20 @@ export type ParsedAction =
   | NoteAction
   | FinishAction;
 
+const BACK_BUTTON_NAMES = ['AndroidBackButton', 'HarmonyBackButton'];
+const HOME_BUTTON_NAMES = ['AndroidHomeButton', 'HarmonyHomeButton'];
+
 /**
- * Find the action name in actionSpace that ends with the given suffix.
+ * Find the action name in actionSpace that matches one of the known names.
  * Falls back to defaultName if no match found or actionSpace is not provided.
  */
 function findActionName(
   actionSpace: DeviceAction[] | undefined,
-  suffix: string,
+  knownNames: string[],
   defaultName: string,
 ): string {
   if (!actionSpace) return defaultName;
-  const match = actionSpace.find((a) => a.name.endsWith(suffix));
+  const match = actionSpace.find((a) => knownNames.includes(a.name));
   return match ? match.name : defaultName;
 }
 
@@ -338,7 +341,7 @@ export function transformAutoGLMAction(
               {
                 type: findActionName(
                   actionSpace,
-                  'BackButton',
+                  BACK_BUTTON_NAMES,
                   'AndroidBackButton',
                 ),
                 param: {},
@@ -353,7 +356,7 @@ export function transformAutoGLMAction(
               {
                 type: findActionName(
                   actionSpace,
-                  'HomeButton',
+                  HOME_BUTTON_NAMES,
                   'AndroidHomeButton',
                 ),
                 param: {},
