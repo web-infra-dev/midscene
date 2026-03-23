@@ -300,4 +300,76 @@ describe('PlaygroundSDK', () => {
       expect(mockCancelTask).toHaveBeenCalledWith('request-123');
     });
   });
+
+  describe('runtime metadata APIs', () => {
+    it('should delegate runtime metadata methods to the local adapter', async () => {
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+        interface: { type: 'web' },
+        preview: { kind: 'screenshot', capabilities: [] },
+        executionUxHints: [],
+        metadata: {},
+      });
+      MockAdapter.prototype.getPreviewInfo = vi.fn().mockResolvedValue({
+        kind: 'screenshot',
+        capabilities: [],
+      });
+      MockAdapter.prototype.getCapabilities = vi.fn().mockResolvedValue({
+        interfaceType: 'web',
+        previewMode: 'screenshot',
+        previewCapabilities: [],
+        executionUxHints: [],
+      });
+
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+
+      await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({
+        interface: { type: 'web' },
+      });
+      await expect(sdk.getPreviewInfo()).resolves.toMatchObject({
+        kind: 'screenshot',
+      });
+      await expect(sdk.getCapabilities()).resolves.toMatchObject({
+        interfaceType: 'web',
+      });
+    });
+
+    it('should delegate runtime metadata methods to the remote adapter', async () => {
+      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+        interface: { type: 'ios' },
+        preview: { kind: 'mjpeg', capabilities: [] },
+        executionUxHints: ['hint'],
+        metadata: {},
+      });
+      MockAdapter.prototype.getPreviewInfo = vi.fn().mockResolvedValue({
+        kind: 'mjpeg',
+        capabilities: [],
+      });
+      MockAdapter.prototype.getCapabilities = vi.fn().mockResolvedValue({
+        interfaceType: 'ios',
+        previewMode: 'mjpeg',
+        previewCapabilities: [],
+        executionUxHints: ['hint'],
+      });
+
+      const sdk = new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl: 'http://localhost:3000',
+      });
+
+      await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({
+        interface: { type: 'ios' },
+      });
+      await expect(sdk.getPreviewInfo()).resolves.toMatchObject({
+        kind: 'mjpeg',
+      });
+      await expect(sdk.getCapabilities()).resolves.toMatchObject({
+        interfaceType: 'ios',
+      });
+    });
+  });
 });

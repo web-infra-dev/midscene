@@ -4,6 +4,10 @@ import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type {
+  PlaygroundCapabilitiesInfo,
+  PlaygroundRuntimeInfo,
+} from '../runtime-metadata';
+import type {
   AgentFactory,
   ExecutionOptions,
   FormValue,
@@ -215,6 +219,36 @@ export class PlaygroundSDK {
     }
     if (this.adapter instanceof RemoteExecutionAdapter) {
       return this.adapter.getInterfaceInfo();
+    }
+    return null;
+  }
+
+  async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.getRuntimeInfo();
+    }
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getRuntimeInfo();
+    }
+    return null;
+  }
+
+  async getPreviewInfo(): Promise<PlaygroundRuntimeInfo['preview'] | null> {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.getPreviewInfo();
+    }
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getPreviewInfo();
+    }
+    return null;
+  }
+
+  async getCapabilities(): Promise<PlaygroundCapabilitiesInfo | null> {
+    if (this.adapter instanceof LocalExecutionAdapter) {
+      return this.adapter.getCapabilities();
+    }
+    if (this.adapter instanceof RemoteExecutionAdapter) {
+      return this.adapter.getCapabilities();
     }
     return null;
   }

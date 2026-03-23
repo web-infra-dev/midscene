@@ -1,5 +1,9 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { parseStructuredParams } from '../common';
+import type {
+  PlaygroundCapabilitiesInfo,
+  PlaygroundRuntimeInfo,
+} from '../runtime-metadata';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
 
@@ -449,6 +453,66 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       return await response.json();
     } catch (error) {
       console.error('Failed to get interface info:', error);
+      return null;
+    }
+  }
+
+  async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/runtime-info`);
+
+      if (!response.ok) {
+        console.warn(`Runtime info request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get runtime info:', error);
+      return null;
+    }
+  }
+
+  async getPreviewInfo(): Promise<PlaygroundRuntimeInfo['preview'] | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/preview-info`);
+
+      if (!response.ok) {
+        console.warn(`Preview info request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get preview info:', error);
+      return null;
+    }
+  }
+
+  async getCapabilities(): Promise<PlaygroundCapabilitiesInfo | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/capabilities`);
+
+      if (!response.ok) {
+        console.warn(`Capabilities request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get capabilities:', error);
       return null;
     }
   }

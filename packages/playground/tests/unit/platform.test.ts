@@ -6,6 +6,11 @@ import {
   definePlaygroundPlatform,
   resolvePreparedLaunchOptions,
 } from '../../src/platform';
+import {
+  buildCapabilitiesInfo,
+  buildRuntimeInfo,
+  resolvePreviewDescriptor,
+} from '../../src/runtime-metadata';
 
 describe('platform descriptors', () => {
   test('definePlaygroundPlatform preserves descriptor shape', async () => {
@@ -74,6 +79,43 @@ describe('platform descriptors', () => {
       screenshotPath: '/screenshot',
       custom: {
         serverUrl: 'http://localhost:6001',
+      },
+    });
+  });
+
+  test('runtime metadata helpers expose normalized preview and capability info', () => {
+    const runtimeInfo = buildRuntimeInfo({
+      platformId: 'computer',
+      title: 'Desktop Playground',
+      interfaceType: 'computer',
+      supportsScreenshot: true,
+      metadata: {
+        executionUx: 'countdown-before-run',
+      },
+    });
+
+    expect(runtimeInfo.preview).toMatchObject({
+      kind: 'screenshot',
+      screenshotPath: '/screenshot',
+    });
+    expect(runtimeInfo.executionUxHints).toEqual(['countdown-before-run']);
+    expect(buildCapabilitiesInfo(runtimeInfo)).toMatchObject({
+      interfaceType: 'computer',
+      previewMode: 'screenshot',
+      executionUxHints: ['countdown-before-run'],
+    });
+  });
+
+  test('runtime metadata resolves scrcpy preview when only runtime ports are known', () => {
+    expect(
+      resolvePreviewDescriptor({
+        scrcpyPort: 6100,
+      }),
+    ).toMatchObject({
+      kind: 'scrcpy',
+      screenshotPath: '/screenshot',
+      custom: {
+        scrcpyPort: 6100,
       },
     });
   });

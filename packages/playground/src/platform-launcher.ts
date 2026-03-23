@@ -14,15 +14,23 @@ export async function launchPreparedPlaygroundPlatform(
   overrides: LaunchPlaygroundOptions = {},
 ): Promise<LaunchPlaygroundResult> {
   const launchOptions = resolvePreparedLaunchOptions(prepared, overrides);
+  const applyPreparedPlatform = (result: LaunchPlaygroundResult) => {
+    result.server.setPreparedPlatform(prepared);
+    return result;
+  };
 
   if (prepared.agentFactory) {
-    return playgroundForAgentFactory(prepared.agentFactory).launch(
-      launchOptions,
+    return applyPreparedPlatform(
+      await playgroundForAgentFactory(prepared.agentFactory).launch(
+        launchOptions,
+      ),
     );
   }
 
   if (prepared.agent) {
-    return playgroundForAgent(prepared.agent).launch(launchOptions);
+    return applyPreparedPlatform(
+      await playgroundForAgent(prepared.agent).launch(launchOptions),
+    );
   }
 
   throw new Error(
