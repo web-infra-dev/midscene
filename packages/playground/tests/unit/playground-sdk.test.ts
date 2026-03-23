@@ -300,4 +300,48 @@ describe('PlaygroundSDK', () => {
       expect(mockCancelTask).toHaveBeenCalledWith('request-123');
     });
   });
+
+  describe('runtime metadata APIs', () => {
+    it('should delegate runtime metadata methods to the local adapter', async () => {
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+        interface: { type: 'web' },
+        preview: { kind: 'screenshot', capabilities: [] },
+        executionUxHints: [],
+        metadata: {},
+      });
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+
+      await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({
+        interface: { type: 'web' },
+        preview: {
+          kind: 'screenshot',
+        },
+      });
+    });
+
+    it('should delegate runtime metadata methods to the remote adapter', async () => {
+      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+        interface: { type: 'ios' },
+        preview: { kind: 'mjpeg', capabilities: [] },
+        executionUxHints: ['hint'],
+        metadata: {},
+      });
+      const sdk = new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl: 'http://localhost:3000',
+      });
+
+      await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({
+        interface: { type: 'ios' },
+        preview: {
+          kind: 'mjpeg',
+        },
+      });
+    });
+  });
 });

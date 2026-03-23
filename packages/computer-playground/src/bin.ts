@@ -1,29 +1,15 @@
 import os from 'node:os';
 import path from 'node:path';
-import {
-  ComputerDevice,
-  agentFromComputer,
-  checkAccessibilityPermission,
-} from '@midscene/computer';
-import { playgroundForAgentFactory } from '@midscene/playground';
-import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
-import { findAvailablePort } from '@midscene/shared/node';
+import { ComputerDevice } from '@midscene/computer';
+import { launchPreparedPlaygroundPlatform } from '@midscene/playground';
 import puppeteer from 'puppeteer';
 import { BrowserWindowController } from './browser-window-controller';
+import { computerPlaygroundPlatform } from './platform';
 
 const staticDir = path.join(__dirname, '../../static');
 
 const main = async () => {
   try {
-    // Check accessibility permission first (macOS only)
-    // Pass true to trigger system prompt and open settings if permission is not granted
-    const accessibilityCheck = checkAccessibilityPermission(true);
-    if (!accessibilityCheck.hasPermission) {
-      console.error('❌ Permission Error:\n');
-      console.error(accessibilityCheck.error);
-      process.exit(1);
-    }
-
     // List available displays
     const displays = await ComputerDevice.listDisplays();
     if (displays.length > 0) {
@@ -38,45 +24,12 @@ const main = async () => {
     let windowController: BrowserWindowController | null = null;
 
     console.log('🚀 Starting server...');
-
-    const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
-
-    if (availablePort !== PLAYGROUND_SERVER_PORT) {
-      console.log(
-        `⚠️  Port ${PLAYGROUND_SERVER_PORT} is busy, using port ${availablePort} instead`,
-      );
-    }
-
-    const { server: playgroundServer } = await playgroundForAgentFactory(
-      agentFromComputer,
-    ).launch({
-      port: availablePort,
-      openBrowser: false,
-      verbose: false,
-      staticPath: staticDir,
-      configureServer(server) {
-        server.app.use('/execute', async (_req, res, next) => {
-          if (!windowController) {
-            console.warn(
-              '⚠️  Window controller not initialized yet, skipping window control',
-            );
-            next();
-            return;
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          await windowController.minimize();
-
-          const originalSend = res.send.bind(res);
-          res.send = (body: any) => {
-            windowController?.restore();
-            return originalSend(body);
-          };
-
-          next();
-        });
-      },
+    const prepared = await computerPlaygroundPlatform.prepare({
+      staticDir,
+      getWindowController: () => windowController,
     });
+    const { server: playgroundServer } =
+      await launchPreparedPlaygroundPlatform(prepared);
 
     console.log('');
     console.log('✨ Midscene Computer Playground is ready!');
