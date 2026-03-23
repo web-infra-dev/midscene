@@ -325,7 +325,7 @@ Please check if the device is unlocked in the developer options of the system se
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
 </p>
 
-### Text input fails in WebView / H5 pages (input field appears empty after typing)
+### Text input fails in WebView / mobile web pages (input field appears empty after typing)
 
 This is typically caused by the keyboard dismiss strategy. After Midscene inputs text via the virtual keyboard, it automatically dismisses the keyboard. The default strategy (`esc-first`) sends an **ESCAPE key event** first, which may be captured by WebView JavaScript and cause side effects such as:
 

@@ -472,7 +472,7 @@ java.lang.SecurityException: Injecting input events requires the caller (or the 
   <img src="/android-usb-debug.png" alt="android usb debug" width="400" />
 </p>
 
-### 在 WebView / H5 页面中文本输入失败（输入后搜索框为空）
+### 在 WebView / 移动端网页中文本输入失败（输入后搜索框为空）
 
 这通常是键盘关闭策略导致的。Midscene 通过虚拟键盘输入文本后，会自动关闭键盘。默认策略（`esc-first`）会先发送 **ESCAPE 按键事件**，该事件可能被 WebView 中的 JavaScript 捕获，导致以下副作用：
 
