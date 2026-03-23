@@ -20,7 +20,9 @@ export interface PlaygroundRuntimeInfo {
   metadata: Record<string, unknown>;
 }
 
-export interface PlaygroundRuntimeMetadataInput {
+// Internal builder input: this keeps raw inference hints separate from the
+// public, normalized PlaygroundRuntimeInfo shape.
+interface BuildRuntimeInfoInput {
   platformId?: string;
   title?: string;
   platformDescription?: string;
@@ -57,7 +59,7 @@ export function normalizeExecutionUxHints(
 
 export function resolvePreviewDescriptor(
   input: Omit<
-    PlaygroundRuntimeMetadataInput,
+    BuildRuntimeInfoInput,
     | 'platformId'
     | 'title'
     | 'platformDescription'
@@ -91,7 +93,7 @@ export function resolvePreviewDescriptor(
 }
 
 export function buildRuntimeInfo(
-  input: PlaygroundRuntimeMetadataInput,
+  input: BuildRuntimeInfoInput,
 ): PlaygroundRuntimeInfo {
   const interfaceType = input.interfaceType || 'Unknown';
 
