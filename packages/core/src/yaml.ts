@@ -166,7 +166,6 @@ export interface MidsceneYamlScriptWebEnv
   /**
    * CDP (Chrome DevTools Protocol) endpoint URL.
    * When specified, connects to an existing Chrome browser via CDP instead of launching a new one.
-   * The browser must be started with --remote-debugging-port flag.
    *
    * @example
    * ```yaml
