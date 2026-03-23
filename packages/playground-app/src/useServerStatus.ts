@@ -1,22 +1,20 @@
-import type { PlaygroundSDK } from '@midscene/playground';
+import type {
+  PlaygroundRuntimeInfo,
+  PlaygroundSDK,
+} from '@midscene/playground';
+import type { DeviceType, ExecutionUxHint } from '@midscene/visualizer';
 import { useEffect, useState } from 'react';
-import type { DeviceType } from './PlaygroundApp';
-
-const VALID_DEVICE_TYPES: readonly DeviceType[] = [
-  'android',
-  'ios',
-  'web',
-  'harmony',
-] as const;
-
-function isValidDeviceType(type: string): type is DeviceType {
-  return (VALID_DEVICE_TYPES as readonly string[]).includes(type);
-}
+import {
+  normalizeExecutionUxHints,
+  normalizeRuntimeDeviceType,
+} from './runtime-info';
 
 interface ServerStatusResult {
   serverOnline: boolean;
   isUserOperating: boolean;
   deviceType: DeviceType;
+  runtimeInfo: PlaygroundRuntimeInfo | null;
+  executionUxHints: ExecutionUxHint[];
 }
 
 export function useServerStatus(
@@ -27,6 +25,12 @@ export function useServerStatus(
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
   const [deviceType, setDeviceType] = useState<DeviceType>(defaultDeviceType);
+  const [runtimeInfo, setRuntimeInfo] = useState<PlaygroundRuntimeInfo | null>(
+    null,
+  );
+  const [executionUxHints, setExecutionUxHints] = useState<ExecutionUxHint[]>(
+    [],
+  );
 
   useEffect(() => {
     playgroundSDK.onProgressUpdate((tip: string) => {
@@ -43,16 +47,50 @@ export function useServerStatus(
         if (!active) return;
         setServerOnline(online);
 
-        if (!online) return;
+        if (!online) {
+          setRuntimeInfo(null);
+          setExecutionUxHints([]);
+          return;
+        }
+
+        try {
+          const nextRuntimeInfo = await playgroundSDK.getRuntimeInfo();
+          if (!active) return;
+
+          if (nextRuntimeInfo) {
+            setRuntimeInfo(nextRuntimeInfo);
+            setDeviceType(
+              normalizeRuntimeDeviceType(nextRuntimeInfo, defaultDeviceType),
+            );
+            setExecutionUxHints(normalizeExecutionUxHints(nextRuntimeInfo));
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to get runtime info:', error);
+        }
 
         try {
           const interfaceInfo = await playgroundSDK.getInterfaceInfo();
           if (!active || !interfaceInfo?.type) return;
 
-          const type = interfaceInfo.type.toLowerCase();
-          if (isValidDeviceType(type)) {
-            setDeviceType(type);
-          }
+          setRuntimeInfo((previous) => ({
+            ...previous,
+            interface: interfaceInfo,
+            preview: previous?.preview || { kind: 'none', capabilities: [] },
+            executionUxHints: previous?.executionUxHints || [],
+            metadata: previous?.metadata || {},
+          }));
+          setDeviceType(
+            normalizeRuntimeDeviceType(
+              {
+                interface: interfaceInfo,
+                preview: { kind: 'none', capabilities: [] },
+                executionUxHints: [],
+                metadata: {},
+              },
+              defaultDeviceType,
+            ),
+          );
         } catch (error) {
           console.warn('Failed to get interface info:', error);
         }
@@ -70,7 +108,13 @@ export function useServerStatus(
       active = false;
       window.clearInterval(interval);
     };
-  }, [playgroundSDK, pollIntervalMs]);
+  }, [playgroundSDK, pollIntervalMs, defaultDeviceType]);
 
-  return { serverOnline, isUserOperating, deviceType };
+  return {
+    serverOnline,
+    isUserOperating,
+    deviceType,
+    runtimeInfo,
+    executionUxHints,
+  };
 }

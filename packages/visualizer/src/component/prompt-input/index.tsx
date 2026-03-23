@@ -26,6 +26,7 @@ import {
   unwrapZodType,
 } from '../../types';
 import { apiMetadata, defaultMainButtons } from '../../utils/constants';
+import { hasDeviceSpecificConfig } from '../../utils/device-capabilities';
 import {
   actionNameForType,
   isRunButtonEnabled as calculateIsRunButtonEnabled,
@@ -211,7 +212,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     const hasDeepThink = showDeepThinkOption;
     const hasDataExtraction =
       showDataExtractionOptions && !hideDomAndScreenshotOptions;
-    const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
+    const hasDeviceOptions = hasDeviceSpecificConfig(deviceType);
     return (
       hasTracking ||
       hasDeepLocate ||

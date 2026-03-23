@@ -223,7 +223,11 @@ export const extractDefaultValue = (field: ZodType): unknown => {
 };
 
 import type { ExecutionDump, IExecutionDump } from '@midscene/core';
-import type { ExecutionOptions, PlaygroundAgent } from '@midscene/playground';
+import type {
+  ExecutionOptions,
+  PlaygroundAgent,
+  PlaygroundRuntimeInfo,
+} from '@midscene/playground';
 
 // result type
 export interface PlaygroundResult {
@@ -250,7 +254,9 @@ export interface StaticPlaygroundProps {
 export type ServiceModeType = 'Server' | 'In-Browser' | 'In-Browser-Extension';
 
 // device type
-export type DeviceType = 'web' | 'android' | 'ios';
+export type DeviceType = 'web' | 'android' | 'ios' | 'harmony' | 'computer';
+
+export type ExecutionUxHint = 'countdown-before-run';
 
 // run type
 export type RunType =
@@ -319,7 +325,13 @@ export interface PlaygroundSDKLike {
   overrideConfig?(config: any): Promise<void>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';
+  getRuntimeInfo?(): Promise<PlaygroundRuntimeInfo | null>;
   id?: string; // unique ID for SDK instances
+}
+
+export interface ExecutionUxConfig {
+  hints?: ExecutionUxHint[];
+  countdownSeconds?: number;
 }
 
 // storage provider interface
@@ -361,6 +373,7 @@ export interface UniversalPlaygroundConfig {
   serverMode?: boolean;
   showEnvConfigReminder?: boolean;
   deviceType?: DeviceType;
+  executionUx?: ExecutionUxConfig;
 }
 
 // branding interface
