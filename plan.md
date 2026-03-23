@@ -21,7 +21,8 @@ playground architecture.
 - `@midscene/playground-app` plus `@midscene/visualizer` already provide a
   generic API-testing workbench shell.
 - The biggest remaining duplication lives in:
-  - per-platform CLI setup and launch wiring
+  - per-platform CLI setup and launch wiring, especially where web and native
+    playground entry points still evolve separately
   - per-platform preview wiring (especially Android scrcpy and desktop window
     control)
   - duplicated SDK/bootstrap logic in platform-specific apps
@@ -51,7 +52,8 @@ CLIs no longer hand-roll their own launch wiring.
 Scope:
 
 - add shared types/helpers in `@midscene/playground`
-- let platform packages expose or consume a typed descriptor/preparation flow
+- let platform packages expose or consume a typed descriptor/preparation flow,
+  including web/browser playground entry points
 - keep existing CLI behavior unchanged
 
 Expected benefits:
@@ -118,6 +120,8 @@ preserving their special behavior.
 Scope:
 
 - Android: turn scrcpy/device UI into a preview plugin
+- Web: keep the web playground on the shared workbench path so it does not
+  become a parallel special case again
 - Computer: move countdown / window-control UX into execution lifecycle hooks
 - reuse shared SDK/bootstrap logic instead of reimplementing it per app
 
