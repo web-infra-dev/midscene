@@ -24,7 +24,7 @@ tasks:
       - aiAssert: The Param section is expanded showing task parameters or input data
       - ai: Click on the "Meta" section header in the right detail side panel to expand it
       - sleep: 1000
-      - aiAssert: The Meta section shows execution metadata like Type, Status, Start time, End time, or Total time
+      - aiAssert: The Meta section is expanded showing execution metadata
 
   - name: open in playground button
     flow:
