@@ -22,6 +22,8 @@ export type AndroidDeviceOpt = {
   remoteAdbPort?: number;
   /** Input method editor strategy: 'always-yadb' always uses yadb, 'yadb-for-non-ascii' uses yadb only for non-ASCII characters */
   imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii';
+  /** Tap strategy: 'swipe' uses zero-distance swipe (better responsiveness), 'tap' uses native input tap (better compatibility with WebView/game engines) */
+  tapStrategy?: 'swipe' | 'tap';
   /** Display ID to use for this device */
   displayId?: number;
   /** Use physical display ID for screenshot operations */

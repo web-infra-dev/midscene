@@ -36,6 +36,7 @@ import {
   MIDSCENE_ADB_REMOTE_HOST,
   MIDSCENE_ADB_REMOTE_PORT,
   MIDSCENE_ANDROID_IME_STRATEGY,
+  MIDSCENE_ANDROID_TAP_STRATEGY,
   globalConfigManager,
 } from '@midscene/shared/env';
 import type { ElementInfo } from '@midscene/shared/extractor';
@@ -65,6 +66,9 @@ const defaultNormalScrollDuration = 1000;
 
 const IME_STRATEGY_ALWAYS_YADB = 'always-yadb' as const;
 const IME_STRATEGY_YADB_FOR_NON_ASCII = 'yadb-for-non-ascii' as const;
+
+const TAP_STRATEGY_SWIPE = 'swipe' as const;
+const TAP_STRATEGY_TAP = 'tap' as const;
 
 const debugDevice = getDebug('android:device');
 
@@ -1610,9 +1614,21 @@ ${Object.keys(size)
 
     // Use adjusted coordinates
     const { x: adjustedX, y: adjustedY } = await this.adjustCoordinates(x, y);
-    await adb.shell(
-      `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
-    );
+
+    const tapStrategy =
+      (this.options?.tapStrategy ||
+        globalConfigManager.getEnvConfigValue(MIDSCENE_ANDROID_TAP_STRATEGY)) ??
+      TAP_STRATEGY_SWIPE;
+
+    if (tapStrategy === TAP_STRATEGY_TAP) {
+      await adb.shell(
+        `input${this.getDisplayArg()} tap ${adjustedX} ${adjustedY}`,
+      );
+    } else {
+      await adb.shell(
+        `input${this.getDisplayArg()} swipe ${adjustedX} ${adjustedY} ${adjustedX} ${adjustedY} 150`,
+      );
+    }
   }
 
   async mouseDoubleClick(x: number, y: number): Promise<void> {
