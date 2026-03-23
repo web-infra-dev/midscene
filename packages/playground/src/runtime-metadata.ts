@@ -6,8 +6,11 @@ import {
 } from './platform';
 
 export interface PlaygroundRuntimeInfo {
+  /** Stable platform key, e.g. `android`, `ios`, `web`, `computer`. */
   platformId?: string;
+  /** User-facing runtime title, e.g. `Midscene Android Playground`. */
   title?: string;
+  /** Human-readable platform summary, e.g. `Android playground platform descriptor`. */
   platformDescription?: string;
   interface: {
     type: string;
