@@ -89,6 +89,29 @@ describe('playground app runtime info helpers', () => {
     ).toMatchObject({
       type: 'scrcpy',
       scrcpyPort: 6501,
+      scrcpyUrl: 'http://localhost:6501/',
+    });
+  });
+
+  test('rewrites scrcpy preview URL onto the runtime host', () => {
+    expect(
+      resolvePreviewConnectionInfo(
+        {
+          interface: { type: 'android' },
+          preview: {
+            kind: 'scrcpy',
+            capabilities: [],
+            custom: { scrcpyPort: 7700 },
+          },
+          executionUxHints: [],
+          metadata: {},
+        },
+        'https://midscene.example.com:5800/playground?mode=debug#preview',
+      ),
+    ).toMatchObject({
+      type: 'scrcpy',
+      scrcpyPort: 7700,
+      scrcpyUrl: 'https://midscene.example.com:7700/',
     });
   });
 });

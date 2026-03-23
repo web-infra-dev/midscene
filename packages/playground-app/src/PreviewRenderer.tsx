@@ -4,6 +4,7 @@ import type {
 } from '@midscene/playground';
 import { ScreenshotViewer } from '@midscene/visualizer';
 import { Alert } from 'antd';
+import { ScrcpyPanel } from './ScrcpyPanel';
 import { resolvePreviewConnectionInfo } from './runtime-info';
 
 interface PreviewRendererProps {
@@ -25,21 +26,10 @@ export function PreviewRenderer({
     runtimeInfo,
     serverUrl,
   );
-  const usesScreenshotPolling =
-    previewConnection.type === 'screenshot' ||
-    previewConnection.type === 'scrcpy';
+  const usesScreenshotPolling = previewConnection.type === 'screenshot';
 
   return (
     <div>
-      {previewConnection.type === 'scrcpy' && (
-        <Alert
-          type="info"
-          showIcon
-          style={{ marginBottom: 12 }}
-          message="Live scrcpy preview metadata detected"
-          description="The unified playground shell is using screenshot fallback for scrcpy-backed sessions."
-        />
-      )}
       {previewConnection.type === 'none' ? (
         <Alert
           type="warning"
@@ -47,6 +37,8 @@ export function PreviewRenderer({
           message="Preview unavailable"
           description="This session did not expose a preview capability in runtime metadata."
         />
+      ) : previewConnection.type === 'scrcpy' ? (
+        <ScrcpyPanel serverUrl={previewConnection.scrcpyUrl} />
       ) : (
         <ScreenshotViewer
           getScreenshot={() =>

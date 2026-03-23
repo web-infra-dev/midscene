@@ -4,6 +4,7 @@ import type { DeviceType, ExecutionUxHint } from '@midscene/visualizer';
 export interface PreviewConnectionInfo {
   type: 'none' | 'screenshot' | 'mjpeg' | 'scrcpy';
   mjpegUrl?: string;
+  scrcpyUrl?: string;
   scrcpyPort?: number;
 }
 
@@ -89,9 +90,23 @@ export function resolvePreviewConnectionInfo(
 
   if (preview.kind === 'scrcpy') {
     const scrcpyPort = Number(preview.custom?.scrcpyPort);
+    const resolvedScrcpyPort = Number.isFinite(scrcpyPort)
+      ? scrcpyPort
+      : undefined;
+    const scrcpyUrl = resolvedScrcpyPort
+      ? (() => {
+          const url = new URL(serverUrl);
+          url.port = String(resolvedScrcpyPort);
+          url.pathname = '/';
+          url.search = '';
+          url.hash = '';
+          return url.toString();
+        })()
+      : undefined;
     return {
       type: 'scrcpy',
-      scrcpyPort: Number.isFinite(scrcpyPort) ? scrcpyPort : undefined,
+      scrcpyPort: resolvedScrcpyPort,
+      scrcpyUrl,
     };
   }
 
