@@ -1,4 +1,8 @@
-import { PlaygroundSDK } from '@midscene/playground';
+import {
+  type PlaygroundPreviewDescriptor,
+  type PlaygroundRuntimeInfo,
+  PlaygroundSDK,
+} from '@midscene/playground';
 import {
   Logo,
   NavActions,
@@ -8,8 +12,8 @@ import {
   type UniversalPlaygroundConfig,
   globalThemeConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider, Layout } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { ConfigProvider, Layout, Modal } from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import ServerOfflineBackground from './icons/server-offline-background.svg';
 import ServerOfflineForeground from './icons/server-offline-foreground.svg';
@@ -20,7 +24,30 @@ const { Content } = Layout;
 
 type VisualizerDeviceType = 'web' | 'android' | 'ios';
 
-export type DeviceType = VisualizerDeviceType | 'harmony';
+export type DeviceType = VisualizerDeviceType | 'harmony' | 'computer';
+
+function resolveVisualizerDeviceType(
+  deviceType: DeviceType,
+): VisualizerDeviceType {
+  if (deviceType === 'android' || deviceType === 'ios') {
+    return deviceType;
+  }
+
+  return 'web';
+}
+
+function resolvePreviewDescriptor(
+  runtimeInfo: PlaygroundRuntimeInfo | null,
+): PlaygroundPreviewDescriptor | null {
+  return runtimeInfo?.preview || null;
+}
+
+function hasExecutionUxHint(
+  runtimeInfo: PlaygroundRuntimeInfo | null,
+  hint: string,
+): boolean {
+  return runtimeInfo?.executionUxHints.includes(hint) || false;
+}
 
 export interface PlaygroundAppProps {
   serverUrl: string;
@@ -46,6 +73,8 @@ export function PlaygroundApp({
   pollIntervalMs = 5000,
 }: PlaygroundAppProps) {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [countdown, setCountdown] = useState<number | string | null>(null);
+  const executeActionRestoreRef = useRef<(() => void) | null>(null);
 
   const playgroundSDK = useMemo(() => {
     return new PlaygroundSDK({
@@ -54,11 +83,44 @@ export function PlaygroundApp({
     });
   }, [serverUrl]);
 
-  const { serverOnline, isUserOperating, deviceType } = useServerStatus(
-    playgroundSDK,
-    defaultDeviceType,
-    pollIntervalMs,
+  const { serverOnline, isUserOperating, deviceType, runtimeInfo } =
+    useServerStatus(playgroundSDK, defaultDeviceType, pollIntervalMs);
+
+  const showCountdownBeforeRun = hasExecutionUxHint(
+    runtimeInfo,
+    'countdown-before-run',
   );
+  const preview = resolvePreviewDescriptor(runtimeInfo);
+  const previewKind = preview?.kind || 'none';
+  const mjpegPath = preview?.mjpegPath || '/mjpeg';
+  const supportsPollingScreenshot =
+    previewKind === 'screenshot' ||
+    previewKind === 'scrcpy' ||
+    Boolean(preview?.screenshotPath);
+
+  const showCountdownModal = useCallback(async () => {
+    if (!showCountdownBeforeRun) {
+      return;
+    }
+
+    await new Promise<void>((resolve) => {
+      let count = 3;
+      setCountdown(count);
+
+      const timer = window.setInterval(() => {
+        count -= 1;
+        if (count > 0) {
+          setCountdown(count);
+        } else if (count === 0) {
+          setCountdown('GO!');
+        } else {
+          window.clearInterval(timer);
+          setCountdown(null);
+          resolve();
+        }
+      }, 1000);
+    });
+  }, [showCountdownBeforeRun]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -70,6 +132,25 @@ export function PlaygroundApp({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    const originalExecuteAction =
+      playgroundSDK.executeAction.bind(playgroundSDK);
+
+    playgroundSDK.executeAction = async (actionType, value, options) => {
+      await showCountdownModal();
+      return originalExecuteAction(actionType, value, options);
+    };
+
+    executeActionRestoreRef.current = () => {
+      playgroundSDK.executeAction = originalExecuteAction;
+    };
+
+    return () => {
+      executeActionRestoreRef.current?.();
+      executeActionRestoreRef.current = null;
+    };
+  }, [playgroundSDK, showCountdownModal]);
+
   const mergedConfig: UniversalPlaygroundConfig = {
     showContextPreview: false,
     layout: 'vertical',
@@ -77,7 +158,7 @@ export function PlaygroundApp({
     enableScrollToBottom: true,
     serverMode: true,
     showEnvConfigReminder: true,
-    deviceType: deviceType === 'harmony' ? 'ios' : deviceType,
+    deviceType: resolveVisualizerDeviceType(deviceType),
     ...playgroundConfig,
   };
 
@@ -109,6 +190,56 @@ export function PlaygroundApp({
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
+      <Modal
+        open={countdown !== null}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+        centered
+        width={400}
+        style={{ top: '30%' }}
+        styles={{
+          mask: { backgroundColor: 'rgba(0, 0, 0, 0.75)' },
+        }}
+      >
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '40px 20px',
+          }}
+        >
+          <div
+            style={{
+              fontSize: '72px',
+              fontWeight: 'bold',
+              color: countdown === 'GO!' ? '#52c41a' : '#1890ff',
+              marginBottom: '24px',
+              lineHeight: 1,
+            }}
+          >
+            {countdown}
+          </div>
+          <div
+            style={{
+              fontSize: '18px',
+              fontWeight: 500,
+              marginBottom: '12px',
+            }}
+          >
+            Automation Starting Soon
+          </div>
+          <div
+            style={{
+              fontSize: '14px',
+              color: 'rgba(0, 0, 0, 0.65)',
+            }}
+          >
+            The window will minimize automatically.
+            <br />
+            Please do not interact with the screen.
+          </div>
+        </div>
+      </Modal>
       <Layout className="app-container playground-container">
         <Content className="app-content">
           <PanelGroup
@@ -150,13 +281,24 @@ export function PlaygroundApp({
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
                 <ScreenshotViewer
-                  getScreenshot={() => playgroundSDK.getScreenshot()}
-                  getInterfaceInfo={() => playgroundSDK.getInterfaceInfo()}
+                  getScreenshot={() =>
+                    supportsPollingScreenshot
+                      ? playgroundSDK.getScreenshot()
+                      : Promise.resolve(null)
+                  }
+                  getInterfaceInfo={async () =>
+                    runtimeInfo
+                      ? {
+                          type: runtimeInfo.interface.type,
+                          description: runtimeInfo.interface.description,
+                        }
+                      : playgroundSDK.getInterfaceInfo()
+                  }
                   serverOnline={serverOnline}
                   isUserOperating={isUserOperating}
                   mjpegUrl={
-                    deviceType === 'ios' || deviceType === 'harmony'
-                      ? `${serverUrl}/mjpeg`
+                    previewKind === 'mjpeg'
+                      ? `${serverUrl}${mjpegPath}`
                       : undefined
                   }
                 />

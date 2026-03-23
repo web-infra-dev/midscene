@@ -1,9 +1,13 @@
-import type { PlaygroundSDK } from '@midscene/playground';
+import type {
+  PlaygroundRuntimeInfo,
+  PlaygroundSDK,
+} from '@midscene/playground';
 import { useEffect, useState } from 'react';
 import type { DeviceType } from './PlaygroundApp';
 
 const VALID_DEVICE_TYPES: readonly DeviceType[] = [
   'android',
+  'computer',
   'ios',
   'web',
   'harmony',
@@ -17,6 +21,7 @@ interface ServerStatusResult {
   serverOnline: boolean;
   isUserOperating: boolean;
   deviceType: DeviceType;
+  runtimeInfo: PlaygroundRuntimeInfo | null;
 }
 
 export function useServerStatus(
@@ -27,6 +32,9 @@ export function useServerStatus(
   const [serverOnline, setServerOnline] = useState(false);
   const [isUserOperating, setIsUserOperating] = useState(false);
   const [deviceType, setDeviceType] = useState<DeviceType>(defaultDeviceType);
+  const [runtimeInfo, setRuntimeInfo] = useState<PlaygroundRuntimeInfo | null>(
+    null,
+  );
 
   useEffect(() => {
     playgroundSDK.onProgressUpdate((tip: string) => {
@@ -43,23 +51,40 @@ export function useServerStatus(
         if (!active) return;
         setServerOnline(online);
 
-        if (!online) return;
+        if (!online) {
+          setRuntimeInfo(null);
+          setDeviceType(defaultDeviceType);
+          return;
+        }
 
         try {
-          const interfaceInfo = await playgroundSDK.getInterfaceInfo();
-          if (!active || !interfaceInfo?.type) return;
+          const nextRuntimeInfo = await playgroundSDK.getRuntimeInfo();
+          if (!active || !nextRuntimeInfo) return;
 
-          const type = interfaceInfo.type.toLowerCase();
-          if (isValidDeviceType(type)) {
-            setDeviceType(type);
+          setRuntimeInfo(nextRuntimeInfo);
+
+          const candidateTypes = [
+            nextRuntimeInfo.platformId,
+            nextRuntimeInfo.interface.type,
+          ];
+
+          for (const candidate of candidateTypes) {
+            if (!candidate) continue;
+
+            const type = candidate.toLowerCase();
+            if (isValidDeviceType(type)) {
+              setDeviceType(type);
+              break;
+            }
           }
         } catch (error) {
-          console.warn('Failed to get interface info:', error);
+          console.warn('Failed to get runtime info:', error);
         }
       } catch (error) {
         if (!active) return;
         console.error('Failed to check server status:', error);
         setServerOnline(false);
+        setRuntimeInfo(null);
       }
     };
 
@@ -70,7 +95,7 @@ export function useServerStatus(
       active = false;
       window.clearInterval(interval);
     };
-  }, [playgroundSDK, pollIntervalMs]);
+  }, [defaultDeviceType, playgroundSDK, pollIntervalMs]);
 
-  return { serverOnline, isUserOperating, deviceType };
+  return { serverOnline, isUserOperating, deviceType, runtimeInfo };
 }

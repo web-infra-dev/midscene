@@ -53,6 +53,10 @@ export default defineConfig({
       ),
       react: path.resolve(__dirname, 'node_modules/react'),
       'react-dom': path.resolve(__dirname, 'node_modules/react-dom'),
+      '@midscene/playground-app': path.join(
+        __dirname,
+        '../../packages/playground-app/src/index.ts',
+      ),
     },
   },
   output: {
