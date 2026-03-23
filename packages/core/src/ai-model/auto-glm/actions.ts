@@ -1,4 +1,5 @@
 import { adaptBbox, pointToBbox } from '@/common';
+import type { DeviceAction } from '@/device';
 import type { PlanningAction } from '@/types';
 import { getDebug } from '@midscene/shared/logger';
 
@@ -124,9 +125,24 @@ export type ParsedAction =
   | NoteAction
   | FinishAction;
 
+/**
+ * Find the action name in actionSpace that ends with the given suffix.
+ * Falls back to defaultName if no match found or actionSpace is not provided.
+ */
+function findActionName(
+  actionSpace: DeviceAction[] | undefined,
+  suffix: string,
+  defaultName: string,
+): string {
+  if (!actionSpace) return defaultName;
+  const match = actionSpace.find((a) => a.name.endsWith(suffix));
+  return match ? match.name : defaultName;
+}
+
 export function transformAutoGLMAction(
   action: ParsedAction,
   size: { width: number; height: number },
+  actionSpace?: DeviceAction[],
 ): PlanningAction[] {
   try {
     switch (action._metadata) {
@@ -320,7 +336,11 @@ export function transformAutoGLMAction(
             debug('Transform Back action:', backAction);
             return [
               {
-                type: 'AndroidBackButton',
+                type: findActionName(
+                  actionSpace,
+                  'BackButton',
+                  'AndroidBackButton',
+                ),
                 param: {},
                 thought: backAction.think || '',
               },
@@ -331,7 +351,11 @@ export function transformAutoGLMAction(
             debug('Transform Home action:', homeAction);
             return [
               {
-                type: 'AndroidHomeButton',
+                type: findActionName(
+                  actionSpace,
+                  'HomeButton',
+                  'AndroidHomeButton',
+                ),
                 param: {},
                 thought: homeAction.think || '',
               },
