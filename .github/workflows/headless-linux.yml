@@ -121,9 +121,6 @@ jobs:
       MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
       CI: "1"
       # Env vars to inject into Chrome extension's config UI via CDP
-      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       MIDSCENE_USE_QWEN3_VL: "1"
 
     steps:
@@ -199,9 +196,6 @@ jobs:
       MIDSCENE_REPORT_QUIET: "true"
       MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
       CI: "1"
-      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       MIDSCENE_USE_QWEN3_VL: "1"
 
     steps:
@@ -276,9 +270,6 @@ jobs:
       MIDSCENE_REPORT_QUIET: "true"
       MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
       CI: "1"
-      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       MIDSCENE_USE_QWEN3_VL: "1"
 
     steps:
@@ -353,9 +344,6 @@ jobs:
       MIDSCENE_REPORT_QUIET: "true"
       MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
       CI: "1"
-      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       MIDSCENE_USE_QWEN3_VL: "1"
 
     steps:
@@ -430,9 +418,6 @@ jobs:
       MIDSCENE_REPORT_QUIET: "true"
       MIDSCENE_COMPUTER_HEADLESS_LINUX: "true"
       CI: "1"
-      MIDSCENE_OPENAI_INIT_CONFIG_JSON: ${{ secrets.MIDSCENE_OPENAI_INIT_CONFIG_JSON }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       MIDSCENE_USE_QWEN3_VL: "1"
 
     steps:
