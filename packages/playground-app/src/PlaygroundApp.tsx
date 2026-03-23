@@ -8,7 +8,7 @@ import {
   type UniversalPlaygroundConfig,
   globalThemeConfig,
 } from '@midscene/visualizer';
-import { ConfigProvider, Layout, Modal } from 'antd';
+import { Button, ConfigProvider, Layout, Modal } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { PreviewRenderer } from './PreviewRenderer';
@@ -61,47 +61,85 @@ export function PlaygroundApp({
     executionUxHints,
   } = useServerStatus(playgroundSDK, defaultDeviceType, pollIntervalMs);
 
-  const executionUxHintsRef = useRef(executionUxHints);
-  useEffect(() => {
-    executionUxHintsRef.current = executionUxHints;
-  }, [executionUxHints]);
+  const countdownTimerRef = useRef<number | null>(null);
+  const countdownResolveRef = useRef<(() => void) | null>(null);
+  const mountedRef = useRef(true);
+
+  const finishCountdown = useCallback(() => {
+    if (countdownTimerRef.current !== null) {
+      window.clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+
+    const resolve = countdownResolveRef.current;
+    countdownResolveRef.current = null;
+
+    if (mountedRef.current) {
+      setCountdown(null);
+    }
+
+    resolve?.();
+  }, []);
 
   const showCountdownModal = useCallback(async () => {
+    if (countdownSeconds <= 0) {
+      return;
+    }
+
+    finishCountdown();
+
     return new Promise<void>((resolve) => {
+      countdownResolveRef.current = resolve;
       let count = countdownSeconds;
-      setCountdown(count);
 
-      const timer = window.setInterval(() => {
-        count -= 1;
-        if (count > 0) {
-          setCountdown(count);
-        } else if (count === 0) {
-          setCountdown('GO!');
-        } else {
-          window.clearInterval(timer);
-          setCountdown(null);
-          resolve();
-        }
-      }, 1000);
-    });
-  }, [countdownSeconds]);
-
-  useEffect(() => {
-    const originalExecuteAction =
-      playgroundSDK.executeAction.bind(playgroundSDK);
-
-    playgroundSDK.executeAction = async (actionType, value, options) => {
-      if (executionUxHintsRef.current.includes('countdown-before-run')) {
-        await showCountdownModal();
+      if (mountedRef.current) {
+        setCountdown(count);
       }
 
-      return originalExecuteAction(actionType, value, options);
-    };
+      countdownTimerRef.current = window.setInterval(() => {
+        count -= 1;
+        if (count > 0) {
+          if (mountedRef.current) {
+            setCountdown(count);
+          }
+          return;
+        }
+
+        if (count === 0) {
+          if (mountedRef.current) {
+            setCountdown('GO!');
+          }
+          return;
+        }
+
+        finishCountdown();
+      }, 1000);
+    });
+  }, [countdownSeconds, finishCountdown]);
+
+  useEffect(() => {
+    mountedRef.current = true;
 
     return () => {
-      playgroundSDK.executeAction = originalExecuteAction;
+      mountedRef.current = false;
+      finishCountdown();
     };
-  }, [playgroundSDK, showCountdownModal]);
+  }, [finishCountdown]);
+
+  useEffect(() => {
+    if (!executionUxHints.includes('countdown-before-run')) {
+      playgroundSDK.setBeforeActionHook(undefined);
+      return;
+    }
+
+    playgroundSDK.setBeforeActionHook(async () => {
+      await showCountdownModal();
+    });
+
+    return () => {
+      playgroundSDK.setBeforeActionHook(undefined);
+    };
+  }, [executionUxHints, playgroundSDK, showCountdownModal]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -160,9 +198,14 @@ export function PlaygroundApp({
     <ConfigProvider theme={globalThemeConfig()}>
       <Modal
         open={countdown !== null}
-        footer={null}
-        closable={false}
-        maskClosable={false}
+        footer={
+          <Button onClick={finishCountdown} type="default">
+            Skip countdown
+          </Button>
+        }
+        closable
+        maskClosable
+        onCancel={finishCountdown}
         centered
         width={400}
         style={{ top: '30%' }}

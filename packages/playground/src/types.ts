@@ -41,6 +41,12 @@ export interface ExecutionOptions {
   deviceOptions?: DeviceOptions;
 }
 
+export type BeforeActionHook = (
+  actionType: string,
+  value: FormValue,
+  options: ExecutionOptions,
+) => void | Promise<void>;
+
 // SDK types - execution model based
 export type ExecutionType = 'local-execution' | 'remote-execution';
 

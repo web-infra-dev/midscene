@@ -105,6 +105,56 @@ describe('PlaygroundSDK', () => {
         options,
       );
     });
+
+    it('should run beforeAction hook before delegating execution', async () => {
+      const callOrder: string[] = [];
+      const mockExecuteAction = vi.fn().mockImplementation(async () => {
+        callOrder.push('adapter');
+        return 'test result';
+      });
+      const beforeActionHook = vi.fn().mockImplementation(async () => {
+        callOrder.push('hook');
+      });
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.executeAction = mockExecuteAction;
+
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+      sdk.setBeforeActionHook(beforeActionHook);
+
+      const value: FormValue = { type: 'test', prompt: 'test prompt' };
+      const options: ExecutionOptions = {};
+
+      await sdk.executeAction('testAction', value, options);
+
+      expect(beforeActionHook).toHaveBeenCalledWith(
+        'testAction',
+        value,
+        options,
+      );
+      expect(callOrder).toEqual(['hook', 'adapter']);
+    });
+
+    it('should allow clearing the beforeAction hook', async () => {
+      const mockExecuteAction = vi.fn().mockResolvedValue('test result');
+      const beforeActionHook = vi.fn();
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.executeAction = mockExecuteAction;
+
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+      sdk.setBeforeActionHook(beforeActionHook);
+      sdk.setBeforeActionHook(undefined);
+
+      await sdk.executeAction('testAction', { type: 'test' }, {});
+
+      expect(beforeActionHook).not.toHaveBeenCalled();
+      expect(mockExecuteAction).toHaveBeenCalledOnce();
+    });
   });
 
   describe('getActionSpace', () => {

@@ -25,6 +25,7 @@ export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';
 
 export type {
+  BeforeActionHook,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,

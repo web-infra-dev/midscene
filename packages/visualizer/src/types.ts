@@ -224,6 +224,7 @@ export const extractDefaultValue = (field: ZodType): unknown => {
 
 import type { ExecutionDump, IExecutionDump } from '@midscene/core';
 import type {
+  BeforeActionHook,
   ExecutionOptions,
   PlaygroundAgent,
   PlaygroundRuntimeInfo,
@@ -326,6 +327,7 @@ export interface PlaygroundSDKLike {
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';
   getRuntimeInfo?(): Promise<PlaygroundRuntimeInfo | null>;
+  setBeforeActionHook?(hook?: BeforeActionHook): void;
   id?: string; // unique ID for SDK instances
 }
 
