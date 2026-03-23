@@ -1,4 +1,4 @@
-import type { DeviceAction, UIContext } from '@midscene/core';
+import type { DeviceAction, ModelBrief, UIContext } from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -277,7 +277,7 @@ export interface ReplayScriptsInfo {
   width?: number;
   height?: number;
   sdkVersion?: string;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
 }
 
 // form value type
