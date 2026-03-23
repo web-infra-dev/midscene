@@ -65,7 +65,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           }
         }
 
-        console.log('bridge call from cli side', method, args);
+        this.onLogMessage(`bridge call from cli side: ${method}`, 'log');
         if (method === BridgeEvent.ConnectNewTabWithUrl) {
           return this.connectNewTabWithUrl.apply(
             this,
@@ -113,7 +113,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
         }
 
         if (!this[method as keyof ChromeExtensionProxyPage]) {
-          console.warn('method not found', method);
+          this.onLogMessage(`method not found: ${method}`, 'log');
           return undefined;
         }
 
@@ -125,7 +125,6 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           return result;
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-          console.error('error calling method', method, args, e);
           this.onLogMessage(
             `Error calling method: ${method}, ${errorMessage}`,
             'log',

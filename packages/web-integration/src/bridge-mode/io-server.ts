@@ -24,7 +24,7 @@ export const killRunningServer = async (port?: number, host = 'localhost') => {
         [BridgeSignalKill]: 1,
       },
     });
-    await sleep(100);
+    await sleep(300);
     await client.close();
   } catch (e) {
     // console.error('failed to kill port', e);
@@ -147,10 +147,10 @@ export class BridgeServer {
         if (this.socket?.connected) {
           socket.emit(BridgeEvent.Refused);
           socket.disconnect();
-
-          return reject(
-            new Error('server already connected by another client'),
+          logMsg(
+            'refused new connection: server already connected by another client',
           );
+          return;
         }
 
         // Clean up stale old socket if it exists but is no longer connected
@@ -158,7 +158,7 @@ export class BridgeServer {
           try {
             this.socket.disconnect();
           } catch (e) {
-            // ignore
+            logMsg(`failed to disconnect stale socket: ${e}`);
           }
           this.socket = null;
         }
@@ -185,7 +185,7 @@ export class BridgeServer {
             this.connectionLostReason = reason;
             this.socket = null;
 
-            // flush all pending calls as error
+            // flush all pending calls as error and clean up completed calls
             for (const id in this.calls) {
               const call = this.calls[id];
 
@@ -196,6 +196,13 @@ export class BridgeServer {
                   new Error(errorMessage),
                   null,
                 );
+              }
+            }
+
+            // Clean up completed calls to prevent memory leaks in long-running sessions
+            for (const id in this.calls) {
+              if (this.calls[id].responseTime) {
+                delete this.calls[id];
               }
             }
 
@@ -218,8 +225,7 @@ export class BridgeServer {
             });
           }, 0);
         } catch (e) {
-          console.error('failed to handle connection event', e);
-          reject(e);
+          logMsg(`failed to handle connection event: ${e}`);
         }
       });
 
