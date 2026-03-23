@@ -171,12 +171,7 @@ export class BridgeServer {
           socket.on('disconnect', (reason: string) => {
             this.connectionLost = true;
             this.connectionLostReason = reason;
-
-            try {
-              this.io?.close();
-            } catch (e) {
-              // ignore
-            }
+            this.socket = null;
 
             // flush all pending calls as error
             for (const id in this.calls) {

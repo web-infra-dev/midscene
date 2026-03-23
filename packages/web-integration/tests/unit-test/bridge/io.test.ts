@@ -435,7 +435,8 @@ describe('bridge-io', () => {
     await client.connect();
     await new Promise((resolve) => setTimeout(resolve, 500));
     await client.disconnect();
-    // server port should be closed at this time
+    // Server no longer auto-closes on client disconnect, close explicitly
+    await server1.close();
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const server2 = new BridgeServer(DEFAULT_HOST, commonPort);
@@ -451,5 +452,42 @@ describe('bridge-io', () => {
 
     const res = await server2.call('test', ['a', 'b']);
     expect(res).toEqual('ok2');
+  });
+
+  it('client reconnect after disconnect without server restart', async () => {
+    // Simulates: extension Stop → extension Start → reconnect to same server
+    const port = testPort++;
+    const server = new BridgeServer(DEFAULT_HOST, port);
+    await server.listen();
+
+    const client1 = new BridgeClient(
+      `ws://localhost:${port}`,
+      (method, args) => {
+        return Promise.resolve('response1');
+      },
+    );
+    await client1.connect();
+
+    const res1 = await server.call('test', ['a']);
+    expect(res1).toEqual('response1');
+
+    // Extension clicks Stop → client disconnects
+    await client1.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Extension clicks Start → new client connects to the SAME server
+    const client2 = new BridgeClient(
+      `ws://localhost:${port}`,
+      (method, args) => {
+        return Promise.resolve('response2');
+      },
+    );
+    await client2.connect();
+
+    const res2 = await server.call('test2', ['b']);
+    expect(res2).toEqual('response2');
+
+    await server.close();
+    client2.disconnect();
   });
 });
