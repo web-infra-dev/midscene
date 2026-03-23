@@ -130,10 +130,10 @@ export function PlaygroundApp({
 
   const mergedBranding: PlaygroundBranding = {
     ...branding,
-    title: branding?.title ?? runtimeInfo?.title ?? title,
-    version: branding?.version ?? appVersion,
+    title: runtimeInfo?.title ?? title,
+    version: appVersion,
     targetName:
-      branding?.targetName ?? runtimeInfo?.platformId ?? deviceType ?? 'screen',
+      runtimeInfo?.platformId ?? branding?.targetName ?? deviceType ?? 'screen',
   };
 
   if (!serverOnline) {
