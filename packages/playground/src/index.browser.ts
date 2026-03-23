@@ -28,6 +28,7 @@ export const playgroundForAgentFactory = undefined;
 export const launchPreparedPlaygroundPlatform = undefined;
 
 export type {
+  BeforeActionHook,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,

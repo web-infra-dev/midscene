@@ -6,6 +6,7 @@ import { RemoteExecutionAdapter } from '../adapters/remote-execution';
 import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
 import type {
   AgentFactory,
+  BeforeActionHook,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
@@ -15,6 +16,7 @@ import type {
 
 export class PlaygroundSDK {
   private adapter: BasePlaygroundAdapter;
+  private beforeActionHook?: BeforeActionHook;
 
   constructor(config: PlaygroundConfig) {
     this.adapter = this.createAdapter(
@@ -74,8 +76,13 @@ export class PlaygroundSDK {
     value: FormValue,
     options: ExecutionOptions,
   ): Promise<unknown> {
+    await this.beforeActionHook?.(actionType, value, options);
     const result = await this.adapter.executeAction(actionType, value, options);
     return result;
+  }
+
+  setBeforeActionHook(hook?: BeforeActionHook): void {
+    this.beforeActionHook = hook;
   }
 
   async getActionSpace(context?: unknown): Promise<DeviceAction<unknown>[]> {

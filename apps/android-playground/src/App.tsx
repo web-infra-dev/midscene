@@ -1,20 +1,21 @@
 import './App.less';
+import {
+  type PlaygroundRuntimeInfo,
+  PlaygroundSDK,
+} from '@midscene/playground';
+import { PlaygroundPreview } from '@midscene/playground-app';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
-  ScreenshotViewer,
   globalThemeConfig,
   safeOverrideAIConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout, message } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
 import PlaygroundPanel from './components/playground-panel';
-import ScrcpyPlayer, {
-  type ScrcpyRefMethods,
-} from './components/scrcpy-player';
 
 const { Content } = Layout;
 
@@ -28,16 +29,27 @@ const isRemoteDevice = (deviceId: string | null): boolean => {
 export default function App() {
   // Device and connection state - now simplified since device is pre-selected
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [connectToDevice, setConnectToDevice] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [serverUrl, setServerUrl] = useState(
     `http://${window.location.hostname}:${SCRCPY_SERVER_PORT}`,
   );
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [usePollingMode, setUsePollingMode] = useState(false);
+  const [serverOnline, setServerOnline] = useState(false);
+  const [runtimeInfo, setRuntimeInfo] = useState<PlaygroundRuntimeInfo | null>(
+    null,
+  );
 
   // Configuration state
   const { config } = useEnvConfig();
+  const playgroundSDK = useMemo(
+    () =>
+      new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl,
+      }),
+    [serverUrl],
+  );
 
   // Override AI configuration when config changes
   useEffect(() => {
@@ -51,10 +63,6 @@ export default function App() {
       setServerUrl(`http://${window.location.hostname}:${scrcpyPort}`);
     }
   }, []);
-
-  // Socket connection and device management
-  const socketRef = useRef<Socket | null>(null);
-  const scrcpyPlayerRef = useRef<ScrcpyRefMethods>(null);
 
   // connect to device server - simplified since device is pre-selected
   useEffect(() => {
@@ -79,8 +87,6 @@ export default function App() {
       }) => {
         if (data.currentDeviceId) {
           setSelectedDeviceId(data.currentDeviceId);
-          // Auto-connect since device is already selected
-          setConnectToDevice(true);
         }
       },
     );
@@ -98,25 +104,56 @@ export default function App() {
         `Error occurred while communicating with the server: ${error.message || 'Unknown error'}`,
       );
     });
-
-    socketRef.current = socket;
-
     return () => {
       socket.disconnect();
     };
   }, [messageApi, serverUrl]);
 
-  // reset the connection flag
   useEffect(() => {
-    if (connectToDevice) {
-      // reset the connection flag after a delay
-      const timer = setTimeout(() => {
-        setConnectToDevice(false);
-      }, 800);
+    const syncRuntimeInfo = async () => {
+      try {
+        const online = await playgroundSDK.checkStatus();
+        setServerOnline(online);
+        if (!online) {
+          setRuntimeInfo(null);
+          return;
+        }
 
-      return () => clearTimeout(timer);
+        const info = await playgroundSDK.getRuntimeInfo();
+        setRuntimeInfo(info);
+      } catch (error) {
+        setServerOnline(false);
+        setRuntimeInfo(null);
+        console.error('Failed to sync playground runtime info:', error);
+      }
+    };
+
+    syncRuntimeInfo();
+  }, [playgroundSDK]);
+
+  const previewRuntimeInfo = useMemo<PlaygroundRuntimeInfo | null>(() => {
+    if (!runtimeInfo) {
+      return runtimeInfo;
     }
-  }, [connectToDevice]);
+
+    if (!usePollingMode) {
+      return runtimeInfo;
+    }
+
+    return {
+      ...runtimeInfo,
+      preview: {
+        kind: 'screenshot',
+        capabilities: [
+          {
+            kind: 'screenshot',
+            label: 'Screenshot polling',
+            live: false,
+          },
+        ],
+      },
+    };
+  }, [runtimeInfo, usePollingMode]);
 
   // Handle window resize to detect narrow screens
   useEffect(() => {
@@ -156,7 +193,7 @@ export default function App() {
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
-                <PlaygroundPanel />
+                <PlaygroundPanel playgroundSDK={playgroundSDK} />
               </div>
             </Panel>
 
@@ -167,28 +204,14 @@ export default function App() {
             {/* right panel: ScrcpyPlayer */}
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
-                <AdbDevice
-                  selectedDeviceId={selectedDeviceId}
-                  scrcpyPlayerRef={scrcpyPlayerRef}
+                <AdbDevice selectedDeviceId={selectedDeviceId} />
+                <PlaygroundPreview
+                  playgroundSDK={playgroundSDK}
+                  runtimeInfo={previewRuntimeInfo}
+                  serverUrl={serverUrl}
+                  serverOnline={serverOnline}
+                  isUserOperating={false}
                 />
-                {!usePollingMode ? (
-                  <ScrcpyPlayer
-                    ref={scrcpyPlayerRef}
-                    serverUrl={serverUrl}
-                    autoConnect={connectToDevice}
-                  />
-                ) : (
-                  <ScreenshotViewer
-                    getScreenshot={() =>
-                      fetch('/screenshot').then((r) => r.json())
-                    }
-                    getInterfaceInfo={() =>
-                      fetch('/interface-info').then((r) => r.json())
-                    }
-                    serverOnline={true}
-                    isUserOperating={false}
-                  />
-                )}
               </div>
             </Panel>
           </PanelGroup>
