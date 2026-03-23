@@ -13,6 +13,13 @@ export { PlaygroundSDK } from './sdk';
 export { BasePlaygroundAdapter } from './adapters/base';
 export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';
+export {
+  createMjpegPreviewDescriptor,
+  createScreenshotPreviewDescriptor,
+  createScrcpyPreviewDescriptor,
+  definePlaygroundPlatform,
+  resolvePreparedLaunchOptions,
+} from './platform';
 
 // PlaygroundServer is not available in browser environments
 export const PlaygroundServer = undefined;
@@ -28,3 +35,10 @@ export type {
   ExecutionType,
   PlaygroundAdapter,
 } from './types';
+export type {
+  PlaygroundPlatformDescriptor,
+  PlaygroundPreviewCapability,
+  PlaygroundPreviewDescriptor,
+  PlaygroundPreviewKind,
+  PreparedPlaygroundPlatform,
+} from './platform';
