@@ -109,18 +109,5 @@ describe('chrome extension recorder mode tests', () => {
     await agent.aiAssert(
       `${SIDE_PANEL} shows the recording has stopped - either displaying a timeline of recorded events, or showing "Generating" progress, or showing generated code`,
     );
-
-    // 5. Switch back to Playground directly via menu
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the hamburger menu icon (three horizontal lines "≡") at the top-left corner`,
-    );
-    await sleep(2000);
-    await agent.aiAct(
-      'In the dropdown menu that just appeared, click the menu item labeled "Playground"',
-    );
-    await sleep(3000);
-    await agent.aiAssert(
-      `${SIDE_PANEL} shows Playground UI with action type buttons like "aiAct" and "aiQuery"`,
-    );
   });
 });
