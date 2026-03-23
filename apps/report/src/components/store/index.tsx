@@ -153,7 +153,7 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         playwrightAttributes,
       });
 
-      if (dump.executions.length > 0) {
+      if (dump && dump.executions.length > 0) {
         // Extract only metadata (dimensions, version, model info) — no .base64 reads
         const metaInfo = extractDumpMetaInfo(dump);
         if (!metaInfo) return;
