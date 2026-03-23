@@ -864,20 +864,12 @@ export class Agent<
         modelConfigForPlanning.openaiBaseURL ===
           defaultIntentModelConfig.openaiBaseURL;
 
-      const includeBboxInPlanning =
-        !deepThink && noIndividualLocateModel && !deepLocate;
+      const includeBboxInPlanning = !deepThink && noIndividualLocateModel;
 
       debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
         deepThink,
         noIndividualLocateModel,
-        deepLocate,
       });
-
-      if (deepLocate && includeBboxInPlanning) {
-        console.warn(
-          'deepLocate option is ignored when includeBboxInPlanning is true (same model for planning and default intent without deepThink). Locate is already done during planning.',
-        );
-      }
 
       const cacheable = opt?.cacheable;
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
@@ -920,7 +912,7 @@ export class Agent<
         imagesIncludeCount,
         deepThink,
         fileChooserAccept,
-        includeBboxInPlanning ? undefined : deepLocate,
+        deepLocate,
         abortSignal,
       );
 
