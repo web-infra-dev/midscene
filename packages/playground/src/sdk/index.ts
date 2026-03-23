@@ -3,10 +3,7 @@ import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
-import type {
-  PlaygroundCapabilitiesInfo,
-  PlaygroundRuntimeInfo,
-} from '../runtime-metadata';
+import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
 import type {
   AgentFactory,
   ExecutionOptions,
@@ -242,17 +239,6 @@ export class PlaygroundSDK {
     }
     return null;
   }
-
-  async getCapabilities(): Promise<PlaygroundCapabilitiesInfo | null> {
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getCapabilities();
-    }
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getCapabilities();
-    }
-    return null;
-  }
-
   // Get service mode based on adapter type
   getServiceMode(): 'In-Browser-Extension' | 'Server' {
     if (this.adapter instanceof LocalExecutionAdapter) {

@@ -47,7 +47,6 @@ export type {
   PreparedPlaygroundPlatform,
 } from './platform';
 export type {
-  PlaygroundCapabilitiesInfo,
   PlaygroundInterfaceInfo,
   PlaygroundRuntimeInfo,
 } from './runtime-metadata';

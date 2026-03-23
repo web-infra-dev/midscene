@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'vitest';
-import { buildCapabilitiesInfo } from '../../src/runtime-metadata';
 import { PlaygroundServer } from '../../src/server';
 
 describe('PlaygroundServer runtime metadata APIs', () => {
@@ -61,7 +60,7 @@ describe('PlaygroundServer runtime metadata APIs', () => {
     });
   });
 
-  test('derives preview and capability payloads from runtime info', () => {
+  test('keeps preview capabilities inside runtime info', () => {
     const runtimeInfo = createServer().getRuntimeInfo();
     expect(runtimeInfo.preview).toMatchObject({
       kind: 'scrcpy',
@@ -70,10 +69,15 @@ describe('PlaygroundServer runtime metadata APIs', () => {
       },
     });
 
-    expect(buildCapabilitiesInfo(runtimeInfo)).toMatchObject({
-      interfaceType: 'android',
-      previewMode: 'scrcpy',
-      executionUxHints: ['countdown-before-run'],
+    expect(runtimeInfo.preview.capabilities).toMatchObject([
+      {
+        kind: 'scrcpy',
+        live: true,
+      },
+    ]);
+    expect(runtimeInfo.executionUxHints).toEqual(['countdown-before-run']);
+    expect(runtimeInfo.interface).toMatchObject({
+      type: 'android',
     });
   });
 });

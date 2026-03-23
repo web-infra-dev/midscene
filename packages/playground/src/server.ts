@@ -19,7 +19,6 @@ import type { PreparedPlaygroundPlatform } from './platform';
 import type { PlaygroundPreviewDescriptor } from './platform';
 import {
   type PlaygroundRuntimeInfo,
-  buildCapabilitiesInfo,
   buildRuntimeInfo,
 } from './runtime-metadata';
 
@@ -746,19 +745,6 @@ class PlaygroundServer {
         console.error(`Failed to get preview info: ${errorMessage}`);
         res.status(500).json({
           error: `Failed to get preview info: ${errorMessage}`,
-        });
-      }
-    });
-
-    this._app.get('/capabilities', async (_req: Request, res: Response) => {
-      try {
-        res.json(buildCapabilitiesInfo(this.getRuntimeInfo()));
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(`Failed to get capabilities: ${errorMessage}`);
-        res.status(500).json({
-          error: `Failed to get capabilities: ${errorMessage}`,
         });
       }
     });

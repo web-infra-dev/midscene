@@ -4,9 +4,7 @@ import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
 import {
-  type PlaygroundCapabilitiesInfo,
   type PlaygroundRuntimeInfo,
-  buildCapabilitiesInfo,
   buildRuntimeInfo,
 } from '../runtime-metadata';
 import type {
@@ -452,13 +450,5 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
   async getPreviewInfo(): Promise<PlaygroundRuntimeInfo['preview'] | null> {
     const runtimeInfo = await this.getRuntimeInfo();
     return runtimeInfo?.preview || null;
-  }
-
-  async getCapabilities(): Promise<PlaygroundCapabilitiesInfo | null> {
-    const runtimeInfo = await this.getRuntimeInfo();
-    if (!runtimeInfo) {
-      return null;
-    }
-    return buildCapabilitiesInfo(runtimeInfo);
   }
 }

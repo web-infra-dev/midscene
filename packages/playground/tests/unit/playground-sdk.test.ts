@@ -314,12 +314,6 @@ describe('PlaygroundSDK', () => {
         kind: 'screenshot',
         capabilities: [],
       });
-      MockAdapter.prototype.getCapabilities = vi.fn().mockResolvedValue({
-        interfaceType: 'web',
-        previewMode: 'screenshot',
-        previewCapabilities: [],
-        executionUxHints: [],
-      });
 
       const sdk = new PlaygroundSDK({
         type: 'local-execution',
@@ -331,9 +325,6 @@ describe('PlaygroundSDK', () => {
       });
       await expect(sdk.getPreviewInfo()).resolves.toMatchObject({
         kind: 'screenshot',
-      });
-      await expect(sdk.getCapabilities()).resolves.toMatchObject({
-        interfaceType: 'web',
       });
     });
 
@@ -349,12 +340,6 @@ describe('PlaygroundSDK', () => {
         kind: 'mjpeg',
         capabilities: [],
       });
-      MockAdapter.prototype.getCapabilities = vi.fn().mockResolvedValue({
-        interfaceType: 'ios',
-        previewMode: 'mjpeg',
-        previewCapabilities: [],
-        executionUxHints: ['hint'],
-      });
 
       const sdk = new PlaygroundSDK({
         type: 'remote-execution',
@@ -366,9 +351,6 @@ describe('PlaygroundSDK', () => {
       });
       await expect(sdk.getPreviewInfo()).resolves.toMatchObject({
         kind: 'mjpeg',
-      });
-      await expect(sdk.getCapabilities()).resolves.toMatchObject({
-        interfaceType: 'ios',
       });
     });
   });

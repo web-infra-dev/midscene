@@ -1,5 +1,4 @@
 import {
-  type PlaygroundPreviewCapability,
   type PlaygroundPreviewDescriptor,
   createMjpegPreviewDescriptor,
   createScrcpyPreviewDescriptor,
@@ -19,13 +18,6 @@ export interface PlaygroundRuntimeInfo {
   preview: PlaygroundPreviewDescriptor;
   executionUxHints: string[];
   metadata: Record<string, unknown>;
-}
-
-export interface PlaygroundCapabilitiesInfo {
-  interfaceType: string;
-  previewMode: PlaygroundPreviewDescriptor['kind'];
-  previewCapabilities: PlaygroundPreviewCapability[];
-  executionUxHints: string[];
 }
 
 export interface PlaygroundRuntimeMetadataInput {
@@ -114,16 +106,5 @@ export function buildRuntimeInfo(
     preview: resolvePreviewDescriptor(input),
     executionUxHints: normalizeExecutionUxHints(input.metadata),
     metadata: { ...(input.metadata || {}) },
-  };
-}
-
-export function buildCapabilitiesInfo(
-  runtimeInfo: PlaygroundRuntimeInfo,
-): PlaygroundCapabilitiesInfo {
-  return {
-    interfaceType: runtimeInfo.interface.type,
-    previewMode: runtimeInfo.preview.kind,
-    previewCapabilities: runtimeInfo.preview.capabilities || [],
-    executionUxHints: runtimeInfo.executionUxHints,
   };
 }

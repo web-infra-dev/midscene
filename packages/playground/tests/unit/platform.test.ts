@@ -7,7 +7,6 @@ import {
   resolvePreparedLaunchOptions,
 } from '../../src/platform';
 import {
-  buildCapabilitiesInfo,
   buildRuntimeInfo,
   resolvePreviewDescriptor,
 } from '../../src/runtime-metadata';
@@ -99,10 +98,14 @@ describe('platform descriptors', () => {
       screenshotPath: '/screenshot',
     });
     expect(runtimeInfo.executionUxHints).toEqual(['countdown-before-run']);
-    expect(buildCapabilitiesInfo(runtimeInfo)).toMatchObject({
-      interfaceType: 'computer',
-      previewMode: 'screenshot',
-      executionUxHints: ['countdown-before-run'],
+    expect(runtimeInfo.preview.capabilities).toMatchObject([
+      {
+        kind: 'screenshot',
+        live: false,
+      },
+    ]);
+    expect(runtimeInfo.interface).toMatchObject({
+      type: 'computer',
     });
   });
 
