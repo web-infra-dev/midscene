@@ -45,6 +45,7 @@ describe('PlaygroundServer runtime metadata APIs', () => {
     expect(data).toMatchObject({
       platformId: 'android',
       title: 'Midscene Android Playground',
+      platformDescription: 'Android playground platform descriptor',
       interface: {
         type: 'android',
         description: 'Mock Android device',

@@ -141,7 +141,7 @@ class PlaygroundServer {
     return buildRuntimeInfo({
       platformId: this._preparedPlatform?.platformId,
       title: this._preparedPlatform?.title,
-      description: this._preparedPlatform?.description,
+      platformDescription: this._preparedPlatform?.description,
       interfaceType: this.agent?.interface?.interfaceType || 'Unknown',
       interfaceDescription: this.agent?.interface?.describe?.() || undefined,
       preview: this._preparedPlatform?.preview,

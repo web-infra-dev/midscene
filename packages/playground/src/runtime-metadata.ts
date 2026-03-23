@@ -14,7 +14,7 @@ export interface PlaygroundInterfaceInfo {
 export interface PlaygroundRuntimeInfo {
   platformId?: string;
   title?: string;
-  description?: string;
+  platformDescription?: string;
   interface: PlaygroundInterfaceInfo;
   preview: PlaygroundPreviewDescriptor;
   executionUxHints: string[];
@@ -31,7 +31,7 @@ export interface PlaygroundCapabilitiesInfo {
 export interface PlaygroundRuntimeMetadataInput {
   platformId?: string;
   title?: string;
-  description?: string;
+  platformDescription?: string;
   interfaceType?: string;
   interfaceDescription?: string;
   preview?: PlaygroundPreviewDescriptor;
@@ -68,7 +68,7 @@ export function resolvePreviewDescriptor(
     PlaygroundRuntimeMetadataInput,
     | 'platformId'
     | 'title'
-    | 'description'
+    | 'platformDescription'
     | 'interfaceType'
     | 'interfaceDescription'
     | 'metadata'
@@ -106,7 +106,7 @@ export function buildRuntimeInfo(
   return {
     platformId: input.platformId,
     title: input.title,
-    description: input.description,
+    platformDescription: input.platformDescription,
     interface: {
       type: interfaceType,
       description: input.interfaceDescription,
