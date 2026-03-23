@@ -421,8 +421,10 @@ export const generateAnimationScripts = (
   let insightOnTop = false;
   let initSubTitle = '';
   let errorStateFlag = false;
+  let lastTaskId: string | undefined;
   tasksIncluded.forEach((task, index) => {
     const currentTaskId = getTaskId(index);
+    lastTaskId = currentTaskId;
     // if (errorStateFlag) return;
 
     if (index === 0) {
@@ -635,6 +637,17 @@ export const generateAnimationScripts = (
       );
     }
   });
+
+  if (insightOnTop) {
+    scripts.push({
+      type: 'clear-insight',
+      duration: clearInsightDuration,
+      title: '',
+      subTitle: '',
+      taskId: lastTaskId,
+    });
+    insightOnTop = false;
+  }
 
   scripts.push({
     title: 'End',

@@ -189,15 +189,18 @@ export function Player(props?: {
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.code === 'Space') {
         e.preventDefault();
         player.toggle();
       }
-    },
-    [player],
-  );
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [player]);
 
   // Seek bar drag
   const seekBarRef = useRef<HTMLDivElement>(null);
@@ -318,7 +321,6 @@ export function Player(props?: {
       <div
         className="canvas-container"
         ref={containerRef}
-        onKeyDown={handleKeyDown}
         onMouseMove={showControls}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
