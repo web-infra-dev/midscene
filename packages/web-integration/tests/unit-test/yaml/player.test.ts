@@ -762,9 +762,7 @@ tasks:
             "locate": {
               "cacheable": true,
               "deepLocate": false,
-              "prompt": {
-                "prompt": "Please determine whether there is a specific on the page.",
-              },
+              "prompt": "Please determine whether there is a specific on the page.",
               "xpath": undefined,
             },
           },
