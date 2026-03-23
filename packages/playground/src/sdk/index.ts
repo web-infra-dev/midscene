@@ -225,11 +225,21 @@ export class PlaygroundSDK {
     type: string;
     description?: string;
   } | null> {
-    return this.runtimeMetadataAdapter()?.getInterfaceInfo() || null;
+    const adapter = this.runtimeMetadataAdapter();
+    if (!adapter) {
+      return null;
+    }
+
+    return adapter.getInterfaceInfo();
   }
 
   async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
-    return this.runtimeMetadataAdapter()?.getRuntimeInfo() || null;
+    const adapter = this.runtimeMetadataAdapter();
+    if (!adapter) {
+      return null;
+    }
+
+    return adapter.getRuntimeInfo();
   }
   // Get service mode based on adapter type
   getServiceMode(): 'In-Browser-Extension' | 'Server' {
