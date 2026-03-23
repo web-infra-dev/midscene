@@ -1,11 +1,11 @@
-import { PlaygroundSDK } from '@midscene/playground';
+import type { PlaygroundSDK } from '@midscene/playground';
 import {
   Logo,
   NavActions,
   UniversalPlayground,
   useEnvConfig,
 } from '@midscene/visualizer';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import './index.less';
 
 declare const __APP_VERSION__: string;
@@ -14,16 +14,15 @@ declare const __APP_VERSION__: string;
  * Playground panel component for Android Playground using Universal Playground
  * Replaces the left panel with form and results
  */
-export default function PlaygroundPanel() {
+export interface PlaygroundPanelProps {
+  playgroundSDK: PlaygroundSDK;
+}
+
+export default function PlaygroundPanel({
+  playgroundSDK,
+}: PlaygroundPanelProps) {
   // Get config from the global state
   const { config } = useEnvConfig();
-
-  // Initialize PlaygroundSDK for remote execution
-  const playgroundSDK = useMemo(() => {
-    return new PlaygroundSDK({
-      type: 'remote-execution',
-    });
-  }, []);
 
   // Check server status on mount to initialize SDK ID
   useEffect(() => {

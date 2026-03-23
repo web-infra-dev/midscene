@@ -1,14 +1,17 @@
 import './App.less';
-import { ScrcpyPanel } from '@midscene/playground-app';
+import {
+  type PlaygroundRuntimeInfo,
+  PlaygroundSDK,
+} from '@midscene/playground';
+import { PlaygroundPreview } from '@midscene/playground-app';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
-  ScreenshotViewer,
   globalThemeConfig,
   safeOverrideAIConfig,
   useEnvConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout, message } from 'antd';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
@@ -32,9 +35,21 @@ export default function App() {
   );
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [usePollingMode, setUsePollingMode] = useState(false);
+  const [serverOnline, setServerOnline] = useState(false);
+  const [runtimeInfo, setRuntimeInfo] = useState<PlaygroundRuntimeInfo | null>(
+    null,
+  );
 
   // Configuration state
   const { config } = useEnvConfig();
+  const playgroundSDK = useMemo(
+    () =>
+      new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl,
+      }),
+    [serverUrl],
+  );
 
   // Override AI configuration when config changes
   useEffect(() => {
@@ -94,6 +109,52 @@ export default function App() {
     };
   }, [messageApi, serverUrl]);
 
+  useEffect(() => {
+    const syncRuntimeInfo = async () => {
+      try {
+        const online = await playgroundSDK.checkStatus();
+        setServerOnline(online);
+        if (!online) {
+          setRuntimeInfo(null);
+          return;
+        }
+
+        const info = await playgroundSDK.getRuntimeInfo();
+        setRuntimeInfo(info);
+      } catch (error) {
+        setServerOnline(false);
+        setRuntimeInfo(null);
+        console.error('Failed to sync playground runtime info:', error);
+      }
+    };
+
+    syncRuntimeInfo();
+  }, [playgroundSDK]);
+
+  const previewRuntimeInfo = useMemo<PlaygroundRuntimeInfo | null>(() => {
+    if (!runtimeInfo) {
+      return runtimeInfo;
+    }
+
+    if (!usePollingMode) {
+      return runtimeInfo;
+    }
+
+    return {
+      ...runtimeInfo,
+      preview: {
+        kind: 'screenshot',
+        capabilities: [
+          {
+            kind: 'screenshot',
+            label: 'Screenshot polling',
+            live: false,
+          },
+        ],
+      },
+    };
+  }, [runtimeInfo, usePollingMode]);
+
   // Handle window resize to detect narrow screens
   useEffect(() => {
     const handleResize = () => {
@@ -132,7 +193,7 @@ export default function App() {
               className="app-panel left-panel"
             >
               <div className="panel-content left-panel-content">
-                <PlaygroundPanel />
+                <PlaygroundPanel playgroundSDK={playgroundSDK} />
               </div>
             </Panel>
 
@@ -144,20 +205,13 @@ export default function App() {
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
                 <AdbDevice selectedDeviceId={selectedDeviceId} />
-                {!usePollingMode ? (
-                  <ScrcpyPanel serverUrl={serverUrl} />
-                ) : (
-                  <ScreenshotViewer
-                    getScreenshot={() =>
-                      fetch('/screenshot').then((r) => r.json())
-                    }
-                    getInterfaceInfo={() =>
-                      fetch('/interface-info').then((r) => r.json())
-                    }
-                    serverOnline={true}
-                    isUserOperating={false}
-                  />
-                )}
+                <PlaygroundPreview
+                  playgroundSDK={playgroundSDK}
+                  runtimeInfo={previewRuntimeInfo}
+                  serverUrl={serverUrl}
+                  serverOnline={serverOnline}
+                  isUserOperating={false}
+                />
               </div>
             </Panel>
           </PanelGroup>

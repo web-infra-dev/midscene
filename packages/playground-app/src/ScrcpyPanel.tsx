@@ -4,8 +4,8 @@ import {
   WebCodecsVideoDecoder,
   WebGLVideoFrameRenderer,
 } from '@yume-chan/scrcpy-decoder-webcodecs';
-import { Alert, Card, Spin, Typography } from 'antd';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Alert, Button, Card, Space, Spin, Typography } from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Socket } from 'socket.io-client';
 import { io } from 'socket.io-client';
 
@@ -30,6 +30,9 @@ export function ScrcpyPanel({
   const socketRef = useRef<Socket | null>(null);
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectRef = useRef<(() => void) | null>(null);
+  const disconnectRef = useRef<(() => void) | null>(null);
+  const manuallyDisconnectedRef = useRef(false);
   const [status, setStatus] = useState<
     'connecting' | 'connected' | 'disconnected' | 'error'
   >('connecting');
@@ -73,6 +76,16 @@ export function ScrcpyPanel({
     decoderRef.current = null;
   };
 
+  const handleConnect = useCallback(() => {
+    manuallyDisconnectedRef.current = false;
+    connectRef.current?.();
+  }, []);
+
+  const handleDisconnect = useCallback(() => {
+    manuallyDisconnectedRef.current = true;
+    disconnectRef.current?.();
+  }, []);
+
   useEffect(() => {
     if (!serverUrl) {
       setStatus('error');
@@ -107,7 +120,11 @@ export function ScrcpyPanel({
     };
 
     const scheduleReconnect = () => {
-      if (disposed || reconnectTimerRef.current) {
+      if (
+        disposed ||
+        reconnectTimerRef.current ||
+        manuallyDisconnectedRef.current
+      ) {
         return;
       }
 
@@ -214,6 +231,7 @@ export function ScrcpyPanel({
         return;
       }
 
+      manuallyDisconnectedRef.current = false;
       setStatus('connecting');
       setErrorMessage(null);
       setScreenInfo(null);
@@ -297,10 +315,22 @@ export function ScrcpyPanel({
       });
     };
 
+    const disconnect = () => {
+      cleanup();
+      setStatus('disconnected');
+      setErrorMessage(null);
+      setScreenInfo(null);
+    };
+
+    connectRef.current = connect;
+    disconnectRef.current = disconnect;
+
     connect();
 
     return () => {
       disposed = true;
+      connectRef.current = null;
+      disconnectRef.current = null;
       cleanup();
     };
   }, [reconnectInterval, serverUrl]);
@@ -310,11 +340,27 @@ export function ScrcpyPanel({
       size="small"
       title="Live scrcpy preview"
       extra={
-        screenInfo ? (
-          <Text type="secondary">
-            {screenInfo.width} × {screenInfo.height}
-          </Text>
-        ) : null
+        <Space size="small">
+          {screenInfo ? (
+            <Text type="secondary">
+              {screenInfo.width} × {screenInfo.height}
+            </Text>
+          ) : null}
+          {status === 'connected' ? (
+            <Button size="small" onClick={handleDisconnect}>
+              Disconnect
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              type="primary"
+              loading={status === 'connecting'}
+              onClick={handleConnect}
+            >
+              Connect
+            </Button>
+          )}
+        </Space>
       }
     >
       {errorMessage ? (
