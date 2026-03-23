@@ -598,7 +598,28 @@ Available Displays: ${displays.length > 0 ? displays.map((d) => d.name).join(', 
 if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }`
       : '$screen = [System.Windows.Forms.Screen]::PrimaryScreen';
 
+    // Match screenshot-desktop's DPI-aware manifest so screenshot pixels stay
+    // aligned with libnut coordinates on scaled or mixed-DPI displays.
     const psScript = [
+      "Add-Type -TypeDefinition @'",
+      'using System;',
+      'using System.Runtime.InteropServices;',
+      'public static class MidsceneDpi {',
+      '  [DllImport("user32.dll", SetLastError = true)]',
+      '  public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);',
+      '',
+      '  [DllImport("user32.dll")]',
+      '  public static extern bool SetProcessDPIAware();',
+      '}',
+      "'@",
+      '$perMonitorAwareV2 = [IntPtr](-4)',
+      'try {',
+      '  if (-not [MidsceneDpi]::SetProcessDpiAwarenessContext($perMonitorAwareV2)) {',
+      '    [void][MidsceneDpi]::SetProcessDPIAware()',
+      '  }',
+      '} catch {',
+      '  try { [void][MidsceneDpi]::SetProcessDPIAware() } catch {}',
+      '}',
       'Add-Type -AssemblyName System.Windows.Forms',
       'Add-Type -AssemblyName System.Drawing',
       screenSelector,
@@ -634,13 +655,15 @@ if (-not $screen) { $screen = [System.Windows.Forms.Screen]::PrimaryScreen }`
       );
     });
 
-    const buffer = await fs.readFile(tmpFile);
-    await fs
-      .unlink(tmpFile)
-      .catch((err) =>
-        debugDevice(`Failed to delete temp screenshot file: ${err}`),
-      );
-    return buffer;
+    try {
+      return await fs.readFile(tmpFile);
+    } finally {
+      await fs
+        .unlink(tmpFile)
+        .catch((err) =>
+          debugDevice(`Failed to delete temp screenshot file: ${err}`),
+        );
+    }
   }
 
   async size(): Promise<Size> {
