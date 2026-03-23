@@ -42,8 +42,6 @@ export type TestStatus =
 import { isAutoGLM, isUITars } from '@/ai-model/auto-glm/util';
 import yaml from 'js-yaml';
 
-import type { IReportGenerator } from '@/report-generator';
-import { ReportGenerator } from '@/report-generator';
 import { getVersion, processCacheConfig, reportHTMLContent } from '@/utils';
 import {
   ScriptPlayer,
@@ -54,6 +52,8 @@ import {
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { AbstractInterface } from '@/device';
+import { exportExecutionReport } from '@/execution-report';
+import { ExecutionStore } from '@/execution-store';
 import type { TaskRunner } from '@/task-runner';
 import {
   type IModelConfig,
@@ -152,6 +152,8 @@ export class Agent<
 
   service: Service;
 
+  executionStore: ExecutionStore;
+
   dump: GroupedActionDump;
 
   reportFile?: string | null;
@@ -161,6 +163,8 @@ export class Agent<
   taskExecutor: TaskExecutor;
 
   opts: AgentOpt;
+
+  sessionId: string;
 
   /**
    * If true, the agent will not perform any actions
@@ -210,11 +214,11 @@ export class Agent<
    */
   private hasWarnedNonVLModel = false;
 
-  private executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+  private executionDumpIndexByRunnerId = new Map<number, number>();
+
+  private executionOrders: number[] = [];
 
   private fullActionSpace: DeviceAction[];
-
-  private reportGenerator: IReportGenerator;
 
   // @deprecated use .interface instead
   get page() {
@@ -328,9 +332,12 @@ export class Agent<
       useDeviceTimestamp: this.opts.useDeviceTimestamp,
       actionSpace: this.fullActionSpace,
       hooks: {
-        onTaskUpdate: (runner) => {
+        onTaskUpdate: async (runner) => {
           const executionDump = runner.dump();
-          this.appendExecutionDump(executionDump, runner);
+          const executionIndex = this.appendExecutionDump(
+            executionDump,
+            runner,
+          );
 
           // Call all registered dump update listeners
           const dumpString = this.dumpDataString();
@@ -341,22 +348,19 @@ export class Agent<
               console.error('Error in onDumpUpdate listener', error);
             }
           }
-
-          // Fire and forget - don't block task execution
-          this.writeOutActionDumps();
         },
       },
     });
+    this.executionStore = new ExecutionStore();
     this.dump = this.resetDump();
     this.reportFileName =
       opts?.reportFileName ||
       getReportFileName(opts?.testId || this.interface.interfaceType || 'web');
 
-    this.reportGenerator = ReportGenerator.create(this.reportFileName!, {
-      generateReport: this.opts.generateReport,
-      outputFormat: this.opts.outputFormat,
-      autoPrintReportMsg: this.opts.autoPrintReportMsg,
-    });
+    // Every agent always has a sessionId - auto-generate from reportFileName if not provided
+    this.sessionId = this.opts.sessionId || this.reportFileName!;
+
+    this.syncExecutionMetadata();
   }
 
   async getActionSpace(): Promise<DeviceAction[]> {
@@ -440,27 +444,62 @@ export class Agent<
       modelBriefs: [],
       deviceType: this.interface.interfaceType,
     });
-    this.executionDumpIndexByRunner = new WeakMap<TaskRunner, number>();
+    this.executionDumpIndexByRunnerId = new Map<number, number>();
 
     return this.dump;
   }
 
-  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner) {
-    const currentDump = this.dump;
-    if (runner) {
-      const existingIndex = this.executionDumpIndexByRunner.get(runner);
-      if (existingIndex !== undefined) {
-        currentDump.executions[existingIndex] = execution;
-        return;
-      }
-      currentDump.executions.push(execution);
-      this.executionDumpIndexByRunner.set(
-        runner,
-        currentDump.executions.length - 1,
-      );
+  private syncExecutionMetadata(): void {
+    this.executionStore.ensureExecution({
+      executionId: this.sessionId,
+      platform: this.interface.interfaceType,
+      groupName: this.opts.groupName,
+      groupDescription: this.opts.groupDescription,
+      sdkVersion: this.dump.sdkVersion,
+      modelBriefs: this.dump.modelBriefs,
+      deviceType: this.dump.deviceType,
+    });
+  }
+
+  private persistExecutionDump(
+    execution: ExecutionDump,
+    executionIndex: number,
+  ): void {
+    let order = this.executionOrders[executionIndex];
+    if (order === undefined) {
+      order = this.executionStore.appendExecution(this.sessionId, execution);
+      this.executionOrders[executionIndex] = order;
       return;
     }
-    currentDump.executions.push(execution);
+
+    this.executionStore.updateExecution(this.sessionId, order, execution);
+  }
+
+  appendExecutionDump(execution: ExecutionDump, runner?: TaskRunner): number {
+    const currentDump = this.dump;
+    let executionIndex: number;
+    if (runner) {
+      const existingIndex = this.executionDumpIndexByRunnerId.get(
+        runner.runnerId,
+      );
+      if (existingIndex !== undefined) {
+        currentDump.executions[existingIndex] = execution;
+        executionIndex = existingIndex;
+      } else {
+        currentDump.executions.push(execution);
+        executionIndex = currentDump.executions.length - 1;
+        this.executionDumpIndexByRunnerId.set(runner.runnerId, executionIndex);
+      }
+    } else {
+      currentDump.executions.push(execution);
+      executionIndex = currentDump.executions.length - 1;
+    }
+
+    this.persistExecutionDump(
+      currentDump.executions[executionIndex],
+      executionIndex,
+    );
+    return executionIndex;
   }
 
   dumpDataString(opt?: { inlineScreenshots?: boolean }) {
@@ -480,8 +519,8 @@ export class Agent<
   }
 
   writeOutActionDumps() {
-    this.reportGenerator.onDumpUpdate(this.dump);
-    this.reportFile = this.reportGenerator.getReportPath();
+    // No-op: persistence is handled by ExecutionStore in persistExecutionDump().
+    // Report is generated at destroy() time via exportExecutionReport().
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1312,11 +1351,17 @@ export class Agent<
       return;
     }
 
-    // Wait for all queued write operations to complete
-    await this.reportGenerator.flush();
-
-    await this.reportGenerator.finalize(this.dump);
-    this.reportFile = this.reportGenerator.getReportPath();
+    // Generate final report from execution data
+    if (this.opts.generateReport !== false) {
+      try {
+        this.reportFile = exportExecutionReport(
+          this.sessionId,
+          this.executionStore,
+        );
+      } catch (error) {
+        debug('Failed to generate execution report:', error);
+      }
+    }
 
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
@@ -1365,7 +1410,7 @@ export class Agent<
       description: opt?.content || '',
       tasks: [task],
     });
-    // 5. append to execution dump
+    // 5. append to execution dump (also persists to execution store)
     this.appendExecutionDump(executionDump);
 
     // Call all registered dump update listeners
@@ -1377,9 +1422,6 @@ export class Agent<
         console.error('Error in onDumpUpdate listener', error);
       }
     }
-
-    this.writeOutActionDumps();
-    await this.reportGenerator.flush();
   }
 
   /**

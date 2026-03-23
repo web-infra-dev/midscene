@@ -57,6 +57,23 @@ class MockSVGElement extends MockElement {
   }
 }
 
+function createMockXPathResult(
+  snapshotLength: number,
+  snapshotItem: (index: number) => Node | null,
+): XPathResult {
+  return {
+    booleanValue: false,
+    invalidIteratorState: false,
+    numberValue: 0,
+    resultType: XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    singleNodeValue: null,
+    snapshotLength,
+    stringValue: '',
+    iterateNext: () => null,
+    snapshotItem,
+  } as XPathResult;
+}
+
 // Mock global objects needed by locator functions
 const setupMockDOM = () => {
   global.Node = {
@@ -291,10 +308,11 @@ describe('locator', () => {
     it('should return null for xpath with multiple matches', () => {
       // Mock multiple matches scenario
       const originalEvaluate = global.document.evaluate;
-      global.document.evaluate = () => ({
-        snapshotLength: 2, // Multiple matches
-        snapshotItem: () => new MockElement('div', 'Multiple') as any,
-      });
+      global.document.evaluate = (() =>
+        createMockXPathResult(
+          2,
+          () => new MockElement('div', 'Multiple') as unknown as Node,
+        )) as typeof global.document.evaluate;
 
       const result = getNodeInfoByXpath('/html/body/div');
 

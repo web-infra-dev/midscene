@@ -31,7 +31,15 @@ type TaskRunnerOperationOptions = {
   allowWhenError?: boolean;
 };
 
+let nextRunnerId = 1;
+
 export class TaskRunner {
+  /**
+   * Auto-increment id unique to each TaskRunner instance within the process.
+   * Used by Agent to track execution dump indices without WeakMap lookups.
+   */
+  readonly runnerId: number;
+
   name: string;
 
   tasks: ExecutionTask[];
@@ -52,6 +60,7 @@ export class TaskRunner {
     uiContextBuilder: () => Promise<UIContext>,
     options?: TaskRunnerInitOptions,
   ) {
+    this.runnerId = nextRunnerId++;
     this.status =
       options?.tasks && options.tasks.length > 0 ? 'pending' : 'init';
     this.name = name;
