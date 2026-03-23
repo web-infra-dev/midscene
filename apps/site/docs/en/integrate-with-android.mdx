@@ -325,6 +325,30 @@ Please check if the device is unlocked in the developer options of the system se
   <img src="/android-usb-debug-en.png" alt="android usb debug" width="400" />
 </p>
 
+### Text input fails in WebView / H5 pages (input field appears empty after typing)
+
+This is typically caused by the keyboard dismiss strategy. After Midscene inputs text via the virtual keyboard, it automatically dismisses the keyboard. The default strategy (`esc-first`) sends an **ESCAPE key event** first, which may be captured by WebView JavaScript and cause side effects such as:
+
+- Closing the popup/modal that contains the input field
+- Clearing the text just entered
+- Navigating away from the current view
+
+**Solution:** Set `keyboardDismissStrategy` to `'back-first'` when creating the AndroidDevice, which uses the Android BACK key instead of ESCAPE to dismiss the keyboard:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+If the input still fails, you can also try disabling auto keyboard dismiss entirely and let the AI agent handle keyboard state:
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
 ### How to use a custom adb path, remote adb host and port?
 
 You can use the `MIDSCENE_ADB_PATH` environment variable to specify the path to the adb executable, `MIDSCENE_ADB_REMOTE_HOST` environment variable to specify the remote adb host, `MIDSCENE_ADB_REMOTE_PORT` environment variable to specify the remote adb port.

@@ -472,6 +472,30 @@ java.lang.SecurityException: Injecting input events requires the caller (or the 
   <img src="/android-usb-debug.png" alt="android usb debug" width="400" />
 </p>
 
+### 在 WebView / H5 页面中文本输入失败（输入后搜索框为空）
+
+这通常是键盘关闭策略导致的。Midscene 通过虚拟键盘输入文本后，会自动关闭键盘。默认策略（`esc-first`）会先发送 **ESCAPE 按键事件**，该事件可能被 WebView 中的 JavaScript 捕获，导致以下副作用：
+
+- 关闭包含输入框的弹窗/模态框
+- 清空刚刚输入的文本
+- 导航离开当前页面
+
+**解决方法：** 在创建 AndroidDevice 时，将 `keyboardDismissStrategy` 设置为 `'back-first'`，这将使用 Android BACK 键代替 ESCAPE 键来关闭键盘：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  keyboardDismissStrategy: 'back-first',
+});
+```
+
+如果输入仍然失败，也可以尝试完全禁用自动关闭键盘，让 AI agent 自行管理键盘状态：
+
+```typescript
+const device = new AndroidDevice('device-id', {
+  autoDismissKeyboard: false,
+});
+```
+
 ### 如何使用自定义的 adb 路径、远程 adb 主机和端口？
 
 你可以使用 `MIDSCENE_ADB_PATH` 环境变量来指定 adb 可执行文件的路径，`MIDSCENE_ADB_REMOTE_HOST` 环境变量来指定远程 adb 主机，`MIDSCENE_ADB_REMOTE_PORT` 环境变量来指定远程 adb 端口。
