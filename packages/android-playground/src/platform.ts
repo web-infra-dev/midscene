@@ -111,6 +111,7 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
         },
       },
       preview: createScrcpyPreviewDescriptor({
+        title: 'Android device preview',
         scrcpyPort,
       }),
       metadata: {

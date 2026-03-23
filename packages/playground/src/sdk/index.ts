@@ -3,6 +3,7 @@ import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
 import type { BasePlaygroundAdapter } from '../adapters/base';
 import { LocalExecutionAdapter } from '../adapters/local-execution';
 import { RemoteExecutionAdapter } from '../adapters/remote-execution';
+import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
 import type {
   AgentFactory,
   ExecutionOptions,
@@ -52,6 +53,20 @@ export class PlaygroundSDK {
       default:
         throw new Error(`Unsupported execution type: ${type}`);
     }
+  }
+
+  private runtimeMetadataAdapter():
+    | LocalExecutionAdapter
+    | RemoteExecutionAdapter
+    | null {
+    if (
+      this.adapter instanceof LocalExecutionAdapter ||
+      this.adapter instanceof RemoteExecutionAdapter
+    ) {
+      return this.adapter;
+    }
+
+    return null;
   }
 
   async executeAction(
@@ -210,15 +225,22 @@ export class PlaygroundSDK {
     type: string;
     description?: string;
   } | null> {
-    if (this.adapter instanceof LocalExecutionAdapter) {
-      return this.adapter.getInterfaceInfo();
+    const adapter = this.runtimeMetadataAdapter();
+    if (!adapter) {
+      return null;
     }
-    if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getInterfaceInfo();
-    }
-    return null;
+
+    return adapter.getInterfaceInfo();
   }
 
+  async getRuntimeInfo(): Promise<PlaygroundRuntimeInfo | null> {
+    const adapter = this.runtimeMetadataAdapter();
+    if (!adapter) {
+      return null;
+    }
+
+    return adapter.getRuntimeInfo();
+  }
   // Get service mode based on adapter type
   getServiceMode(): 'In-Browser-Extension' | 'Server' {
     if (this.adapter instanceof LocalExecutionAdapter) {
