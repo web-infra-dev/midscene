@@ -74,6 +74,9 @@ importers:
       '@midscene/playground':
         specifier: workspace:*
         version: link:../../packages/playground
+      '@midscene/playground-app':
+        specifier: workspace:*
+        version: link:../../packages/playground-app
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -83,12 +86,6 @@ importers:
       '@midscene/web':
         specifier: workspace:*
         version: link:../../packages/web-integration
-      '@yume-chan/scrcpy':
-        specifier: 2.3.0
-        version: 2.3.0
-      '@yume-chan/scrcpy-decoder-webcodecs':
-        specifier: 2.5.0
-        version: 2.5.0
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)

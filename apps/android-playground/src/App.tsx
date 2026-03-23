@@ -1,4 +1,5 @@
 import './App.less';
+import { ScrcpyPanel } from '@midscene/playground-app';
 import { SCRCPY_SERVER_PORT } from '@midscene/shared/constants';
 import {
   ScreenshotViewer,
@@ -7,14 +8,11 @@ import {
   useEnvConfig,
 } from '@midscene/visualizer';
 import { ConfigProvider, Layout, message } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { type Socket, io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
 import PlaygroundPanel from './components/playground-panel';
-import ScrcpyPlayer, {
-  type ScrcpyRefMethods,
-} from './components/scrcpy-player';
 
 const { Content } = Layout;
 
@@ -28,7 +26,6 @@ const isRemoteDevice = (deviceId: string | null): boolean => {
 export default function App() {
   // Device and connection state - now simplified since device is pre-selected
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [connectToDevice, setConnectToDevice] = useState(false);
   const [messageApi, contextHolder] = message.useMessage();
   const [serverUrl, setServerUrl] = useState(
     `http://${window.location.hostname}:${SCRCPY_SERVER_PORT}`,
@@ -51,10 +48,6 @@ export default function App() {
       setServerUrl(`http://${window.location.hostname}:${scrcpyPort}`);
     }
   }, []);
-
-  // Socket connection and device management
-  const socketRef = useRef<Socket | null>(null);
-  const scrcpyPlayerRef = useRef<ScrcpyRefMethods>(null);
 
   // connect to device server - simplified since device is pre-selected
   useEffect(() => {
@@ -79,8 +72,6 @@ export default function App() {
       }) => {
         if (data.currentDeviceId) {
           setSelectedDeviceId(data.currentDeviceId);
-          // Auto-connect since device is already selected
-          setConnectToDevice(true);
         }
       },
     );
@@ -98,25 +89,10 @@ export default function App() {
         `Error occurred while communicating with the server: ${error.message || 'Unknown error'}`,
       );
     });
-
-    socketRef.current = socket;
-
     return () => {
       socket.disconnect();
     };
   }, [messageApi, serverUrl]);
-
-  // reset the connection flag
-  useEffect(() => {
-    if (connectToDevice) {
-      // reset the connection flag after a delay
-      const timer = setTimeout(() => {
-        setConnectToDevice(false);
-      }, 800);
-
-      return () => clearTimeout(timer);
-    }
-  }, [connectToDevice]);
 
   // Handle window resize to detect narrow screens
   useEffect(() => {
@@ -167,16 +143,9 @@ export default function App() {
             {/* right panel: ScrcpyPlayer */}
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
-                <AdbDevice
-                  selectedDeviceId={selectedDeviceId}
-                  scrcpyPlayerRef={scrcpyPlayerRef}
-                />
+                <AdbDevice selectedDeviceId={selectedDeviceId} />
                 {!usePollingMode ? (
-                  <ScrcpyPlayer
-                    ref={scrcpyPlayerRef}
-                    serverUrl={serverUrl}
-                    autoConnect={connectToDevice}
-                  />
+                  <ScrcpyPanel serverUrl={serverUrl} />
                 ) : (
                   <ScreenshotViewer
                     getScreenshot={() =>
