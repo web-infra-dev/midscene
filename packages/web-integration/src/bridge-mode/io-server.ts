@@ -121,7 +121,10 @@ export class BridgeServer {
         if (socket.handshake.url.includes(BridgeSignalKill)) {
           return next();
         }
-        if (this.socket) {
+        // Allow new connections to replace old ones (reconnection after
+        // extension Stop→Start). If the old socket is already disconnected
+        // or unresponsive, accept the new connection immediately.
+        if (this.socket?.connected) {
           return next(new Error('server already connected by another client'));
         }
         next();
@@ -141,14 +144,23 @@ export class BridgeServer {
         this.listeningTimeoutId = null;
         this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
         this.connectionTipTimer = null;
-        if (this.socket) {
+        if (this.socket?.connected) {
           socket.emit(BridgeEvent.Refused);
-          // close the socket
           socket.disconnect();
 
           return reject(
             new Error('server already connected by another client'),
           );
+        }
+
+        // Clean up stale old socket if it exists but is no longer connected
+        if (this.socket) {
+          try {
+            this.socket.disconnect();
+          } catch (e) {
+            // ignore
+          }
+          this.socket = null;
         }
 
         try {
