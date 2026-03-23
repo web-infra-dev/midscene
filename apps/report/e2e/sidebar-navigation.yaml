@@ -23,6 +23,6 @@ tasks:
     flow:
       - ai: Click the "Model Call Details" checkbox or toggle in the sidebar
       - sleep: 1000
-      - aiAssert: The sidebar shows additional columns like Model or Tokens
+      - aiAssert: The sidebar shows additional columns like Model, Prompt, or Completion
       - ai: Click the "Model Call Details" checkbox again to turn it off
       - sleep: 1000
