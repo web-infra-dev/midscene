@@ -4,7 +4,7 @@ target:
 tasks:
   - name: subtitle toggle works
     flow:
-      - sleep: 3000
+      - sleep: 1000
       - aiAssert: There is a subtitle text overlay at the bottom area of the player
       - ai: Click the settings gear icon on the player controls bar
       - sleep: 1000
