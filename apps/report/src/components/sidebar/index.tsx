@@ -32,21 +32,6 @@ type TableRowData = {
   task?: ExecutionTaskWithSearchAreaUsage;
 };
 
-const getExecutionSortTime = (execution: {
-  logTime?: number;
-  tasks: ExecutionTask[];
-}) => {
-  const taskStartTimes = execution.tasks
-    .map((task) => task.timing?.start)
-    .filter((time): time is number => typeof time === 'number');
-
-  if (taskStartTimes.length > 0) {
-    return Math.min(...taskStartTimes);
-  }
-
-  return execution.logTime ?? Number.MAX_SAFE_INTEGER;
-};
-
 interface SidebarProps {
   dumps?: PlaywrightTasks[];
   proModeEnabled?: boolean;
@@ -82,16 +67,8 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
   const tableData = useMemo<TableRowData[]>(() => {
     if (!groupedDump) return [];
 
-    const sortedExecutions = [...groupedDump.executions]
-      .map((execution, index) => ({
-        execution,
-        index,
-        sortTime: getExecutionSortTime(execution),
-      }))
-      .sort((a, b) => a.sortTime - b.sortTime || a.index - b.index);
-
     const rows: TableRowData[] = [];
-    sortedExecutions.forEach(({ execution }, executionIndex) => {
+    groupedDump.executions.forEach((execution, executionIndex) => {
       // Add group header row
       rows.push({
         key: `group-${executionIndex}`,

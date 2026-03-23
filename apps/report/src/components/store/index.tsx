@@ -24,6 +24,38 @@ export const isElementField = (value: unknown): value is LocateResultElement =>
   Boolean((value as any).center) &&
   Boolean((value as any).rect);
 
+/**
+ * Derive a stable sort key for an execution based on the earliest task start
+ * time, falling back to the execution-level logTime.
+ */
+const getExecutionSortTime = (execution: ExecutionDump): number => {
+  let earliest = Number.MAX_SAFE_INTEGER;
+  for (const task of execution.tasks) {
+    const t = task.timing?.start;
+    if (typeof t === 'number' && t < earliest) {
+      earliest = t;
+    }
+  }
+  return earliest < Number.MAX_SAFE_INTEGER
+    ? earliest
+    : (execution.logTime ?? Number.MAX_SAFE_INTEGER);
+};
+
+/**
+ * Sort executions by their earliest task start time so that sidebar,
+ * replay-all, and keyboard navigation all share the same chronological order.
+ */
+const sortExecutions = (executions: ExecutionDump[]): ExecutionDump[] => {
+  return [...executions]
+    .map((execution, index) => ({
+      execution,
+      index,
+      sortTime: getExecutionSortTime(execution),
+    }))
+    .sort((a, b) => a.sortTime - b.sortTime || a.index - b.index)
+    .map(({ execution }) => execution);
+};
+
 export const useBlackboardPreference = create<{
   markerVisible: boolean;
   elementsVisible: boolean;
@@ -147,15 +179,21 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
       playwrightAttributes?: PlaywrightTaskAttributes,
     ) => {
       console.log('will set ExecutionDump', dump);
+      // Sort executions chronologically so sidebar, replay-all, and keyboard
+      // navigation all share the same order.
+      const sortedDump: GroupedActionDump = {
+        ...dump,
+        executions: sortExecutions(dump.executions),
+      };
       set({
         ...initData,
-        dump,
+        dump: sortedDump,
         playwrightAttributes,
       });
 
-      if (dump && dump.executions.length > 0) {
+      if (sortedDump.executions.length > 0) {
         // Extract only metadata (dimensions, version, model info) — no .base64 reads
-        const metaInfo = extractDumpMetaInfo(dump);
+        const metaInfo = extractDumpMetaInfo(sortedDump);
         if (!metaInfo) return;
 
         set({
@@ -170,8 +208,8 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
         // Default to replay-all when available so opening a report starts playback.
         get().setReplayAllMode(true);
 
-        if (!get().replayAllMode && dump.executions[0].tasks.length > 0) {
-          get().setActiveTask(dump.executions[0].tasks[0]);
+        if (!get().replayAllMode && sortedDump.executions[0].tasks.length > 0) {
+          get().setActiveTask(sortedDump.executions[0].tasks[0]);
         }
       }
     },
