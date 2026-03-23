@@ -53,7 +53,7 @@ Scope:
 
 - add shared types/helpers in `@midscene/playground`
 - let platform packages expose or consume a typed descriptor/preparation flow,
-  including web/browser playground entry points
+  including web/browser playground entry points and Harmony/HDC
 - keep existing CLI behavior unchanged
 
 Expected benefits:
@@ -71,8 +71,8 @@ Scope:
 
 - add a shared preview descriptor model
 - let prepared platform sessions declare preview strategy and capabilities
-- represent Android scrcpy, iOS/Harmony MJPEG, and screenshot polling through
-  one common type system
+- represent Android scrcpy, iOS/Harmony/HDC preview flows, and screenshot
+  polling through one common type system
 
 Expected benefits:
 
