@@ -228,14 +228,22 @@ export class BridgeServer {
 
   private async triggerCallResponseCallback(
     id: string | number,
-    error: Error | null,
+    error: Error | string | null,
     response: any,
   ) {
     const call = this.calls[id];
     if (!call) {
       throw new Error(`call ${id} not found`);
     }
-    call.error = error || undefined;
+    // Ensure error is always an Error object (bridge client may send strings)
+    if (error) {
+      call.error =
+        error instanceof Error
+          ? error
+          : new Error(typeof error === 'string' ? error : String(error));
+    } else {
+      call.error = undefined;
+    }
     call.response = response;
     call.responseTime = Date.now();
 
