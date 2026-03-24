@@ -15,12 +15,20 @@ import {
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
-import type { PreparedPlaygroundPlatform } from './platform';
-import type { PlaygroundPreviewDescriptor } from './platform';
+import type {
+  PlaygroundCreatedSession,
+  PlaygroundPreviewDescriptor,
+  PlaygroundSessionManager,
+  PlaygroundSessionSetup,
+  PlaygroundSessionState,
+  PlaygroundSessionTarget,
+  PreparedPlaygroundPlatform,
+} from './platform';
 import {
   type PlaygroundRuntimeInfo,
   buildRuntimeInfo,
 } from './runtime-metadata';
+import type { AgentFactory } from './types';
 
 import 'dotenv/config';
 
@@ -50,7 +58,7 @@ class PlaygroundServer {
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  agent: PageAgent;
+  agent: PageAgent | null;
   staticPath: string;
   taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
@@ -67,7 +75,11 @@ class PlaygroundServer {
   private _nativeMjpegAvailable: boolean | null = null;
 
   // Factory function for recreating agent
-  private agentFactory?: (() => PageAgent | Promise<PageAgent>) | null;
+  private agentFactory?: AgentFactory | null;
+  private sessionManager?: PlaygroundSessionManager;
+  private currentSession: PlaygroundSessionState | null = null;
+  private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
+  private sessionSetupBlockingReason?: string;
 
   // Track current running task
   private currentTaskId: string | null = null;
@@ -84,9 +96,10 @@ class PlaygroundServer {
     preview?: PlaygroundPreviewDescriptor;
     metadata?: Record<string, unknown>;
   };
+  private _basePreparedMetadata?: Record<string, unknown>;
 
   constructor(
-    agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
+    agent?: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
     staticPath = STATIC_PATH,
     id?: string, // Optional override ID
   ) {
@@ -100,9 +113,9 @@ class PlaygroundServer {
     // Support both instance and factory function modes
     if (typeof agent === 'function') {
       this.agentFactory = agent;
-      this.agent = null as any; // Will be initialized in launch()
+      this.agent = null;
     } else {
-      this.agent = agent;
+      this.agent = agent || null;
       this.agentFactory = null;
     }
   }
@@ -110,16 +123,36 @@ class PlaygroundServer {
   setPreparedPlatform(
     prepared: Pick<
       PreparedPlaygroundPlatform,
-      'platformId' | 'title' | 'description' | 'preview' | 'metadata'
+      | 'platformId'
+      | 'title'
+      | 'description'
+      | 'preview'
+      | 'metadata'
+      | 'sessionManager'
     >,
   ): void {
+    this.sessionManager = prepared.sessionManager;
+    this._basePreparedMetadata = prepared.metadata
+      ? { ...prepared.metadata }
+      : undefined;
     this._preparedPlatform = {
       platformId: prepared.platformId,
       title: prepared.title,
       description: prepared.description,
       preview: prepared.preview,
-      metadata: prepared.metadata ? { ...prepared.metadata } : undefined,
+      metadata: this.buildSessionMetadata(),
     };
+
+    if (this.sessionManager && !this.agent && !this.currentSession) {
+      this.sessionSetupState =
+        this._basePreparedMetadata?.setupState === 'blocked'
+          ? 'blocked'
+          : 'required';
+      this.sessionSetupBlockingReason =
+        typeof this._basePreparedMetadata?.setupBlockingReason === 'string'
+          ? this._basePreparedMetadata.setupBlockingReason
+          : undefined;
+    }
   }
 
   setPreviewDescriptor(preview?: PlaygroundPreviewDescriptor): void {
@@ -130,10 +163,8 @@ class PlaygroundServer {
   }
 
   setRuntimeMetadata(metadata?: Record<string, unknown>): void {
-    this._preparedPlatform = {
-      ...(this._preparedPlatform || {}),
-      metadata: metadata ? { ...metadata } : undefined,
-    };
+    this._basePreparedMetadata = metadata ? { ...metadata } : undefined;
+    this.syncPreparedMetadata();
   }
 
   getRuntimeInfo(): PlaygroundRuntimeInfo {
@@ -144,12 +175,135 @@ class PlaygroundServer {
       interfaceType: this.agent?.interface?.interfaceType || 'Unknown',
       interfaceDescription: this.agent?.interface?.describe?.() || undefined,
       preview: this._preparedPlatform?.preview,
-      metadata: this._preparedPlatform?.metadata,
+      metadata: this.buildSessionMetadata(),
       supportsScreenshot:
         typeof this.agent?.interface?.screenshotBase64 === 'function',
       mjpegStreamUrl: this.agent?.interface?.mjpegStreamUrl,
       scrcpyPort: this.scrcpyPort,
     });
+  }
+
+  getSessionInfo(): PlaygroundSessionState & {
+    setupState: 'required' | 'ready' | 'blocked';
+    setupBlockingReason?: string;
+  } {
+    const connected = this.sessionManager
+      ? Boolean(this.currentSession?.connected && this.agent)
+      : Boolean(this.agent);
+
+    return {
+      connected,
+      displayName: this.currentSession?.displayName,
+      metadata: {
+        ...(this.currentSession?.metadata || {}),
+      },
+      setupState: this.sessionSetupState,
+      setupBlockingReason: this.sessionSetupBlockingReason,
+    };
+  }
+
+  private buildSessionMetadata(): Record<string, unknown> {
+    const sessionConnected = this.sessionManager
+      ? Boolean(this.currentSession?.connected && this.agent)
+      : Boolean(this.agent);
+
+    return {
+      ...(this._basePreparedMetadata || {}),
+      ...(this.currentSession?.metadata || {}),
+      sessionConnected,
+      sessionDisplayName: this.currentSession?.displayName,
+      setupState: this.sessionSetupState,
+      ...(this.sessionSetupBlockingReason
+        ? { setupBlockingReason: this.sessionSetupBlockingReason }
+        : {}),
+    };
+  }
+
+  private syncPreparedMetadata(): void {
+    this._preparedPlatform = {
+      ...(this._preparedPlatform || {}),
+      metadata: this.buildSessionMetadata(),
+    };
+  }
+
+  private getActiveAgentOrThrow(): PageAgent {
+    if (!this.agent) {
+      throw new Error('No active session');
+    }
+
+    return this.agent;
+  }
+
+  private async destroyCurrentAgent(): Promise<void> {
+    if (!this.agent) {
+      return;
+    }
+
+    try {
+      if (typeof this.agent.destroy === 'function') {
+        await this.agent.destroy();
+      }
+    } catch (error) {
+      console.warn('Failed to destroy old agent:', error);
+    } finally {
+      this.agent = null;
+    }
+  }
+
+  private async destroyCurrentSession(): Promise<void> {
+    const previousSession = this.currentSession;
+    await this.destroyCurrentAgent();
+
+    if (this.sessionManager?.destroySession) {
+      await this.sessionManager.destroySession(previousSession || undefined);
+    }
+
+    this.currentSession = null;
+    this.agentFactory = null;
+    this.taskExecutionDumps = {};
+    this.currentTaskId = null;
+    this.sessionSetupState =
+      this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
+    this.syncPreparedMetadata();
+  }
+
+  private applyCreatedSession(session: PlaygroundCreatedSession): void {
+    if (!session.agent && !session.agentFactory) {
+      throw new Error(
+        'Session creation must provide either an agent or agentFactory',
+      );
+    }
+
+    this.agent = session.agent || null;
+    this.agentFactory = session.agentFactory || null;
+    if (session.preview) {
+      this.setPreviewDescriptor(session.preview);
+    }
+
+    this.currentSession = {
+      connected: true,
+      displayName: session.displayName,
+      metadata: session.metadata ? { ...session.metadata } : {},
+    };
+    this.sessionSetupState = 'ready';
+    this.sessionSetupBlockingReason = undefined;
+    this.syncPreparedMetadata();
+  }
+
+  private async getSessionSetupSchema(): Promise<PlaygroundSessionSetup | null> {
+    if (!this.sessionManager) {
+      return null;
+    }
+
+    return this.sessionManager.getSetupSchema();
+  }
+
+  private async getSessionTargets(): Promise<PlaygroundSessionTarget[]> {
+    if (!this.sessionManager?.listTargets) {
+      return [];
+    }
+
+    return this.sessionManager.listTargets();
   }
 
   /**
@@ -194,6 +348,7 @@ class PlaygroundServer {
       (req: Request, _res: Response, next: express.NextFunction) => {
         const { context } = req.body || {};
         if (
+          this.agent &&
           context &&
           'updateContext' in this.agent.interface &&
           typeof this.agent.interface.updateContext === 'function'
@@ -250,14 +405,7 @@ class PlaygroundServer {
     this._agentReady = false;
     console.log('Recreating agent to cancel current task...');
 
-    // Destroy old agent instance
-    try {
-      if (this.agent && typeof this.agent.destroy === 'function') {
-        await this.agent.destroy();
-      }
-    } catch (error) {
-      console.warn('Failed to destroy old agent:', error);
-    }
+    await this.destroyCurrentAgent();
 
     // Create new agent instance if factory is available
     if (this.agentFactory) {
@@ -287,6 +435,115 @@ class PlaygroundServer {
         status: 'ok',
         id: this.id,
       });
+    });
+
+    this._app.get('/session', async (_req: Request, res: Response) => {
+      res.json(this.getSessionInfo());
+    });
+
+    this._app.get('/session/setup', async (_req: Request, res: Response) => {
+      try {
+        const setup = await this.getSessionSetupSchema();
+        if (!setup) {
+          return res.status(404).json({
+            error: 'Session setup is not available for this playground',
+          });
+        }
+
+        const targets = await this.getSessionTargets();
+        res.json({
+          ...setup,
+          targets: targets.length > 0 ? targets : setup.targets,
+        });
+      } catch (error) {
+        res.status(500).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to load session setup',
+        });
+      }
+    });
+
+    this._app.get('/session/targets', async (_req: Request, res: Response) => {
+      try {
+        res.json(await this.getSessionTargets());
+      } catch (error) {
+        res.status(500).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to load session targets',
+        });
+      }
+    });
+
+    this._app.post('/session', async (req: Request, res: Response) => {
+      if (!this.sessionManager) {
+        return res.status(404).json({
+          error: 'Session creation is not available for this playground',
+        });
+      }
+
+      if (this.currentTaskId) {
+        return res.status(409).json({
+          error: 'Cannot replace session while a task is running',
+        });
+      }
+
+      try {
+        await this.destroyCurrentSession();
+        const created = await this.sessionManager.createSession(req.body || {});
+        this.applyCreatedSession(created);
+
+        if (!this.agent && this.agentFactory) {
+          this.agent = await this.agentFactory();
+        }
+
+        if (this._configDirty && this.agentFactory) {
+          this._configDirty = false;
+          await this.recreateAgent();
+        }
+
+        res.json({
+          session: this.getSessionInfo(),
+          runtimeInfo: this.getRuntimeInfo(),
+        });
+      } catch (error) {
+        this.currentSession = null;
+        this.agent = null;
+        this.agentFactory = null;
+        this.sessionSetupState =
+          this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
+        this.syncPreparedMetadata();
+        res.status(400).json({
+          error:
+            error instanceof Error ? error.message : 'Failed to create session',
+        });
+      }
+    });
+
+    this._app.delete('/session', async (_req: Request, res: Response) => {
+      if (this.currentTaskId) {
+        return res.status(409).json({
+          error: 'Cannot destroy session while a task is running',
+        });
+      }
+
+      try {
+        await this.destroyCurrentSession();
+        res.json({
+          session: this.getSessionInfo(),
+          runtimeInfo: this.getRuntimeInfo(),
+        });
+      } catch (error) {
+        res.status(500).json({
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to destroy session',
+        });
+      }
     });
 
     this._app.get('/context/:uuid', async (req: Request, res: Response) => {
@@ -326,9 +583,10 @@ class PlaygroundServer {
 
     this._app.post('/action-space', async (req: Request, res: Response) => {
       try {
+        const agent = this.getActiveAgentOrThrow();
         let actionSpace = [];
 
-        actionSpace = this.agent.interface.actionSpace();
+        actionSpace = agent.interface.actionSpace();
 
         // Process actionSpace to make paramSchema serializable with shape info
         const processedActionSpace = actionSpace.map((action: unknown) => {
@@ -381,7 +639,7 @@ class PlaygroundServer {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error('Failed to get action space:', error);
-        res.status(500).json({
+        res.status(errorMessage === 'No active session' ? 409 : 500).json({
           error: errorMessage,
         });
       }
@@ -410,6 +668,15 @@ class PlaygroundServer {
     );
 
     this._app.post('/execute', async (req: Request, res: Response) => {
+      let agent: PageAgent;
+      try {
+        agent = this.getActiveAgentOrThrow();
+      } catch (error) {
+        return res.status(409).json({
+          error: error instanceof Error ? error.message : 'No active session',
+        });
+      }
+
       const {
         type,
         prompt,
@@ -434,15 +701,9 @@ class PlaygroundServer {
         this._agentReady = false;
         console.log('AI config changed, recreating agent...');
         try {
-          if (this.agent && typeof this.agent.destroy === 'function') {
-            await this.agent.destroy();
-          }
-        } catch (error) {
-          console.warn('Failed to destroy old agent:', error);
-        }
-
-        try {
+          await this.destroyCurrentAgent();
           this.agent = await this.agentFactory();
+          agent = this.getActiveAgentOrThrow();
           this._agentReady = true;
           console.log('Agent recreated with new config');
         } catch (error) {
@@ -455,8 +716,8 @@ class PlaygroundServer {
       }
 
       // Update device options if provided
-      if (deviceOptions && this.agent.interface) {
-        const iface = this.agent.interface as unknown as {
+      if (deviceOptions) {
+        const iface = agent.interface as unknown as {
           options?: Record<string, unknown>;
         };
         iface.options = {
@@ -479,10 +740,7 @@ class PlaygroundServer {
         this.taskExecutionDumps[requestId] = null;
 
         // Use onDumpUpdate to receive and store executionDump directly
-        this.agent.onDumpUpdate = (
-          _dump: string,
-          executionDump?: ExecutionDump,
-        ) => {
+        agent.onDumpUpdate = (_dump: string, executionDump?: ExecutionDump) => {
           if (executionDump) {
             // Store the execution dump directly without transformation
             this.taskExecutionDumps[requestId] = executionDump;
@@ -507,7 +765,7 @@ class PlaygroundServer {
       const startTime = Date.now();
       try {
         // Get action space to check for dynamic actions
-        const actionSpace = this.agent.interface.actionSpace();
+        const actionSpace = agent.interface.actionSpace();
 
         // Prepare value object for executeAction
         const value = {
@@ -516,25 +774,19 @@ class PlaygroundServer {
           params,
         };
 
-        response.result = await executeAction(
-          this.agent,
-          type,
-          actionSpace,
-          value,
-          {
-            deepLocate,
-            deepThink,
-            screenshotIncluded,
-            domIncluded,
-            deviceOptions,
-          },
-        );
+        response.result = await executeAction(agent, type, actionSpace, value, {
+          deepLocate,
+          deepThink,
+          screenshotIncluded,
+          domIncluded,
+          deviceOptions,
+        });
       } catch (error: unknown) {
         response.error = formatErrorMessage(error);
       }
 
       try {
-        const dumpString = this.agent.dumpDataString({
+        const dumpString = agent.dumpDataString({
           inlineScreenshots: true,
         });
         if (dumpString) {
@@ -546,10 +798,10 @@ class PlaygroundServer {
           response.dump = null;
         }
         response.reportHTML =
-          this.agent.reportHTMLString({ inlineScreenshots: true }) || null;
+          agent.reportHTMLString({ inlineScreenshots: true }) || null;
 
-        this.agent.writeOutActionDumps();
-        this.agent.resetDump();
+        agent.writeOutActionDumps();
+        agent.resetDump();
       } catch (error: unknown) {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
@@ -594,6 +846,7 @@ class PlaygroundServer {
         }
 
         try {
+          const agent = this.getActiveAgentOrThrow();
           // Check if this is the current running task
           if (this.currentTaskId !== requestId) {
             return res.json({
@@ -609,7 +862,7 @@ class PlaygroundServer {
           let reportHTML: string | null = null;
 
           try {
-            const dumpString = this.agent.dumpDataString?.({
+            const dumpString = agent.dumpDataString?.({
               inlineScreenshots: true,
             });
             if (dumpString) {
@@ -620,8 +873,9 @@ class PlaygroundServer {
             }
 
             reportHTML =
-              this.agent.reportHTMLString?.({ inlineScreenshots: true }) ||
-              null;
+              agent.reportHTMLString?.({
+                inlineScreenshots: true,
+              }) || null;
           } catch (error: unknown) {
             console.warn('Failed to get execution data before cancel:', error);
           }
@@ -647,7 +901,7 @@ class PlaygroundServer {
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
           console.error(`Failed to cancel: ${errorMessage}`);
-          res.status(500).json({
+          res.status(errorMessage === 'No active session' ? 409 : 500).json({
             error: `Failed to cancel: ${errorMessage}`,
           });
         }
@@ -657,14 +911,15 @@ class PlaygroundServer {
     // Screenshot API for real-time screenshot polling
     this._app.get('/screenshot', async (_req: Request, res: Response) => {
       try {
+        const agent = this.getActiveAgentOrThrow();
         // Check if page has screenshotBase64 method
-        if (typeof this.agent.interface.screenshotBase64 !== 'function') {
+        if (typeof agent.interface.screenshotBase64 !== 'function') {
           return res.status(500).json({
             error: 'Screenshot method not available on current interface',
           });
         }
 
-        const base64Screenshot = await this.agent.interface.screenshotBase64();
+        const base64Screenshot = await agent.interface.screenshotBase64();
 
         res.json({
           screenshot: base64Screenshot,
@@ -674,7 +929,7 @@ class PlaygroundServer {
         const errorMessage =
           error instanceof Error ? error.message : 'Unknown error';
         console.error(`Failed to take screenshot: ${errorMessage}`);
-        res.status(500).json({
+        res.status(errorMessage === 'No active session' ? 409 : 500).json({
           error: `Failed to take screenshot: ${errorMessage}`,
         });
       }
@@ -684,7 +939,14 @@ class PlaygroundServer {
     // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
     // falls back to polling screenshotBase64() otherwise.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
-      const nativeUrl = this.agent?.interface?.mjpegStreamUrl;
+      const agent = this.agent;
+      if (!agent) {
+        return res.status(409).json({
+          error: 'No active session',
+        });
+      }
+
+      const nativeUrl = agent.interface?.mjpegStreamUrl;
 
       if (nativeUrl && this._nativeMjpegAvailable !== false) {
         const proxyOk = await this.probeAndProxyNativeMjpeg(
@@ -695,7 +957,7 @@ class PlaygroundServer {
         if (proxyOk) return;
       }
 
-      if (typeof this.agent?.interface?.screenshotBase64 !== 'function') {
+      if (typeof agent.interface?.screenshotBase64 !== 'function') {
         return res.status(500).json({
           error: 'Screenshot method not available on current interface',
         });
@@ -862,7 +1124,8 @@ class PlaygroundServer {
 
       const frameStart = Date.now();
       try {
-        const base64 = await this.agent.interface.screenshotBase64();
+        const agent = this.getActiveAgentOrThrow();
+        const base64 = await agent.interface.screenshotBase64();
         if (stopped) break;
         consecutiveErrors = 0;
 
@@ -952,9 +1215,15 @@ class PlaygroundServer {
    */
   async launch(port?: number): Promise<PlaygroundServer> {
     // If using factory mode, initialize agent
-    if (this.agentFactory) {
+    if (this.agentFactory && !this.sessionManager) {
       console.log('Initializing agent from factory function...');
       this.agent = await this.agentFactory();
+      this.currentSession = {
+        connected: true,
+        metadata: {},
+      };
+      this.sessionSetupState = 'ready';
+      this.syncPreparedMetadata();
       console.log('Agent initialized successfully');
     }
 
@@ -975,14 +1244,12 @@ class PlaygroundServer {
    * Close the server and clean up resources
    */
   async close(): Promise<void> {
+    await this.destroyCurrentSession().catch((error) => {
+      console.warn('Failed to destroy current session during shutdown:', error);
+    });
+
     return new Promise((resolve, reject) => {
       if (this.server) {
-        // Clean up the single agent
-        try {
-          this.agent.destroy();
-        } catch (error) {
-          console.warn('Failed to destroy agent:', error);
-        }
         this.taskExecutionDumps = {};
 
         // Close the server

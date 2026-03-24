@@ -9,6 +9,7 @@ export {
 export { PlaygroundServer } from './server';
 export { playgroundForAgent } from './launcher';
 export { playgroundForAgentFactory } from './launcher';
+export { playgroundForSessionManager } from './launcher';
 export {
   createMjpegPreviewDescriptor,
   createScreenshotPreviewDescriptor,
@@ -41,10 +42,17 @@ export type {
   LaunchPlaygroundResult,
 } from './launcher';
 export type {
+  PlaygroundCreatedSession,
   PlaygroundPlatformDescriptor,
   PlaygroundPreviewCapability,
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
   PreparedPlaygroundPlatform,
+  PlaygroundSessionField,
+  PlaygroundSessionFieldOption,
+  PlaygroundSessionManager,
+  PlaygroundSessionSetup,
+  PlaygroundSessionState,
+  PlaygroundSessionTarget,
 } from './platform';
 export type { PlaygroundRuntimeInfo } from './runtime-metadata';

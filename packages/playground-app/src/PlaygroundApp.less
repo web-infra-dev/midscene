@@ -48,6 +48,7 @@ h3 {
     flex: 1;
     overflow: hidden;
     box-shadow: -4px 0 20px 0 #0000000a;
+    padding-top: 16px;
   }
 }
 
@@ -104,6 +105,56 @@ h3 {
   }
 }
 
+.session-setup-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.session-setup-card {
+  width: 100%;
+  max-width: 520px;
+  padding: 28px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+
+  .ant-alert {
+    margin-bottom: 16px;
+  }
+}
+
+.session-setup-form {
+  margin: 24px 0 8px;
+}
+
+.session-select-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.4;
+}
+
+.session-select-option-label {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.session-select-option-description {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+}
+
+.session-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 0 16px;
+}
+
 .server-offline-container {
   height: 100vh;
   display: flex;
@@ -128,7 +179,7 @@ h3 {
       justify-content: flex-start;
       align-items: center;
       text-align: center;
-      padding-top: 20vh;
+      padding-top: clamp(200px, 24vh, 280px);
     }
 
     .server-offline-icon {

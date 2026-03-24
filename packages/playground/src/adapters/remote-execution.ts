@@ -1,5 +1,10 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
 import { parseStructuredParams } from '../common';
+import type {
+  PlaygroundSessionSetup,
+  PlaygroundSessionState,
+  PlaygroundSessionTarget,
+} from '../platform';
 import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
 import { BasePlaygroundAdapter } from './base';
@@ -472,5 +477,107 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       console.error('Failed to get runtime info:', error);
       return null;
     }
+  }
+
+  async getSessionInfo(): Promise<PlaygroundSessionState | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/session`);
+      if (!response.ok) {
+        console.warn(`Session info request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get session info:', error);
+      return null;
+    }
+  }
+
+  async getSessionSetup(): Promise<PlaygroundSessionSetup | null> {
+    if (!this.serverUrl) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/session/setup`);
+      if (!response.ok) {
+        console.warn(`Session setup request failed: ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to get session setup:', error);
+      return null;
+    }
+  }
+
+  async listSessionTargets(): Promise<PlaygroundSessionTarget[]> {
+    if (!this.serverUrl) {
+      return [];
+    }
+
+    try {
+      const response = await fetch(`${this.serverUrl}/session/targets`);
+      if (!response.ok) {
+        console.warn(`Session targets request failed: ${response.statusText}`);
+        return [];
+      }
+
+      const result = await response.json();
+      return Array.isArray(result) ? result : [];
+    } catch (error) {
+      console.error('Failed to get session targets:', error);
+      return [];
+    }
+  }
+
+  async createSession(input?: Record<string, unknown>): Promise<{
+    session: PlaygroundSessionState;
+    runtimeInfo: PlaygroundRuntimeInfo;
+  }> {
+    if (!this.serverUrl) {
+      throw new Error('Server URL not configured');
+    }
+
+    const response = await fetch(`${this.serverUrl}/session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input || {}),
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error || response.statusText);
+    }
+
+    return await response.json();
+  }
+
+  async destroySession(): Promise<{
+    session: PlaygroundSessionState;
+    runtimeInfo: PlaygroundRuntimeInfo;
+  }> {
+    if (!this.serverUrl) {
+      throw new Error('Server URL not configured');
+    }
+
+    const response = await fetch(`${this.serverUrl}/session`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new Error(body?.error || response.statusText);
+    }
+
+    return await response.json();
   }
 }

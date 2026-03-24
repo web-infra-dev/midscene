@@ -62,48 +62,18 @@ importers:
 
   apps/android-playground:
     dependencies:
-      '@ant-design/icons':
-        specifier: ^5.3.1
-        version: 5.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@midscene/android':
-        specifier: workspace:*
-        version: link:../../packages/android
-      '@midscene/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@midscene/playground':
-        specifier: workspace:*
-        version: link:../../packages/playground
       '@midscene/playground-app':
         specifier: workspace:*
         version: link:../../packages/playground-app
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@midscene/visualizer':
-        specifier: workspace:*
-        version: link:../../packages/visualizer
-      '@midscene/web':
-        specifier: workspace:*
-        version: link:../../packages/web-integration
-      antd:
-        specifier: ^5.21.6
-        version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dayjs:
-        specifier: ^1.11.11
-        version: 1.11.13
       react:
         specifier: 18.3.1
         version: 18.3.1
       react-dom:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
-      react-resizable-panels:
-        specifier: 2.0.22
-        version: 2.0.22(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      socket.io-client:
-        specifier: 4.8.1
-        version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     devDependencies:
       '@rsbuild/core':
         specifier: ^1.6.15
@@ -129,9 +99,6 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.1
         version: 18.3.7(@types/react@18.3.23)
-      archiver:
-        specifier: ^6.0.0
-        version: 6.0.2
       less:
         specifier: ^4.2.0
         version: 4.2.2
@@ -262,27 +229,12 @@ importers:
 
   apps/computer-playground:
     dependencies:
-      '@ant-design/icons':
-        specifier: ^5.3.1
-        version: 5.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@midscene/computer':
+      '@midscene/playground-app':
         specifier: workspace:*
-        version: link:../../packages/computer
-      '@midscene/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@midscene/playground':
-        specifier: workspace:*
-        version: link:../../packages/playground
+        version: link:../../packages/playground-app
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@midscene/visualizer':
-        specifier: workspace:*
-        version: link:../../packages/visualizer
-      antd:
-        specifier: ^5.21.6
-        version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -2202,19 +2154,16 @@ packages:
   '@computer-use/libnut-darwin@2.7.1':
     resolution: {integrity: sha512-7B/aPcIYS4a4S7D3IYIHSpZ4B4m8Z3CjlYq0efTr+/JYmEu+LlO67ZhPvisLKifhagxf7goqEfnphg1F4jq5jw==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-linux@2.7.1':
     resolution: {integrity: sha512-QJD5URTFJ/2+JwBwRyajRF2BB+3eXpd4+t5btGeRVeiRQLKQ4lgorbMHySo6IrfAbSfnU1OVOrxAUygGxj0cFg==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut-win32@2.7.1':
     resolution: {integrity: sha512-nDvH5kP1zoO2cBtFYWV0om9xtTu523cc1LIk8r/wizqPrIAm0wCizTU+odF3Fi42zcKJWT6J+Pguy8fKrZyIuA==}
     engines: {node: '>=10.15.3'}
-    cpu: [x64, arm64]
     os: [darwin, linux, win32]
 
   '@computer-use/libnut@4.2.0':

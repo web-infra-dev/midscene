@@ -24,12 +24,72 @@ export interface PlaygroundPreviewDescriptor {
   custom?: Record<string, unknown>;
 }
 
+export interface PlaygroundSessionTarget {
+  id: string;
+  label: string;
+  description?: string;
+  status?: string;
+  isDefault?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PlaygroundSessionFieldOption {
+  label: string;
+  value: string | number | boolean;
+  description?: string;
+}
+
+export interface PlaygroundSessionField {
+  key: string;
+  label: string;
+  type: 'text' | 'number' | 'select';
+  required?: boolean;
+  defaultValue?: string | number | boolean;
+  options?: PlaygroundSessionFieldOption[];
+  placeholder?: string;
+  description?: string;
+}
+
+export interface PlaygroundSessionSetup {
+  title?: string;
+  description?: string;
+  primaryActionLabel?: string;
+  fields: PlaygroundSessionField[];
+  targets?: PlaygroundSessionTarget[];
+}
+
+export interface PlaygroundSessionState {
+  connected: boolean;
+  displayName?: string;
+  metadata?: Record<string, unknown>;
+  setupState?: 'required' | 'ready' | 'blocked';
+  setupBlockingReason?: string;
+}
+
+export interface PlaygroundCreatedSession {
+  agent?: Agent;
+  agentFactory?: AgentFactory;
+  preview?: PlaygroundPreviewDescriptor;
+  metadata?: Record<string, unknown>;
+  displayName?: string;
+}
+
+export interface PlaygroundSessionManager {
+  getSetupSchema(): Promise<PlaygroundSessionSetup>;
+  listTargets?(): Promise<PlaygroundSessionTarget[]>;
+  createSession(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundCreatedSession>;
+  destroySession?(session?: PlaygroundSessionState): Promise<void>;
+}
+
 export interface PreparedPlaygroundPlatform {
   platformId: string;
   title: string;
   description?: string;
   agent?: Agent;
   agentFactory?: AgentFactory;
+  sessionManager?: PlaygroundSessionManager;
   launchOptions?: LaunchPlaygroundOptions;
   preview?: PlaygroundPreviewDescriptor;
   metadata?: Record<string, unknown>;

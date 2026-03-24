@@ -85,7 +85,7 @@ export interface LaunchPlaygroundResult {
   close: () => Promise<void>;
 }
 
-type LaunchableAgentSource = Agent | AgentFactory;
+type LaunchableAgentSource = Agent | AgentFactory | undefined;
 
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
@@ -158,13 +158,19 @@ function createPlaygroundLauncher(agentOrFactory: LaunchableAgentSource) {
         corsOptions = createDefaultCorsOptions(),
       } = options;
 
-      if (typeof agentOrFactory !== 'function' && !agentOrFactory.interface) {
+      if (
+        agentOrFactory &&
+        typeof agentOrFactory !== 'function' &&
+        !agentOrFactory.interface
+      ) {
         throw new Error('Agent must have an interface property');
       }
 
       if (verbose) {
         console.log('🚀 Starting Midscene Playground...');
-        if (typeof agentOrFactory === 'function') {
+        if (!agentOrFactory) {
+          console.log('📱 Agent: session-managed');
+        } else if (typeof agentOrFactory === 'function') {
           console.log('📱 Agent: factory');
         } else {
           console.log(`📱 Agent: ${agentOrFactory.constructor.name}`);
@@ -241,6 +247,10 @@ export function playgroundForAgent(agent: Agent) {
  */
 export function playgroundForAgentFactory(agentFactory: AgentFactory) {
   return createPlaygroundLauncher(agentFactory);
+}
+
+export function playgroundForSessionManager() {
+  return createPlaygroundLauncher(undefined);
 }
 
 /**

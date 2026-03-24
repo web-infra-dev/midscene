@@ -3,6 +3,7 @@ import {
   type LaunchPlaygroundResult,
   playgroundForAgent,
   playgroundForAgentFactory,
+  playgroundForSessionManager,
 } from './launcher';
 import {
   type PreparedPlaygroundPlatform,
@@ -33,7 +34,13 @@ export async function launchPreparedPlaygroundPlatform(
     );
   }
 
+  if (prepared.sessionManager) {
+    return applyPreparedPlatform(
+      await playgroundForSessionManager().launch(launchOptions),
+    );
+  }
+
   throw new Error(
-    `Prepared platform "${prepared.platformId}" must provide either agent or agentFactory`,
+    `Prepared platform "${prepared.platformId}" must provide agent, agentFactory, or sessionManager`,
   );
 }
