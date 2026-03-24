@@ -15,6 +15,12 @@ import {
 import { uuid } from '@midscene/shared/utils';
 import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
+import type { PreparedPlaygroundPlatform } from './platform';
+import type { PlaygroundPreviewDescriptor } from './platform';
+import {
+  type PlaygroundRuntimeInfo,
+  buildRuntimeInfo,
+} from './runtime-metadata';
 
 import 'dotenv/config';
 
@@ -71,6 +77,13 @@ class PlaygroundServer {
 
   // Flag to track if AI config has changed and agent needs recreation
   private _configDirty = false;
+  private _preparedPlatform?: {
+    platformId?: string;
+    title?: string;
+    description?: string;
+    preview?: PlaygroundPreviewDescriptor;
+    metadata?: Record<string, unknown>;
+  };
 
   constructor(
     agent: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
@@ -92,6 +105,51 @@ class PlaygroundServer {
       this.agent = agent;
       this.agentFactory = null;
     }
+  }
+
+  setPreparedPlatform(
+    prepared: Pick<
+      PreparedPlaygroundPlatform,
+      'platformId' | 'title' | 'description' | 'preview' | 'metadata'
+    >,
+  ): void {
+    this._preparedPlatform = {
+      platformId: prepared.platformId,
+      title: prepared.title,
+      description: prepared.description,
+      preview: prepared.preview,
+      metadata: prepared.metadata ? { ...prepared.metadata } : undefined,
+    };
+  }
+
+  setPreviewDescriptor(preview?: PlaygroundPreviewDescriptor): void {
+    this._preparedPlatform = {
+      ...(this._preparedPlatform || {}),
+      preview,
+    };
+  }
+
+  setRuntimeMetadata(metadata?: Record<string, unknown>): void {
+    this._preparedPlatform = {
+      ...(this._preparedPlatform || {}),
+      metadata: metadata ? { ...metadata } : undefined,
+    };
+  }
+
+  getRuntimeInfo(): PlaygroundRuntimeInfo {
+    return buildRuntimeInfo({
+      platformId: this._preparedPlatform?.platformId,
+      title: this._preparedPlatform?.title,
+      platformDescription: this._preparedPlatform?.description,
+      interfaceType: this.agent?.interface?.interfaceType || 'Unknown',
+      interfaceDescription: this.agent?.interface?.describe?.() || undefined,
+      preview: this._preparedPlatform?.preview,
+      metadata: this._preparedPlatform?.metadata,
+      supportsScreenshot:
+        typeof this.agent?.interface?.screenshotBase64 === 'function',
+      mjpegStreamUrl: this.agent?.interface?.mjpegStreamUrl,
+      scrcpyPort: this.scrcpyPort,
+    });
   }
 
   /**
@@ -649,12 +707,11 @@ class PlaygroundServer {
     // Interface info API for getting interface type and description
     this._app.get('/interface-info', async (_req: Request, res: Response) => {
       try {
-        const type = this.agent.interface.interfaceType || 'Unknown';
-        const description = this.agent.interface.describe?.() || undefined;
+        const runtimeInfo = this.getRuntimeInfo();
 
         res.json({
-          type,
-          description,
+          type: runtimeInfo.interface.type,
+          description: runtimeInfo.interface.description,
         });
       } catch (error: unknown) {
         const errorMessage =
@@ -662,6 +719,19 @@ class PlaygroundServer {
         console.error(`Failed to get interface info: ${errorMessage}`);
         res.status(500).json({
           error: `Failed to get interface info: ${errorMessage}`,
+        });
+      }
+    });
+
+    this._app.get('/runtime-info', async (_req: Request, res: Response) => {
+      try {
+        res.json(this.getRuntimeInfo());
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        console.error(`Failed to get runtime info: ${errorMessage}`);
+        res.status(500).json({
+          error: `Failed to get runtime info: ${errorMessage}`,
         });
       }
     });

@@ -77,6 +77,11 @@ body {
   &.right-panel-content {
     border-radius: 0;
     padding: 12px 24px 24px 24px;
+    overflow: hidden;
+
+    > :first-child {
+      flex-shrink: 0;
+    }
   }
 
   h2 {
@@ -88,9 +93,6 @@ body {
 
   canvas {
     max-width: 100%;
-    margin-top: 16px;
-    border: 1px solid #f0f0f0;
-    border-radius: 4px;
   }
 }
 
