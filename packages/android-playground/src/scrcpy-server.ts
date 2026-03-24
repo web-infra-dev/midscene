@@ -218,6 +218,9 @@ export default class ScrcpyServer {
         audio: false,
         control: true,
         maxSize: 1024,
+        // use framed packets so the web decoder can distinguish
+        // configuration packets from frame data
+        sendFrameMeta: true,
         // use videoBitRate as property name
         videoBitRate: 2_000_000,
         // override default values with user provided options

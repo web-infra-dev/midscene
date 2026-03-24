@@ -26,7 +26,7 @@ export function ScrcpyPanel({
   serverUrl,
   reconnectInterval = 3000,
 }: ScrcpyPanelProps) {
-  const canvasWrapperRef = useRef<HTMLDivElement | null>(null);
+  const canvasStageRef = useRef<HTMLDivElement | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -57,14 +57,12 @@ export function ScrcpyPanel({
   }, [status]);
 
   const clearCanvas = () => {
-    const wrapper = canvasWrapperRef.current;
-    if (!wrapper) {
+    const stage = canvasStageRef.current;
+    if (!stage) {
       return;
     }
 
-    while (wrapper.firstChild) {
-      wrapper.removeChild(wrapper.firstChild);
-    }
+    stage.replaceChildren();
   };
 
   const disposeDecoder = () => {
@@ -145,7 +143,7 @@ export function ScrcpyPanel({
       canvas.style.objectFit = 'contain';
 
       clearCanvas();
-      canvasWrapperRef.current?.appendChild(canvas);
+      canvasStageRef.current?.appendChild(canvas);
 
       const decoder = new WebCodecsVideoDecoder({
         codec: codecId,
@@ -160,6 +158,7 @@ export function ScrcpyPanel({
     };
 
     const setupVideoStream = () => {
+      const socket = socketRef.current;
       let configurationPacketSent = false;
       let pendingDataPackets: Array<{
         type: string;
@@ -209,14 +208,14 @@ export function ScrcpyPanel({
           const handleError = (error: Error) => controller.error(error);
 
           cleanupListeners = () => {
-            socketRef.current?.off('video-data', handleVideoData);
-            socketRef.current?.off('disconnect', handleDisconnect);
-            socketRef.current?.off('error', handleError);
+            socket?.off('video-data', handleVideoData);
+            socket?.off('disconnect', handleDisconnect);
+            socket?.off('error', handleError);
           };
 
-          socketRef.current?.on('video-data', handleVideoData);
-          socketRef.current?.on('disconnect', handleDisconnect);
-          socketRef.current?.on('error', handleError);
+          socket?.on('video-data', handleVideoData);
+          socket?.on('disconnect', handleDisconnect);
+          socket?.on('error', handleError);
         },
         cancel() {
           cleanupListeners?.();
@@ -371,17 +370,8 @@ export function ScrcpyPanel({
           message={statusText}
           description={errorMessage}
         />
-      ) : (
-        <Alert
-          type={status === 'connected' ? 'success' : 'info'}
-          showIcon
-          style={{ marginBottom: 12 }}
-          message={statusText}
-          description="scrcpy sessions now render directly in the unified playground shell."
-        />
-      )}
+      ) : null}
       <div
-        ref={canvasWrapperRef}
         style={{
           position: 'relative',
           minHeight: 360,
@@ -393,6 +383,13 @@ export function ScrcpyPanel({
           overflow: 'hidden',
         }}
       >
+        <div
+          ref={canvasStageRef}
+          style={{
+            position: 'absolute',
+            inset: 0,
+          }}
+        />
         {status !== 'connected' && (
           <div
             style={{
