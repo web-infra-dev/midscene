@@ -29,7 +29,7 @@ export function PreviewRenderer({
   const usesScreenshotPolling = previewConnection.type === 'screenshot';
 
   return (
-    <div>
+    <div style={{ flex: 1, minHeight: 0, height: '100%' }}>
       {previewConnection.type === 'none' ? (
         <Alert
           type="warning"

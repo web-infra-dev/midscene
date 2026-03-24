@@ -338,6 +338,15 @@ export function ScrcpyPanel({
     <Card
       size="small"
       title="Live scrcpy preview"
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+      styles={{
+        body: {
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+        },
+      }}
       extra={
         <Space size="small">
           {screenInfo ? (
@@ -374,7 +383,8 @@ export function ScrcpyPanel({
       <div
         style={{
           position: 'relative',
-          minHeight: 360,
+          flex: 1,
+          minHeight: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -388,6 +398,9 @@ export function ScrcpyPanel({
           style={{
             position: 'absolute',
             inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         />
         {status !== 'connected' && (
@@ -404,6 +417,7 @@ export function ScrcpyPanel({
               background: 'rgba(17, 24, 39, 0.78)',
               textAlign: 'center',
               padding: 24,
+              zIndex: 1,
             }}
           >
             <Spin spinning />

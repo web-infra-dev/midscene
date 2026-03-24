@@ -29,17 +29,16 @@ const isRemoteDevice = (deviceId: string | null): boolean => {
 export default function App() {
   // Device and connection state - now simplified since device is pre-selected
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
-  const [messageApi, contextHolder] = message.useMessage();
   const [scrcpyServerUrl, setScrcpyServerUrl] = useState(
     `http://${window.location.hostname}:${SCRCPY_SERVER_PORT}`,
   );
+  const playgroundServerUrl = window.location.origin;
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [usePollingMode, setUsePollingMode] = useState(false);
   const [serverOnline, setServerOnline] = useState(false);
   const [runtimeInfo, setRuntimeInfo] = useState<PlaygroundRuntimeInfo | null>(
     null,
   );
-  const playgroundServerUrl = window.location.origin;
 
   // Configuration state
   const { config } = useEnvConfig();
@@ -94,21 +93,21 @@ export default function App() {
 
     socket.on('connect_error', (error: Error) => {
       console.error('Socket.IO connection error:', error);
-      messageApi.error(
+      message.error(
         'Waiting for device server connection, please try again later',
       );
     });
 
     socket.on('error', (error: Error) => {
       console.error('Socket.IO error:', error);
-      messageApi.error(
+      message.error(
         `Error occurred while communicating with the server: ${error.message || 'Unknown error'}`,
       );
     });
     return () => {
       socket.disconnect();
     };
-  }, [messageApi, scrcpyServerUrl]);
+  }, [scrcpyServerUrl]);
 
   useEffect(() => {
     const syncRuntimeInfo = async () => {
@@ -179,7 +178,6 @@ export default function App() {
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
-      {contextHolder}
       <Layout className="app-container playground-container vertical-mode">
         <Content className="app-content">
           <PanelGroup

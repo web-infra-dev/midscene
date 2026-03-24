@@ -80,11 +80,19 @@ export function resolvePreviewConnectionInfo(
     return { type: 'none' };
   }
 
+  const resolvedServerUrl =
+    serverUrl ||
+    (typeof window !== 'undefined' && window.location.origin) ||
+    '';
+
   if (preview.kind === 'mjpeg') {
     const mjpegPath = preview.mjpegPath || '/mjpeg';
+    if (!resolvedServerUrl) {
+      return { type: 'screenshot' };
+    }
     return {
       type: 'mjpeg',
-      mjpegUrl: new URL(mjpegPath, `${serverUrl}/`).toString(),
+      mjpegUrl: new URL(mjpegPath, `${resolvedServerUrl}/`).toString(),
     };
   }
 
@@ -93,16 +101,17 @@ export function resolvePreviewConnectionInfo(
     const resolvedScrcpyPort = Number.isFinite(scrcpyPort)
       ? scrcpyPort
       : undefined;
-    const scrcpyUrl = resolvedScrcpyPort
-      ? (() => {
-          const url = new URL(serverUrl);
-          url.port = String(resolvedScrcpyPort);
-          url.pathname = '/';
-          url.search = '';
-          url.hash = '';
-          return url.toString();
-        })()
-      : undefined;
+    const scrcpyUrl =
+      resolvedScrcpyPort && resolvedServerUrl
+        ? (() => {
+            const url = new URL(resolvedServerUrl);
+            url.port = String(resolvedScrcpyPort);
+            url.pathname = '/';
+            url.search = '';
+            url.hash = '';
+            return url.toString();
+          })()
+        : undefined;
     return {
       type: 'scrcpy',
       scrcpyPort: resolvedScrcpyPort,
