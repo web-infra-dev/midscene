@@ -79,6 +79,33 @@ data:text/html,<script>alert(`deviceScaleFactor of your browser: ${devicePixelRa
 - 使用 [Agent](/zh/api#%E6%9E%84%E9%80%A0%E5%99%A8) 上的 `waitForNetworkIdleTimeout` 和 `waitForNavigationTimeout` 参数
 - 使用 [Yaml](/zh/automate-with-scripts-in-yaml#web-%E9%83%A8%E5%88%86) 脚本和 [PlaywrightAiFixture](/zh/integrate-with-playwright#%E7%AC%AC%E4%BA%8C%E6%AD%A5%E6%89%A9%E5%B1%95-test-%E5%AE%9E%E4%BE%8B) 中的 `waitForNetworkIdle` 参数
 
+## 截图时报 `waiting for fonts to load` 或 `page.screenshot: Timeout ... exceeded`
+
+如果你在 Playwright 环境里看到类似下面的报错：
+
+```plain
+page.screenshot: Timeout 10000ms exceeded.
+Call log:
+- taking page screenshot
+- waiting for fonts to load...
+```
+
+这通常不是 Midscene 自身逻辑的问题，而是 Playwright 在截图时默认会等待页面字体加载完成。在某些 CI、容器或网络环境中，字体资源可能加载很慢，甚至一直无法完成，最终导致截图超时。
+
+可以通过添加下面的环境变量来规避：
+
+```bash
+export PW_TEST_SCREENSHOT_NO_FONTS_READY=1
+```
+
+如果你是在一条命令里临时执行，也可以这样写：
+
+```bash
+PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <你的命令>
+```
+
+更多背景可参考 Playwright 的 issue：[[BUG] Page.screenshot method hangs indefinitely](https://github.com/microsoft/playwright/issues/28995)。
+
 ## 在 Chrome 插件中使用 Ollama 模型出现 403 错误
 
 需要设置环境变量 `OLLAMA_ORIGINS="*"`，以允许 Chrome 插件访问 Ollama 模型。
