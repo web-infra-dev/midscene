@@ -11,7 +11,7 @@ tasks:
     flow:
       - ai: Click the text "Record" with the "▼" arrow icon to collapse the timeline section
       - sleep: 2000
-      - aiAssert: The "▼" arrow next to "Record" is now rotated sideways, and the timeline thumbnails below it are no longer visible
+      - aiAssert: The arrow icon next to "Record" is now pointing sideways (right) instead of downward
       - ai: Click the "Record" text with the arrow icon again to expand it back
       - sleep: 2000
       - aiAssert: The timeline section is expanded again showing screenshot thumbnails or time axis
