@@ -1,0 +1,41 @@
+{
+  "extends": "../shared/tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "src",
+    "module": "ES2020",
+    "declarationDir": "dist/types",
+    "types": ["node"],
+    "disableSourceOfProjectReferenceRedirect": true,
+    "paths": {
+      "@midscene/android-playground": ["../android-playground/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    {
+      "path": "../android-playground"
+    },
+    {
+      "path": "../computer"
+    },
+    {
+      "path": "../computer-playground"
+    },
+    {
+      "path": "../harmony"
+    },
+    {
+      "path": "../ios"
+    },
+    {
+      "path": "../playground"
+    },
+    {
+      "path": "../shared"
+    },
+    {
+      "path": "../web-integration"
+    }
+  ]
+}
