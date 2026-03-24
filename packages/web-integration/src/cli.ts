@@ -15,11 +15,19 @@ if (existsSync(envFile)) {
 declare const __VERSION__: string;
 const isBridge = process.argv.includes('--bridge');
 const cdpIdx = process.argv.indexOf('--cdp');
-const hasCdpFlag = cdpIdx !== -1;
+const isCdp = cdpIdx !== -1;
 
-// Parse --cdp endpoint value or auto-detect from env var
+// Fail-fast: mutually exclusive flags
+if (isBridge && isCdp) {
+  console.error(
+    '--bridge and --cdp are mutually exclusive. Please specify only one.',
+  );
+  process.exit(1);
+}
+
+// Parse --cdp endpoint value
 let cdpEndpoint: string | undefined;
-if (hasCdpFlag) {
+if (isCdp) {
   const next = process.argv[cdpIdx + 1];
   if (next && !next.startsWith('-')) {
     cdpEndpoint = next;
@@ -33,19 +41,6 @@ if (hasCdpFlag) {
     );
     process.exit(1);
   }
-} else if (!isBridge && process.env.MIDSCENE_CDP_ENDPOINT) {
-  // Auto-detect CDP mode from environment variable
-  cdpEndpoint = process.env.MIDSCENE_CDP_ENDPOINT;
-}
-
-const isCdp = !!cdpEndpoint;
-
-// Fail-fast: mutually exclusive flags
-if (isBridge && isCdp) {
-  console.error(
-    '--bridge and --cdp are mutually exclusive. Please specify only one.',
-  );
-  process.exit(1);
 }
 
 // Filter out --bridge, --cdp, and cdp endpoint from argv using absolute indices
