@@ -52,17 +52,30 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
 
     const browser = this.activeBrowser;
     const pages = await browser.pages();
+    const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
     let page: Page;
 
     if (navigateToUrl) {
-      page = await browser.newPage();
-      await page.goto(navigateToUrl, {
-        timeout: 30000,
-        waitUntil: 'domcontentloaded',
-      });
+      if (webPages.length > 0) {
+        // Reuse an existing page and navigate it — avoids creating invisible
+        // tabs when Chrome uses settings-based remote debugging (no HTTP
+        // discovery endpoints, /devtools/page/* returns 403).
+        page = webPages[webPages.length - 1];
+        await page.bringToFront();
+        await page.goto(navigateToUrl, {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+      } else {
+        // No existing web pages — fall back to creating a new tab
+        page = await browser.newPage();
+        await page.goto(navigateToUrl, {
+          timeout: 30000,
+          waitUntil: 'domcontentloaded',
+        });
+      }
     } else {
       // Reuse the last web page
-      const webPages = pages.filter((p) => /^https?:\/\//.test(p.url()));
       page =
         webPages.length > 0
           ? webPages[webPages.length - 1]
