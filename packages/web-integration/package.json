@@ -89,6 +89,11 @@
       "types": "./dist/types/mcp-server.d.ts",
       "import": "./dist/es/mcp-server.mjs",
       "require": "./dist/lib/mcp-server.js"
+    },
+    "./cdp-direct": {
+      "types": "./dist/types/cdp-direct/index.d.ts",
+      "require": "./dist/lib/cdp-direct/index.js",
+      "import": "./dist/es/cdp-direct/index.mjs"
     }
   },
   "scripts": {

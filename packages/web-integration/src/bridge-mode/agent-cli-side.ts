@@ -130,6 +130,10 @@ export const getBridgePageInCliSide = (options?: {
   return proxyPage;
 };
 
+/**
+ * @deprecated Use `CDPDirectAgent` from `@midscene/web/cdp-direct` instead.
+ * Bridge mode will be removed in a future version.
+ */
 export class AgentOverChromeBridge extends Agent<ChromeExtensionPageCliSide> {
   private destroyAfterDisconnectFlag?: boolean;
 

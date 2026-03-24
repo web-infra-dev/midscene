@@ -110,6 +110,25 @@ export class Page<
       opts?.enableTouchEventsInActionSpace ?? false;
   }
 
+  /**
+   * Reset cached state. Call this when switching the underlying page
+   * (e.g., tab switching in CDP direct mode).
+   */
+  protected resetCachedState(): void {
+    this.viewportSize = undefined;
+    // Detach any page-scoped CDP sessions (e.g., file chooser listener)
+    if (this.puppeteerFileChooserSession) {
+      this.puppeteerFileChooserSession.detach().catch((e) => {
+        console.warn(
+          '[midscene:warning] Failed to detach file chooser session:',
+          e,
+        );
+      });
+      this.puppeteerFileChooserSession = undefined;
+      this.puppeteerFileChooserHandler = undefined;
+    }
+  }
+
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
     return this.evaluate(script);
   }
