@@ -1,5 +1,6 @@
-import { playgroundForAgent } from '@midscene/playground';
+import { launchPreparedPlaygroundPlatform } from '@midscene/playground';
 import dotenv from 'dotenv';
+import { webPlaygroundPlatform } from '../src/platform';
 import { PuppeteerAgent } from '../src/puppeteer';
 import { launchPuppeteerPage } from '../src/puppeteer/agent-launcher';
 
@@ -22,12 +23,15 @@ async function main() {
         cacheId: 'playground-workflow-test',
       });
 
-      // 👀 launch playground for the agent
-      const server = await playgroundForAgent(agent).launch({
-        port: 5807,
-        openBrowser: true,
-        verbose: true,
+      const prepared = await webPlaygroundPlatform.prepare({
+        agent,
+        launchOptions: {
+          port: 5807,
+          openBrowser: true,
+          verbose: true,
+        },
       });
+      const server = await launchPreparedPlaygroundPlatform(prepared);
 
       // Log the generated server ID for debugging
       console.log(`🔑 Generated Server ID: ${server.server.id}`);

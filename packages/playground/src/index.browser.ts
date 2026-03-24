@@ -13,13 +13,22 @@ export { PlaygroundSDK } from './sdk';
 export { BasePlaygroundAdapter } from './adapters/base';
 export { LocalExecutionAdapter } from './adapters/local-execution';
 export { RemoteExecutionAdapter } from './adapters/remote-execution';
+export {
+  createMjpegPreviewDescriptor,
+  createScreenshotPreviewDescriptor,
+  createScrcpyPreviewDescriptor,
+  definePlaygroundPlatform,
+  resolvePreparedLaunchOptions,
+} from './platform';
 
 // PlaygroundServer is not available in browser environments
 export const PlaygroundServer = undefined;
 export const playgroundForAgent = undefined;
 export const playgroundForAgentFactory = undefined;
+export const launchPreparedPlaygroundPlatform = undefined;
 
 export type {
+  BeforeActionHook,
   ExecutionOptions,
   FormValue,
   PlaygroundAgent,
@@ -28,3 +37,11 @@ export type {
   ExecutionType,
   PlaygroundAdapter,
 } from './types';
+export type {
+  PlaygroundPlatformDescriptor,
+  PlaygroundPreviewCapability,
+  PlaygroundPreviewDescriptor,
+  PlaygroundPreviewKind,
+  PreparedPlaygroundPlatform,
+} from './platform';
+export type { PlaygroundRuntimeInfo } from './runtime-metadata';

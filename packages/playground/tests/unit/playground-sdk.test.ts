@@ -105,6 +105,56 @@ describe('PlaygroundSDK', () => {
         options,
       );
     });
+
+    it('should run beforeAction hook before delegating execution', async () => {
+      const callOrder: string[] = [];
+      const mockExecuteAction = vi.fn().mockImplementation(async () => {
+        callOrder.push('adapter');
+        return 'test result';
+      });
+      const beforeActionHook = vi.fn().mockImplementation(async () => {
+        callOrder.push('hook');
+      });
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.executeAction = mockExecuteAction;
+
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+      sdk.setBeforeActionHook(beforeActionHook);
+
+      const value: FormValue = { type: 'test', prompt: 'test prompt' };
+      const options: ExecutionOptions = {};
+
+      await sdk.executeAction('testAction', value, options);
+
+      expect(beforeActionHook).toHaveBeenCalledWith(
+        'testAction',
+        value,
+        options,
+      );
+      expect(callOrder).toEqual(['hook', 'adapter']);
+    });
+
+    it('should allow clearing the beforeAction hook', async () => {
+      const mockExecuteAction = vi.fn().mockResolvedValue('test result');
+      const beforeActionHook = vi.fn();
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.executeAction = mockExecuteAction;
+
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+      sdk.setBeforeActionHook(beforeActionHook);
+      sdk.setBeforeActionHook(undefined);
+
+      await sdk.executeAction('testAction', { type: 'test' }, {});
+
+      expect(beforeActionHook).not.toHaveBeenCalled();
+      expect(mockExecuteAction).toHaveBeenCalledOnce();
+    });
   });
 
   describe('getActionSpace', () => {
@@ -298,6 +348,50 @@ describe('PlaygroundSDK', () => {
 
       expect(result).toEqual({ success: true });
       expect(mockCancelTask).toHaveBeenCalledWith('request-123');
+    });
+  });
+
+  describe('runtime metadata APIs', () => {
+    it('should delegate runtime metadata methods to the local adapter', async () => {
+      const MockAdapter = vi.mocked(LocalExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+        interface: { type: 'web' },
+        preview: { kind: 'screenshot', capabilities: [] },
+        executionUxHints: [],
+        metadata: {},
+      });
+      const sdk = new PlaygroundSDK({
+        type: 'local-execution',
+        agent: {},
+      });
+
+      await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({
+        interface: { type: 'web' },
+        preview: {
+          kind: 'screenshot',
+        },
+      });
+    });
+
+    it('should delegate runtime metadata methods to the remote adapter', async () => {
+      const MockAdapter = vi.mocked(RemoteExecutionAdapter);
+      MockAdapter.prototype.getRuntimeInfo = vi.fn().mockResolvedValue({
+        interface: { type: 'ios' },
+        preview: { kind: 'mjpeg', capabilities: [] },
+        executionUxHints: ['hint'],
+        metadata: {},
+      });
+      const sdk = new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl: 'http://localhost:3000',
+      });
+
+      await expect(sdk.getRuntimeInfo()).resolves.toMatchObject({
+        interface: { type: 'ios' },
+        preview: {
+          kind: 'mjpeg',
+        },
+      });
     });
   });
 });

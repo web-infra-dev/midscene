@@ -666,11 +666,18 @@ export class Page<
     const halfStart = startDistance / 2;
     const halfEnd = endDistance / 2;
 
-    // biome-ignore lint: CDP session types differ between Puppeteer and Playwright
-    let client: any;
+    type TouchClient = {
+      send(
+        method: 'Input.dispatchTouchEvent',
+        params?: Protocol.Input.DispatchTouchEventRequest,
+      ): Promise<unknown>;
+      detach(): Promise<void>;
+    };
+
+    let client: TouchClient;
     if (this.interfaceType === 'puppeteer') {
       const page = this.underlyingPage as PuppeteerPage;
-      client = await page.target().createCDPSession();
+      client = (await page.target().createCDPSession()) as TouchClient;
     } else if (this.interfaceType === 'playwright') {
       const page = this.underlyingPage as PlaywrightPage;
       // CDP is Chromium-only; Firefox/WebKit do not support it
@@ -680,7 +687,7 @@ export class Page<
           `Pinch gesture requires Chromium-based browser, but current browser is "${browserName}". CDP touch events are not supported in Firefox/WebKit.`,
         );
       }
-      client = await page.context().newCDPSession(page);
+      client = (await page.context().newCDPSession(page)) as TouchClient;
     } else {
       return;
     }
