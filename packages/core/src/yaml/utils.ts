@@ -119,6 +119,30 @@ export function buildDetailedLocateParam(
     return undefined;
   }
 
+  if (
+    typeof opt === 'object' &&
+    opt !== null &&
+    (opt.images || opt.convertHttpImage2Base64 !== undefined)
+  ) {
+    const multimodalPrompt = {
+      ...(opt.images ? { images: opt.images } : {}),
+      ...(opt.convertHttpImage2Base64 !== undefined
+        ? { convertHttpImage2Base64: opt.convertHttpImage2Base64 }
+        : {}),
+    };
+
+    prompt =
+      typeof prompt === 'string'
+        ? {
+            prompt,
+            ...multimodalPrompt,
+          }
+        : {
+            ...prompt,
+            ...multimodalPrompt,
+          };
+  }
+
   return {
     prompt,
     deepLocate,
@@ -146,11 +170,16 @@ export function buildDetailedLocateParamAndRestParams(
 
     // Keys already included in locateParam: prompt, deepLocate, cacheable, xpath
     const locateParamKeys = Object.keys(locateParam || {});
+    const multimodalPromptKeys =
+      typeof locateParam?.prompt === 'object' && locateParam?.prompt !== null
+        ? ['images', 'convertHttpImage2Base64']
+        : [];
 
     // Extract all other keys
     for (const key of allKeys) {
       if (
         !locateParamKeys.includes(key) &&
+        !multimodalPromptKeys.includes(key) &&
         !excludeKeys.includes(key) &&
         key !== 'locate'
       ) {
