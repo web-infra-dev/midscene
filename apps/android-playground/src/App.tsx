@@ -13,7 +13,7 @@ import {
 import { ConfigProvider, Layout, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { type Socket, io } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import AdbDevice from './components/adb-device';
 import PlaygroundPanel from './components/playground-panel';
 
@@ -30,7 +30,7 @@ export default function App() {
   // Device and connection state - now simplified since device is pre-selected
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [messageApi, contextHolder] = message.useMessage();
-  const [serverUrl, setServerUrl] = useState(
+  const [scrcpyServerUrl, setScrcpyServerUrl] = useState(
     `http://${window.location.hostname}:${SCRCPY_SERVER_PORT}`,
   );
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
@@ -39,6 +39,7 @@ export default function App() {
   const [runtimeInfo, setRuntimeInfo] = useState<PlaygroundRuntimeInfo | null>(
     null,
   );
+  const playgroundServerUrl = window.location.origin;
 
   // Configuration state
   const { config } = useEnvConfig();
@@ -46,9 +47,9 @@ export default function App() {
     () =>
       new PlaygroundSDK({
         type: 'remote-execution',
-        serverUrl,
+        serverUrl: playgroundServerUrl,
       }),
-    [serverUrl],
+    [playgroundServerUrl],
   );
 
   // Override AI configuration when config changes
@@ -60,15 +61,15 @@ export default function App() {
   useEffect(() => {
     const scrcpyPort = (window as any).SCRCPY_PORT;
     if (scrcpyPort) {
-      setServerUrl(`http://${window.location.hostname}:${scrcpyPort}`);
+      setScrcpyServerUrl(`http://${window.location.hostname}:${scrcpyPort}`);
     }
   }, []);
 
   // connect to device server - simplified since device is pre-selected
   useEffect(() => {
-    if (!serverUrl) return;
+    if (!scrcpyServerUrl) return;
 
-    const socket = io(serverUrl, {
+    const socket = io(scrcpyServerUrl, {
       withCredentials: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -107,7 +108,7 @@ export default function App() {
     return () => {
       socket.disconnect();
     };
-  }, [messageApi, serverUrl]);
+  }, [messageApi, scrcpyServerUrl]);
 
   useEffect(() => {
     const syncRuntimeInfo = async () => {
@@ -208,7 +209,7 @@ export default function App() {
                 <PlaygroundPreview
                   playgroundSDK={playgroundSDK}
                   runtimeInfo={previewRuntimeInfo}
-                  serverUrl={serverUrl}
+                  serverUrl={playgroundServerUrl}
                   serverOnline={serverOnline}
                   isUserOperating={false}
                 />
