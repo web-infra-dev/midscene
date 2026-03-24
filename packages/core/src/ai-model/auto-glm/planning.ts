@@ -1,3 +1,4 @@
+import type { DeviceAction } from '@/device';
 import type { PlanningAIResponse, UIContext } from '@/types';
 import type { IModelConfig } from '@midscene/shared/env';
 import { getDebug } from '@midscene/shared/logger';
@@ -20,6 +21,7 @@ export async function autoGLMPlanning(
     context: UIContext;
     modelConfig: IModelConfig;
     actionContext?: string;
+    actionSpace?: DeviceAction[];
     abortSignal?: AbortSignal;
   },
 ): Promise<PlanningAIResponse> {
@@ -65,7 +67,11 @@ export async function autoGLMPlanning(
 
     const parsedAction = parseAction(parsedResponse);
     debug('Parsed action object:', parsedAction);
-    transformedActions = transformAutoGLMAction(parsedAction, context.shotSize);
+    transformedActions = transformAutoGLMAction(
+      parsedAction,
+      context.shotSize,
+      options.actionSpace,
+    );
     debug('Transformed actions:', transformedActions);
   } catch (parseError) {
     // Throw AIResponseParseError with usage and rawResponse preserved

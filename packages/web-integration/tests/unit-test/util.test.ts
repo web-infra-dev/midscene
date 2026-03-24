@@ -154,6 +154,21 @@ describe('buildDetailedLocateParam', () => {
       xpath: undefined, // default value
     });
   });
+
+  it('should unwrap prompt-only object prompts to avoid double nesting', () => {
+    const locatePrompt = {
+      prompt: 'Please determine whether there is a specific on the page.',
+    };
+
+    const result = buildDetailedLocateParam(locatePrompt);
+
+    expect(result).toEqual({
+      prompt: 'Please determine whether there is a specific on the page.',
+      deepLocate: false,
+      cacheable: true,
+      xpath: undefined,
+    });
+  });
 });
 
 describe('buildDetailedLocateParamAndRestParams', () => {

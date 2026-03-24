@@ -24,7 +24,7 @@ export const killRunningServer = async (port?: number, host = 'localhost') => {
         [BridgeSignalKill]: 1,
       },
     });
-    await sleep(100);
+    await sleep(300);
     await client.close();
   } catch (e) {
     // console.error('failed to kill port', e);
@@ -110,11 +110,22 @@ export class BridgeServer {
       // Now create Socket.IO Server attached to the already-listening HTTP server
       this.io = new Server(httpServer, {
         maxHttpBufferSize: 100 * 1024 * 1024, // 100MB
+        // Increase pingTimeout to tolerate Chrome MV3 Service Worker suspension.
+        // The SW keepalive alarm fires every ~24s; default pingTimeout (20s) may
+        // be too short if the SW is suspended between alarm pings.
+        pingTimeout: 60000,
       });
 
       this.io.use((socket, next) => {
-        if (this.socket) {
-          next(new Error('server already connected by another client'));
+        // Always allow kill signal connections through
+        if (socket.handshake.url.includes(BridgeSignalKill)) {
+          return next();
+        }
+        // Allow new connections to replace old ones (reconnection after
+        // extension Stop→Start). If the old socket is already disconnected
+        // or unresponsive, accept the new connection immediately.
+        if (this.socket?.connected) {
+          return next(new Error('server already connected by another client'));
         }
         next();
       });
@@ -133,14 +144,23 @@ export class BridgeServer {
         this.listeningTimeoutId = null;
         this.connectionTipTimer && clearTimeout(this.connectionTipTimer);
         this.connectionTipTimer = null;
-        if (this.socket) {
+        if (this.socket?.connected) {
           socket.emit(BridgeEvent.Refused);
-          // close the socket
           socket.disconnect();
-
-          return reject(
-            new Error('server already connected by another client'),
+          logMsg(
+            'refused new connection: server already connected by another client',
           );
+          return;
+        }
+
+        // Clean up stale old socket if it exists but is no longer connected
+        if (this.socket) {
+          try {
+            this.socket.disconnect();
+          } catch (e) {
+            logMsg(`failed to disconnect stale socket: ${e}`);
+          }
+          this.socket = null;
         }
 
         try {
@@ -163,14 +183,9 @@ export class BridgeServer {
           socket.on('disconnect', (reason: string) => {
             this.connectionLost = true;
             this.connectionLostReason = reason;
+            this.socket = null;
 
-            try {
-              this.io?.close();
-            } catch (e) {
-              // ignore
-            }
-
-            // flush all pending calls as error
+            // flush all pending calls as error and clean up completed calls
             for (const id in this.calls) {
               const call = this.calls[id];
 
@@ -181,6 +196,13 @@ export class BridgeServer {
                   new Error(errorMessage),
                   null,
                 );
+              }
+            }
+
+            // Clean up completed calls to prevent memory leaks in long-running sessions
+            for (const id in this.calls) {
+              if (this.calls[id].responseTime) {
+                delete this.calls[id];
               }
             }
 
@@ -203,8 +225,7 @@ export class BridgeServer {
             });
           }, 0);
         } catch (e) {
-          console.error('failed to handle connection event', e);
-          reject(e);
+          logMsg(`failed to handle connection event: ${e}`);
         }
       });
 
@@ -220,14 +241,22 @@ export class BridgeServer {
 
   private async triggerCallResponseCallback(
     id: string | number,
-    error: Error | null,
+    error: Error | string | null,
     response: any,
   ) {
     const call = this.calls[id];
     if (!call) {
       throw new Error(`call ${id} not found`);
     }
-    call.error = error || undefined;
+    // Ensure error is always an Error object (bridge client may send strings)
+    if (error) {
+      call.error =
+        error instanceof Error
+          ? error
+          : new Error(typeof error === 'string' ? error : String(error));
+    } else {
+      call.error = undefined;
+    }
     call.response = response;
     call.responseTime = Date.now();
 

@@ -705,9 +705,26 @@ export interface IGroupedActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
   executions: IExecutionDump[];
   deviceType?: string;
+}
+
+export interface ModelBrief {
+  /**
+   * The intent/category of the model call, for example "planning" or "insight".
+   */
+  intent?: string;
+
+  /**
+   * The model name returned by usage metadata, for example "gpt-4o".
+   */
+  name?: string;
+
+  /**
+   * Optional human-readable model description, for example "qwen2.5-vl mode".
+   */
+  modelDescription?: string;
 }
 
 /**
@@ -717,7 +734,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
   executions: ExecutionDump[];
   deviceType?: string;
 

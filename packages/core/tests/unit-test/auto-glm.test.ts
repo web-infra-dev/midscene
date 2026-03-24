@@ -389,6 +389,59 @@ describe('auto-glm actions transformation', () => {
     expect(result[0].type).toBe('AndroidBackButton');
   });
 
+  it('should transform Back action to HarmonyBackButton when actionSpace contains it', () => {
+    const backAction: BackAction = {
+      _metadata: 'do',
+      action: 'Back',
+      think: 'Go back',
+    };
+
+    const harmonyActionSpace = [
+      { name: 'HarmonyBackButton', description: 'Back', call: async () => {} },
+      { name: 'HarmonyHomeButton', description: 'Home', call: async () => {} },
+    ];
+
+    const result = transformAutoGLMAction(
+      backAction,
+      defaultSize,
+      harmonyActionSpace,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('HarmonyBackButton');
+  });
+
+  it('should fall back to AndroidBackButton when actionSpace is empty', () => {
+    const backAction: BackAction = {
+      _metadata: 'do',
+      action: 'Back',
+      think: 'Go back',
+    };
+
+    const result = transformAutoGLMAction(backAction, defaultSize, []);
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('AndroidBackButton');
+  });
+
+  it('should fall back to AndroidBackButton when actionSpace has no matching action', () => {
+    const backAction: BackAction = {
+      _metadata: 'do',
+      action: 'Back',
+      think: 'Go back',
+    };
+
+    const unrelatedActionSpace = [
+      { name: 'Tap', description: 'Tap', call: async () => {} },
+    ];
+
+    const result = transformAutoGLMAction(
+      backAction,
+      defaultSize,
+      unrelatedActionSpace,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('AndroidBackButton');
+  });
+
   it('should transform Home action to AndroidHomeButton PlanningAction', () => {
     const homeAction: HomeAction = {
       _metadata: 'do',
@@ -398,6 +451,26 @@ describe('auto-glm actions transformation', () => {
     const result = transformAutoGLMAction(homeAction, defaultSize);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('AndroidHomeButton');
+  });
+
+  it('should transform Home action to HarmonyHomeButton when actionSpace contains it', () => {
+    const homeAction: HomeAction = {
+      _metadata: 'do',
+      action: 'Home',
+    };
+
+    const harmonyActionSpace = [
+      { name: 'HarmonyBackButton', description: 'Back', call: async () => {} },
+      { name: 'HarmonyHomeButton', description: 'Home', call: async () => {} },
+    ];
+
+    const result = transformAutoGLMAction(
+      homeAction,
+      defaultSize,
+      harmonyActionSpace,
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('HarmonyHomeButton');
   });
 
   it('should transform Wait action to Sleep PlanningAction', () => {

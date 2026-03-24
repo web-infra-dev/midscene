@@ -42,6 +42,18 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
   private async setupBridgeClient() {
     const endpoint =
       this.serverEndpoint || `ws://localhost:${DefaultBridgeServerPort}`;
+
+    // Create confirmation gate BEFORE establishing connection,
+    // so that any calls received immediately after connection are blocked
+    // until user confirms. This prevents a race condition where server-side
+    // queued calls bypass the confirmation dialog.
+    let resolveConfirmationGate: (allowed: boolean) => void = () => {};
+    if (this.onConnectionRequest) {
+      this.confirmationPromise = new Promise<boolean>((resolve) => {
+        resolveConfirmationGate = resolve;
+      });
+    }
+
     this.bridgeClient = new BridgeClient(
       endpoint,
       async (method, args: any[]) => {
@@ -53,7 +65,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           }
         }
 
-        console.log('bridge call from cli side', method, args);
+        this.onLogMessage(`bridge call from cli side: ${method}`, 'log');
         if (method === BridgeEvent.ConnectNewTabWithUrl) {
           return this.connectNewTabWithUrl.apply(
             this,
@@ -101,7 +113,7 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
         }
 
         if (!this[method as keyof ChromeExtensionProxyPage]) {
-          console.warn('method not found', method);
+          this.onLogMessage(`method not found: ${method}`, 'log');
           return undefined;
         }
 
@@ -113,7 +125,6 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
           return result;
         } catch (e) {
           const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-          console.error('error calling method', method, args, e);
           this.onLogMessage(
             `Error calling method: ${method}, ${errorMessage}`,
             'log',
@@ -128,11 +139,11 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     );
     await this.bridgeClient.connect();
 
-    // Request user confirmation after connection is established
+    // Show confirmation dialog after connection is established
     if (this.onConnectionRequest) {
       this.onLogMessage('Waiting for user confirmation...', 'log');
-      this.confirmationPromise = this.onConnectionRequest();
-      const allowed = await this.confirmationPromise;
+      const allowed = await this.onConnectionRequest();
+      resolveConfirmationGate(allowed);
       this.confirmationPromise = null;
 
       if (!allowed) {

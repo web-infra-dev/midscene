@@ -10,6 +10,7 @@ import type {
   IExecutionDump,
   IGroupedActionDump,
   LocateResultElement,
+  ModelBrief,
   Rect,
   UIContext,
 } from '@midscene/core';
@@ -136,15 +137,25 @@ export interface ReplayScriptsInfo {
   width?: number;
   height?: number;
   sdkVersion?: string;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
   deviceType?: string;
 }
 
-const capitalizeFirstLetter = (str: string) => {
-  if (typeof str !== 'string' || str.length === 0) {
-    return str;
+const isSameModelBrief = (a: ModelBrief, b: ModelBrief): boolean => {
+  return (
+    a.intent === b.intent &&
+    a.name === b.name &&
+    a.modelDescription === b.modelDescription
+  );
+};
+
+const pushModelBriefIfNotExists = (
+  list: ModelBrief[],
+  candidate: ModelBrief,
+) => {
+  if (!list.some((brief) => isSameModelBrief(brief, candidate))) {
+    list.push(candidate);
   }
-  return str.charAt(0).toUpperCase() + str.slice(1);
 };
 
 type DumpInput =
@@ -170,7 +181,7 @@ export interface DumpMetaInfo {
   width: number;
   height: number;
   sdkVersion?: string;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
   deviceType?: string;
 }
 
@@ -183,7 +194,7 @@ const extractMetaFromNormalized = (
   let firstWidth: number | undefined;
   let firstHeight: number | undefined;
   const sdkVersion = normalizedDump.sdkVersion;
-  const modelBriefsSet = new Set<string>();
+  const modelBriefs: ModelBrief[] = [];
 
   normalizedDump.executions?.filter(Boolean).forEach((execution) => {
     execution.tasks.forEach((task) => {
@@ -197,13 +208,12 @@ const extractMetaFromNormalized = (
       }
       if (task.usage) {
         const { model_name, model_description, intent } = task.usage;
-        if (intent && model_name) {
-          modelBriefsSet.add(
-            model_description
-              ? `${intent}/${model_name}(${model_description})`
-              : `${intent}/${model_name}`,
-          );
-        }
+        const brief: ModelBrief = {
+          intent,
+          name: model_name,
+          modelDescription: model_description,
+        };
+        pushModelBriefIfNotExists(modelBriefs, brief);
       }
     });
   });
@@ -212,27 +222,6 @@ const extractMetaFromNormalized = (
     console.warn('width or height is missing in dump file');
     return null;
   }
-
-  const normalizedModelBriefs = normalizedDump.modelBriefs?.length
-    ? normalizedDump.modelBriefs
-    : [];
-
-  const modelBriefs: string[] = (() => {
-    const list = normalizedModelBriefs.length
-      ? normalizedModelBriefs
-      : [...modelBriefsSet];
-    if (!list.length) {
-      return list;
-    }
-    const firstOneInfo = list[0]?.split('/', 2)[1];
-    if (
-      firstOneInfo &&
-      list.slice(1).every((item) => item?.split('/', 2)[1] === firstOneInfo)
-    ) {
-      return [firstOneInfo];
-    }
-    return list;
-  })();
 
   return {
     width: firstWidth,

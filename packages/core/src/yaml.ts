@@ -162,6 +162,19 @@ export interface MidsceneYamlScriptWebEnv
   // bridge mode config
   bridgeMode?: false | 'newTabWithUrl' | 'currentTab';
   closeNewTabsAfterDisconnect?: boolean;
+
+  /**
+   * CDP (Chrome DevTools Protocol) endpoint URL.
+   * When specified, connects to an existing Chrome browser via CDP instead of launching a new one.
+   *
+   * @example
+   * ```yaml
+   * web:
+   *   url: https://example.com
+   *   cdpEndpoint: ws://localhost:9222/devtools/browser/xxxx
+   * ```
+   */
+  cdpEndpoint?: string;
 }
 
 export interface MidsceneYamlScriptAndroidEnv

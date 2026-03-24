@@ -30,15 +30,12 @@ interface ExtensionSettings {
 // ─── Environment Config Keys ────────────────────────────────────────────────
 
 const EXTENSION_ENV_KEYS = [
-  'MIDSCENE_OPENAI_INIT_CONFIG_JSON',
   'MIDSCENE_MODEL_INIT_CONFIG_JSON',
   'MIDSCENE_MODEL_NAME',
   'MIDSCENE_MODEL_API_KEY',
   'MIDSCENE_MODEL_BASE_URL',
   'MIDSCENE_MODEL_FAMILY',
   'MIDSCENE_USE_QWEN3_VL',
-  'OPENAI_API_KEY',
-  'OPENAI_BASE_URL',
 ] as const;
 
 // ─── Browser Helpers ────────────────────────────────────────────────────────

@@ -62,6 +62,31 @@ export type AIArgs = [
 const debugInspect = getDebug('ai:inspect');
 const debugSection = getDebug('ai:section');
 
+export async function buildSearchAreaConfig(options: {
+  context: UIContext;
+  baseRect: Rect;
+  modelFamily: IModelConfig['modelFamily'];
+}): Promise<{ rect: Rect; imageBase64: string; scale: number }> {
+  const { context, baseRect, modelFamily } = options;
+  const scaleRatio = 2;
+  const sectionRect = expandSearchArea(baseRect, context.shotSize);
+
+  const croppedResult = await cropByRect(
+    context.screenshot.base64,
+    sectionRect,
+    modelFamily === 'qwen2.5-vl',
+  );
+
+  const scaledResult = await scaleImage(croppedResult.imageBase64, scaleRatio);
+  sectionRect.width = scaledResult.width;
+  sectionRect.height = scaledResult.height;
+  return {
+    rect: sectionRect,
+    imageBase64: scaledResult.imageBase64,
+    scale: scaleRatio,
+  };
+}
+
 const extraTextFromUserPrompt = (prompt: TUserPrompt): string => {
   if (typeof prompt === 'string') {
     return prompt;
@@ -443,7 +468,9 @@ export async function AiLocateSection(options: {
     };
   }
 
-  let sectionRect: Rect | undefined;
+  let searchAreaConfig:
+    | Awaited<ReturnType<typeof buildSearchAreaConfig>>
+    | undefined;
   const sectionBbox = result.content.bbox;
   if (sectionBbox) {
     const targetRect = adaptBboxToRect(
@@ -481,48 +508,31 @@ export async function AiLocateSection(options: {
     const mergedRect = mergeRects([targetRect, ...referenceRects]);
     debugSection('mergedRect %j', mergedRect);
 
-    sectionRect = expandSearchArea(mergedRect, context.shotSize);
-    debugSection('expanded sectionRect %j', sectionRect);
-  }
+    const expandedRect = expandSearchArea(mergedRect, context.shotSize);
+    const originalWidth = expandedRect.width;
+    const originalHeight = expandedRect.height;
+    debugSection('expanded sectionRect %j', expandedRect);
 
-  let imageBase64 = screenshotBase64;
-  let scale: number | undefined;
-
-  if (sectionRect) {
-    const originalWidth = sectionRect.width;
-    const originalHeight = sectionRect.height;
-
-    const croppedResult = await cropByRect(
-      screenshotBase64,
-      sectionRect,
-      modelFamily === 'qwen2.5-vl',
-    );
-
-    const scaleRatio = 2;
-    const scaledResult = await scaleImage(
-      croppedResult.imageBase64,
-      scaleRatio,
-    );
-
-    imageBase64 = scaledResult.imageBase64;
-    scale = scaleRatio;
-    sectionRect.width = scaledResult.width;
-    sectionRect.height = scaledResult.height;
+    searchAreaConfig = await buildSearchAreaConfig({
+      context,
+      baseRect: mergedRect,
+      modelFamily,
+    });
 
     debugSection(
       'scaled sectionRect from %dx%d to %dx%d (scale=%d)',
       originalWidth,
       originalHeight,
-      sectionRect.width,
-      sectionRect.height,
-      scale,
+      searchAreaConfig.rect.width,
+      searchAreaConfig.rect.height,
+      searchAreaConfig.scale,
     );
   }
 
   return {
-    rect: sectionRect,
-    imageBase64,
-    scale,
+    rect: searchAreaConfig?.rect,
+    imageBase64: searchAreaConfig?.imageBase64,
+    scale: searchAreaConfig?.scale,
     error: result.content.error,
     rawResponse: JSON.stringify(result.content),
     usage: result.usage,

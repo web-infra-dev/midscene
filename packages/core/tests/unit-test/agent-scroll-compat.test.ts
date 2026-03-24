@@ -44,4 +44,42 @@ describe('Agent aiScroll legacy scrollType compatibility', () => {
       }),
     );
   });
+
+  it('uses new signature when scroll options is an empty object', async () => {
+    const agent = createAgentStub();
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
+
+    await agent.aiScroll('计数器', {} as any);
+
+    expect(callActionSpy).toHaveBeenCalledTimes(1);
+    expect(callActionSpy).toHaveBeenCalledWith(
+      'Scroll',
+      expect.objectContaining({
+        locate: expect.objectContaining({
+          prompt: '计数器',
+        }),
+      }),
+    );
+  });
+
+  it('uses new signature when locatePrompt is an object with prompt', async () => {
+    const agent = createAgentStub();
+    const callActionSpy = (agent as any).callActionInActionSpace as ReturnType<
+      typeof vi.fn
+    >;
+
+    await agent.aiScroll({ prompt: '计数器' } as any, {} as any);
+
+    expect(callActionSpy).toHaveBeenCalledTimes(1);
+    expect(callActionSpy).toHaveBeenCalledWith(
+      'Scroll',
+      expect.objectContaining({
+        locate: expect.objectContaining({
+          prompt: '计数器',
+        }),
+      }),
+    );
+  });
 });
