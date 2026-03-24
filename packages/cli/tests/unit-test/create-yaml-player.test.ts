@@ -42,6 +42,17 @@ vi.mock('@midscene/web/puppeteer-agent-launcher', () => ({
   puppeteerAgentForTarget: vi.fn(),
 }));
 
+vi.mock('@midscene/web/puppeteer', () => ({
+  PuppeteerAgent: vi.fn(),
+}));
+
+vi.mock('puppeteer', () => ({
+  default: {
+    connect: vi.fn(),
+    launch: vi.fn(),
+  },
+}));
+
 import { agentFromAdbDevice } from '@midscene/android';
 import { ScriptPlayer, parseYamlScript } from '@midscene/core/yaml';
 import { agentFromWebDriverAgent } from '@midscene/ios';
@@ -1066,6 +1077,201 @@ describe('create-yaml-player', () => {
 
       // Should not throw and should call with default values
       expect(puppeteerAgentForTarget).toHaveBeenCalled();
+    });
+  });
+
+  describe('CDP mode', () => {
+    test('should connect via CDP endpoint and reuse puppeteerAgentForTarget', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        },
+        tasks: [],
+      };
+
+      const mockBrowser = {
+        disconnect: vi.fn(),
+      };
+      const mockAgent = { destroy: vi.fn() };
+
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      const puppeteer = (await import('puppeteer')).default;
+      vi.mocked(puppeteer.connect).mockResolvedValue(mockBrowser as any);
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Should connect via CDP
+      expect(puppeteer.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        defaultViewport: null,
+      });
+
+      // Should reuse puppeteerAgentForTarget (page setup: viewport, userAgent, etc.)
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.objectContaining({ url: 'http://example.com' }),
+        expect.any(Object),
+        mockBrowser, // CDP browser passed as browser param
+        undefined, // no shared page
+      );
+    });
+
+    test('should pass agent options in CDP mode via puppeteerAgentForTarget', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        },
+        agent: {
+          testId: 'cdp-test',
+          groupName: 'CDP Tests',
+        },
+        tasks: [],
+      };
+
+      const mockBrowser = { disconnect: vi.fn() };
+      const mockAgent = { destroy: vi.fn() };
+
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      const puppeteer = (await import('puppeteer')).default;
+      vi.mocked(puppeteer.connect).mockResolvedValue(mockBrowser as any);
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Verify agent options are passed through
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          testId: 'cdp-test',
+          groupName: 'CDP Tests',
+        }),
+        expect.any(Object),
+        undefined,
+      );
+    });
+
+    test('should reuse shared browser from batch-runner in CDP mode', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        },
+        tasks: [],
+      };
+
+      const mockSharedBrowser = { disconnect: vi.fn() };
+      const mockSharedPage = { url: vi.fn() };
+      const mockAgent = { destroy: vi.fn() };
+
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      const puppeteer = (await import('puppeteer')).default;
+
+      vi.mocked(puppeteerAgentForTarget).mockResolvedValue({
+        agent: mockAgent as any,
+        freeFn: [],
+      });
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      // Pass shared browser and page from batch-runner
+      await createYamlPlayer(mockFilePath, mockScript, {
+        browser: mockSharedBrowser as any,
+        page: mockSharedPage as any,
+      });
+
+      if (setupFnCallback) {
+        await setupFnCallback();
+      }
+
+      // Should NOT call puppeteer.connect — reuse shared browser
+      expect(puppeteer.connect).not.toHaveBeenCalled();
+
+      // Should pass shared browser and page to puppeteerAgentForTarget
+      expect(puppeteerAgentForTarget).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+        mockSharedBrowser,
+        mockSharedPage,
+      );
+    });
+
+    test('should throw when both cdpEndpoint and bridgeMode are set', async () => {
+      const mockScript: MidsceneYamlScript = {
+        web: {
+          url: 'http://example.com',
+          cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+          bridgeMode: 'newTabWithUrl',
+        },
+        tasks: [],
+      };
+
+      let setupFnCallback: (() => Promise<any>) | undefined;
+
+      vi.mocked(readFileSync).mockReturnValue('mock yaml content');
+      vi.mocked(parseYamlScript).mockReturnValue(mockScript);
+
+      vi.mocked(ScriptPlayer).mockImplementation((script, setupFn) => {
+        setupFnCallback = setupFn as () => Promise<any>;
+        return {
+          addCleanup: vi.fn(),
+        } as unknown as ScriptPlayer<MidsceneYamlScriptEnv>;
+      });
+
+      await createYamlPlayer(mockFilePath, mockScript);
+
+      // The setup function should throw
+      await expect(setupFnCallback!()).rejects.toThrow(
+        'cdpEndpoint and bridgeMode are mutually exclusive',
+      );
     });
   });
 });
