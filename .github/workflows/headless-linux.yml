@@ -2,8 +2,6 @@ name: Headless Linux
 
 on:
   pull_request:
-    branches:
-      - main
     paths:
       - 'packages/computer/**'
       - 'apps/chrome-extension/**'
