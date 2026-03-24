@@ -90,6 +90,13 @@ describe('AndroidAgent', () => {
           },
         },
         {
+          name: 'Terminate',
+          paramSchema: undefined,
+          call: async (param: any) => {
+            return mockPage.terminate(param.uri);
+          },
+        },
+        {
           name: 'RunAdbShell',
           paramSchema: undefined,
           call: async (param: any) => {
@@ -109,6 +116,40 @@ describe('AndroidAgent', () => {
 
       // agent.launch(uri) converts string to { uri } object before calling device action
       expect(launchSpy).toHaveBeenCalledWith({ uri });
+    });
+  });
+
+  describe('terminate', () => {
+    it('should call page.terminate with the given uri', async () => {
+      const validPngBase64 =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+      const mockPage = new AndroidDevice('test-device');
+      vi.spyOn(mockPage, 'screenshotBase64').mockResolvedValue(validPngBase64);
+      vi.spyOn(mockPage, 'size').mockResolvedValue({ width: 375, height: 812 });
+      vi.spyOn(mockPage, 'getElementsInfo').mockResolvedValue([]);
+      vi.spyOn(mockPage, 'url').mockResolvedValue('https://example.com');
+      if (typeof (mockPage as any).terminate !== 'function') {
+        (mockPage as any).terminate = vi.fn().mockResolvedValue(undefined);
+      }
+      const terminateSpy = vi
+        .spyOn(mockPage as any, 'terminate')
+        .mockResolvedValue(undefined);
+      vi.spyOn(mockPage, 'actionSpace').mockReturnValue([
+        { name: 'Launch', paramSchema: undefined, call: async () => {} },
+        {
+          name: 'Terminate',
+          paramSchema: undefined,
+          call: async (param: any) => mockPage.terminate(param.uri),
+        },
+        { name: 'RunAdbShell', paramSchema: undefined, call: async () => '' },
+      ] as any);
+
+      const agent = new AndroidAgent(mockPage, {
+        modelConfig: mockedModelConfig,
+      });
+
+      await agent.terminate('com.android.settings');
+      expect(terminateSpy).toHaveBeenCalledWith('com.android.settings');
     });
   });
 

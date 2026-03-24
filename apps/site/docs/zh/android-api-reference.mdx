@@ -17,6 +17,7 @@
 - `Pinch` —— 双指缩放手势。`scale > 1` 放大，`scale < 1` 缩小。
 - `ClearInput` —— 清空输入框内容。
 - `Launch` —— 打开网页或 `package/.Activity`。
+- `Terminate` —— 按包名强制停止应用。
 - `RunAdbShell` —— 执行原始 `adb shell` 命令。
 - `AndroidBackButton` —— 触发系统返回。
 - `AndroidHomeButton` —— 回到桌面。
@@ -147,7 +148,7 @@ const agent = new AndroidAgent(device, {
 :::info
 
 - 一个设备连接对应一个 Agent。
-- `launch`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
+- `launch`、`terminate`、`runAdbShell` 等 Android 专属辅助函数也可在 YAML 脚本中使用，语法见 [Android 平台特定动作](./automate-with-scripts-in-yaml#the-android-part)。
 - 通用交互方法请查阅 [API 参考（通用）](./api#interaction-methods)。
 
 :::
@@ -177,6 +178,20 @@ function runAdbShell(command: string): Promise<string>;
 ```ts
 const result = await agent.runAdbShell('dumpsys battery');
 console.log(result);
+```
+
+#### `agent.terminate()`
+
+终止（强制停止）正在运行的 Android 应用。
+
+```ts
+function terminate(uri: string): Promise<void>;
+```
+
+- `uri: string` —— 应用包名、`appNameMapping` 中的应用名称，或 `package/.Activity`（仅使用包名部分）。
+
+```ts
+await agent.terminate('com.android.settings');
 ```
 
 #### 导航辅助

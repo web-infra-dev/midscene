@@ -274,6 +274,20 @@ tasks:
       - launch: https://www.example.com
 ```
 
+**`terminate` - 终止应用**
+
+通过包名终止（强制停止）正在运行的 Android 应用。
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: 终止设置应用
+    flow:
+      - terminate: com.android.settings
+```
+
 ### `ios` 部分
 
 ```yaml

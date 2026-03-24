@@ -272,6 +272,20 @@ tasks:
       - launch: https://www.example.com
 ```
 
+**`terminate` - Terminate App**
+
+Terminate (force-stop) a running Android app by package name.
+
+```yaml
+android:
+  deviceId: 'test-device'
+
+tasks:
+  - name: Terminate Settings app
+    flow:
+      - terminate: com.android.settings
+```
+
 ### The `ios` part
 
 ```yaml
