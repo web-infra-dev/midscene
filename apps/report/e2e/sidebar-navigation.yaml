@@ -1,0 +1,28 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: sidebar task list is rendered
+    flow:
+      - sleep: 3000
+      - aiAssert: The left sidebar shows a list of task execution rows
+
+  - name: click a task row to view details
+    flow:
+      - ai: Click on the first task row in the left sidebar execution list
+      - sleep: 2000
+      - aiAssert: The right side shows a detail panel with task information, not the video player
+
+  - name: navigate between tasks
+    flow:
+      - ai: Click on the second task row in the left sidebar
+      - sleep: 1000
+      - aiAssert: The detail panel content has updated to show task information
+
+  - name: toggle model call details
+    flow:
+      - ai: Click the "Model Call Details" checkbox or toggle in the sidebar
+      - sleep: 1000
+      - aiAssert: The sidebar table header now includes an "Intent" column that was not visible before
+      - ai: Click the "Model Call Details" checkbox again to turn it off
+      - sleep: 1000

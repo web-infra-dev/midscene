@@ -16,6 +16,8 @@ export { RemoteExecutionAdapter } from './adapters/remote-execution';
 
 // PlaygroundServer is not available in browser environments
 export const PlaygroundServer = undefined;
+export const playgroundForAgent = undefined;
+export const playgroundForAgentFactory = undefined;
 
 export type {
   ExecutionOptions,

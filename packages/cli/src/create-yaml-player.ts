@@ -18,6 +18,7 @@ import { getDebug } from '@midscene/shared/logger';
 import { AgentOverChromeBridge } from '@midscene/web/bridge-mode';
 import { puppeteerAgentForTarget } from '@midscene/web/puppeteer-agent-launcher';
 import type { Browser, Page } from 'puppeteer';
+import puppeteer from 'puppeteer';
 
 export interface SingleYamlExecutionResult {
   success: boolean;
@@ -160,6 +161,63 @@ export async function createYamlPlayer(
           webTarget.url = urlToVisit;
         }
 
+        // Validate: cdpEndpoint and bridgeMode are mutually exclusive
+        if (webTarget.cdpEndpoint && webTarget.bridgeMode) {
+          throw new Error(
+            'cdpEndpoint and bridgeMode are mutually exclusive. Please specify only one.',
+          );
+        }
+
+        // CDP mode: connect to an existing browser via Chrome DevTools Protocol
+        if (webTarget.cdpEndpoint) {
+          // Use the shared browser from batch-runner if available (shareBrowserContext),
+          // otherwise connect via CDP endpoint
+          const cdpBrowser =
+            options?.browser ??
+            (await puppeteer.connect({
+              browserWSEndpoint: webTarget.cdpEndpoint,
+              defaultViewport: null,
+            }));
+
+          // Warn about options that don't apply to an already-running browser
+          if (webTarget.chromeArgs) {
+            console.warn(
+              'chromeArgs are not supported in CDP mode (browser is already running). They will be ignored.',
+            );
+          }
+
+          // Reuse puppeteerAgentForTarget which handles page setup (userAgent, viewport,
+          // cookie, waitForNetworkIdle, etc.) — pass the CDP browser as the browser param
+          const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
+            webTarget,
+            {
+              ...preference,
+              ...buildAgentOptions(
+                clonedYamlScript.agent,
+                preference.testId,
+                fileName,
+              ),
+            },
+            cdpBrowser as Browser,
+            options?.page,
+          );
+
+          // Replace the default browser close with disconnect for CDP
+          const cleanFreeFn = newFreeFn.filter(
+            (f) => f.name !== 'puppeteer_browser',
+          );
+          if (!options?.browser) {
+            // Only add disconnect if we created the connection (not shared from batch-runner)
+            cleanFreeFn.push({
+              name: 'cdp_browser_disconnect',
+              fn: () => cdpBrowser.disconnect(),
+            });
+          }
+          freeFn.push(...cleanFreeFn);
+
+          return { agent, freeFn };
+        }
+
         if (!webTarget.bridgeMode) {
           // use puppeteer
           const { agent, freeFn: newFreeFn } = await puppeteerAgentForTarget(
@@ -201,6 +259,7 @@ export async function createYamlPlayer(
 
         const agent = new AgentOverChromeBridge({
           closeNewTabsAfterDisconnect: webTarget.closeNewTabsAfterDisconnect,
+          closeConflictServer: true,
           ...buildAgentOptions(
             clonedYamlScript.agent,
             preference.testId,

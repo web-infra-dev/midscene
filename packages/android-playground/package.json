@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "1.5.4",
+  "version": "1.5.7",
   "description": "Android playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
@@ -19,18 +19,18 @@
     "prepack": "node ../android/scripts/download-scrcpy-server.mjs --target=bin/scrcpy-server"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.8.6",
     "@midscene/android": "workspace:*",
     "@midscene/core": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@yume-chan/adb": "^1.1.0",
-    "@yume-chan/adb-scrcpy": "^1.1.0",
-    "@yume-chan/adb-server-node-tcp": "^1.1.0",
-    "@yume-chan/scrcpy": "^1.1.0",
-    "@yume-chan/stream-extra": "^1.0.0",
+    "@yume-chan/adb": "2.5.1",
+    "@yume-chan/adb-scrcpy": "2.3.2",
+    "@yume-chan/adb-server-node-tcp": "2.5.2",
+    "@yume-chan/scrcpy": "2.3.0",
+    "@yume-chan/stream-extra": "2.1.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
-    "@inquirer/prompts": "^7.8.6",
     "open": "10.1.0",
     "socket.io": "^4.8.1"
   },

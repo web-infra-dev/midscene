@@ -8,6 +8,7 @@ export {
 } from './common';
 export { PlaygroundServer } from './server';
 export { playgroundForAgent } from './launcher';
+export { playgroundForAgentFactory } from './launcher';
 
 // SDK exports
 export { PlaygroundSDK } from './sdk';

@@ -6,6 +6,7 @@ import type {
   ExecutionTaskPlanningLocate,
   GroupedActionDump,
   LocateResultElement,
+  ModelBrief,
   ServiceDump,
 } from '@midscene/core';
 import type { AnimationScript } from '@midscene/visualizer';
@@ -57,7 +58,7 @@ export interface DumpStoreType {
   setReplayAllMode: (replayAllMode: boolean) => void;
   allExecutionAnimation: AnimationScript[] | null;
   sdkVersion: string | null;
-  modelBriefs: string[];
+  modelBriefs: ModelBrief[];
   insightWidth: number | null;
   insightHeight: number | null;
   deviceType: string | undefined;
@@ -167,8 +168,10 @@ export const useExecutionDump = create<DumpStoreType>((set, get) => {
           deviceType: metaInfo.deviceType,
         });
 
-        // Default to first task static view instead of replay-all
-        if (dump.executions[0].tasks.length > 0) {
+        // Default to replay-all when available so opening a report starts playback.
+        get().setReplayAllMode(true);
+
+        if (!get().replayAllMode && dump.executions[0].tasks.length > 0) {
           get().setActiveTask(dump.executions[0].tasks[0]);
         }
       }

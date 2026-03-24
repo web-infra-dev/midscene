@@ -1,5 +1,4 @@
-import { PlaygroundServer } from '@midscene/playground';
-import cors from 'cors';
+import { playgroundForAgent } from '@midscene/playground';
 import { StaticPage, StaticPageAgent } from './static';
 import 'dotenv/config';
 import { ScreenshotItem } from '@midscene/core';
@@ -14,18 +13,10 @@ async function startServer() {
   });
   const agent = new StaticPageAgent(page);
 
-  // Create server with agent only
-  const server = new PlaygroundServer(agent);
-
-  // Register CORS middleware
-  server.app.use(
-    cors({
-      origin: '*',
-      credentials: true,
-    }),
-  );
-
-  await server.launch();
+  const { server } = await playgroundForAgent(agent).launch({
+    openBrowser: false,
+    verbose: false,
+  });
   console.log(
     `Midscene playground server is running on http://localhost:${server.port}`,
   );

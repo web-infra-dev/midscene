@@ -1,0 +1,20 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  - name: toggle to dark mode
+    flow:
+      - sleep: 2000
+      - ai: Click the "Toggle theme" button in the top right header area
+      - sleep: 2000
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a dark background color
+
+  - name: toggle back to light mode
+    flow:
+      - ai: Click the "Toggle theme" button in the top right header area
+      - sleep: 2000
+      - aiAssert: The report UI (header, sidebar, and surrounding chrome) has a light/white background color
+
+  - name: version info displayed
+    flow:
+      - aiAssert: The top header area shows version information with a version number like "v" followed by digits

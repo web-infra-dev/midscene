@@ -11,15 +11,11 @@
     "demo": "concurrently \"npm run demo:server\" \"npm run dev\""
   },
   "dependencies": {
-    "@ant-design/icons": "^5.3.1",
-    "@midscene/core": "workspace:*",
+    "@midscene/playground-app": "workspace:*",
     "@midscene/playground": "workspace:*",
     "@midscene/shared": "workspace:*",
-    "@midscene/visualizer": "workspace:*",
-    "antd": "^5.21.6",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-resizable-panels": "2.0.22"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@midscene/web": "workspace:*",

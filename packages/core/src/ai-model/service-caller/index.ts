@@ -32,6 +32,11 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM, isUITars } from '../auto-glm/util';
+import {
+  callAIWithCodexAppServer,
+  isCodexAppServerProvider,
+} from './codex-app-server';
+import { shouldForceOriginalImageDetail } from './image-detail';
 
 async function createChatClient({
   modelConfig,
@@ -227,6 +232,10 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
+    return callAIWithCodexAppServer(messages, modelConfig, options);
+  }
+
   const {
     completion,
     modelName,
@@ -237,6 +246,8 @@ export async function callAI(
     modelConfig,
   });
 
+  const extraBody = modelConfig.extraBody;
+
   const maxTokens =
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
     globalConfigManager.getEnvConfigValueAsNumber(OPENAI_MAX_TOKENS);
@@ -246,7 +257,14 @@ export async function callAI(
   const debugProfileDetail = getDebug('ai:profile:detail');
 
   const startTime = Date.now();
-  const temperature = modelConfig.temperature ?? 0;
+
+  const temperature = (() => {
+    if (modelFamily === 'gpt-5') {
+      debugCall('temperature is ignored for gpt-5');
+      return undefined;
+    }
+    return modelConfig.temperature ?? 0;
+  })();
 
   const isStreaming = options?.stream && options?.onChunk;
   let content: string | undefined;
@@ -322,6 +340,41 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
+  const shouldUseOriginalImageDetail =
+    shouldForceOriginalImageDetail(modelConfig);
+
+  // For default-intent GPT-5 calls, request original image detail to preserve
+  // screenshot resolution for localization-sensitive tasks.
+  const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
+    if (!shouldUseOriginalImageDetail) {
+      return messages;
+    }
+
+    return messages.map((msg) => {
+      if (!Array.isArray(msg.content)) {
+        return msg;
+      }
+
+      const content = msg.content.map((part) => {
+        if (part && part.type === 'image_url' && part.image_url?.url) {
+          return {
+            ...part,
+            image_url: {
+              ...part.image_url,
+              detail: 'original',
+            },
+          };
+        }
+        return part;
+      });
+
+      return {
+        ...msg,
+        content,
+      } as ChatCompletionMessageParam;
+    });
+  })();
+
   try {
     debugCall(
       `sending ${isStreaming ? 'streaming ' : ''}request to ${modelName}`,
@@ -331,9 +384,10 @@ export async function callAI(
       const stream = (await completion.create(
         {
           model: modelName,
-          messages,
+          messages: messagesWithImageDetail,
           ...commonConfig,
           ...reasoningEffortConfig,
+          ...extraBody,
         },
         {
           stream: true,
@@ -415,9 +469,10 @@ export async function callAI(
           const result = await completion.create(
             {
               model: modelName,
-              messages,
+              messages: messagesWithImageDetail,
               ...commonConfig,
               ...reasoningEffortConfig,
+              ...extraBody,
             } as any,
             options?.abortSignal ? { signal: options.abortSignal } : undefined,
           );
@@ -665,16 +720,18 @@ export function resolveReasoningConfig({
     // reasoningEffort and reasoningBudget are ignored for glm-v
   } else if (modelFamily === 'gpt-5') {
     // reasoningEffort → reasoning.effort
-    if (reasoningEffort) {
-      config.reasoning = { effort: reasoningEffort };
-      debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
-    } else if (reasoningEnabled === true) {
-      config.reasoning = { effort: 'high' };
-      debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
-    } else if (reasoningEnabled === false) {
-      config.reasoning = { effort: 'low' };
-      debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
-    }
+    config.reasoning = undefined;
+    debugMessages.push('reasoning config is ignored for gpt-5');
+    // if (reasoningEffort) {
+    //   config.reasoning = { effort: reasoningEffort };
+    //   debugMessages.push(`reasoning.effort="${reasoningEffort}"`);
+    // } else if (reasoningEnabled === true) {
+    //   config.reasoning = { effort: 'high' };
+    //   debugMessages.push('reasoning.effort="high" (from reasoningEnabled)');
+    // } else if (reasoningEnabled === false) {
+    //   config.reasoning = { effort: 'low' };
+    //   debugMessages.push('reasoning.effort="low" (from reasoningEnabled)');
+    // }
     // reasoningBudget is ignored for gpt-5
   } else if (!modelFamily) {
     return {

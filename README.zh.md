@@ -14,7 +14,7 @@
 </div>
 
 <p align="center">
-  视觉模型驱动，支持全平台 UI 自动化
+  AI 驱动、视觉感知，适用于全平台的 UI 自动化。
 </p>
 
 <p align="center">

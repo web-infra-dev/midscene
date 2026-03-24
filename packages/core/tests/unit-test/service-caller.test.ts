@@ -430,38 +430,38 @@ describe('service-caller', () => {
       expect(result.config).toEqual({ thinking: { type: 'disabled' } });
     });
 
-    // gpt-5: reasoningEffort → reasoning.effort
-    it('maps reasoningEffort to reasoning.effort for gpt-5', () => {
+    // gpt-5: reasoning config is ignored
+    it('ignores reasoningEffort for gpt-5', () => {
       const result = resolveReasoningConfig({
         reasoningEffort: 'low',
         modelFamily: 'gpt-5',
       });
-      expect(result.config).toEqual({ reasoning: { effort: 'low' } });
+      expect(result.config).toEqual({ reasoning: undefined });
     });
 
-    it('maps reasoningEnabled=true to reasoning.effort="high" for gpt-5', () => {
+    it('ignores reasoningEnabled=true for gpt-5', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: true,
         modelFamily: 'gpt-5',
       });
-      expect(result.config).toEqual({ reasoning: { effort: 'high' } });
+      expect(result.config).toEqual({ reasoning: undefined });
     });
 
-    it('maps reasoningEnabled=false to reasoning.effort="low" for gpt-5', () => {
+    it('ignores reasoningEnabled=false for gpt-5', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: false,
         modelFamily: 'gpt-5',
       });
-      expect(result.config).toEqual({ reasoning: { effort: 'low' } });
+      expect(result.config).toEqual({ reasoning: undefined });
     });
 
-    it('reasoningEffort takes priority over reasoningEnabled for gpt-5', () => {
+    it('ignores both reasoningEffort and reasoningEnabled for gpt-5', () => {
       const result = resolveReasoningConfig({
         reasoningEnabled: true,
         reasoningEffort: 'medium',
         modelFamily: 'gpt-5',
       });
-      expect(result.config).toEqual({ reasoning: { effort: 'medium' } });
+      expect(result.config).toEqual({ reasoning: undefined });
     });
 
     // no model family

@@ -169,13 +169,11 @@ export class ScrcpyScreenshotManager {
       this.isConnecting = true;
       debugScrcpy('Starting scrcpy connection...');
 
-      const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
+      const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
         '@yume-chan/adb-scrcpy'
       );
       const { ReadableStream } = await import('@yume-chan/stream-extra');
-      const { ScrcpyOptions3_1, DefaultServerPath } = await import(
-        '@yume-chan/scrcpy'
-      );
+      const { DefaultServerPath } = await import('@yume-chan/scrcpy');
 
       // Use local scrcpy-server file
       const serverBinPath = this.resolveServerBinPath();
@@ -184,7 +182,7 @@ export class ScrcpyScreenshotManager {
         ReadableStream.from(createReadStream(serverBinPath)),
       );
 
-      const scrcpyOptions = new ScrcpyOptions3_1({
+      const scrcpyOptions = new AdbScrcpyOptions3_3_3({
         audio: false,
         control: false,
         maxSize: this.options.maxSize,
@@ -197,7 +195,7 @@ export class ScrcpyScreenshotManager {
       this.scrcpyClient = await AdbScrcpyClient.start(
         this.adb,
         DefaultServerPath,
-        new AdbScrcpyOptions2_1(scrcpyOptions),
+        scrcpyOptions,
       );
 
       const videoStreamPromise = this.scrcpyClient.videoStream;

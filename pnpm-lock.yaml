@@ -84,11 +84,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/web-integration
       '@yume-chan/scrcpy':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.3.0
+        version: 2.3.0
       '@yume-chan/scrcpy-decoder-webcodecs':
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: 2.5.0
+        version: 2.5.0
       antd:
         specifier: ^5.21.6
         version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -256,6 +256,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
+      vitest:
+        specifier: 3.0.5
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@24.10.2)(jsdom@26.1.0)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
       web-ext:
         specifier: 9.0.0
         version: 9.0.0(body-parser@1.20.3)(express@4.21.2)
@@ -323,33 +326,21 @@ importers:
 
   apps/playground:
     dependencies:
-      '@ant-design/icons':
-        specifier: ^5.3.1
-        version: 5.5.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@midscene/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@midscene/playground':
         specifier: workspace:*
         version: link:../../packages/playground
+      '@midscene/playground-app':
+        specifier: workspace:*
+        version: link:../../packages/playground-app
       '@midscene/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      '@midscene/visualizer':
-        specifier: workspace:*
-        version: link:../../packages/visualizer
-      antd:
-        specifier: ^5.21.6
-        version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
       react-dom:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
-      react-resizable-panels:
-        specifier: 2.0.22
-        version: 2.0.22(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
       '@midscene/web':
         specifier: workspace:*
@@ -574,20 +565,20 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@yume-chan/adb':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.5.1
+        version: 2.5.1
       '@yume-chan/adb-scrcpy':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.3.2
+        version: 2.3.2
       '@yume-chan/adb-server-node-tcp':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.5.2
+        version: 2.5.2
       '@yume-chan/scrcpy':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.3.0
+        version: 2.3.0
       '@yume-chan/stream-extra':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: 2.1.0
+        version: 2.1.0
       appium-adb:
         specifier: 12.12.1
         version: 12.12.1
@@ -700,20 +691,20 @@ importers:
         specifier: workspace:*
         version: link:../shared
       '@yume-chan/adb':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.5.1
+        version: 2.5.1
       '@yume-chan/adb-scrcpy':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.3.2
+        version: 2.3.2
       '@yume-chan/adb-server-node-tcp':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.5.2
+        version: 2.5.2
       '@yume-chan/scrcpy':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: 2.3.0
+        version: 2.3.0
       '@yume-chan/stream-extra':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: 2.1.0
+        version: 2.1.0
       cors:
         specifier: ^2.8.5
         version: 2.8.5
@@ -1394,6 +1385,58 @@ importers:
       vitest:
         specifier: 3.0.5
         version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+
+  packages/playground-app:
+    dependencies:
+      '@midscene/playground':
+        specifier: workspace:*
+        version: link:../playground
+      '@midscene/visualizer':
+        specifier: workspace:*
+        version: link:../visualizer
+      antd:
+        specifier: ^5.21.6
+        version: 5.21.6(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react-resizable-panels:
+        specifier: 2.0.22
+        version: 2.0.22(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+    devDependencies:
+      '@rsbuild/plugin-less':
+        specifier: ^1.5.0
+        version: 1.5.0(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
+      '@rsbuild/plugin-node-polyfill':
+        specifier: 1.4.2
+        version: 1.4.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
+      '@rsbuild/plugin-react':
+        specifier: ^1.4.1
+        version: 1.4.5(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))
+      '@rsbuild/plugin-svgr':
+        specifier: ^1.2.2
+        version: 1.2.2(@rsbuild/core@2.0.0-beta.1(core-js@3.47.0))(typescript@5.8.3)
+      '@rslib/core':
+        specifier: ^0.18.3
+        version: 0.18.3(@microsoft/api-extractor@7.52.10(@types/node@18.19.118))(typescript@5.8.3)
+      '@types/node':
+        specifier: ^18.0.0
+        version: 18.19.118
+      '@types/react':
+        specifier: ^18.3.1
+        version: 18.3.23
+      '@types/react-dom':
+        specifier: ^18.3.1
+        version: 18.3.7(@types/react@18.3.23)
+      less:
+        specifier: ^4.2.0
+        version: 4.3.0
+      react:
+        specifier: 18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: 18.3.1
+        version: 18.3.1(react@18.3.1)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
 
   packages/recorder:
     dependencies:
@@ -5044,38 +5087,38 @@ packages:
     resolution: {integrity: sha512-/HcYgtUSiJiot/XWGLOlGxPYUG65+/31V8oqk17vZLW1xlCoR4PampyePljOxY2n8/3jz9+tIFzICsyGujJZoA==}
     engines: {node: '>=18.12.0'}
 
-  '@yume-chan/adb-scrcpy@1.1.0':
-    resolution: {integrity: sha512-esWcqZ1V/dXYxVlVPOP2HH7wJ1ZgdChAm+cGG7WRBDCxGndqiEzvCRQwvLMuC4pUXqU5fE6d2ILaVuuB3ZiwXg==}
+  '@yume-chan/adb-scrcpy@2.3.2':
+    resolution: {integrity: sha512-wg45dep+dYy4MAVMtsooPAo/aXKiGbpGHzcQWoHnl4uE4YJKrZK0sK5L++rPNM0WbwlPdSpZ32jMJT+i0u1Mdw==}
 
-  '@yume-chan/adb-server-node-tcp@1.1.0':
-    resolution: {integrity: sha512-B1BQIHyX4+scZ8wbvJhYarGP3nncDh/ZXGOz6kxy++Cnka1+vRsl5WDmiCKk1LIoDPiPEGg1UbI1fBnAnrib/g==}
+  '@yume-chan/adb-server-node-tcp@2.5.2':
+    resolution: {integrity: sha512-ga9icFBRUk1n6lO+ymlj83qE+90kMLV8sQA3w9mZAisfdxxEEIq1cvXitFQJvDgL0NuFQruVI4JoZA/wrgpKOw==}
 
-  '@yume-chan/adb@1.1.0':
-    resolution: {integrity: sha512-AC2HhTtxvEPrAQfMP9qDC3FI5Uc6U8j4oH+WMOQ+PKqzI4eme1X3V7OXgPNkrLTQ9SUWgLRw+lgzpvyTvNYpng==}
+  '@yume-chan/adb@2.5.1':
+    resolution: {integrity: sha512-Nm9ZA0cOxfINE+BlZ7whgqjtoLpaZg1xcV8e0C7YbpG/KOHnQGseGTwbfqJFR6xdqbRvvrNL4jIGGpxvn31ykw==}
 
   '@yume-chan/async@4.1.3':
     resolution: {integrity: sha512-0vzhNJMkWUPyjKzUK4rqHEeCU6YQtF78RsB1kFRB6Y2BLupmEQNxcSb0mjKabPL9jZpCCiLa5KL8oTOJClUVaw==}
 
-  '@yume-chan/event@1.0.0':
-    resolution: {integrity: sha512-tr4V34WQ5dz2UDMQl4ekj2zGLqwzmclOJpJL+9s2LJpURHw+Szy5g4gi4j86M+5epMFD8dpT9ym/wXHiUdtpsg==}
+  '@yume-chan/event@2.0.0':
+    resolution: {integrity: sha512-z56MDOcX1QlgLUCuA6th3r10negVb7A3gzY//TwSC9ZOvzuRlrAqXcxZf1T3hHfNMk/NFO9RIgQgegXYSfaqLw==}
 
-  '@yume-chan/no-data-view@1.0.0':
-    resolution: {integrity: sha512-KrkXhJJQiCFFXb/eeHB++HCfKuwwiI7RVzHR7X/0XiwjQouxBpNpRFjEO25458Q5p/EPGprGWQ7BsHrmV3mkZQ==}
+  '@yume-chan/no-data-view@2.0.0':
+    resolution: {integrity: sha512-0GRJrrt6wtZlbiE92jocHOnaAvjQ+Y7xwwhwOPqLkwf90Kj1JIHJ5Zh4wJVQSQIkzfRSOpM+jeEQdC2K15snlA==}
 
-  '@yume-chan/scrcpy-decoder-tinyh264@1.1.0':
-    resolution: {integrity: sha512-I1PpFlL7/jVUQ8VWzy787DtCersQ0l+UOMkAh5gB/AxDEtFHH/AR0Cr/Yd2uaWr46kKgIvj+SlqY2vW4fdbO9w==}
+  '@yume-chan/scrcpy-decoder-tinyh264@2.1.0':
+    resolution: {integrity: sha512-Ou2ejwUZEUlwyorqzjzN6Y3YqMZvAmUi2jK9QsPBbQIVDYu/kbql5l5aXJzatgURTmxbf5HvGnOuEDFzJMqGsQ==}
 
-  '@yume-chan/scrcpy-decoder-webcodecs@1.1.0':
-    resolution: {integrity: sha512-y3ijT/C8ZEEdPO76wiPQLdcsgsPIkWIgWJJfuqtJUcPWpdmWn8ujNUUBlGuS3X1/Q+djnQW4QJ8WISVAje7JBA==}
+  '@yume-chan/scrcpy-decoder-webcodecs@2.5.0':
+    resolution: {integrity: sha512-KvR40VAQrVbjnCECGtA7YZUdgHqoj0auqUhiIm3eqJNHAVEUhhexhmzZDkiDwq6HLeTvsAdwjEg5uS4wlDRG0A==}
 
-  '@yume-chan/scrcpy@1.1.0':
-    resolution: {integrity: sha512-/N+tTU0IWWCcstFodsE6eOVpEo8CZk+KvMIywrU0PV22IO+AN2A87NLnAQW8252owNX5Zn8Sf9Iw7OK7K3iPgg==}
+  '@yume-chan/scrcpy@2.3.0':
+    resolution: {integrity: sha512-rpsNvy7H8mf6gVsWYRSkIXmk0wVsP3XOdw3kASokwZkSWtygB2Z1wjoPaEAvaayVCjsz+y/YfG35TOcykEihGw==}
 
-  '@yume-chan/stream-extra@1.0.0':
-    resolution: {integrity: sha512-xltJYD5txn63e0jm7bHExmULowJTgjbsC205DN0GCxfdfrZIl6adKVheQNh1yOuOKV5Ok5luWNVSBp7Y2OVffA==}
+  '@yume-chan/stream-extra@2.1.0':
+    resolution: {integrity: sha512-Sq1mDCLTIOu+TbI3VmFhcKL5hi+qZkDA3S+JezZb/AJm4ESC3hB7+LgQIQs3QEK/ZeRwMg37w4IOYHSh30R7BQ==}
 
-  '@yume-chan/struct@1.0.0':
-    resolution: {integrity: sha512-PQWUjgITlZstIkLD6ouRDwmR35Z9OJZ9daOQ6ZipzQ/mCnHTeoJf2v8x2+fmGyVrrHf9oaCWe8U/XW65onRlGg==}
+  '@yume-chan/struct@2.3.2':
+    resolution: {integrity: sha512-afoCnSKV+5HRK7e4innVd9YTYDyNWdjA1CVQa1j8rWYnmr7HGZfdkHMQr+AESLk6GxWFMzOIPQIG6nYOTGMFIw==}
 
   '@zkochan/js-yaml@0.0.7':
     resolution: {integrity: sha512-nrUSn7hzt7J6JWgWGz78ZYI8wj+gdIJdk0Ynjpp8l+trkn58Uqsf6RYrYkEK+3X18EX+TNdtJI0WxAtc+L84SQ==}
@@ -5475,6 +5518,7 @@ packages:
   basic-ftp@5.0.5:
     resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
     engines: {node: '>=10.0.0'}
+    deprecated: Security vulnerability fixed in 5.2.0, please upgrade
 
   better-path-resolve@1.0.0:
     resolution: {integrity: sha512-pbnl5XzGBdrFU/wT4jqmJVPn2B6UHPBOhzMQkY/SPUPB6QtUXtmBHBIwCbXJol93mOpGMnQyP/+BB19q04xj7g==}
@@ -7151,6 +7195,7 @@ packages:
   git-raw-commits@4.0.0:
     resolution: {integrity: sha512-ICsMM1Wk8xSGMowkOmPrzo2Fgmfo4bMHLNX6ytHjajRJUqvHOw/TFapQ+QG75c3X/tTDDhOSRPGC52dDbNM8FQ==}
     engines: {node: '>=16'}
+    deprecated: This package is no longer maintained. For the JavaScript API, please use @conventional-changelog/git-client instead.
     hasBin: true
 
   github-slugger@2.0.0:
@@ -7175,25 +7220,27 @@ packages:
 
   glob@10.4.5:
     resolution: {integrity: sha512-7Bv8RF0k6xjo7d4A/PxYLbUCfb6c+Vpd2/mB2yRDlew7Jb5hEXiCD9ibfO7wpk8i4sevK6DFny9h7EYbM3/sHg==}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@11.0.0:
     resolution: {integrity: sha512-9UiX/Bl6J2yaBbxKoEBRm4Cipxgok8kQYcOPEhScPwebu2I0HoQOuYdIO6S3hLuWoZgpDpwQZMzTFxgpkyT76g==}
     engines: {node: 20 || >=22}
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
     hasBin: true
 
   glob@6.0.4:
     resolution: {integrity: sha512-MKZeRNyYZAVVVG1oZeLaWie1uweH40m9AZwIwxyPbTSX4hHrVYSzLg0Ro5Z5R7XKkIX+Cc6oD1rqeDJnwsB8/A==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   glob@8.1.0:
     resolution: {integrity: sha512-r8hpEjiQEYlF2QU0df3dS+nxxSIreXQS1qRhMJM0Q5NDdR386C7jb7Hwwod8Fgiuex+k0GFjgft18yvxm5XoCQ==}
     engines: {node: '>=12'}
-    deprecated: Glob versions prior to v9 are no longer supported
+    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   global-directory@4.0.1:
     resolution: {integrity: sha512-wHTUcDUoZ1H5/0iVqEudYW4/kAlN5cZ3j/bXn0Dpbizl9iaUVeWSHqiOjsgk6OW2bkLclbBjzewBz6weQ1zA2Q==}
@@ -10779,6 +10826,7 @@ packages:
   tar@7.4.3:
     resolution: {integrity: sha512-5S7Va8hKfV7W5U6g3aYxXmlPoZVAwUMy9AOKyF2fVuZa2UD3qZjg578OrLRt8PcNN1PleVaL/5/yYATNL0ICUw==}
     engines: {node: '>=18'}
+    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
 
   teen_process@2.3.1:
     resolution: {integrity: sha512-duT4gPj7HxEYy+AR4bJ9MNwf8GMLpJd+sNRAK2PTx53FpCcaiXVft3ePZh3hO6PY8NFWZMxTC3ZAtxyztScEsw==}
@@ -11405,10 +11453,12 @@ packages:
   whatwg-encoding@2.0.0:
     resolution: {integrity: sha512-p41ogyeMUrw3jWclHWTQg1k05DSVXPLcVxRTYsXUk+ZooOCZLcoYgPZ/HL/D/N+uQPOtcp1me1WhBEaX02mhWg==}
     engines: {node: '>=12'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-fetch@3.6.20:
     resolution: {integrity: sha512-EqhiFU6daOA8kpjOWTL0olhVOF3i7OrFzSYiGsEMB8GcXS+RrzauAERX65xMeNWVqxA6HXH2m69Z9LaKKdisfg==}
@@ -15682,6 +15732,14 @@ snapshots:
     optionalDependencies:
       vite: 5.4.10(@types/node@18.19.62)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
+  '@vitest/mocker@3.0.5(vite@5.4.10(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1))':
+    dependencies:
+      '@vitest/spy': 3.0.5
+      estree-walker: 3.0.3
+      magic-string: 0.30.17
+    optionalDependencies:
+      vite: 5.4.10(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+
   '@vitest/mocker@3.0.5(vite@5.4.10(@types/node@24.10.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1))':
     dependencies:
       '@vitest/spy': 3.0.5
@@ -15861,73 +15919,73 @@ snapshots:
       js-yaml: 3.14.2
       tslib: 2.8.1
 
-  '@yume-chan/adb-scrcpy@1.1.0':
+  '@yume-chan/adb-scrcpy@2.3.2':
     dependencies:
-      '@yume-chan/adb': 1.1.0
+      '@yume-chan/adb': 2.5.1
       '@yume-chan/async': 4.1.3
-      '@yume-chan/event': 1.0.0
-      '@yume-chan/scrcpy': 1.1.0
-      '@yume-chan/stream-extra': 1.0.0
-      '@yume-chan/struct': 1.0.0
+      '@yume-chan/event': 2.0.0
+      '@yume-chan/scrcpy': 2.3.0
+      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/struct': 2.3.2
 
-  '@yume-chan/adb-server-node-tcp@1.1.0':
+  '@yume-chan/adb-server-node-tcp@2.5.2':
     dependencies:
-      '@yume-chan/adb': 1.1.0
+      '@yume-chan/adb': 2.5.1
       '@yume-chan/async': 4.1.3
-      '@yume-chan/stream-extra': 1.0.0
-      '@yume-chan/struct': 1.0.0
+      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/struct': 2.3.2
 
-  '@yume-chan/adb@1.1.0':
+  '@yume-chan/adb@2.5.1':
     dependencies:
       '@yume-chan/async': 4.1.3
-      '@yume-chan/event': 1.0.0
-      '@yume-chan/no-data-view': 1.0.0
-      '@yume-chan/stream-extra': 1.0.0
-      '@yume-chan/struct': 1.0.0
+      '@yume-chan/event': 2.0.0
+      '@yume-chan/no-data-view': 2.0.0
+      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/struct': 2.3.2
 
   '@yume-chan/async@4.1.3': {}
 
-  '@yume-chan/event@1.0.0':
+  '@yume-chan/event@2.0.0':
     dependencies:
       '@yume-chan/async': 4.1.3
 
-  '@yume-chan/no-data-view@1.0.0': {}
+  '@yume-chan/no-data-view@2.0.0': {}
 
-  '@yume-chan/scrcpy-decoder-tinyh264@1.1.0':
+  '@yume-chan/scrcpy-decoder-tinyh264@2.1.0':
     dependencies:
       '@yume-chan/async': 4.1.3
-      '@yume-chan/event': 1.0.0
-      '@yume-chan/scrcpy': 1.1.0
-      '@yume-chan/stream-extra': 1.0.0
+      '@yume-chan/event': 2.0.0
+      '@yume-chan/scrcpy': 2.3.0
+      '@yume-chan/stream-extra': 2.1.0
       tinyh264: 0.0.7
       yuv-buffer: 1.0.1
       yuv-canvas: 1.3.0
 
-  '@yume-chan/scrcpy-decoder-webcodecs@1.1.0':
+  '@yume-chan/scrcpy-decoder-webcodecs@2.5.0':
     dependencies:
       '@yume-chan/async': 4.1.3
-      '@yume-chan/event': 1.0.0
-      '@yume-chan/no-data-view': 1.0.0
-      '@yume-chan/scrcpy': 1.1.0
-      '@yume-chan/scrcpy-decoder-tinyh264': 1.1.0
-      '@yume-chan/stream-extra': 1.0.0
+      '@yume-chan/event': 2.0.0
+      '@yume-chan/no-data-view': 2.0.0
+      '@yume-chan/scrcpy': 2.3.0
+      '@yume-chan/scrcpy-decoder-tinyh264': 2.1.0
+      '@yume-chan/stream-extra': 2.1.0
 
-  '@yume-chan/scrcpy@1.1.0':
+  '@yume-chan/scrcpy@2.3.0':
     dependencies:
       '@yume-chan/async': 4.1.3
-      '@yume-chan/no-data-view': 1.0.0
-      '@yume-chan/stream-extra': 1.0.0
-      '@yume-chan/struct': 1.0.0
+      '@yume-chan/no-data-view': 2.0.0
+      '@yume-chan/stream-extra': 2.1.0
+      '@yume-chan/struct': 2.3.2
 
-  '@yume-chan/stream-extra@1.0.0':
+  '@yume-chan/stream-extra@2.1.0':
     dependencies:
       '@yume-chan/async': 4.1.3
-      '@yume-chan/struct': 1.0.0
+      '@yume-chan/struct': 2.3.2
 
-  '@yume-chan/struct@1.0.0':
+  '@yume-chan/struct@2.3.2':
     dependencies:
       '@yume-chan/async': 4.1.3
-      '@yume-chan/no-data-view': 1.0.0
+      '@yume-chan/no-data-view': 2.0.0
 
   '@zkochan/js-yaml@0.0.7':
     dependencies:
@@ -23360,6 +23418,24 @@ snapshots:
       - supports-color
       - terser
 
+  vite-node@3.0.5(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
+    dependencies:
+      cac: 6.7.14
+      debug: 4.4.0
+      es-module-lexer: 1.7.0
+      pathe: 2.0.3
+      vite: 5.4.10(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+    transitivePeerDependencies:
+      - '@types/node'
+      - less
+      - lightningcss
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+
   vite-node@3.0.5(@types/node@24.10.2)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
     dependencies:
       cac: 6.7.14
@@ -23400,6 +23476,19 @@ snapshots:
       '@types/node': 18.19.62
       fsevents: 2.3.3
       less: 4.3.0
+      lightningcss: 1.30.1
+      sass-embedded: 1.86.3
+      terser: 5.44.1
+
+  vite@5.4.10(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
+    dependencies:
+      esbuild: 0.21.5
+      postcss: 8.5.6
+      rollup: 4.24.3
+    optionalDependencies:
+      '@types/node': 24.10.2
+      fsevents: 2.3.3
+      less: 4.2.2
       lightningcss: 1.30.1
       sass-embedded: 1.86.3
       terser: 5.44.1
@@ -23479,6 +23568,43 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 18.19.62
+      jsdom: 26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - msw
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+
+  vitest@3.0.5(@types/debug@4.1.12)(@types/node@24.10.2)(jsdom@26.1.0)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
+    dependencies:
+      '@vitest/expect': 3.0.5
+      '@vitest/mocker': 3.0.5(vite@5.4.10(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1))
+      '@vitest/pretty-format': 3.1.1
+      '@vitest/runner': 3.0.5
+      '@vitest/snapshot': 3.0.5
+      '@vitest/spy': 3.0.5
+      '@vitest/utils': 3.0.5
+      chai: 5.2.0
+      debug: 4.4.0
+      expect-type: 1.2.1
+      magic-string: 0.30.17
+      pathe: 2.0.3
+      std-env: 3.9.0
+      tinybench: 2.9.0
+      tinyexec: 0.3.2
+      tinypool: 1.1.1
+      tinyrainbow: 2.0.0
+      vite: 5.4.10(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+      vite-node: 3.0.5(@types/node@24.10.2)(less@4.2.2)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/debug': 4.1.12
+      '@types/node': 24.10.2
       jsdom: 26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     transitivePeerDependencies:
       - less

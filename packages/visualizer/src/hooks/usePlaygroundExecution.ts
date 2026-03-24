@@ -52,31 +52,12 @@ function wrapExecutionDumpForReplay(
   dump: ExecutionDump | IExecutionDump,
   deviceType?: string,
 ): IGroupedActionDump {
-  const modelBriefsSet = new Set<string>();
-
-  if (dump?.tasks && Array.isArray(dump.tasks)) {
-    dump.tasks.forEach((task) => {
-      if (task.usage) {
-        const { model_name, model_description, intent } = task.usage;
-        if (intent && model_name) {
-          modelBriefsSet.add(
-            model_description
-              ? `${intent}/${model_name}(${model_description})`
-              : `${intent}/${model_name}`,
-          );
-        }
-      }
-    });
-  } else {
-    console.warn('[wrapExecutionDumpForReplay] Invalid dump structure:', dump);
-  }
-
-  const modelBriefs = [...modelBriefsSet];
-
   return {
     sdkVersion: '',
     groupName: 'Playground Execution',
-    modelBriefs,
+    // modelBriefs is intentionally left empty in playground flow.
+    // Downstream metadata extraction derives model info from task.usage.
+    modelBriefs: [],
     executions: [dump],
     deviceType,
   };
@@ -225,7 +206,7 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
 
         // During deepThink -> deepLocate migration:
         // keep deepThink only for aiAct, and avoid passing it to non-aiAct actions.
-        if (actionType !== 'aiAct' && deepThink) {
+        if (actionType !== 'aiAct' && deepThink === true) {
           console.warn(
             '[Playground] Non-aiAct action will be executed without deepThink. deepThink is only forwarded for aiAct.',
             {
@@ -234,10 +215,15 @@ export function usePlaygroundExecution(options: UsePlaygroundExecutionOptions) {
             },
           );
         }
+        // Only pass deepThink when it's explicitly set (true/false), not when 'unset'
+        // so that model-level reasoningEnabled from env config is respected
+        const resolvedDeepThink = deepThink === 'unset' ? undefined : deepThink;
         const executionOptions = {
           requestId: thisRunningId.toString(),
           deepLocate,
-          ...(actionType === 'aiAct' ? { deepThink } : {}),
+          ...(actionType === 'aiAct' && resolvedDeepThink !== undefined
+            ? { deepThink: resolvedDeepThink }
+            : {}),
           screenshotIncluded,
           domIncluded,
           deviceOptions: {

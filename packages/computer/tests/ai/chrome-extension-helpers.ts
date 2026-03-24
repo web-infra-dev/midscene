@@ -30,15 +30,12 @@ interface ExtensionSettings {
 // ─── Environment Config Keys ────────────────────────────────────────────────
 
 const EXTENSION_ENV_KEYS = [
-  'MIDSCENE_OPENAI_INIT_CONFIG_JSON',
   'MIDSCENE_MODEL_INIT_CONFIG_JSON',
   'MIDSCENE_MODEL_NAME',
   'MIDSCENE_MODEL_API_KEY',
   'MIDSCENE_MODEL_BASE_URL',
   'MIDSCENE_MODEL_FAMILY',
   'MIDSCENE_USE_QWEN3_VL',
-  'OPENAI_API_KEY',
-  'OPENAI_BASE_URL',
 ] as const;
 
 // ─── Browser Helpers ────────────────────────────────────────────────────────
@@ -311,6 +308,75 @@ export async function injectExtensionConfig(
   }
 
   await injectViaWebSocket(target.webSocketDebuggerUrl!, configString);
+}
+
+/**
+ * Find the service worker target for the extension via CDP.
+ */
+async function findServiceWorkerTarget(
+  extensionId: string,
+): Promise<CdpTarget | null> {
+  const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json`);
+  const targets: CdpTarget[] = await res.json();
+  const extPrefix = `chrome-extension://${extensionId}`;
+  return (
+    targets.find(
+      (t) => t.url?.startsWith(extPrefix) && t.type === 'service_worker',
+    ) ?? null
+  );
+}
+
+/**
+ * Set bridge permission to "always allow" via CDP on the service worker,
+ * then restart the bridge so it picks up the new permission.
+ * This prevents the confirm dialog from appearing when a server connects.
+ */
+export async function injectBridgePermission(
+  extensionId: string,
+): Promise<void> {
+  // Try service worker first (where bridge runs), fall back to page
+  let target = await findServiceWorkerTarget(extensionId);
+  if (!target?.webSocketDebuggerUrl) {
+    target = await findExtensionPageTarget(extensionId);
+  }
+  if (!target?.webSocketDebuggerUrl) {
+    console.log('No target found for bridge permission injection');
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(target!.webSocketDebuggerUrl!);
+    let step = 0;
+    ws.onopen = () => {
+      // Step 1: Set alwaysAllow permission
+      cdpSend(ws, 1, 'Runtime.evaluate', {
+        expression:
+          'chrome.storage.local.set({ midscene_bridge_permission: { alwaysAllow: true } })',
+      });
+    };
+    ws.onmessage = (event) => {
+      const msg = cdpParse(event);
+      if (msg.id === 1 && step === 0) {
+        step = 1;
+        console.log('Bridge permission (alwaysAllow) injected via CDP');
+        // Step 2: Stop bridge, then start it so it uses the new permission
+        cdpSend(ws, 2, 'Runtime.evaluate', {
+          expression:
+            'chrome.runtime.sendMessage({ type: "bridge-stop" }, () => { setTimeout(() => chrome.runtime.sendMessage({ type: "bridge-start", payload: {} }), 500); })',
+        });
+      }
+      if (msg.id === 2 && step === 1) {
+        console.log('Bridge restarted with alwaysAllow permission');
+        ws.close();
+        resolve();
+      }
+    };
+    ws.onerror = (e) => reject(e);
+    setTimeout(() => {
+      ws.close();
+      reject(new Error('Bridge permission injection timed out'));
+    }, CDP_INJECTION_TIMEOUT);
+  });
 }
 
 export async function reloadViaWebSocket(wsUrl: string): Promise<void> {

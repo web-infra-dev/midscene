@@ -100,24 +100,34 @@ class BatchRunner {
 
       if (needsBrowser && this.config.shareBrowserContext) {
         const globalWebConfig = this.config.globalConfig?.web;
-        // Extract viewport dimensions from global config or use defaults
-        // This should match the logic in launchPuppeteerPage
-        const width = globalWebConfig?.viewportWidth ?? defaultViewportWidth;
-        const height = globalWebConfig?.viewportHeight ?? defaultViewportHeight;
 
-        const args = buildChromeArgs({
-          userAgent: globalWebConfig?.userAgent,
-          // Only pass windowSize in headed mode; in headless mode, defaultViewport takes precedence
-          windowSize: headed ? { width, height } : undefined,
-          chromeArgs: globalWebConfig?.chromeArgs,
-        });
+        if (globalWebConfig?.cdpEndpoint) {
+          // CDP mode: connect to an existing browser
+          browser = await puppeteer.connect({
+            browserWSEndpoint: globalWebConfig.cdpEndpoint,
+            defaultViewport: null,
+          });
+        } else {
+          // Extract viewport dimensions from global config or use defaults
+          // This should match the logic in launchPuppeteerPage
+          const width = globalWebConfig?.viewportWidth ?? defaultViewportWidth;
+          const height =
+            globalWebConfig?.viewportHeight ?? defaultViewportHeight;
 
-        browser = await puppeteer.launch({
-          headless: !headed,
-          defaultViewport: headed ? null : { width, height },
-          args,
-          acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
-        });
+          const args = buildChromeArgs({
+            userAgent: globalWebConfig?.userAgent,
+            // Only pass windowSize in headed mode; in headless mode, defaultViewport takes precedence
+            windowSize: headed ? { width, height } : undefined,
+            chromeArgs: globalWebConfig?.chromeArgs,
+          });
+
+          browser = await puppeteer.launch({
+            headless: !headed,
+            defaultViewport: headed ? null : { width, height },
+            args,
+            acceptInsecureCerts: globalWebConfig?.acceptInsecureCerts,
+          });
+        }
 
         // Create a shared page instance that will be reused across all YAML files
         // This ensures localStorage and sessionStorage are preserved between files
@@ -140,7 +150,15 @@ class BatchRunner {
         notExecutedContexts,
       );
     } finally {
-      if (browser && !this.config.keepWindow) await browser.close();
+      if (browser && !this.config.keepWindow) {
+        // For CDP mode, disconnect instead of closing the externally managed browser
+        const isCdp = !!this.config.globalConfig?.web?.cdpEndpoint;
+        if (isCdp) {
+          browser.disconnect();
+        } else {
+          await browser.close();
+        }
+      }
       await this.generateOutputIndex();
     }
 

@@ -912,4 +912,63 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
     this.latestMouseX = to.x;
     this.latestMouseY = to.y;
   }
+
+  async pinch(
+    centerX: number,
+    centerY: number,
+    startDistance: number,
+    endDistance: number,
+    duration = 500,
+  ): Promise<void> {
+    const steps = 30;
+    const delay = duration / steps;
+
+    const halfStart = startDistance / 2;
+    const halfEnd = endDistance / 2;
+
+    await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [
+        {
+          x: Math.round(centerX),
+          y: Math.round(centerY - halfStart),
+          id: 0,
+        },
+        {
+          x: Math.round(centerX),
+          y: Math.round(centerY + halfStart),
+          id: 1,
+        },
+      ],
+      modifiers: 0,
+    });
+
+    for (let i = 1; i <= steps; i++) {
+      const progress = i / steps;
+      const currentHalf = halfStart + (halfEnd - halfStart) * progress;
+      await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+        type: 'touchMove',
+        touchPoints: [
+          {
+            x: Math.round(centerX),
+            y: Math.round(centerY - currentHalf),
+            id: 0,
+          },
+          {
+            x: Math.round(centerX),
+            y: Math.round(centerY + currentHalf),
+            id: 1,
+          },
+        ],
+        modifiers: 0,
+      });
+      await new Promise((res) => setTimeout(res, delay));
+    }
+
+    await this.sendCommandToDebugger('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+      modifiers: 0,
+    });
+  }
 }

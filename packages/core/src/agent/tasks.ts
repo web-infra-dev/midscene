@@ -73,8 +73,6 @@ export class TaskExecutor {
 
   private readonly taskBuilder: TaskBuilder;
 
-  private conversationHistory: ConversationHistory;
-
   onTaskStartCallback?: ExecutionTaskProgressOptions['onTaskStart'];
 
   private readonly hooks?: TaskExecutorHooks;
@@ -111,7 +109,6 @@ export class TaskExecutor {
     this.waitAfterAction = opts.waitAfterAction;
     this.useDeviceTimestamp = opts.useDeviceTimestamp;
     this.hooks = opts.hooks;
-    this.conversationHistory = new ConversationHistory();
     this.providedActionSpace = opts.actionSpace;
     this.taskBuilder = new TaskBuilder({
       interfaceInstance,
@@ -295,7 +292,7 @@ export class TaskExecutor {
       | undefined
     >
   > {
-    this.conversationHistory.reset();
+    const conversationHistory = new ConversationHistory();
 
     const session = this.createExecutionSession(
       taskTitleStr('Act', userPrompt),
@@ -324,12 +321,10 @@ export class TaskExecutor {
       }
 
       // Get sub-goal status text if available
-      const subGoalStatus =
-        this.conversationHistory.subGoalsToText() || undefined;
+      const subGoalStatus = conversationHistory.subGoalsToText() || undefined;
 
       // Get memories text if available
-      const memoriesStatus =
-        this.conversationHistory.memoriesToText() || undefined;
+      const memoriesStatus = conversationHistory.memoriesToText() || undefined;
 
       const result = await session.appendAndRun(
         {
@@ -376,7 +371,7 @@ export class TaskExecutor {
                 interfaceType: this.interface.interfaceType as InterfaceType,
                 actionSpace,
                 modelConfig: modelConfigForPlanning,
-                conversationHistory: this.conversationHistory,
+                conversationHistory,
                 includeBbox: includeBboxInPlanning,
                 imagesIncludeCount,
                 deepThink,
@@ -479,16 +474,16 @@ export class TaskExecutor {
           )}`,
         );
       }
-      if (this.conversationHistory.pendingFeedbackMessage) {
+      if (conversationHistory.pendingFeedbackMessage) {
         console.warn(
           'unconsumed pending feedback message detected, this may lead to unexpected planning result:',
-          this.conversationHistory.pendingFeedbackMessage,
+          conversationHistory.pendingFeedbackMessage,
         );
       }
 
       // Set initial time context for the first planning call
       const initialTimeString = await this.getTimeString();
-      this.conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
+      conversationHistory.pendingFeedbackMessage += `Current time: ${initialTimeString}`;
 
       try {
         await session.appendAndRun(executables.tasks);
@@ -496,7 +491,7 @@ export class TaskExecutor {
         // errorFlag = true;
         errorCountInOnePlanningLoop++;
         const timeString = await this.getTimeString();
-        this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
+        conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, Error executing running tasks: ${error?.message || String(error)}`;
         debug(
           'error when executing running tasks, but continue to run if it is not too many errors:',
           error instanceof Error ? error.message : String(error),
@@ -529,9 +524,9 @@ export class TaskExecutor {
         return session.appendErrorPlan(errorMsg);
       }
 
-      if (!this.conversationHistory.pendingFeedbackMessage) {
+      if (!conversationHistory.pendingFeedbackMessage) {
         const timeString = await this.getTimeString();
-        this.conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
+        conversationHistory.pendingFeedbackMessage = `Time: ${timeString}, I have finished the action previously planned.`;
       }
     }
 
@@ -594,6 +589,7 @@ export class TaskExecutor {
             [keyOfResult]: booleanPrompt,
           };
         } else if (ifTypeRestricted) {
+          keyOfResult = type;
           demandInput = {
             [keyOfResult]: `${type}, ${demand}`,
           };

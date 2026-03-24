@@ -7,13 +7,12 @@ import {
   AndroidDevice,
   getConnectedDevices,
 } from '@midscene/android';
-import { PlaygroundServer } from '@midscene/playground';
+import { playgroundForAgentFactory } from '@midscene/playground';
 import {
   PLAYGROUND_SERVER_PORT,
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
-import cors from 'cors';
 import ScrcpyServer from './scrcpy-server';
 
 const promiseExec = promisify(exec);
@@ -79,30 +78,10 @@ const main = async () => {
     const selectedDeviceId = await selectDevice();
     console.log(`✅ Selected device: ${selectedDeviceId}`);
 
-    // Create PlaygroundServer with agent factory
-    const playgroundServer = new PlaygroundServer(
-      // Agent factory - creates new agent with device each time
-      async () => {
-        const device = new AndroidDevice(selectedDeviceId);
-        await device.connect();
-        return new AndroidAgent(device);
-      },
-      staticDir,
-    );
-
     const scrcpyServer = new ScrcpyServer();
 
     // Set the selected device in scrcpy server
     scrcpyServer.currentDeviceId = selectedDeviceId;
-
-    // Add CORS middleware to playground server for remote access
-    playgroundServer.app.use(
-      cors({
-        origin: true,
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      }),
-    );
 
     console.log('🚀 Starting servers...');
 
@@ -123,13 +102,24 @@ const main = async () => {
       );
     }
 
-    await Promise.all([
-      playgroundServer.launch(availablePlaygroundPort),
+    const [playgroundResult] = await Promise.all([
+      playgroundForAgentFactory(async () => {
+        const device = new AndroidDevice(selectedDeviceId);
+        await device.connect();
+        return new AndroidAgent(device);
+      }).launch({
+        port: availablePlaygroundPort,
+        openBrowser: false,
+        verbose: false,
+        staticPath: staticDir,
+        configureServer(server) {
+          server.scrcpyPort = availableScrcpyPort;
+        },
+      }),
       scrcpyServer.launch(availableScrcpyPort),
     ]);
 
-    // Store scrcpy server port in global for playground server to access
-    (global as any).scrcpyServerPort = availableScrcpyPort;
+    const playgroundServer = playgroundResult.server;
 
     console.log('');
     console.log('✨ Midscene Android Playground is ready!');

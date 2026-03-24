@@ -1,4 +1,4 @@
-import { Checkbox, Dropdown, type MenuProps, Radio } from 'antd';
+import { Checkbox, Dropdown, type MenuProps, Radio, Tooltip } from 'antd';
 import type React from 'react';
 import SettingOutlined from '../../icons/setting.svg';
 import { useEnvConfig } from '../../store/store';
@@ -129,14 +129,22 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     if (showDeepThinkOption) {
       items.push({
         label: (
-          <Checkbox
-            onChange={(e) => {
-              setDeepThink(e.target.checked);
-            }}
-            checked={deepThink}
-          >
-            {deepThinkTip}
-          </Checkbox>
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ marginBottom: '4px', fontSize: '14px' }}>
+              {deepThinkTip}
+            </div>
+            <Radio.Group
+              size="small"
+              value={deepThink}
+              onChange={(e) => setDeepThink(e.target.value)}
+            >
+              <Tooltip title="Controlled by MIDSCENE_MODEL_REASONING_ENABLED env variable">
+                <Radio value={'unset'}>Auto</Radio>
+              </Tooltip>
+              <Radio value={true}>On</Radio>
+              <Radio value={false}>Off</Radio>
+            </Radio.Group>
+          </div>
         ),
         key: 'deep-think-config',
       });

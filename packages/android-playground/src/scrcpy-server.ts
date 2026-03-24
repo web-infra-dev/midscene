@@ -16,6 +16,21 @@ export const debugPage = getDebug('android:playground');
 
 const promiseExec = promisify(exec);
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+
+function isLoopbackOrigin(origin?: string) {
+  if (!origin) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    return LOOPBACK_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export default class ScrcpyServer {
   app: express.Application;
   httpServer: HttpServer;
@@ -32,7 +47,9 @@ export default class ScrcpyServer {
     this.httpServer = createServer(this.app);
     this.io = new Server(this.httpServer, {
       cors: {
-        origin: true,
+        origin(origin, callback) {
+          callback(null, isLoopbackOrigin(origin));
+        },
         methods: ['GET', 'POST'],
         credentials: true,
       },
@@ -40,7 +57,9 @@ export default class ScrcpyServer {
 
     this.app.use(
       cors({
-        origin: '*',
+        origin(origin, callback) {
+          callback(null, isLoopbackOrigin(origin));
+        },
         credentials: true,
       }),
     );
@@ -174,13 +193,11 @@ export default class ScrcpyServer {
 
   // start scrcpy
   private async startScrcpy(adb: Adb, options = {}) {
-    const { AdbScrcpyClient, AdbScrcpyOptions2_1 } = await import(
+    const { AdbScrcpyClient, AdbScrcpyOptions3_3_3 } = await import(
       '@yume-chan/adb-scrcpy'
     );
     const { ReadableStream } = await import('@yume-chan/stream-extra');
-    const { ScrcpyOptions3_1, DefaultServerPath } = await import(
-      '@yume-chan/scrcpy'
-    );
+    const { DefaultServerPath } = await import('@yume-chan/scrcpy');
     // Use __dirname in a way that works for both ESM and CommonJS
     const currentDir =
       typeof __dirname !== 'undefined'
@@ -196,7 +213,7 @@ export default class ScrcpyServer {
       );
 
       // Start scrcpy service
-      const scrcpyOptions = new ScrcpyOptions3_1({
+      const scrcpyOptions = new AdbScrcpyOptions3_3_3({
         // default options
         audio: false,
         control: true,
@@ -207,11 +224,7 @@ export default class ScrcpyServer {
         ...options,
       });
 
-      return await AdbScrcpyClient.start(
-        adb,
-        DefaultServerPath,
-        new AdbScrcpyOptions2_1(scrcpyOptions),
-      );
+      return await AdbScrcpyClient.start(adb, DefaultServerPath, scrcpyOptions);
     } catch (error) {
       console.error('failed to start scrcpy:', error);
       throw error;

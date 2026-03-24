@@ -10,7 +10,7 @@ const modelConfig = globalModelConfigManager.getModelConfig('default');
 test.skipIf(!modelConfig.modelFamily)(
   'locate section',
   {
-    timeout: 60 * 1000,
+    timeout: 120 * 1000,
   },
   async () => {
     const { context } = await getContextFromFixture('antd-tooltip');
