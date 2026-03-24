@@ -24,7 +24,7 @@ export interface VideoToScriptOptions {
   viewportHeight?: number;
 }
 
-export type VideoScriptFormat = 'yaml' | 'playwright';
+export type VideoScriptFormat = 'yaml' | 'playwright' | 'puppeteer';
 
 export interface VideoSegmentInfo {
   index: number;
@@ -111,6 +111,50 @@ ${ACTION_DETECTION_GUIDE}
 ${PLAYWRIGHT_EXAMPLE_CODE}`;
 }
 
+function buildPuppeteerSystemPrompt(): string {
+  const puppeteerExample = [
+    '// Puppeteer + Midscene example',
+    'import puppeteer from "puppeteer";',
+    'import { PuppeteerAgent } from "@midscene/web/puppeteer";',
+    '',
+    'const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));',
+    'Promise.resolve(',
+    '  (async () => {',
+    '    const browser = await puppeteer.launch({ headless: false });',
+    '    const page = await browser.newPage();',
+    '    await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });',
+    '    await page.goto("https://www.example.com");',
+    '    await sleep(3000);',
+    '',
+    '    const agent = new PuppeteerAgent(page);',
+    '    await agent.aiAct(\'type "search term" in search box, hit Enter\');',
+    '    await agent.aiAssert("There are search results displayed");',
+    '    const items = await agent.aiQuery("{title: string, price: number}[], find items");',
+    '    console.log("items:", items);',
+    '',
+    '    await browser.close();',
+    '  })()',
+    ');',
+  ].join('\n');
+
+  return `You are an expert test automation engineer specializing in Puppeteer and Midscene.js. Your task is to analyze a sequence of screenshots extracted from a screen recording video and generate a **runnable** Puppeteer script using @midscene/web/puppeteer that reproduces the user's actions.
+${MIDSCENE_CONSTRAINTS}
+
+For Puppeteer scripts, navigation is handled by \`page.goto(url)\` — NEVER generate aiTap/aiInput actions targeting the browser address bar.
+${ACTION_DETECTION_GUIDE}
+## Output Rules
+
+- Output ONLY the raw TypeScript code — no markdown code fences, no explanation.
+- The script MUST be immediately executable with \`npx tsx script.ts\`.
+- Extract the actual page URL from the address bar visible in the video frames.
+- Use \`page.goto(url)\` for navigation.
+- Use the PuppeteerAgent methods: agent.aiAct, agent.aiTap, agent.aiInput, agent.aiAssert, agent.aiQuery, agent.aiWaitFor.
+- Use natural language descriptions for element targeting.
+
+## Puppeteer + Midscene Code Reference
+${puppeteerExample}`;
+}
+
 function buildUserPrompt(
   frames: VideoFrame[],
   options: VideoToScriptOptions,
@@ -138,7 +182,12 @@ function buildUserPrompt(
     `\nThere are ${frames.length} frames in total. Each frame is labeled with its timestamp.`,
   );
 
-  const formatLabel = format === 'yaml' ? 'Midscene YAML' : 'Playwright test';
+  const formatLabel =
+    format === 'yaml'
+      ? 'Midscene YAML'
+      : format === 'puppeteer'
+        ? 'Puppeteer script'
+        : 'Playwright test';
   parts.push(
     `\nAnalyze the frames to identify all user actions, then generate a complete, runnable ${formatLabel} script that reproduces the workflow.`,
   );
@@ -160,7 +209,11 @@ function buildMultimodalMessages(
   format: VideoScriptFormat,
 ): ChatCompletionMessageParam[] {
   const systemPrompt =
-    format === 'yaml' ? buildYamlSystemPrompt() : buildPlaywrightSystemPrompt();
+    format === 'yaml'
+      ? buildYamlSystemPrompt()
+      : format === 'puppeteer'
+        ? buildPuppeteerSystemPrompt()
+        : buildPlaywrightSystemPrompt();
 
   const userText = buildUserPrompt(frames, options, format);
 
@@ -261,6 +314,25 @@ export async function generatePlaywrightFromVideoFrames(
   const messages = buildMultimodalMessages(frames, options, 'playwright');
   const response = await callAIWithStringResponse(messages, modelConfig);
   const content = stripCodeFences(response.content, 'playwright');
+
+  return { content };
+}
+
+/**
+ * Generate a Puppeteer + Midscene script from video frames using a VLM.
+ */
+export async function generatePuppeteerFromVideoFrames(
+  frames: VideoFrame[],
+  options: VideoToScriptOptions,
+  modelConfig: IModelConfig,
+): Promise<{ content: string }> {
+  if (frames.length === 0) {
+    throw new Error('No frames provided for video-to-Puppeteer generation');
+  }
+
+  const messages = buildMultimodalMessages(frames, options, 'puppeteer');
+  const response = await callAIWithStringResponse(messages, modelConfig);
+  const content = stripCodeFences(response.content, 'puppeteer');
 
   return { content };
 }
@@ -379,7 +451,7 @@ function buildMergeUserPrompt(
 ): string {
   const parts: string[] = [];
   parts.push(
-    `Below are action lists from ${segmentResults.length} sequential segments of a screen recording. Merge them into a single runnable ${format === 'yaml' ? 'Midscene YAML' : 'Playwright test'} script.`,
+    `Below are action lists from ${segmentResults.length} sequential segments of a screen recording. Merge them into a single runnable ${format === 'yaml' ? 'Midscene YAML' : format === 'puppeteer' ? 'Puppeteer' : 'Playwright test'} script.`,
   );
 
   if (options.url) {

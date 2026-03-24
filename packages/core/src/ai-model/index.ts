@@ -16,6 +16,7 @@ export {
 export {
   generateYamlFromVideoFrames,
   generatePlaywrightFromVideoFrames,
+  generatePuppeteerFromVideoFrames,
   generateFromVideoSegment,
   mergeSegmentResults,
 } from './prompt/video-to-yaml';

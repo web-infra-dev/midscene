@@ -6,15 +6,15 @@ import { BatchRunner } from './batch-runner';
 import { matchYamlFiles, parseProcessArgs } from './cli-utils';
 import { createConfig, createFilesConfig } from './config-factory';
 
-import { parseVideo2YamlArgs } from './video/cli';
-import { video2yaml } from './video/index';
+import { parseCodegenArgs } from './video/cli';
+import { codegen } from './video/index';
 
 /**
- * Handle the `video2yaml` subcommand.
- * Usage: midscene video2yaml <video-file> [options]
+ * Handle the `codegen` subcommand.
+ * Usage: midscene codegen <video-file> [options]
  */
-async function handleVideo2Yaml(args: string[]): Promise<void> {
-  const options = parseVideo2YamlArgs(args);
+async function handleCodegen(args: string[]): Promise<void> {
+  const options = parseCodegenArgs(args);
 
   // Load .env file if exists
   const dotEnvConfigFile = join(process.cwd(), '.env');
@@ -22,17 +22,17 @@ async function handleVideo2Yaml(args: string[]): Promise<void> {
     dotenv.config({ path: dotEnvConfigFile });
   }
 
-  await video2yaml(options);
+  await codegen(options);
 }
 
 Promise.resolve(
   (async () => {
     // Check if the first positional arg is a subcommand
     const rawArgs = process.argv.slice(2);
-    if (rawArgs[0] === 'video2yaml') {
+    if (rawArgs[0] === 'codegen') {
       const welcome = `\nWelcome to @midscene/cli v${version}\n`;
       console.log(welcome);
-      await handleVideo2Yaml(rawArgs.slice(1));
+      await handleCodegen(rawArgs.slice(1));
       process.exit(0);
       return;
     }

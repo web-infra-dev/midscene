@@ -1,5 +1,5 @@
 import type { VideoScriptFormat } from '@midscene/core/ai-model';
-import type { Video2YamlOptions } from './index';
+import type { CodegenOptions } from './index';
 
 /**
  * Consume the next argument value for a given flag, or exit with error.
@@ -14,9 +14,9 @@ function consumeArg(args: string[], index: number, flag: string): string {
 }
 
 /**
- * Parse arguments for the video2yaml subcommand.
+ * Parse arguments for the codegen subcommand.
  *
- * Usage: midscene video2yaml <video-file> [options]
+ * Usage: midscene codegen <video-file> [options]
  *   --output, -o      Output file path
  *   --format, -f      Output format: yaml (default) or playwright
  *   --url             Starting URL of the page in the video
@@ -26,8 +26,8 @@ function consumeArg(args: string[], index: number, flag: string): string {
  *   --viewport-width  Viewport width
  *   --viewport-height Viewport height
  */
-export function parseVideo2YamlArgs(args: string[]): Video2YamlOptions {
-  const options: Video2YamlOptions = { input: '' };
+export function parseCodegenArgs(args: string[]): CodegenOptions {
+  const options: CodegenOptions = { input: '' };
 
   let i = 0;
   while (i < args.length) {
@@ -38,8 +38,10 @@ export function parseVideo2YamlArgs(args: string[]): Video2YamlOptions {
       i++;
     } else if (arg === '--format' || arg === '-f') {
       const fmt = consumeArg(args, i, arg);
-      if (fmt !== 'yaml' && fmt !== 'playwright') {
-        console.error(`Invalid format: ${fmt}. Must be "yaml" or "playwright"`);
+      if (fmt !== 'yaml' && fmt !== 'playwright' && fmt !== 'puppeteer') {
+        console.error(
+          `Invalid format: ${fmt}. Must be "yaml", "playwright", or "puppeteer"`,
+        );
         process.exit(1);
       }
       options.format = fmt as VideoScriptFormat;
@@ -125,7 +127,7 @@ export function parseVideo2YamlArgs(args: string[]): Video2YamlOptions {
 
 function printHelp(): void {
   console.log(`
-Usage: midscene video2yaml <video-file> [options]
+Usage: midscene codegen <video-file> [options]
 
 Generate a runnable Midscene test script from a screen recording video.
 
@@ -134,7 +136,7 @@ Arguments:
 
 Options:
   -o, --output <path>     Output file path (default: <video-file>.yaml or .test.ts)
-  -f, --format <format>   Output format: "yaml" (default) or "playwright"
+  -f, --format <format>   Output format: "yaml" (default), "playwright", or "puppeteer"
   --url <url>             Starting URL of the web page in the video
   --description <text>    Description of what the video demonstrates
   --fps <number>          Frames per second to extract (default: 1)
@@ -150,17 +152,19 @@ Note: Short videos (≤20 frames) are processed in a single VLM call.
 
 Examples:
   # Generate YAML script (default)
-  midscene video2yaml recording.mp4
-  midscene video2yaml recording.mp4 -o test.yaml --url https://example.com
+  midscene codegen recording.mp4
+  midscene codegen recording.mp4 -o test.yaml --url https://example.com
 
   # Generate Playwright test
-  midscene video2yaml recording.mp4 --format playwright
-  midscene video2yaml recording.mp4 -f playwright -o login.test.ts
+  midscene codegen recording.mp4 -f playwright -o login.test.ts
+
+  # Generate Puppeteer script
+  midscene codegen recording.mp4 -f puppeteer -o demo.ts
 
   # Custom frame extraction
-  midscene video2yaml demo.webm --fps 2 --max-frames 30 --description "Login flow test"
+  midscene codegen demo.webm --fps 2 --max-frames 30 --description "Login flow test"
 
   # Long video with custom segmentation
-  midscene video2yaml long-demo.mp4 --scene-threshold 0.2 --max-frames-per-segment 20
+  midscene codegen long-demo.mp4 --scene-threshold 0.2 --max-frames-per-segment 20
 `);
 }

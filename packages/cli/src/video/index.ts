@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import {
   generateFromVideoSegment,
   generatePlaywrightFromVideoFrames,
+  generatePuppeteerFromVideoFrames,
   generateYamlFromVideoFrames,
   mergeSegmentResults,
 } from '@midscene/core/ai-model';
@@ -17,7 +18,7 @@ const SEGMENT_THRESHOLD = 20;
 /** Maximum total frames to extract from a video to prevent OOM */
 const MAX_TOTAL_FRAMES = 600;
 
-export interface Video2YamlOptions {
+export interface CodegenOptions {
   /** Path to the video file */
   input: string;
   /** Output file path (default: <input>.yaml or <input>.test.ts) */
@@ -46,11 +47,11 @@ function getDefaultOutputPath(
   inputPath: string,
   format: VideoScriptFormat,
 ): string {
-  const ext = format === 'playwright' ? '.test.ts' : '.yaml';
+  const ext = format === 'yaml' ? '.yaml' : '.ts';
   return inputPath.replace(/\.[^.]+$/, ext);
 }
 
-export async function video2yaml(options: Video2YamlOptions): Promise<string> {
+export async function codegen(options: CodegenOptions): Promise<string> {
   const {
     input,
     output,
@@ -76,7 +77,12 @@ export async function video2yaml(options: Video2YamlOptions): Promise<string> {
 
   const modelConfig = globalModelConfigManager.getModelConfig('default');
   const scriptOptions = { url, description, viewportWidth, viewportHeight };
-  const formatLabel = format === 'playwright' ? 'Playwright test' : 'YAML';
+  const formatLabel =
+    format === 'yaml'
+      ? 'YAML'
+      : format === 'puppeteer'
+        ? 'Puppeteer script'
+        : 'Playwright test';
 
   // Determine if we need segmented processing
   const duration = getVideoDuration(inputPath);
@@ -104,14 +110,13 @@ export async function video2yaml(options: Video2YamlOptions): Promise<string> {
       `   Analyzing video frames with AI (generating ${formatLabel})...`,
     );
 
-    const result =
-      format === 'playwright'
-        ? await generatePlaywrightFromVideoFrames(
-            frames,
-            scriptOptions,
-            modelConfig,
-          )
-        : await generateYamlFromVideoFrames(frames, scriptOptions, modelConfig);
+    const generateFn =
+      format === 'yaml'
+        ? generateYamlFromVideoFrames
+        : format === 'puppeteer'
+          ? generatePuppeteerFromVideoFrames
+          : generatePlaywrightFromVideoFrames;
+    const result = await generateFn(frames, scriptOptions, modelConfig);
 
     writeFileSync(outputPath, result.content, 'utf-8');
     console.log(`   ${formatLabel} script saved to: ${outputPath}`);
