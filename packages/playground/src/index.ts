@@ -18,6 +18,10 @@ export {
   resolvePreparedLaunchOptions,
 } from './platform';
 export { launchPreparedPlaygroundPlatform } from './platform-launcher';
+export {
+  playgroundForPlatforms,
+  prepareMultiPlatformPlayground,
+} from './multi-platform';
 
 // SDK exports
 export { PlaygroundSDK } from './sdk';
@@ -43,10 +47,14 @@ export type {
 } from './launcher';
 export type {
   PlaygroundCreatedSession,
+  PlaygroundExecutionHooks,
+  PlaygroundPlatformRegistration,
   PlaygroundPlatformDescriptor,
+  PlaygroundPlatformSelectorConfig,
   PlaygroundPreviewCapability,
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
+  PlaygroundSidecar,
   PreparedPlaygroundPlatform,
   PlaygroundSessionField,
   PlaygroundSessionFieldOption,
@@ -56,3 +64,7 @@ export type {
   PlaygroundSessionTarget,
 } from './platform';
 export type { PlaygroundRuntimeInfo } from './runtime-metadata';
+export type {
+  PrepareMultiPlatformPlaygroundOptions,
+  RegisteredPlaygroundPlatform,
+} from './multi-platform';

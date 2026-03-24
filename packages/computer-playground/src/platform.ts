@@ -127,28 +127,27 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
         openBrowser: false,
         verbose: false,
         staticPath: staticDir,
-        configureServer(server) {
-          server.app.use('/execute', async (_req, res, next) => {
-            const windowController = options?.getWindowController?.();
-            if (!windowController) {
-              console.warn(
-                '⚠️  Window controller not initialized yet, skipping window control',
-              );
-              next();
-              return;
-            }
+      },
+      executionHooks: {
+        async beforeExecute() {
+          const windowController = options?.getWindowController?.();
+          if (!windowController) {
+            console.warn(
+              '⚠️  Window controller not initialized yet, skipping window control',
+            );
+            return;
+          }
 
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            await windowController.minimize();
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await windowController.minimize();
+        },
+        async afterExecute() {
+          const windowController = options?.getWindowController?.();
+          if (!windowController) {
+            return;
+          }
 
-            const originalSend = res.send.bind(res);
-            res.send = (body: any) => {
-              windowController.restore();
-              return originalSend(body);
-            };
-
-            next();
-          });
+          await windowController.restore();
         },
       },
       preview: createScreenshotPreviewDescriptor({

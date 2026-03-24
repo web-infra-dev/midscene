@@ -20,6 +20,7 @@ import type ScrcpyServer from './scrcpy-server';
 export interface AndroidPlatformOptions {
   staticDir?: string;
   scrcpyServer?: ScrcpyServer;
+  scrcpyPort?: number;
 }
 
 async function getAdbTargets(): Promise<PlaygroundSessionTarget[]> {
@@ -51,10 +52,13 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
   async prepare(options) {
     const staticDir =
       options?.staticDir || path.join(__dirname, '../../static');
-    const [playgroundPort, scrcpyPort] = await Promise.all([
+    const [playgroundPort, resolvedScrcpyPort] = await Promise.all([
       findAvailablePort(PLAYGROUND_SERVER_PORT),
-      findAvailablePort(SCRCPY_SERVER_PORT),
+      options?.scrcpyPort
+        ? Promise.resolve(options.scrcpyPort)
+        : findAvailablePort(SCRCPY_SERVER_PORT),
     ]);
+    const scrcpyPort = resolvedScrcpyPort;
 
     if (playgroundPort !== PLAYGROUND_SERVER_PORT) {
       console.log(
@@ -139,6 +143,19 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
       platformId: 'android',
       title: 'Midscene Android Playground',
       sessionManager,
+      sidecars: options?.scrcpyServer
+        ? [
+            {
+              id: 'android-scrcpy',
+              start: async () => {
+                await options.scrcpyServer?.launch(scrcpyPort);
+              },
+              stop: async () => {
+                options.scrcpyServer?.close();
+              },
+            },
+          ]
+        : undefined,
       launchOptions: {
         port: playgroundPort,
         openBrowser: false,

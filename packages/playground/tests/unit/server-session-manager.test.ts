@@ -30,6 +30,11 @@ describe('PlaygroundServer session manager APIs', () => {
       },
       destroy: vi.fn(),
     })) as any;
+    const sidecar = {
+      id: 'session-sidecar',
+      start: vi.fn(async () => {}),
+      stop: vi.fn(async () => {}),
+    };
 
     const server = new PlaygroundServer();
     server.setPreparedPlatform({
@@ -40,9 +45,15 @@ describe('PlaygroundServer session manager APIs', () => {
         setupState: 'required',
       },
       sessionManager: {
-        async getSetupSchema() {
+        async getSetupSchema(input) {
           return {
             fields: [
+              {
+                key: 'platformId',
+                label: 'Platform',
+                type: 'select',
+                defaultValue: input?.platformId || 'android',
+              },
               {
                 key: 'deviceId',
                 label: 'ADB device',
@@ -62,9 +73,19 @@ describe('PlaygroundServer session manager APIs', () => {
             agent: await agentFactory(),
             agentFactory,
             displayName: String(input?.deviceId || 'SERIAL123'),
+            platformId: 'computer',
+            title: 'Midscene Computer Playground',
+            platformDescription: 'Computer playground platform descriptor',
+            preview: {
+              kind: 'screenshot',
+              title: 'Desktop preview',
+              screenshotPath: '/screenshot',
+              capabilities: [],
+            },
             metadata: {
               deviceId: String(input?.deviceId || 'SERIAL123'),
             },
+            sidecars: [sidecar],
           };
         },
       },
@@ -110,6 +131,7 @@ describe('PlaygroundServer session manager APIs', () => {
         },
       },
     });
+    expect(sidecar.start).toHaveBeenCalledTimes(1);
 
     const actionSpaceHandler = postCalls.find(
       ([route]) => route === '/action-space',
@@ -118,6 +140,15 @@ describe('PlaygroundServer session manager APIs', () => {
     await actionSpaceHandler({ body: {} }, actionSpaceResponse);
     expect(actionSpaceResponse.body).toHaveLength(1);
     expect(agentFactory).toHaveBeenCalledTimes(1);
+    expect(server.getRuntimeInfo()).toMatchObject({
+      platformId: 'computer',
+      title: 'Midscene Computer Playground',
+      platformDescription: 'Computer playground platform descriptor',
+      preview: {
+        kind: 'screenshot',
+        title: 'Desktop preview',
+      },
+    });
 
     const deleteResponse = createMockResponse();
     await deleteSessionHandler({}, deleteResponse);
@@ -127,5 +158,13 @@ describe('PlaygroundServer session manager APIs', () => {
         setupState: 'required',
       },
     });
+    expect(server.getRuntimeInfo()).toMatchObject({
+      platformId: 'android',
+      title: 'Midscene Android Playground',
+      preview: {
+        kind: 'none',
+      },
+    });
+    expect(sidecar.stop).toHaveBeenCalledTimes(1);
   });
 });

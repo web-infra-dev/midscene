@@ -38,12 +38,16 @@ export function resolveSessionViewState(
 
 export function buildSessionInitialValues(
   setup: PlaygroundSessionSetup | null,
+  existingValues: Record<string, unknown> = {},
 ): Record<string, unknown> {
   if (!setup) {
     return {};
   }
 
   return Object.fromEntries(
-    setup.fields.map((field) => [field.key, field.defaultValue ?? '']),
+    setup.fields.map((field) => [
+      field.key,
+      existingValues[field.key] ?? field.defaultValue ?? '',
+    ]),
   );
 }

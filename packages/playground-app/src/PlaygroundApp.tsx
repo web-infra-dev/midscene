@@ -1,4 +1,5 @@
 import type {
+  PlaygroundPlatformRegistration,
   PlaygroundSessionField,
   PlaygroundSessionSetup,
 } from '@midscene/playground';
@@ -21,6 +22,7 @@ import {
   InputNumber,
   Layout,
   Modal,
+  Radio,
   Select,
   Space,
   Typography,
@@ -41,6 +43,34 @@ import './PlaygroundApp.less';
 const { Content } = Layout;
 const { Paragraph, Text, Title } = Typography;
 
+function getPlatformSelectorFieldKey(
+  setup: PlaygroundSessionSetup | null,
+): string | undefined {
+  return setup?.platformSelector?.fieldKey;
+}
+
+function getPlatformSelectorOptions(
+  field: PlaygroundSessionField,
+  setup: PlaygroundSessionSetup | null,
+): PlaygroundSessionField['options'] {
+  if (!setup?.platformRegistry?.length) {
+    return field.options;
+  }
+
+  const registryOptions = setup.platformRegistry.map(
+    (platform: PlaygroundPlatformRegistration) => ({
+      label: platform.label,
+      value: platform.id,
+      description:
+        [platform.description, platform.unavailableReason]
+          .filter(Boolean)
+          .join(' · ') || undefined,
+    }),
+  );
+
+  return registryOptions.length > 0 ? registryOptions : field.options;
+}
+
 export interface PlaygroundAppProps {
   serverUrl: string;
   appVersion: string;
@@ -53,7 +83,10 @@ export interface PlaygroundAppProps {
   pollIntervalMs?: number;
 }
 
-function renderSessionField(field: PlaygroundSessionField) {
+function renderSessionField(
+  field: PlaygroundSessionField,
+  sessionSetup: PlaygroundSessionSetup | null,
+) {
   if (field.type === 'number') {
     return (
       <InputNumber style={{ width: '100%' }} placeholder={field.placeholder} />
@@ -61,10 +94,37 @@ function renderSessionField(field: PlaygroundSessionField) {
   }
 
   if (field.type === 'select') {
+    const platformSelectorFieldKey = getPlatformSelectorFieldKey(sessionSetup);
+    const platformOptions = getPlatformSelectorOptions(field, sessionSetup);
+    const shouldRenderPlatformSelector =
+      platformSelectorFieldKey === field.key &&
+      sessionSetup?.platformSelector?.variant === 'cards';
+
+    if (shouldRenderPlatformSelector) {
+      return (
+        <Radio.Group className="platform-selector-group">
+          {(platformOptions || []).map((option) => (
+            <Radio.Button
+              key={String(option.value)}
+              value={option.value}
+              className="platform-selector-card"
+            >
+              <div className="platform-selector-title">{option.label}</div>
+              {option.description ? (
+                <div className="platform-selector-description">
+                  {option.description}
+                </div>
+              ) : null}
+            </Radio.Button>
+          ))}
+        </Radio.Group>
+      );
+    }
+
     return (
       <Select
         placeholder={field.placeholder}
-        options={(field.options || []).map((option) => ({
+        options={(platformOptions || field.options || []).map((option) => ({
           label: option.label,
           value: option.value,
           description: option.description,
@@ -114,6 +174,10 @@ export function PlaygroundApp({
   const [sessionMutating, setSessionMutating] = useState(false);
   const [messageApi, messageContextHolder] = message.useMessage();
   const countdownSeconds = playgroundConfig?.executionUx?.countdownSeconds ?? 3;
+  const platformSelectorFieldKey = getPlatformSelectorFieldKey(sessionSetup);
+  const selectedPlatformId =
+    Form.useWatch(platformSelectorFieldKey || 'platformId', setupForm) ??
+    undefined;
 
   const playgroundSDK = useMemo(
     () =>
@@ -139,6 +203,7 @@ export function PlaygroundApp({
   const countdownTimerRef = useRef<number | null>(null);
   const countdownResolveRef = useRef<(() => void) | null>(null);
   const mountedRef = useRef(true);
+  const lastSetupPlatformIdRef = useRef<string | undefined>(undefined);
 
   const finishCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -216,18 +281,35 @@ export function PlaygroundApp({
     };
   }, [executionUxHints, playgroundSDK, showCountdownModal]);
 
-  const refreshSessionSetup = useCallback(async () => {
-    setSessionLoading(true);
-    try {
-      const setup = await playgroundSDK.getSessionSetup();
-      setSessionSetup(setup);
-      setupForm.setFieldsValue(buildSessionInitialValues(setup));
-    } catch (error) {
-      console.error('Failed to load session setup:', error);
-    } finally {
-      setSessionLoading(false);
-    }
-  }, [playgroundSDK, setupForm]);
+  const refreshSessionSetup = useCallback(
+    async (input?: Record<string, unknown>) => {
+      const currentValues = {
+        ...setupForm.getFieldsValue(true),
+        ...(input || {}),
+      };
+
+      setSessionLoading(true);
+      try {
+        const setup = await playgroundSDK.getSessionSetup(input);
+        setSessionSetup(setup);
+        const currentPlatformSelectorFieldKey =
+          getPlatformSelectorFieldKey(setup);
+        lastSetupPlatformIdRef.current =
+          currentPlatformSelectorFieldKey &&
+          typeof currentValues[currentPlatformSelectorFieldKey] === 'string'
+            ? (currentValues[currentPlatformSelectorFieldKey] as string)
+            : undefined;
+        setupForm.setFieldsValue(
+          buildSessionInitialValues(setup, currentValues),
+        );
+      } catch (error) {
+        console.error('Failed to load session setup:', error);
+      } finally {
+        setSessionLoading(false);
+      }
+    },
+    [playgroundSDK, setupForm],
+  );
 
   useEffect(() => {
     if (!serverOnline || sessionViewState.connected) {
@@ -236,6 +318,35 @@ export function PlaygroundApp({
 
     refreshSessionSetup();
   }, [refreshSessionSetup, serverOnline, sessionViewState.connected]);
+
+  useEffect(() => {
+    if (!serverOnline || sessionViewState.connected || !selectedPlatformId) {
+      return;
+    }
+
+    const currentPlatformSelectorFieldKey =
+      getPlatformSelectorFieldKey(sessionSetup);
+    if (!currentPlatformSelectorFieldKey) {
+      return;
+    }
+
+    if (lastSetupPlatformIdRef.current === selectedPlatformId) {
+      return;
+    }
+
+    refreshSessionSetup({
+      ...setupForm.getFieldsValue(true),
+      [currentPlatformSelectorFieldKey]: selectedPlatformId,
+    });
+  }, [
+    platformSelectorFieldKey,
+    refreshSessionSetup,
+    selectedPlatformId,
+    serverOnline,
+    sessionSetup,
+    sessionViewState.connected,
+    setupForm,
+  ]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -459,7 +570,7 @@ export function PlaygroundApp({
                                   : undefined
                               }
                             >
-                              {renderSessionField(field)}
+                              {renderSessionField(field, sessionSetup)}
                             </Form.Item>
                           ))}
                         </Form>
@@ -476,7 +587,11 @@ export function PlaygroundApp({
                             {sessionSetup?.primaryActionLabel || 'Create Agent'}
                           </Button>
                           <Button
-                            onClick={refreshSessionSetup}
+                            onClick={() =>
+                              refreshSessionSetup(
+                                setupForm.getFieldsValue(true),
+                              )
+                            }
                             loading={sessionLoading}
                           >
                             Refresh targets

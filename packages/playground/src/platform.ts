@@ -39,6 +39,20 @@ export interface PlaygroundSessionFieldOption {
   description?: string;
 }
 
+export interface PlaygroundPlatformRegistration {
+  id: string;
+  label: string;
+  description?: string;
+  unavailableReason?: string;
+  supportsStandalone?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PlaygroundPlatformSelectorConfig {
+  fieldKey: string;
+  variant?: 'cards' | 'select';
+}
+
 export interface PlaygroundSessionField {
   key: string;
   label: string;
@@ -56,6 +70,19 @@ export interface PlaygroundSessionSetup {
   primaryActionLabel?: string;
   fields: PlaygroundSessionField[];
   targets?: PlaygroundSessionTarget[];
+  platformRegistry?: PlaygroundPlatformRegistration[];
+  platformSelector?: PlaygroundPlatformSelectorConfig;
+}
+
+export interface PlaygroundExecutionHooks {
+  beforeExecute?: () => void | Promise<void>;
+  afterExecute?: () => void | Promise<void>;
+}
+
+export interface PlaygroundSidecar {
+  id: string;
+  start(): void | Promise<void>;
+  stop?(): void | Promise<void>;
 }
 
 export interface PlaygroundSessionState {
@@ -72,10 +99,17 @@ export interface PlaygroundCreatedSession {
   preview?: PlaygroundPreviewDescriptor;
   metadata?: Record<string, unknown>;
   displayName?: string;
+  platformId?: string;
+  title?: string;
+  platformDescription?: string;
+  executionHooks?: PlaygroundExecutionHooks;
+  sidecars?: PlaygroundSidecar[];
 }
 
 export interface PlaygroundSessionManager {
-  getSetupSchema(): Promise<PlaygroundSessionSetup>;
+  getSetupSchema?(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup>;
   listTargets?(): Promise<PlaygroundSessionTarget[]>;
   createSession(
     input?: Record<string, unknown>,
@@ -90,9 +124,11 @@ export interface PreparedPlaygroundPlatform {
   agent?: Agent;
   agentFactory?: AgentFactory;
   sessionManager?: PlaygroundSessionManager;
+  executionHooks?: PlaygroundExecutionHooks;
   launchOptions?: LaunchPlaygroundOptions;
   preview?: PlaygroundPreviewDescriptor;
   metadata?: Record<string, unknown>;
+  sidecars?: PlaygroundSidecar[];
 }
 
 export interface PlaygroundPlatformDescriptor<TOptions = void> {

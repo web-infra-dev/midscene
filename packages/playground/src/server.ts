@@ -17,11 +17,13 @@ import express, { type Request, type Response } from 'express';
 import { executeAction, formatErrorMessage } from './common';
 import type {
   PlaygroundCreatedSession,
+  PlaygroundExecutionHooks,
   PlaygroundPreviewDescriptor,
   PlaygroundSessionManager,
   PlaygroundSessionSetup,
   PlaygroundSessionState,
   PlaygroundSessionTarget,
+  PlaygroundSidecar,
   PreparedPlaygroundPlatform,
 } from './platform';
 import {
@@ -53,12 +55,28 @@ const errorHandler = (
   });
 };
 
+interface PlaygroundRuntimeState {
+  platformId?: string;
+  title?: string;
+  description?: string;
+  preview?: PlaygroundPreviewDescriptor;
+  metadata?: Record<string, unknown>;
+}
+
+interface PlaygroundActiveConnection {
+  session: PlaygroundSessionState | null;
+  agent: PageAgent | null;
+  agentFactory?: AgentFactory | null;
+  runtime?: PlaygroundRuntimeState;
+  executionHooks?: PlaygroundExecutionHooks;
+  sidecars?: PlaygroundSidecar[];
+}
+
 class PlaygroundServer {
   private _app: express.Application;
   tmpDir: string;
   server?: Server;
   port?: number | null;
-  agent: PageAgent | null;
   staticPath: string;
   taskExecutionDumps: Record<string, ExecutionDump | null>; // Store execution dumps directly
   id: string; // Unique identifier for this server instance
@@ -74,10 +92,7 @@ class PlaygroundServer {
   // Native MJPEG stream probe: null = not tested, true/false = result
   private _nativeMjpegAvailable: boolean | null = null;
 
-  // Factory function for recreating agent
-  private agentFactory?: AgentFactory | null;
   private sessionManager?: PlaygroundSessionManager;
-  private currentSession: PlaygroundSessionState | null = null;
   private sessionSetupState: 'required' | 'ready' | 'blocked' = 'ready';
   private sessionSetupBlockingReason?: string;
 
@@ -89,14 +104,18 @@ class PlaygroundServer {
 
   // Flag to track if AI config has changed and agent needs recreation
   private _configDirty = false;
-  private _preparedPlatform?: {
-    platformId?: string;
-    title?: string;
-    description?: string;
-    preview?: PlaygroundPreviewDescriptor;
-    metadata?: Record<string, unknown>;
-  };
+  private _baseRuntimeState?: PlaygroundRuntimeState;
   private _basePreparedMetadata?: Record<string, unknown>;
+  private _baseExecutionHooks?: PlaygroundExecutionHooks;
+  private _baseSidecars?: PlaygroundSidecar[];
+  private _activeConnection: PlaygroundActiveConnection = {
+    session: null,
+    agent: null,
+    agentFactory: null,
+    runtime: undefined,
+    executionHooks: undefined,
+    sidecars: undefined,
+  };
 
   constructor(
     agent?: PageAgent | (() => PageAgent) | (() => Promise<PageAgent>),
@@ -112,12 +131,14 @@ class PlaygroundServer {
 
     // Support both instance and factory function modes
     if (typeof agent === 'function') {
-      this.agentFactory = agent;
-      this.agent = null;
+      this._activeConnection.agentFactory = agent;
     } else {
-      this.agent = agent || null;
-      this.agentFactory = null;
+      this._activeConnection.agent = agent || null;
     }
+  }
+
+  get agent(): PageAgent | null {
+    return this._activeConnection.agent;
   }
 
   setPreparedPlatform(
@@ -129,21 +150,30 @@ class PlaygroundServer {
       | 'preview'
       | 'metadata'
       | 'sessionManager'
+      | 'executionHooks'
+      | 'sidecars'
     >,
   ): void {
     this.sessionManager = prepared.sessionManager;
     this._basePreparedMetadata = prepared.metadata
       ? { ...prepared.metadata }
       : undefined;
-    this._preparedPlatform = {
+    this._baseRuntimeState = {
       platformId: prepared.platformId,
       title: prepared.title,
       description: prepared.description,
       preview: prepared.preview,
       metadata: this.buildSessionMetadata(),
     };
+    this._baseExecutionHooks = prepared.executionHooks;
+    this._baseSidecars = prepared.sidecars;
+    this.resetActiveConnection();
 
-    if (this.sessionManager && !this.agent && !this.currentSession) {
+    if (
+      this.sessionManager &&
+      !this._activeConnection.agent &&
+      !this._activeConnection.session
+    ) {
       this.sessionSetupState =
         this._basePreparedMetadata?.setupState === 'blocked'
           ? 'blocked'
@@ -156,10 +186,11 @@ class PlaygroundServer {
   }
 
   setPreviewDescriptor(preview?: PlaygroundPreviewDescriptor): void {
-    this._preparedPlatform = {
-      ...(this._preparedPlatform || {}),
+    this._baseRuntimeState = {
+      ...(this._baseRuntimeState || {}),
       preview,
     };
+    this.resetActiveConnection();
   }
 
   setRuntimeMetadata(metadata?: Record<string, unknown>): void {
@@ -169,16 +200,19 @@ class PlaygroundServer {
 
   getRuntimeInfo(): PlaygroundRuntimeInfo {
     return buildRuntimeInfo({
-      platformId: this._preparedPlatform?.platformId,
-      title: this._preparedPlatform?.title,
-      platformDescription: this._preparedPlatform?.description,
-      interfaceType: this.agent?.interface?.interfaceType || 'Unknown',
-      interfaceDescription: this.agent?.interface?.describe?.() || undefined,
-      preview: this._preparedPlatform?.preview,
+      platformId: this._activeConnection.runtime?.platformId,
+      title: this._activeConnection.runtime?.title,
+      platformDescription: this._activeConnection.runtime?.description,
+      interfaceType:
+        this._activeConnection.agent?.interface?.interfaceType || 'Unknown',
+      interfaceDescription:
+        this._activeConnection.agent?.interface?.describe?.() || undefined,
+      preview: this._activeConnection.runtime?.preview,
       metadata: this.buildSessionMetadata(),
       supportsScreenshot:
-        typeof this.agent?.interface?.screenshotBase64 === 'function',
-      mjpegStreamUrl: this.agent?.interface?.mjpegStreamUrl,
+        typeof this._activeConnection.agent?.interface?.screenshotBase64 ===
+        'function',
+      mjpegStreamUrl: this._activeConnection.agent?.interface?.mjpegStreamUrl,
       scrcpyPort: this.scrcpyPort,
     });
   }
@@ -188,14 +222,17 @@ class PlaygroundServer {
     setupBlockingReason?: string;
   } {
     const connected = this.sessionManager
-      ? Boolean(this.currentSession?.connected && this.agent)
-      : Boolean(this.agent);
+      ? Boolean(
+          this._activeConnection.session?.connected &&
+            this._activeConnection.agent,
+        )
+      : Boolean(this._activeConnection.agent);
 
     return {
       connected,
-      displayName: this.currentSession?.displayName,
+      displayName: this._activeConnection.session?.displayName,
       metadata: {
-        ...(this.currentSession?.metadata || {}),
+        ...(this._activeConnection.session?.metadata || {}),
       },
       setupState: this.sessionSetupState,
       setupBlockingReason: this.sessionSetupBlockingReason,
@@ -204,14 +241,17 @@ class PlaygroundServer {
 
   private buildSessionMetadata(): Record<string, unknown> {
     const sessionConnected = this.sessionManager
-      ? Boolean(this.currentSession?.connected && this.agent)
-      : Boolean(this.agent);
+      ? Boolean(
+          this._activeConnection.session?.connected &&
+            this._activeConnection.agent,
+        )
+      : Boolean(this._activeConnection.agent);
 
     return {
       ...(this._basePreparedMetadata || {}),
-      ...(this.currentSession?.metadata || {}),
+      ...(this._activeConnection.session?.metadata || {}),
       sessionConnected,
-      sessionDisplayName: this.currentSession?.displayName,
+      sessionDisplayName: this._activeConnection.session?.displayName,
       setupState: this.sessionSetupState,
       ...(this.sessionSetupBlockingReason
         ? { setupBlockingReason: this.sessionSetupBlockingReason }
@@ -220,82 +260,145 @@ class PlaygroundServer {
   }
 
   private syncPreparedMetadata(): void {
-    this._preparedPlatform = {
-      ...(this._preparedPlatform || {}),
+    this._baseRuntimeState = {
+      ...(this._baseRuntimeState || {}),
       metadata: this.buildSessionMetadata(),
+    };
+    this.resetActiveConnection();
+  }
+
+  private resetActiveConnection(): void {
+    if (this._activeConnection.session) {
+      return;
+    }
+
+    this._activeConnection = {
+      session: null,
+      agent: this._activeConnection.agent,
+      agentFactory: this._activeConnection.agentFactory,
+      runtime: this._baseRuntimeState
+        ? {
+            ...this._baseRuntimeState,
+            metadata: this.buildSessionMetadata(),
+          }
+        : undefined,
+      executionHooks: this._baseExecutionHooks,
+      sidecars: this._baseSidecars,
     };
   }
 
+  private async startSidecars(sidecars?: PlaygroundSidecar[]): Promise<void> {
+    for (const sidecar of sidecars || []) {
+      await sidecar.start();
+    }
+  }
+
+  private async stopSidecars(sidecars?: PlaygroundSidecar[]): Promise<void> {
+    for (const sidecar of sidecars || []) {
+      await sidecar.stop?.();
+    }
+  }
+
   private getActiveAgentOrThrow(): PageAgent {
-    if (!this.agent) {
+    if (!this._activeConnection.agent) {
       throw new Error('No active session');
     }
 
-    return this.agent;
+    return this._activeConnection.agent;
   }
 
   private async destroyCurrentAgent(): Promise<void> {
-    if (!this.agent) {
+    if (!this._activeConnection.agent) {
       return;
     }
 
     try {
-      if (typeof this.agent.destroy === 'function') {
-        await this.agent.destroy();
+      if (typeof this._activeConnection.agent.destroy === 'function') {
+        await this._activeConnection.agent.destroy();
       }
     } catch (error) {
       console.warn('Failed to destroy old agent:', error);
     } finally {
-      this.agent = null;
+      this._activeConnection.agent = null;
     }
   }
 
   private async destroyCurrentSession(): Promise<void> {
-    const previousSession = this.currentSession;
+    const previousSession = this._activeConnection.session;
+    const previousSidecars = this._activeConnection.sidecars;
     await this.destroyCurrentAgent();
+    await this.stopSidecars(previousSidecars);
 
     if (this.sessionManager?.destroySession) {
       await this.sessionManager.destroySession(previousSession || undefined);
     }
 
-    this.currentSession = null;
-    this.agentFactory = null;
     this.taskExecutionDumps = {};
     this.currentTaskId = null;
     this.sessionSetupState =
       this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
+    this._activeConnection = {
+      session: null,
+      agent: null,
+      agentFactory: null,
+      runtime: this._baseRuntimeState
+        ? {
+            ...this._baseRuntimeState,
+            metadata: this.buildSessionMetadata(),
+          }
+        : undefined,
+      executionHooks: this._baseExecutionHooks,
+      sidecars: this._baseSidecars,
+    };
     this.syncPreparedMetadata();
   }
 
-  private applyCreatedSession(session: PlaygroundCreatedSession): void {
+  private async applyCreatedSession(
+    session: PlaygroundCreatedSession,
+  ): Promise<void> {
     if (!session.agent && !session.agentFactory) {
       throw new Error(
         'Session creation must provide either an agent or agentFactory',
       );
     }
 
-    this.agent = session.agent || null;
-    this.agentFactory = session.agentFactory || null;
-    if (session.preview) {
-      this.setPreviewDescriptor(session.preview);
-    }
+    const sessionSidecars = session.sidecars || this._baseSidecars;
+    await this.startSidecars(sessionSidecars);
 
-    this.currentSession = {
-      connected: true,
-      displayName: session.displayName,
-      metadata: session.metadata ? { ...session.metadata } : {},
+    this._activeConnection = {
+      session: {
+        connected: true,
+        displayName: session.displayName,
+        metadata: session.metadata ? { ...session.metadata } : {},
+      },
+      agent: session.agent || null,
+      agentFactory: session.agentFactory || null,
+      runtime: {
+        platformId: session.platformId ?? this._baseRuntimeState?.platformId,
+        title: session.title ?? this._baseRuntimeState?.title,
+        description:
+          session.platformDescription ?? this._baseRuntimeState?.description,
+        preview: session.preview ?? this._baseRuntimeState?.preview,
+        metadata: session.metadata ? { ...session.metadata } : {},
+      },
+      executionHooks: session.executionHooks || this._baseExecutionHooks,
+      sidecars: sessionSidecars,
     };
     this.sessionSetupState = 'ready';
     this.sessionSetupBlockingReason = undefined;
     this.syncPreparedMetadata();
   }
 
-  private async getSessionSetupSchema(): Promise<PlaygroundSessionSetup | null> {
+  private async getSessionSetupSchema(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup | null> {
     if (!this.sessionManager) {
       return null;
     }
 
-    return this.sessionManager.getSetupSchema();
+    return this.sessionManager.getSetupSchema
+      ? this.sessionManager.getSetupSchema(input)
+      : null;
   }
 
   private async getSessionTargets(): Promise<PlaygroundSessionTarget[]> {
@@ -348,12 +451,13 @@ class PlaygroundServer {
       (req: Request, _res: Response, next: express.NextFunction) => {
         const { context } = req.body || {};
         if (
-          this.agent &&
+          this._activeConnection.agent &&
           context &&
-          'updateContext' in this.agent.interface &&
-          typeof this.agent.interface.updateContext === 'function'
+          'updateContext' in this._activeConnection.agent.interface &&
+          typeof this._activeConnection.agent.interface.updateContext ===
+            'function'
         ) {
-          this.agent.interface.updateContext(context);
+          this._activeConnection.agent.interface.updateContext(context);
           console.log('Context updated by PlaygroundServer middleware');
         }
         next();
@@ -408,9 +512,10 @@ class PlaygroundServer {
     await this.destroyCurrentAgent();
 
     // Create new agent instance if factory is available
-    if (this.agentFactory) {
+    if (this._activeConnection.agentFactory) {
       try {
-        this.agent = await this.agentFactory();
+        this._activeConnection.agent =
+          await this._activeConnection.agentFactory();
         this._agentReady = true;
         console.log('Agent recreated successfully');
       } catch (error) {
@@ -441,9 +546,15 @@ class PlaygroundServer {
       res.json(this.getSessionInfo());
     });
 
-    this._app.get('/session/setup', async (_req: Request, res: Response) => {
+    this._app.get('/session/setup', async (req: Request, res: Response) => {
       try {
-        const setup = await this.getSessionSetupSchema();
+        const setup = await this.getSessionSetupSchema(
+          Object.fromEntries(
+            Object.entries(req.query).filter(
+              ([, value]) => typeof value === 'string',
+            ),
+          ),
+        );
         if (!setup) {
           return res.status(404).json({
             error: 'Session setup is not available for this playground',
@@ -494,13 +605,17 @@ class PlaygroundServer {
       try {
         await this.destroyCurrentSession();
         const created = await this.sessionManager.createSession(req.body || {});
-        this.applyCreatedSession(created);
+        await this.applyCreatedSession(created);
 
-        if (!this.agent && this.agentFactory) {
-          this.agent = await this.agentFactory();
+        if (
+          !this._activeConnection.agent &&
+          this._activeConnection.agentFactory
+        ) {
+          this._activeConnection.agent =
+            await this._activeConnection.agentFactory();
         }
 
-        if (this._configDirty && this.agentFactory) {
+        if (this._configDirty && this._activeConnection.agentFactory) {
           this._configDirty = false;
           await this.recreateAgent();
         }
@@ -510,9 +625,18 @@ class PlaygroundServer {
           runtimeInfo: this.getRuntimeInfo(),
         });
       } catch (error) {
-        this.currentSession = null;
-        this.agent = null;
-        this.agentFactory = null;
+        this._activeConnection = {
+          session: null,
+          agent: null,
+          agentFactory: null,
+          runtime: this._baseRuntimeState
+            ? {
+                ...this._baseRuntimeState,
+                metadata: this.buildSessionMetadata(),
+              }
+            : undefined,
+          executionHooks: this._baseExecutionHooks,
+        };
         this.sessionSetupState =
           this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
         this.syncPreparedMetadata();
@@ -696,13 +820,14 @@ class PlaygroundServer {
       }
 
       // Recreate agent only when AI config has changed (via /config API)
-      if (this.agentFactory && this._configDirty) {
+      if (this._activeConnection.agentFactory && this._configDirty) {
         this._configDirty = false;
         this._agentReady = false;
         console.log('AI config changed, recreating agent...');
         try {
           await this.destroyCurrentAgent();
-          this.agent = await this.agentFactory();
+          this._activeConnection.agent =
+            await this._activeConnection.agentFactory();
           agent = this.getActiveAgentOrThrow();
           this._agentReady = true;
           console.log('Agent recreated with new config');
@@ -764,6 +889,8 @@ class PlaygroundServer {
 
       const startTime = Date.now();
       try {
+        await this._activeConnection.executionHooks?.beforeExecute?.();
+
         // Get action space to check for dynamic actions
         const actionSpace = agent.interface.actionSpace();
 
@@ -783,6 +910,12 @@ class PlaygroundServer {
         });
       } catch (error: unknown) {
         response.error = formatErrorMessage(error);
+      } finally {
+        try {
+          await this._activeConnection.executionHooks?.afterExecute?.();
+        } catch (hookError) {
+          console.error('Failed to run execution after hook:', hookError);
+        }
       }
 
       try {
@@ -939,7 +1072,7 @@ class PlaygroundServer {
     // Proxies native MJPEG stream (e.g. WDA MJPEG server) when available,
     // falls back to polling screenshotBase64() otherwise.
     this._app.get('/mjpeg', async (req: Request, res: Response) => {
-      const agent = this.agent;
+      const agent = this._activeConnection.agent;
       if (!agent) {
         return res.status(409).json({
           error: 'No active session',
@@ -1215,10 +1348,11 @@ class PlaygroundServer {
    */
   async launch(port?: number): Promise<PlaygroundServer> {
     // If using factory mode, initialize agent
-    if (this.agentFactory && !this.sessionManager) {
+    if (this._activeConnection.agentFactory && !this.sessionManager) {
       console.log('Initializing agent from factory function...');
-      this.agent = await this.agentFactory();
-      this.currentSession = {
+      this._activeConnection.agent =
+        await this._activeConnection.agentFactory();
+      this._activeConnection.session = {
         connected: true,
         metadata: {},
       };

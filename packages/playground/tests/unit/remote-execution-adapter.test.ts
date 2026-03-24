@@ -492,6 +492,27 @@ describe('RemoteExecutionAdapter', () => {
       expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/session/setup`);
     });
 
+    it('should send primitive setup inputs as query params', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            fields: [{ key: 'platformId', label: 'Platform', type: 'select' }],
+          }),
+      });
+
+      await adapter.getSessionSetup({
+        platformId: 'android',
+        retries: 2,
+        enabled: true,
+        ignored: { nested: true },
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockServerUrl}/session/setup?platformId=android&retries=2&enabled=true`,
+      );
+    });
+
     it('should create and destroy sessions through server APIs', async () => {
       mockFetch
         .mockResolvedValueOnce({

@@ -14,14 +14,10 @@ const main = async () => {
       staticDir,
       scrcpyServer,
     });
-    const scrcpyPort = Number(prepared.metadata?.scrcpyPort);
 
     console.log('🚀 Starting servers...');
 
-    const [playgroundResult] = await Promise.all([
-      launchPreparedPlaygroundPlatform(prepared),
-      scrcpyServer.launch(scrcpyPort),
-    ]);
+    const playgroundResult = await launchPreparedPlaygroundPlatform(prepared);
 
     const playgroundServer = playgroundResult.server;
 

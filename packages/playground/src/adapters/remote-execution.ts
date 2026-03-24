@@ -498,13 +498,26 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     }
   }
 
-  async getSessionSetup(): Promise<PlaygroundSessionSetup | null> {
+  async getSessionSetup(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup | null> {
     if (!this.serverUrl) {
       return null;
     }
 
     try {
-      const response = await fetch(`${this.serverUrl}/session/setup`);
+      const searchParams = new URLSearchParams();
+      Object.entries(input || {}).forEach(([key, value]) => {
+        if (
+          typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ) {
+          searchParams.set(key, String(value));
+        }
+      });
+      const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : '';
+      const response = await fetch(`${this.serverUrl}/session/setup${suffix}`);
       if (!response.ok) {
         console.warn(`Session setup request failed: ${response.statusText}`);
         return null;

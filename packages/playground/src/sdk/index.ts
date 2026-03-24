@@ -262,9 +262,11 @@ export class PlaygroundSDK {
     return null;
   }
 
-  async getSessionSetup(): Promise<PlaygroundSessionSetup | null> {
+  async getSessionSetup(
+    input?: Record<string, unknown>,
+  ): Promise<PlaygroundSessionSetup | null> {
     if (this.adapter instanceof RemoteExecutionAdapter) {
-      return this.adapter.getSessionSetup();
+      return this.adapter.getSessionSetup(input);
     }
 
     return null;
