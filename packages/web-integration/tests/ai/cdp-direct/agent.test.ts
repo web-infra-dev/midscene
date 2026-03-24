@@ -102,7 +102,9 @@ describeIf(
       const tabs = await agent.getBrowserTabList();
       expect(tabs.length).toBeGreaterThanOrEqual(2);
 
-      const exampleTab = tabs.find((t) => t.url.includes('example.com'));
+      const exampleTab = tabs.find(
+        (t) => new URL(t.url).hostname === 'www.example.com',
+      );
       expect(exampleTab).toBeDefined();
       if (exampleTab) {
         await agent.switchToTab(exampleTab.id);
