@@ -64,6 +64,9 @@ export type {
   FormValue,
   ExecutionOptions,
   ProgressCallback,
+  DeviceType,
+  ExecutionUxHint,
+  ExecutionUxConfig,
 } from './types';
 
 // Export storage providers (both legacy and new)
