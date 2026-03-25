@@ -14,6 +14,7 @@ import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
+  type GroupMeta,
   GroupedActionDump,
   type TestStatus,
   type UIContext,
@@ -28,6 +29,26 @@ function fakeScreenshot(size = 200): ScreenshotItem {
     `data:image/png;base64,${'A'.repeat(size)}`,
     Date.now(),
   );
+}
+
+/**
+ * Helper: write a dump to a ReportGenerator using the new per-execution API.
+ */
+async function writeAndFinalize(
+  gen: ReportGenerator,
+  dump: GroupedActionDump,
+): Promise<void> {
+  const groupMeta: GroupMeta = {
+    groupName: dump.groupName,
+    groupDescription: dump.groupDescription,
+    sdkVersion: dump.sdkVersion,
+    modelBriefs: dump.modelBriefs,
+    deviceType: dump.deviceType,
+  };
+  for (const exec of dump.executions) {
+    gen.onExecutionUpdate(exec, groupMeta);
+  }
+  await gen.finalize();
 }
 
 function createDump(groupName: string, taskCount: number): GroupedActionDump {
@@ -79,6 +100,7 @@ function extractAllDumps(html: string) {
     testTitle: string;
     testStatus: string;
     groupName: string | null;
+    groupId: string | null;
   }[] = [];
 
   const openPattern = '<script type="midscene_web_dump"';
@@ -104,6 +126,7 @@ function extractAllDumps(html: string) {
 
     const titleMatch = openTag.match(/playwright_test_title="([^"]*)"/);
     const statusMatch = openTag.match(/playwright_test_status="([^"]*)"/);
+    const groupIdMatch = openTag.match(/data-group-id="([^"]*)"/);
     const content = html.substring(tagEndIdx + 1, closeIdx).trim();
 
     let groupName: string | null = null;
@@ -120,6 +143,7 @@ function extractAllDumps(html: string) {
       testTitle: titleMatch ? decodeURIComponent(titleMatch[1]) : '',
       testStatus: statusMatch ? decodeURIComponent(statusMatch[1]) : '',
       groupName,
+      groupId: groupIdMatch ? decodeURIComponent(groupIdMatch[1]) : null,
     });
 
     pos = closeIdx + closeTag.length;
@@ -147,7 +171,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         }) as ReportGenerator;
 
         const dump = createDump(`group-${i}`, 2);
-        await gen.finalize(dump);
+        await writeAndFinalize(gen, dump);
 
         tool.append({
           reportFilePath: gen.getReportPath()!,
@@ -182,6 +206,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         expect(dumps[i].testId).toBe(`inline-${n}-${i}`);
         expect(dumps[i].groupName).toBe(`group-${i}`);
         expect(dumps[i].testStatus).toBe('passed');
+        expect(dumps[i].groupId).toBeTruthy();
       }
     },
   );
@@ -201,7 +226,7 @@ describe('ReportMergingTool merged dump count verification', () => {
       }) as ReportGenerator;
 
       const dump = createDump(`dir-group-${i}`, 2);
-      await gen.finalize(dump);
+      await writeAndFinalize(gen, dump);
 
       tool.append({
         reportFilePath: gen.getReportPath()!,
@@ -235,6 +260,7 @@ describe('ReportMergingTool merged dump count verification', () => {
     for (let i = 0; i < n; i++) {
       expect(dumps[i].testId).toBe(`dir-${i}`);
       expect(dumps[i].groupName).toBe(`dir-group-${i}`);
+      expect(dumps[i].groupId).toBeTruthy();
     }
   });
 
@@ -251,7 +277,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'single-html',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`inline-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`inline-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {
@@ -271,7 +297,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'html-and-external-assets',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`dir-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`dir-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {
@@ -326,7 +352,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'single-html',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`status-group-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`status-group-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {
@@ -358,6 +384,90 @@ describe('ReportMergingTool merged dump count verification', () => {
   });
 
   /**
+   * Merging source reports that contain multiple executions (per-execution append model)
+   * should preserve all executions from each source.
+   */
+  it('merging source reports with multiple executions preserves all', async () => {
+    const tool = new ReportMergingTool();
+    const n = 3;
+    const execsPerReport = 2;
+
+    for (let i = 0; i < n; i++) {
+      const gen = ReportGenerator.create(`merge-multi-exec-${i}`, {
+        generateReport: true,
+        outputFormat: 'single-html',
+        autoPrintReportMsg: false,
+      }) as ReportGenerator;
+
+      // Write multiple executions to the same report
+      const groupMeta: GroupMeta = {
+        groupName: `multi-group-${i}`,
+        sdkVersion: '1.0.0-test',
+        modelBriefs: ['test-model'],
+      };
+      for (let e = 0; e < execsPerReport; e++) {
+        const exec = new ExecutionDump({
+          id: `report-${i}-exec-${e}`,
+          logTime: Date.now(),
+          name: `exec-${e}`,
+          tasks: [
+            {
+              type: 'Insight' as const,
+              subType: 'Locate',
+              param: { prompt: `task-${i}-${e}` },
+              taskId: `task-${i}-${e}`,
+              uiContext: {
+                screenshot: fakeScreenshot(),
+                shotSize: { width: 1920, height: 1080 },
+                shrunkShotToLogicalRatio: 1,
+              } as unknown as UIContext,
+              executor: async () => undefined,
+              recorder: [],
+              status: 'finished' as const,
+            } as any,
+          ],
+        });
+        gen.onExecutionUpdate(exec, groupMeta);
+      }
+      await gen.finalize();
+
+      tool.append({
+        reportFilePath: gen.getReportPath()!,
+        reportAttributes: {
+          testDescription: `Multi-exec test ${i}`,
+          testDuration: 1000 + i,
+          testId: `multi-exec-${i}`,
+          testStatus: 'passed' as TestStatus,
+          testTitle: `Multi-exec Test ${i}`,
+        },
+      });
+    }
+
+    const mergedPath = tool.mergeReports('merge-multi-exec-merged', {
+      overwrite: true,
+    });
+    expect(mergedPath).toBeTruthy();
+
+    const html = readFileSync(mergedPath!, 'utf-8');
+    const dumps = extractAllDumps(html);
+
+    // Each source report's dump should be merged into one dump script
+    expect(dumps.length).toBe(n);
+
+    // Each merged dump should contain all executions from the source report
+    for (let i = 0; i < n; i++) {
+      const content = html.match(
+        new RegExp(
+          `<script type="midscene_web_dump"[^>]*playwright_test_id="${encodeURIComponent(`multi-exec-${i}`)}"[^>]*>([\\s\\S]*?)</script>`,
+        ),
+      );
+      expect(content).toBeTruthy();
+      const parsed = JSON.parse(antiEscapeScriptTag(content![1]));
+      expect(parsed.executions).toHaveLength(execsPerReport);
+    }
+  });
+
+  /**
    * extractLastDumpScriptSync should return the last dump from a merged file.
    */
   it('extractLastDumpScriptSync returns the last dump from merged file', async () => {
@@ -370,7 +480,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         outputFormat: 'single-html',
         autoPrintReportMsg: false,
       }) as ReportGenerator;
-      await gen.finalize(createDump(`last-group-${i}`, 1));
+      await writeAndFinalize(gen, createDump(`last-group-${i}`, 1));
       tool.append({
         reportFilePath: gen.getReportPath()!,
         reportAttributes: {

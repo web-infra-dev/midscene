@@ -436,6 +436,8 @@ export type ExecutionTask<
   };
 
 export interface IExecutionDump extends DumpMeta {
+  /** Stable unique identifier for this execution run */
+  id?: string;
   name: string;
   description?: string;
   tasks: ExecutionTask[];
@@ -495,6 +497,7 @@ function reviverForDumpDeserialization(key: string, value: any): any {
  * ExecutionDump class for serializing and deserializing execution dumps
  */
 export class ExecutionDump implements IExecutionDump {
+  id?: string;
   logTime: number;
   name: string;
   description?: string;
@@ -502,6 +505,7 @@ export class ExecutionDump implements IExecutionDump {
   aiActContext?: string;
 
   constructor(data: IExecutionDump) {
+    this.id = data.id;
     this.logTime = data.logTime;
     this.name = data.name;
     this.description = data.description;
@@ -521,6 +525,7 @@ export class ExecutionDump implements IExecutionDump {
    */
   toJSON(): IExecutionDump {
     return {
+      id: this.id,
       logTime: this.logTime,
       name: this.name,
       description: this.description,
@@ -697,6 +702,17 @@ export type ExecutionTaskPlanningLocateApply = ExecutionTaskApply<
 
 export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
+
+/*
+Group metadata - extracted from GroupedActionDump for per-execution writes
+*/
+export interface GroupMeta {
+  groupName: string;
+  groupDescription?: string;
+  sdkVersion: string;
+  modelBriefs: ModelBrief[];
+  deviceType?: string;
+}
 
 /*
 Grouped dump

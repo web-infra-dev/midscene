@@ -220,6 +220,98 @@ export function extractLastDumpScriptSync(filePath: string): string {
   return lastContent;
 }
 
+/**
+ * Extract ALL dump script contents from an HTML file using streaming.
+ * Each entry includes the full opening tag (for attribute extraction) and the content.
+ *
+ * @param filePath - Absolute path to the HTML file
+ * @returns Array of { openTag, content } for each dump script found
+ */
+export function extractAllDumpScriptsSync(
+  filePath: string,
+): { openTag: string; content: string }[] {
+  const openTagPrefix = '<script type="midscene_web_dump"';
+  const closeTag = '</script>';
+
+  const results: { openTag: string; content: string }[] = [];
+
+  const fd = openSync(filePath, 'r');
+  const fileSize = statSync(filePath).size;
+  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+
+  let position = 0;
+  let leftover = '';
+  let capturing = false;
+  let currentContent = '';
+  let currentOpenTag = '';
+
+  try {
+    while (position < fileSize) {
+      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
+      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+      position += bytesRead;
+
+      let searchStart = 0;
+
+      while (searchStart < chunk.length) {
+        if (!capturing) {
+          const startIdx = chunk.indexOf(openTagPrefix, searchStart);
+          if (startIdx !== -1) {
+            const tagEndIdx = chunk.indexOf('>', startIdx);
+            if (tagEndIdx !== -1) {
+              capturing = true;
+              currentOpenTag = chunk.slice(startIdx, tagEndIdx + 1);
+              currentContent = chunk.slice(tagEndIdx + 1);
+              const endIdx = currentContent.indexOf(closeTag);
+              if (endIdx !== -1) {
+                results.push({
+                  openTag: currentOpenTag,
+                  content: currentContent.slice(0, endIdx).trim(),
+                });
+                capturing = false;
+                currentContent = '';
+                currentOpenTag = '';
+                searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
+              } else {
+                leftover = currentContent.slice(-closeTag.length);
+                currentContent = currentContent.slice(0, -closeTag.length);
+                break;
+              }
+            } else {
+              leftover = chunk.slice(startIdx);
+              break;
+            }
+          } else {
+            leftover = chunk.slice(-openTagPrefix.length);
+            break;
+          }
+        } else {
+          const endIdx = chunk.indexOf(closeTag, searchStart);
+          if (endIdx !== -1) {
+            currentContent += chunk.slice(searchStart, endIdx);
+            results.push({
+              openTag: currentOpenTag,
+              content: currentContent.trim(),
+            });
+            capturing = false;
+            currentContent = '';
+            currentOpenTag = '';
+            searchStart = endIdx + closeTag.length;
+          } else {
+            currentContent += chunk.slice(searchStart, -closeTag.length);
+            leftover = chunk.slice(-closeTag.length);
+            break;
+          }
+        }
+      }
+    }
+  } finally {
+    closeSync(fd);
+  }
+
+  return results;
+}
+
 export function parseImageScripts(html: string): Record<string, string> {
   const imageMap: Record<string, string> = {};
   const regex =

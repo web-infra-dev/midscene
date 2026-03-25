@@ -28,6 +28,7 @@ export {
   GroupedActionDump,
   type IExecutionDump,
   type IGroupedActionDump,
+  type GroupMeta,
 } from './types';
 
 export { z };

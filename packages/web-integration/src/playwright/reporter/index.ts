@@ -194,8 +194,7 @@ class MidsceneReporter implements Reporter {
       // Parse the dump string and generate dump script tag
       let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
 
-      // Add attributes to the dump script if this is merged report
-      if (this.mode === 'merged' && testData.attributes) {
+      if (testData.attributes) {
         const attributesArr = Object.keys(testData.attributes).map((key) => {
           return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
         });
@@ -293,6 +292,7 @@ class MidsceneReporter implements Reporter {
       const testData: ReportDumpWithAttributes = {
         dumpString,
         attributes: {
+          'data-group-id': testId,
           playwright_test_id: testId,
           playwright_test_title: `${test.title}${projectSuffix}${retry}`,
           playwright_test_status: result.status,
