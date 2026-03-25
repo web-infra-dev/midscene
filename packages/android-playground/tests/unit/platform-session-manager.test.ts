@@ -74,4 +74,20 @@ describe('androidPlaygroundPlatform session manager', () => {
     });
     expect(connectMock).toHaveBeenCalled();
   });
+
+  test('surfaces adb discovery failures instead of returning empty targets', async () => {
+    getConnectedDevicesWithDetailsMock
+      .mockRejectedValueOnce(new Error('adb executable not found'))
+      .mockRejectedValueOnce(new Error('adb executable not found'));
+
+    const { androidPlaygroundPlatform } = await import('../../src/platform');
+    const prepared = await androidPlaygroundPlatform.prepare();
+
+    await expect(prepared.sessionManager?.getSetupSchema()).rejects.toThrow(
+      'adb executable not found',
+    );
+    await expect(prepared.sessionManager?.listTargets?.()).rejects.toThrow(
+      'adb executable not found',
+    );
+  });
 });

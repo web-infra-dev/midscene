@@ -519,14 +519,16 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : '';
       const response = await fetch(`${this.serverUrl}/session/setup${suffix}`);
       if (!response.ok) {
-        console.warn(`Session setup request failed: ${response.statusText}`);
-        return null;
+        const body = await response.json().catch(() => null);
+        throw new Error(
+          body?.error || response.statusText || 'Failed to load session setup',
+        );
       }
 
       return await response.json();
     } catch (error) {
       console.error('Failed to get session setup:', error);
-      return null;
+      throw error;
     }
   }
 
@@ -538,15 +540,19 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
     try {
       const response = await fetch(`${this.serverUrl}/session/targets`);
       if (!response.ok) {
-        console.warn(`Session targets request failed: ${response.statusText}`);
-        return [];
+        const body = await response.json().catch(() => null);
+        throw new Error(
+          body?.error ||
+            response.statusText ||
+            'Failed to load session targets',
+        );
       }
 
       const result = await response.json();
       return Array.isArray(result) ? result : [];
     } catch (error) {
       console.error('Failed to get session targets:', error);
-      return [];
+      throw error;
     }
   }
 

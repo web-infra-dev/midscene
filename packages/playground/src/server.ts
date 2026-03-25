@@ -141,6 +141,74 @@ class PlaygroundServer {
     return this._activeConnection.agent;
   }
 
+  private assertNoActiveSessionForBaseStateUpdate(methodName: string): void {
+    if (this._activeConnection.session) {
+      throw new Error(
+        `${methodName} cannot update prepared state while a session is active`,
+      );
+    }
+  }
+
+  private buildBaseRuntimeState(): PlaygroundRuntimeState | undefined {
+    if (!this._baseRuntimeState) {
+      return undefined;
+    }
+
+    return {
+      ...this._baseRuntimeState,
+      metadata: this.buildSessionMetadata(),
+    };
+  }
+
+  private resetConnectionToBaseState(): void {
+    this._activeConnection = {
+      session: null,
+      agent: this._activeConnection.agent,
+      agentFactory: this._activeConnection.agentFactory,
+      runtime: this.buildBaseRuntimeState(),
+      executionHooks: this._baseExecutionHooks,
+      sidecars: this._baseSidecars,
+    };
+  }
+
+  private syncRuntimeState(): void {
+    this._baseRuntimeState = {
+      ...(this._baseRuntimeState || {}),
+      metadata: this.buildSessionMetadata(),
+    };
+
+    if (this._activeConnection.session) {
+      this._activeConnection = {
+        ...this._activeConnection,
+        runtime: this._activeConnection.runtime
+          ? {
+              ...this._activeConnection.runtime,
+              metadata: this.buildSessionMetadata(),
+            }
+          : this.buildBaseRuntimeState(),
+      };
+      return;
+    }
+
+    this.resetConnectionToBaseState();
+  }
+
+  private restoreBaseSessionState(): void {
+    this.taskExecutionDumps = {};
+    this.currentTaskId = null;
+    this.sessionSetupState =
+      this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
+    this._activeConnection = {
+      session: null,
+      agent: null,
+      agentFactory: null,
+      runtime: this.buildBaseRuntimeState(),
+      executionHooks: this._baseExecutionHooks,
+      sidecars: this._baseSidecars,
+    };
+    this.syncRuntimeState();
+  }
+
   setPreparedPlatform(
     prepared: Pick<
       PreparedPlaygroundPlatform,
@@ -154,6 +222,7 @@ class PlaygroundServer {
       | 'sidecars'
     >,
   ): void {
+    this.assertNoActiveSessionForBaseStateUpdate('setPreparedPlatform');
     this.sessionManager = prepared.sessionManager;
     this._basePreparedMetadata = prepared.metadata
       ? { ...prepared.metadata }
@@ -167,7 +236,7 @@ class PlaygroundServer {
     };
     this._baseExecutionHooks = prepared.executionHooks;
     this._baseSidecars = prepared.sidecars;
-    this.resetActiveConnection();
+    this.resetConnectionToBaseState();
 
     if (
       this.sessionManager &&
@@ -186,16 +255,18 @@ class PlaygroundServer {
   }
 
   setPreviewDescriptor(preview?: PlaygroundPreviewDescriptor): void {
+    this.assertNoActiveSessionForBaseStateUpdate('setPreviewDescriptor');
     this._baseRuntimeState = {
       ...(this._baseRuntimeState || {}),
       preview,
     };
-    this.resetActiveConnection();
+    this.resetConnectionToBaseState();
   }
 
   setRuntimeMetadata(metadata?: Record<string, unknown>): void {
+    this.assertNoActiveSessionForBaseStateUpdate('setRuntimeMetadata');
     this._basePreparedMetadata = metadata ? { ...metadata } : undefined;
-    this.syncPreparedMetadata();
+    this.syncRuntimeState();
   }
 
   getRuntimeInfo(): PlaygroundRuntimeInfo {
@@ -259,34 +330,6 @@ class PlaygroundServer {
     };
   }
 
-  private syncPreparedMetadata(): void {
-    this._baseRuntimeState = {
-      ...(this._baseRuntimeState || {}),
-      metadata: this.buildSessionMetadata(),
-    };
-    this.resetActiveConnection();
-  }
-
-  private resetActiveConnection(): void {
-    if (this._activeConnection.session) {
-      return;
-    }
-
-    this._activeConnection = {
-      session: null,
-      agent: this._activeConnection.agent,
-      agentFactory: this._activeConnection.agentFactory,
-      runtime: this._baseRuntimeState
-        ? {
-            ...this._baseRuntimeState,
-            metadata: this.buildSessionMetadata(),
-          }
-        : undefined,
-      executionHooks: this._baseExecutionHooks,
-      sidecars: this._baseSidecars,
-    };
-  }
-
   private async startSidecars(sidecars?: PlaygroundSidecar[]): Promise<void> {
     for (const sidecar of sidecars || []) {
       await sidecar.start();
@@ -333,24 +376,7 @@ class PlaygroundServer {
       await this.sessionManager.destroySession(previousSession || undefined);
     }
 
-    this.taskExecutionDumps = {};
-    this.currentTaskId = null;
-    this.sessionSetupState =
-      this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
-    this._activeConnection = {
-      session: null,
-      agent: null,
-      agentFactory: null,
-      runtime: this._baseRuntimeState
-        ? {
-            ...this._baseRuntimeState,
-            metadata: this.buildSessionMetadata(),
-          }
-        : undefined,
-      executionHooks: this._baseExecutionHooks,
-      sidecars: this._baseSidecars,
-    };
-    this.syncPreparedMetadata();
+    this.restoreBaseSessionState();
   }
 
   private async applyCreatedSession(
@@ -365,28 +391,34 @@ class PlaygroundServer {
     const sessionSidecars = session.sidecars || this._baseSidecars;
     await this.startSidecars(sessionSidecars);
 
-    this._activeConnection = {
-      session: {
-        connected: true,
-        displayName: session.displayName,
-        metadata: session.metadata ? { ...session.metadata } : {},
-      },
-      agent: session.agent || null,
-      agentFactory: session.agentFactory || null,
-      runtime: {
-        platformId: session.platformId ?? this._baseRuntimeState?.platformId,
-        title: session.title ?? this._baseRuntimeState?.title,
-        description:
-          session.platformDescription ?? this._baseRuntimeState?.description,
-        preview: session.preview ?? this._baseRuntimeState?.preview,
-        metadata: session.metadata ? { ...session.metadata } : {},
-      },
-      executionHooks: session.executionHooks || this._baseExecutionHooks,
-      sidecars: sessionSidecars,
-    };
-    this.sessionSetupState = 'ready';
-    this.sessionSetupBlockingReason = undefined;
-    this.syncPreparedMetadata();
+    try {
+      this._activeConnection = {
+        session: {
+          connected: true,
+          displayName: session.displayName,
+          metadata: session.metadata ? { ...session.metadata } : {},
+        },
+        agent: session.agent || null,
+        agentFactory: session.agentFactory || null,
+        runtime: {
+          platformId: session.platformId ?? this._baseRuntimeState?.platformId,
+          title: session.title ?? this._baseRuntimeState?.title,
+          description:
+            session.platformDescription ?? this._baseRuntimeState?.description,
+          preview: session.preview ?? this._baseRuntimeState?.preview,
+          metadata: session.metadata ? { ...session.metadata } : {},
+        },
+        executionHooks: session.executionHooks || this._baseExecutionHooks,
+        sidecars: sessionSidecars,
+      };
+      this.sessionSetupState = 'ready';
+      this.sessionSetupBlockingReason = undefined;
+      this.syncRuntimeState();
+    } catch (error) {
+      await this.stopSidecars(sessionSidecars).catch(() => {});
+      this.restoreBaseSessionState();
+      throw error;
+    }
   }
 
   private async getSessionSetupSchema(
@@ -625,21 +657,12 @@ class PlaygroundServer {
           runtimeInfo: this.getRuntimeInfo(),
         });
       } catch (error) {
-        this._activeConnection = {
-          session: null,
-          agent: null,
-          agentFactory: null,
-          runtime: this._baseRuntimeState
-            ? {
-                ...this._baseRuntimeState,
-                metadata: this.buildSessionMetadata(),
-              }
-            : undefined,
-          executionHooks: this._baseExecutionHooks,
-        };
-        this.sessionSetupState =
-          this.sessionSetupState === 'blocked' ? 'blocked' : 'required';
-        this.syncPreparedMetadata();
+        const failedSessionSidecars = this._activeConnection.session
+          ? this._activeConnection.sidecars
+          : undefined;
+        await this.destroyCurrentAgent();
+        await this.stopSidecars(failedSessionSidecars).catch(() => {});
+        this.restoreBaseSessionState();
         res.status(400).json({
           error:
             error instanceof Error ? error.message : 'Failed to create session',
@@ -1357,7 +1380,7 @@ class PlaygroundServer {
         metadata: {},
       };
       this.sessionSetupState = 'ready';
-      this.syncPreparedMetadata();
+      this.syncRuntimeState();
       console.log('Agent initialized successfully');
     }
 

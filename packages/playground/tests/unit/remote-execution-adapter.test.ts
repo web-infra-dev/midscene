@@ -513,6 +513,18 @@ describe('RemoteExecutionAdapter', () => {
       );
     });
 
+    it('should throw setup errors from server responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ error: 'adb executable not found' }),
+      });
+
+      await expect(adapter.getSessionSetup()).rejects.toThrow(
+        'adb executable not found',
+      );
+    });
+
     it('should create and destroy sessions through server APIs', async () => {
       mockFetch
         .mockResolvedValueOnce({

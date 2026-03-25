@@ -24,23 +24,18 @@ export interface AndroidPlatformOptions {
 }
 
 async function getAdbTargets(): Promise<PlaygroundSessionTarget[]> {
-  try {
-    const devices = await getConnectedDevicesWithDetails();
-    return devices
-      .filter((device) => device.state === 'device')
-      .map((device, index) => ({
-        id: device.udid,
-        label: device.udid,
-        description:
-          [device.model, device.resolution].filter(Boolean).join(' · ') ||
-          device.state,
-        status: device.state,
-        isDefault: index === 0,
-      }));
-  } catch (error) {
-    console.error('Error getting ADB devices:', error);
-    return [];
-  }
+  const devices = await getConnectedDevicesWithDetails();
+  return devices
+    .filter((device) => device.state === 'device')
+    .map((device, index) => ({
+      id: device.udid,
+      label: device.udid,
+      description:
+        [device.model, device.resolution].filter(Boolean).join(' · ') ||
+        device.state,
+      status: device.state,
+      isDefault: index === 0,
+    }));
 }
 
 export const androidPlaygroundPlatform = definePlaygroundPlatform<
