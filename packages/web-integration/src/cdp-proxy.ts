@@ -23,8 +23,11 @@
 
 import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-import { type IncomingMessage, createServer } from 'node:http';
-import { type Socket, connect as netConnect } from 'node:net';
+import {
+  type Socket,
+  createServer as createTcpServer,
+  connect as netConnect,
+} from 'node:net';
 import { URL } from 'node:url';
 import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
 import {
@@ -193,42 +196,54 @@ function connectUpstream() {
 }
 
 // ---------------------------------------------------------------------------
-// Downstream: HTTP server that upgrades to WebSocket
+// Downstream: raw TCP server with manual WebSocket handshake
+//
+// Using net.createServer instead of http.createServer to avoid Node's HTTP
+// parser interfering with the WebSocket upgrade flow.
 // ---------------------------------------------------------------------------
 
-const httpServer = createServer((_req, res) => {
-  res.writeHead(404);
-  res.end();
-});
+const tcpServer = createTcpServer((socket: Socket) => {
+  let httpBuf = Buffer.alloc(0);
+  let upgraded = false;
 
-httpServer.on(
-  'upgrade',
-  (req: IncomingMessage, socket: Socket, head: Buffer) => {
-    const key = req.headers['sec-websocket-key'];
-    if (!key) {
+  const onHttpData = (chunk: Buffer) => {
+    httpBuf = Buffer.concat([httpBuf, chunk]);
+
+    // Wait for complete HTTP headers
+    const idx = httpBuf.indexOf('\r\n\r\n');
+    if (idx === -1) return;
+
+    const headerStr = httpBuf.subarray(0, idx).toString();
+    const remaining = httpBuf.subarray(idx + 4);
+
+    // Extract Sec-WebSocket-Key from headers
+    const keyMatch = headerStr.match(/Sec-WebSocket-Key:\s*(.+)/i);
+    if (!keyMatch) {
+      socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
       socket.destroy();
       return;
     }
 
-    // Complete WebSocket handshake
+    const key = keyMatch[1].trim();
     const accept = createHash('sha1')
-      .update(`${key}258EAFA5-E914-47DA-95CA-5AB5DC085B63`)
+      .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
       .digest('base64');
+
+    // Send 101 response
+    upgraded = true;
+    socket.removeListener('data', onHttpData);
+
     socket.write(
-      [
-        'HTTP/1.1 101 WebSocket Protocol Handshake',
-        'Upgrade: WebSocket',
-        'Connection: Upgrade',
-        `Sec-WebSocket-Accept: ${accept}`,
-        '',
-        '',
-      ].join('\r\n'),
+      `HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`,
+      () => {
+        // 101 flushed — safe to start forwarding upstream frames
+        clients.add(socket);
+        resetIdleTimer();
+      },
     );
 
-    clients.add(socket);
-    resetIdleTimer();
-
-    let clientBuf = Buffer.from(head);
+    // Set up WebSocket frame handling
+    let clientBuf = Buffer.from(remaining);
 
     const handleClientMessage = createFragmentHandler(
       (opcode: number, payload: Buffer) => {
@@ -239,7 +254,6 @@ httpServer.on(
         }
 
         if (opcode === OP_PING) {
-          // Reply with pong to client, don't forward upstream
           const pong = encodeFrame(payload, OP_PONG, false);
           if (!socket.destroyed) socket.write(pong);
           return;
@@ -251,14 +265,13 @@ httpServer.on(
 
         resetIdleTimer();
 
-        // Forward complete message as masked frame upstream
         const outFrame = encodeFrame(payload, opcode, true);
         if (!upstream.destroyed) upstream.write(outFrame);
       },
     );
 
-    socket.on('data', (chunk: Buffer) => {
-      clientBuf = Buffer.concat([clientBuf, chunk]);
+    socket.on('data', (wsChunk: Buffer) => {
+      clientBuf = Buffer.concat([clientBuf, wsChunk]);
 
       while (clientBuf.length > 0) {
         const frame = parseFrame(clientBuf);
@@ -267,11 +280,12 @@ httpServer.on(
         handleClientMessage(frame);
       }
     });
+  };
 
-    socket.on('close', () => clients.delete(socket));
-    socket.on('error', () => clients.delete(socket));
-  },
-);
+  socket.on('data', onHttpData);
+  socket.on('close', () => clients.delete(socket));
+  socket.on('error', () => clients.delete(socket));
+});
 
 // ---------------------------------------------------------------------------
 // Start
@@ -295,8 +309,8 @@ function onUpstreamReady() {
     } catch {}
   }
 
-  httpServer.listen(0, '127.0.0.1', () => {
-    const addr = httpServer.address();
+  tcpServer.listen(0, '127.0.0.1', () => {
+    const addr = tcpServer.address();
     if (!addr || typeof addr === 'string') {
       shutdown('failed to get server address');
       return;
