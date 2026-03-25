@@ -17,27 +17,12 @@
  * On startup, prints the proxy endpoint to stdout as a single JSON line:
  *   {"endpoint":"ws://127.0.0.1:<port>/devtools/browser"}
  * and writes the same endpoint to PROXY_ENDPOINT_FILE.
- *
- * Implementation uses only Node.js built-ins (no `ws` dependency).
  */
 
-import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-import {
-  type Socket,
-  createServer as createTcpServer,
-  connect as netConnect,
-} from 'node:net';
-import { URL } from 'node:url';
+import { createServer } from 'node:http';
+import WebSocket, { WebSocketServer } from 'ws';
 import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
-import {
-  OP_CLOSE,
-  OP_PING,
-  OP_PONG,
-  createFragmentHandler,
-  encodeFrame,
-  parseFrame,
-} from './cdp-proxy-ws';
 
 // ---------------------------------------------------------------------------
 // Config
@@ -52,30 +37,22 @@ if (!chromeEndpoint) {
 }
 
 // ---------------------------------------------------------------------------
-// Cleanup helper
+// Cleanup
 // ---------------------------------------------------------------------------
 
-function cleanup() {
+function cleanupIfOwned() {
+  try {
+    if (existsSync(PROXY_PID_FILE)) {
+      const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+      if (pid !== process.pid) return;
+    }
+  } catch {}
   try {
     if (existsSync(PROXY_ENDPOINT_FILE)) unlinkSync(PROXY_ENDPOINT_FILE);
   } catch {}
   try {
     if (existsSync(PROXY_PID_FILE)) unlinkSync(PROXY_PID_FILE);
   } catch {}
-}
-
-/**
- * Only clean up temp files if we own them (our PID matches).
- * Prevents a late-starting proxy from deleting another proxy's files.
- */
-function cleanupIfOwned() {
-  try {
-    if (existsSync(PROXY_PID_FILE)) {
-      const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
-      if (pid !== process.pid) return; // another proxy owns the files
-    }
-  } catch {}
-  cleanup();
 }
 
 function shutdown(reason: string) {
@@ -105,212 +82,74 @@ function resetIdleTimer() {
 resetIdleTimer();
 
 // ---------------------------------------------------------------------------
-// Upstream: connect to Chrome via raw TCP + WebSocket handshake
+// Upstream: connect to Chrome
 // ---------------------------------------------------------------------------
 
-const chromeUrl = new URL(chromeEndpoint);
-const chromeHost = chromeUrl.hostname;
-const chromePort = Number(chromeUrl.port) || 80;
-const chromePath = chromeUrl.pathname || '/devtools/browser';
+const upstream = new WebSocket(chromeEndpoint);
+const clients = new Set<WebSocket>();
 
-let upstream: Socket;
-let upstreamReady = false;
-let upstreamBuf = Buffer.alloc(0);
+upstream.on('error', (err) => shutdown(`upstream error: ${err.message}`));
+upstream.on('close', () => shutdown('upstream closed'));
 
-// Track all downstream client sockets
-const clients = new Set<Socket>();
-
-function connectUpstream() {
-  upstream = netConnect({ host: chromeHost, port: chromePort }, () => {
-    // Send WebSocket upgrade request
-    const key = randomBytes(16).toString('base64');
-    const req = [
-      `GET ${chromePath} HTTP/1.1`,
-      `Host: ${chromeHost}:${chromePort}`,
-      'Upgrade: websocket',
-      'Connection: Upgrade',
-      'Sec-WebSocket-Version: 13',
-      `Sec-WebSocket-Key: ${key}`,
-      '',
-      '',
-    ].join('\r\n');
-    upstream.write(req);
-  });
-
-  const handleUpstreamMessage = createFragmentHandler(
-    (opcode: number, payload: Buffer) => {
-      if (opcode === OP_CLOSE) {
-        shutdown('upstream sent close frame');
-        return;
-      }
-
-      if (opcode === OP_PING) {
-        // Reply with pong upstream, don't forward to clients
-        const pong = encodeFrame(payload, OP_PONG, true);
-        if (!upstream.destroyed) upstream.write(pong);
-        return;
-      }
-
-      if (opcode === OP_PONG) {
-        // Ignore pong frames
-        return;
-      }
-
-      resetIdleTimer();
-
-      // Forward complete message as a single FIN frame to all clients
-      const outFrame = encodeFrame(payload, opcode, false);
-      for (const client of clients) {
-        if (!client.destroyed) client.write(outFrame);
-      }
-    },
-  );
-
-  upstream.on('data', (chunk: Buffer) => {
-    upstreamBuf = Buffer.concat([upstreamBuf, chunk]);
-
-    if (!upstreamReady) {
-      const idx = upstreamBuf.indexOf('\r\n\r\n');
-      if (idx === -1) return;
-      const headers = upstreamBuf.subarray(0, idx).toString();
-      if (!headers.includes('101')) {
-        shutdown(`upstream handshake failed: ${headers.split('\r\n')[0]}`);
-        return;
-      }
-      upstreamReady = true;
-      upstreamBuf = upstreamBuf.subarray(idx + 4);
-      onUpstreamReady();
+// Forward upstream messages to all downstream clients
+upstream.on('message', (data, isBinary) => {
+  resetIdleTimer();
+  for (const client of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(data, { binary: isBinary });
     }
+  }
+});
 
-    // Parse and forward frames
-    while (upstreamBuf.length > 0) {
-      const frame = parseFrame(upstreamBuf);
-      if (!frame) break;
-      upstreamBuf = upstreamBuf.subarray(frame.total);
-      handleUpstreamMessage(frame);
+// ---------------------------------------------------------------------------
+// Downstream: local WebSocket server
+// ---------------------------------------------------------------------------
+
+const httpServer = createServer((_req, res) => {
+  res.writeHead(404);
+  res.end();
+});
+
+const wss = new WebSocketServer({ server: httpServer });
+
+wss.on('connection', (clientWs) => {
+  clients.add(clientWs);
+  resetIdleTimer();
+
+  // Forward downstream messages to upstream
+  clientWs.on('message', (data, isBinary) => {
+    resetIdleTimer();
+    if (upstream.readyState === WebSocket.OPEN) {
+      upstream.send(data, { binary: isBinary });
     }
   });
 
-  upstream.on('error', (err) => shutdown(`upstream error: ${err.message}`));
-  upstream.on('close', () => shutdown('upstream closed'));
-}
-
-// ---------------------------------------------------------------------------
-// Downstream: raw TCP server with manual WebSocket handshake
-//
-// Using net.createServer instead of http.createServer to avoid Node's HTTP
-// parser interfering with the WebSocket upgrade flow.
-// ---------------------------------------------------------------------------
-
-const tcpServer = createTcpServer((socket: Socket) => {
-  let httpBuf = Buffer.alloc(0);
-  let upgraded = false;
-
-  const onHttpData = (chunk: Buffer) => {
-    httpBuf = Buffer.concat([httpBuf, chunk]);
-
-    // Wait for complete HTTP headers
-    const idx = httpBuf.indexOf('\r\n\r\n');
-    if (idx === -1) return;
-
-    const headerStr = httpBuf.subarray(0, idx).toString();
-    const remaining = httpBuf.subarray(idx + 4);
-
-    // Extract Sec-WebSocket-Key from headers
-    const keyMatch = headerStr.match(/Sec-WebSocket-Key:\s*(.+)/i);
-    if (!keyMatch) {
-      socket.write('HTTP/1.1 400 Bad Request\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-
-    const key = keyMatch[1].trim();
-    const accept = createHash('sha1')
-      .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
-      .digest('base64');
-
-    // Send 101 response
-    upgraded = true;
-    socket.removeListener('data', onHttpData);
-
-    socket.write(
-      `HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`,
-      () => {
-        // 101 flushed — safe to start forwarding upstream frames
-        clients.add(socket);
-        resetIdleTimer();
-      },
-    );
-
-    // Set up WebSocket frame handling
-    let clientBuf = Buffer.from(remaining);
-
-    const handleClientMessage = createFragmentHandler(
-      (opcode: number, payload: Buffer) => {
-        if (opcode === OP_CLOSE) {
-          clients.delete(socket);
-          socket.destroy();
-          return;
-        }
-
-        if (opcode === OP_PING) {
-          const pong = encodeFrame(payload, OP_PONG, false);
-          if (!socket.destroyed) socket.write(pong);
-          return;
-        }
-
-        if (opcode === OP_PONG) {
-          return;
-        }
-
-        resetIdleTimer();
-
-        const outFrame = encodeFrame(payload, opcode, true);
-        if (!upstream.destroyed) upstream.write(outFrame);
-      },
-    );
-
-    socket.on('data', (wsChunk: Buffer) => {
-      clientBuf = Buffer.concat([clientBuf, wsChunk]);
-
-      while (clientBuf.length > 0) {
-        const frame = parseFrame(clientBuf);
-        if (!frame) break;
-        clientBuf = clientBuf.subarray(frame.total);
-        handleClientMessage(frame);
-      }
-    });
-  };
-
-  socket.on('data', onHttpData);
-  socket.on('close', () => clients.delete(socket));
-  socket.on('error', () => clients.delete(socket));
+  clientWs.on('close', () => clients.delete(clientWs));
+  clientWs.on('error', () => clients.delete(clientWs));
 });
 
 // ---------------------------------------------------------------------------
 // Start
 // ---------------------------------------------------------------------------
 
-function onUpstreamReady() {
-  // Check if another proxy already took over while we were connecting
+upstream.on('open', () => {
+  // Check for duplicate proxy
   if (existsSync(PROXY_PID_FILE)) {
     try {
       const existingPid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
       if (existingPid !== process.pid) {
-        // Another proxy is already running — check if it's alive
         try {
           process.kill(existingPid, 0);
-          // It's alive — we're a duplicate, exit silently
-          process.exit(0);
+          process.exit(0); // another proxy is alive
         } catch {
-          // It's dead — we can take over
+          // dead — we take over
         }
       }
     } catch {}
   }
 
-  tcpServer.listen(0, '127.0.0.1', () => {
-    const addr = tcpServer.address();
+  httpServer.listen(0, '127.0.0.1', () => {
+    const addr = httpServer.address();
     if (!addr || typeof addr === 'string') {
       shutdown('failed to get server address');
       return;
@@ -321,9 +160,6 @@ function onUpstreamReady() {
     writeFileSync(PROXY_ENDPOINT_FILE, proxyEndpoint);
     writeFileSync(PROXY_PID_FILE, String(process.pid));
 
-    // Print to stdout so the spawner can read it
     process.stdout.write(`${JSON.stringify({ endpoint: proxyEndpoint })}\n`);
   });
-}
-
-connectUpstream();
+});
