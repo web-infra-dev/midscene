@@ -6,6 +6,21 @@ The screenshot will be sent to the AI model. In some cases, like setting the `do
 
 ⁠If you are worried about data privacy issues, please refer to [Data Privacy](./data-privacy)
 
+## My model provider requires adding specific headers to requests
+
+You can use `defaultHeaders` in the `MIDSCENE_MODEL_INIT_CONFIG_JSON` environment variable to specify headers to include in the request. For example:
+
+```bash
+# Add a header with key "foo" and value "bar" to the request
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
+```
+
+You can generate the JSON string with JSON serialization to avoid mistakes when writing it by hand:
+
+```javascript
+JSON.stringify({ defaultHeaders: { foo: 'bar' } })
+```
+
 ## How to improve the running time?
 
 There are several ways to improve the running time:
