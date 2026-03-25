@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { runConnectivityTest } from '@/ai-model/connectivity';
 import { callAI, callAIWithObjectResponse } from '@/ai-model/service-caller';
 import { globalModelConfigManager } from '@midscene/shared/env';
 import { localImg2Base64 } from '@midscene/shared/img';
@@ -11,8 +12,6 @@ dotenv.config({
   debug: true,
   override: true,
 });
-
-const defaultModelConfig = globalModelConfigManager.getModelConfig('default');
 
 vi.setConfig({
   testTimeout: 20 * 1000,
@@ -33,6 +32,11 @@ vi.setConfig({
   const isUiTars = envFile === '.env.ui-tars';
 
   describe(`LLM service connectivity: ${envFile}`, () => {
+    const defaultModelConfig = () =>
+      globalModelConfigManager.getModelConfig('default');
+    const planningModelConfig = () =>
+      globalModelConfigManager.getModelConfig('planning');
+
     beforeAll(() => {
       const result = dotenv.config({
         debug: true,
@@ -57,7 +61,7 @@ vi.setConfig({
               '鲁迅认识周树人吗？回答我：1. 分析原因 2.回答：是/否/无效问题',
           },
         ],
-        defaultModelConfig,
+        defaultModelConfig(),
       );
 
       expect(result.content.length).toBeGreaterThan(1);
@@ -75,7 +79,7 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        defaultModelConfig,
+        defaultModelConfig(),
       );
       expect(result.content).toEqual({ answer: 15 });
     });
@@ -103,7 +107,7 @@ vi.setConfig({
             content: '3 x 5 = ?',
           },
         ],
-        defaultModelConfig,
+        defaultModelConfig(),
       );
       expect(result.content).toEqual({ answer: 15 });
     });
@@ -129,10 +133,19 @@ vi.setConfig({
             ],
           },
         ],
-        defaultModelConfig,
+        defaultModelConfig(),
       );
 
       expect(result.content.length).toBeGreaterThan(10);
+    });
+
+    it('connectivity suite', async () => {
+      const result = await runConnectivityTest({
+        defaultModelConfig: defaultModelConfig(),
+        planningModelConfig: planningModelConfig(),
+      });
+
+      expect(result.passed).toBe(true);
     });
   });
 });

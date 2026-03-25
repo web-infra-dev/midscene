@@ -1,39 +1,108 @@
 import { SettingOutlined } from '@ant-design/icons';
-import { Input, Modal, Tooltip } from 'antd';
+import type { ConnectivityTestResult } from '@midscene/core';
+import { Alert, Button, Input, Modal, Tooltip, message } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useEnvConfig } from '../../store/store';
+import type { PlaygroundSDKLike } from '../../types';
 
 export function EnvConfig({
   showTooltipWhenEmpty = true,
   showModelName = true,
   tooltipPlacement = 'bottom',
   mode = 'icon',
+  playgroundSDK,
 }: {
   showTooltipWhenEmpty?: boolean;
   showModelName?: boolean;
   tooltipPlacement?: 'bottom' | 'top';
   mode?: 'icon' | 'text';
+  playgroundSDK?: PlaygroundSDKLike | null;
 }) {
   const { config, configString, loadConfig, syncFromStorage } = useEnvConfig();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempConfigString, setTempConfigString] = useState(configString);
+  const [connectivityResult, setConnectivityResult] =
+    useState<ConnectivityTestResult | null>(null);
+  const [connectivityLoading, setConnectivityLoading] = useState(false);
   const midsceneModelName = config.MIDSCENE_MODEL_NAME;
+  const canRunConnectivityTest =
+    !!playgroundSDK?.runConnectivityTest && !!playgroundSDK?.overrideConfig;
   const componentRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<number | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current !== null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
   const showModal = (e: React.MouseEvent) => {
     // every time open modal, sync from localStorage
     syncFromStorage();
 
+    clearCloseTimer();
     setIsModalOpen(true);
     e.preventDefault();
     e.stopPropagation();
   };
 
   const handleOk = () => {
+    clearCloseTimer();
     setIsModalOpen(false);
     loadConfig(tempConfigString);
   };
 
+  const handleSaveAndRun = async () => {
+    const sdk = playgroundSDK;
+
+    if (!sdk?.overrideConfig || !sdk?.runConnectivityTest) {
+      return;
+    }
+
+    try {
+      setConnectivityLoading(true);
+      setConnectivityResult(null);
+      loadConfig(tempConfigString);
+      const nextConfig = useEnvConfig.getState().config;
+      await sdk.overrideConfig(nextConfig);
+      const result = await sdk.runConnectivityTest();
+      setConnectivityResult(result);
+      if (result.passed) {
+        message.success('Model verification passed');
+        clearCloseTimer();
+        closeTimerRef.current = window.setTimeout(() => {
+          setIsModalOpen(false);
+          closeTimerRef.current = null;
+        }, 2000);
+      } else {
+        message.warning('Model verification found issues');
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      message.error(`Model verification failed: ${errorMessage}`);
+      setConnectivityResult({
+        passed: false,
+        checks: [
+          {
+            name: 'text',
+            intent: 'default',
+            modelName: useEnvConfig.getState().config.MIDSCENE_MODEL_NAME || '',
+            modelFamily: undefined,
+            passed: false,
+            durationMs: 0,
+            message: errorMessage,
+          },
+        ],
+      });
+    } finally {
+      setConnectivityLoading(false);
+    }
+  };
+
   const handleCancel = () => {
+    clearCloseTimer();
     setIsModalOpen(false);
   };
 
@@ -41,8 +110,15 @@ export function EnvConfig({
   useEffect(() => {
     if (isModalOpen) {
       setTempConfigString(configString);
+      setConnectivityResult(null);
     }
   }, [isModalOpen, configString]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimer();
+    };
+  }, []);
 
   return (
     <div
@@ -88,7 +164,24 @@ export function EnvConfig({
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
-        okText="Save"
+        footer={[
+          ...(canRunConnectivityTest
+            ? [
+                <Button
+                  key="save-and-run"
+                  type="primary"
+                  ghost
+                  loading={connectivityLoading}
+                  onClick={handleSaveAndRun}
+                >
+                  Save and Verify Model
+                </Button>,
+              ]
+            : []),
+          <Button key="save" type="primary" onClick={handleOk}>
+            Save
+          </Button>,
+        ]}
         style={{ width: '800px', height: '100%', marginTop: '10%' }}
         destroyOnClose={true}
         maskClosable={true}
@@ -109,6 +202,30 @@ export function EnvConfig({
             These data will be saved <strong>locally in your browser</strong>.
           </p>
         </div>
+        {connectivityResult ? (
+          <Alert
+            type={connectivityResult.passed ? 'success' : 'warning'}
+            showIcon
+            message={
+              connectivityResult.passed
+                ? 'Model verification passed'
+                : 'Model verification failed'
+            }
+            description={
+              <div>
+                {connectivityResult.checks.map((item) => (
+                  <div key={item.name}>
+                    {item.modelName} ({item.intent}):{' '}
+                    {item.passed
+                      ? 'OK.'
+                      : `Failed.${item.message ? ` ${item.message}` : ''}`}
+                  </div>
+                ))}
+              </div>
+            }
+            style={{ marginTop: 16 }}
+          />
+        ) : null}
       </Modal>
     </div>
   );

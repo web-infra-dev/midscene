@@ -1,4 +1,8 @@
-import type { DeviceAction, ExecutionDump } from '@midscene/core';
+import type {
+  ConnectivityTestResult,
+  DeviceAction,
+  ExecutionDump,
+} from '@midscene/core';
 import { parseStructuredParams } from '../common';
 import type { PlaygroundRuntimeInfo } from '../runtime-metadata';
 import type { ExecutionOptions, FormValue, ValidationResult } from '../types';
@@ -309,6 +313,24 @@ export class RemoteExecutionAdapter extends BasePlaygroundAdapter {
       console.error('Failed to override server config:', error);
       throw error;
     }
+  }
+
+  async runConnectivityTest(): Promise<ConnectivityTestResult> {
+    if (!this.serverUrl) {
+      throw new Error('Server URL not configured');
+    }
+
+    const response = await fetch(`${this.serverUrl}/connectivity-test`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      const detail = body?.error || response.statusText;
+      throw new Error(detail);
+    }
+
+    return response.json();
   }
 
   async getTaskProgress(requestId: string): Promise<{

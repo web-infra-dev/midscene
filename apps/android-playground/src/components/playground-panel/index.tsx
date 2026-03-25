@@ -61,7 +61,11 @@ export default function PlaygroundPanel({
       <div className="playground-panel-header">
         <div className="header-row">
           <Logo />
-          <NavActions showTooltipWhenEmpty={false} showModelName={false} />
+          <NavActions
+            showTooltipWhenEmpty={false}
+            showModelName={false}
+            playgroundSDK={playgroundSDK}
+          />
         </div>
       </div>
 

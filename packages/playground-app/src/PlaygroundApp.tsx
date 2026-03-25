@@ -270,6 +270,7 @@ export function PlaygroundApp({
                     <NavActions
                       showTooltipWhenEmpty={false}
                       showModelName={false}
+                      playgroundSDK={playgroundSDK}
                     />
                   </div>
                 </div>
