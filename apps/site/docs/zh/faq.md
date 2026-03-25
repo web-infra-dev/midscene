@@ -6,6 +6,21 @@ Midscene 会发送页面截图到 AI 模型。在某些场景下，例如调用 
 
 如果你担心数据隐私问题，请参阅 [数据隐私](./data-privacy)。
 
+## 我的模型服务商需要在请求中添加指定的 header
+
+你可以通过环境变量 `MIDSCENE_MODEL_INIT_CONFIG_JSON` 中的 `defaultHeaders` 来指定请求时附带的 header，例如：
+
+```bash
+# 在请求头中添加 key 为 "foo"，值为 "bar" 的 header
+MIDSCENE_MODEL_INIT_CONFIG_JSON='{"defaultHeaders":{"foo":"bar"}}'
+```
+
+你可以通过 JSON 序列化来生成这个 JSON 的文本以避免手动拼接出错：
+
+```javascript
+JSON.stringify({ defaultHeaders: { foo: 'bar' } })
+```
+
 ## 如何配置 midscene_run 目录？
 
 Midscene 会将运行产物（报告、日志、缓存等）保存在 `midscene_run` 目录下。默认情况下，该目录会创建在当前工作目录下。
