@@ -1,9 +1,9 @@
-import type { TUserPrompt } from './common';
+import type { TMultimodalPrompt, TUserPrompt } from './common';
 import type { AndroidDeviceOpt, IOSDeviceOpt } from './device';
 import type { AgentOpt, LocateResultElement, Rect } from './types';
 import type { UIContext } from './types';
 
-export interface LocateOption {
+export interface LocateOption extends Partial<TMultimodalPrompt> {
   prompt?: TUserPrompt;
   deepLocate?: boolean; // only available in vl model
   /** @deprecated Use `deepLocate` instead. Kept for backward compatibility. */
@@ -20,7 +20,8 @@ export interface ServiceExtractOption {
   [key: string]: unknown;
 }
 
-export interface DetailedLocateParam extends Omit<LocateOption, 'deepThink'> {
+export interface DetailedLocateParam
+  extends Omit<LocateOption, 'deepThink' | keyof TMultimodalPrompt> {
   prompt: TUserPrompt;
 }
 
