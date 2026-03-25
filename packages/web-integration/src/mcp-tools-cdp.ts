@@ -52,6 +52,14 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
     proc.unref();
 
     let output = '';
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        reject(new Error('Proxy startup timeout (10s)'));
+      }
+    }, 10000);
+
     const onData = (chunk: Buffer) => {
       output += chunk.toString();
       const lines = output.split('\n');
@@ -59,7 +67,9 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
         if (!line.trim()) continue;
         try {
           const parsed = JSON.parse(line);
-          if (parsed.endpoint) {
+          if (parsed.endpoint && !settled) {
+            settled = true;
+            clearTimeout(timer);
             proc.stdout!.removeListener('data', onData);
             resolve(parsed.endpoint);
             return;
@@ -69,16 +79,20 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
     };
     proc.stdout!.on('data', onData);
 
-    proc.on('error', (err) =>
-      reject(new Error(`Failed to spawn proxy: ${err.message}`)),
-    );
+    proc.on('error', (err) => {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error(`Failed to spawn proxy: ${err.message}`));
+      }
+    });
     proc.on('exit', (code) => {
-      if (!output.includes('"endpoint"')) {
+      if (!settled) {
+        settled = true;
+        clearTimeout(timer);
         reject(new Error(`Proxy exited with code ${code} before ready`));
       }
     });
-
-    setTimeout(() => reject(new Error('Proxy startup timeout (10s)')), 10000);
   });
 }
 

@@ -21,8 +21,8 @@
  * Implementation uses only Node.js built-ins (no `ws` dependency).
  */
 
-import { createHash } from 'node:crypto';
-import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { type IncomingMessage, createServer } from 'node:http';
 import { type Socket, connect as netConnect } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -56,9 +56,23 @@ function cleanup() {
   } catch {}
 }
 
+/**
+ * Only clean up temp files if we own them (our PID matches).
+ * Prevents a late-starting proxy from deleting another proxy's files.
+ */
+function cleanupIfOwned() {
+  try {
+    if (existsSync(PROXY_PID_FILE)) {
+      const pid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+      if (pid !== process.pid) return; // another proxy owns the files
+    }
+  } catch {}
+  cleanup();
+}
+
 function shutdown(reason: string) {
   process.stderr.write(`[cdp-proxy] shutting down: ${reason}\n`);
-  cleanup();
+  cleanupIfOwned();
   process.exit(0);
 }
 
@@ -83,10 +97,21 @@ function resetIdleTimer() {
 resetIdleTimer();
 
 // ---------------------------------------------------------------------------
+// WebSocket opcodes (RFC 6455)
+// ---------------------------------------------------------------------------
+
+const OP_CONTINUATION = 0x00;
+const OP_TEXT = 0x01;
+const OP_BINARY = 0x02;
+const OP_CLOSE = 0x08;
+const OP_PING = 0x09;
+const OP_PONG = 0x0a;
+
+// ---------------------------------------------------------------------------
 // Minimal WebSocket frame helpers (RFC 6455)
 // ---------------------------------------------------------------------------
 
-function encodeFrame(data: Buffer, opcode = 0x01, mask = false): Buffer {
+function encodeFrame(data: Buffer, opcode = OP_TEXT, mask = false): Buffer {
   const len = data.length;
   let headerLen = 2;
   if (len > 65535) headerLen += 8;
@@ -110,12 +135,7 @@ function encodeFrame(data: Buffer, opcode = 0x01, mask = false): Buffer {
   }
 
   if (mask) {
-    const maskBytes = Buffer.from([
-      Math.random() * 256,
-      Math.random() * 256,
-      Math.random() * 256,
-      Math.random() * 256,
-    ]);
+    const maskBytes = randomBytes(4);
     maskBytes.copy(header, offset);
     const masked = Buffer.alloc(len);
     for (let i = 0; i < len; i++) masked[i] = data[i] ^ maskBytes[i & 3];
@@ -126,6 +146,7 @@ function encodeFrame(data: Buffer, opcode = 0x01, mask = false): Buffer {
 }
 
 interface ParsedFrame {
+  fin: boolean;
   opcode: number;
   payload: Buffer;
   total: number;
@@ -133,6 +154,7 @@ interface ParsedFrame {
 
 function parseFrame(buf: Buffer): ParsedFrame | null {
   if (buf.length < 2) return null;
+  const fin = (buf[0] & 0x80) !== 0;
   const opcode = buf[0] & 0x0f;
   const isMasked = (buf[1] & 0x80) !== 0;
   let payloadLen = buf[1] & 0x7f;
@@ -161,7 +183,55 @@ function parseFrame(buf: Buffer): ParsedFrame | null {
     payload = buf.subarray(offset, offset + payloadLen);
   }
 
-  return { opcode, payload, total: offset + payloadLen };
+  return { fin, opcode, payload, total: offset + payloadLen };
+}
+
+// ---------------------------------------------------------------------------
+// Fragment reassembly helper
+//
+// WebSocket allows a message to be split across multiple frames:
+//   [opcode, FIN=0] [continuation, FIN=0]* [continuation, FIN=1]
+// We buffer fragments and emit the complete message once FIN=1.
+// ---------------------------------------------------------------------------
+
+interface FragmentState {
+  opcode: number;
+  chunks: Buffer[];
+}
+
+function createFragmentHandler(
+  onMessage: (opcode: number, payload: Buffer) => void,
+) {
+  let state: FragmentState | null = null;
+
+  return (frame: ParsedFrame) => {
+    if (frame.opcode >= 0x08) {
+      // Control frames (close/ping/pong) are never fragmented — deliver immediately
+      onMessage(frame.opcode, frame.payload);
+      return;
+    }
+
+    if (frame.opcode !== OP_CONTINUATION) {
+      // Start of a new message (possibly the only frame if FIN=1)
+      state = { opcode: frame.opcode, chunks: [frame.payload] };
+    } else if (state) {
+      // Continuation frame
+      state.chunks.push(frame.payload);
+    } else {
+      // Orphan continuation without a starting frame — skip
+      return;
+    }
+
+    if (frame.fin && state) {
+      const payload =
+        state.chunks.length === 1
+          ? state.chunks[0]
+          : Buffer.concat(state.chunks);
+      const { opcode } = state;
+      state = null;
+      onMessage(opcode, payload);
+    }
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -183,10 +253,7 @@ const clients = new Set<Socket>();
 function connectUpstream() {
   upstream = netConnect({ host: chromeHost, port: chromePort }, () => {
     // Send WebSocket upgrade request
-    const key = createHash('sha1')
-      .update(String(Date.now()))
-      .digest('base64')
-      .substring(0, 22);
+    const key = randomBytes(16).toString('base64');
     const req = [
       `GET ${chromePath} HTTP/1.1`,
       `Host: ${chromeHost}:${chromePort}`,
@@ -199,6 +266,35 @@ function connectUpstream() {
     ].join('\r\n');
     upstream.write(req);
   });
+
+  const handleUpstreamMessage = createFragmentHandler(
+    (opcode: number, payload: Buffer) => {
+      if (opcode === OP_CLOSE) {
+        shutdown('upstream sent close frame');
+        return;
+      }
+
+      if (opcode === OP_PING) {
+        // Reply with pong upstream, don't forward to clients
+        const pong = encodeFrame(payload, OP_PONG, true);
+        if (!upstream.destroyed) upstream.write(pong);
+        return;
+      }
+
+      if (opcode === OP_PONG) {
+        // Ignore pong frames
+        return;
+      }
+
+      resetIdleTimer();
+
+      // Forward complete message as a single FIN frame to all clients
+      const outFrame = encodeFrame(payload, opcode, false);
+      for (const client of clients) {
+        if (!client.destroyed) client.write(outFrame);
+      }
+    },
+  );
 
   upstream.on('data', (chunk: Buffer) => {
     upstreamBuf = Buffer.concat([upstreamBuf, chunk]);
@@ -216,26 +312,12 @@ function connectUpstream() {
       onUpstreamReady();
     }
 
-    // Parse and forward frames to all downstream clients
+    // Parse and forward frames
     while (upstreamBuf.length > 0) {
       const frame = parseFrame(upstreamBuf);
       if (!frame) break;
-
-      if (frame.opcode === 0x08) {
-        // Close frame
-        shutdown('upstream sent close frame');
-        return;
-      }
-
-      resetIdleTimer();
-
-      // Re-encode as unmasked server frame and send to all clients
-      const outFrame = encodeFrame(frame.payload, frame.opcode, false);
-      for (const client of clients) {
-        if (!client.destroyed) client.write(outFrame);
-      }
-
       upstreamBuf = upstreamBuf.subarray(frame.total);
+      handleUpstreamMessage(frame);
     }
   });
 
@@ -281,27 +363,41 @@ httpServer.on(
 
     let clientBuf = Buffer.from(head);
 
+    const handleClientMessage = createFragmentHandler(
+      (opcode: number, payload: Buffer) => {
+        if (opcode === OP_CLOSE) {
+          clients.delete(socket);
+          socket.destroy();
+          return;
+        }
+
+        if (opcode === OP_PING) {
+          // Reply with pong to client, don't forward upstream
+          const pong = encodeFrame(payload, OP_PONG, false);
+          if (!socket.destroyed) socket.write(pong);
+          return;
+        }
+
+        if (opcode === OP_PONG) {
+          return;
+        }
+
+        resetIdleTimer();
+
+        // Forward complete message as masked frame upstream
+        const outFrame = encodeFrame(payload, opcode, true);
+        if (!upstream.destroyed) upstream.write(outFrame);
+      },
+    );
+
     socket.on('data', (chunk: Buffer) => {
       clientBuf = Buffer.concat([clientBuf, chunk]);
 
       while (clientBuf.length > 0) {
         const frame = parseFrame(clientBuf);
         if (!frame) break;
-
-        if (frame.opcode === 0x08) {
-          // Close frame from client
-          clients.delete(socket);
-          socket.destroy();
-          return;
-        }
-
-        resetIdleTimer();
-
-        // Re-encode as masked client frame and send upstream
-        const outFrame = encodeFrame(frame.payload, frame.opcode, true);
-        if (!upstream.destroyed) upstream.write(outFrame);
-
         clientBuf = clientBuf.subarray(frame.total);
+        handleClientMessage(frame);
       }
     });
 
@@ -315,6 +411,23 @@ httpServer.on(
 // ---------------------------------------------------------------------------
 
 function onUpstreamReady() {
+  // Check if another proxy already took over while we were connecting
+  if (existsSync(PROXY_PID_FILE)) {
+    try {
+      const existingPid = Number(readFileSync(PROXY_PID_FILE, 'utf-8').trim());
+      if (existingPid !== process.pid) {
+        // Another proxy is already running — check if it's alive
+        try {
+          process.kill(existingPid, 0);
+          // It's alive — we're a duplicate, exit silently
+          process.exit(0);
+        } catch {
+          // It's dead — we can take over
+        }
+      }
+    } catch {}
+  }
+
   httpServer.listen(0, '127.0.0.1', () => {
     const addr = httpServer.address();
     if (!addr || typeof addr === 'string') {
