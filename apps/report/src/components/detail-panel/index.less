@@ -52,8 +52,22 @@
       margin-bottom: 5px;
     }
 
-    img {
+    img:not(.blackboard-screenshot) {
       border: 1px solid @heavy-border-color;
+      max-width: 100%;
+      max-height: 720px;
+      box-sizing: border-box;
+    }
+
+    .blackboard {
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .blackboard-screenshot {
+      border: 1px solid @heavy-border-color;
+      display: block;
+      width: auto;
       max-width: 100%;
       max-height: 720px;
       box-sizing: border-box;

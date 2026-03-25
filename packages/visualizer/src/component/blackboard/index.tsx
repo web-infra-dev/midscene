@@ -1,7 +1,7 @@
 'use client';
 import type { BaseElement, Rect, UIContext } from '@midscene/core';
-import type { ReactElement } from 'react';
-import { useMemo } from 'react';
+import React, { type ReactElement } from 'react';
+import { normalizeBlackboardHighlights } from './highlights';
 import './index.less';
 
 export const Blackboard = (props: {
@@ -28,7 +28,12 @@ export const Blackboard = (props: {
   const screenWidth = shotSize.width;
   const screenHeight = shotSize.height;
 
-  const screenshotBase64 = useMemo(() => {
+  const highlightOverlays = React.useMemo(
+    () => normalizeBlackboardHighlights(highlightElements),
+    [highlightElements],
+  );
+
+  const screenshotBase64 = React.useMemo(() => {
     if (!screenshot) return '';
     if (typeof screenshot === 'object' && 'base64' in screenshot) {
       return (screenshot as { base64: string }).base64;
@@ -37,7 +42,9 @@ export const Blackboard = (props: {
     return '';
   }, [screenshot]);
 
-  const highlightElementRects: Rect[] = highlightElements.map((e) => e.rect);
+  const highlightElementRects = highlightOverlays.map(
+    (highlight) => highlight.rect,
+  );
 
   let bottomTipA: ReactElement | null = null;
   if (highlightElementRects.length === 1) {
@@ -63,7 +70,8 @@ export const Blackboard = (props: {
       <div
         className="blackboard-main-content"
         style={{
-          width: '100%',
+          width: 'fit-content',
+          maxWidth: '100%',
           position: 'relative',
         }}
       >
@@ -102,9 +110,9 @@ export const Blackboard = (props: {
           )}
 
           {/* Highlight elements */}
-          {highlightElements.map((el, idx) => (
+          {highlightOverlays.map((el) => (
             <div
-              key={el.id || idx}
+              key={`${el.key}-rect`}
               className="blackboard-rect blackboard-rect-highlight"
               style={{
                 left: `${(el.rect.left / screenWidth) * 100}%`,
@@ -112,11 +120,7 @@ export const Blackboard = (props: {
                 width: `${(el.rect.width / screenWidth) * 100}%`,
                 height: `${(el.rect.height / screenHeight) * 100}%`,
               }}
-            >
-              {el.content && (
-                <span className="blackboard-rect-label">{el.content}</span>
-              )}
-            </div>
+            />
           ))}
         </div>
       </div>
