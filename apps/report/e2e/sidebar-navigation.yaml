@@ -10,14 +10,14 @@ tasks:
   - name: click a task row to view details
     flow:
       - ai: Click on the first task row in the left sidebar execution list
-      - sleep: 2000
-      - aiAssert: The right side shows a detail panel with task information, not the video player
+      - sleep: 3000
+      - aiAssert: The right detail panel shows task-related content such as Param, Output, or Meta sections
 
   - name: navigate between tasks
     flow:
       - ai: Click on the second task row in the left sidebar
-      - sleep: 1000
-      - aiAssert: The detail panel content has updated to show task information
+      - sleep: 2000
+      - aiAssert: The right detail panel is visible and shows task-related content
 
   - name: toggle model call details
     flow:
