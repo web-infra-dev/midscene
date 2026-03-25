@@ -9,6 +9,7 @@ import type {
   UIContext,
 } from '@/types';
 import { uploadTestInfoToServer } from '@/utils';
+import type { TModelFamily } from '@midscene/shared/env';
 import {
   MIDSCENE_REPORT_QUIET,
   MIDSCENE_REPORT_TAG_NAME,
@@ -25,7 +26,11 @@ import { debug as cacheDebug } from './task-cache';
 
 export async function commonContextParser(
   interfaceInstance: AbstractInterface,
-  _opt: { uploadServerUrl?: string; screenshotShrinkFactor?: number },
+  _opt: {
+    uploadServerUrl?: string;
+    screenshotShrinkFactor?: number;
+    modelFamily?: TModelFamily;
+  },
 ): Promise<UIContext> {
   const debug = getDebug('commonContextParser');
 
@@ -103,7 +108,6 @@ export async function commonContextParser(
     finalLogicalHeight = logicalWidth;
   }
 
-  // Validate user-specified shrink factor
   const userShrinkFactor = _opt.screenshotShrinkFactor ?? 1;
 
   if (!Number.isFinite(userShrinkFactor) || userShrinkFactor < 1) {

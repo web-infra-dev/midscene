@@ -48,6 +48,8 @@ export class TaskRunner {
     | ((runner: TaskRunner, error?: TaskExecutionError) => Promise<void> | void)
     | undefined;
 
+  private readonly executionLogTime: number;
+
   constructor(
     name: string,
     uiContextBuilder: () => Promise<UIContext>,
@@ -63,6 +65,7 @@ export class TaskRunner {
     this.onTaskStart = options?.onTaskStart;
     this.uiContextBuilder = uiContextBuilder;
     this.onTaskUpdate = options?.onTaskUpdate;
+    this.executionLogTime = Date.now();
   }
 
   private async emitOnTaskUpdate(error?: TaskExecutionError): Promise<void> {
@@ -383,7 +386,7 @@ export class TaskRunner {
   dump(): ExecutionDump {
     return new ExecutionDump({
       id: this.id,
-      logTime: Date.now(),
+      logTime: this.executionLogTime,
       name: this.name,
       tasks: this.tasks,
     });

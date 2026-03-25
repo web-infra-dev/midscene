@@ -364,6 +364,18 @@ export class Agent<
     return this.fullActionSpace;
   }
 
+  private static readonly CONTEXT_RETRY_MAX = 3;
+  private static readonly CONTEXT_RETRY_DELAY_MS = 1500;
+
+  /**
+   * Override in subclasses to indicate which errors are transient and should
+   * trigger an automatic retry when building the UI context.
+   * Returns `false` by default (no retry).
+   */
+  protected isRetryableContextError(_error: unknown): boolean {
+    return false;
+  }
+
   async getUIContext(action?: ServiceAction): Promise<UIContext> {
     // Check VL model configuration when UI context is first needed
     this.ensureVLModelWarning();
@@ -374,13 +386,29 @@ export class Agent<
       return this.frozenUIContext;
     }
 
-    // Get original context
-    const context = await commonContextParser(this.interface, {
-      uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
-      screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
-    });
+    const { modelFamily } = this.modelConfigManager.getModelConfig('default');
 
-    return context;
+    const maxRetries = Agent.CONTEXT_RETRY_MAX;
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await commonContextParser(this.interface, {
+          uploadServerUrl: this.modelConfigManager.getUploadTestServerUrl(),
+          screenshotShrinkFactor: this.opts.screenshotShrinkFactor,
+          modelFamily,
+        });
+      } catch (error) {
+        if (attempt < maxRetries && this.isRetryableContextError(error)) {
+          debug(
+            `retryable context error (attempt ${attempt + 1}/${maxRetries}), retrying in ${Agent.CONTEXT_RETRY_DELAY_MS}ms: ${error}`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, Agent.CONTEXT_RETRY_DELAY_MS),
+          );
+          continue;
+        }
+        throw error;
+      }
+    }
   }
 
   async _snapshotContext(): Promise<UIContext> {
@@ -750,12 +778,19 @@ export class Agent<
     let locatePrompt: TUserPrompt | undefined;
     let opt: LocateOption | undefined;
 
-    // Check if using new signature (first param is locatePrompt, second has scroll params)
+    const isLocatePromptLike = (value: unknown): value is TUserPrompt => {
+      if (typeof value === 'string' || typeof value === 'undefined') {
+        return true;
+      }
+
+      return typeof value === 'object' && value !== null && 'prompt' in value;
+    };
+
+    // Check if using new signature (first param is locatePrompt, second is options)
     if (
+      isLocatePromptLike(locatePromptOrScrollParam) &&
       typeof locatePromptOrOpt === 'object' &&
-      ('direction' in locatePromptOrOpt ||
-        'scrollType' in locatePromptOrOpt ||
-        'distance' in locatePromptOrOpt)
+      locatePromptOrOpt !== null
     ) {
       // New signature: aiScroll(locatePrompt, opt)
       locatePrompt = locatePromptOrScrollParam as TUserPrompt;
@@ -797,6 +832,25 @@ export class Agent<
     });
   }
 
+  async aiPinch(
+    locatePrompt: TUserPrompt | undefined,
+    opt: LocateOption & {
+      direction: 'in' | 'out';
+      distance?: number;
+      duration?: number;
+    },
+  ) {
+    const detailedLocateParam = buildDetailedLocateParam(
+      locatePrompt || '',
+      opt,
+    );
+
+    return this.callActionInActionSpace('Pinch', {
+      ...opt,
+      locate: detailedLocateParam,
+    });
+  }
+
   async aiAct(
     taskPrompt: string,
     opt?: AiActOptions,
@@ -827,20 +881,12 @@ export class Agent<
         modelConfigForPlanning.openaiBaseURL ===
           defaultIntentModelConfig.openaiBaseURL;
 
-      const includeBboxInPlanning =
-        !deepThink && noIndividualLocateModel && !deepLocate;
+      const includeBboxInPlanning = !deepThink && noIndividualLocateModel;
 
       debug('setting includeBboxInPlanning to', includeBboxInPlanning, {
         deepThink,
         noIndividualLocateModel,
-        deepLocate,
       });
-
-      if (deepLocate && includeBboxInPlanning) {
-        console.warn(
-          'deepLocate option is ignored when includeBboxInPlanning is true (same model for planning and default intent without deepThink). Locate is already done during planning.',
-        );
-      }
 
       const cacheable = opt?.cacheable;
       const replanningCycleLimit = this.resolveReplanningCycleLimit(
@@ -854,7 +900,7 @@ export class Agent<
           ? undefined
           : this.taskCache?.matchPlanCache(taskPrompt);
       if (
-        matchedCache &&
+        matchedCache?.cacheUsable &&
         this.taskCache?.isCacheResultUsed &&
         matchedCache.cacheContent?.yamlWorkflow?.trim()
       ) {
@@ -870,7 +916,7 @@ export class Agent<
         return;
       }
 
-      // If cache matched but yamlWorkflow is empty, fall through to normal execution
+      // If cache matched but is not executable, fall through to normal execution
       const imagesIncludeCount: number = deepThink ? 2 : 1;
       const { output: actionOutput } = await this.taskExecutor.action(
         taskPrompt,
@@ -883,12 +929,16 @@ export class Agent<
         imagesIncludeCount,
         deepThink,
         fileChooserAccept,
-        includeBboxInPlanning ? undefined : deepLocate,
+        deepLocate,
         abortSignal,
       );
 
       // update cache
-      if (this.taskCache && actionOutput?.yamlFlow && cacheable !== false) {
+      if (
+        this.taskCache &&
+        actionOutput?.yamlFlow?.length &&
+        cacheable !== false
+      ) {
         const yamlContent: MidsceneYamlScript = {
           tasks: [
             {
@@ -1281,8 +1331,8 @@ export class Agent<
     // Wait for all queued write operations to complete
     await this.reportGenerator.flush();
 
-    await this.reportGenerator.finalize();
-    this.reportFile = this.reportGenerator.getReportPath();
+    const finalPath = await this.reportGenerator.finalize();
+    this.reportFile = finalPath;
 
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory

@@ -29,6 +29,15 @@ vi.mock('puppeteer', () => ({
         close: vi.fn().mockResolvedValue(undefined),
       }),
     }),
+    connect: vi.fn().mockResolvedValue({
+      disconnect: vi.fn(),
+      close: vi.fn().mockResolvedValue(undefined),
+      newPage: vi.fn().mockResolvedValue({
+        browser: vi.fn().mockReturnValue({}),
+        close: vi.fn().mockResolvedValue(undefined),
+      }),
+      pages: vi.fn().mockResolvedValue([]),
+    }),
   },
 }));
 vi.mock('@/create-yaml-player');
@@ -244,6 +253,62 @@ describe('BatchRunner', () => {
       await runner.run();
 
       expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('should use puppeteer.connect when cdpEndpoint is specified in global config', async () => {
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        files: ['web1.yml'],
+        globalConfig: {
+          web: {
+            url: 'http://example.com',
+            cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+          },
+        },
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      expect(puppeteer.connect).toHaveBeenCalledWith({
+        browserWSEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+        defaultViewport: null,
+      });
+      // Should NOT call launch
+      expect(puppeteer.launch).not.toHaveBeenCalled();
+    });
+
+    test('should disconnect (not close) browser in CDP mode', async () => {
+      const mockDisconnect = vi.fn();
+      const mockClose = vi.fn().mockResolvedValue(undefined);
+      vi.mocked(puppeteer.connect).mockResolvedValue({
+        disconnect: mockDisconnect,
+        close: mockClose,
+        newPage: vi.fn().mockResolvedValue({
+          browser: vi.fn().mockReturnValue({}),
+          close: vi.fn().mockResolvedValue(undefined),
+        }),
+        pages: vi.fn().mockResolvedValue([]),
+      } as any);
+
+      const config = {
+        ...mockBatchConfig,
+        shareBrowserContext: true,
+        keepWindow: false,
+        files: ['web1.yml'],
+        globalConfig: {
+          web: {
+            url: 'http://example.com',
+            cdpEndpoint: 'ws://localhost:9222/devtools/browser/xxx',
+          },
+        },
+      };
+      const runner = new BatchRunner(config);
+      await runner.run();
+
+      // In CDP mode, should disconnect, not close
+      expect(mockDisconnect).toHaveBeenCalled();
+      expect(mockClose).not.toHaveBeenCalled();
     });
   });
 

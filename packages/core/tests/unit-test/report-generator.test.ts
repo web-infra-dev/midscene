@@ -22,6 +22,10 @@ import {
   type UIContext,
 } from '@/types';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import {
+  countGroupedDumpScripts,
+  extractGroupedDumpScripts,
+} from './test-helpers/report-html';
 
 /**
  * Create a fake base64 string of a specified size (in bytes).
@@ -80,15 +84,6 @@ function buildIncrementalExecution(
 ): ExecutionDump {
   existingScreenshots.push(newScreenshot);
   return createExecution([...existingScreenshots]);
-}
-
-/**
- * Count dump script tags that are user-generated (have data-group-id),
- * excluding any that are part of the report template.
- */
-function countUserDumpTags(html: string): number {
-  const regex = /<script type="midscene_web_dump"[^>]*data-group-id[^>]*>/g;
-  return (html.match(regex) || []).length;
 }
 
 function getTmpDir(prefix: string): string {
@@ -190,7 +185,7 @@ describe('ReportGenerator — append-only model', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
       // Should have 3 dump tags (one per update), frontend keeps only last
-      expect(countUserDumpTags(html)).toBe(3);
+      expect(countGroupedDumpScripts(html)).toBe(3);
     });
 
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
@@ -230,13 +225,13 @@ describe('ReportGenerator — append-only model', () => {
       expect(imageMap[screenshot2.id]).toBeDefined();
 
       // Should have 2 dump tags (one per update), last one has the final state
-      expect(countUserDumpTags(html)).toBe(2);
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(2);
 
       // Parse the last dump tag — it should have the complete execution
-      const dumpRegex =
-        /<script type="midscene_web_dump"[^>]*data-group-id[^>]*>([\s\S]*?)<\/script>/g;
-      const dumpMatches = [...html.matchAll(dumpRegex)];
-      const lastDump = unescapeContent(dumpMatches[dumpMatches.length - 1][1]);
+      const lastDump = unescapeContent(
+        dumpScripts[dumpScripts.length - 1].content,
+      );
       const parsed = JSON.parse(lastDump);
       expect(parsed.groupName).toBe('test-group');
       expect(parsed.executions).toHaveLength(1);
@@ -266,13 +261,12 @@ describe('ReportGenerator — append-only model', () => {
       const html = readFileSync(reportPath, 'utf-8');
 
       // Should have 2 dump tags
-      expect(countUserDumpTags(html)).toBe(2);
+      const dumpScripts = extractGroupedDumpScripts(html);
+      expect(dumpScripts).toHaveLength(2);
 
       // Each dump tag should contain exactly 1 execution
-      const dumpRegex =
-        /<script type="midscene_web_dump"[^>]*data-group-id[^>]*>([\s\S]*?)<\/script>/g;
-      for (const match of html.matchAll(dumpRegex)) {
-        const dumpJson = unescapeContent(match[1]);
+      for (const dumpScript of dumpScripts) {
+        const dumpJson = unescapeContent(dumpScript.content);
         const parsed = JSON.parse(dumpJson);
         expect(parsed.executions).toHaveLength(1);
       }
@@ -298,7 +292,7 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
-      expect(countUserDumpTags(html)).toBe(2);
+      expect(countGroupedDumpScripts(html)).toBe(2);
     });
 
     it('should release screenshot memory immediately after writing', async () => {
@@ -447,7 +441,7 @@ describe('ReportGenerator — append-only model', () => {
 
       const html = readFileSync(reportPath, 'utf-8');
       // Should have 5 dump tags total (1 + 4 updates)
-      expect(countUserDumpTags(html)).toBe(5);
+      expect(countGroupedDumpScripts(html)).toBe(5);
     });
 
     it('should produce valid HTML structure in directory mode', async () => {
@@ -560,7 +554,7 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
-      expect(countUserDumpTags(html)).toBe(2);
+      expect(countGroupedDumpScripts(html)).toBe(2);
     });
 
     it('should produce separate dump tags for same-name executions in directory mode', async () => {
@@ -584,7 +578,7 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const html = readFileSync(reportPath, 'utf-8');
-      expect(countUserDumpTags(html)).toBe(2);
+      expect(countGroupedDumpScripts(html)).toBe(2);
     });
   });
 

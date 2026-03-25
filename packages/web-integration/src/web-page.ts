@@ -13,10 +13,12 @@ import {
   defineActionInput,
   defineActionKeyboardPress,
   defineActionLongPress,
+  defineActionPinch,
   defineActionRightClick,
   defineActionScroll,
   defineActionSwipe,
   defineActionTap,
+  normalizePinchParam,
 } from '@midscene/core/device';
 
 import { sleep } from '@midscene/core/utils';
@@ -429,6 +431,13 @@ export abstract class AbstractWebPage extends AbstractInterface {
     to: { x: number; y: number },
     duration?: number,
   ): Promise<void>;
+  abstract pinch(
+    centerX: number,
+    centerY: number,
+    startDistance: number,
+    endDistance: number,
+    duration?: number,
+  ): Promise<void>;
 }
 
 export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
@@ -568,6 +577,13 @@ export const commonWebActionsForWebPage = <T extends AbstractWebPage>(
     assert(element, 'Element not found, cannot long press');
     const duration = param?.duration;
     await page.longPress(element.center[0], element.center[1], duration);
+  }),
+
+  defineActionPinch(async (param) => {
+    const { centerX, centerY, startDistance, endDistance, duration } =
+      normalizePinchParam(param, await page.size());
+
+    await page.pinch(centerX, centerY, startDistance, endDistance, duration);
   }),
 
   ...(includeTouchEvents

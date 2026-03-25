@@ -1,0 +1,13 @@
+# This YAML generates a real report for e2e testing.
+# Keep tasks simple and stable to avoid flaky failures.
+web:
+  url: https://www.saucedemo.com/
+
+tasks:
+  - name: login to sauce demo
+    flow:
+      - ai: type 'standard_user' in user name input, type 'secret_sauce' in password, click 'Login'
+
+  - name: verify inventory page
+    flow:
+      - aiAssert: The page shows a list of products with prices

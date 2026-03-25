@@ -100,6 +100,7 @@ function extractAllDumps(html: string) {
     testTitle: string;
     testStatus: string;
     groupName: string | null;
+    groupId: string | null;
   }[] = [];
 
   const openPattern = '<script type="midscene_web_dump"';
@@ -125,6 +126,7 @@ function extractAllDumps(html: string) {
 
     const titleMatch = openTag.match(/playwright_test_title="([^"]*)"/);
     const statusMatch = openTag.match(/playwright_test_status="([^"]*)"/);
+    const groupIdMatch = openTag.match(/data-group-id="([^"]*)"/);
     const content = html.substring(tagEndIdx + 1, closeIdx).trim();
 
     let groupName: string | null = null;
@@ -141,6 +143,7 @@ function extractAllDumps(html: string) {
       testTitle: titleMatch ? decodeURIComponent(titleMatch[1]) : '',
       testStatus: statusMatch ? decodeURIComponent(statusMatch[1]) : '',
       groupName,
+      groupId: groupIdMatch ? decodeURIComponent(groupIdMatch[1]) : null,
     });
 
     pos = closeIdx + closeTag.length;
@@ -203,6 +206,7 @@ describe('ReportMergingTool merged dump count verification', () => {
         expect(dumps[i].testId).toBe(`inline-${n}-${i}`);
         expect(dumps[i].groupName).toBe(`group-${i}`);
         expect(dumps[i].testStatus).toBe('passed');
+        expect(dumps[i].groupId).toBeTruthy();
       }
     },
   );
@@ -256,6 +260,7 @@ describe('ReportMergingTool merged dump count verification', () => {
     for (let i = 0; i < n; i++) {
       expect(dumps[i].testId).toBe(`dir-${i}`);
       expect(dumps[i].groupName).toBe(`dir-group-${i}`);
+      expect(dumps[i].groupId).toBeTruthy();
     }
   });
 

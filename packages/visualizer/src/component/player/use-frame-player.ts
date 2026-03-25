@@ -76,11 +76,15 @@ export function useFramePlayer(options: UseFramePlayerOptions): FramePlayer {
     return () => cancelAnimationFrame(rafId);
   }, [playing]);
 
-  const play = useCallback(() => {
+  const resetIfAtEnd = () => {
     if (frameRef.current >= durationRef.current - 1) {
       frameRef.current = 0;
       setCurrentFrame(0);
     }
+  };
+
+  const play = useCallback(() => {
+    resetIfAtEnd();
     setPlaying(true);
   }, []);
 
@@ -90,10 +94,7 @@ export function useFramePlayer(options: UseFramePlayerOptions): FramePlayer {
     if (playingRef.current) {
       setPlaying(false);
     } else {
-      if (frameRef.current >= durationRef.current - 1) {
-        frameRef.current = 0;
-        setCurrentFrame(0);
-      }
+      resetIfAtEnd();
       setPlaying(true);
     }
   }, []);

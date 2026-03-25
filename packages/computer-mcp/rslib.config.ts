@@ -32,6 +32,9 @@ export default defineConfig({
   plugins: [injectReportHtmlFromCore(__dirname)],
   tools: {
     rspack: {
+      output: {
+        publicPath: '/',
+      },
       plugins: [
         new rspack.BannerPlugin({
           banner: '#!/usr/bin/env node',

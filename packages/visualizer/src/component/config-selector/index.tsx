@@ -1,4 +1,4 @@
-import { Checkbox, Dropdown, type MenuProps, Radio } from 'antd';
+import { Checkbox, Dropdown, type MenuProps, Radio, Tooltip } from 'antd';
 import type React from 'react';
 import SettingOutlined from '../../icons/setting.svg';
 import { useEnvConfig } from '../../store/store';
@@ -14,6 +14,10 @@ import {
   screenshotIncludedTip,
   trackingTip,
 } from '../../utils/constants';
+import {
+  getDeviceCapabilities,
+  hasDeviceSpecificConfig,
+} from '../../utils/device-capabilities';
 
 interface ConfigSelectorProps {
   showDeepLocateOption: boolean;
@@ -71,7 +75,8 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     (state) => state.setAlwaysRefreshScreenInfo,
   );
 
-  const hasDeviceOptions = deviceType === 'android' || deviceType === 'ios';
+  const deviceCapabilities = getDeviceCapabilities(deviceType);
+  const hasDeviceOptions = hasDeviceSpecificConfig(deviceType);
 
   if (
     !enableTracking &&
@@ -129,14 +134,22 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     if (showDeepThinkOption) {
       items.push({
         label: (
-          <Checkbox
-            onChange={(e) => {
-              setDeepThink(e.target.checked);
-            }}
-            checked={deepThink}
-          >
-            {deepThinkTip}
-          </Checkbox>
+          <div style={{ padding: '4px 0' }}>
+            <div style={{ marginBottom: '4px', fontSize: '14px' }}>
+              {deepThinkTip}
+            </div>
+            <Radio.Group
+              size="small"
+              value={deepThink}
+              onChange={(e) => setDeepThink(e.target.value)}
+            >
+              <Tooltip title="Controlled by MIDSCENE_MODEL_REASONING_ENABLED env variable">
+                <Radio value={'unset'}>Auto</Radio>
+              </Tooltip>
+              <Radio value={true}>On</Radio>
+              <Radio value={false}>Off</Radio>
+            </Radio.Group>
+          </div>
         ),
         key: 'deep-think-config',
       });
@@ -179,7 +192,7 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
     }
 
     // Android-specific options
-    if (deviceType === 'android') {
+    if (deviceCapabilities.supportsImeStrategy) {
       items.push({
         label: (
           <div style={{ padding: '4px 0' }}>
@@ -199,52 +212,60 @@ export const ConfigSelector: React.FC<ConfigSelectorProps> = ({
         key: 'ime-strategy-config',
       });
 
-      items.push({
-        label: (
-          <Checkbox
-            onChange={(e) => setAutoDismissKeyboard(e.target.checked)}
-            checked={autoDismissKeyboard}
-          >
-            {autoDismissKeyboardTip}
-          </Checkbox>
-        ),
-        key: 'auto-dismiss-keyboard-config',
-      });
-
-      items.push({
-        label: (
-          <div style={{ padding: '4px 0' }}>
-            <div style={{ marginBottom: '4px', fontSize: '14px' }}>
-              {keyboardDismissStrategyTip}
-            </div>
-            <Radio.Group
-              size="small"
-              value={keyboardDismissStrategy}
-              onChange={(e) => setKeyboardDismissStrategy(e.target.value)}
+      if (deviceCapabilities.supportsAutoDismissKeyboard) {
+        items.push({
+          label: (
+            <Checkbox
+              onChange={(e) => setAutoDismissKeyboard(e.target.checked)}
+              checked={autoDismissKeyboard}
             >
-              <Radio value="esc-first">ESC first</Radio>
-              <Radio value="back-first">Back first</Radio>
-            </Radio.Group>
-          </div>
-        ),
-        key: 'keyboard-dismiss-strategy-config',
-      });
+              {autoDismissKeyboardTip}
+            </Checkbox>
+          ),
+          key: 'auto-dismiss-keyboard-config',
+        });
+      }
 
-      items.push({
-        label: (
-          <Checkbox
-            onChange={(e) => setAlwaysRefreshScreenInfo(e.target.checked)}
-            checked={alwaysRefreshScreenInfo}
-          >
-            {alwaysRefreshScreenInfoTip}
-          </Checkbox>
-        ),
-        key: 'always-refresh-screen-info-config',
-      });
+      if (deviceCapabilities.supportsKeyboardDismissStrategy) {
+        items.push({
+          label: (
+            <div style={{ padding: '4px 0' }}>
+              <div style={{ marginBottom: '4px', fontSize: '14px' }}>
+                {keyboardDismissStrategyTip}
+              </div>
+              <Radio.Group
+                size="small"
+                value={keyboardDismissStrategy}
+                onChange={(e) => setKeyboardDismissStrategy(e.target.value)}
+              >
+                <Radio value="esc-first">ESC first</Radio>
+                <Radio value="back-first">Back first</Radio>
+              </Radio.Group>
+            </div>
+          ),
+          key: 'keyboard-dismiss-strategy-config',
+        });
+      }
+
+      if (deviceCapabilities.supportsAlwaysRefreshScreenInfo) {
+        items.push({
+          label: (
+            <Checkbox
+              onChange={(e) => setAlwaysRefreshScreenInfo(e.target.checked)}
+              checked={alwaysRefreshScreenInfo}
+            >
+              {alwaysRefreshScreenInfoTip}
+            </Checkbox>
+          ),
+          key: 'always-refresh-screen-info-config',
+        });
+      }
     }
 
-    // iOS-specific options
-    if (deviceType === 'ios') {
+    if (
+      !deviceCapabilities.supportsImeStrategy &&
+      deviceCapabilities.supportsAutoDismissKeyboard
+    ) {
       items.push({
         label: (
           <Checkbox

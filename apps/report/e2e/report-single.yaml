@@ -1,0 +1,35 @@
+target:
+  serve: ./dist
+  url: demo.html
+tasks:
+  # --- Basic loading ---
+  - name: report loads and displays tasks
+    flow:
+      - sleep: 3000
+      - aiAssert: There is a sidebar on the left showing a task execution list with task names and time costs
+      - aiAssert: There is a 'Record' timeline section with screenshot thumbnails
+
+  # --- Player area visible with controls ---
+  - name: player area is visible with playback controls
+    flow:
+      - aiAssert: There is a video player area with a progress bar and playback time display
+
+  # --- Settings popup ---
+  - name: settings popup opens and shows options
+    flow:
+      - ai: Click the settings gear icon on the player controls bar
+      - sleep: 1000
+      - aiAssert: A settings popup is visible showing playback speed options or toggle switches
+
+  # --- Dark mode ---
+  - name: toggle dark mode
+    flow:
+      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
+      - sleep: 1000
+      - aiAssert: The page background is dark colored, indicating dark mode is active
+
+  - name: toggle back to light mode
+    flow:
+      - ai: Click the theme toggle button (sun or moon icon) in the top right corner of the page
+      - sleep: 1000
+      - aiAssert: The page background is light or white colored, indicating light mode is active

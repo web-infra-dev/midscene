@@ -7,3 +7,4 @@ midscene_run/tmp
 bin/scrcpy-server
 bin/scrcpy-server.version
 bin/yadb
+bin/.yadb-version

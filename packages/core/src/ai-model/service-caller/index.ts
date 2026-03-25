@@ -32,6 +32,11 @@ import type { ChatCompletionMessageParam } from 'openai/resources/index';
 import type { Stream } from 'openai/streaming';
 import type { AIArgs } from '../../common';
 import { isAutoGLM, isUITars } from '../auto-glm/util';
+import {
+  callAIWithCodexAppServer,
+  isCodexAppServerProvider,
+} from './codex-app-server';
+import { shouldForceOriginalImageDetail } from './image-detail';
 
 async function createChatClient({
   modelConfig,
@@ -227,6 +232,10 @@ export async function callAI(
   usage?: AIUsageInfo;
   isStreamed: boolean;
 }> {
+  if (isCodexAppServerProvider(modelConfig.openaiBaseURL)) {
+    return callAIWithCodexAppServer(messages, modelConfig, options);
+  }
+
   const {
     completion,
     modelName,
@@ -236,6 +245,8 @@ export async function callAI(
   } = await createChatClient({
     modelConfig,
   });
+
+  const extraBody = modelConfig.extraBody;
 
   const maxTokens =
     globalConfigManager.getEnvConfigValueAsNumber(MIDSCENE_MODEL_MAX_TOKENS) ??
@@ -329,9 +340,13 @@ export async function callAI(
     warnCall(warningMessage);
   }
 
-  // For GPT-5, add "detail": "original" to image inputs to get original resolution images in reasoning content
+  const shouldUseOriginalImageDetail =
+    shouldForceOriginalImageDetail(modelConfig);
+
+  // For default-intent GPT-5 calls, request original image detail to preserve
+  // screenshot resolution for localization-sensitive tasks.
   const messagesWithImageDetail: ChatCompletionMessageParam[] = (() => {
-    if (modelFamily !== 'gpt-5') {
+    if (!shouldUseOriginalImageDetail) {
       return messages;
     }
 
@@ -372,6 +387,7 @@ export async function callAI(
           messages: messagesWithImageDetail,
           ...commonConfig,
           ...reasoningEffortConfig,
+          ...extraBody,
         },
         {
           stream: true,
@@ -456,6 +472,7 @@ export async function callAI(
               messages: messagesWithImageDetail,
               ...commonConfig,
               ...reasoningEffortConfig,
+              ...extraBody,
             } as any,
             options?.abortSignal ? { signal: options.abortSignal } : undefined,
           );

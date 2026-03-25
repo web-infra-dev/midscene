@@ -5,15 +5,17 @@ import {
   AiLocateElement,
   callAIWithObjectResponse,
 } from '@/ai-model/index';
-import { AiLocateSection } from '@/ai-model/inspect';
+import { AiLocateSection, buildSearchAreaConfig } from '@/ai-model/inspect';
 import { elementDescriberInstruction } from '@/ai-model/prompt/describe';
 import { type AIArgs, expandSearchArea } from '@/common';
 import type {
   AIDescribeElementResponse,
   AIUsageInfo,
   DetailedLocateParam,
+  LocateResultElement,
   LocateResultWithDump,
   PartialServiceDumpFromSDK,
+  PlanningLocateParam,
   Rect,
   ServiceExtractOption,
   ServiceExtractParam,
@@ -31,6 +33,7 @@ import { createServiceDump } from './utils';
 
 export interface LocateOpts {
   context?: UIContext;
+  planLocatedElement?: LocateResultElement;
 }
 
 export type AnyValue<T> = {
@@ -64,7 +67,7 @@ export default class Service {
   }
 
   async locate(
-    query: DetailedLocateParam,
+    query: PlanningLocateParam,
     opt: LocateOpts,
     modelConfig: IModelConfig,
     abortSignal?: AbortSignal,
@@ -74,8 +77,10 @@ export default class Service {
 
     assert(typeof query === 'object', 'query should be an object for locate');
 
+    const hasPlanLocatedElement = !!opt?.planLocatedElement?.rect;
+
     let searchAreaPrompt;
-    if (query.deepLocate) {
+    if (query.deepLocate && !hasPlanLocatedElement) {
       searchAreaPrompt = query.prompt;
     }
 
@@ -101,7 +106,25 @@ export default class Service {
     let searchAreaResponse:
       | Awaited<ReturnType<typeof AiLocateSection>>
       | undefined = undefined;
-    if (searchAreaPrompt) {
+    if (query.deepLocate && hasPlanLocatedElement) {
+      const searchAreaConfig = await buildSearchAreaConfig({
+        context,
+        baseRect: opt.planLocatedElement!.rect,
+        modelFamily,
+      });
+      searchArea = searchAreaConfig.rect;
+
+      searchAreaRawResponse = JSON.stringify({
+        source: 'plan-located-element',
+        rect: opt.planLocatedElement!.rect,
+      });
+      searchAreaResponse = {
+        rect: searchArea,
+        imageBase64: searchAreaConfig.imageBase64,
+        scale: searchAreaConfig.scale,
+        rawResponse: searchAreaRawResponse,
+      };
+    } else if (searchAreaPrompt) {
       searchAreaResponse = await AiLocateSection({
         context,
         sectionDescription: searchAreaPrompt,

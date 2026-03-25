@@ -124,15 +124,36 @@ export function Player(props?: {
     playbackRate: playbackSpeed,
   });
 
-  // Track frame for taskId callback
+  // When playback stops, seek to the last frame with a taskId (skip the End card)
+  useEffect(() => {
+    if (!frameMap || player.playing) return;
+    const { scriptFrames, totalDurationInFrames } = frameMap;
+    if (player.currentFrame < totalDurationInFrames - 1) return;
+    for (let i = scriptFrames.length - 1; i >= 0; i--) {
+      const sf = scriptFrames[i];
+      if (sf.taskId) {
+        player.seekTo(sf.startFrame + sf.durationInFrames - 1);
+        break;
+      }
+    }
+  }, [frameMap, player.playing]);
+
+  // Sync taskId to parent: report current task while playing, clear on stop
   useEffect(() => {
     if (!frameMap || !props?.onTaskChange) return;
+    if (!player.playing) {
+      if (lastTaskIdRef.current !== null) {
+        lastTaskIdRef.current = null;
+        props.onTaskChange(null);
+      }
+      return;
+    }
     const taskId = deriveTaskId(frameMap.scriptFrames, player.currentFrame);
     if (taskId !== lastTaskIdRef.current) {
       lastTaskIdRef.current = taskId;
       props.onTaskChange(taskId);
     }
-  }, [frameMap, props?.onTaskChange, player.currentFrame]);
+  }, [frameMap, props?.onTaskChange, player.currentFrame, player.playing]);
 
   const currentFrameState = useMemo(() => {
     if (!frameMap) return null;
@@ -168,15 +189,18 @@ export function Player(props?: {
     hideTimerRef.current = setTimeout(() => setControlsVisible(false), 1000);
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (e.code === 'Space') {
         e.preventDefault();
         player.toggle();
       }
-    },
-    [player],
-  );
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [player]);
 
   // Seek bar drag
   const seekBarRef = useRef<HTMLDivElement>(null);
@@ -297,7 +321,6 @@ export function Player(props?: {
       <div
         className="canvas-container"
         ref={containerRef}
-        onKeyDown={handleKeyDown}
         onMouseMove={showControls}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -350,7 +373,7 @@ export function Player(props?: {
                   >
                     <StepsTimeline
                       frameMap={frameMap}
-                      autoZoom={autoZoom}
+                      autoZoom={autoZoom && player.playing}
                       frame={player.currentFrame}
                       width={compositionWidth}
                       height={compositionHeight}

@@ -4,7 +4,11 @@ import { Alert, ConfigProvider, Empty, theme } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 
-import { GroupedActionDump, restoreImageReferences } from '@midscene/core';
+import {
+  GroupedActionDump,
+  type ModelBrief,
+  restoreImageReferences,
+} from '@midscene/core';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import {
   Logo,
@@ -50,6 +54,15 @@ let globalRenderCount = 1;
 const SIDEBAR_WIDTH_KEY = 'midscene-sidebar-width';
 const DEFAULT_SIDEBAR_WIDTH = 280;
 
+const formatModelBrief = (
+  modelBrief: ModelBrief,
+  includeIntent: boolean,
+): string => {
+  const { name, modelDescription, intent } = modelBrief;
+  const base = modelDescription ? `${name}(${modelDescription})` : name;
+  return includeIntent ? `${intent}/${base}` : `${base}`;
+};
+
 function Visualizer(props: VisualizerProps): JSX.Element {
   const { dumps } = props;
 
@@ -69,6 +82,9 @@ function Visualizer(props: VisualizerProps): JSX.Element {
   const setGroupedDump = useExecutionDump((store) => store.setGroupedDump);
   const sdkVersion = useExecutionDump((store) => store.sdkVersion);
   const modelBriefs = useExecutionDump((store) => store.modelBriefs);
+  const modelBriefText = modelBriefs
+    .map((brief) => formatModelBrief(brief, modelBriefs.length > 1))
+    .join(', ');
   const reset = useExecutionDump((store) => store.reset);
   const [mainLayoutChangeFlag, setMainLayoutChangeFlag] = useState(0);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -284,7 +300,7 @@ function Visualizer(props: VisualizerProps): JSX.Element {
           <div className="page-nav-right">
             <div className="page-nav-version">
               v{sdkVersion}
-              {modelBriefs.length ? ` | ${modelBriefs.join(', ')}` : ''}
+              {modelBriefText ? ` | ${modelBriefText}` : ''}
             </div>
             <div className="theme-divider" />
             <button
@@ -389,11 +405,13 @@ export function App() {
               allExecutions.push(...dump.executions);
             }
 
-            // Deduplicate executions by id/name — keep only the last one
-            // (append-only writes may produce multiple entries for the same execution)
+            // Deduplicate executions by id — keep only the last one.
+            // Only executions with a stable id are deduped; old-format entries
+            // without id are always kept (they may be distinct despite same name).
+            let noIdCounter = 0;
             const deduped = new Map<string, any>();
             for (const exec of allExecutions) {
-              const key = exec.id || exec.name;
+              const key = exec.id || `__no_id_${noIdCounter++}`;
               deduped.set(key, exec);
             }
             baseDump!.executions = Array.from(deduped.values());

@@ -1048,6 +1048,29 @@ Extracted data:
     expect(result.markFinishedIndexes).toEqual([1, 2]);
   });
 
+  it('should strip trailing XML tags leaked into action-type by LLM', () => {
+    const modelFamily = 'doubao-vision';
+    // Simulate LLM response where a stray </action-type> appears after </action-param-json>,
+    // causing extractXMLTag to include trailing tags in the action type value.
+    // e.g. type becomes "KeyboardPress</action-type>\n<action-param-json>..."
+    const xml = `
+<thought>Need to press Enter</thought>
+<log>Press Enter key</log>
+<action-type>KeyboardPress</action-type>
+<action-param-json>
+{
+  "keyName": "Enter"
+}
+</action-param-json>
+</action-type>
+    `.trim();
+
+    const result = parseXMLPlanningResponse(xml, modelFamily);
+
+    expect(result.action?.type).toBe('KeyboardPress');
+    expect(result.action?.param).toEqual({ keyName: 'Enter' });
+  });
+
   it('should parse both update-plan-content and mark-sub-goal-done', () => {
     const modelFamily = 'doubao-vision';
     const xml = `

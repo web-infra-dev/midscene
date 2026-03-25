@@ -5,8 +5,10 @@ export type ViewMode = 'list' | 'detail';
 
 // Message types for content script communication
 export interface RecordMessage {
-  action: 'start' | 'stop' | 'event' | 'events';
+  action: 'start' | 'stop' | 'event' | 'events' | 'event-update';
   data?: any;
+  eventIndex?: number;
+  totalEvents?: number;
   sessionId?: string;
 }
 

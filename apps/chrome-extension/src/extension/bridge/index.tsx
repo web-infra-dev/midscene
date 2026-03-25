@@ -4,6 +4,8 @@ import {
   ClearOutlined,
   DownOutlined,
   LoadingOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import { Button, Input, List, Spin } from 'antd';
 import dayjs from 'dayjs';
@@ -223,6 +225,42 @@ export default function Bridge() {
     });
   };
 
+  const isBridgeActive =
+    bridgeStatus === 'listening' ||
+    bridgeStatus === 'connected' ||
+    bridgeStatus === 'disconnected';
+
+  const handleToggleBridge = () => {
+    if (isBridgeActive) {
+      // Stop bridge
+      chrome.runtime.sendMessage(
+        { type: workerMessageTypes.BRIDGE_STOP },
+        (response) => {
+          if (response?.success) {
+            setBridgeStatus('closed');
+            // Reset connection status message so next session gets a new message group
+            connectionStatusMessageId.current = null;
+          }
+        },
+      );
+    } else {
+      // Start bridge with optional custom server URL
+      const endpoint =
+        serverUrl && serverUrl !== DEFAULT_SERVER_URL ? serverUrl : undefined;
+      chrome.runtime.sendMessage(
+        {
+          type: workerMessageTypes.BRIDGE_START,
+          payload: { serverEndpoint: endpoint },
+        },
+        (response) => {
+          if (response?.success) {
+            setBridgeStatus(response.status || 'listening');
+          }
+        },
+      );
+    }
+  };
+
   // check if scrolled to bottom
   const checkIfScrolledToBottom = () => {
     if (messageListRef.current) {
@@ -286,11 +324,10 @@ export default function Bridge() {
 
   let statusIcon;
   let statusTip: string;
-  if (
-    bridgeStatus === 'listening' ||
-    bridgeStatus === 'disconnected' ||
-    bridgeStatus === 'closed'
-  ) {
+  if (bridgeStatus === 'closed') {
+    statusIcon = iconForStatus('failed');
+    statusTip = 'Stopped';
+  } else if (bridgeStatus === 'listening' || bridgeStatus === 'disconnected') {
     statusIcon = (
       <Spin
         className="status-loading-icon"
@@ -441,6 +478,18 @@ export default function Bridge() {
             <span className="bottom-status-icon">{statusIcon}</span>
             <span className="bottom-status-tip">{statusTip}</span>
           </div>
+          <div className="bottom-status-divider" />
+          <Button
+            type="text"
+            size="small"
+            className="bridge-toggle-btn"
+            icon={
+              isBridgeActive ? <PauseCircleOutlined /> : <PlayCircleOutlined />
+            }
+            onClick={handleToggleBridge}
+          >
+            {isBridgeActive ? 'Stop' : 'Start'}
+          </Button>
         </div>
       </div>
     </div>

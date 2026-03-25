@@ -40,6 +40,9 @@ import {
 
 export const debugPage = getDebug('web:page');
 
+export const BROWSER_NAVIGATION_ERROR_PATTERN =
+  /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
+
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
   InterfaceType extends PuppeteerPage | PlaywrightPage,
@@ -648,6 +651,82 @@ export class Page<
       await page.mouse.down({ button: 'left' });
       await page.waitForTimeout(duration);
       await page.mouse.up({ button: 'left' });
+    }
+  }
+
+  async pinch(
+    centerX: number,
+    centerY: number,
+    startDistance: number,
+    endDistance: number,
+    duration = 500,
+  ): Promise<void> {
+    const steps = 30;
+    const delay = duration / steps;
+    const halfStart = startDistance / 2;
+    const halfEnd = endDistance / 2;
+
+    type TouchClient = {
+      send(
+        method: 'Input.dispatchTouchEvent',
+        params?: Protocol.Input.DispatchTouchEventRequest,
+      ): Promise<unknown>;
+      detach(): Promise<void>;
+    };
+
+    let client: TouchClient;
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      client = (await page.target().createCDPSession()) as TouchClient;
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      // CDP is Chromium-only; Firefox/WebKit do not support it
+      const browserName = page.context().browser()?.browserType().name();
+      if (browserName && browserName !== 'chromium') {
+        throw new Error(
+          `Pinch gesture requires Chromium-based browser, but current browser is "${browserName}". CDP touch events are not supported in Firefox/WebKit.`,
+        );
+      }
+      client = (await page.context().newCDPSession(page)) as TouchClient;
+    } else {
+      return;
+    }
+
+    try {
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchStart',
+        touchPoints: [
+          { x: Math.round(centerX), y: Math.round(centerY - halfStart), id: 0 },
+          { x: Math.round(centerX), y: Math.round(centerY + halfStart), id: 1 },
+        ],
+      });
+
+      for (let i = 1; i <= steps; i++) {
+        const currentHalf = halfStart + (halfEnd - halfStart) * (i / steps);
+        await client.send('Input.dispatchTouchEvent', {
+          type: 'touchMove',
+          touchPoints: [
+            {
+              x: Math.round(centerX),
+              y: Math.round(centerY - currentHalf),
+              id: 0,
+            },
+            {
+              x: Math.round(centerX),
+              y: Math.round(centerY + currentHalf),
+              id: 1,
+            },
+          ],
+        });
+        await new Promise((res) => setTimeout(res, delay));
+      }
+
+      await client.send('Input.dispatchTouchEvent', {
+        type: 'touchEnd',
+        touchPoints: [],
+      });
+    } finally {
+      await client.detach();
     }
   }
 

@@ -1,9 +1,5 @@
-## Documentation
+# @midscene/cli
 
-An AI-powered automation SDK can control the page, perform assertions, and extract data in JSON format using natural language.
+CLI tool for running Midscene automation scripts in YAML format.
 
-See https://midscenejs.com/ for details.
-
-## License
-
-Midscene is MIT licensed.
+See <https://midscenejs.com/yaml-script-runner.html>.

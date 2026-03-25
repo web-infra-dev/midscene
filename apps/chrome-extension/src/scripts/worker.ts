@@ -19,8 +19,17 @@ interface WorkerRequestGetContext {
 // console-browserify won't work in worker, so we need to use globalThis.console
 const console = globalThis.console;
 
+// Global error handlers to prevent Service Worker crash from uncaught errors
+self.addEventListener('error', (event) => {
+  console.error('[ServiceWorker] Uncaught error:', event.error);
+});
+self.addEventListener('unhandledrejection', (event) => {
+  console.error('[ServiceWorker] Unhandled promise rejection:', event.reason);
+});
+
 // Background Bridge for MCP connection
 const BRIDGE_PERMISSION_KEY = 'midscene_bridge_permission';
+const BRIDGE_STOPPED_KEY = 'midscene_bridge_stopped';
 let backgroundBridge: BridgeConnector | null = null;
 let currentBridgeStatus: BridgeStatus = 'closed';
 
@@ -322,6 +331,8 @@ async function startBackgroundBridge(serverEndpoint?: string): Promise<void> {
   if (backgroundBridge) {
     await backgroundBridge.disconnect();
   }
+  // Clear the user-stopped flag so service worker restarts will auto-connect
+  chrome.storage.local.remove(BRIDGE_STOPPED_KEY).catch(() => {});
   backgroundBridge = createBackgroundBridge(serverEndpoint);
   await backgroundBridge.connect();
   console.log('[BackgroundBridge] Started');
@@ -333,6 +344,8 @@ async function stopBackgroundBridge(): Promise<void> {
     backgroundBridge = null;
     currentBridgeStatus = 'closed';
     console.log('[BackgroundBridge] Stopped');
+    // Persist the user's intent to stop so service worker restarts don't auto-connect
+    chrome.storage.local.set({ [BRIDGE_STOPPED_KEY]: true }).catch(() => {});
     // Update keepalive
     safeSetupKeepalive({
       storageKey: BRIDGE_PERMISSION_KEY,
@@ -350,6 +363,17 @@ async function initBackgroundBridge(): Promise<void> {
   }
 
   try {
+    // Respect the user's intent: if they explicitly stopped bridge, don't auto-start
+    const result = await chrome.storage.local.get(BRIDGE_STOPPED_KEY);
+    if (result[BRIDGE_STOPPED_KEY]) {
+      console.log(
+        '[BackgroundBridge] Bridge was stopped by user, skipping auto-start',
+      );
+      currentBridgeStatus = 'closed';
+      broadcastBridgeStatus('closed');
+      return;
+    }
+
     console.log('[BackgroundBridge] Auto-starting background bridge...');
     await startBackgroundBridge();
   } catch (error) {
@@ -364,7 +388,7 @@ setTimeout(() => initBackgroundBridge(), 0);
 // Register alarm listener for keepalive pings
 registerAlarmListener();
 
-// Setup keepalive on startup - always enable since we auto-start listening
+// Setup keepalive on startup - will be updated after initBackgroundBridge checks stopped state
 safeSetupKeepalive({
   shouldEnable: true,
   storageKey: BRIDGE_PERMISSION_KEY,
@@ -376,7 +400,9 @@ chrome.sidePanel
   .catch((error) => console.error(error));
 
 // cache data between sidepanel and fullscreen playground
+const MAX_CACHE_SIZE = 50;
 const cacheMap = new Map<string, WebUIContext>();
+const cacheKeyOrder: string[] = [];
 
 // Store connected ports for message forwarding
 const connectedPorts = new Set<chrome.runtime.Port>();
@@ -436,7 +462,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   // Forward recording events to connected extension pages
-  if (request.action === 'events' || request.action === 'event') {
+  if (
+    request.action === 'events' ||
+    request.action === 'event' ||
+    request.action === 'event-update'
+  ) {
     if (connectedPorts.size === 0) {
       console.warn(
         '[ServiceWorker] No connected ports to forward recording events to',
@@ -463,7 +493,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const payload: WorkerRequestSaveContext = request.payload;
       const { context } = payload;
       const id = uuid();
+      // Evict oldest entries when cache is full
+      if (cacheMap.size >= MAX_CACHE_SIZE && cacheKeyOrder.length > 0) {
+        const oldestKey = cacheKeyOrder.shift();
+        if (oldestKey) {
+          cacheMap.delete(oldestKey);
+        }
+      }
       cacheMap.set(id, context);
+      cacheKeyOrder.push(id);
       sendResponse({ id });
       break;
     }

@@ -4,8 +4,6 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       branch:
@@ -17,20 +15,19 @@ on:
 permissions:
   contents: read
 
+env:
+  MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
+  MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
+  MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
+  MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
+  MIDSCENE_MODEL_RETRY_COUNT: "2"
+  MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
+  MIDSCENE_REPORT_QUIET: "true"
+  CI: 1
+
 jobs:
-  main:
+  e2e-web:
     runs-on: ubuntu-22.04
-
-    env:
-      MIDSCENE_MODEL_API_KEY: ${{ secrets.MIDSCENE_MODEL_API_KEY }}
-      MIDSCENE_MODEL_BASE_URL: ${{ vars.MIDSCENE_MODEL_BASE_URL }}
-      MIDSCENE_MODEL_NAME: ${{ vars.MIDSCENE_MODEL_NAME }}
-      MIDSCENE_MODEL_FAMILY: ${{ vars.MIDSCENE_MODEL_FAMILY }}
-      MIDSCENE_MODEL_RETRY_COUNT: "2"
-      MIDSCENE_MODEL_RETRY_INTERVAL: "60000"
-      MIDSCENE_REPORT_QUIET: "true"
-      CI: 1
-
     steps:
     - uses: actions/checkout@v4
       with:
@@ -121,3 +118,62 @@ jobs:
         if [ "${{ steps.e2e-tests-cache.outcome }}" == "failure" ]; then echo "  - e2e:cache"; fi
         if [ "${{ steps.e2e-tests-report.outcome }}" == "failure" ]; then echo "  - e2e:report"; fi
         exit 1
+
+  e2e-report:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        ref: ${{ github.event.inputs.branch || github.ref }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 9.3.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.13.0'
+        cache: 'pnpm'
+
+    - name: Cache Playwright dependencies
+      uses: actions/cache@v3
+      id: cache-playwright
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Playwright dependencies
+      run: |
+        cd packages/web-integration
+        if [ "${{ steps.cache-playwright.outputs.cache-hit }}" != "true" ]; then
+          npx playwright install --with-deps
+        else
+          npx playwright install-deps && npx playwright install
+        fi
+
+    - name: Install puppeteer dependencies
+      run: |
+        cd packages/web-integration
+        npx puppeteer browsers install chrome
+
+    - name: Run apps/report e2e tests
+      run: cd apps/report && pnpm run e2e
+      id: e2e-tests-app-report
+
+    - name: Upload apps/report e2e report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: e2e-app-report-output
+        path: |
+          ${{ github.workspace }}/midscene_run/report
+          ${{ github.workspace }}/apps/report/midscene_run/report
+        if-no-files-found: ignore
