@@ -78,6 +78,33 @@ You can also customize or disable the timeout by options:
 - Use `waitForNetworkIdleTimeout` and `waitForNavigationTimeout` parameters in [Agent](/api#constructors).
 - Use `waitForNetworkIdle` parameter in [Yaml](/automate-with-scripts-in-yaml#the-web-part) or [PlaywrightAiFixture](/integrate-with-playwright#step-2-extend-the-test-instance).
 
+## `waiting for fonts to load` or `page.screenshot: Timeout ... exceeded` when taking screenshots
+
+If you see an error like this in a Playwright-based environment:
+
+```plain
+page.screenshot: Timeout 10000ms exceeded.
+Call log:
+- taking page screenshot
+- waiting for fonts to load...
+```
+
+This is usually not caused by Midscene itself. Playwright waits for fonts to finish loading before taking a screenshot. In some CI, container, or restricted network environments, font resources may load very slowly or never finish, which can eventually cause the screenshot to time out.
+
+You can work around it by setting this environment variable:
+
+```bash
+export PW_TEST_SCREENSHOT_NO_FONTS_READY=1
+```
+
+If you want to set it only for a single command, you can also write:
+
+```bash
+PW_TEST_SCREENSHOT_NO_FONTS_READY=1 <your-command>
+```
+
+For more background, see the Playwright issue: [[BUG] Page.screenshot method hangs indefinitely](https://github.com/microsoft/playwright/issues/28995).
+
 ## Get an error 403 when using Ollama model in Chrome extension
 
 `OLLAMA_ORIGINS="*"` is required to allow the Chrome extension to access the Ollama model.

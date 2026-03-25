@@ -28,6 +28,10 @@ import {
   reportHTMLContent,
   writeDumpReport,
 } from '../../src/utils';
+import {
+  buildDetailedLocateParam,
+  buildDetailedLocateParamAndRestParams,
+} from '../../src/yaml/utils';
 import { getGroupedDumpScriptIds } from './test-helpers/report-html';
 
 function createTempHtmlFile(content: string): string {
@@ -365,6 +369,81 @@ describe('extractJSONFromCodeBlock', () => {
       object: {
         nested: 'value',
       },
+    });
+  });
+});
+
+describe('buildDetailedLocateParam', () => {
+  it('merges multimodal locate options into the prompt object', () => {
+    const result = buildDetailedLocateParam('Click the icon', {
+      images: [
+        {
+          name: 'target icon',
+          url: 'https://example.com/icon.png',
+        },
+      ],
+      convertHttpImage2Base64: true,
+      cacheable: false,
+    });
+
+    expect(result).toEqual({
+      prompt: {
+        prompt: 'Click the icon',
+        images: [
+          {
+            name: 'target icon',
+            url: 'https://example.com/icon.png',
+          },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      deepLocate: false,
+      cacheable: false,
+      xpath: undefined,
+    });
+  });
+});
+
+describe('buildDetailedLocateParamAndRestParams', () => {
+  it('does not leak multimodal locate options into rest params', () => {
+    const uiContext = {
+      screenshot: {
+        base64: 'mock-base64',
+      },
+      shotSize: { width: 100, height: 100 },
+      deprecatedDpr: 1,
+      shrunkShotToLogicalRatio: 1,
+    } as any;
+
+    const result = buildDetailedLocateParamAndRestParams('Click the icon', {
+      images: [
+        {
+          name: 'target icon',
+          url: 'https://example.com/icon.png',
+        },
+      ],
+      convertHttpImage2Base64: true,
+      cacheable: false,
+      uiContext,
+    });
+
+    expect(result.locateParam).toEqual({
+      prompt: {
+        prompt: 'Click the icon',
+        images: [
+          {
+            name: 'target icon',
+            url: 'https://example.com/icon.png',
+          },
+        ],
+        convertHttpImage2Base64: true,
+      },
+      deepLocate: false,
+      cacheable: false,
+      xpath: undefined,
+    });
+    expect(result.restParams).toEqual({
+      uiContext,
     });
   });
 });
