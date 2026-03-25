@@ -25,17 +25,22 @@ import { createHash, randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { type IncomingMessage, createServer } from 'node:http';
 import { type Socket, connect as netConnect } from 'node:net';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { URL } from 'node:url';
+import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
+import {
+  OP_CLOSE,
+  OP_PING,
+  OP_PONG,
+  createFragmentHandler,
+  encodeFrame,
+  parseFrame,
+} from './cdp-proxy-ws';
 
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
 
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-const PROXY_ENDPOINT_FILE = join(tmpdir(), 'midscene-cdp-proxy-endpoint');
-const PROXY_PID_FILE = join(tmpdir(), 'midscene-cdp-proxy-pid');
 
 const chromeEndpoint = process.argv[2];
 if (!chromeEndpoint) {
@@ -95,144 +100,6 @@ function resetIdleTimer() {
 }
 
 resetIdleTimer();
-
-// ---------------------------------------------------------------------------
-// WebSocket opcodes (RFC 6455)
-// ---------------------------------------------------------------------------
-
-const OP_CONTINUATION = 0x00;
-const OP_TEXT = 0x01;
-const OP_BINARY = 0x02;
-const OP_CLOSE = 0x08;
-const OP_PING = 0x09;
-const OP_PONG = 0x0a;
-
-// ---------------------------------------------------------------------------
-// Minimal WebSocket frame helpers (RFC 6455)
-// ---------------------------------------------------------------------------
-
-function encodeFrame(data: Buffer, opcode = OP_TEXT, mask = false): Buffer {
-  const len = data.length;
-  let headerLen = 2;
-  if (len > 65535) headerLen += 8;
-  else if (len > 125) headerLen += 2;
-  if (mask) headerLen += 4;
-
-  const header = Buffer.alloc(headerLen);
-  header[0] = 0x80 | opcode; // FIN + opcode
-  let offset = 1;
-
-  if (len > 65535) {
-    header[offset++] = (mask ? 0x80 : 0) | 127;
-    header.writeBigUInt64BE(BigInt(len), offset);
-    offset += 8;
-  } else if (len > 125) {
-    header[offset++] = (mask ? 0x80 : 0) | 126;
-    header.writeUInt16BE(len, offset);
-    offset += 2;
-  } else {
-    header[offset++] = (mask ? 0x80 : 0) | len;
-  }
-
-  if (mask) {
-    const maskBytes = randomBytes(4);
-    maskBytes.copy(header, offset);
-    const masked = Buffer.alloc(len);
-    for (let i = 0; i < len; i++) masked[i] = data[i] ^ maskBytes[i & 3];
-    return Buffer.concat([header, masked]);
-  }
-
-  return Buffer.concat([header, data]);
-}
-
-interface ParsedFrame {
-  fin: boolean;
-  opcode: number;
-  payload: Buffer;
-  total: number;
-}
-
-function parseFrame(buf: Buffer): ParsedFrame | null {
-  if (buf.length < 2) return null;
-  const fin = (buf[0] & 0x80) !== 0;
-  const opcode = buf[0] & 0x0f;
-  const isMasked = (buf[1] & 0x80) !== 0;
-  let payloadLen = buf[1] & 0x7f;
-  let offset = 2;
-
-  if (payloadLen === 126) {
-    if (buf.length < 4) return null;
-    payloadLen = buf.readUInt16BE(2);
-    offset = 4;
-  } else if (payloadLen === 127) {
-    if (buf.length < 10) return null;
-    payloadLen = Number(buf.readBigUInt64BE(2));
-    offset = 10;
-  }
-
-  if (isMasked) offset += 4;
-  if (buf.length < offset + payloadLen) return null;
-
-  let payload: Buffer;
-  if (isMasked) {
-    const maskKey = buf.subarray(offset - 4, offset);
-    payload = Buffer.alloc(payloadLen);
-    for (let i = 0; i < payloadLen; i++)
-      payload[i] = buf[offset + i] ^ maskKey[i & 3];
-  } else {
-    payload = buf.subarray(offset, offset + payloadLen);
-  }
-
-  return { fin, opcode, payload, total: offset + payloadLen };
-}
-
-// ---------------------------------------------------------------------------
-// Fragment reassembly helper
-//
-// WebSocket allows a message to be split across multiple frames:
-//   [opcode, FIN=0] [continuation, FIN=0]* [continuation, FIN=1]
-// We buffer fragments and emit the complete message once FIN=1.
-// ---------------------------------------------------------------------------
-
-interface FragmentState {
-  opcode: number;
-  chunks: Buffer[];
-}
-
-function createFragmentHandler(
-  onMessage: (opcode: number, payload: Buffer) => void,
-) {
-  let state: FragmentState | null = null;
-
-  return (frame: ParsedFrame) => {
-    if (frame.opcode >= 0x08) {
-      // Control frames (close/ping/pong) are never fragmented — deliver immediately
-      onMessage(frame.opcode, frame.payload);
-      return;
-    }
-
-    if (frame.opcode !== OP_CONTINUATION) {
-      // Start of a new message (possibly the only frame if FIN=1)
-      state = { opcode: frame.opcode, chunks: [frame.payload] };
-    } else if (state) {
-      // Continuation frame
-      state.chunks.push(frame.payload);
-    } else {
-      // Orphan continuation without a starting frame — skip
-      return;
-    }
-
-    if (frame.fin && state) {
-      const payload =
-        state.chunks.length === 1
-          ? state.chunks[0]
-          : Buffer.concat(state.chunks);
-      const { opcode } = state;
-      state = null;
-      onMessage(opcode, payload);
-    }
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Upstream: connect to Chrome via raw TCP + WebSocket handshake

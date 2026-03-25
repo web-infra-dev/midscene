@@ -1,17 +1,14 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ScreenshotItem, z } from '@midscene/core';
 import { BaseMidsceneTools, type ToolDefinition } from '@midscene/shared/mcp';
 import type { Page as PuppeteerPage } from 'puppeteer';
 import puppeteer from 'puppeteer-core';
 import type { Browser, Page } from 'puppeteer-core';
+import { PROXY_ENDPOINT_FILE, PROXY_PID_FILE } from './cdp-proxy-constants';
 import { PuppeteerAgent } from './puppeteer';
 import { StaticPage } from './static';
-
-const PROXY_ENDPOINT_FILE = join(tmpdir(), 'midscene-cdp-proxy-endpoint');
-const PROXY_PID_FILE = join(tmpdir(), 'midscene-cdp-proxy-pid');
 
 /**
  * Check if a previously spawned proxy process is still alive.
@@ -74,7 +71,9 @@ function spawnProxy(chromeEndpoint: string): Promise<string> {
             resolve(parsed.endpoint);
             return;
           }
-        } catch {}
+        } catch {
+          // stdout may contain non-JSON lines during startup — skip them
+        }
       }
     };
     proc.stdout!.on('data', onData);
@@ -111,7 +110,7 @@ async function getProxyEndpoint(chromeEndpoint: string): Promise<string> {
   try {
     return await spawnProxy(chromeEndpoint);
   } catch (err) {
-    console.error(
+    console.warn(
       `[cdp] proxy failed, falling back to direct connection: ${err}`,
     );
     return chromeEndpoint;
@@ -232,7 +231,9 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
           if (this.agent) {
             try {
               await this.agent.destroy?.();
-            } catch {}
+            } catch (e) {
+              console.debug('Failed to destroy agent during connect:', e);
+            }
             this.agent = undefined;
           }
 
@@ -258,7 +259,9 @@ export class WebCdpMidsceneTools extends BaseMidsceneTools<PuppeteerAgent> {
           if (this.agent) {
             try {
               await this.agent.destroy?.();
-            } catch {}
+            } catch (e) {
+              console.debug('Failed to destroy agent during disconnect:', e);
+            }
             this.agent = undefined;
           }
           if (this.activeBrowser) {
