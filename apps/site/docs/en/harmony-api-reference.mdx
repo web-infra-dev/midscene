@@ -44,7 +44,7 @@ const device = new HarmonyDevice(deviceId, {
 - `deviceId: string` — Value from `hdc list targets` or `getConnectedDevices()`.
 - `hdcPath?: string` — Custom path to the HDC executable. If not set, it searches `HDC_HOME` environment variable and common installation paths.
 - `autoDismissKeyboard?: boolean` — Automatically hide keyboard after input, default `true`.
-- `screenshotResizeScale?: number` — Scale screenshots before sending to the model. Not recommended to modify manually.
+- `screenshotResizeScale?: number` — **Deprecated.** Use `screenshotShrinkFactor` in `AgentOpt` instead. This option no longer affects screenshot size sent to the AI model.
 - `customActions?: DeviceAction[]` — Extend the planner's available actions via `defineAction`.
 
 ### Usage Notes

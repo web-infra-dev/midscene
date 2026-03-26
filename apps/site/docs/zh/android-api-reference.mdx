@@ -51,7 +51,7 @@ const device = new AndroidDevice(deviceId, {
   - `'yadb-for-non-ascii'`（默认）—— 对 Unicode 字符（包括 Latin Unicode 如 ö、é、ñ）、中文、日文以及格式化符号（如 %s、%d）使用 yadb。纯 ASCII 文本使用更快的原生 `adb input text`。
   - `'always-yadb'` —— 对所有文本输入始终使用 yadb，提供最大兼容性，但对纯 ASCII 文本稍慢。
 - `displayId?: number` —— 在设备镜像多个屏幕时，选择特定虚拟屏幕。
-- `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放，默认 `1 / devicePixelRatio`。
+- `screenshotResizeScale?: number` —— **已废弃。** 请使用 `AgentOpt` 中的 `screenshotShrinkFactor` 代替。此选项不再影响发送给 AI 模型的截图尺寸。
 - `alwaysRefreshScreenInfo?: boolean` —— 每一步都重新查询旋转角度与屏幕尺寸，默认 `false`。
 - `scrcpyConfig?: object` —— Scrcpy 高性能截图配置，默认关闭。详见下方 [Scrcpy 截图模式](#scrcpy)。
 
