@@ -1,6 +1,6 @@
 import { WebPage as PlaywrightWebPage } from '@/playwright/page';
 import { PuppeteerWebPage } from '@/puppeteer/page';
-import { ScrollMethod } from '@/web-element';
+import { InteractionMode } from '@/web-element';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('web scroll methods', () => {
@@ -39,6 +39,24 @@ describe('web scroll methods', () => {
     expect(actionNames).toContain('Pinch');
   });
 
+  it('uses touch interaction mode to expose touch actions', async () => {
+    const page = {
+      mouse: {
+        move: vi.fn().mockResolvedValue(undefined),
+        wheel: vi.fn().mockResolvedValue(undefined),
+      },
+      createCDPSession: vi.fn(),
+    };
+    const webPage = new PuppeteerWebPage(page as any, {
+      interactionMode: InteractionMode.Touch,
+    });
+
+    const actionNames = webPage.actionSpace().map((action) => action.name);
+
+    expect(actionNames).toContain('Swipe');
+    expect(actionNames).toContain('Pinch');
+  });
+
   it('uses wheel events by default for Puppeteer', async () => {
     const mouse = {
       move: vi.fn().mockResolvedValue(undefined),
@@ -59,7 +77,7 @@ describe('web scroll methods', () => {
     expect(page.createCDPSession).not.toHaveBeenCalled();
   });
 
-  it('uses CDP scroll gestures for Puppeteer when configured', async () => {
+  it('uses CDP scroll gestures in touch interaction mode for Puppeteer', async () => {
     const mouse = {
       move: vi.fn().mockResolvedValue(undefined),
       wheel: vi.fn().mockResolvedValue(undefined),
@@ -73,7 +91,7 @@ describe('web scroll methods', () => {
       createCDPSession: vi.fn().mockResolvedValue(session),
     };
     const webPage = new PuppeteerWebPage(page as any, {
-      scrollMethod: ScrollMethod.Gesture,
+      interactionMode: InteractionMode.Touch,
     });
 
     await webPage.mouse.move(300, 400);
@@ -93,7 +111,39 @@ describe('web scroll methods', () => {
     expect(mouse.wheel).not.toHaveBeenCalled();
   });
 
-  it('uses CDP scroll gestures for Playwright when configured', async () => {
+  it('uses CDP scroll gestures when legacy touch-actions flag is enabled', async () => {
+    const mouse = {
+      move: vi.fn().mockResolvedValue(undefined),
+      wheel: vi.fn().mockResolvedValue(undefined),
+    };
+    const session = {
+      send: vi.fn().mockResolvedValue(undefined),
+      detach: vi.fn().mockResolvedValue(undefined),
+    };
+    const page = {
+      mouse,
+      createCDPSession: vi.fn().mockResolvedValue(session),
+    };
+    const webPage = new PuppeteerWebPage(page as any, {
+      enableTouchEventsInActionSpace: true,
+    });
+
+    await webPage.mouse.move(120, 220);
+    await webPage.mouse.wheel(10, 20);
+
+    expect(session.send).toHaveBeenCalledWith('Input.synthesizeScrollGesture', {
+      x: 120,
+      y: 220,
+      xDistance: -10,
+      yDistance: -20,
+      speed: 9999999,
+      repeatCount: 0,
+      preventFling: true,
+    });
+    expect(mouse.wheel).not.toHaveBeenCalled();
+  });
+
+  it('uses CDP scroll gestures in touch interaction mode for Playwright', async () => {
     const mouse = {
       move: vi.fn().mockResolvedValue(undefined),
       wheel: vi.fn().mockResolvedValue(undefined),
@@ -115,7 +165,7 @@ describe('web scroll methods', () => {
       context: () => context,
     };
     const webPage = new PlaywrightWebPage(page as any, {
-      scrollMethod: ScrollMethod.Gesture,
+      interactionMode: InteractionMode.Touch,
     });
 
     await webPage.mouse.move(500, 600);

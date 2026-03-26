@@ -1,4 +1,4 @@
-import type { ScrollMethod } from '../web-element';
+import type { InteractionMode } from '../web-element';
 
 export const DefaultBridgeServerHost = '127.0.0.1';
 export const DefaultBridgeServerPort = 3766;
@@ -45,10 +45,11 @@ export interface BridgeConnectTabOptions {
    */
   forceSameTabNavigation?: boolean;
   /**
-   * Choose how scroll is synthesized in the connected tab.
-   * @default 'wheel'
+   * Choose how the connected tab should be controlled.
+   * `touch` enables gesture-based scrolling by default.
+   * @default 'mouse'
    */
-  scrollMethod?: ScrollMethod;
+  interactionMode?: InteractionMode;
   /**
    * Custom timeout for connecting to the tab in milliseconds.
    * @default 30000 (30 seconds)

@@ -1,4 +1,8 @@
-import { ScrollMethod, type WebPageAgentOpt } from '@/web-element';
+import {
+  type InteractionMode,
+  type WebPageAgentOpt,
+  resolveWebPageInteractionOptions,
+} from '@/web-element';
 import type {
   DeviceAction,
   ElementCacheFeature,
@@ -55,8 +59,7 @@ export class Page<
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
-  private enableTouchEventsInActionSpace: boolean;
-  private scrollMethod: ScrollMethod;
+  private interactionMode: InteractionMode;
   private puppeteerFileChooserSession?: CDPSession;
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
@@ -68,7 +71,7 @@ export class Page<
   actionSpace(): DeviceAction[] {
     const defaultActions = commonWebActionsForWebPage(
       this,
-      this.enableTouchEventsInActionSpace,
+      this.interactionMode,
     );
     const customActions = this.customActions || [];
     return [...defaultActions, ...customActions];
@@ -109,9 +112,8 @@ export class Page<
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
     this.customActions = opts?.customActions;
-    this.enableTouchEventsInActionSpace =
-      opts?.enableTouchEventsInActionSpace ?? false;
-    this.scrollMethod = opts?.scrollMethod ?? ScrollMethod.Wheel;
+    const interactionOptions = resolveWebPageInteractionOptions(opts);
+    this.interactionMode = interactionOptions.interactionMode;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -360,7 +362,7 @@ export class Page<
       },
       wheel: async (deltaX: number, deltaY: number) => {
         debugPage(`mouse wheel ${deltaX}, ${deltaY}`);
-        if (this.scrollMethod === ScrollMethod.Gesture) {
+        if (this.interactionMode === 'touch') {
           await this.synthesizeScrollGesture(deltaX, deltaY);
         } else if (this.interfaceType === 'puppeteer') {
           await (this.underlyingPage as PuppeteerPage).mouse.wheel({

@@ -15,8 +15,8 @@ PuppeteerAgent、PlaywrightAgent 和 Chrome Bridge 共用一套 Action Space，M
 - `Scroll` —— 以元素为起点或从屏幕中央滚动，支持滚动到顶/底/左/右。
 - `DragAndDrop` —— 从一个元素拖拽到另一个元素。
 - `LongPress` —— 长按目标元素，可选自定义时长。
-- `Swipe` —— 触摸式滑动（开启 `enableTouchEventsInActionSpace` 时可用）。
-- `Pinch` —— 双指缩放手势，用于放大/缩小（开启 `enableTouchEventsInActionSpace` 时可用；Playwright 仅支持 Chromium 内核浏览器）。
+- `Swipe` —— 触摸式滑动（`interactionMode` 为 `touch` 时可用，或兼容旧参数 `enableTouchEventsInActionSpace: true`）。
+- `Pinch` —— 双指缩放手势，用于放大/缩小（`interactionMode` 为 `touch` 时可用，或兼容旧参数 `enableTouchEventsInActionSpace: true`；Playwright 仅支持 Chromium 内核浏览器）。
 - `ClearInput` —— 清空输入框内容。
 - `Navigate` —— 在当前标签页打开指定 URL。
 - `Reload` —— 刷新当前页面。
@@ -47,8 +47,8 @@ const agent = new PuppeteerAgent(page, {
 - `forceSameTabNavigation: boolean` —— 限制始终在当前标签页内导航，默认 `true`。
 - `waitForNavigationTimeout: number` —— 当操作触发页面跳转时的最长等待时间，默认 `5000`（设为 `0` 表示不等待）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
-- `scrollMethod: 'wheel' | 'gesture'` —— 控制 Midscene 使用哪种滚动实现，默认 `wheel`。对于 Cocos、WebGL、Canvas 或自绘滚动区这类场景，如果模拟滚轮事件无法触发滚动，建议改用 `gesture`。
-- `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
+- `interactionMode: 'mouse' | 'touch'` —— 控制整体交互模式，默认 `mouse`。设为 `touch` 时，会在动作空间中暴露触摸手势，并默认使用手势滚动。
+- `enableTouchEventsInActionSpace: boolean` —— 兼容旧参数。设为 `true` 时，会按 `interactionMode: 'touch'` 处理触摸动作和默认滚动方式。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Puppeteer > `24.6.0`。
 - `customActions: DeviceAction[]` —— 借助 `defineAction` 注册自定义动作，让规划器可以调用领域特定步骤。
 
@@ -134,8 +134,8 @@ const agent = new PlaywrightAgent(page, {
 - `forceSameTabNavigation: boolean` —— 强制在当前标签页内执行，默认 `true`。
 - `waitForNavigationTimeout: number` —— 等待导航完成的时间，默认 `5000`（设为 `0` 关闭）。
 - `waitForNetworkIdleTimeout: number` —— 每次操作后等待网络空闲的时间，默认 `2000`（设为 `0` 关闭）。
-- `scrollMethod: 'wheel' | 'gesture'` —— 控制 Midscene 使用哪种滚动实现，默认 `wheel`。对于 Cocos、WebGL、Canvas 或自绘滚动区这类场景，如果模拟滚轮事件无法触发滚动，建议改用 `gesture`。`gesture` 仅支持 Chromium 内核浏览器。
-- `enableTouchEventsInActionSpace: boolean` —— 在动作空间里增加触摸手势（如滑动），用于需要触摸事件的页面，默认 `false`。
+- `interactionMode: 'mouse' | 'touch'` —— 控制整体交互模式，默认 `mouse`。设为 `touch` 时，会在动作空间中暴露触摸手势，并默认使用手势滚动。Playwright 下 `touch` 仅支持 Chromium 内核浏览器。
+- `enableTouchEventsInActionSpace: boolean` —— 兼容旧参数。设为 `true` 时，会按 `interactionMode: 'touch'` 处理触摸动作和默认滚动方式。
 - `forceChromeSelectRendering: boolean` —— 强制 `select` 元素使用 Chrome 的 base-select 样式，避免系统原生样式导致截图/元素提取不可见；需要 Playwright ≥ `1.52.0`。
 - `customActions: DeviceAction[]` —— 追加项目特有的动作，供规划器调用。
 
@@ -243,12 +243,12 @@ const agent = new AgentOverChromeBridge({
 ```ts
 function connectCurrentTab(options?: {
   forceSameTabNavigation?: boolean;
-  scrollMethod?: 'wheel' | 'gesture';
+  interactionMode?: 'mouse' | 'touch';
 }): Promise<void>;
 ```
 
 - `options.forceSameTabNavigation`（默认 `true`）会拦截新标签并在当前页打开，方便调试；若想保留新标签行为可设为 `false`，但需要为每个新标签创建新的 Agent。
-- `options.scrollMethod`（默认 `'wheel'`）用于控制连接后标签页里的滚动实现。对于 Cocos、WebGL、Canvas 或自绘滚动区，建议使用 `'gesture'`。
+- `options.interactionMode`（默认 `'mouse'`）用于控制连接后标签页采用鼠标还是触摸交互。设为 `touch` 时会默认使用手势滚动。
 - 连接当前激活标签页，成功后返回 `Promise<void>`，如果扩展未允许连接会报错。
 
 #### `connectNewTabWithUrl()`
@@ -258,7 +258,7 @@ function connectNewTabWithUrl(
   url: string,
   options?: {
     forceSameTabNavigation?: boolean;
-    scrollMethod?: 'wheel' | 'gesture';
+    interactionMode?: 'mouse' | 'touch';
   },
 ): Promise<void>;
 ```

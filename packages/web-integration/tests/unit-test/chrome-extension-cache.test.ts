@@ -25,7 +25,7 @@ vi.mock('@midscene/shared/logger', () => ({
 
 import { AiJudgeOrderSensitive } from '@midscene/core/ai-model';
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
-import { ScrollMethod } from '../../src/web-element';
+import { InteractionMode } from '../../src/web-element';
 
 describe('ChromeExtensionProxyPage cache methods', () => {
   let page: ChromeExtensionProxyPage;
@@ -64,8 +64,8 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       expect((page as any).latestMouseY).toBe(400);
     });
 
-    it('should use synthesizeScrollGesture when scrollMethod is gesture', async () => {
-      page = new ChromeExtensionProxyPage(false, ScrollMethod.Gesture);
+    it('should use synthesizeScrollGesture in touch interaction mode', async () => {
+      page = new ChromeExtensionProxyPage(false, InteractionMode.Touch);
       vi.spyOn(page as any, 'showMousePointer').mockResolvedValue(undefined);
       vi.spyOn(page as any, 'enableWaterFlowAnimation').mockResolvedValue(
         undefined,
@@ -89,6 +89,18 @@ describe('ChromeExtensionProxyPage cache methods', () => {
       );
       expect((page as any).latestMouseX).toBe(300);
       expect((page as any).latestMouseY).toBe(400);
+    });
+  });
+
+  describe('actionSpace', () => {
+    it('should expose touch actions in touch interaction mode', () => {
+      page = new ChromeExtensionProxyPage(false, InteractionMode.Touch);
+
+      const actionNames = page.actionSpace().map((action) => action.name);
+
+      expect(actionNames).toContain('Swipe');
+      expect(actionNames).toContain('Pinch');
+      expect(actionNames).toContain('Scroll');
     });
   });
 

@@ -15,8 +15,8 @@ describe('PlaywrightAgent constructor validation', () => {
     );
   });
 
-  it('should throw when gesture scroll is used with non-chromium browser', async () => {
-    const { PlaywrightAgent, ScrollMethod } = await import('@/playwright');
+  it('should throw when touch interaction is used with non-chromium browser', async () => {
+    const { InteractionMode, PlaywrightAgent } = await import('@/playwright');
     const page = {
       context: () => ({
         browser: () => ({
@@ -31,9 +31,17 @@ describe('PlaywrightAgent constructor validation', () => {
       () =>
         new PlaywrightAgent(page as any, {
           forceSameTabNavigation: false,
-          scrollMethod: ScrollMethod.Gesture,
+          interactionMode: InteractionMode.Touch,
         }),
-    ).toThrow('scrollMethod "gesture" requires a Chromium-based Playwright');
+    ).toThrow('touch interaction requires a Chromium-based Playwright');
+
+    expect(
+      () =>
+        new PlaywrightAgent(page as any, {
+          forceSameTabNavigation: false,
+          enableTouchEventsInActionSpace: true,
+        }),
+    ).toThrow('touch interaction requires a Chromium-based Playwright');
   });
 });
 

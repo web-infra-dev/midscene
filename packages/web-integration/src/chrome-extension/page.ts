@@ -5,7 +5,11 @@
   The page must be active when interacting with it.
 */
 
-import { ScrollMethod, limitOpenNewTabScript } from '@/web-element';
+import {
+  type InteractionMode,
+  limitOpenNewTabScript,
+  resolveWebPageInteractionOptions,
+} from '@/web-element';
 import type {
   ElementCacheFeature,
   ElementTreeNode,
@@ -50,7 +54,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   public forceSameTabNavigation: boolean;
 
-  public scrollMethod: ScrollMethod;
+  public interactionMode: InteractionMode;
 
   private viewportSize?: Size;
 
@@ -64,14 +68,17 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
 
   constructor(
     forceSameTabNavigation: boolean,
-    scrollMethod: ScrollMethod = ScrollMethod.Wheel,
+    interactionMode?: InteractionMode,
   ) {
     this.forceSameTabNavigation = forceSameTabNavigation;
-    this.scrollMethod = scrollMethod;
+    const interactionOptions = resolveWebPageInteractionOptions({
+      interactionMode,
+    });
+    this.interactionMode = interactionOptions.interactionMode;
   }
 
   actionSpace(): DeviceAction[] {
-    return commonWebActionsForWebPage(this);
+    return commonWebActionsForWebPage(this, this.interactionMode);
   }
 
   public async setActiveTabId(tabId: number) {
@@ -688,7 +695,7 @@ export default class ChromeExtensionProxyPage implements AbstractInterface {
       const finalX = startX || this.latestMouseX;
       const finalY = startY || this.latestMouseY;
       await this.showMousePointer(finalX, finalY);
-      if (this.scrollMethod === ScrollMethod.Gesture) {
+      if (this.interactionMode === 'touch') {
         await this.sendCommandToDebugger('Input.synthesizeScrollGesture', {
           x: finalX,
           y: finalY,

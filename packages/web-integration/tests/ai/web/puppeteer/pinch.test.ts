@@ -13,7 +13,7 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it('Pinch action is NOT available without enableTouchEventsInActionSpace', async () => {
+    it('Pinch action is NOT available in mouse interaction mode', async () => {
       const { originPage, reset } = await launchPage('https://www.example.com');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
@@ -23,7 +23,7 @@ describe(
       expect(pinchAction).toBeUndefined();
     });
 
-    it('Swipe action is NOT available without enableTouchEventsInActionSpace', async () => {
+    it('Swipe action is NOT available in mouse interaction mode', async () => {
       const { originPage, reset } = await launchPage('https://www.example.com');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
@@ -33,11 +33,11 @@ describe(
       expect(swipeAction).toBeUndefined();
     });
 
-    it('Pinch and Swipe are available when enableTouchEventsInActionSpace is true', async () => {
+    it('Pinch and Swipe are available when interactionMode is touch', async () => {
       const { originPage, reset } = await launchPage('https://www.example.com');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage, {
-        enableTouchEventsInActionSpace: true,
+        interactionMode: 'touch',
       });
 
       const actionSpace = await ctx.agent.getActionSpace();
@@ -61,7 +61,7 @@ describe(
       });
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage, {
-        enableTouchEventsInActionSpace: true,
+        interactionMode: 'touch',
       });
 
       // Step 1: Verify initial state
