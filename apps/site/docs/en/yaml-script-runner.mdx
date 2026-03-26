@@ -181,12 +181,13 @@ Set `cdpEndpoint` in the `web` section:
 ```diff
 web:
   url: https://www.bing.com
-+ cdpEndpoint: ws://localhost:9222/devtools/browser/<session-id>
++ cdpEndpoint: ws://localhost:9222/devtools/browser
 ```
 
 :::tip
-- Launch Chrome with `--remote-debugging-port=9222`, then visit `http://localhost:9222/json/version` to get the full WebSocket URL (including session ID).
-- CDP mode and bridge mode are mutually exclusive. In CDP mode, Midscene will only disconnect from the browser, not close it.
+
+CDP mode and bridge mode are mutually exclusive. In CDP mode, Midscene will only disconnect from the browser, not close it.
+
 :::
 
 ### Use bridge mode
