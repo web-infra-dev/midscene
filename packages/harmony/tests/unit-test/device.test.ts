@@ -86,12 +86,10 @@ describe('HarmonyDevice', () => {
       const d = new HarmonyDevice('dev-1', {
         hdcPath: '/custom/hdc',
         autoDismissKeyboard: true,
-        screenshotResizeScale: 0.5,
       });
       expect(d).toBeDefined();
       expect(d.options?.hdcPath).toBe('/custom/hdc');
       expect(d.options?.autoDismissKeyboard).toBe(true);
-      expect(d.options?.screenshotResizeScale).toBe(0.5);
     });
   });
 
@@ -167,19 +165,24 @@ describe('HarmonyDevice', () => {
       expect(size).toEqual({ width: 1216, height: 2688 });
     });
 
-    it('should apply screenshotResizeScale', async () => {
+    it('should warn when deprecated screenshotResizeScale is used', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('screenshotResizeScale is deprecated'),
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('should ignore deprecated screenshotResizeScale in size()', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       const d = new HarmonyDevice('dev', { screenshotResizeScale: 0.5 });
       await d.connect();
       const size = await d.size();
-      expect(size).toEqual({ width: 608, height: 1344 });
+      // size() should return raw physical size, ignoring screenshotResizeScale
+      expect(size).toEqual({ width: 1216, height: 2688 });
       await d.destroy();
-    });
-
-    it('should default scale to 1', async () => {
-      await device.connect();
-      const size = await device.size();
-      expect(size.width).toBe(1216);
-      expect(size.height).toBe(2688);
+      warnSpy.mockRestore();
     });
   });
 

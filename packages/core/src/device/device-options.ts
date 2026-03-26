@@ -143,6 +143,9 @@ export type HarmonyDeviceOpt = {
   hdcPath?: string;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
-  /** Screenshot resize scale factor */
+  /**
+   * @deprecated Use `screenshotShrinkFactor` in AgentOpt instead.
+   * This option no longer affects screenshot size sent to AI model.
+   */
   screenshotResizeScale?: number;
 } & HarmonyDeviceInputOpt;

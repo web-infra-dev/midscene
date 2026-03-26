@@ -68,6 +68,8 @@ const scrollQuadrantDivisions = 4;
 
 const debugDevice = getDebug('harmony:device');
 
+let screenshotResizeScaleWarned = false;
+
 // HarmonyOS uitest only accepts Back/Home/Power as string names.
 // All other keys must use numeric keycodes.
 const harmonyKeyCodeMap = {
@@ -282,6 +284,16 @@ export class HarmonyDevice implements AbstractInterface {
     this.deviceId = deviceId;
     this.options = options;
     this.customActions = options?.customActions;
+
+    if (
+      options?.screenshotResizeScale !== undefined &&
+      !screenshotResizeScaleWarned
+    ) {
+      screenshotResizeScaleWarned = true;
+      console.warn(
+        '[midscene] screenshotResizeScale is deprecated. Use screenshotShrinkFactor in AgentOpt instead.',
+      );
+    }
   }
 
   describe(): string {
@@ -405,14 +417,9 @@ export class HarmonyDevice implements AbstractInterface {
 
   async size(): Promise<Size> {
     const screenInfo = await this.getScreenSize();
-    const scale = this.options?.screenshotResizeScale ?? 1;
-
-    const logicalWidth = Math.round(screenInfo.width * scale);
-    const logicalHeight = Math.round(screenInfo.height * scale);
-
     return {
-      width: logicalWidth,
-      height: logicalHeight,
+      width: screenInfo.width,
+      height: screenInfo.height,
     };
   }
 
