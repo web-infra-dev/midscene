@@ -181,6 +181,10 @@ web:
   # 是否限制页面在当前 tab 打开，可选，默认 true
   forceSameTabNavigation: <boolean>
 
+  # CDP 连接端点，可选。设置后通过 CDP 连接到已有浏览器实例，而非启动新浏览器。
+  # 与 bridgeMode 互斥，不可同时使用。
+  cdpEndpoint: ws://localhost:9222/devtools/browser
+
   # 桥接模式，可选，默认 false，可以为 'newTabWithUrl' 或 'currentTab'。更多详情请参阅后文
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 
