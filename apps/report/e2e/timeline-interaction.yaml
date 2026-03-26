@@ -9,12 +9,12 @@ tasks:
 
   - name: collapse and expand timeline
     flow:
-      - ai: Click on the "Record" section header to collapse it
+      - ai: Click on the "Record" text above the timeline screenshots
       - sleep: 2000
-      - aiAssert: The timeline section with screenshot thumbnails is no longer visible
-      - ai: Click on the "Record" section header again to expand it
+      - aiAssert: The screenshot thumbnails below "Record" are hidden
+      - ai: Click on the "Record" text again
       - sleep: 2000
-      - aiAssert: The timeline section is expanded again showing screenshot thumbnails or time axis
+      - aiAssert: The screenshot thumbnails are visible again below "Record"
 
   - name: click timeline screenshot to navigate
     flow:
