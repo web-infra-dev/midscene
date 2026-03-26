@@ -1,6 +1,6 @@
 {
   "name": "@midscene/android-playground",
-  "version": "1.5.8",
+  "version": "1.6.0",
   "description": "Android playground for Midscene",
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
