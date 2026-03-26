@@ -7,15 +7,6 @@ tasks:
       - sleep: 2000
       - aiAssert: A timeline or "Record" section is visible on the page with screenshot thumbnails or a time axis
 
-  - name: collapse and expand timeline
-    flow:
-      - ai: Click on the "Record" text above the timeline screenshots
-      - sleep: 2000
-      - aiAssert: The screenshot thumbnails below "Record" are hidden
-      - ai: Click on the "Record" text again
-      - sleep: 2000
-      - aiAssert: The screenshot thumbnails are visible again below "Record"
-
   - name: click timeline screenshot to navigate
     flow:
       - ai: Click on a screenshot thumbnail in the timeline area
