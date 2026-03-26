@@ -176,6 +176,31 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
     ) : null;
   };
 
+  const getDomIncludedTag = (task: ExecutionTaskWithSearchAreaUsage) => {
+    const isDomIncludedInsightTask =
+      task.type === 'Insight' &&
+      (
+        task as ExecutionTask & {
+          param?: { domIncluded?: boolean | 'visible-only' };
+        }
+      )?.param?.domIncluded;
+
+    return isDomIncludedInsightTask ? (
+      <Tag
+        className="domincluded-tag"
+        bordered={false}
+        style={{
+          padding: '0 4px',
+          marginLeft: '4px',
+          marginRight: 0,
+          lineHeight: '16px',
+        }}
+      >
+        DomIncluded
+      </Tag>
+    ) : null;
+  };
+
   const getDeepLocateTag = (task: ExecutionTaskWithSearchAreaUsage) => {
     return (task as ExecutionTaskPlanningLocate)?.param?.deepLocate ? (
       <Tag
@@ -507,6 +532,7 @@ const Sidebar = (props: SidebarProps = {}): JSX.Element => {
             <span>{taskName}</span>
             {getTitleIcon(task)}
             {getCacheTag(task)}
+            {getDomIncludedTag(task)}
             {getDeepLocateTag(task)}
             {getDeepThinkTag(task)}
           </div>
