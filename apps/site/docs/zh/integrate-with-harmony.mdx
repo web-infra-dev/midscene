@@ -127,7 +127,7 @@ HarmonyDevice 的构造函数支持以下参数：
 - `opts?: HarmonyDeviceOpt` - 可选参数，用于初始化 HarmonyDevice 的配置
   - `hdcPath?: string` - 可选参数，用于指定 HDC 可执行文件的路径
   - `autoDismissKeyboard?: boolean` - 可选参数，是否在输入文本后自动关闭键盘。默认值为 true
-  - `screenshotResizeScale?: number` - **已废弃。** 请使用 `AgentOpt` 中的 `screenshotShrinkFactor` 代替。此选项不再影响发送给 AI 模型的截图尺寸
+  - `screenshotResizeScale?: number` - **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`
   - `customActions?: DeviceAction[]` - 可选参数，自定义动作列表
 
 <a id="harmonyagent"></a>
