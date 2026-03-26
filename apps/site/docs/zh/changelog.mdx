@@ -1,5 +1,78 @@
 # 更新日志
 
+## v1.6 - CDP 连接、双指缩放与多模型增强
+
+v1.6 版本新增了 CDP 浏览器连接模式、跨平台双指缩放手势、GPT-5/GPT-5.4 模型支持，同时对元素定位、报告系统、Chrome 扩展等进行了多项改进。
+
+### 新增 CDP 浏览器连接模式
+
+支持通过 CDP (Chrome DevTools Protocol) 直接连接已有的浏览器实例进行自动化，无需由 Midscene 启动浏览器，适用于需要复用已有浏览器会话的场景。详见：[YAML 脚本运行器 - CDP 连接模式](./yaml-script-runner#使用-cdp-连接模式)、[Puppeteer 远程连接](./integrate-with-puppeteer#连接远程-puppeteer-浏览器并接入-midscene-agent)
+
+### 新增跨平台双指缩放手势
+
+在 Android、iOS、鸿蒙等移动端平台支持 pinch/zoom 双指缩放操作，可用于地图缩放、图片预览等场景。详见：[API 文档 - aiPinch](./api.mdx#agentaipinch)
+
+### 新增 GPT-5 / GPT-5.4 与 Codex app-server provider 支持
+
+适配了 GPT-5 和 GPT-5.4 模型，同时新增 Codex app-server provider，开发者可以使用最新的 OpenAI 模型进行视觉理解与自动化操作。详见：[模型配置](./model-config)、[模型策略](./model-strategy)
+
+### 新增模型请求 extraBody 参数
+
+新增 `extraBody` 配置，开发者可以在模型 API 请求中传递额外的自定义参数，满足特定模型或部署环境的需求。详见高阶配置中的 [`MIDSCENE_MODEL_EXTRA_BODY_JSON` 环境变量](./model-config#高阶配置可选)
+
+### `deepThink` 更名为 `deepLocate`
+
+元素定位相关 API 中的 `deepThink` 参数正式更名为 `deepLocate`，更准确地表达其"深度定位"的含义。原有 `deepThink` 参数仍可使用，但建议逐步迁移。详见：[API 文档](./api.mdx)
+
+### Skill CLI 与平台工具增强
+
+- **Skill CLI 自定义接口**：Skill CLI 支持自定义接口，开发者可以更灵活地扩展 Skill 能力。详见：[Skills 文档](./skills)
+- **统一 MCP 工具导出**：所有平台包（Web、Android、iOS 等）统一导出 MidsceneTools，在 MCP 场景下集成更简单。详见：[MCP 服务](./mcp)
+- **iOS 终止指定应用**：iOS 端支持通过 bundleId 终止指定应用，方便测试流程中重置应用状态。详见：[iOS API](./ios-api-reference)
+- **CLI 版本查看**：CLI 新增版本查看功能，健康检查中显示各包版本信息，便于排查环境问题
+
+### 任务取消支持
+
+`aiAct` 新增 `AbortSignal` 支持，开发者可以在任务执行过程中随时取消操作，避免长时间等待。详见：[API 文档 - aiAct](./api.mdx#agentaiact)
+
+### 元素定位优化
+
+优化了 `deepLocate` 的定位流程，在复杂界面下的定位效率和准确率均有提升。
+
+### 报告与回放改进
+
+- **大型报告加载更快**：报告中的截图支持懒加载，包含大量步骤的报告打开速度显著提升
+- **移动端报告更直观**：报告回放时展示设备外壳，更直观地还原移动端操作场景
+- **时序信息更精确**：报告中 AI 调用和操作执行的时序信息精度更高，便于定位性能瓶颈
+
+### 稳定性改进
+
+- AI 规划偶发解析失败时自动重试一次，减少因网络抖动导致的测试中断
+- 设备健康检查新增监控器检测，帮助排查无头环境下的显示问题
+
+### Chrome 扩展改进
+
+- 修复录制停止后生成脚本时的崩溃问题
+- 修复长时间录制时因消息序列化性能问题导致的卡顿
+- Bridge 模式新增启停控制按钮，修复确认操作时连接断开的问题
+
+### 问题修复
+
+- 修复 MCP 服务在某些情况下变成僵尸进程占用 100% CPU 的问题
+- 修复页面跳转过程中截图失败未重试的问题
+- 修复 Android 端部分场景下文字输入丢失的问题
+- 修复 `aiNumber` 在某些格式下提取结果不正确的问题
+- 修复 `aiScroll` 不传参数时的调用异常
+- 修复使用 AutoGLM 模型时返回/主页操作在不同平台上的兼容问题
+- 修复报告中模型名称包含 `/` 时显示异常的问题
+- 修复报告回放结束后播放器未正确重置的问题
+- 修复 Playground 中 Deep Think 开关未正确读取环境变量配置的问题
+- 修复高分辨率设备截图中光标大小显示不正确的问题
+- 修复 Linux 环境下 Chrome 启动路径解析失败的问题
+- 修复页面包含 iframe 时元素定位不准确的问题
+- 修复鸿蒙端在特定渲染分辨率下屏幕信息解析错误的问题
+- 修复 Playground 中取消任务后设备方向显示不正确的问题
+
 ## v1.5 - HarmonyOS（鸿蒙）自动化支持
 
 v1.5 版本新增了 HarmonyOS 自动化支持，新增 Qwen3.5 和 doubao-seed 2.0 模型支持，同时对桌面自动化、报告系统、Chrome 扩展等进行了多项改进。

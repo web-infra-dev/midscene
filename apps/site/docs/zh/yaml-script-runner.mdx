@@ -174,6 +174,24 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
+### 使用 CDP 连接模式
+
+> 仅适用于 `web` 场景
+
+CDP 模式可以让 YAML 脚本通过 Chrome DevTools Protocol 连接到已有的浏览器实例，无需启动新浏览器。适用于需要复用已有浏览器会话、连接远程浏览器或云端浏览器服务的场景。
+
+在 `web` 配置中设置 `cdpEndpoint`：
+
+```diff
+web:
+  url: https://www.bing.com
++ cdpEndpoint: ws://localhost:9222/devtools/browser/your-session-id
+```
+
+:::tip
+CDP 模式与桥接模式互斥，不可同时使用。CDP 模式下 Midscene 只会断开连接（disconnect），不会关闭浏览器。
+:::
+
 ### 使用桥接模式
 
 > 仅适用于 `web` 场景
