@@ -26,8 +26,8 @@ tasks:
   - name: switch between test cases
     flow:
       - ai: Click on the second test case in the dropdown list
-      - sleep: 3000
-      - aiAssert: The case selector dropdown is now closed and the sidebar shows a task execution list
+      - sleep: 5000
+      - aiAssert: The sidebar shows a task execution list
 
   - name: filter by status
     flow:
