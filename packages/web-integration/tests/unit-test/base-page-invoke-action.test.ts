@@ -21,6 +21,10 @@ vi.mock('@midscene/shared/node', () => ({
 }));
 
 vi.mock('@/web-element', () => ({
+  ScrollMethod: {
+    Wheel: 'wheel',
+    Gesture: 'gesture',
+  },
   WebPageContextParser: vi.fn().mockResolvedValue({
     tree: { node: null, children: [] },
     shotSize: { width: 1024, height: 768 },

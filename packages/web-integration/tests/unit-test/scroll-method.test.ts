@@ -4,6 +4,41 @@ import { ScrollMethod } from '@/web-element';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('web scroll methods', () => {
+  it('does not expose touch gestures in action space by default', async () => {
+    const page = {
+      mouse: {
+        move: vi.fn().mockResolvedValue(undefined),
+        wheel: vi.fn().mockResolvedValue(undefined),
+      },
+      createCDPSession: vi.fn(),
+    };
+    const webPage = new PuppeteerWebPage(page as any);
+
+    const actionNames = webPage.actionSpace().map((action) => action.name);
+
+    expect(actionNames).not.toContain('Swipe');
+    expect(actionNames).not.toContain('Pinch');
+    expect(actionNames).toContain('Scroll');
+  });
+
+  it('exposes swipe and pinch when touch actions are enabled', async () => {
+    const page = {
+      mouse: {
+        move: vi.fn().mockResolvedValue(undefined),
+        wheel: vi.fn().mockResolvedValue(undefined),
+      },
+      createCDPSession: vi.fn(),
+    };
+    const webPage = new PuppeteerWebPage(page as any, {
+      enableTouchEventsInActionSpace: true,
+    });
+
+    const actionNames = webPage.actionSpace().map((action) => action.name);
+
+    expect(actionNames).toContain('Swipe');
+    expect(actionNames).toContain('Pinch');
+  });
+
   it('uses wheel events by default for Puppeteer', async () => {
     const mouse = {
       move: vi.fn().mockResolvedValue(undefined),
