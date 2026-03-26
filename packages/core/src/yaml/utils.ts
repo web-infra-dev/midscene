@@ -1,4 +1,4 @@
-import type { TUserPrompt } from '@/common';
+import type { TMultimodalPrompt, TUserPrompt } from '@/common';
 import type {
   DetailedLocateParam,
   LocateOption,
@@ -9,6 +9,31 @@ import { assert } from '@midscene/shared/utils';
 import yaml from 'js-yaml';
 
 const debugUtils = getDebug('yaml:utils');
+
+const multimodalLocateOptionFieldMap: Record<keyof TMultimodalPrompt, true> = {
+  images: true,
+  convertHttpImage2Base64: true,
+};
+
+const multimodalLocateOptionKeys = Object.keys(
+  multimodalLocateOptionFieldMap,
+) as Array<keyof TMultimodalPrompt>;
+
+function extractMultimodalPrompt(
+  opt?: LocateOption,
+): Partial<TMultimodalPrompt> | undefined {
+  if (typeof opt !== 'object' || opt === null) {
+    return undefined;
+  }
+
+  const entries = multimodalLocateOptionKeys
+    .map((key) => [key, opt[key]] as const)
+    .filter(([, value]) => value !== undefined);
+
+  return entries.length
+    ? (Object.fromEntries(entries) as Partial<TMultimodalPrompt>)
+    : undefined;
+}
 
 export function interpolateEnvVars(content: string): string {
   // Process line by line to skip commented lines
@@ -119,6 +144,20 @@ export function buildDetailedLocateParam(
     return undefined;
   }
 
+  const multimodalPrompt = extractMultimodalPrompt(opt);
+  if (multimodalPrompt) {
+    prompt =
+      typeof prompt === 'string'
+        ? {
+            prompt,
+            ...multimodalPrompt,
+          }
+        : {
+            ...prompt,
+            ...multimodalPrompt,
+          };
+  }
+
   return {
     prompt,
     deepLocate,
@@ -135,6 +174,7 @@ export function buildDetailedLocateParamAndRestParams(
   locateParam: DetailedLocateParam | undefined;
   restParams: Record<string, any>;
 } {
+  const multimodalPrompt = extractMultimodalPrompt(opt);
   const locateParam = buildDetailedLocateParam(locatePrompt, opt);
 
   // Extract all keys from opt except the ones already included in locateParam
@@ -146,11 +186,16 @@ export function buildDetailedLocateParamAndRestParams(
 
     // Keys already included in locateParam: prompt, deepLocate, cacheable, xpath
     const locateParamKeys = Object.keys(locateParam || {});
+    const multimodalPromptKeys =
+      typeof locateParam?.prompt === 'object' && locateParam?.prompt !== null
+        ? Object.keys(multimodalPrompt || {})
+        : [];
 
     // Extract all other keys
     for (const key of allKeys) {
       if (
         !locateParamKeys.includes(key) &&
+        !multimodalPromptKeys.includes(key) &&
         !excludeKeys.includes(key) &&
         key !== 'locate'
       ) {

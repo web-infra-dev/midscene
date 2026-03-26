@@ -16,7 +16,13 @@ import { extractLastDumpScriptSync } from '@/dump/html-utils';
 import { ReportMergingTool } from '@/report';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
-import { ExecutionDump, GroupedActionDump, type UIContext } from '@/types';
+import {
+  ExecutionDump,
+  type GroupMeta,
+  GroupedActionDump,
+  type UIContext,
+} from '@/types';
+import { uuid } from '@midscene/shared/utils';
 import { antiEscapeScriptTag, escapeScriptTag } from '@midscene/shared/utils';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -45,6 +51,7 @@ function createDump(screenshots: ScreenshotItem[]): GroupedActionDump {
     modelBriefs: ['test-model'],
     executions: [
       new ExecutionDump({
+        id: uuid(),
         logTime: Date.now(),
         name: 'test-execution',
         tasks,
@@ -78,7 +85,16 @@ describe('browser parse simulation for merged directory-mode reports', () => {
 
     const screenshot = ScreenshotItem.create(fakeBase64(500), Date.now());
     const dump = createDump([screenshot]);
-    await generator.finalize(dump);
+    const groupMeta: GroupMeta = {
+      sdkVersion: dump.sdkVersion,
+      groupName: dump.groupName,
+      groupDescription: dump.groupDescription,
+      modelBriefs: dump.modelBriefs,
+    };
+    for (const exec of dump.executions) {
+      generator.onExecutionUpdate(exec, groupMeta);
+    }
+    await generator.finalize();
 
     // Read the HTML and extract dump the same way mergeReports does
     const dumpString = extractLastDumpScriptSync(reportPath);
@@ -111,7 +127,16 @@ describe('browser parse simulation for merged directory-mode reports', () => {
         ScreenshotItem.create(fakeBase64(400 + r * 50), Date.now()),
       ];
       const dump = createDump(screenshots);
-      await generator.finalize(dump);
+      const groupMeta: GroupMeta = {
+        sdkVersion: dump.sdkVersion,
+        groupName: dump.groupName,
+        groupDescription: dump.groupDescription,
+        modelBriefs: dump.modelBriefs,
+      };
+      for (const exec of dump.executions) {
+        generator.onExecutionUpdate(exec, groupMeta);
+      }
+      await generator.finalize();
 
       tool.append({
         reportFilePath: reportPath,
@@ -186,7 +211,16 @@ describe('browser parse simulation for merged directory-mode reports', () => {
 
     const screenshot = ScreenshotItem.create(fakeBase64(300), Date.now());
     const dump = createDump([screenshot]);
-    await generator.finalize(dump);
+    const groupMeta: GroupMeta = {
+      sdkVersion: dump.sdkVersion,
+      groupName: dump.groupName,
+      groupDescription: dump.groupDescription,
+      modelBriefs: dump.modelBriefs,
+    };
+    for (const exec of dump.executions) {
+      generator.onExecutionUpdate(exec, groupMeta);
+    }
+    await generator.finalize();
 
     // Step 1: extract (what mergeReports does)
     const extracted = extractLastDumpScriptSync(reportPath);

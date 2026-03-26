@@ -620,7 +620,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/android-playground:
     dependencies:
@@ -810,7 +810,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/computer-linux:
     dependencies:
@@ -900,7 +900,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/computer-playground:
     dependencies:
@@ -1085,7 +1085,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
       zod:
         specifier: 3.24.3
         version: 3.24.3
@@ -1180,7 +1180,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
       zod:
         specifier: 3.24.3
         version: 3.24.3
@@ -1238,7 +1238,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/ios-playground:
     dependencies:
@@ -1333,7 +1333,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/playground-app:
     dependencies:
@@ -1635,7 +1635,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
   packages/web-integration:
     dependencies:
@@ -1669,6 +1669,9 @@ importers:
       socket.io-client:
         specifier: 4.8.1
         version: 4.8.1(bufferutil@4.0.9)(utf-8-validate@6.0.5)
+      ws:
+        specifier: ^8.18.1
+        version: 8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5)
     devDependencies:
       '@playwright/test':
         specifier: ^1.45.0
@@ -1694,6 +1697,9 @@ importers:
       '@types/semver':
         specifier: 7.7.0
         version: 7.7.0
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
       devtools-protocol:
         specifier: 0.0.1380148
         version: 0.0.1380148
@@ -1736,7 +1742,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: 3.0.5
-        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
+        version: 3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1)
 
 packages:
 
@@ -4896,6 +4902,9 @@ packages:
 
   '@types/uuid@10.0.0':
     resolution: {integrity: sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ==}
+
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -15641,6 +15650,10 @@ snapshots:
 
   '@types/uuid@10.0.0': {}
 
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 18.19.118
+
   '@types/yargs-parser@21.0.3': {}
 
   '@types/yargs@17.0.32':
@@ -23464,7 +23477,7 @@ snapshots:
       sass-embedded: 1.86.3
       terser: 5.44.1
 
-  vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0(bufferutil@4.0.9)(utf-8-validate@6.0.5))(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
+  vitest@3.0.5(@types/debug@4.1.12)(@types/node@18.19.118)(jsdom@26.1.0)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1):
     dependencies:
       '@vitest/expect': 3.0.5
       '@vitest/mocker': 3.0.5(vite@5.4.10(@types/node@18.19.118)(less@4.3.0)(lightningcss@1.30.1)(sass-embedded@1.86.3)(terser@5.44.1))

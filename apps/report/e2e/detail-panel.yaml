@@ -17,14 +17,14 @@ tasks:
       - sleep: 1000
       - aiAssert: The detail panel shows JSON formatted data with curly braces and key-value pairs
 
-  - name: expand detail side sections
+  - name: inspect detail side sections
     flow:
-      - ai: Click on the "Param" section header in the right detail side panel to expand it
+      - ai: Click on the first task row in the left sidebar that has type "Planning" or "Insight" or "Locate"
       - sleep: 1000
-      - aiAssert: The Param section is expanded showing task parameters or input data
-      - ai: Click on the "Meta" section header in the right detail side panel to expand it
+      - aiAssert: The Param section is visible in the right detail side panel and shows task parameters or input data
+      - ai: Click on the "Output" section header in the right detail side panel to collapse the output section
       - sleep: 1000
-      - aiAssert: The Meta section shows execution metadata like Type, Status, Start time, End time, or Total time
+      - aiAssert: The Meta section is visible in the right detail side panel and contains metadata entries such as type, status, start, end, or total time
 
   - name: open in playground button
     flow:

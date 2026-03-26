@@ -8,7 +8,7 @@
     "Browser use",
     "Android use"
   ],
-  "version": "1.5.7",
+  "version": "1.6.0",
   "repository": "https://github.com/web-infra-dev/midscene",
   "homepage": "https://midscenejs.com/",
   "main": "./dist/lib/index.js",
@@ -121,7 +121,8 @@
     "http-server": "14.1.1",
     "puppeteer-core": "24.6.0",
     "socket.io": "^4.8.1",
-    "socket.io-client": "4.8.1"
+    "socket.io-client": "4.8.1",
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.45.0",
@@ -132,6 +133,7 @@
     "@types/js-yaml": "4.0.9",
     "@types/node": "^18.0.0",
     "@types/semver": "7.7.0",
+    "@types/ws": "8.18.1",
     "devtools-protocol": "0.0.1380148",
     "js-yaml": "4.1.0",
     "playwright": "^1.45.0",
