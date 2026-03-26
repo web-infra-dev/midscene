@@ -9,11 +9,17 @@ import { _keyDefinitions } from '@midscene/shared/us-keyboard-layout';
 import type { NodeType } from '@midscene/shared/constants';
 export type { WebElementInfo };
 
+export enum ScrollMethod {
+  Wheel = 'wheel',
+  Gesture = 'gesture',
+}
+
 export type WebPageAgentOpt = AgentOpt & WebPageOpt;
 export type WebPageOpt = {
   waitForNavigationTimeout?: number;
   waitForNetworkIdleTimeout?: number;
   forceSameTabNavigation?: boolean /* if limit the new tab to the current page, default true */;
+  scrollMethod?: ScrollMethod;
   enableTouchEventsInActionSpace?: boolean;
   /**
    * Force Chrome to render select elements using base-select appearance instead of OS-native rendering.

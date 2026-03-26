@@ -28,6 +28,7 @@ function getPuppeteerVersion(): string | null {
 
 export { PuppeteerWebPage } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
+export { ScrollMethod } from '@/web-element';
 
 export class PuppeteerAgent extends PageAgent<PuppeteerWebPage> {
   protected isRetryableContextError(error: unknown): boolean {

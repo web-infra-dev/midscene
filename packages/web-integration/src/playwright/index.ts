@@ -7,7 +7,8 @@ export { PlaywrightAiFixture } from './ai-fixture';
 export { overrideAIConfig } from '@midscene/shared/env';
 export { WebPage as PlaywrightWebPage } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
-import type { WebPageAgentOpt } from '@/web-element';
+export { ScrollMethod } from '@/web-element';
+import { ScrollMethod, type WebPageAgentOpt } from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import semver from 'semver';
 import {
@@ -46,6 +47,16 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
         '[midscene] PlaywrightAgent requires a valid Playwright page instance. Please make sure to pass a valid page object.',
       );
     }
+
+    if (opts?.scrollMethod === ScrollMethod.Gesture) {
+      const browserName = page.context().browser()?.browserType().name();
+      if (browserName && browserName !== 'chromium') {
+        throw new Error(
+          `[midscene] scrollMethod "gesture" requires a Chromium-based Playwright browser, but current browser is "${browserName}". Use scrollMethod "wheel" instead.`,
+        );
+      }
+    }
+
     const webPage = new PlaywrightWebPage(page, opts);
     super(webPage, opts);
 

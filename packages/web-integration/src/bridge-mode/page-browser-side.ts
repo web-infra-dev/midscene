@@ -1,5 +1,6 @@
 import { assert } from '@midscene/shared/utils';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
+import { ScrollMethod } from '../web-element';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
@@ -34,9 +35,10 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       type: 'log' | 'status',
     ) => void = () => {},
     forceSameTabNavigation = true,
+    scrollMethod: ScrollMethod = ScrollMethod.Wheel,
     public onConnectionRequest?: () => Promise<boolean>,
   ) {
-    super(forceSameTabNavigation);
+    super(forceSameTabNavigation, scrollMethod);
   }
 
   private async setupBridgeClient() {
@@ -181,6 +183,9 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     if (options?.forceSameTabNavigation) {
       this.forceSameTabNavigation = true;
     }
+    if (options?.scrollMethod) {
+      this.scrollMethod = options.scrollMethod;
+    }
 
     await this.setActiveTabId(tabId);
   }
@@ -198,6 +203,9 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
 
     if (options?.forceSameTabNavigation) {
       this.forceSameTabNavigation = true;
+    }
+    if (options?.scrollMethod) {
+      this.scrollMethod = options.scrollMethod;
     }
 
     await this.setActiveTabId(tabId);

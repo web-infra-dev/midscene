@@ -2,7 +2,7 @@ import { rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PlaywrightAgent, type PlaywrightWebPage } from '@/playwright/index';
-import type { WebPageAgentOpt } from '@/web-element';
+import type { ScrollMethod, WebPageAgentOpt } from '@/web-element';
 import type { Cache } from '@midscene/core';
 import type { AgentOpt, Agent as PageAgent } from '@midscene/core/agent';
 import { processCacheConfig } from '@midscene/core/utils';
@@ -60,12 +60,14 @@ export const PlaywrightAiFixture = (options?: {
   forceSameTabNavigation?: boolean;
   waitForNetworkIdleTimeout?: number;
   waitForNavigationTimeout?: number;
+  scrollMethod?: ScrollMethod;
   cache?: PlaywrightCache;
 }) => {
   const {
     forceSameTabNavigation = true,
     waitForNetworkIdleTimeout = DEFAULT_WAIT_FOR_NETWORK_IDLE_TIMEOUT,
     waitForNavigationTimeout = DEFAULT_WAIT_FOR_NAVIGATION_TIMEOUT,
+    scrollMethod,
     cache,
   } = options ?? {};
 
@@ -95,6 +97,7 @@ export const PlaywrightAiFixture = (options?: {
       pageAgentMap[idForPage] = new PlaywrightAgent(page, {
         testId: `playwright-${testId}-${idForPage}`,
         forceSameTabNavigation,
+        scrollMethod,
         cache: cacheConfig,
         groupName: title,
         groupDescription: file,

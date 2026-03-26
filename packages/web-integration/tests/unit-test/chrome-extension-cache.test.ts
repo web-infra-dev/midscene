@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.stubGlobal('chrome', {
   tabs: {
     update: vi.fn(),
+    query: vi.fn().mockResolvedValue([{ id: 123 }]),
   },
   debugger: {
     attach: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('@midscene/shared/logger', () => ({
 
 import { AiJudgeOrderSensitive } from '@midscene/core/ai-model';
 import ChromeExtensionProxyPage from '../../src/chrome-extension/page';
+import { ScrollMethod } from '../../src/web-element';
 
 describe('ChromeExtensionProxyPage cache methods', () => {
   let page: ChromeExtensionProxyPage;
@@ -35,6 +37,59 @@ describe('ChromeExtensionProxyPage cache methods', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe('mouse.wheel', () => {
+    it('should use mouseWheel by default', async () => {
+      vi.spyOn(page as any, 'showMousePointer').mockResolvedValue(undefined);
+      vi.spyOn(page as any, 'enableWaterFlowAnimation').mockResolvedValue(
+        undefined,
+      );
+      (page as any).activeTabId = 123;
+
+      await page.mouse.wheel(120, 240, 300, 400);
+
+      expect(chrome.debugger.sendCommand).toHaveBeenCalledWith(
+        { tabId: 123 },
+        'Input.dispatchMouseEvent',
+        {
+          type: 'mouseWheel',
+          x: 300,
+          y: 400,
+          deltaX: 120,
+          deltaY: 240,
+        },
+      );
+      expect((page as any).latestMouseX).toBe(300);
+      expect((page as any).latestMouseY).toBe(400);
+    });
+
+    it('should use synthesizeScrollGesture when scrollMethod is gesture', async () => {
+      page = new ChromeExtensionProxyPage(false, ScrollMethod.Gesture);
+      vi.spyOn(page as any, 'showMousePointer').mockResolvedValue(undefined);
+      vi.spyOn(page as any, 'enableWaterFlowAnimation').mockResolvedValue(
+        undefined,
+      );
+      (page as any).activeTabId = 123;
+
+      await page.mouse.wheel(120, 240, 300, 400);
+
+      expect(chrome.debugger.sendCommand).toHaveBeenCalledWith(
+        { tabId: 123 },
+        'Input.synthesizeScrollGesture',
+        {
+          x: 300,
+          y: 400,
+          xDistance: -120,
+          yDistance: -240,
+          speed: 9999999,
+          repeatCount: 0,
+          preventFling: true,
+        },
+      );
+      expect((page as any).latestMouseX).toBe(300);
+      expect((page as any).latestMouseY).toBe(400);
+    });
   });
 
   describe('cacheFeatureForPoint', () => {

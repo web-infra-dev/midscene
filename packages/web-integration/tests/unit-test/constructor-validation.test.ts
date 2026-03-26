@@ -14,6 +14,27 @@ describe('PlaywrightAgent constructor validation', () => {
       '[midscene] PlaywrightAgent requires a valid Playwright page instance',
     );
   });
+
+  it('should throw when gesture scroll is used with non-chromium browser', async () => {
+    const { PlaywrightAgent, ScrollMethod } = await import('@/playwright');
+    const page = {
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'firefox',
+          }),
+        }),
+      }),
+    };
+
+    expect(
+      () =>
+        new PlaywrightAgent(page as any, {
+          forceSameTabNavigation: false,
+          scrollMethod: ScrollMethod.Gesture,
+        }),
+    ).toThrow('scrollMethod "gesture" requires a Chromium-based Playwright');
+  });
 });
 
 describe('PuppeteerAgent constructor validation', () => {
