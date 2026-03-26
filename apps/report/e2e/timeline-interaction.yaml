@@ -9,10 +9,10 @@ tasks:
 
   - name: collapse and expand timeline
     flow:
-      - ai: Click the text "Record" with the "▼" arrow icon to collapse the timeline section
+      - ai: Click on the "Record" section header to collapse it
       - sleep: 2000
-      - aiAssert: The arrow icon next to "Record" is now pointing sideways (right) instead of downward
-      - ai: Click the "Record" text with the arrow icon again to expand it back
+      - aiAssert: The timeline section with screenshot thumbnails is no longer visible
+      - ai: Click on the "Record" section header again to expand it
       - sleep: 2000
       - aiAssert: The timeline section is expanded again showing screenshot thumbnails or time axis
 
