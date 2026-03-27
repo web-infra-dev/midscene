@@ -1,5 +1,9 @@
 import { assert } from '@midscene/shared/utils';
 import ChromeExtensionProxyPage from '../chrome-extension/page';
+import {
+  type InteractionMode,
+  resolveWebPageInteractionOptions,
+} from '../web-element';
 import type {
   ChromePageDestroyOptions,
   KeyboardAction,
@@ -34,9 +38,10 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
       type: 'log' | 'status',
     ) => void = () => {},
     forceSameTabNavigation = true,
+    interactionMode?: InteractionMode,
     public onConnectionRequest?: () => Promise<boolean>,
   ) {
-    super(forceSameTabNavigation);
+    super(forceSameTabNavigation, interactionMode);
   }
 
   private async setupBridgeClient() {
@@ -181,6 +186,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     if (options?.forceSameTabNavigation) {
       this.forceSameTabNavigation = true;
     }
+    const interactionOptions = resolveWebPageInteractionOptions(options);
+    this.interactionMode = interactionOptions.interactionMode;
 
     await this.setActiveTabId(tabId);
   }
@@ -199,6 +206,8 @@ export class ExtensionBridgePageBrowserSide extends ChromeExtensionProxyPage {
     if (options?.forceSameTabNavigation) {
       this.forceSameTabNavigation = true;
     }
+    const interactionOptions = resolveWebPageInteractionOptions(options);
+    this.interactionMode = interactionOptions.interactionMode;
 
     await this.setActiveTabId(tabId);
   }

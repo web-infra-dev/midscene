@@ -7,7 +7,11 @@ export { PlaywrightAiFixture } from './ai-fixture';
 export { overrideAIConfig } from '@midscene/shared/env';
 export { WebPage as PlaywrightWebPage } from './page';
 export type { WebPageAgentOpt } from '@/web-element';
-import type { WebPageAgentOpt } from '@/web-element';
+export { InteractionMode } from '@/web-element';
+import {
+  type WebPageAgentOpt,
+  resolveWebPageInteractionOptions,
+} from '@/web-element';
 import { getDebug } from '@midscene/shared/logger';
 import semver from 'semver';
 import {
@@ -46,6 +50,18 @@ export class PlaywrightAgent extends PageAgent<PlaywrightWebPage> {
         '[midscene] PlaywrightAgent requires a valid Playwright page instance. Please make sure to pass a valid page object.',
       );
     }
+
+    const { interactionMode } = resolveWebPageInteractionOptions(opts);
+
+    if (interactionMode === 'touch') {
+      const browserName = page.context().browser()?.browserType().name();
+      if (browserName && browserName !== 'chromium') {
+        throw new Error(
+          `[midscene] touch interaction requires a Chromium-based Playwright browser, but current browser is "${browserName}". Gesture scrolling is not supported in Firefox/WebKit.`,
+        );
+      }
+    }
+
     const webPage = new PlaywrightWebPage(page, opts);
     super(webPage, opts);
 

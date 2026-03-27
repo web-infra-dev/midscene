@@ -13,18 +13,17 @@ describe(
   () => {
     const ctx = createTestContext();
 
-    it('Pinch action is always available in action space', async () => {
+    it('Pinch action is NOT available in mouse interaction mode', async () => {
       const { originPage, reset } = await launchPage('https://www.example.com');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
 
       const actionSpace = await ctx.agent.getActionSpace();
       const pinchAction = actionSpace.find((a) => a.name === 'Pinch');
-      expect(pinchAction).toBeDefined();
-      expect(pinchAction!.interfaceAlias).toBe('aiPinch');
+      expect(pinchAction).toBeUndefined();
     });
 
-    it('Swipe action is NOT available without enableTouchEventsInActionSpace', async () => {
+    it('Swipe action is NOT available in mouse interaction mode', async () => {
       const { originPage, reset } = await launchPage('https://www.example.com');
       ctx.resetFn = reset;
       ctx.agent = new PuppeteerAgent(originPage);
@@ -32,6 +31,21 @@ describe(
       const actionSpace = await ctx.agent.getActionSpace();
       const swipeAction = actionSpace.find((a) => a.name === 'Swipe');
       expect(swipeAction).toBeUndefined();
+    });
+
+    it('Pinch and Swipe are available when interactionMode is touch', async () => {
+      const { originPage, reset } = await launchPage('https://www.example.com');
+      ctx.resetFn = reset;
+      ctx.agent = new PuppeteerAgent(originPage, {
+        interactionMode: 'touch',
+      });
+
+      const actionSpace = await ctx.agent.getActionSpace();
+      const pinchAction = actionSpace.find((a) => a.name === 'Pinch');
+      const swipeAction = actionSpace.find((a) => a.name === 'Swipe');
+      expect(pinchAction).toBeDefined();
+      expect(pinchAction!.interfaceAlias).toBe('aiPinch');
+      expect(swipeAction).toBeDefined();
     });
 
     it('Pinch and Scroll do not conflict', async () => {
@@ -46,7 +60,9 @@ describe(
         },
       });
       ctx.resetFn = reset;
-      ctx.agent = new PuppeteerAgent(originPage);
+      ctx.agent = new PuppeteerAgent(originPage, {
+        interactionMode: 'touch',
+      });
 
       // Step 1: Verify initial state
       await ctx.agent.aiAssert(

@@ -14,6 +14,35 @@ describe('PlaywrightAgent constructor validation', () => {
       '[midscene] PlaywrightAgent requires a valid Playwright page instance',
     );
   });
+
+  it('should throw when touch interaction is used with non-chromium browser', async () => {
+    const { InteractionMode, PlaywrightAgent } = await import('@/playwright');
+    const page = {
+      context: () => ({
+        browser: () => ({
+          browserType: () => ({
+            name: () => 'firefox',
+          }),
+        }),
+      }),
+    };
+
+    expect(
+      () =>
+        new PlaywrightAgent(page as any, {
+          forceSameTabNavigation: false,
+          interactionMode: InteractionMode.Touch,
+        }),
+    ).toThrow('touch interaction requires a Chromium-based Playwright');
+
+    expect(
+      () =>
+        new PlaywrightAgent(page as any, {
+          forceSameTabNavigation: false,
+          enableTouchEventsInActionSpace: true,
+        }),
+    ).toThrow('touch interaction requires a Chromium-based Playwright');
+  });
 });
 
 describe('PuppeteerAgent constructor validation', () => {

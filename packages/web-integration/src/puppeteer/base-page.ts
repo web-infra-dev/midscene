@@ -1,4 +1,8 @@
-import type { WebPageAgentOpt } from '@/web-element';
+import {
+  type InteractionMode,
+  type WebPageAgentOpt,
+  resolveWebPageInteractionOptions,
+} from '@/web-element';
 import type {
   DeviceAction,
   ElementCacheFeature,
@@ -55,17 +59,19 @@ export class Page<
   private onBeforeInvokeAction?: AbstractInterface['beforeInvokeAction'];
   private onAfterInvokeAction?: AbstractInterface['afterInvokeAction'];
   private customActions?: DeviceAction<any>[];
-  private enableTouchEventsInActionSpace: boolean;
+  private interactionMode: InteractionMode;
   private puppeteerFileChooserSession?: CDPSession;
   private puppeteerFileChooserHandler?: (
     event: Protocol.Page.FileChooserOpenedEvent,
   ) => Promise<void>;
   interfaceType: AgentType;
+  private latestMouseX = 0;
+  private latestMouseY = 0;
 
   actionSpace(): DeviceAction[] {
     const defaultActions = commonWebActionsForWebPage(
       this,
-      this.enableTouchEventsInActionSpace,
+      this.interactionMode,
     );
     const customActions = this.customActions || [];
     return [...defaultActions, ...customActions];
@@ -106,8 +112,8 @@ export class Page<
     this.onBeforeInvokeAction = opts?.beforeInvokeAction;
     this.onAfterInvokeAction = opts?.afterInvokeAction;
     this.customActions = opts?.customActions;
-    this.enableTouchEventsInActionSpace =
-      opts?.enableTouchEventsInActionSpace ?? false;
+    const interactionOptions = resolveWebPageInteractionOptions(opts);
+    this.interactionMode = interactionOptions.interactionMode;
   }
 
   async evaluateJavaScript<T = any>(script: string): Promise<T> {
@@ -356,7 +362,9 @@ export class Page<
       },
       wheel: async (deltaX: number, deltaY: number) => {
         debugPage(`mouse wheel ${deltaX}, ${deltaY}`);
-        if (this.interfaceType === 'puppeteer') {
+        if (this.interactionMode === 'touch') {
+          await this.synthesizeScrollGesture(deltaX, deltaY);
+        } else if (this.interfaceType === 'puppeteer') {
           await (this.underlyingPage as PuppeteerPage).mouse.wheel({
             deltaX,
             deltaY,
@@ -370,6 +378,8 @@ export class Page<
       },
       move: async (x: number, y: number) => {
         this.everMoved = true;
+        this.latestMouseX = x;
+        this.latestMouseY = y;
         debugPage(`mouse move to ${x}, ${y}`);
         return this.underlyingPage.mouse.move(x, y);
       },
@@ -463,6 +473,48 @@ export class Page<
       await backspace();
     }
     debugPage('clearInput end');
+  }
+
+  private async synthesizeScrollGesture(
+    deltaX: number,
+    deltaY: number,
+  ): Promise<void> {
+    type ScrollGestureClient = {
+      send(
+        method: 'Input.synthesizeScrollGesture',
+        params?: Protocol.Input.SynthesizeScrollGestureRequest,
+      ): Promise<unknown>;
+      detach(): Promise<void>;
+    };
+
+    let client: ScrollGestureClient;
+    if (this.interfaceType === 'puppeteer') {
+      const page = this.underlyingPage as PuppeteerPage;
+      client = (await page.createCDPSession()) as ScrollGestureClient;
+    } else if (this.interfaceType === 'playwright') {
+      const page = this.underlyingPage as PlaywrightPage;
+      client = (await page
+        .context()
+        .newCDPSession(page)) as ScrollGestureClient;
+    } else {
+      return;
+    }
+
+    try {
+      await client.send('Input.synthesizeScrollGesture', {
+        x: Math.round(this.latestMouseX),
+        y: Math.round(this.latestMouseY),
+        xDistance: -deltaX,
+        yDistance: -deltaY,
+        // speed is measured in pixels per second, so it must stay very high;
+        // otherwise our "scroll to edge" calls would take a long time to finish.
+        speed: 9999999,
+        repeatCount: 0,
+        preventFling: true,
+      });
+    } finally {
+      await client.detach();
+    }
   }
 
   private everMoved = false;
