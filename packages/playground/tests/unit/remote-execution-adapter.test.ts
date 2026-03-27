@@ -356,6 +356,41 @@ describe('RemoteExecutionAdapter', () => {
     });
   });
 
+  describe('runConnectivityTest', () => {
+    it('should call the connectivity test endpoint', async () => {
+      const mockResult = {
+        passed: true,
+        checks: [],
+      };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResult),
+      });
+
+      const result = await adapter.runConnectivityTest();
+
+      expect(result).toEqual(mockResult);
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockServerUrl}/connectivity-test`,
+        {
+          method: 'POST',
+        },
+      );
+    });
+
+    it('should surface endpoint errors', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Bad Request',
+        json: () => Promise.resolve({ error: 'invalid config' }),
+      });
+
+      await expect(adapter.runConnectivityTest()).rejects.toThrow(
+        'invalid config',
+      );
+    });
+  });
+
   describe('getTaskProgress', () => {
     it('should get task progress successfully', async () => {
       const mockProgress = { tip: 'Processing...' };

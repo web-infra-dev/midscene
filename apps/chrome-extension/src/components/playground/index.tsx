@@ -11,6 +11,7 @@ export interface PlaygroundProps {
   getAgent: (forceSameTabNavigation?: boolean) => any | null;
   showContextPreview?: boolean;
   dryMode?: boolean;
+  onPlaygroundSDKChange?: (sdk: PlaygroundSDK | null) => void;
 }
 
 // Browser Extension Playground Component using Universal Playground
@@ -18,6 +19,7 @@ export function BrowserExtensionPlayground({
   getAgent,
   showContextPreview = true,
   dryMode = false,
+  onPlaygroundSDKChange,
 }: PlaygroundProps) {
   const extensionVersion = getExtensionVersion();
   const { forceSameTabNavigation } = useEnvConfig((state) => ({
@@ -57,6 +59,10 @@ export function BrowserExtensionPlayground({
       return null;
     }
   }, [runEnabled, getAgent, forceSameTabNavigation, activeTabId]);
+
+  useEffect(() => {
+    onPlaygroundSDKChange?.(playgroundSDK);
+  }, [playgroundSDK, onPlaygroundSDKChange]);
 
   // Progress callback handling is now managed in usePlaygroundExecution hook
   // No need to override onProgressUpdate here

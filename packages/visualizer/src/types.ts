@@ -1,4 +1,9 @@
-import type { DeviceAction, ModelBrief, UIContext } from '@midscene/core';
+import type {
+  ConnectivityTestResult,
+  DeviceAction,
+  ModelBrief,
+  UIContext,
+} from '@midscene/core';
 import type { ComponentType } from 'react';
 
 // Zod schema related types - compatible with actual zod types
@@ -324,6 +329,7 @@ export interface PlaygroundSDKLike {
     reportHTML: string | null;
   }>;
   overrideConfig?(config: any): Promise<void>;
+  runConnectivityTest?(): Promise<ConnectivityTestResult>;
   checkStatus?(): Promise<boolean>;
   getServiceMode?(): 'In-Browser-Extension' | 'Server';
   getRuntimeInfo?(): Promise<PlaygroundRuntimeInfo | null>;

@@ -5,6 +5,7 @@ import {
   SendOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import type { PlaygroundSDK } from '@midscene/playground';
 import {
   NavActions,
   globalThemeConfig,
@@ -32,6 +33,9 @@ const STORAGE_KEY = 'midscene-popup-mode';
 
 export function PlaygroundPopup() {
   const { setPopupTab } = useEnvConfig();
+  const [playgroundSDK, setPlaygroundSDK] = useState<PlaygroundSDK | null>(
+    null,
+  );
   const [currentMode, setCurrentMode] = useState<
     'playground' | 'bridge' | 'recorder'
   >(() => {
@@ -127,6 +131,7 @@ export function PlaygroundPopup() {
               return extensionAgentForTab(forceSameTabNavigation);
             }}
             showContextPreview={false}
+            onPlaygroundSDKChange={setPlaygroundSDK}
           />
         </div>
       </div>
@@ -156,7 +161,11 @@ export function PlaygroundPopup() {
             </span>
           </div>
           <div className="nav-right">
-            <NavActions showTooltipWhenEmpty={false} showModelName={false} />
+            <NavActions
+              showTooltipWhenEmpty={false}
+              showModelName={false}
+              playgroundSDK={playgroundSDK}
+            />
           </div>
         </div>
 

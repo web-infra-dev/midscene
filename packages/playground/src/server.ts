@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExecutionDump } from '@midscene/core';
 import { GroupedActionDump } from '@midscene/core';
+import { runConnectivityTest } from '@midscene/core';
 import type { Agent as PageAgent } from '@midscene/core/agent';
 import { getTmpDir } from '@midscene/core/utils';
 import { PLAYGROUND_SERVER_PORT } from '@midscene/shared/constants';
@@ -1201,6 +1202,28 @@ class PlaygroundServer {
           'AI config updated. Agent will be recreated on next execution.',
       });
     });
+
+    this.app.post(
+      '/connectivity-test',
+      async (_req: Request, res: Response) => {
+        try {
+          const result = await runConnectivityTest({
+            defaultModelConfig:
+              globalModelConfigManager.getModelConfig('default'),
+            planningModelConfig:
+              globalModelConfigManager.getModelConfig('planning'),
+          });
+          return res.json(result);
+        } catch (error: unknown) {
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          console.error(`Connectivity test failed: ${errorMessage}`);
+          return res.status(500).json({
+            error: errorMessage,
+          });
+        }
+      },
+    );
   }
 
   /**
