@@ -137,10 +137,3 @@ export function registerAlarmListener(): void {
     }
   });
 }
-
-/**
- * Returns current keepalive enabled state
- */
-export function isKeepaliveEnabled(): boolean {
-  return isEnabled;
-}
