@@ -37,9 +37,24 @@ function resolveImageFromDom(id: string): string {
   const cached = imageCache.get(id);
   if (cached) return cached;
 
-  const imageEl = document.querySelector(`image[data-id="${CSS.escape(id)}"]`);
-  if (imageEl) {
-    const src = imageEl.getAttribute('src');
+  const inlineImgEl = document.querySelector(
+    `img[data-midscene-image="1"][data-id="${CSS.escape(id)}"]`,
+  );
+  if (inlineImgEl) {
+    const src = inlineImgEl.getAttribute('src');
+    if (src) {
+      const data = antiEscapeScriptTag(src);
+      imageCache.set(id, data);
+      return data;
+    }
+  }
+
+  // Backward compatibility for previously generated <image ... /> reports.
+  const inlineImageEl = document.querySelector(
+    `image[data-id="${CSS.escape(id)}"]`,
+  );
+  if (inlineImageEl) {
+    const src = inlineImageEl.getAttribute('src');
     if (src) {
       const data = antiEscapeScriptTag(src);
       imageCache.set(id, data);

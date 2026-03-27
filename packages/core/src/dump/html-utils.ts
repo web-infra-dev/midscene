@@ -8,7 +8,8 @@ export const unescapeContent = antiEscapeScriptTag;
 export const STREAMING_CHUNK_SIZE = 64 * 1024;
 const LEGACY_IMAGE_SCRIPT_OPEN_TAG = '<script type="midscene-image"';
 const LEGACY_IMAGE_SCRIPT_CLOSE_TAG = '</script>';
-const INLINE_IMAGE_TAG_OPEN = '<image data-id="';
+const INLINE_IMAGE_TAG_OPEN = '<img data-midscene-image="1" data-id="';
+const LEGACY_INLINE_IMAGE_TAG_OPEN = '<image data-id="';
 const INLINE_IMAGE_TAG_CLOSE = '/>';
 
 /**
@@ -124,10 +125,25 @@ export function extractImageByIdSync(
     return result;
   }
 
-  const inlineImageTargetTag = `<image data-id="${imageId}" src="`;
+  const inlineImageTargetTag = `<img data-midscene-image="1" data-id="${imageId}" src="`;
   streamScanTags(
     htmlPath,
     inlineImageTargetTag,
+    '" style="display:none" />',
+    (content) => {
+      result = unescapeContent(content);
+      return true; // Stop after first match
+    },
+  );
+
+  if (result) {
+    return result;
+  }
+
+  const legacyInlineImageTargetTag = `<image data-id="${imageId}" src="`;
+  streamScanTags(
+    htmlPath,
+    legacyInlineImageTargetTag,
     '" style="display:none" />',
     (content) => {
       result = unescapeContent(content);
@@ -176,6 +192,19 @@ export function streamImageScriptsToFile(
         `${INLINE_IMAGE_TAG_OPEN}${content}${INLINE_IMAGE_TAG_CLOSE}\n`,
       );
       return false; // Continue scanning for more tags
+    },
+  );
+
+  streamScanTags(
+    srcFilePath,
+    LEGACY_INLINE_IMAGE_TAG_OPEN,
+    INLINE_IMAGE_TAG_CLOSE,
+    (content) => {
+      appendFileSync(
+        destFilePath,
+        `${LEGACY_INLINE_IMAGE_TAG_OPEN}${content}${INLINE_IMAGE_TAG_CLOSE}\n`,
+      );
+      return false;
     },
   );
 }
@@ -359,6 +388,8 @@ export function parseImageScripts(html: string): Record<string, string> {
   const legacyRegex =
     /<script type="midscene-image" data-id="([^"]+)">([\s\S]*?)<\/script>/g;
   const inlineImageRegex =
+    /<img data-midscene-image="1" data-id="([^"]+)" src="([^"]+)" style="display:none"\s*\/>/g;
+  const legacyInlineImageRegex =
     /<image data-id="([^"]+)" src="([^"]+)" style="display:none"\s*\/>/g;
 
   for (const match of html.matchAll(legacyRegex)) {
@@ -367,6 +398,11 @@ export function parseImageScripts(html: string): Record<string, string> {
   }
 
   for (const match of html.matchAll(inlineImageRegex)) {
+    const [, id, src] = match;
+    imageMap[id] = unescapeContent(src);
+  }
+
+  for (const match of html.matchAll(legacyInlineImageRegex)) {
     const [, id, src] = match;
     imageMap[id] = unescapeContent(src);
   }
@@ -431,7 +467,7 @@ export function generateImageScriptTag(id: string, data: string): string {
   // Keep function name for API compatibility.
   return (
     // biome-ignore lint/style/useTemplate: keep consistent with surrounding tag generation helpers
-    '<image data-id="' +
+    '<img data-midscene-image="1" data-id="' +
     id +
     '" src="' +
     escapeContent(data) +
