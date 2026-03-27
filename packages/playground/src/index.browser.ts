@@ -25,6 +25,7 @@ export {
 export const PlaygroundServer = undefined;
 export const playgroundForAgent = undefined;
 export const playgroundForAgentFactory = undefined;
+export const playgroundForSessionManager = undefined;
 export const launchPreparedPlaygroundPlatform = undefined;
 
 export type {
@@ -38,10 +39,17 @@ export type {
   PlaygroundAdapter,
 } from './types';
 export type {
+  PlaygroundCreatedSession,
   PlaygroundPlatformDescriptor,
   PlaygroundPreviewCapability,
   PlaygroundPreviewDescriptor,
   PlaygroundPreviewKind,
   PreparedPlaygroundPlatform,
+  PlaygroundSessionField,
+  PlaygroundSessionFieldOption,
+  PlaygroundSessionManager,
+  PlaygroundSessionSetup,
+  PlaygroundSessionState,
+  PlaygroundSessionTarget,
 } from './platform';
 export type { PlaygroundRuntimeInfo } from './runtime-metadata';

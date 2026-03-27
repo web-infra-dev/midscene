@@ -2,8 +2,10 @@ import path from 'node:path';
 import {
   agentFromComputer,
   checkAccessibilityPermission,
+  getConnectedDisplays,
 } from '@midscene/computer';
 import {
+  type PlaygroundSessionManager,
   createScreenshotPreviewDescriptor,
   definePlaygroundPlatform,
 } from '@midscene/playground';
@@ -24,12 +26,6 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
   description: 'Computer playground platform descriptor',
   async prepare(options) {
     const accessibilityCheck = checkAccessibilityPermission(true);
-    if (!accessibilityCheck.hasPermission) {
-      console.error('❌ Permission Error:\n');
-      console.error(accessibilityCheck.error);
-      process.exit(1);
-    }
-
     const staticDir =
       options?.staticDir || path.join(__dirname, '../../static');
     const availablePort = await findAvailablePort(PLAYGROUND_SERVER_PORT);
@@ -40,37 +36,118 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
       );
     }
 
+    const sessionManager: PlaygroundSessionManager = {
+      async getSetupSchema() {
+        const displays = await getConnectedDisplays();
+        const defaultDisplay =
+          displays.find((display) => display.primary) || displays[0];
+
+        return {
+          title: 'Connect Computer Agent',
+          description: accessibilityCheck.hasPermission
+            ? 'Create a Computer Agent for the selected display.'
+            : accessibilityCheck.error,
+          primaryActionLabel: 'Create Agent',
+          fields: [
+            {
+              key: 'displayId',
+              label: 'Display',
+              type: 'select',
+              required: true,
+              options: displays.map((display) => ({
+                label: display.name,
+                value: String(display.id),
+                description: display.primary ? 'Primary display' : undefined,
+              })),
+              defaultValue: defaultDisplay ? String(defaultDisplay.id) : '',
+              placeholder: 'Select a display',
+            },
+          ],
+          targets: displays.map((display) => ({
+            id: String(display.id),
+            label: display.name,
+            description: display.primary ? 'Primary display' : undefined,
+            isDefault: display.primary,
+          })),
+        };
+      },
+      async listTargets() {
+        const displays = await getConnectedDisplays();
+        return displays.map((display) => ({
+          id: String(display.id),
+          label: display.name,
+          description: display.primary ? 'Primary display' : undefined,
+          isDefault: display.primary,
+        }));
+      },
+      async createSession(input) {
+        if (!accessibilityCheck.hasPermission) {
+          throw new Error(
+            accessibilityCheck.error || 'Accessibility permission is required',
+          );
+        }
+
+        const displayId =
+          input?.displayId === undefined || input.displayId === null
+            ? undefined
+            : String(input.displayId);
+        const agent = await agentFromComputer(
+          displayId ? { displayId } : undefined,
+        );
+        const displays = await getConnectedDisplays();
+        const selectedDisplay =
+          displays.find((display) => display.id === displayId) ||
+          displays.find((display) => display.primary) ||
+          displays[0];
+
+        return {
+          agent,
+          agentFactory: () =>
+            agentFromComputer(
+              selectedDisplay ? { displayId: selectedDisplay.id } : undefined,
+            ),
+          preview: createScreenshotPreviewDescriptor({
+            title: 'Desktop preview',
+          }),
+          displayName: selectedDisplay?.name || 'Desktop',
+          metadata: {
+            displayId: selectedDisplay?.id,
+            executionUx: 'countdown-before-run',
+          },
+        };
+      },
+    };
+
     return {
       platformId: 'computer',
       title: 'Midscene Computer Playground',
-      agentFactory: agentFromComputer,
+      sessionManager,
       launchOptions: {
         port: availablePort,
         openBrowser: false,
         verbose: false,
         staticPath: staticDir,
-        configureServer(server) {
-          server.app.use('/execute', async (_req, res, next) => {
-            const windowController = options?.getWindowController?.();
-            if (!windowController) {
-              console.warn(
-                '⚠️  Window controller not initialized yet, skipping window control',
-              );
-              next();
-              return;
-            }
+      },
+      executionHooks: {
+        async beforeExecute() {
+          const windowController = options?.getWindowController?.();
+          if (!windowController) {
+            console.warn(
+              '⚠️  Window controller not initialized yet, skipping window control',
+            );
+            return;
+          }
 
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            await windowController.minimize();
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          await windowController.minimize();
+        },
+        async afterExecute() {
+          const windowController = options?.getWindowController?.();
+          if (!windowController) {
+            return;
+          }
 
-            const originalSend = res.send.bind(res);
-            res.send = (body: any) => {
-              windowController.restore();
-              return originalSend(body);
-            };
-
-            next();
-          });
+          await windowController.restore();
         },
       },
       preview: createScreenshotPreviewDescriptor({
@@ -78,6 +155,9 @@ export const computerPlaygroundPlatform = definePlaygroundPlatform<
       }),
       metadata: {
         executionUx: 'countdown-before-run',
+        sessionConnected: false,
+        setupState: accessibilityCheck.hasPermission ? 'required' : 'blocked',
+        setupBlockingReason: accessibilityCheck.error,
       },
     };
   },

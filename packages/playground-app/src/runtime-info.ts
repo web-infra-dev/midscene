@@ -8,6 +8,10 @@ export interface PreviewConnectionInfo {
   scrcpyPort?: number;
 }
 
+function isRemoteAndroidDeviceId(value: unknown): boolean {
+  return typeof value === 'string' && /^\d+\.\d+\.\d+\.\d+:\d+$/.test(value);
+}
+
 const VALID_DEVICE_TYPES: readonly DeviceType[] = [
   'android',
   'ios',
@@ -97,6 +101,10 @@ export function resolvePreviewConnectionInfo(
   }
 
   if (preview.kind === 'scrcpy') {
+    if (isRemoteAndroidDeviceId(runtimeInfo?.metadata?.deviceId)) {
+      return { type: 'screenshot' };
+    }
+
     const scrcpyPort = Number(preview.custom?.scrcpyPort);
     const resolvedScrcpyPort = Number.isFinite(scrcpyPort)
       ? scrcpyPort

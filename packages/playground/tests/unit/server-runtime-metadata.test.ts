@@ -80,4 +80,68 @@ describe('PlaygroundServer runtime metadata APIs', () => {
       type: 'android',
     });
   });
+
+  test('updates preview and metadata when no session is active', () => {
+    const server = createServer();
+
+    server.setPreviewDescriptor({
+      kind: 'screenshot',
+      title: 'Desktop preview',
+      screenshotPath: '/updated-screenshot',
+      capabilities: [],
+    });
+    server.setRuntimeMetadata({
+      deviceId: 'SERIAL456',
+      executionUxHints: ['live-preview'],
+    });
+
+    expect(server.getRuntimeInfo()).toMatchObject({
+      preview: {
+        kind: 'screenshot',
+        title: 'Desktop preview',
+      },
+      metadata: {
+        deviceId: 'SERIAL456',
+        sessionConnected: true,
+      },
+      executionUxHints: ['live-preview'],
+    });
+  });
+
+  test('throws when updating prepared state while a session is active', () => {
+    const server = createServer();
+    (server as any)._activeConnection.session = {
+      connected: true,
+      displayName: 'SERIAL123',
+      metadata: {
+        deviceId: 'SERIAL123',
+      },
+    };
+
+    expect(() =>
+      server.setPreviewDescriptor({
+        kind: 'none',
+        title: 'No preview',
+        capabilities: [],
+      }),
+    ).toThrowError(
+      'setPreviewDescriptor cannot update prepared state while a session is active',
+    );
+    expect(() =>
+      server.setRuntimeMetadata({
+        deviceId: 'SERIAL456',
+      }),
+    ).toThrowError(
+      'setRuntimeMetadata cannot update prepared state while a session is active',
+    );
+    expect(() =>
+      server.setPreparedPlatform({
+        platformId: 'computer',
+        title: 'Midscene Computer Playground',
+        description: 'Computer playground platform descriptor',
+      }),
+    ).toThrowError(
+      'setPreparedPlatform cannot update prepared state while a session is active',
+    );
+  });
 });

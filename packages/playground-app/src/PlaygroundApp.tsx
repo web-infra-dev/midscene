@@ -1,3 +1,4 @@
+import type { PlaygroundSessionSetup } from '@midscene/playground';
 import { PlaygroundSDK } from '@midscene/playground';
 import {
   type DeviceType,
@@ -8,16 +9,38 @@ import {
   type UniversalPlaygroundConfig,
   globalThemeConfig,
 } from '@midscene/visualizer';
-import { Button, ConfigProvider, Layout, Modal } from 'antd';
+import {
+  Alert,
+  Button,
+  ConfigProvider,
+  Form,
+  Layout,
+  Modal,
+  Space,
+  Typography,
+  message,
+} from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { PreviewRenderer } from './PreviewRenderer';
+import { SessionSetupPanel } from './SessionSetupPanel';
 import ServerOfflineBackground from './icons/server-offline-background.svg';
 import ServerOfflineForeground from './icons/server-offline-foreground.svg';
+import {
+  buildSessionInitialValues,
+  resolveSessionViewState,
+} from './session-state';
 import { useServerStatus } from './useServerStatus';
 import './PlaygroundApp.less';
 
 const { Content } = Layout;
+const { Text } = Typography;
+
+function getPlatformSelectorFieldKey(
+  setup: PlaygroundSessionSetup | null,
+): string | undefined {
+  return setup?.platformSelector?.fieldKey;
+}
 
 export interface PlaygroundAppProps {
   serverUrl: string;
@@ -44,14 +67,29 @@ export function PlaygroundApp({
 }: PlaygroundAppProps) {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [countdown, setCountdown] = useState<number | string | null>(null);
+  const [setupForm] = Form.useForm();
+  const [sessionSetup, setSessionSetup] =
+    useState<PlaygroundSessionSetup | null>(null);
+  const [sessionSetupError, setSessionSetupError] = useState<string | null>(
+    null,
+  );
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionMutating, setSessionMutating] = useState(false);
+  const [messageApi, messageContextHolder] = message.useMessage();
   const countdownSeconds = playgroundConfig?.executionUx?.countdownSeconds ?? 3;
+  const platformSelectorFieldKey = getPlatformSelectorFieldKey(sessionSetup);
+  const selectedPlatformId =
+    Form.useWatch(platformSelectorFieldKey || 'platformId', setupForm) ??
+    undefined;
 
-  const playgroundSDK = useMemo(() => {
-    return new PlaygroundSDK({
-      type: 'remote-execution',
-      serverUrl,
-    });
-  }, [serverUrl]);
+  const playgroundSDK = useMemo(
+    () =>
+      new PlaygroundSDK({
+        type: 'remote-execution',
+        serverUrl,
+      }),
+    [serverUrl],
+  );
 
   const {
     serverOnline,
@@ -60,10 +98,15 @@ export function PlaygroundApp({
     runtimeInfo,
     executionUxHints,
   } = useServerStatus(playgroundSDK, defaultDeviceType, pollIntervalMs);
+  const sessionViewState = useMemo(
+    () => resolveSessionViewState(runtimeInfo),
+    [runtimeInfo],
+  );
 
   const countdownTimerRef = useRef<number | null>(null);
   const countdownResolveRef = useRef<(() => void) | null>(null);
   const mountedRef = useRef(true);
+  const lastSetupPlatformIdRef = useRef<string | undefined>(undefined);
 
   const finishCountdown = useCallback(() => {
     if (countdownTimerRef.current !== null) {
@@ -141,6 +184,79 @@ export function PlaygroundApp({
     };
   }, [executionUxHints, playgroundSDK, showCountdownModal]);
 
+  const refreshSessionSetup = useCallback(
+    async (input?: Record<string, unknown>) => {
+      const currentValues = {
+        ...setupForm.getFieldsValue(true),
+        ...(input || {}),
+      };
+
+      setSessionLoading(true);
+      try {
+        const setup = await playgroundSDK.getSessionSetup(input);
+        setSessionSetup(setup);
+        setSessionSetupError(null);
+        const currentPlatformSelectorFieldKey =
+          getPlatformSelectorFieldKey(setup);
+        lastSetupPlatformIdRef.current =
+          currentPlatformSelectorFieldKey &&
+          typeof currentValues[currentPlatformSelectorFieldKey] === 'string'
+            ? (currentValues[currentPlatformSelectorFieldKey] as string)
+            : undefined;
+        setupForm.setFieldsValue(
+          buildSessionInitialValues(setup, currentValues),
+        );
+      } catch (error) {
+        console.error('Failed to load session setup:', error);
+        setSessionSetupError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load session setup',
+        );
+      } finally {
+        setSessionLoading(false);
+      }
+    },
+    [playgroundSDK, setupForm],
+  );
+
+  useEffect(() => {
+    if (!serverOnline || sessionViewState.connected) {
+      return;
+    }
+
+    refreshSessionSetup();
+  }, [refreshSessionSetup, serverOnline, sessionViewState.connected]);
+
+  useEffect(() => {
+    if (!serverOnline || sessionViewState.connected || !selectedPlatformId) {
+      return;
+    }
+
+    const currentPlatformSelectorFieldKey =
+      getPlatformSelectorFieldKey(sessionSetup);
+    if (!currentPlatformSelectorFieldKey) {
+      return;
+    }
+
+    if (lastSetupPlatformIdRef.current === selectedPlatformId) {
+      return;
+    }
+
+    refreshSessionSetup({
+      ...setupForm.getFieldsValue(true),
+      [currentPlatformSelectorFieldKey]: selectedPlatformId,
+    });
+  }, [
+    platformSelectorFieldKey,
+    refreshSessionSetup,
+    selectedPlatformId,
+    serverOnline,
+    sessionSetup,
+    sessionViewState.connected,
+    setupForm,
+  ]);
+
   useEffect(() => {
     const handleResize = () => {
       setIsNarrowScreen(window.innerWidth <= 1024);
@@ -174,6 +290,41 @@ export function PlaygroundApp({
       runtimeInfo?.platformId ?? branding?.targetName ?? deviceType ?? 'screen',
   };
 
+  const handleCreateSession = useCallback(async () => {
+    try {
+      const values = await setupForm.validateFields();
+      setSessionMutating(true);
+      await playgroundSDK.createSession(values);
+      messageApi.success('Agent created');
+      await refreshSessionSetup();
+    } catch (error) {
+      if ((error as { errorFields?: unknown }).errorFields) {
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create Agent';
+      messageApi.error(errorMessage);
+    } finally {
+      setSessionMutating(false);
+    }
+  }, [messageApi, playgroundSDK, refreshSessionSetup, setupForm]);
+
+  const handleDestroySession = useCallback(async () => {
+    try {
+      setSessionMutating(true);
+      await playgroundSDK.destroySession();
+      messageApi.success('Session disconnected');
+      await refreshSessionSetup();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to disconnect session';
+      messageApi.error(errorMessage);
+    } finally {
+      setSessionMutating(false);
+    }
+  }, [messageApi, playgroundSDK, refreshSessionSetup]);
+
   if (!serverOnline) {
     return (
       <ConfigProvider theme={globalThemeConfig()}>
@@ -196,6 +347,7 @@ export function PlaygroundApp({
 
   return (
     <ConfigProvider theme={globalThemeConfig()}>
+      {messageContextHolder}
       <Modal
         open={countdown !== null}
         footer={
@@ -275,12 +427,27 @@ export function PlaygroundApp({
                 </div>
 
                 <div className="playground-panel-playground">
-                  <UniversalPlayground
-                    playgroundSDK={playgroundSDK}
-                    config={mergedConfig}
-                    branding={mergedBranding}
-                    className="playground-container"
-                  />
+                  {sessionViewState.connected ? (
+                    <UniversalPlayground
+                      playgroundSDK={playgroundSDK}
+                      config={mergedConfig}
+                      branding={mergedBranding}
+                      className="playground-container"
+                    />
+                  ) : (
+                    <SessionSetupPanel
+                      form={setupForm}
+                      sessionSetup={sessionSetup}
+                      sessionSetupError={sessionSetupError}
+                      sessionViewState={sessionViewState}
+                      sessionLoading={sessionLoading}
+                      sessionMutating={sessionMutating}
+                      onCreateSession={handleCreateSession}
+                      onRefreshTargets={() =>
+                        refreshSessionSetup(setupForm.getFieldsValue(true))
+                      }
+                    />
+                  )}
                 </div>
               </div>
             </Panel>
@@ -291,13 +458,42 @@ export function PlaygroundApp({
 
             <Panel className="app-panel right-panel">
               <div className="panel-content right-panel-content">
-                <PreviewRenderer
-                  playgroundSDK={playgroundSDK}
-                  runtimeInfo={runtimeInfo}
-                  serverUrl={serverUrl}
-                  serverOnline={serverOnline}
-                  isUserOperating={isUserOperating}
-                />
+                {sessionViewState.connected ? (
+                  <>
+                    <div className="session-toolbar">
+                      <Text strong>
+                        {sessionViewState.displayName || 'Connected session'}
+                      </Text>
+                      <Space size={8}>
+                        <Button
+                          onClick={handleDestroySession}
+                          loading={sessionMutating}
+                        >
+                          Change target
+                        </Button>
+                      </Space>
+                    </div>
+                    <PreviewRenderer
+                      playgroundSDK={playgroundSDK}
+                      runtimeInfo={runtimeInfo}
+                      serverUrl={serverUrl}
+                      serverOnline={serverOnline}
+                      isUserOperating={isUserOperating}
+                    />
+                  </>
+                ) : (
+                  <Alert
+                    type="info"
+                    showIcon
+                    message={mergedBranding.title || 'Playground session'}
+                    description={
+                      sessionViewState.setupState === 'blocked'
+                        ? sessionViewState.setupBlockingReason ||
+                          'Resolve the local setup issue before creating an Agent.'
+                        : 'Create an Agent from the left panel to enable preview and execution.'
+                    }
+                  />
+                )}
               </div>
             </Panel>
           </PanelGroup>

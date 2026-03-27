@@ -1,6 +1,7 @@
 import { ScreenshotItem } from '@midscene/core';
 import type { Agent } from '@midscene/core/agent';
 import {
+  type AgentFactory,
   type LaunchPlaygroundOptions,
   type PlaygroundPreviewDescriptor,
   createScreenshotPreviewDescriptor,
@@ -10,6 +11,7 @@ import { StaticPage, StaticPageAgent } from './static';
 
 export interface WebPlatformOptions {
   agent?: Agent;
+  agentFactory?: AgentFactory;
   title?: string;
   preview?: PlaygroundPreviewDescriptor;
   launchOptions?: LaunchPlaygroundOptions;
@@ -32,12 +34,18 @@ export const webPlaygroundPlatform = definePlaygroundPlatform<
   title: 'Midscene Web Playground',
   description: 'Web playground platform descriptor',
   async prepare(options) {
-    const agent = options?.agent || createDefaultWebAgent();
+    const agent = options?.agent;
+    const agentFactory =
+      options?.agentFactory ||
+      (!options?.agent && !options?.agentFactory
+        ? () => createDefaultWebAgent()
+        : undefined);
 
     return {
       platformId: 'web',
       title: options?.title || 'Midscene Web Playground',
-      agent,
+      agent: agent || (!agentFactory ? createDefaultWebAgent() : undefined),
+      agentFactory,
       launchOptions: options?.launchOptions,
       preview:
         options?.preview ||
@@ -45,7 +53,7 @@ export const webPlaygroundPlatform = definePlaygroundPlatform<
           title: 'Web page preview',
         }),
       metadata: {
-        interfaceType: agent.interface?.interfaceType || 'web',
+        interfaceType: agent?.interface?.interfaceType || 'web',
       },
     };
   },

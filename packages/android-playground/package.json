@@ -5,6 +5,14 @@
   "main": "./dist/lib/index.js",
   "types": "./dist/types/index.d.ts",
   "module": "./dist/es/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/index.mjs",
+      "require": "./dist/lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "files": ["dist", "static", "bin", "README.md"],
   "bin": {
     "midscene-android-playground": "./bin/android-playground",
