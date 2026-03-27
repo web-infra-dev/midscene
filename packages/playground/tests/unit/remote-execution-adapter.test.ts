@@ -510,4 +510,102 @@ describe('RemoteExecutionAdapter', () => {
       consoleSpy.mockRestore();
     });
   });
+
+  describe('session APIs', () => {
+    it('should get session setup from server', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            fields: [{ key: 'deviceId', label: 'ADB device', type: 'select' }],
+          }),
+      });
+
+      await expect(adapter.getSessionSetup()).resolves.toMatchObject({
+        fields: [{ key: 'deviceId' }],
+      });
+      expect(mockFetch).toHaveBeenCalledWith(`${mockServerUrl}/session/setup`);
+    });
+
+    it('should send primitive setup inputs as query params', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            fields: [{ key: 'platformId', label: 'Platform', type: 'select' }],
+          }),
+      });
+
+      await adapter.getSessionSetup({
+        platformId: 'android',
+        retries: 2,
+        enabled: true,
+        ignored: { nested: true },
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        `${mockServerUrl}/session/setup?platformId=android&retries=2&enabled=true`,
+      );
+    });
+
+    it('should throw setup errors from server responses', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        statusText: 'Internal Server Error',
+        json: () => Promise.resolve({ error: 'adb executable not found' }),
+      });
+
+      await expect(adapter.getSessionSetup()).rejects.toThrow(
+        'adb executable not found',
+      );
+    });
+
+    it('should create and destroy sessions through server APIs', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              session: { connected: true, displayName: 'SERIAL123' },
+              runtimeInfo: {
+                interface: { type: 'android' },
+                preview: { kind: 'scrcpy', capabilities: [] },
+                executionUxHints: [],
+                metadata: { sessionConnected: true },
+              },
+            }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              session: { connected: false, setupState: 'required' },
+              runtimeInfo: {
+                interface: { type: 'Unknown' },
+                preview: { kind: 'none', capabilities: [] },
+                executionUxHints: [],
+                metadata: { sessionConnected: false, setupState: 'required' },
+              },
+            }),
+        });
+
+      await expect(
+        adapter.createSession({ deviceId: 'SERIAL123' }),
+      ).resolves.toMatchObject({
+        session: { connected: true },
+      });
+      expect(mockFetch).toHaveBeenNthCalledWith(1, `${mockServerUrl}/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: 'SERIAL123' }),
+      });
+
+      await expect(adapter.destroySession()).resolves.toMatchObject({
+        session: { connected: false },
+      });
+      expect(mockFetch).toHaveBeenNthCalledWith(2, `${mockServerUrl}/session`, {
+        method: 'DELETE',
+      });
+    });
+  });
 });

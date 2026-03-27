@@ -3,6 +3,10 @@
 Canonical instructions for coding agents in this repository. `CLAUDE.md`
 should point here instead of duplicating rules.
 
+## Design Principles
+
+- Throw errors instead of returning blank values when something goes wrong.
+
 ## Default Workflow
 
 - Use `pnpm` only. The workspace requires Node `>=18.19.0` and pnpm

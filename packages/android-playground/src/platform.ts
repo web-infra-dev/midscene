@@ -1,11 +1,12 @@
 import path from 'node:path';
-import { select } from '@inquirer/prompts';
 import {
   AndroidAgent,
   AndroidDevice,
-  getConnectedDevices,
+  getConnectedDevicesWithDetails,
 } from '@midscene/android';
 import {
+  type PlaygroundSessionManager,
+  type PlaygroundSessionTarget,
   createScrcpyPreviewDescriptor,
   definePlaygroundPlatform,
 } from '@midscene/playground';
@@ -14,57 +15,27 @@ import {
   SCRCPY_SERVER_PORT,
 } from '@midscene/shared/constants';
 import { findAvailablePort } from '@midscene/shared/node';
+import type ScrcpyServer from './scrcpy-server';
 
 export interface AndroidPlatformOptions {
-  deviceId?: string;
   staticDir?: string;
+  scrcpyServer?: ScrcpyServer;
+  scrcpyPort?: number;
 }
 
-// Function to get available devices
-async function getAdbDevices() {
-  try {
-    const devices = await getConnectedDevices();
-    return devices
-      .filter((device) => device.state === 'device')
-      .map((device) => ({
-        id: device.udid,
-        status: device.state,
-        name: device.udid,
-      }));
-  } catch (error) {
-    console.error('Error getting ADB devices:', error);
-    return [];
-  }
-}
-
-async function selectDevice() {
-  console.log('🔍 Scanning for Android devices...');
-
-  const devices = await getAdbDevices();
-
-  if (devices.length === 0) {
-    console.error('❌ No Android devices found!');
-    console.log('📱 Please ensure:');
-    console.log('  • Your device is connected via USB');
-    console.log('  • USB debugging is enabled');
-    console.log('  • Device is authorized for debugging');
-    process.exit(1);
-  }
-
-  if (devices.length === 1) {
-    console.log(`📱 Found device: ${devices[0].name} (${devices[0].id})`);
-    return devices[0].id;
-  }
-
-  const selectedDevice = await select({
-    message: '📱 Multiple devices found. Please select one:',
-    choices: devices.map((device) => ({
-      name: `${device.name} (${device.id})`,
-      value: device.id,
-    })),
-  });
-
-  return selectedDevice;
+async function getAdbTargets(): Promise<PlaygroundSessionTarget[]> {
+  const devices = await getConnectedDevicesWithDetails();
+  return devices
+    .filter((device) => device.state === 'device')
+    .map((device, index) => ({
+      id: device.udid,
+      label: device.udid,
+      description:
+        [device.model, device.resolution].filter(Boolean).join(' · ') ||
+        device.state,
+      status: device.state,
+      isDefault: index === 0,
+    }));
 }
 
 export const androidPlaygroundPlatform = definePlaygroundPlatform<
@@ -74,13 +45,15 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
   title: 'Midscene Android Playground',
   description: 'Android playground platform descriptor',
   async prepare(options) {
-    const selectedDeviceId = options?.deviceId || (await selectDevice());
     const staticDir =
       options?.staticDir || path.join(__dirname, '../../static');
-    const [playgroundPort, scrcpyPort] = await Promise.all([
+    const [playgroundPort, resolvedScrcpyPort] = await Promise.all([
       findAvailablePort(PLAYGROUND_SERVER_PORT),
-      findAvailablePort(SCRCPY_SERVER_PORT),
+      options?.scrcpyPort
+        ? Promise.resolve(options.scrcpyPort)
+        : findAvailablePort(SCRCPY_SERVER_PORT),
     ]);
+    const scrcpyPort = resolvedScrcpyPort;
 
     if (playgroundPort !== PLAYGROUND_SERVER_PORT) {
       console.log(
@@ -93,14 +66,91 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
       );
     }
 
+    const sessionManager: PlaygroundSessionManager = {
+      async getSetupSchema() {
+        const targets = await getAdbTargets();
+        return {
+          title: 'Connect Android device',
+          description:
+            'Select an available ADB device to create the current Android Agent.',
+          primaryActionLabel: 'Create Agent',
+          fields: [
+            {
+              key: 'deviceId',
+              label: 'ADB device',
+              type: 'select',
+              required: true,
+              options: targets.map((target) => ({
+                label: target.label,
+                value: target.id,
+                description: target.description,
+              })),
+              defaultValue: targets.find((target) => target.isDefault)?.id,
+              placeholder: 'Select a connected Android device',
+            },
+          ],
+          targets,
+        };
+      },
+      listTargets: getAdbTargets,
+      async createSession(input) {
+        const targets = await getAdbTargets();
+        const deviceId =
+          typeof input?.deviceId === 'string' && input.deviceId
+            ? input.deviceId
+            : targets.find((target) => target.isDefault)?.id;
+
+        if (!deviceId) {
+          throw new Error(
+            'No Android devices found. Connect a device with USB debugging enabled and try again.',
+          );
+        }
+
+        const connectAgent = async () => {
+          const device = new AndroidDevice(deviceId);
+          await device.connect();
+          return new AndroidAgent(device);
+        };
+
+        if (options?.scrcpyServer) {
+          options.scrcpyServer.currentDeviceId = deviceId;
+        }
+
+        const agent = await connectAgent();
+
+        return {
+          agent,
+          agentFactory: connectAgent,
+          preview: createScrcpyPreviewDescriptor(
+            { scrcpyPort },
+            { title: 'Android device preview' },
+          ),
+          displayName: deviceId,
+          metadata: {
+            deviceId,
+            scrcpyPort,
+          },
+        };
+      },
+    };
+
     return {
       platformId: 'android',
       title: 'Midscene Android Playground',
-      agentFactory: async () => {
-        const device = new AndroidDevice(selectedDeviceId);
-        await device.connect();
-        return new AndroidAgent(device);
-      },
+      sessionManager,
+      sidecars: options?.scrcpyServer
+        ? [
+            {
+              id: 'android-scrcpy',
+              start: async () => {
+                await options.scrcpyServer?.launch(scrcpyPort);
+              },
+              stop: async () => {
+                options.scrcpyServer?.close();
+              },
+            },
+          ]
+        : undefined,
       launchOptions: {
         port: playgroundPort,
         openBrowser: false,
@@ -110,13 +160,18 @@ export const androidPlaygroundPlatform = definePlaygroundPlatform<
           server.scrcpyPort = scrcpyPort;
         },
       },
-      preview: createScrcpyPreviewDescriptor({
-        title: 'Android device preview',
-        scrcpyPort,
-      }),
+      preview: createScrcpyPreviewDescriptor(
+        {
+          scrcpyPort,
+        },
+        {
+          title: 'Android device preview',
+        },
+      ),
       metadata: {
-        deviceId: selectedDeviceId,
         scrcpyPort,
+        sessionConnected: false,
+        setupState: 'required',
       },
     };
   },

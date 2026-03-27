@@ -134,6 +134,7 @@ describe('MidsceneReporter', () => {
       expect(updateReportSpy).toHaveBeenCalledWith({
         dumpString: dumpContent,
         attributes: {
+          'data-group-id': 'test-id-1',
           playwright_test_id: 'test-id-1',
           playwright_test_title: 'My Test Case',
           playwright_test_status: 'passed',
@@ -219,6 +220,7 @@ describe('MidsceneReporter', () => {
       expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'data-group-id': 'test-id-4(retry #1)',
             playwright_test_id: 'test-id-4(retry #1)',
             playwright_test_title: 'A Flaky Test(retry #1)',
           }),
@@ -267,6 +269,7 @@ describe('MidsceneReporter', () => {
       expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'data-group-id': 'test-id-5',
             playwright_test_id: 'test-id-5',
             playwright_test_title: 'Browser Compatibility Test [chromium]',
           }),
@@ -316,6 +319,7 @@ describe('MidsceneReporter', () => {
       expect(updateReportSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           attributes: expect.objectContaining({
+            'data-group-id': 'test-id-6(retry #2)',
             playwright_test_id: 'test-id-6(retry #2)',
             playwright_test_title: 'Flaky Browser Test [webkit](retry #2)',
           }),

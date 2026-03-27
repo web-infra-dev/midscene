@@ -128,7 +128,7 @@ The AndroidDevice constructor supports the following parameters:
   - `remoteAdbPort?: number` - Optional, the remote adb port.
   - `imeStrategy?: 'always-yadb' | 'yadb-for-non-ascii'` - Optional, controls when Midscene invokes [yadb](https://github.com/ysbing/YADB) for text input. `'yadb-for-non-ascii'` (default) automatically uses yadb for Unicode characters (including Latin Unicode like ö, é, ñ), Chinese, Japanese, and format specifiers (like %s, %d), while pure ASCII text uses the faster native `adb input text`. `'always-yadb'` forces yadb for all text input, providing maximum compatibility but slightly slower for pure ASCII. (Default: 'yadb-for-non-ascii')
   - `displayId?: number` - Optional, the display id to use. (Default: undefined, means use the current display)
-  - `screenshotResizeScale?: number` - Optional, controls the size of the screenshot Midscene sends to the AI model. Default is `1 / devicePixelRatio`, so a 1200×800 display with a device pixel ratio of 3 sends an image of roughly 400×267 to the model. Adjusting this value manually is not recommended.
+  - `screenshotResizeScale?: number` - **Deprecated.** This option has been removed and no longer has any effect. Use `screenshotShrinkFactor` in `AgentOpt` instead to control screenshot size sent to the AI model.
   - `alwaysRefreshScreenInfo?: boolean` - Optional, whether to re-fetch screen size and orientation information every time. Default is false (uses cache for better performance). Set to true if the device may rotate or you need real-time screen information.
 
 ### Additional Android Agent Interfaces

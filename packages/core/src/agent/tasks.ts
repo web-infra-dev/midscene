@@ -550,6 +550,7 @@ export class TaskExecutor {
       type: 'Insight',
       subType: type,
       param: {
+        domIncluded: opt?.domIncluded,
         dataDemand: multimodalPrompt
           ? ({
               demand,

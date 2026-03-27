@@ -170,6 +170,26 @@ midscene /path/to/yaml --headed
 midscene /path/to/yaml --keep-window
 ```
 
+### Use CDP connection mode
+
+> `web` scenarios only
+
+CDP mode lets YAML scripts connect to an existing browser instance via Chrome DevTools Protocol, without launching a new browser. This is useful for reusing an existing browser session, connecting to remote browsers, or cloud browser services.
+
+Set `cdpEndpoint` in the `web` section:
+
+```diff
+web:
+  url: https://www.bing.com
++ cdpEndpoint: ws://localhost:9222/devtools/browser
+```
+
+:::tip
+
+CDP mode and bridge mode are mutually exclusive. In CDP mode, Midscene will only disconnect from the browser, not close it.
+
+:::
+
 ### Use bridge mode
 
 > `web` scenarios only

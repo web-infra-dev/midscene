@@ -31,8 +31,8 @@ export type AndroidDeviceOpt = {
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
   /**
-   * @deprecated Use `screenshotShrinkFactor` in AgentOpt instead.
-   * This option no longer affects screenshot size sent to AI model.
+   * @deprecated This option has been removed and no longer has any effect.
+   * Use `screenshotShrinkFactor` in AgentOpt instead to control screenshot size sent to AI model.
    */
   screenshotResizeScale?: number;
   /** Always fetch screen info on each call; if false, cache the first result */
@@ -143,6 +143,9 @@ export type HarmonyDeviceOpt = {
   hdcPath?: string;
   /** Custom device actions to register */
   customActions?: DeviceAction<any>[];
-  /** Screenshot resize scale factor */
+  /**
+   * @deprecated This option has been removed and no longer has any effect.
+   * Use `screenshotShrinkFactor` in AgentOpt instead to control screenshot size sent to AI model.
+   */
   screenshotResizeScale?: number;
 } & HarmonyDeviceInputOpt;

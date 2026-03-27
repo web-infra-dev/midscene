@@ -44,7 +44,7 @@ const device = new HarmonyDevice(deviceId, {
 - `deviceId: string` —— 来自 `hdc list targets` 或 `getConnectedDevices()` 的值。
 - `hdcPath?: string` —— HDC 可执行文件的自定义路径。若未设置，将依次从 `HDC_HOME` 环境变量和常见安装路径中查找。
 - `autoDismissKeyboard?: boolean` —— 输入完成后自动隐藏键盘，默认 `true`。
-- `screenshotResizeScale?: number` —— 在发送给模型前对截图进行缩放。不建议手动修改该参数。
+- `screenshotResizeScale?: number` —— **已废弃。** 此选项已移除，不再生效。如需控制发送给 AI 模型的截图尺寸，请使用 `AgentOpt` 中的 `screenshotShrinkFactor`。
 - `customActions?: DeviceAction[]` —— 通过 `defineAction` 扩展规划器的可用动作。
 
 ### 使用说明

@@ -1,7 +1,7 @@
 {
   "name": "midscene",
   "private": true,
-  "version": "1.5.8",
+  "version": "1.6.0",
   "scripts": {
     "dev": "node scripts/dev-prepare.js && nx run-many --target=build:watch --exclude=android-playground,chrome-extension,@midscene/report,doc --verbose --parallel=6",
     "build": "nx run-many --target=build --exclude=doc --verbose",
@@ -27,7 +27,7 @@
     "commit-msg": "npx --no -- commitlint --edit $1"
   },
   "lint-staged": {
-    "*.{md,mdx,json,css,less,scss}": [
+    "*.{mdx,json,css,less,scss}": [
       "npx biome check --diagnostic-level=info --fix"
     ],
     "*.{js,jsx,ts,tsx,mjs,cjs}": [

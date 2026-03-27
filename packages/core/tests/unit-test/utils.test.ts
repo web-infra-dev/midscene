@@ -32,6 +32,7 @@ import {
   buildDetailedLocateParam,
   buildDetailedLocateParamAndRestParams,
 } from '../../src/yaml/utils';
+import { getGroupedDumpScriptIds } from './test-helpers/report-html';
 
 function createTempHtmlFile(content: string): string {
   const filePath = getTmpFile('html');
@@ -99,14 +100,13 @@ describe('utils', () => {
   it('reportHTMLContent', () => {
     const reportA = reportHTMLContent('');
     expect(reportA).toContain(
-      '<script type="midscene_web_dump" type="application/json">\n\n</script>',
+      '<script type="midscene_web_dump" type="application/json" data-group-id="',
     );
 
     const content = uuid();
     const reportB = reportHTMLContent(content);
-    expect(reportB).toContain(
-      `<script type="midscene_web_dump" type="application/json">\n${content}\n</script>`,
-    );
+    expect(reportB).toContain(`type="application/json" data-group-id="`);
+    expect(reportB).toContain(`>\n${content}\n</script>`);
   });
 
   it('reportHTMLContent with reportPath', () => {
@@ -117,7 +117,7 @@ describe('utils', () => {
     expect(reportPathA).toBe(tmpFile);
     const fileContentA = readFileSync(tmpFile, 'utf-8');
     expect(fileContentA).toContain(
-      '<script type="midscene_web_dump" type="application/json">\n\n</script>',
+      '<script type="midscene_web_dump" type="application/json" data-group-id="',
     );
 
     // test string content
@@ -125,9 +125,8 @@ describe('utils', () => {
     const reportPathB = reportHTMLContent(content, tmpFile);
     expect(reportPathB).toBe(tmpFile);
     const fileContentB = readFileSync(tmpFile, 'utf-8');
-    expect(fileContentB).toContain(
-      `<script type="midscene_web_dump" type="application/json">\n${content}\n</script>`,
-    );
+    expect(fileContentB).toContain(`type="application/json" data-group-id="`);
+    expect(fileContentB).toContain(`>\n${content}\n</script>`);
 
     // test array with attributes
     const uuid1 = uuid();
@@ -147,6 +146,22 @@ describe('utils', () => {
     expect(fileContentC).toContain('test_attr="test_value"');
     expect(fileContentC).toContain('another_attr="another_value"');
     expect(fileContentC).toContain(uuid1);
+  });
+
+  it('reportHTMLContent string append mode reuses the same auto group id', () => {
+    const tmpFile = createTempHtmlFile('');
+    const firstContent = JSON.stringify({ test: 'first' });
+    const secondContent = JSON.stringify({ test: 'second' });
+
+    reportHTMLContent(firstContent, tmpFile, true);
+    reportHTMLContent(secondContent, tmpFile, true);
+
+    const fileContent = readFileSync(tmpFile, 'utf-8');
+    const groupIds = getGroupedDumpScriptIds(fileContent);
+
+    expect(groupIds).toHaveLength(2);
+    expect(groupIds[0]).toBeTruthy();
+    expect(groupIds[0]).toBe(groupIds[1]);
   });
 
   it(

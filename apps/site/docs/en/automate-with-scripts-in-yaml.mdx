@@ -182,6 +182,10 @@ web:
   # Whether to restrict page navigation to the current tab, optional, defaults to true.
   forceSameTabNavigation: <boolean>
 
+  # CDP endpoint, optional. Connects to an existing browser instance via CDP instead of launching a new one.
+  # Mutually exclusive with bridgeMode.
+  cdpEndpoint: ws://localhost:9222/devtools/browser
+
   # The bridge mode, optional, defaults to false. Can be 'newTabWithUrl' or 'currentTab'. See below for more details.
   bridgeMode: false | 'newTabWithUrl' | 'currentTab'
 
@@ -217,7 +221,7 @@ android:
   # All other options supported by the AndroidDevice constructor
   # For example: androidAdbPath, remoteAdbHost, remoteAdbPort,
   # imeStrategy, displayId, autoDismissKeyboard, keyboardDismissStrategy,
-  # screenshotResizeScale, alwaysRefreshScreenInfo, etc.
+  # alwaysRefreshScreenInfo, etc.
   # See the AndroidDevice constructor documentation for the complete list
 ```
 

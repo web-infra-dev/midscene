@@ -92,6 +92,7 @@ vi.mock('express', () => {
     use: vi.fn(),
     get: vi.fn(),
     post: vi.fn(),
+    delete: vi.fn(),
     listen: vi.fn((port: number, callback?: () => void) => {
       setTimeout(() => callback?.(), 0);
       return {

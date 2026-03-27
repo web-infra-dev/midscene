@@ -1,5 +1,78 @@
 # Changelog
 
+## v1.6 - CDP Connection, Pinch/Zoom & Multi-Model Enhancements
+
+v1.6 adds CDP browser connection mode, cross-platform pinch/zoom gestures, GPT-5/GPT-5.4 model support, along with improvements to element locating, report system, Chrome extension, and more.
+
+### CDP Browser Connection Mode
+
+You can now connect to an existing browser instance via CDP (Chrome DevTools Protocol) for automation, without having Midscene launch a new browser. This is useful when you need to reuse an existing browser session. See: [Skills - Browser Automation](./skills), [YAML Script Runner - CDP Mode](./yaml-script-runner#use-cdp-connection-mode)
+
+### Cross-Platform Pinch/Zoom Gestures
+
+Pinch/zoom gestures are now supported on Android, iOS, and HarmonyOS, enabling use cases like map zooming and image preview. See: [API Reference - aiPinch](./api.mdx#agentaipinch)
+
+### GPT-5 / GPT-5.4 & Codex App-Server Provider Support
+
+Added support for GPT-5, GPT-5.4 models and Codex app-server provider. You can now use the latest OpenAI models for visual understanding and automation. See: [Model Config](./model-config), [Model Strategy](./model-strategy)
+
+### Custom extraBody for Model Requests
+
+A new `extraBody` configuration allows you to pass additional custom parameters in model API requests, useful for specific model deployments or environments. See the [`MIDSCENE_MODEL_EXTRA_BODY_JSON` environment variable](./model-config#advanced-settings-optional) in Advanced Settings.
+
+### `deepThink` Renamed to `deepLocate`
+
+The `deepThink` parameter in element-locating APIs has been renamed to `deepLocate` to better describe its "deep locate" purpose. The original `deepThink` parameter still works but we recommend migrating. See: [API Reference](./api.mdx)
+
+### Skill CLI & Platform Tool Enhancements
+
+- **Skill CLI Custom Interfaces**: Skill CLI now supports custom interfaces for more flexible Skill extensibility. See: [Skills](./skills)
+- **Unified MCP Tool Export**: All platform packages (Web, Android, iOS, etc.) now export MidsceneTools uniformly, making MCP integration simpler. See: [MCP](./mcp)
+- **iOS App Termination by bundleId**: You can now terminate iOS apps by bundleId, making it easier to reset app state during testing. See: [iOS API Reference](./ios-api-reference)
+- **CLI Version Display**: CLI now shows version info in health checks, helping you troubleshoot environment issues
+
+### Task Cancellation Support
+
+`aiAct` now supports `AbortSignal`, allowing you to cancel operations mid-execution instead of waiting for them to complete. See: [API Reference - aiAct](./api.mdx#agentaiact)
+
+### Element Locating Optimization
+
+The `deepLocate` flow has been optimized for better efficiency and accuracy when locating elements in complex interfaces.
+
+### Report & Playback Improvements
+
+- **Faster Large Report Loading**: Screenshots in reports are now lazy-loaded, significantly speeding up reports with many steps
+- **Mobile Reports with Device Shells**: Report playback now shows device shells, giving you a more realistic view of mobile automation
+- **More Precise Timing**: AI call and action execution timing in reports is now more precise, helping you identify performance bottlenecks
+
+### Stability Improvements
+
+- AI planning now automatically retries once on intermittent parse failures, reducing test interruptions from network issues
+- Device health check now includes monitor detection, helping diagnose display issues in headless environments
+
+### Chrome Extension Improvements
+
+- Fixed crash when generating scripts after stopping recording
+- Fixed lag during long recording sessions caused by message serialization performance
+- Bridge mode now has start/stop control buttons, and fixed connection drops during confirmation
+
+### Bug Fixes
+
+- Fixed MCP server becoming a zombie process with 100% CPU usage in some cases
+- Fixed screenshots not retrying when page navigation is in progress
+- Fixed text input loss on Android in certain scenarios
+- Fixed `aiNumber` returning incorrect results for some formats
+- Fixed `aiScroll` throwing errors when called without arguments
+- Fixed AutoGLM back/home actions not working correctly across different platforms
+- Fixed report display issues when model names contain `/`
+- Fixed report player not resetting properly after playback completes
+- Fixed Deep Think toggle not reading environment variable configuration in Playground
+- Fixed cursor size displaying incorrectly in high-resolution device screenshots
+- Fixed Chrome launch path resolution failing on Linux
+- Fixed inaccurate element locating on pages with iframes
+- Fixed HarmonyOS screen info parsing errors at certain render resolutions
+- Fixed device orientation displaying incorrectly after canceling tasks in Playground
+
 ## v1.5 - HarmonyOS Support
 
 v1.5 adds HarmonyOS automation support, Qwen3.5 and doubao-seed 2.0 model support, along with multiple improvements to desktop automation, report system, Chrome extension, and more.

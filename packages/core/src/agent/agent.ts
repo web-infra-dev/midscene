@@ -18,6 +18,7 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
+  type GroupMeta,
   GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
@@ -343,7 +344,7 @@ export class Agent<
           }
 
           // Fire and forget - don't block task execution
-          this.writeOutActionDumps();
+          this.writeOutActionDumps(executionDump);
         },
       },
     });
@@ -479,9 +480,25 @@ export class Agent<
     return reportHTMLContent(this.dumpDataString(opt));
   }
 
-  writeOutActionDumps() {
-    this.reportGenerator.onDumpUpdate(this.dump);
+  private lastExecutionDump?: ExecutionDump;
+
+  writeOutActionDumps(executionDump?: ExecutionDump) {
+    const exec = executionDump || this.lastExecutionDump;
+    if (exec) {
+      this.lastExecutionDump = exec;
+      this.reportGenerator.onExecutionUpdate(exec, this.getGroupMeta());
+    }
     this.reportFile = this.reportGenerator.getReportPath();
+  }
+
+  private getGroupMeta(): GroupMeta {
+    return {
+      groupName: this.dump.groupName,
+      groupDescription: this.dump.groupDescription,
+      sdkVersion: this.dump.sdkVersion,
+      modelBriefs: this.dump.modelBriefs,
+      deviceType: this.dump.deviceType,
+    };
   }
 
   private async callbackOnTaskStartTip(task: ExecutionTask) {
@@ -1314,8 +1331,8 @@ export class Agent<
     // Wait for all queued write operations to complete
     await this.reportGenerator.flush();
 
-    await this.reportGenerator.finalize(this.dump);
-    this.reportFile = this.reportGenerator.getReportPath();
+    const finalPath = await this.reportGenerator.finalize();
+    this.reportFile = finalPath;
 
     await this.interface.destroy?.();
     this.resetDump(); // reset dump to release memory
@@ -1359,6 +1376,7 @@ export class Agent<
     };
     // 4. build ExecutionDump
     const executionDump = new ExecutionDump({
+      id: uuid(),
       logTime: now,
       name: `Log - ${title || 'untitled'}`,
       description: opt?.content || '',
@@ -1377,7 +1395,7 @@ export class Agent<
       }
     }
 
-    this.writeOutActionDumps();
+    this.writeOutActionDumps(executionDump);
     await this.reportGenerator.flush();
   }
 
