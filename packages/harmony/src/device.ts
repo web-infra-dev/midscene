@@ -404,6 +404,27 @@ export class HarmonyDevice implements AbstractInterface {
     return this;
   }
 
+  /**
+   * Terminate (force-stop) a HarmonyOS app by bundle name.
+   * Supports app name resolution via setAppNameMapping.
+   * If uri contains "/" (e.g. com.example.app/MainAbility), only the bundle part is used.
+   */
+  public async terminate(uri: string): Promise<void> {
+    const bundlePart = uri.includes('/') ? uri.split('/')[0] : uri;
+    const resolved = this.resolvePackageName(bundlePart) ?? bundlePart;
+    const hdc = await this.getHdc();
+    try {
+      debugDevice(`Terminating app: ${resolved}`);
+      await hdc.forceStop(resolved);
+      debugDevice(`Successfully terminated: ${resolved}`);
+    } catch (error: any) {
+      debugDevice(`Error terminating ${resolved}: ${error}`);
+      throw new Error(`Failed to terminate ${resolved}: ${error.message}`, {
+        cause: error,
+      });
+    }
+  }
+
   async getScreenSize(): Promise<{ width: number; height: number }> {
     if (this.cachedScreenSize) {
       return this.cachedScreenSize;
@@ -760,17 +781,28 @@ const launchParamSchema = z.object({
     ),
 });
 
+const terminateParamSchema = z.object({
+  uri: z
+    .string()
+    .describe(
+      'Bundle name or app name to terminate. Use the exact bundle name, e.g. com.huawei.hmos.settings.',
+    ),
+});
+
 type RunHdcShellParam = z.infer<typeof runHdcShellParamSchema>;
 type LaunchParam = z.infer<typeof launchParamSchema>;
+type TerminateParam = z.infer<typeof terminateParamSchema>;
 
 export type DeviceActionRunHdcShell = DeviceAction<RunHdcShellParam, string>;
 export type DeviceActionLaunch = DeviceAction<LaunchParam, void>;
+export type DeviceActionTerminate = DeviceAction<TerminateParam, void>;
 
 const createPlatformActions = (
   device: HarmonyDevice,
 ): {
   RunHdcShell: DeviceActionRunHdcShell;
   Launch: DeviceActionLaunch;
+  Terminate: DeviceActionTerminate;
   HarmonyBackButton: DeviceActionHarmonyBackButton;
   HarmonyHomeButton: DeviceActionHarmonyHomeButton;
   HarmonyRecentAppsButton: DeviceActionHarmonyRecentAppsButton;
@@ -809,6 +841,18 @@ const createPlatformActions = (
           throw new Error('Launch requires a non-empty uri parameter');
         }
         await device.launch(param.uri);
+      },
+    }),
+    Terminate: defineAction<typeof terminateParamSchema, TerminateParam, void>({
+      name: 'Terminate',
+      description: 'Terminate (force-stop) a HarmonyOS app by bundle name',
+      interfaceAlias: 'terminate',
+      paramSchema: terminateParamSchema,
+      call: async (param) => {
+        if (!param.uri || param.uri.trim() === '') {
+          throw new Error('Terminate requires a non-empty uri parameter');
+        }
+        await device.terminate(param.uri);
       },
     }),
     HarmonyBackButton: defineAction({

@@ -11,6 +11,7 @@ import {
   type DeviceActionAndroidRecentAppsButton,
   type DeviceActionLaunch,
   type DeviceActionRunAdbShell,
+  type DeviceActionTerminate,
 } from './device';
 import { getConnectedDevices } from './utils';
 
@@ -89,6 +90,16 @@ export class AndroidAgent extends PageAgent<AndroidDevice> {
    */
   async launch(uri: string): Promise<void> {
     const action = this.wrapActionInActionSpace<DeviceActionLaunch>('Launch');
+    return action({ uri });
+  }
+
+  /**
+   * Terminate (force-stop) an Android app by package name
+   * @param uri - Package name or app name to terminate
+   */
+  async terminate(uri: string): Promise<void> {
+    const action =
+      this.wrapActionInActionSpace<DeviceActionTerminate>('Terminate');
     return action({ uri });
   }
 
