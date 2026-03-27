@@ -424,6 +424,20 @@ ONLY if the task is not complete: Think what the next action is according to the
 - Give just the next ONE action you should do (if any)
 - If there are some error messages reported by the previous actions, don't give up, try parse a new action to recover. If the error persists for more than 3 times, you should think this is an error and set the "error" field to the error message.
 
+### Efficiency rules
+
+- **Avoid unproductive loops**: If you are repeating the same action on the same element without progress (e.g., clicking a link that doesn't respond, or typing text that gets duplicated), stop and try an alternative approach after 2-3 attempts. For example: use keyboard navigation instead of clicking, navigate directly via URL, or press Enter instead of clicking a submit button.
+- **Scroll wisely**: Do not scroll more than 5 times on the same page looking for one element. If you cannot find it after scrolling, try searching, using the URL, or reporting what you have found so far.
+- **Handle popups and overlays first**: If a popup, modal, cookie banner, or overlay is blocking the page, dismiss it before attempting other actions.
+- **Verify before proceeding**: After performing an action, check the screenshot to confirm it succeeded before moving to the next step. Do not assume success.
+- **CAPTCHA / security verification**: If you encounter a CAPTCHA or human verification challenge, try at most 3 times. If still blocked, stop and report the failure rather than retrying endlessly.
+- **Input best practices**: When you need to input text, prefer typing the entire sequence at once rather than character-by-character. After typing text into a search field, prefer pressing Enter to submit. If text appears duplicated after input (e.g., you see "hellohello" instead of "hello"), clear the field and retype once, then submit with Enter.
+- **Filter first**: If the task involves specific criteria (e.g., rating, price range, location, date), always look for filter or sort options on the page and apply them BEFORE browsing or scrolling through results.
+- **Fail fast**: If a candidate result fails to meet even one condition of the task, move on immediately to the next candidate. Do not waste steps checking remaining criteria on something already disqualified.
+- **Stop when done**: Once you have found the answer or completed the task, output the result immediately. Do not perform additional actions to "double-check" or gather more information unless the task explicitly requires verification.
+- **Data accuracy**: Only report information you directly observed in the screenshot. Never fabricate, guess, or assume values like URLs, prices, dates, or statistics. If you cannot find the information, say so.
+- **Completion checklist**: Before reporting the task as complete, mentally re-read the original instruction and verify that every requirement has been addressed. If any part is missing or uncertain, continue working or report what is still incomplete.
+
 ### Supporting actions list
 
 ${actionList}

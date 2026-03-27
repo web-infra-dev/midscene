@@ -159,6 +159,7 @@ async function runTask(task: WebVoyagerTask): Promise<TaskResult> {
       reportFileName: `webvoyager-${task.id}`,
       replanningCycleLimit: config.maxReplanningCycles,
       screenshotShrinkFactor: config.screenshotShrinkFactor,
+      // No aiActContext — relying on the improved built-in prompt rules
     });
 
     // Give the page time to load
@@ -474,11 +475,10 @@ async function main() {
 
     results.push(bestResult!);
 
-    // Save intermediate results (without screenshots to save space)
+    // Save intermediate results (keep finalScreenshot for judge)
     const intermediateResults = results.map((r) => ({
       ...r,
-      finalScreenshot: null,
-      screenshots: [],
+      screenshots: [], // drop all except final
     }));
     writeFileSync(
       path.join(config.outputDir, 'results-intermediate.json'),
@@ -500,7 +500,7 @@ async function main() {
     ...summary,
     results: summary.results.map((r) => ({
       ...r,
-      finalScreenshot: r.finalScreenshot ? '(base64 omitted)' : null,
+      // Keep finalScreenshot for judge
       screenshots: [],
     })),
   };

@@ -231,11 +231,17 @@ async def main():
     # Setup LLM
     from browser_use import ChatOpenAI
 
-    llm = ChatOpenAI(
-        model=model_name,
-        api_key=api_key,
-        base_url=base_url,
-    )
+    # Build ChatOpenAI with optional headers (for ByteDance proxy)
+    llm_kwargs = {
+        "model": model_name,
+        "api_key": api_key,
+        "base_url": base_url,
+    }
+    extra_headers = os.environ.get("QWEN_EXTRA_HEADERS")
+    if extra_headers:
+        import json as _json
+        llm_kwargs["default_headers"] = _json.loads(extra_headers)
+    llm = ChatOpenAI(**llm_kwargs)
 
     browser_kwargs = {
         "headless": True,
