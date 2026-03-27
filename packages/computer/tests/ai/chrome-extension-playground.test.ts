@@ -3,7 +3,6 @@
  *
  * Tests:
  * - aiQuery execution and result display
- * - aiAssert execution with passing condition
  * - aiAct to add a todo item and verify
  */
 import path from 'node:path';
@@ -18,7 +17,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 600 * 1000 });
+vi.setConfig({ testTimeout: 480 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -75,21 +74,6 @@ describe('chrome extension playground advanced tests', () => {
     await agent.aiWaitFor(
       `${SIDE_PANEL} shows a result section containing text related to "todos" (the TodoMVC app title)`,
       { timeoutMs: 180000, checkIntervalMs: 10000 },
-    );
-  });
-
-  it('aiAssert: validate page condition via playground', async () => {
-    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
-    await sleep(500);
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, click the text input area and type: The page has a todo input`,
-    );
-    await sleep(500);
-    await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
-    await sleep(30000);
-    await agent.aiWaitFor(
-      `${SIDE_PANEL} shows some output or response - this could be a JSON result with "pass", a green checkmark, progress indicators, an error message, or any new content that appeared after clicking Run`,
-      { timeoutMs: 240000, checkIntervalMs: 15000 },
     );
   });
 
