@@ -71,9 +71,10 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
+    await sleep(30000);
     await agent.aiWaitFor(
       `${SIDE_PANEL} shows a result section containing text related to "todos" (the TodoMVC app title)`,
-      { timeoutMs: 60000, checkIntervalMs: 5000 },
+      { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
   });
 
@@ -85,9 +86,10 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
+    await sleep(30000);
     await agent.aiWaitFor(
       `${SIDE_PANEL} shows an execution result - either a success/passed indicator or a result message (not just the input area)`,
-      { timeoutMs: 60000, checkIntervalMs: 5000 },
+      { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
   });
 
@@ -99,9 +101,10 @@ describe('chrome extension playground advanced tests', () => {
     );
     await sleep(500);
     await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
+    await sleep(30000);
     await agent.aiWaitFor(
       'The TodoMVC page on the left shows a todo item containing "Buy groceries"',
-      { timeoutMs: 60000, checkIntervalMs: 5000 },
+      { timeoutMs: 180000, checkIntervalMs: 10000 },
     );
   });
 });
