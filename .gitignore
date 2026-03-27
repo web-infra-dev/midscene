@@ -139,4 +139,4 @@ tsconfig.build.tsbuildinfo
 .webx
 .mcp.json
 package-lock.json
-packages/all-in-one-playground/static/*
+packages/all-in-one-playground/static/*packages/evaluation/web-voyager/optimization-runs/
