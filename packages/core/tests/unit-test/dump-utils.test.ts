@@ -84,7 +84,8 @@ describe('dump/html-utils', () => {
   describe('generateDumpScriptTag', () => {
     it('should generate dump script tag without attributes', () => {
       const tag = generateDumpScriptTag('{"test": "data"}');
-      expect(tag).toContain('type="midscene_web_dump"');
+      expect(tag).toContain('data-midscene-web-dump="1"');
+      expect(tag).toContain('<textarea ');
     });
 
     it('should generate dump script tag with attributes', () => {

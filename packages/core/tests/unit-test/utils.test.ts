@@ -69,7 +69,7 @@ describe('utils', () => {
     const reportPath = writeDumpReport('test', '{}');
     expect(reportPath).toBeTruthy();
     const reportContent = readFileSync(reportPath!, 'utf-8');
-    expect(reportContent).contains('type="midscene_web_dump"');
+    expect(reportContent).contains('data-midscene-web-dump="1"');
   });
 
   it('write report file with attributes', () => {
@@ -100,13 +100,13 @@ describe('utils', () => {
   it('reportHTMLContent', () => {
     const reportA = reportHTMLContent('');
     expect(reportA).toContain(
-      '<script type="midscene_web_dump" type="application/json" data-group-id="',
+      '<textarea data-midscene-web-dump="1" style="display:none" data-group-id="',
     );
 
     const content = uuid();
     const reportB = reportHTMLContent(content);
-    expect(reportB).toContain(`type="application/json" data-group-id="`);
-    expect(reportB).toContain(`>\n${content}\n</script>`);
+    expect(reportB).toContain(`style="display:none" data-group-id="`);
+    expect(reportB).toContain(`>\n${content}\n</textarea>`);
   });
 
   it('reportHTMLContent with reportPath', () => {
@@ -117,7 +117,7 @@ describe('utils', () => {
     expect(reportPathA).toBe(tmpFile);
     const fileContentA = readFileSync(tmpFile, 'utf-8');
     expect(fileContentA).toContain(
-      '<script type="midscene_web_dump" type="application/json" data-group-id="',
+      '<textarea data-midscene-web-dump="1" style="display:none" data-group-id="',
     );
 
     // test string content
@@ -125,8 +125,8 @@ describe('utils', () => {
     const reportPathB = reportHTMLContent(content, tmpFile);
     expect(reportPathB).toBe(tmpFile);
     const fileContentB = readFileSync(tmpFile, 'utf-8');
-    expect(fileContentB).toContain(`type="application/json" data-group-id="`);
-    expect(fileContentB).toContain(`>\n${content}\n</script>`);
+    expect(fileContentB).toContain(`style="display:none" data-group-id="`);
+    expect(fileContentB).toContain(`>\n${content}\n</textarea>`);
 
     // test array with attributes
     const uuid1 = uuid();

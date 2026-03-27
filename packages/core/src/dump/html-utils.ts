@@ -11,6 +11,10 @@ const LEGACY_IMAGE_SCRIPT_CLOSE_TAG = '</script>';
 const INLINE_IMAGE_TAG_OPEN = '<img data-midscene-image="1" data-id="';
 const LEGACY_INLINE_IMAGE_TAG_OPEN = '<image data-id="';
 const INLINE_IMAGE_TAG_CLOSE = '/>';
+const DUMP_TEXTAREA_OPEN_TAG_PREFIX = '<textarea data-midscene-web-dump="1"';
+const DUMP_TEXTAREA_CLOSE_TAG = '</textarea>';
+const LEGACY_DUMP_SCRIPT_OPEN_TAG_PREFIX = '<script type="midscene_web_dump"';
+const LEGACY_DUMP_SCRIPT_CLOSE_TAG = '</script>';
 
 /**
  * Callback for processing matched tags during streaming.
@@ -217,78 +221,96 @@ export function streamImageScriptsToFile(
  * @returns The dump script content (trimmed), or empty string if not found
  */
 export function extractLastDumpScriptSync(filePath: string): string {
-  const openTagPrefix = '<script type="midscene_web_dump"';
-  const closeTag = '</script>';
+  const scanLastContent = (openTagPrefix: string, closeTag: string): string => {
+    let lastContent = '';
 
-  let lastContent = '';
+    // Custom streaming to handle the special case where open tag has variable attributes
+    const fd = openSync(filePath, 'r');
+    const fileSize = statSync(filePath).size;
+    const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
 
-  // Custom streaming to handle the special case where open tag has variable attributes
-  const fd = openSync(filePath, 'r');
-  const fileSize = statSync(filePath).size;
-  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+    let position = 0;
+    let leftover = '';
+    let capturing = false;
+    let currentContent = '';
 
-  let position = 0;
-  let leftover = '';
-  let capturing = false;
-  let currentContent = '';
+    try {
+      while (position < fileSize) {
+        const bytesRead = readSync(
+          fd,
+          buffer,
+          0,
+          STREAMING_CHUNK_SIZE,
+          position,
+        );
+        const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+        position += bytesRead;
 
-  try {
-    while (position < fileSize) {
-      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
-      position += bytesRead;
+        let searchStart = 0;
 
-      let searchStart = 0;
-
-      while (searchStart < chunk.length) {
-        if (!capturing) {
-          const startIdx = chunk.indexOf(openTagPrefix, searchStart);
-          if (startIdx !== -1) {
-            // Find the end of the opening tag (the '>' character)
-            const tagEndIdx = chunk.indexOf('>', startIdx);
-            if (tagEndIdx !== -1) {
-              capturing = true;
-              currentContent = chunk.slice(tagEndIdx + 1);
-              const endIdx = currentContent.indexOf(closeTag);
-              if (endIdx !== -1) {
-                lastContent = currentContent.slice(0, endIdx).trim();
-                capturing = false;
-                currentContent = '';
-                searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
+        while (searchStart < chunk.length) {
+          if (!capturing) {
+            const startIdx = chunk.indexOf(openTagPrefix, searchStart);
+            if (startIdx !== -1) {
+              // Find the end of the opening tag (the '>' character)
+              const tagEndIdx = chunk.indexOf('>', startIdx);
+              if (tagEndIdx !== -1) {
+                capturing = true;
+                currentContent = chunk.slice(tagEndIdx + 1);
+                const endIdx = currentContent.indexOf(closeTag);
+                if (endIdx !== -1) {
+                  lastContent = currentContent.slice(0, endIdx).trim();
+                  capturing = false;
+                  currentContent = '';
+                  searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
+                } else {
+                  leftover = currentContent.slice(-closeTag.length);
+                  currentContent = currentContent.slice(0, -closeTag.length);
+                  break;
+                }
               } else {
-                leftover = currentContent.slice(-closeTag.length);
-                currentContent = currentContent.slice(0, -closeTag.length);
+                leftover = chunk.slice(startIdx);
                 break;
               }
             } else {
-              leftover = chunk.slice(startIdx);
+              leftover = chunk.slice(-openTagPrefix.length);
               break;
             }
           } else {
-            leftover = chunk.slice(-openTagPrefix.length);
-            break;
-          }
-        } else {
-          const endIdx = chunk.indexOf(closeTag, searchStart);
-          if (endIdx !== -1) {
-            currentContent += chunk.slice(searchStart, endIdx);
-            lastContent = currentContent.trim();
-            capturing = false;
-            currentContent = '';
-            searchStart = endIdx + closeTag.length;
-          } else {
-            currentContent += chunk.slice(searchStart, -closeTag.length);
-            leftover = chunk.slice(-closeTag.length);
-            break;
+            const endIdx = chunk.indexOf(closeTag, searchStart);
+            if (endIdx !== -1) {
+              currentContent += chunk.slice(searchStart, endIdx);
+              lastContent = currentContent.trim();
+              capturing = false;
+              currentContent = '';
+              searchStart = endIdx + closeTag.length;
+            } else {
+              currentContent += chunk.slice(searchStart, -closeTag.length);
+              leftover = chunk.slice(-closeTag.length);
+              break;
+            }
           }
         }
       }
+    } finally {
+      closeSync(fd);
     }
-  } finally {
-    closeSync(fd);
+
+    return lastContent;
+  };
+
+  const textareaContent = scanLastContent(
+    DUMP_TEXTAREA_OPEN_TAG_PREFIX,
+    DUMP_TEXTAREA_CLOSE_TAG,
+  );
+  if (textareaContent) {
+    return textareaContent;
   }
 
-  return lastContent;
+  return scanLastContent(
+    LEGACY_DUMP_SCRIPT_OPEN_TAG_PREFIX,
+    LEGACY_DUMP_SCRIPT_CLOSE_TAG,
+  );
 }
 
 /**
@@ -301,86 +323,105 @@ export function extractLastDumpScriptSync(filePath: string): string {
 export function extractAllDumpScriptsSync(
   filePath: string,
 ): { openTag: string; content: string }[] {
-  const openTagPrefix = '<script type="midscene_web_dump"';
-  const closeTag = '</script>';
+  const scanAllContents = (
+    openTagPrefix: string,
+    closeTag: string,
+  ): { openTag: string; content: string }[] => {
+    const results: { openTag: string; content: string }[] = [];
 
-  const results: { openTag: string; content: string }[] = [];
+    const fd = openSync(filePath, 'r');
+    const fileSize = statSync(filePath).size;
+    const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
 
-  const fd = openSync(filePath, 'r');
-  const fileSize = statSync(filePath).size;
-  const buffer = Buffer.alloc(STREAMING_CHUNK_SIZE);
+    let position = 0;
+    let leftover = '';
+    let capturing = false;
+    let currentContent = '';
+    let currentOpenTag = '';
 
-  let position = 0;
-  let leftover = '';
-  let capturing = false;
-  let currentContent = '';
-  let currentOpenTag = '';
+    try {
+      while (position < fileSize) {
+        const bytesRead = readSync(
+          fd,
+          buffer,
+          0,
+          STREAMING_CHUNK_SIZE,
+          position,
+        );
+        const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
+        position += bytesRead;
 
-  try {
-    while (position < fileSize) {
-      const bytesRead = readSync(fd, buffer, 0, STREAMING_CHUNK_SIZE, position);
-      const chunk = leftover + buffer.toString('utf-8', 0, bytesRead);
-      position += bytesRead;
+        let searchStart = 0;
 
-      let searchStart = 0;
-
-      while (searchStart < chunk.length) {
-        if (!capturing) {
-          const startIdx = chunk.indexOf(openTagPrefix, searchStart);
-          if (startIdx !== -1) {
-            const tagEndIdx = chunk.indexOf('>', startIdx);
-            if (tagEndIdx !== -1) {
-              capturing = true;
-              currentOpenTag = chunk.slice(startIdx, tagEndIdx + 1);
-              currentContent = chunk.slice(tagEndIdx + 1);
-              const endIdx = currentContent.indexOf(closeTag);
-              if (endIdx !== -1) {
-                results.push({
-                  openTag: currentOpenTag,
-                  content: currentContent.slice(0, endIdx).trim(),
-                });
-                capturing = false;
-                currentContent = '';
-                currentOpenTag = '';
-                searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
+        while (searchStart < chunk.length) {
+          if (!capturing) {
+            const startIdx = chunk.indexOf(openTagPrefix, searchStart);
+            if (startIdx !== -1) {
+              const tagEndIdx = chunk.indexOf('>', startIdx);
+              if (tagEndIdx !== -1) {
+                capturing = true;
+                currentOpenTag = chunk.slice(startIdx, tagEndIdx + 1);
+                currentContent = chunk.slice(tagEndIdx + 1);
+                const endIdx = currentContent.indexOf(closeTag);
+                if (endIdx !== -1) {
+                  results.push({
+                    openTag: currentOpenTag,
+                    content: currentContent.slice(0, endIdx).trim(),
+                  });
+                  capturing = false;
+                  currentContent = '';
+                  currentOpenTag = '';
+                  searchStart = tagEndIdx + 1 + endIdx + closeTag.length;
+                } else {
+                  leftover = currentContent.slice(-closeTag.length);
+                  currentContent = currentContent.slice(0, -closeTag.length);
+                  break;
+                }
               } else {
-                leftover = currentContent.slice(-closeTag.length);
-                currentContent = currentContent.slice(0, -closeTag.length);
+                leftover = chunk.slice(startIdx);
                 break;
               }
             } else {
-              leftover = chunk.slice(startIdx);
+              leftover = chunk.slice(-openTagPrefix.length);
               break;
             }
           } else {
-            leftover = chunk.slice(-openTagPrefix.length);
-            break;
-          }
-        } else {
-          const endIdx = chunk.indexOf(closeTag, searchStart);
-          if (endIdx !== -1) {
-            currentContent += chunk.slice(searchStart, endIdx);
-            results.push({
-              openTag: currentOpenTag,
-              content: currentContent.trim(),
-            });
-            capturing = false;
-            currentContent = '';
-            currentOpenTag = '';
-            searchStart = endIdx + closeTag.length;
-          } else {
-            currentContent += chunk.slice(searchStart, -closeTag.length);
-            leftover = chunk.slice(-closeTag.length);
-            break;
+            const endIdx = chunk.indexOf(closeTag, searchStart);
+            if (endIdx !== -1) {
+              currentContent += chunk.slice(searchStart, endIdx);
+              results.push({
+                openTag: currentOpenTag,
+                content: currentContent.trim(),
+              });
+              capturing = false;
+              currentContent = '';
+              currentOpenTag = '';
+              searchStart = endIdx + closeTag.length;
+            } else {
+              currentContent += chunk.slice(searchStart, -closeTag.length);
+              leftover = chunk.slice(-closeTag.length);
+              break;
+            }
           }
         }
       }
+    } finally {
+      closeSync(fd);
     }
-  } finally {
-    closeSync(fd);
-  }
 
-  return results;
+    return results;
+  };
+
+  const textareaDumps = scanAllContents(
+    DUMP_TEXTAREA_OPEN_TAG_PREFIX,
+    DUMP_TEXTAREA_CLOSE_TAG,
+  );
+  const legacyScriptDumps = scanAllContents(
+    LEGACY_DUMP_SCRIPT_OPEN_TAG_PREFIX,
+    LEGACY_DUMP_SCRIPT_CLOSE_TAG,
+  );
+
+  return [...textareaDumps, ...legacyScriptDumps];
 }
 
 export function parseImageScripts(html: string): Record<string, string> {
@@ -412,38 +453,50 @@ export function parseImageScripts(html: string): Record<string, string> {
 
 export function parseDumpScript(html: string): string {
   // Use string search instead of regex to avoid ReDoS vulnerability
-  // Find the LAST dump script tag (template may contain similar patterns in bundled JS)
-  const scriptOpenTag = '<script type="midscene_web_dump"';
-  const scriptCloseTag = '</script>';
+  const parseLastTagContent = (openTag: string, closeTag: string) => {
+    const lastOpenIndex = html.lastIndexOf(openTag);
+    if (lastOpenIndex === -1) {
+      return null;
+    }
 
-  // Find the last occurrence of the opening tag
-  const lastOpenIndex = html.lastIndexOf(scriptOpenTag);
-  if (lastOpenIndex === -1) {
-    throw new Error('No dump script found in HTML');
+    const tagEndIndex = html.indexOf('>', lastOpenIndex);
+    if (tagEndIndex === -1) {
+      return null;
+    }
+
+    const closeIndex = html.indexOf(closeTag, tagEndIndex);
+    if (closeIndex === -1) {
+      return null;
+    }
+
+    return html.substring(tagEndIndex + 1, closeIndex);
+  };
+
+  const textareaContent = parseLastTagContent(
+    DUMP_TEXTAREA_OPEN_TAG_PREFIX,
+    DUMP_TEXTAREA_CLOSE_TAG,
+  );
+  if (textareaContent !== null) {
+    return unescapeContent(textareaContent);
   }
 
-  // Find the end of the opening tag (the '>' character)
-  const tagEndIndex = html.indexOf('>', lastOpenIndex);
-  if (tagEndIndex === -1) {
-    throw new Error('No dump script found in HTML');
+  const scriptContent = parseLastTagContent(
+    LEGACY_DUMP_SCRIPT_OPEN_TAG_PREFIX,
+    LEGACY_DUMP_SCRIPT_CLOSE_TAG,
+  );
+  if (scriptContent !== null) {
+    return unescapeContent(scriptContent);
   }
 
-  // Find the closing tag after the opening tag
-  const closeIndex = html.indexOf(scriptCloseTag, tagEndIndex);
-  if (closeIndex === -1) {
-    throw new Error('No dump script found in HTML');
-  }
-
-  // Extract content between opening and closing tags
-  const content = html.substring(tagEndIndex + 1, closeIndex);
-  return unescapeContent(content);
+  throw new Error('No dump script found in HTML');
 }
 
 export function parseDumpScriptAttributes(
   html: string,
 ): Record<string, string> {
-  const regex = /<script type="midscene_web_dump"([^>]*)>/;
-  const match = regex.exec(html);
+  const match =
+    /<textarea data-midscene-web-dump="1"([^>]*)>/.exec(html) ??
+    /<script type="midscene_web_dump"([^>]*)>/.exec(html);
 
   if (!match) {
     return {};
@@ -536,13 +589,13 @@ export function generateDumpScriptTag(
         .join(' ');
   }
 
-  // Do not use template string here, will cause bundle error with <script
+  // Do not use template string here.
   return (
     // biome-ignore lint/style/useTemplate: <explanation>
-    '<script type="midscene_web_dump"' +
+    '<textarea data-midscene-web-dump="1"' +
     attrString +
     '>' +
     escapeContent(json) +
-    '</script>'
+    '</textarea>'
   );
 }

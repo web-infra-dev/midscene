@@ -163,11 +163,11 @@ export function reportHTMLContent(
     // do not use template string here, will cause bundle error
     dumpContent =
       // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json" data-group-id="' +
+      '<textarea data-midscene-web-dump="1" style="display:none" data-group-id="' +
       encodeURIComponent(groupId) +
       '">\n' +
       escapeScriptTag(dumpData) +
-      '\n</script>';
+      '\n</textarea>';
   } else {
     const { dumpString, attributes } = dumpData;
     const attributesArr = Object.keys(attributes || {}).map((key) => {
@@ -177,11 +177,11 @@ export function reportHTMLContent(
     dumpContent =
       // do not use template string here, will cause bundle error
       // biome-ignore lint/style/useTemplate: <explanation>
-      '<script type="midscene_web_dump" type="application/json" ' +
+      '<textarea data-midscene-web-dump="1" style="display:none" ' +
       attributesArr.join(' ') +
       '>\n' +
       escapeScriptTag(dumpString) +
-      '\n</script>';
+      '\n</textarea>';
   }
 
   if (writeToFile) {

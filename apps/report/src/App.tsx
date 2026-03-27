@@ -346,6 +346,13 @@ function Visualizer(props: VisualizerProps): JSX.Element {
 }
 
 export function App() {
+  function getDumpElementContent(el: Element): string {
+    if (el instanceof HTMLTextAreaElement) {
+      return el.value || '';
+    }
+    return el.textContent || '';
+  }
+
   /**
    * Parse attributes from a dump script element.
    */
@@ -374,12 +381,12 @@ export function App() {
 
   function getDumpElements(): PlaywrightTasks[] {
     const dumpElements = document.querySelectorAll(
-      'script[type="midscene_web_dump"]',
+      'textarea[data-midscene-web-dump="1"],script[type="midscene_web_dump"]',
     );
     const validElements = Array.from(dumpElements).filter((el) => {
-      const textContent = el.textContent;
+      const textContent = getDumpElementContent(el);
       if (!textContent) {
-        console.warn('empty content in script tag', el);
+        console.warn('empty content in dump tag', el);
       }
       return !!textContent;
     });
@@ -391,7 +398,7 @@ export function App() {
       const groupId = el.getAttribute('data-group-id');
       if (!groupId) {
         throw new Error(
-          'Missing required attribute "data-group-id" on <script type="midscene_web_dump"> element',
+          'Missing required attribute "data-group-id" on dump element',
         );
       }
       const decodedGroupId = decodeURIComponent(groupId);
@@ -417,7 +424,7 @@ export function App() {
             let baseDump: GroupedActionDump | null = null;
 
             for (const el of elements) {
-              const content = antiEscapeScriptTag(el.textContent || '');
+              const content = antiEscapeScriptTag(getDumpElementContent(el));
               const parsed = JSON.parse(content);
               const restored = restoreImageReferences(
                 parsed,
@@ -465,7 +472,7 @@ export function App() {
 
     const loadDumpElements = () => {
       const currentElements = document.querySelectorAll(
-        'script[type="midscene_web_dump"]',
+        'textarea[data-midscene-web-dump="1"],script[type="midscene_web_dump"]',
       );
 
       // If it has been loaded and the number of elements has not changed, skip it.
@@ -479,7 +486,7 @@ export function App() {
       dumpsLoadedRef.current = true;
       if (
         currentElements.length === 1 &&
-        currentElements[0].textContent?.trim() === ''
+        getDumpElementContent(currentElements[0]).trim() === ''
       ) {
         setError('There is no dump data to display.');
         setReportDump([]);
