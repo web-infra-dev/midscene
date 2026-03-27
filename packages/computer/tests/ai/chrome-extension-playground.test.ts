@@ -79,20 +79,16 @@ describe('chrome extension playground advanced tests', () => {
   });
 
   it('aiAssert: validate page condition via playground', async () => {
+    await agent.aiAct(`Click the "aiAssert" button in ${SIDE_PANEL}`);
+    await sleep(500);
     await agent.aiAct(
-      `In ${SIDE_PANEL}, find and click the tab or button labeled "aiAssert" at the top of the panel (not inside the chat/result area)`,
+      `In ${SIDE_PANEL}, click the text input area and type: The page has a todo input`,
     );
-    await sleep(2000);
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, click the text input area at the bottom of the panel and type: The page has a todo input`,
-    );
-    await sleep(1000);
-    await agent.aiAct(
-      `In ${SIDE_PANEL}, click the "Run" button (the send/run button near the text input area)`,
-    );
+    await sleep(500);
+    await agent.aiAct(`Click the "Run" button in ${SIDE_PANEL}`);
     await sleep(30000);
     await agent.aiWaitFor(
-      `${SIDE_PANEL} shows some output or response below the input area - this could be a JSON result with "pass", a green checkmark, progress indicators, an error message, or any text that was not there before clicking Run`,
+      `${SIDE_PANEL} shows some output or response - this could be a JSON result with "pass", a green checkmark, progress indicators, an error message, or any new content that appeared after clicking Run`,
       { timeoutMs: 240000, checkIntervalMs: 15000 },
     );
   });
