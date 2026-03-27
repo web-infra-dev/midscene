@@ -6,6 +6,10 @@ export const unescapeContent = antiEscapeScriptTag;
 
 /** Chunk size for streaming file operations (64KB) */
 export const STREAMING_CHUNK_SIZE = 64 * 1024;
+const LEGACY_IMAGE_SCRIPT_OPEN_TAG = '<script type="midscene-image"';
+const LEGACY_IMAGE_SCRIPT_CLOSE_TAG = '</script>';
+const INLINE_IMAGE_TAG_OPEN = '<image data-id="';
+const INLINE_IMAGE_TAG_CLOSE = '/>';
 
 /**
  * Callback for processing matched tags during streaming.
@@ -103,15 +107,33 @@ export function extractImageByIdSync(
   htmlPath: string,
   imageId: string,
 ): string | null {
-  const targetTag = `<script type="midscene-image" data-id="${imageId}">`;
-  const closeTag = '</script>';
-
   let result: string | null = null;
 
-  streamScanTags(htmlPath, targetTag, closeTag, (content) => {
-    result = unescapeContent(content);
-    return true; // Stop after first match
-  });
+  const legacyTargetTag = `<script type="midscene-image" data-id="${imageId}">`;
+  streamScanTags(
+    htmlPath,
+    legacyTargetTag,
+    LEGACY_IMAGE_SCRIPT_CLOSE_TAG,
+    (content) => {
+      result = unescapeContent(content);
+      return true; // Stop after first match
+    },
+  );
+
+  if (result) {
+    return result;
+  }
+
+  const inlineImageTargetTag = `<image data-id="${imageId}" src="`;
+  streamScanTags(
+    htmlPath,
+    inlineImageTargetTag,
+    '" style="display:none" />',
+    (content) => {
+      result = unescapeContent(content);
+      return true; // Stop after first match
+    },
+  );
 
   return result;
 }
@@ -128,14 +150,34 @@ export function streamImageScriptsToFile(
   destFilePath: string,
 ): void {
   const { appendFileSync } = require('node:fs');
-  const openTag = '<script type="midscene-image"';
-  const closeTag = '</script>';
 
-  streamScanTags(srcFilePath, openTag, closeTag, (content) => {
-    // Write complete tag immediately to destination, don't accumulate
-    appendFileSync(destFilePath, `${openTag}${content}${closeTag}\n`);
-    return false; // Continue scanning for more tags
-  });
+  streamScanTags(
+    srcFilePath,
+    LEGACY_IMAGE_SCRIPT_OPEN_TAG,
+    LEGACY_IMAGE_SCRIPT_CLOSE_TAG,
+    (content) => {
+      // Write complete tag immediately to destination, don't accumulate
+      appendFileSync(
+        destFilePath,
+        `${LEGACY_IMAGE_SCRIPT_OPEN_TAG}${content}${LEGACY_IMAGE_SCRIPT_CLOSE_TAG}\n`,
+      );
+      return false; // Continue scanning for more tags
+    },
+  );
+
+  streamScanTags(
+    srcFilePath,
+    INLINE_IMAGE_TAG_OPEN,
+    INLINE_IMAGE_TAG_CLOSE,
+    (content) => {
+      // Write complete tag immediately to destination, don't accumulate
+      appendFileSync(
+        destFilePath,
+        `${INLINE_IMAGE_TAG_OPEN}${content}${INLINE_IMAGE_TAG_CLOSE}\n`,
+      );
+      return false; // Continue scanning for more tags
+    },
+  );
 }
 
 /**
@@ -314,12 +356,19 @@ export function extractAllDumpScriptsSync(
 
 export function parseImageScripts(html: string): Record<string, string> {
   const imageMap: Record<string, string> = {};
-  const regex =
+  const legacyRegex =
     /<script type="midscene-image" data-id="([^"]+)">([\s\S]*?)<\/script>/g;
+  const inlineImageRegex =
+    /<image data-id="([^"]+)" src="([^"]+)" style="display:none"\s*\/>/g;
 
-  for (const match of html.matchAll(regex)) {
+  for (const match of html.matchAll(legacyRegex)) {
     const [, id, content] = match;
     imageMap[id] = unescapeContent(content);
+  }
+
+  for (const match of html.matchAll(inlineImageRegex)) {
+    const [, id, src] = match;
+    imageMap[id] = unescapeContent(src);
   }
 
   return imageMap;
@@ -379,14 +428,14 @@ export function parseDumpScriptAttributes(
 }
 
 export function generateImageScriptTag(id: string, data: string): string {
-  // Do not use template string here, will cause bundle error with <script
+  // Keep function name for API compatibility.
   return (
-    // biome-ignore lint/style/useTemplate: <explanation>
-    '<script type="midscene-image" data-id="' +
+    // biome-ignore lint/style/useTemplate: keep consistent with surrounding tag generation helpers
+    '<image data-id="' +
     id +
-    '">' +
+    '" src="' +
     escapeContent(data) +
-    '</script>'
+    '" style="display:none" />'
   );
 }
 

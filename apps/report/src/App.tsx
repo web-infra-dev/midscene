@@ -37,11 +37,21 @@ function resolveImageFromDom(id: string): string {
   const cached = imageCache.get(id);
   if (cached) return cached;
 
-  const el = document.querySelector(
+  const imageEl = document.querySelector(`image[data-id="${CSS.escape(id)}"]`);
+  if (imageEl) {
+    const src = imageEl.getAttribute('src');
+    if (src) {
+      const data = antiEscapeScriptTag(src);
+      imageCache.set(id, data);
+      return data;
+    }
+  }
+
+  const legacyScriptEl = document.querySelector(
     `script[type="midscene-image"][data-id="${CSS.escape(id)}"]`,
   );
-  if (el?.textContent) {
-    const data = antiEscapeScriptTag(el.textContent);
+  if (legacyScriptEl?.textContent) {
+    const data = antiEscapeScriptTag(legacyScriptEl.textContent);
     imageCache.set(id, data);
     return data;
   }
