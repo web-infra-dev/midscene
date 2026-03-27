@@ -164,24 +164,31 @@ export function EnvConfig({
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
-        footer={[
-          ...(canRunConnectivityTest
-            ? [
-                <Button
-                  key="save-and-run"
-                  type="primary"
-                  ghost
-                  loading={connectivityLoading}
-                  onClick={handleSaveAndRun}
-                >
-                  Save and Verify Model
-                </Button>,
-              ]
-            : []),
-          <Button key="save" type="primary" onClick={handleOk}>
-            Save
-          </Button>,
-        ]}
+        footer={
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            {canRunConnectivityTest ? (
+              <Button
+                key="save-and-run"
+                type="primary"
+                ghost
+                loading={connectivityLoading}
+                onClick={handleSaveAndRun}
+              >
+                Save and Verify Model
+              </Button>
+            ) : null}
+            <Button key="save" type="primary" onClick={handleOk}>
+              Save
+            </Button>
+          </div>
+        }
         style={{ width: '800px', height: '100%', marginTop: '10%' }}
         destroyOnClose={true}
         maskClosable={true}
