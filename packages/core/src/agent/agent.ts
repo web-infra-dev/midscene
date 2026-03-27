@@ -1287,6 +1287,19 @@ export class Agent<
   }
 
   /**
+   * Get the current URL of the page.
+   * @returns The current URL as a string
+   */
+  async getCurrentUrl(): Promise<string> {
+    assert(
+      this.interface.url,
+      'getCurrentUrl is not supported in current agent',
+    );
+    const url = await this.interface.url();
+    return url;
+  }
+
+  /**
    * Add a dump update listener
    * @param listener Listener function
    * @returns A remove function that can be called to remove this listener
