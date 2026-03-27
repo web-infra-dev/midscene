@@ -199,7 +199,7 @@ describe('ScreenshotItem', () => {
       const htmlPath = join(tmpDir, 'test.html');
       writeFileSync(
         htmlPath,
-        `<script type="midscene-image" data-id="${id}">${testBase64}</script>`,
+        `<img data-midscene-image="1" data-id="${id}" src="${testBase64}" style="display:none" />`,
       );
 
       item.markPersistedInline(htmlPath);

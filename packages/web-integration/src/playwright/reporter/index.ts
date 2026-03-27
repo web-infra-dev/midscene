@@ -191,17 +191,17 @@ class MidsceneReporter implements Reporter {
         );
       }
 
-      // Parse the dump string and generate dump script tag
-      let dumpScript = `<script type="midscene_web_dump">\n${escapeScriptTag(testData.dumpString)}\n</script>`;
+      // Parse the dump string and generate hidden dump textarea tag
+      let dumpScript = `<textarea data-midscene-web-dump="1" style="display:none">\n${escapeScriptTag(testData.dumpString)}\n</textarea>`;
 
       if (testData.attributes) {
         const attributesArr = Object.keys(testData.attributes).map((key) => {
           return `${key}="${encodeURIComponent(testData.attributes![key])}"`;
         });
-        // Add attributes to the script tag
+        // Add attributes to the textarea tag
         dumpScript = dumpScript.replace(
-          '<script type="midscene_web_dump"',
-          `<script type="midscene_web_dump" ${attributesArr.join(' ')}`,
+          '<textarea data-midscene-web-dump="1" style="display:none"',
+          `<textarea data-midscene-web-dump="1" style="display:none" ${attributesArr.join(' ')}`,
         );
       }
 
@@ -212,7 +212,7 @@ class MidsceneReporter implements Reporter {
           writeFileSync(reportPath, tpl + dumpScript, { flag: 'w' });
           this.mergedReportInitialized = true;
         } else {
-          // Append only the dump scripts for subsequent tests
+          // Append only the dump tags for subsequent tests
           writeFileSync(reportPath, dumpScript, { flag: 'a' });
         }
       } else {

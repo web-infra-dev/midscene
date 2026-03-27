@@ -114,9 +114,11 @@ export default defineConfig({
     tags:
       process.env.NODE_ENV === 'development'
         ? allTestData.map((item, index) => ({
-            tag: 'script',
+            tag: 'textarea',
             attrs: {
-              type: 'midscene_web_dump',
+              'data-midscene-web-dump': '1',
+              style: 'display:none',
+              'data-group-id': `dev-group-${index}`,
               playwright_test_description: item.data.groupDescription,
               playwright_test_id: `id-${index}`,
               playwright_test_title: item.data.groupName,

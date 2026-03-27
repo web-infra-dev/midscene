@@ -28,8 +28,8 @@ describe('dump/html-utils', () => {
   describe('parseImageScripts', () => {
     it('should parse image scripts from HTML', () => {
       const html = `
-        <script type="midscene-image" data-id="img1">data:image/png;base64,abc123</script>
-        <script type="midscene-image" data-id="img2">data:image/png;base64,def456</script>
+        <img data-midscene-image="1" data-id="img1" src="data:image/png;base64,abc123" style="display:none" />
+        <img data-midscene-image="1" data-id="img2" src="data:image/png;base64,def456" style="display:none" />
       `;
       const result = parseImageScripts(html);
       expect(result).toEqual({
@@ -74,15 +74,18 @@ describe('dump/html-utils', () => {
   describe('generateImageScriptTag', () => {
     it('should generate image script tag', () => {
       const tag = generateImageScriptTag('img1', 'data:image/png;base64,abc');
-      expect(tag).toContain('type="midscene-image"');
+      expect(tag).toContain('<img ');
+      expect(tag).toContain('data-midscene-image="1"');
       expect(tag).toContain('data-id="img1"');
+      expect(tag).toContain('style="display:none"');
     });
   });
 
   describe('generateDumpScriptTag', () => {
     it('should generate dump script tag without attributes', () => {
       const tag = generateDumpScriptTag('{"test": "data"}');
-      expect(tag).toContain('type="midscene_web_dump"');
+      expect(tag).toContain('data-midscene-web-dump="1"');
+      expect(tag).toContain('<textarea ');
     });
 
     it('should generate dump script tag with attributes', () => {
