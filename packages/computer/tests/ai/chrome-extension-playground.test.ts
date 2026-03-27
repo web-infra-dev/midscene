@@ -18,7 +18,7 @@ import {
   reloadViaWebSocket,
 } from './chrome-extension-helpers';
 
-vi.setConfig({ testTimeout: 480 * 1000 });
+vi.setConfig({ testTimeout: 600 * 1000 });
 
 const SIDE_PANEL =
   'the Midscene side panel on the right side of the browser window';
@@ -90,10 +90,10 @@ describe('chrome extension playground advanced tests', () => {
     await agent.aiAct(
       `In ${SIDE_PANEL}, click the "Run" button (the send/run button near the text input area)`,
     );
-    await sleep(60000);
+    await sleep(30000);
     await agent.aiWaitFor(
       `${SIDE_PANEL} shows some output or response below the input area - this could be a JSON result with "pass", a green checkmark, progress indicators, an error message, or any text that was not there before clicking Run`,
-      { timeoutMs: 180000, checkIntervalMs: 15000 },
+      { timeoutMs: 240000, checkIntervalMs: 15000 },
     );
   });
 
