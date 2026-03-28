@@ -71,6 +71,7 @@ export interface ActionSpaceItem {
   description?: string;
   args?: Record<string, unknown>;
   paramSchema?: z.ZodTypeAny;
+  interfaceAlias?: string;
 }
 
 /**
