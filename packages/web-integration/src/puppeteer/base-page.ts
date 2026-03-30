@@ -43,6 +43,16 @@ export const debugPage = getDebug('web:page');
 export const BROWSER_NAVIGATION_ERROR_PATTERN =
   /execution context was destroyed|frame was detached|target closed|page has been closed|context was destroyed|net::ERR_ABORTED/i;
 
+function isClosedPageError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /target page, context or browser has been closed|page has been closed|target closed|browser has been closed/i.test(
+    error.message,
+  );
+}
+
 export class Page<
   AgentType extends 'puppeteer' | 'playwright',
   InterfaceType extends PuppeteerPage | PlaywrightPage,
@@ -288,7 +298,7 @@ export class Page<
   }
 
   async screenshotBase64(): Promise<string> {
-    const imgType = 'jpeg';
+    const imgType = 'jpeg' as const;
     const quality = 90;
     const startTime = Date.now();
     debugPage('screenshotBase64 begin');
@@ -302,18 +312,61 @@ export class Page<
       });
       base64 = createImgBase64ByFormat(imgType, result);
     } else if (this.interfaceType === 'playwright') {
-      const buffer = await (this.underlyingPage as PlaywrightPage).screenshot({
-        type: imgType,
-        quality,
-        timeout: 10 * 1000,
-      });
-      base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+      const page = this.underlyingPage as PlaywrightPage;
+      try {
+        const buffer = await page.screenshot({
+          type: imgType,
+          quality,
+          timeout: 10 * 1000,
+        });
+        base64 = createImgBase64ByFormat(imgType, buffer.toString('base64'));
+      } catch (error) {
+        if (isClosedPageError(error) || page.isClosed()) {
+          throw error;
+        }
+
+        debugPage(
+          'playwright screenshot failed, trying CDP fallback: %s',
+          error,
+        );
+        base64 = await this.screenshotBase64ByPlaywrightCdp(
+          page,
+          imgType,
+          quality,
+        );
+      }
     } else {
       throw new Error('Unsupported page type for screenshot');
     }
     const endTime = Date.now();
     debugPage(`screenshotBase64 end, cost: ${endTime - startTime}ms`);
     return base64;
+  }
+
+  private async screenshotBase64ByPlaywrightCdp(
+    page: PlaywrightPage,
+    imgType: 'jpeg' | 'png',
+    quality?: number,
+  ) {
+    const browserName = page.context().browser()?.browserType().name();
+    if (browserName && browserName !== 'chromium') {
+      throw new Error(
+        `CDP screenshot fallback requires Chromium-based browser, but current browser is "${browserName}".`,
+      );
+    }
+
+    const client = await page.context().newCDPSession(page);
+    try {
+      const result = (await client.send('Page.captureScreenshot', {
+        format: imgType,
+        ...(quality ? { quality } : {}),
+      })) as {
+        data: string;
+      };
+      return createImgBase64ByFormat(imgType, result.data);
+    } finally {
+      await client.detach().catch(() => {});
+    }
   }
 
   async url(): Promise<string> {
