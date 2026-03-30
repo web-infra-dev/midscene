@@ -861,15 +861,13 @@ export class ReportActionDump implements IReportActionDump {
     const screenshots = this.collectAllScreenshots();
 
     for (const screenshot of screenshots) {
-      if (screenshot.hasBase64()) {
-        const imagePath = join(
-          screenshotsDir,
-          `${screenshot.id}.${screenshot.extension}`,
-        );
-        const rawBase64 = screenshot.rawBase64;
-        writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
-        screenshotMap[screenshot.id] = imagePath;
-      }
+      const imagePath = join(
+        screenshotsDir,
+        `${screenshot.id}.${screenshot.extension}`,
+      );
+      const rawBase64 = screenshot.rawBase64;
+      writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
+      screenshotMap[screenshot.id] = imagePath;
     }
 
     // Write screenshot map file

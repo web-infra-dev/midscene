@@ -205,8 +205,14 @@ describe('ReportGenerator — append-only model', () => {
       await generator.flush();
 
       const executionDir = join(tmpDir, 'executions');
-      const jsonFiles = readdirSync(executionDir).sort();
+      const jsonFiles = readdirSync(executionDir)
+        .filter((name) => /^\d+\.json$/.test(name))
+        .sort();
       expect(jsonFiles).toEqual(['1.json', '2.json']);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
+        true,
+      );
 
       const firstDump = JSON.parse(
         readFileSync(join(executionDir, '1.json'), 'utf-8'),
@@ -472,7 +478,9 @@ describe('ReportGenerator — append-only model', () => {
       expect(countGroupedDumpScripts(html)).toBe(5);
 
       const executionDir = join(reportDir, 'executions');
-      const jsonFiles = readdirSync(executionDir).sort();
+      const jsonFiles = readdirSync(executionDir)
+        .filter((name) => /^\d+\.json$/.test(name))
+        .sort();
       expect(jsonFiles).toEqual([
         '1.json',
         '2.json',
@@ -480,6 +488,10 @@ describe('ReportGenerator — append-only model', () => {
         '4.json',
         '5.json',
       ]);
+      expect(existsSync(join(executionDir, '1.json.screenshots'))).toBe(true);
+      expect(existsSync(join(executionDir, '1.json.screenshots.json'))).toBe(
+        true,
+      );
     });
 
     it('should produce valid HTML structure in directory mode', async () => {
