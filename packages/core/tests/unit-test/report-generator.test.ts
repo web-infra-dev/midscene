@@ -537,9 +537,12 @@ describe('ReportGenerator — append-only model', () => {
       const dumpObj = JSON.parse(dumpContent!.trim());
 
       const screenshotRef = dumpObj.executions[0].tasks[0].uiContext.screenshot;
-      expect(screenshotRef).toHaveProperty('base64');
-      expect(screenshotRef.base64).toContain('screenshots');
-      expect(screenshotRef.base64).toContain(screenshotId);
+      expect(screenshotRef).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        storage: 'file',
+      });
+      expect(screenshotRef.path).toContain('screenshots');
+      expect(screenshotRef.path).toContain(screenshotId);
     });
 
     it('should release memory after writing and recover via lazy loading (directory mode)', async () => {
@@ -565,10 +568,11 @@ describe('ReportGenerator — append-only model', () => {
       expect(recoveredBase64).toContain('data:image/png;base64,');
 
       const serialized = screenshot.toSerializable();
-      expect(serialized).toHaveProperty('base64');
-      expect((serialized as { base64: string }).base64).toContain(
-        'screenshots',
-      );
+      expect(serialized).toMatchObject({
+        type: 'midscene_screenshot_ref',
+        storage: 'file',
+      });
+      expect((serialized as { path: string }).path).toContain('screenshots');
     });
 
     it('should produce dump tags for multiple executions in directory mode', async () => {
@@ -776,10 +780,11 @@ describe('ReportGenerator — append-only model', () => {
       for (const s of [s1, s2]) {
         expect(s.hasBase64()).toBe(false);
         const serialized = s.toSerializable();
-        expect(serialized).toHaveProperty('base64');
-        expect((serialized as { base64: string }).base64).toContain(
-          'screenshots',
-        );
+        expect(serialized).toMatchObject({
+          type: 'midscene_screenshot_ref',
+          storage: 'file',
+        });
+        expect((serialized as { path: string }).path).toContain('screenshots');
       }
 
       for (const s of [s1, s2]) {
@@ -822,8 +827,8 @@ describe('ReportGenerator — append-only model', () => {
     });
   });
 
-  describe('memory efficiency — writtenScreenshots tracking', () => {
-    it('writtenScreenshots Set should contain only IDs, not base64 data', async () => {
+  describe('memory efficiency — screenshotStore tracking', () => {
+    it('screenshotStore writtenIds should contain only IDs, not base64 data', async () => {
       const reportPath = join(tmpDir, 'tracking-test.html');
       const generator = new ReportGenerator({
         reportPath,
@@ -839,8 +844,8 @@ describe('ReportGenerator — append-only model', () => {
       generator.onExecutionUpdate(execution, defaultReportMeta);
       await generator.flush();
 
-      const writtenScreenshots = (generator as any)
-        .writtenScreenshots as Set<string>;
+      const writtenScreenshots = (generator as any).screenshotStore
+        .writtenIds as Set<string>;
       expect(writtenScreenshots.size).toBe(1);
 
       const storedValue = [...writtenScreenshots][0];

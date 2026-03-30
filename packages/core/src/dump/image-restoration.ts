@@ -1,11 +1,17 @@
+import {
+  type ScreenshotRef,
+  normalizeScreenshotRef,
+} from '../screenshot-store';
+
 /**
  * Recursively restore image references in parsed data.
- * Replaces { $screenshot: "id" } with lazy { get base64() {...}, capturedAt } objects.
+ * Replaces ScreenshotRef (and legacy screenshot formats) with lazy
+ * { get base64() {...}, capturedAt } objects.
  * The resolver is only called when .base64 is first accessed.
  */
 export function restoreImageReferences<T>(
   data: T,
-  resolveImage: (id: string) => string,
+  resolveImage: (ref: ScreenshotRef) => string,
 ): T {
   if (typeof data === 'string') {
     return data;
@@ -16,49 +22,59 @@ export function restoreImageReferences<T>(
   }
 
   if (typeof data === 'object' && data !== null) {
-    if ('$screenshot' in data) {
-      const screenshotData = data as {
-        $screenshot: unknown;
-        capturedAt?: unknown;
-      };
-      const id = screenshotData.$screenshot;
-      const capturedAt =
-        typeof screenshotData.capturedAt === 'number'
-          ? screenshotData.capturedAt
-          : undefined;
-      if (typeof id === 'string') {
-        // If id looks like a path or base64 data, use it directly (no lazy needed)
-        if (
-          id.startsWith('data:image/') ||
-          id.startsWith('./') ||
-          id.startsWith('/')
-        ) {
-          return { base64: id, capturedAt } as T;
-        }
-
-        // Create lazy getter — .base64 is only resolved when first accessed
-        let resolved: string | null = null;
-        const lazy: { base64: string; capturedAt?: number } =
-          Object.defineProperties(
-            {} as { base64: string; capturedAt?: number },
-            {
-              base64: {
-                get() {
-                  if (resolved === null) {
-                    resolved = resolveImage(id);
-                  }
-                  return resolved;
-                },
-                enumerable: true,
-              },
-              capturedAt: { value: capturedAt, enumerable: true },
-            },
-          );
-        return lazy as T;
+    const refLike = normalizeScreenshotRef(data);
+    if (refLike) {
+      if ('base64' in refLike && refLike.base64.startsWith('data:image/')) {
+        return {
+          base64: refLike.base64,
+          capturedAt: refLike.capturedAt,
+        } as T;
       }
-      // Invalid $screenshot value, return empty
-      console.warn('Invalid $screenshot value type:', typeof id);
-      return { base64: '' } as T;
+      if ('base64' in refLike && !refLike.base64.startsWith('data:image/')) {
+        return {
+          base64: refLike.base64,
+          capturedAt: refLike.capturedAt,
+        } as T;
+      }
+      const normalizedRef: ScreenshotRef =
+        'type' in refLike
+          ? refLike
+          : '$screenshot' in refLike
+            ? {
+                type: 'midscene_screenshot_ref',
+                id: refLike.$screenshot,
+                capturedAt: refLike.capturedAt ?? 0,
+                mimeType: 'image/png',
+                storage: 'inline',
+              }
+            : {
+                type: 'midscene_screenshot_ref',
+                id: refLike.base64,
+                capturedAt: refLike.capturedAt ?? 0,
+                mimeType:
+                  refLike.base64.endsWith('.jpeg') ||
+                  refLike.base64.endsWith('.jpg')
+                    ? 'image/jpeg'
+                    : 'image/png',
+                storage: 'file',
+                path: refLike.base64,
+              };
+
+      let resolved: string | null = null;
+      const lazy: { base64: string; capturedAt?: number } =
+        Object.defineProperties({} as { base64: string; capturedAt?: number }, {
+          base64: {
+            get() {
+              if (resolved === null) {
+                resolved = resolveImage(normalizedRef);
+              }
+              return resolved;
+            },
+            enumerable: true,
+          },
+          capturedAt: { value: normalizedRef.capturedAt, enumerable: true },
+        });
+      return lazy as T;
     }
 
     const result: Record<string, unknown> = {};

@@ -20,6 +20,7 @@ import type { z } from 'zod';
 import type { TUserPrompt } from './common';
 import { restoreImageReferences } from './dump/image-restoration';
 import { ScreenshotItem } from './screenshot-item';
+import { ScreenshotStore } from './screenshot-store';
 import type {
   DetailedLocateParam,
   MidsceneYamlFlowItem,
@@ -462,12 +463,8 @@ function replacerForDumpSerialization(_key: string, value: any): any {
 }
 
 /**
- * Reviver function for JSON deserialization that handles ScreenshotItem formats.
- *
- * BEHAVIOR:
- * - For { $screenshot: "id" } format: Left as-is (plain object)
- *   Consumer must use imageMap to restore base64 data
- * - For { base64: "..." } format: Creates ScreenshotItem from base64 data
+ * Reviver function for JSON deserialization that keeps screenshot references
+ * as plain objects. Resolution is handled lazily by restoreImageReferences.
  *
  * @param key - JSON key being processed
  * @param value - JSON value being processed
@@ -479,13 +476,11 @@ function reviverForDumpDeserialization(key: string, value: any): any {
     return value;
   }
 
-  // Handle serialized format: { $screenshot: "id" }
-  // Leave as plain object — consumer uses imageMap to restore
   if (ScreenshotItem.isSerialized(value)) {
     return value;
   }
 
-  // Handle inline base64 format: { base64: "..." }
+  // Legacy compatibility read path.
   if ('base64' in value && typeof value.base64 === 'string') {
     return value;
   }
@@ -927,10 +922,16 @@ export class ReportActionDump implements IReportActionDump {
 
     // Restore image references
     const dumpData = JSON.parse(dumpString);
-    const processedData = restoreImageReferences(
-      dumpData,
-      (id) => imageMap[id] ?? '',
-    );
+    const store = new ScreenshotStore({
+      mode: 'directory',
+      reportPath: basePath,
+    });
+    const processedData = restoreImageReferences(dumpData, (ref) => {
+      if (ref.storage === 'inline') {
+        return imageMap[ref.id] ?? '';
+      }
+      return store.loadBase64(ref);
+    });
     return JSON.stringify(processedData);
   }
 

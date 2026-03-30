@@ -11,6 +11,7 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
+import { ScreenshotStore } from './screenshot-store';
 import { type ExecutionDump, ReportActionDump, type ReportMeta } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
@@ -62,7 +63,7 @@ export class ReportGenerator implements IReportGenerator {
   private readonly reportStreamId: string;
 
   // Tracks screenshots already written to disk (by id) to avoid duplicates
-  private writtenScreenshots = new Set<string>();
+  private screenshotStore: ScreenshotStore;
   private initialized = false;
 
   // Tracks the last execution + groupMeta for re-writing on finalize
@@ -83,6 +84,17 @@ export class ReportGenerator implements IReportGenerator {
     this.screenshotMode = options.screenshotMode;
     this.autoPrint = options.autoPrint ?? true;
     this.reportStreamId = uuid();
+    this.screenshotStore = new ScreenshotStore({
+      mode: this.screenshotMode === 'inline' ? 'inline' : 'directory',
+      reportPath: this.reportPath,
+      screenshotsDir: join(dirname(this.reportPath), 'screenshots'),
+      writeInlineImage: (id, base64) => {
+        appendFileSync(
+          this.reportPath,
+          `\n${generateImageScriptTag(id, base64)}`,
+        );
+      },
+    });
     this.printReportPath('will be generated at');
   }
 
@@ -224,17 +236,8 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // Append new screenshots (skip already-written ones)
-    const screenshots = execution.collectScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        appendFileSync(
-          this.reportPath,
-          `\n${generateImageScriptTag(screenshot.id, screenshot.base64)}`,
-        );
-        this.writtenScreenshots.add(screenshot.id);
-        // Safe to release memory — the image tag is permanent (never truncated)
-        screenshot.markPersistedInline(this.reportPath);
-      }
+    for (const screenshot of execution.collectScreenshots()) {
+      this.screenshotStore.persist(screenshot);
     }
 
     // Append dump tag (always — frontend keeps only last per execution id)
@@ -257,26 +260,8 @@ export class ReportGenerator implements IReportGenerator {
       mkdirSync(dir, { recursive: true });
     }
 
-    // create screenshots subdirectory
-    const screenshotsDir = join(dir, 'screenshots');
-    if (!existsSync(screenshotsDir)) {
-      mkdirSync(screenshotsDir, { recursive: true });
-    }
-
-    // 1. Write new screenshots and release memory immediately
-    const screenshots = execution.collectScreenshots();
-    for (const screenshot of screenshots) {
-      if (!this.writtenScreenshots.has(screenshot.id)) {
-        const ext = screenshot.extension;
-        const absolutePath = join(screenshotsDir, `${screenshot.id}.${ext}`);
-        const buffer = Buffer.from(screenshot.rawBase64, 'base64');
-        writeFileSync(absolutePath, buffer);
-        this.writtenScreenshots.add(screenshot.id);
-        screenshot.markPersistedToPath(
-          `./screenshots/${screenshot.id}.${ext}`,
-          absolutePath,
-        );
-      }
+    for (const screenshot of execution.collectScreenshots()) {
+      this.screenshotStore.persist(screenshot);
     }
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
