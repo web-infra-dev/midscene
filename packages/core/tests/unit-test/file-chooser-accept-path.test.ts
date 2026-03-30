@@ -86,7 +86,23 @@ describe('fileChooserAccept relative path support', () => {
   it('should throw for non-existent relative path', () => {
     expect(() => {
       (agent as any).normalizeFileInput('./non-existent-file.txt');
-    }).toThrow(/File not found/);
+    }).toThrow(
+      new RegExp(
+        `File not found: \\./non-existent-file\\.txt\\. Resolved path: .*non-existent-file\\.txt\\. cwd: ${process.cwd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+      ),
+    );
+  });
+
+  it('should reject image upload with non-existent relative path before tap runs', async () => {
+    await expect(
+      agent.aiTap('Upload images', {
+        fileChooserAccept: './tests/ai/fixtures/missing-upload-image.png',
+      }),
+    ).rejects.toThrow(
+      new RegExp(
+        `File not found: \\./tests/ai/fixtures/missing-upload-image\\.png\\. Resolved path: .*missing-upload-image\\.png\\. cwd: ${process.cwd().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+      ),
+    );
   });
 
   it('should throw for non-existent absolute path', () => {
