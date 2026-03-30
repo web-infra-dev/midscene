@@ -715,6 +715,9 @@ export interface ReportMeta {
   deviceType?: string;
 }
 
+// Backward-compatible aliases for existing external consumers.
+export type GroupMeta = ReportMeta;
+
 /*
 Report dump
 */
@@ -726,6 +729,9 @@ export interface IReportActionDump {
   executions: IExecutionDump[];
   deviceType?: string;
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type IGroupedActionDump = IReportActionDump;
 
 export interface ModelBrief {
   /**
@@ -963,6 +969,10 @@ export class ReportActionDump implements IReportActionDump {
     ];
   }
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type GroupedActionDump = ReportActionDump;
+export const GroupedActionDump = ReportActionDump;
 
 export type InterfaceType =
   | 'puppeteer'

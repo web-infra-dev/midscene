@@ -26,9 +26,12 @@ export {
   ServiceError,
   ExecutionDump,
   ReportActionDump,
+  GroupedActionDump,
   type IExecutionDump,
   type IReportActionDump,
+  type IGroupedActionDump,
   type ReportMeta,
+  type GroupMeta,
 } from './types';
 
 export { z };
