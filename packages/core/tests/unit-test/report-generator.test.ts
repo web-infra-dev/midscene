@@ -206,10 +206,10 @@ describe('ReportGenerator — append-only model', () => {
 
       const executionDir = join(tmpDir, 'executions');
       const jsonFiles = readdirSync(executionDir).sort();
-      expect(jsonFiles).toEqual(['000001.json', '000002.json']);
+      expect(jsonFiles).toEqual(['1.json', '2.json']);
 
       const firstDump = JSON.parse(
-        readFileSync(join(executionDir, '000001.json'), 'utf-8'),
+        readFileSync(join(executionDir, '1.json'), 'utf-8'),
       );
       expect(firstDump.groupName).toBe('test-group');
       expect(firstDump.executions).toHaveLength(1);
@@ -474,11 +474,11 @@ describe('ReportGenerator — append-only model', () => {
       const executionDir = join(reportDir, 'executions');
       const jsonFiles = readdirSync(executionDir).sort();
       expect(jsonFiles).toEqual([
-        '000001.json',
-        '000002.json',
-        '000003.json',
-        '000004.json',
-        '000005.json',
+        '1.json',
+        '2.json',
+        '3.json',
+        '4.json',
+        '5.json',
       ]);
     });
 
