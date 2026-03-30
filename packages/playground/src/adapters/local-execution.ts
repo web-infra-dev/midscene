@@ -1,5 +1,5 @@
 import type { DeviceAction, ExecutionDump } from '@midscene/core';
-import { GroupedActionDump } from '@midscene/core';
+import { ReportActionDump } from '@midscene/core';
 import { overrideAIConfig } from '@midscene/shared/env';
 import { uuid } from '@midscene/shared/utils';
 import { executeAction, parseStructuredParams } from '../common';
@@ -241,7 +241,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
           const dumpString = agent.dumpDataString();
           if (dumpString) {
             const groupedDump =
-              GroupedActionDump.fromSerializedString(dumpString);
+              ReportActionDump.fromSerializedString(dumpString);
             response.dump = groupedDump.executions?.[0] || null;
           }
         }
@@ -321,10 +321,9 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (typeof this.agent.dumpDataString === 'function') {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
-          // dumpDataString() returns GroupedActionDump: { executions: ExecutionDump[] }
+          // dumpDataString() returns ReportActionDump: { executions: ExecutionDump[] }
           // In Playground, each "Run" creates one execution, so we take executions[0]
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           dump = groupedDump.executions?.[0] ?? null;
         }
       }
@@ -388,8 +387,7 @@ export class LocalExecutionAdapter extends BasePlaygroundAdapter {
       if (this.agent?.dumpDataString) {
         const dumpString = this.agent.dumpDataString();
         if (dumpString) {
-          const groupedDump =
-            GroupedActionDump.fromSerializedString(dumpString);
+          const groupedDump = ReportActionDump.fromSerializedString(dumpString);
           response.dump = groupedDump.executions?.[0] || null;
         }
       }

@@ -14,8 +14,8 @@ import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
 import {
   ExecutionDump,
-  type GroupMeta,
-  GroupedActionDump,
+  ReportActionDump,
+  type ReportMeta,
   type TestStatus,
   type UIContext,
 } from '@/types';
@@ -36,9 +36,9 @@ function fakeScreenshot(size = 200): ScreenshotItem {
  */
 async function writeAndFinalize(
   gen: ReportGenerator,
-  dump: GroupedActionDump,
+  dump: ReportActionDump,
 ): Promise<void> {
-  const groupMeta: GroupMeta = {
+  const groupMeta: ReportMeta = {
     groupName: dump.groupName,
     groupDescription: dump.groupDescription,
     sdkVersion: dump.sdkVersion,
@@ -51,7 +51,7 @@ async function writeAndFinalize(
   await gen.finalize();
 }
 
-function createDump(groupName: string, taskCount: number): GroupedActionDump {
+function createDump(groupName: string, taskCount: number): ReportActionDump {
   const tasks = Array.from({ length: taskCount }, (_, i) => ({
     type: 'Insight' as const,
     subType: 'Locate',
@@ -67,7 +67,7 @@ function createDump(groupName: string, taskCount: number): GroupedActionDump {
     status: 'finished' as const,
   }));
 
-  return new GroupedActionDump({
+  return new ReportActionDump({
     sdkVersion: '1.0.0-test',
     groupName,
     groupDescription: `desc of ${groupName}`,
@@ -400,7 +400,7 @@ describe('ReportMergingTool merged dump count verification', () => {
       }) as ReportGenerator;
 
       // Write multiple executions to the same report
-      const groupMeta: GroupMeta = {
+      const groupMeta: ReportMeta = {
         groupName: `multi-group-${i}`,
         sdkVersion: '1.0.0-test',
         modelBriefs: ['test-model'],

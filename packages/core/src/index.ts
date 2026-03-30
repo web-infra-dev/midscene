@@ -25,10 +25,10 @@ export type * from './types';
 export {
   ServiceError,
   ExecutionDump,
-  GroupedActionDump,
+  ReportActionDump,
   type IExecutionDump,
-  type IGroupedActionDump,
-  type GroupMeta,
+  type IReportActionDump,
+  type ReportMeta,
 } from './types';
 
 export { z };
