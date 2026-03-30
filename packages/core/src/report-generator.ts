@@ -286,9 +286,12 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   private getExecutionLogKey(execution: ExecutionDump): string {
-    if (execution.id) return `id:${execution.id}`;
-    if (execution.name) return `name:${execution.name}`;
-    return `log-time:${execution.logTime}`;
+    if (!execution.id) {
+      throw new Error(
+        'ReportGenerator: execution.id is required for persisting execution dumps',
+      );
+    }
+    return `id:${execution.id}`;
   }
 
   private persistExecutionDump(
