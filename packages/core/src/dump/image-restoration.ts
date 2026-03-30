@@ -24,13 +24,7 @@ export function restoreImageReferences<T>(
   if (typeof data === 'object' && data !== null) {
     const refLike = normalizeScreenshotRef(data);
     if (refLike) {
-      if ('base64' in refLike && refLike.base64.startsWith('data:image/')) {
-        return {
-          base64: refLike.base64,
-          capturedAt: refLike.capturedAt,
-        } as T;
-      }
-      if ('base64' in refLike && !refLike.base64.startsWith('data:image/')) {
+      if ('base64' in refLike) {
         return {
           base64: refLike.base64,
           capturedAt: refLike.capturedAt,
