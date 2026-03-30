@@ -856,26 +856,33 @@ export class ReportActionDump implements IReportActionDump {
       mkdirSync(screenshotsDir, { recursive: true });
     }
 
-    // Write screenshots to separate files
-    const screenshotMap: Record<string, string> = {};
+    const screenshotMapPath = `${basePath}.screenshots.json`;
+    const screenshotMap: Record<string, string> = existsSync(screenshotMapPath)
+      ? JSON.parse(readFileSync(screenshotMapPath, 'utf-8'))
+      : {};
     const screenshots = this.collectAllScreenshots();
+    let screenshotMapUpdated = false;
 
     for (const screenshot of screenshots) {
       const imagePath = join(
         screenshotsDir,
         `${screenshot.id}.${screenshot.extension}`,
       );
+      const existingPath = screenshotMap[screenshot.id];
+
+      if (existingPath && existsSync(existingPath)) {
+        continue;
+      }
+
       const rawBase64 = screenshot.rawBase64;
       writeFileSync(imagePath, Buffer.from(rawBase64, 'base64'));
       screenshotMap[screenshot.id] = imagePath;
+      screenshotMapUpdated = true;
     }
 
-    // Write screenshot map file
-    writeFileSync(
-      `${basePath}.screenshots.json`,
-      JSON.stringify(screenshotMap),
-      'utf-8',
-    );
+    if (screenshotMapUpdated || !existsSync(screenshotMapPath)) {
+      writeFileSync(screenshotMapPath, JSON.stringify(screenshotMap), 'utf-8');
+    }
 
     // Write dump JSON with references
     writeFileSync(basePath, this.serialize(), 'utf-8');

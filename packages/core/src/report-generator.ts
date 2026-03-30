@@ -313,7 +313,6 @@ export class ReportGenerator implements IReportGenerator {
 
     const fileName = `${fileIndex}.json`;
     const filePath = join(this.executionLogDir, fileName);
-    ReportActionDump.cleanupFiles(filePath);
     singleDump.serializeToFiles(filePath);
   }
 }

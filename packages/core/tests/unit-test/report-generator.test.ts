@@ -222,6 +222,59 @@ describe('ReportGenerator — append-only model', () => {
       expect(firstDump.executions[0].name).toBe('execution-json-test');
     });
 
+    it('should append new execution screenshots without rewriting existing files', async () => {
+      const reportPath = join(
+        tmpDir,
+        'inline-execution-screenshots-append.html',
+      );
+      const generator = new ReportGenerator({
+        reportPath,
+        screenshotMode: 'inline',
+        autoPrint: false,
+      });
+
+      const screenshot1 = ScreenshotItem.create(fakeBase64(100), Date.now());
+      const screenshot2 = ScreenshotItem.create(fakeBase64(200), Date.now());
+      const executionId = 'same-execution-id';
+
+      const firstExecution = createExecution(
+        [screenshot1],
+        'execution-json-test',
+        executionId,
+      );
+      generator.onExecutionUpdate(firstExecution, defaultReportMeta);
+      await generator.flush();
+
+      const executionDir = join(tmpDir, 'executions');
+      const screenshotPath1 = join(
+        executionDir,
+        '1.json.screenshots',
+        `${screenshot1.id}.png`,
+      );
+      const mtimeFirst = statSync(screenshotPath1).mtimeMs;
+
+      const startTime = Date.now();
+      while (Date.now() - startTime < 50) {
+        // busy wait
+      }
+
+      const secondExecution = createExecution(
+        [screenshot1, screenshot2],
+        'execution-json-test',
+        executionId,
+      );
+      generator.onExecutionUpdate(secondExecution, defaultReportMeta);
+      await generator.flush();
+
+      const mtimeSecond = statSync(screenshotPath1).mtimeMs;
+      expect(mtimeSecond).toBe(mtimeFirst);
+      expect(
+        existsSync(
+          join(executionDir, '1.json.screenshots', `${screenshot2.id}.png`),
+        ),
+      ).toBe(true);
+    });
+
     it('should produce valid HTML with parseable image map and dump JSON', async () => {
       const reportPath = join(tmpDir, 'valid-html-test.html');
       const generator = new ReportGenerator({
