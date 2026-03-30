@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { ScreenshotItem } from '../../src/screenshot-item';
 import {
   ExecutionDump,
-  GroupedActionDump,
   type IExecutionDump,
-  type IGroupedActionDump,
+  type IReportActionDump,
+  ReportActionDump,
 } from '../../src/types';
 
 describe('ExecutionDump', () => {
@@ -162,8 +162,8 @@ describe('ExecutionDump', () => {
   });
 });
 
-describe('GroupedActionDump', () => {
-  const createMockGroupedActionDumpData = (): IGroupedActionDump => ({
+describe('ReportActionDump', () => {
+  const createMockReportActionDumpData = (): IReportActionDump => ({
     sdkVersion: '1.0.0',
     groupName: 'Test Group',
     groupDescription: 'A test group description',
@@ -184,9 +184,9 @@ describe('GroupedActionDump', () => {
   });
 
   describe('constructor', () => {
-    it('should create a GroupedActionDump instance from IGroupedActionDump data', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = new GroupedActionDump(data);
+    it('should create a ReportActionDump instance from IReportActionDump data', () => {
+      const data = createMockReportActionDumpData();
+      const dump = new ReportActionDump(data);
 
       expect(dump.sdkVersion).toBe(data.sdkVersion);
       expect(dump.groupName).toBe(data.groupName);
@@ -196,8 +196,8 @@ describe('GroupedActionDump', () => {
     });
 
     it('should convert IExecutionDump to ExecutionDump instances', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = new GroupedActionDump(data);
+      const data = createMockReportActionDumpData();
+      const dump = new ReportActionDump(data);
 
       dump.executions.forEach((execution) => {
         expect(execution).toBeInstanceOf(ExecutionDump);
@@ -211,25 +211,25 @@ describe('GroupedActionDump', () => {
         tasks: [],
       });
 
-      const data: IGroupedActionDump = {
+      const data: IReportActionDump = {
         sdkVersion: '1.0.0',
         groupName: 'Test',
         modelBriefs: [],
         executions: [executionDump],
       };
 
-      const dump = new GroupedActionDump(data);
+      const dump = new ReportActionDump(data);
       expect(dump.executions[0]).toBe(executionDump);
     });
 
     it('should handle optional fields', () => {
-      const data: IGroupedActionDump = {
+      const data: IReportActionDump = {
         sdkVersion: '1.0.0',
         groupName: 'Minimal Group',
         modelBriefs: [],
         executions: [],
       };
-      const dump = new GroupedActionDump(data);
+      const dump = new ReportActionDump(data);
 
       expect(dump.sdkVersion).toBe('1.0.0');
       expect(dump.groupName).toBe('Minimal Group');
@@ -241,8 +241,8 @@ describe('GroupedActionDump', () => {
 
   describe('serialize', () => {
     it('should serialize to JSON string', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = new GroupedActionDump(data);
+      const data = createMockReportActionDumpData();
+      const dump = new ReportActionDump(data);
       const serialized = dump.serialize();
 
       expect(typeof serialized).toBe('string');
@@ -253,8 +253,8 @@ describe('GroupedActionDump', () => {
     });
 
     it('should serialize with indentation when specified', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = new GroupedActionDump(data);
+      const data = createMockReportActionDumpData();
+      const dump = new ReportActionDump(data);
       const serialized = dump.serialize(2);
 
       expect(serialized).toContain('\n');
@@ -262,8 +262,8 @@ describe('GroupedActionDump', () => {
     });
 
     it('should serialize nested ExecutionDump instances correctly', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = new GroupedActionDump(data);
+      const data = createMockReportActionDumpData();
+      const dump = new ReportActionDump(data);
       const serialized = dump.serialize();
       const parsed = JSON.parse(serialized);
 
@@ -279,7 +279,7 @@ describe('GroupedActionDump', () => {
         capturedAt,
       );
 
-      const dump = new GroupedActionDump({
+      const dump = new ReportActionDump({
         sdkVersion: '1.0.0',
         groupName: 'Inline Screenshot Test',
         modelBriefs: [],
@@ -317,8 +317,8 @@ describe('GroupedActionDump', () => {
 
   describe('toJSON', () => {
     it('should return a plain object with nested toJSON calls', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = new GroupedActionDump(data);
+      const data = createMockReportActionDumpData();
+      const dump = new ReportActionDump(data);
       const json = dump.toJSON();
 
       expect(json.sdkVersion).toBe(data.sdkVersion);
@@ -330,21 +330,21 @@ describe('GroupedActionDump', () => {
   });
 
   describe('fromSerializedString', () => {
-    it('should create a GroupedActionDump from serialized string', () => {
-      const data = createMockGroupedActionDumpData();
+    it('should create a ReportActionDump from serialized string', () => {
+      const data = createMockReportActionDumpData();
       const serialized = JSON.stringify(data);
-      const dump = GroupedActionDump.fromSerializedString(serialized);
+      const dump = ReportActionDump.fromSerializedString(serialized);
 
-      expect(dump).toBeInstanceOf(GroupedActionDump);
+      expect(dump).toBeInstanceOf(ReportActionDump);
       expect(dump.sdkVersion).toBe(data.sdkVersion);
       expect(dump.groupName).toBe(data.groupName);
       expect(dump.executions).toHaveLength(2);
     });
 
     it('should convert nested executions to ExecutionDump instances', () => {
-      const data = createMockGroupedActionDumpData();
+      const data = createMockReportActionDumpData();
       const serialized = JSON.stringify(data);
-      const dump = GroupedActionDump.fromSerializedString(serialized);
+      const dump = ReportActionDump.fromSerializedString(serialized);
 
       dump.executions.forEach((execution) => {
         expect(execution).toBeInstanceOf(ExecutionDump);
@@ -353,17 +353,17 @@ describe('GroupedActionDump', () => {
 
     it('should throw on invalid JSON', () => {
       expect(() =>
-        GroupedActionDump.fromSerializedString('invalid json'),
+        ReportActionDump.fromSerializedString('invalid json'),
       ).toThrow();
     });
   });
 
   describe('fromJSON', () => {
-    it('should create a GroupedActionDump from plain object', () => {
-      const data = createMockGroupedActionDumpData();
-      const dump = GroupedActionDump.fromJSON(data);
+    it('should create a ReportActionDump from plain object', () => {
+      const data = createMockReportActionDumpData();
+      const dump = ReportActionDump.fromJSON(data);
 
-      expect(dump).toBeInstanceOf(GroupedActionDump);
+      expect(dump).toBeInstanceOf(ReportActionDump);
       expect(dump.sdkVersion).toBe(data.sdkVersion);
       expect(dump.groupName).toBe(data.groupName);
     });
@@ -371,10 +371,10 @@ describe('GroupedActionDump', () => {
 
   describe('round-trip serialization', () => {
     it('should preserve data through serialize/fromSerializedString cycle', () => {
-      const originalData = createMockGroupedActionDumpData();
-      const dump1 = new GroupedActionDump(originalData);
+      const originalData = createMockReportActionDumpData();
+      const dump1 = new ReportActionDump(originalData);
       const serialized = dump1.serialize();
-      const dump2 = GroupedActionDump.fromSerializedString(serialized);
+      const dump2 = ReportActionDump.fromSerializedString(serialized);
 
       expect(dump2.sdkVersion).toBe(dump1.sdkVersion);
       expect(dump2.groupName).toBe(dump1.groupName);
@@ -389,7 +389,7 @@ describe('GroupedActionDump', () => {
     });
 
     it('should handle complex nested structures', () => {
-      const complexData: IGroupedActionDump = {
+      const complexData: IReportActionDump = {
         sdkVersion: '2.0.0',
         groupName: 'Complex Group',
         groupDescription: 'A complex test',
@@ -422,9 +422,9 @@ describe('GroupedActionDump', () => {
         ],
       };
 
-      const dump1 = new GroupedActionDump(complexData);
+      const dump1 = new ReportActionDump(complexData);
       const serialized = dump1.serialize();
-      const dump2 = GroupedActionDump.fromSerializedString(serialized);
+      const dump2 = ReportActionDump.fromSerializedString(serialized);
 
       expect(dump2.executions[0].tasks).toHaveLength(2);
       expect(dump2.executions[0].aiActContext).toBe('Test AI context');
@@ -432,7 +432,7 @@ describe('GroupedActionDump', () => {
   });
 });
 
-describe('ExecutionDump and GroupedActionDump integration', () => {
+describe('ExecutionDump and ReportActionDump integration', () => {
   it('should work together in a typical workflow', () => {
     // Create ExecutionDump instances
     const execution1 = new ExecutionDump({
@@ -447,8 +447,8 @@ describe('ExecutionDump and GroupedActionDump integration', () => {
       tasks: [],
     });
 
-    // Create GroupedActionDump with ExecutionDump instances
-    const groupedDump = new GroupedActionDump({
+    // Create ReportActionDump with ExecutionDump instances
+    const groupedDump = new ReportActionDump({
       sdkVersion: '1.0.0',
       groupName: 'Integration Test',
       modelBriefs: [],
@@ -459,7 +459,7 @@ describe('ExecutionDump and GroupedActionDump integration', () => {
     const serialized = groupedDump.serialize();
 
     // Deserialize and verify
-    const restored = GroupedActionDump.fromSerializedString(serialized);
+    const restored = ReportActionDump.fromSerializedString(serialized);
 
     expect(restored.executions).toHaveLength(2);
     expect(restored.executions[0].name).toBe('First Action');

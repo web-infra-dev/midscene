@@ -12,7 +12,7 @@ import { join } from 'node:path';
 import { extractAllDumpScriptsSync } from '@/dump/html-utils';
 import { ReportGenerator } from '@/report-generator';
 import { ScreenshotItem } from '@/screenshot-item';
-import { ExecutionDump, type GroupMeta } from '@/types';
+import { ExecutionDump, type ReportMeta } from '@/types';
 import { antiEscapeScriptTag } from '@midscene/shared/utils';
 import { describe, expect, it } from 'vitest';
 import {
@@ -60,7 +60,7 @@ function createExecution(
   });
 }
 
-const defaultGroupMeta: GroupMeta = {
+const defaultReportMeta: ReportMeta = {
   groupName: 'test-group',
   groupDescription: 'test',
   sdkVersion: '1.0.0-test',
@@ -95,18 +95,18 @@ describe('Issue 2: default groupName causes unrelated reports to merge', () => {
       autoPrint: false,
     });
 
-    const sameGroupMeta: GroupMeta = {
+    const sameReportMeta: ReportMeta = {
       groupName: 'Midscene Report', // default groupName
       sdkVersion: '1.0.0',
       modelBriefs: [],
     };
 
     const exec1 = createExecution([fakeScreenshot()], 'exec-from-report-1');
-    gen1.onExecutionUpdate(exec1, sameGroupMeta);
+    gen1.onExecutionUpdate(exec1, sameReportMeta);
     await gen1.flush();
 
     const exec2 = createExecution([fakeScreenshot()], 'exec-from-report-2');
-    gen2.onExecutionUpdate(exec2, sameGroupMeta);
+    gen2.onExecutionUpdate(exec2, sameReportMeta);
     await gen2.flush();
 
     const html1 = readFileSync(join(tmpDir, 'report1.html'), 'utf-8');
@@ -142,7 +142,7 @@ describe('Issue 3: dedup key merges old executions without id', () => {
       autoPrint: false,
     });
 
-    const groupMeta: GroupMeta = {
+    const groupMeta: ReportMeta = {
       groupName: 'dedup-test',
       sdkVersion: '1.0.0',
       modelBriefs: [],
@@ -285,7 +285,7 @@ describe('Issue 5: final execution state may not be written', () => {
     // The task starts as 'running'
     expect(execution.tasks[0].status).toBe('running');
 
-    generator.onExecutionUpdate(execution, defaultGroupMeta);
+    generator.onExecutionUpdate(execution, defaultReportMeta);
     await generator.flush();
 
     // Now the task finishes (agent would do this)

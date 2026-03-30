@@ -18,8 +18,6 @@ import {
   type ExecutionRecorderItem,
   type ExecutionTask,
   type ExecutionTaskLog,
-  type GroupMeta,
-  GroupedActionDump,
   type LocateOption,
   type LocateResultElement,
   type LocateValidatorResult,
@@ -27,6 +25,8 @@ import {
   type OnTaskStartTip,
   type PlanningAction,
   type Rect,
+  ReportActionDump,
+  type ReportMeta,
   type ScrollParam,
   type ServiceAction,
   type ServiceExtractOption,
@@ -153,7 +153,7 @@ export class Agent<
 
   service: Service;
 
-  dump: GroupedActionDump;
+  dump: ReportActionDump;
 
   reportFile?: string | null;
 
@@ -433,7 +433,7 @@ export class Agent<
   }
 
   resetDump() {
-    this.dump = new GroupedActionDump({
+    this.dump = new ReportActionDump({
       sdkVersion: getVersion(),
       groupName: this.opts.groupName!,
       groupDescription: this.opts.groupDescription,
@@ -486,12 +486,12 @@ export class Agent<
     const exec = executionDump || this.lastExecutionDump;
     if (exec) {
       this.lastExecutionDump = exec;
-      this.reportGenerator.onExecutionUpdate(exec, this.getGroupMeta());
+      this.reportGenerator.onExecutionUpdate(exec, this.getReportMeta());
     }
     this.reportFile = this.reportGenerator.getReportPath();
   }
 
-  private getGroupMeta(): GroupMeta {
+  private getReportMeta(): ReportMeta {
     return {
       groupName: this.dump.groupName,
       groupDescription: this.dump.groupDescription,

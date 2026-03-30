@@ -705,9 +705,9 @@ export type ExecutionTaskPlanningLocate =
   ExecutionTask<ExecutionTaskPlanningLocateApply>;
 
 /*
-Group metadata - extracted from GroupedActionDump for per-execution writes
+Report metadata - extracted from ReportActionDump for per-execution writes
 */
-export interface GroupMeta {
+export interface ReportMeta {
   groupName: string;
   groupDescription?: string;
   sdkVersion: string;
@@ -715,10 +715,13 @@ export interface GroupMeta {
   deviceType?: string;
 }
 
+// Backward-compatible aliases for existing external consumers.
+export type GroupMeta = ReportMeta;
+
 /*
-Grouped dump
+Report dump
 */
-export interface IGroupedActionDump {
+export interface IReportActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -726,6 +729,9 @@ export interface IGroupedActionDump {
   executions: IExecutionDump[];
   deviceType?: string;
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type IGroupedActionDump = IReportActionDump;
 
 export interface ModelBrief {
   /**
@@ -745,9 +751,9 @@ export interface ModelBrief {
 }
 
 /**
- * GroupedActionDump class for serializing and deserializing grouped action dumps
+ * ReportActionDump class for serializing and deserializing report action dumps
  */
-export class GroupedActionDump implements IGroupedActionDump {
+export class ReportActionDump implements IReportActionDump {
   sdkVersion: string;
   groupName: string;
   groupDescription?: string;
@@ -755,7 +761,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   executions: ExecutionDump[];
   deviceType?: string;
 
-  constructor(data: IGroupedActionDump) {
+  constructor(data: IReportActionDump) {
     this.sdkVersion = data.sdkVersion;
     this.groupName = data.groupName;
     this.groupDescription = data.groupDescription;
@@ -767,7 +773,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Serialize the GroupedActionDump to a JSON string
+   * Serialize the ReportActionDump to a JSON string
    * Uses compact { $screenshot: id } format
    */
   serialize(indents?: number): string {
@@ -775,7 +781,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Serialize the GroupedActionDump with inline screenshots to a JSON string.
+   * Serialize the ReportActionDump with inline screenshots to a JSON string.
    * Each ScreenshotItem is replaced with { base64: "...", capturedAt }.
    */
   serializeWithInlineScreenshots(indents?: number): string {
@@ -803,7 +809,7 @@ export class GroupedActionDump implements IGroupedActionDump {
   /**
    * Convert to a plain object for JSON serialization
    */
-  toJSON(): IGroupedActionDump {
+  toJSON(): IReportActionDump {
     return {
       sdkVersion: this.sdkVersion,
       groupName: this.groupName,
@@ -815,21 +821,21 @@ export class GroupedActionDump implements IGroupedActionDump {
   }
 
   /**
-   * Create a GroupedActionDump instance from a serialized JSON string
+   * Create a ReportActionDump instance from a serialized JSON string
    */
-  static fromSerializedString(serialized: string): GroupedActionDump {
+  static fromSerializedString(serialized: string): ReportActionDump {
     const parsed = JSON.parse(
       serialized,
       reviverForDumpDeserialization,
-    ) as IGroupedActionDump;
-    return new GroupedActionDump(parsed);
+    ) as IReportActionDump;
+    return new ReportActionDump(parsed);
   }
 
   /**
-   * Create a GroupedActionDump instance from a plain object
+   * Create a ReportActionDump instance from a plain object
    */
-  static fromJSON(data: IGroupedActionDump): GroupedActionDump {
-    return new GroupedActionDump(data);
+  static fromJSON(data: IReportActionDump): ReportActionDump {
+    return new ReportActionDump(data);
   }
 
   /**
@@ -963,6 +969,10 @@ export class GroupedActionDump implements IGroupedActionDump {
     ];
   }
 }
+
+// Backward-compatible aliases for existing external consumers.
+export type GroupedActionDump = ReportActionDump;
+export const GroupedActionDump = ReportActionDump;
 
 export type InterfaceType =
   | 'puppeteer'

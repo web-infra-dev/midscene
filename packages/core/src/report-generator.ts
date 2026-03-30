@@ -11,7 +11,7 @@ import {
   generateImageScriptTag,
   getBaseUrlFixScript,
 } from './dump/html-utils';
-import { type ExecutionDump, type GroupMeta, GroupedActionDump } from './types';
+import { type ExecutionDump, ReportActionDump, type ReportMeta } from './types';
 import { appendFileSync, getReportTpl } from './utils';
 
 export interface IReportGenerator {
@@ -21,14 +21,14 @@ export interface IReportGenerator {
    * executions with the same id/name, keeping only the last one.
    *
    * @param execution  Current execution's full data
-   * @param groupMeta  Group-level metadata (groupName, sdkVersion, etc.)
+   * @param reportMeta  Report-level metadata (groupName, sdkVersion, etc.)
    */
-  onExecutionUpdate(execution: ExecutionDump, groupMeta: GroupMeta): void;
+  onExecutionUpdate(execution: ExecutionDump, reportMeta: ReportMeta): void;
 
   /**
    * @deprecated Use onExecutionUpdate instead. Kept for backward compatibility.
    */
-  onDumpUpdate?(dump: GroupedActionDump): void;
+  onDumpUpdate?(dump: ReportActionDump): void;
 
   /**
    * Wait for all queued write operations to complete.
@@ -65,7 +65,7 @@ export class ReportGenerator implements IReportGenerator {
 
   // Tracks the last execution + groupMeta for re-writing on finalize
   private lastExecution?: ExecutionDump;
-  private lastGroupMeta?: GroupMeta;
+  private lastReportMeta?: ReportMeta;
 
   // write queue for serial execution
   private writeQueue: Promise<void> = Promise.resolve();
@@ -115,12 +115,12 @@ export class ReportGenerator implements IReportGenerator {
     });
   }
 
-  onExecutionUpdate(execution: ExecutionDump, groupMeta: GroupMeta): void {
+  onExecutionUpdate(execution: ExecutionDump, reportMeta: ReportMeta): void {
     this.lastExecution = execution;
-    this.lastGroupMeta = groupMeta;
+    this.lastReportMeta = reportMeta;
     this.writeQueue = this.writeQueue.then(() => {
       if (this.destroyed) return;
-      this.doWriteExecution(execution, groupMeta);
+      this.doWriteExecution(execution, reportMeta);
     });
   }
 
@@ -130,8 +130,8 @@ export class ReportGenerator implements IReportGenerator {
 
   async finalize(): Promise<string | undefined> {
     // Re-write the last execution to capture any final state changes
-    if (this.lastExecution && this.lastGroupMeta) {
-      this.onExecutionUpdate(this.lastExecution, this.lastGroupMeta);
+    if (this.lastExecution && this.lastReportMeta) {
+      this.onExecutionUpdate(this.lastExecution, this.lastReportMeta);
     }
     await this.flush();
     this.destroyed = true;
@@ -165,12 +165,12 @@ export class ReportGenerator implements IReportGenerator {
 
   private doWriteExecution(
     execution: ExecutionDump,
-    groupMeta: GroupMeta,
+    reportMeta: ReportMeta,
   ): void {
     if (this.screenshotMode === 'inline') {
-      this.writeInlineExecution(execution, groupMeta);
+      this.writeInlineExecution(execution, reportMeta);
     } else {
-      this.writeDirectoryExecution(execution, groupMeta);
+      this.writeDirectoryExecution(execution, reportMeta);
     }
     if (!this.firstWriteDone) {
       this.firstWriteDone = true;
@@ -179,18 +179,18 @@ export class ReportGenerator implements IReportGenerator {
   }
 
   /**
-   * Wrap an ExecutionDump + GroupMeta into a single-execution GroupedActionDump.
+   * Wrap an ExecutionDump + ReportMeta into a single-execution ReportActionDump.
    */
-  private wrapAsGroupedDump(
+  private wrapAsReportDump(
     execution: ExecutionDump,
-    groupMeta: GroupMeta,
-  ): GroupedActionDump {
-    return new GroupedActionDump({
-      sdkVersion: groupMeta.sdkVersion,
-      groupName: groupMeta.groupName,
-      groupDescription: groupMeta.groupDescription,
-      modelBriefs: groupMeta.modelBriefs,
-      deviceType: groupMeta.deviceType,
+    reportMeta: ReportMeta,
+  ): ReportActionDump {
+    return new ReportActionDump({
+      sdkVersion: reportMeta.sdkVersion,
+      groupName: reportMeta.groupName,
+      groupDescription: reportMeta.groupDescription,
+      modelBriefs: reportMeta.modelBriefs,
+      deviceType: reportMeta.deviceType,
       executions: [execution],
     });
   }
@@ -202,7 +202,7 @@ export class ReportGenerator implements IReportGenerator {
    */
   private writeInlineExecution(
     execution: ExecutionDump,
-    groupMeta: GroupMeta,
+    reportMeta: ReportMeta,
   ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
@@ -230,7 +230,7 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // Append dump tag (always — frontend keeps only last per execution id)
-    const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
+    const singleDump = this.wrapAsReportDump(execution, reportMeta);
     const serialized = singleDump.serialize();
     const attributes: Record<string, string> = {
       'data-group-id': this.reportStreamId,
@@ -243,7 +243,7 @@ export class ReportGenerator implements IReportGenerator {
 
   private writeDirectoryExecution(
     execution: ExecutionDump,
-    groupMeta: GroupMeta,
+    reportMeta: ReportMeta,
   ): void {
     const dir = dirname(this.reportPath);
     if (!existsSync(dir)) {
@@ -273,7 +273,7 @@ export class ReportGenerator implements IReportGenerator {
     }
 
     // 2. Append dump tag (always — frontend keeps only last per execution id)
-    const singleDump = this.wrapAsGroupedDump(execution, groupMeta);
+    const singleDump = this.wrapAsReportDump(execution, reportMeta);
     const serialized = singleDump.serialize();
     const dumpAttributes: Record<string, string> = {
       'data-group-id': this.reportStreamId,

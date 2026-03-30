@@ -17,7 +17,7 @@ import {
   getBaseUrlFixScript,
   streamImageScriptsToFile,
 } from './dump/html-utils';
-import { GroupedActionDump } from './types';
+import { ReportActionDump } from './types';
 import type { ReportFileWithAttributes } from './types';
 import { getReportTpl, reportHTMLContent } from './utils';
 
@@ -44,7 +44,7 @@ export class ReportMergingTool {
 
   /**
    * Merge multiple dump script contents (from the same source report)
-   * into a single serialized GroupedActionDump string.
+   * into a single serialized ReportActionDump string.
    * If there's only one dump, return it as-is. If multiple, merge
    * all executions into the first dump's group structure.
    */
@@ -58,10 +58,10 @@ export class ReportMergingTool {
     // Parse all dumps and collect executions, deduplicating by id (keep last).
     // Only executions with a stable id are deduped; old-format entries without
     // id are always kept (they may be distinct despite sharing the same name).
-    const base = GroupedActionDump.fromSerializedString(unescaped[0]);
+    const base = ReportActionDump.fromSerializedString(unescaped[0]);
     const allExecutions = [...base.executions];
     for (let i = 1; i < unescaped.length; i++) {
-      const other = GroupedActionDump.fromSerializedString(unescaped[i]);
+      const other = ReportActionDump.fromSerializedString(unescaped[i]);
       allExecutions.push(...other.executions);
     }
     let noIdCounter = 0;
@@ -162,7 +162,7 @@ export class ReportMergingTool {
         // Extract all dump scripts from the source report.
         // After the per-execution append refactor, a single source report
         // may contain multiple <script type="midscene_web_dump"> tags
-        // (one per execution). We merge them into a single GroupedActionDump.
+        // (one per execution). We merge them into a single ReportActionDump.
         // Filter by data-group-id to exclude false matches from the template's
         // bundled JS code, which also references the midscene_web_dump type string.
         const allDumps = extractAllDumpScriptsSync(
